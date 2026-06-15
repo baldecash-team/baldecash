@@ -27,11 +27,11 @@ const ChatContent: React.FC<{ inputRef: React.RefObject<HTMLInputElement | null>
         <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0">
           <span className="text-white text-xs font-bold">BC</span>
         </div>
-        <div className="bg-neutral-100 rounded-2xl rounded-tl-sm p-3 max-w-[80%]">
-          <p className="text-sm text-neutral-800">
+        <div className="bg-[var(--surface-2,#f3f4f6)] rounded-2xl rounded-tl-sm p-3 max-w-[80%]">
+          <p className="text-sm text-[var(--text-strong,#1f2937)]">
             ¡Hola! Soy el asistente de BaldeCash. ¿En qué puedo ayudarte hoy?
           </p>
-          <p className="text-xs text-neutral-400 mt-1">Ahora</p>
+          <p className="text-xs text-[var(--text-faint,#9ca3af)] mt-1">Ahora</p>
         </div>
       </div>
 
@@ -49,21 +49,21 @@ const ChatContent: React.FC<{ inputRef: React.RefObject<HTMLInputElement | null>
       </div>
 
       {/* Placeholder for integration notice */}
-      <div className="mt-4 p-3 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
-        <p className="text-xs text-neutral-500 text-center">
+      <div className="mt-4 p-3 bg-[var(--surface-bg,#fafafa)] rounded-xl border border-dashed border-[var(--border-soft,#e5e7eb)]">
+        <p className="text-xs text-[var(--text-muted,#6b7280)] text-center">
           Placeholder para integración con servicio de chat real
         </p>
       </div>
     </div>
 
     {/* Input Area */}
-    <div className="border-t border-neutral-200 bg-white p-3">
+    <div className="border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] p-3">
       <div className="flex items-center gap-2">
         <input
           ref={inputRef}
           type="text"
           placeholder="Escribe tu mensaje..."
-          className="flex-1 bg-neutral-100 rounded-xl px-4 py-2.5 text-sm text-neutral-800 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-[rgba(var(--color-primary-rgb),0.3)]"
+          className="flex-1 bg-[var(--surface-2,#f3f4f6)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-strong,#1f2937)] placeholder-neutral-400 outline-none focus:ring-2 focus:ring-[rgba(var(--color-primary-rgb),0.3)]"
         />
         <Button
           isIconOnly
@@ -137,13 +137,13 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-24 right-6 z-[9998] w-[380px] bg-white rounded-2xl shadow-2xl border border-neutral-200 flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-6 z-[9998] w-[380px] bg-[var(--surface,#fff)] rounded-2xl shadow-2xl border border-[var(--border-soft,#e5e7eb)] flex flex-col overflow-hidden"
             style={{ height: '500px', maxHeight: 'calc(100vh - 120px)' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[var(--color-primary)] to-[#5B68D6] text-white">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-[var(--surface,#fff)]/20 flex items-center justify-center">
                   <MessageCircle className="w-5 h-5" />
                 </div>
                 <div>
@@ -162,7 +162,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
                   size="sm"
                   variant="light"
                   onPress={onClose}
-                  className="cursor-pointer text-white hover:bg-white/20"
+                  className="cursor-pointer text-white hover:bg-[var(--surface,#fff)]/20"
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
@@ -171,7 +171,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
                   size="sm"
                   variant="light"
                   onPress={onClose}
-                  className="cursor-pointer text-white hover:bg-white/20"
+                  className="cursor-pointer text-white hover:bg-[var(--surface,#fff)]/20"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -219,7 +219,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col"
             style={{ overscrollBehavior: 'contain', height: '85vh', maxHeight: '700px' }}
           >
             {/* Drag Handle */}
@@ -227,20 +227,20 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-3 border-b border-neutral-100">
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-[var(--border-soft,#f3f4f6)]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#22C55E]/10 flex items-center justify-center">
                   <MessageCircle className="w-4 h-4 text-[#22C55E]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">
                     BaldeBOT
                   </h2>
-                  <p className="text-xs text-neutral-500 flex items-center gap-1">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)] flex items-center gap-1">
                     <span className="w-2 h-2 bg-[#22C55E] rounded-full animate-pulse" />
                     En línea
                   </p>

@@ -43,7 +43,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                 ? 'border-2 border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] shadow-md'
                 : isDisabled
                 ? 'opacity-50 cursor-not-allowed'
-                : 'border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+                : 'border border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
             }`}
           >
             <CardBody className="p-3 relative">
@@ -60,7 +60,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                     isSelected
                       ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                      : 'bg-white border-neutral-300'
+                      : 'bg-[var(--surface,#fff)] border-[var(--border-strong,#d1d5db)]'
                   }`}
                 >
                   {isSelected && <Check className="w-3 h-3 text-white" />}
@@ -74,13 +74,13 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                   alt={product.displayName}
                   className="w-full h-24 object-contain mb-2"
                 />
-                <p className="text-xs text-neutral-500">{product.brand}</p>
-                <p className="text-sm font-semibold text-neutral-800 line-clamp-2 mb-2 min-h-[40px]">
+                <p className="text-xs text-[var(--text-muted,#6b7280)]">{product.brand}</p>
+                <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)] line-clamp-2 mb-2 min-h-[40px]">
                   {product.displayName}
                 </p>
                 <p className="text-base font-bold text-[var(--color-primary)]">
                   S/{formatMoney(getDisplayQuota(product))}
-                  <span className="text-xs font-normal text-neutral-500">/mes</span>
+                  <span className="text-xs font-normal text-[var(--text-muted,#6b7280)]">/mes</span>
                 </p>
               </div>
             </CardBody>
@@ -110,13 +110,13 @@ export const CompareFloatingBar: React.FC<CompareFloatingBarProps> = ({
   if (selectedProducts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white rounded-2xl shadow-xl border border-neutral-200 p-3 flex items-center gap-4">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[var(--surface,#fff)] rounded-2xl shadow-xl border border-[var(--border-soft,#e5e7eb)] p-3 flex items-center gap-4">
       {/* Product thumbnails */}
       <div className="flex -space-x-2">
         {selectedProducts.map((product) => (
           <div
             key={product.id}
-            className="w-10 h-10 rounded-lg border-2 border-white bg-neutral-100 overflow-hidden shadow-sm"
+            className="w-10 h-10 rounded-lg border-2 border-white bg-[var(--surface-2,#f3f4f6)] overflow-hidden shadow-sm"
           >
             <img
               src={product.images[0] || product.thumbnail}
@@ -126,18 +126,18 @@ export const CompareFloatingBar: React.FC<CompareFloatingBarProps> = ({
           </div>
         ))}
         {selectedProducts.length < maxProducts && (
-          <div className="w-10 h-10 rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50 flex items-center justify-center">
-            <span className="text-neutral-400 text-lg">+</span>
+          <div className="w-10 h-10 rounded-lg border-2 border-dashed border-[var(--border-strong,#d1d5db)] bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
+            <span className="text-[var(--text-faint,#9ca3af)] text-lg">+</span>
           </div>
         )}
       </div>
 
       {/* Info */}
       <div className="text-sm">
-        <p className="font-medium text-neutral-800">
+        <p className="font-medium text-[var(--text-strong,#1f2937)]">
           {selectedProducts.length} de {maxProducts} equipos
         </p>
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-[var(--text-muted,#6b7280)]">
           {selectedProducts.length >= 2 ? 'Listo para comparar' : 'Selecciona al menos 2'}
         </p>
       </div>
@@ -148,7 +148,7 @@ export const CompareFloatingBar: React.FC<CompareFloatingBarProps> = ({
           size="sm"
           variant="light"
           onPress={onClear}
-          className="cursor-pointer text-neutral-500"
+          className="cursor-pointer text-[var(--text-muted,#6b7280)]"
         >
           Limpiar
         </Button>

@@ -18,12 +18,12 @@ export const EmptyActionsV5: React.FC<EmptyActionsProps> = ({
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Panel: Filtros actuales */}
-      <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200">
+      <div className="bg-[var(--surface-bg,#fafafa)] rounded-xl p-4 border border-[var(--border-soft,#e5e7eb)]">
         <div className="flex items-center gap-2 mb-3">
           <X className="w-4 h-4 text-red-500" />
-          <h4 className="font-semibold text-neutral-800">Filtros actuales</h4>
+          <h4 className="font-semibold text-[var(--text-strong,#1f2937)]">Filtros actuales</h4>
         </div>
-        <p className="text-sm text-neutral-600 mb-3">
+        <p className="text-sm text-[var(--text-muted,#4b5563)] mb-3">
           {appliedFilters.length} filtros sin resultados
         </p>
         {appliedFilters.length > 0 && (
@@ -34,9 +34,9 @@ export const EmptyActionsV5: React.FC<EmptyActionsProps> = ({
                 size="sm"
                 variant="flat"
                 onClose={() => onRemoveFilter(filter.key)}
-                className="bg-neutral-200 text-neutral-700"
+                className="bg-[var(--surface-2,#e5e7eb)] text-[var(--text,#374151)]"
                 classNames={{
-                  closeButton: 'text-neutral-500 hover:text-neutral-700 cursor-pointer',
+                  closeButton: 'text-[var(--text-muted,#6b7280)] hover:text-[var(--text,#374151)] cursor-pointer',
                   base: 'cursor-default',
                 }}
               >
@@ -44,7 +44,7 @@ export const EmptyActionsV5: React.FC<EmptyActionsProps> = ({
               </Chip>
             ))}
             {appliedFilters.length > 4 && (
-              <span className="text-xs text-neutral-500 self-center">
+              <span className="text-xs text-[var(--text-muted,#6b7280)] self-center">
                 +{appliedFilters.length - 4} más
               </span>
             )}

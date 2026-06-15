@@ -206,13 +206,13 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       backdrop="blur"
       isDismissable={false}
       classNames={{
-        base: 'bg-white m-0 rounded-none h-screen',
+        base: 'bg-[var(--surface,#fff)] m-0 rounded-none h-screen',
         wrapper: 'p-0 z-[100]',
         backdrop: 'bg-black/70 z-[99]',
-        header: 'border-b border-neutral-200 bg-white py-4 flex-shrink-0',
-        body: 'bg-neutral-50 py-6 px-4 md:px-8 flex-1 overflow-y-auto',
-        footer: 'border-t border-neutral-200 bg-white flex-shrink-0',
-        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+        header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4 flex-shrink-0',
+        body: 'bg-[var(--surface-bg,#fafafa)] py-6 px-4 md:px-8 flex-1 overflow-y-auto',
+        footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] flex-shrink-0',
+        closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
@@ -222,10 +222,10 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
               <Scale className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-neutral-800 font-['Baloo_2']">
+              <h2 className="text-xl font-bold text-[var(--text-strong,#1f2937)] font-['Baloo_2']">
                 Comparador de Equipos
               </h2>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-[var(--text-muted,#6b7280)]">
                 {products.length} equipos seleccionados
               </p>
             </div>
@@ -244,9 +244,9 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     ...comparisonState,
                     showOnlyDifferences: e.target.checked,
                   })}
-                  className="w-4 h-4 rounded border-neutral-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
+                  className="w-4 h-4 rounded border-[var(--border-strong,#d1d5db)] text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
                 />
-                <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
+                <span className="text-sm text-[var(--text-muted,#4b5563)]">Solo mostrar diferencias</span>
               </label>
             </div>
           )}
@@ -263,7 +263,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
               analytics.trackCompareClear();
               onClearAll();
             }}
-            className="cursor-pointer text-neutral-600 hover:text-red-500 hidden md:flex"
+            className="cursor-pointer text-[var(--text-muted,#4b5563)] hover:text-red-500 hidden md:flex"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -308,7 +308,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                 analytics.trackCompareClose();
                 onClose();
               }}
-              className="cursor-pointer border-neutral-200 w-full md:w-auto order-3 md:order-1"
+              className="cursor-pointer border-[var(--border-soft,#e5e7eb)] w-full md:w-auto order-3 md:order-1"
             >
               Cerrar
             </Button>
@@ -321,7 +321,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
               analytics.trackCompareClear();
               onClearAll();
             }}
-            className="cursor-pointer text-neutral-600 hover:text-red-500 md:hidden w-full"
+            className="cursor-pointer text-[var(--text-muted,#4b5563)] hover:text-red-500 md:hidden w-full"
           >
             Limpiar comparación
           </Button>

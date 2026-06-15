@@ -193,7 +193,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
             style={{
               overscrollBehavior: 'contain',
               paddingBottom: 'env(safe-area-inset-bottom)',
@@ -204,7 +204,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
@@ -214,10 +214,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">
                     {config?.title || 'Tu Carrito'}
                   </h2>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)]">
                     {normalizedItems.length} {normalizedItems.length === 1 ? 'producto' : 'productos'}
                   </p>
                 </div>
@@ -235,16 +235,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* Body - scrollable */}
             <div
-              className="flex-1 overflow-y-auto p-4 bg-neutral-50"
+              className="flex-1 overflow-y-auto p-4 bg-[var(--surface-bg,#fafafa)]"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
               {normalizedItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-                    <ShoppingCart className="w-8 h-8 text-neutral-300" />
+                  <div className="w-16 h-16 rounded-full bg-[var(--surface-2,#f3f4f6)] flex items-center justify-center mb-4">
+                    <ShoppingCart className="w-8 h-8 text-[var(--text-faint,#d4d4d4)]" />
                   </div>
-                  <p className="text-neutral-600 font-medium">{config?.empty_title || 'Tu carrito está vacío'}</p>
-                  <p className="text-sm text-neutral-400 mt-1">
+                  <p className="text-[var(--text-muted,#4b5563)] font-medium">{config?.empty_title || 'Tu carrito está vacío'}</p>
+                  <p className="text-sm text-[var(--text-faint,#9ca3af)] mt-1">
                     {config?.empty_description || 'Agrega productos para continuar'}
                   </p>
                 </div>
@@ -275,11 +275,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 p-3 bg-white rounded-xl border ${isUnavailable ? 'border-amber-300 opacity-60' : 'border-neutral-200'}`}
+                      className={`flex items-center gap-3 p-3 bg-[var(--surface,#fff)] rounded-xl border ${isUnavailable ? 'border-amber-300 opacity-60' : 'border-[var(--border-soft,#e5e7eb)]'}`}
                     >
                       <div
                         onClick={() => onViewProduct?.(item.id)}
-                        className={`w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0 ${onViewProduct ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                        className={`w-16 h-16 bg-[var(--surface-bg,#fafafa)] rounded-lg overflow-hidden flex-shrink-0 ${onViewProduct ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
                       >
                         <img
                           src={item.image}
@@ -288,12 +288,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-neutral-500 uppercase">
+                        <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">
                           {item.brand}
                         </p>
                         <p
                           onClick={() => onViewProduct?.(item.id)}
-                          className={`text-sm font-medium text-neutral-800 line-clamp-2 ${onViewProduct ? 'cursor-pointer hover:text-[var(--color-primary)] transition-colors' : ''}`}
+                          className={`text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 ${onViewProduct ? 'cursor-pointer hover:text-[var(--color-primary)] transition-colors' : ''}`}
                         >
                           {item.name}
                         </p>
@@ -301,10 +301,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         {item.colorName && (
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span
-                              className="w-2.5 h-2.5 rounded-full border border-neutral-200 flex-shrink-0"
+                              className="w-2.5 h-2.5 rounded-full border border-[var(--border-soft,#e5e7eb)] flex-shrink-0"
                               style={{ backgroundColor: item.colorHex }}
                             />
-                            <span className="text-xs text-neutral-400">{item.colorName}</span>
+                            <span className="text-xs text-[var(--text-faint,#9ca3af)]">{item.colorName}</span>
                           </div>
                         )}
                         {isUnavailable ? (
@@ -315,12 +315,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           <>
                             <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
                               S/{formatMoneyNoDecimals(Math.floor(item.monthlyQuota))}/mes
-                              <span className="text-xs font-normal text-neutral-500 ml-1">
+                              <span className="text-xs font-normal text-[var(--text-muted,#6b7280)] ml-1">
                                 x {item.months} meses
                               </span>
                             </p>
                             {item.initialAmount > 0 && (
-                              <p className="text-xs text-neutral-500">
+                              <p className="text-xs text-[var(--text-muted,#6b7280)]">
                                 + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
                               </p>
                             )}
@@ -329,7 +329,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
                       <button
                         onClick={() => onRemoveItem(item.id)}
-                        className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                        className="p-2 rounded-lg hover:bg-red-50 text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -342,8 +342,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* Total quota info */}
             {normalizedItems.length > 0 && (
-              <div className="px-4 py-2 bg-neutral-100 border-t border-neutral-200">
-                <p className="text-sm text-neutral-600 text-center">
+              <div className="px-4 py-2 bg-[var(--surface-2,#f3f4f6)] border-t border-[var(--border-soft,#e5e7eb)]">
+                <p className="text-sm text-[var(--text-muted,#4b5563)] text-center">
                   Cuota total: S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes
                 </p>
               </div>
@@ -351,7 +351,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* Footer */}
             {normalizedItems.length > 0 && (
-              <div className="border-t border-neutral-200 bg-white p-4">
+              <div className="border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] p-4">
                 {/* Actions */}
                 <div className="flex gap-2 items-center justify-center">
                   <Button
@@ -359,7 +359,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     variant="light"
                     startContent={<Trash2 className="w-5 h-5" />}
                     onPress={onClearAll}
-                    className="px-6 font-bold cursor-pointer text-neutral-500 hover:text-red-500 rounded-xl"
+                    className="px-6 font-bold cursor-pointer text-[var(--text-muted,#6b7280)] hover:text-red-500 rounded-xl"
                   >
                     {config?.clear_button || 'Vaciar'}
                   </Button>
@@ -367,7 +367,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     size="lg"
                     variant="bordered"
                     onPress={onClose}
-                    className="px-6 font-bold cursor-pointer border-neutral-300 rounded-xl"
+                    className="px-6 font-bold cursor-pointer border-[var(--border-strong,#d1d5db)] rounded-xl"
                   >
                     {config?.close_button || 'Cerrar'}
                   </Button>
@@ -376,7 +376,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     className={`px-8 !font-bold cursor-pointer rounded-xl ${
                       !isDisabled
                         ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                        : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed'
                     }`}
                     onPress={onContinue}
                     endContent={<ArrowRight className="w-5 h-5" />}

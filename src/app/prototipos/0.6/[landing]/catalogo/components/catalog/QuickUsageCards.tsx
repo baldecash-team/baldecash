@@ -60,7 +60,7 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                 className={`w-full cursor-pointer transition-all duration-200 ${
                   isSelected
                     ? 'border-2 border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] shadow-md'
-                    : 'border-2 border-[rgba(var(--color-primary-rgb),0.2)] bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+                    : 'border-2 border-[rgba(var(--color-primary-rgb),0.2)] bg-[var(--surface,#fff)] hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
                 }`}
               >
                 <CardBody className="p-3 flex flex-row items-center gap-3">
@@ -68,7 +68,7 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
                       isSelected
                         ? 'bg-[var(--color-primary)] text-white'
-                        : 'bg-neutral-100 text-neutral-600'
+                        : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)]'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -77,12 +77,12 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                   <div className="flex-1 min-w-0">
                     <h3
                       className={`font-semibold text-sm transition-colors ${
-                        isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-800'
+                        isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-strong,#1f2937)]'
                       }`}
                     >
                       {label}
                     </h3>
-                    <p className="text-xs text-neutral-500 truncate hidden sm:block">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)] truncate hidden sm:block">
                       {description}
                     </p>
                   </div>

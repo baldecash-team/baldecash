@@ -26,7 +26,7 @@ export const EmptyIllustrationV3: React.FC<EmptyIllustrationProps> = ({ classNam
 
         {/* Lupa animada */}
         <div className="absolute top-2 right-4 animate-bounce">
-          <div className="w-16 h-16 bg-white rounded-full border-4 border-[var(--color-primary)] flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 bg-[var(--surface,#fff)] rounded-full border-4 border-[var(--color-primary)] flex items-center justify-center shadow-lg">
             <Search className="w-6 h-6 text-[var(--color-primary)]" />
           </div>
           {/* Mango de la lupa */}
@@ -38,10 +38,10 @@ export const EmptyIllustrationV3: React.FC<EmptyIllustrationProps> = ({ classNam
       </div>
 
       {/* Mensaje */}
-      <h3 className="text-xl font-bold text-neutral-800 mb-2">
+      <h3 className="text-xl font-bold text-[var(--text-strong,#1f2937)] mb-2">
         Seguimos buscando...
       </h3>
-      <p className="text-neutral-600 max-w-md">
+      <p className="text-[var(--text-muted,#4b5563)] max-w-md">
         No encontramos laptops con esos filtros. Intenta con opciones más amplias
       </p>
     </div>

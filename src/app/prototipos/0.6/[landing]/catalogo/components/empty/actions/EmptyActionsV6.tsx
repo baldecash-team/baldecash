@@ -30,7 +30,7 @@ export const EmptyActionsV6: React.FC<EmptyActionsProps> = ({
         Ver todos los equipos
       </Button>
 
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-[var(--text-muted,#6b7280)]">
         Quita los filtros para explorar el catálogo completo
       </p>
     </motion.div>

@@ -29,17 +29,17 @@ export const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({
         classNames={{
           base: 'max-w-full',
           filler: 'bg-[rgba(var(--color-primary-rgb),0.7)]',
-          thumb: 'bg-white border-2 border-[var(--color-primary)] w-4 h-4 shadow-lg cursor-pointer after:bg-[var(--color-primary)] after:w-1.5 after:h-1.5',
-          track: 'bg-neutral-200 h-1',
-          label: 'text-xs font-medium text-neutral-600',
-          value: 'text-xs text-neutral-500',
+          thumb: 'bg-[var(--surface,#fff)] border-2 border-[var(--color-primary)] w-4 h-4 shadow-lg cursor-pointer after:bg-[var(--color-primary)] after:w-1.5 after:h-1.5',
+          track: 'bg-[var(--surface-2,#e5e7eb)] h-1',
+          label: 'text-xs font-medium text-[var(--text-muted,#4b5563)]',
+          value: 'text-xs text-[var(--text-muted,#6b7280)]',
         }}
         formatOptions={{ style: 'currency', currency: 'PEN', maximumFractionDigits: 0 }}
       />
       <div className="flex justify-between text-xs">
-        <span className="text-neutral-700 font-medium">S/{value[0].toLocaleString('en-US')}</span>
-        <span className="text-neutral-300">-</span>
-        <span className="text-neutral-700 font-medium">S/{value[1].toLocaleString('en-US')}</span>
+        <span className="text-[var(--text,#374151)] font-medium">S/{value[0].toLocaleString('en-US')}</span>
+        <span className="text-[var(--text-faint,#d4d4d4)]">-</span>
+        <span className="text-[var(--text,#374151)] font-medium">S/{value[1].toLocaleString('en-US')}</span>
       </div>
     </div>
   );

@@ -38,22 +38,22 @@ export const BrandFilterV5: React.FC<BrandFilterProps> = ({
         }}
         classNames={{
           base: 'w-full',
-          trigger: 'min-h-10 bg-white border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
-          value: 'text-sm text-neutral-700',
-          popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
-          listbox: 'p-1 bg-white',
-          listboxWrapper: 'max-h-[300px] bg-white',
+          trigger: 'min-h-10 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
+          value: 'text-sm text-[var(--text,#374151)]',
+          popoverContent: 'bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-lg rounded-lg p-0',
+          listbox: 'p-1 bg-[var(--surface,#fff)]',
+          listboxWrapper: 'max-h-[300px] bg-[var(--surface,#fff)]',
           innerWrapper: 'pr-8',
           selectorIcon: 'right-3',
         }}
         popoverProps={{
           classNames: {
-            base: 'bg-white',
-            content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
+            base: 'bg-[var(--surface,#fff)]',
+            content: 'p-0 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-lg rounded-lg',
           },
         }}
         renderValue={() => (
-          <span className="text-sm text-neutral-500">
+          <span className="text-sm text-[var(--text-muted,#6b7280)]">
             {selected.length === 0
               ? 'Selecciona marcas...'
               : `${selected.length} marca${selected.length > 1 ? 's' : ''} seleccionada${selected.length > 1 ? 's' : ''}`}
@@ -84,14 +84,14 @@ export const BrandFilterV5: React.FC<BrandFilterProps> = ({
                       onError={() => handleImageError(option.value)}
                     />
                   ) : (
-                    <span className="text-[10px] font-bold text-neutral-400">
+                    <span className="text-[10px] font-bold text-[var(--text-faint,#9ca3af)]">
                       {option.label.substring(0, 2).toUpperCase()}
                     </span>
                   )}
                 </div>
-                <span className="text-sm text-neutral-700 flex-1">{option.label}</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{option.label}</span>
                 {showCounts && (
-                  <span className="text-xs text-neutral-400">({option.count})</span>
+                  <span className="text-xs text-[var(--text-faint,#9ca3af)]">({option.count})</span>
                 )}
               </div>
             </SelectItem>

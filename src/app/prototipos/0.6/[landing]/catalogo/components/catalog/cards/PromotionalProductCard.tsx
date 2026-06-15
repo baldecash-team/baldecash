@@ -150,7 +150,7 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
           {isTopBar ? renderTopBarBanner() : renderRibbonBanner()}
 
           {/* Product image */}
-          <div className="relative w-full h-[200px] sm:h-[220px] flex items-center justify-center p-4 bg-white">
+          <div className="relative w-full h-[200px] sm:h-[220px] flex items-center justify-center p-4 bg-[var(--surface,#fff)]">
             {!isTopBar && renderRibbonBanner()}
             <img
               src={product.thumbnail}
@@ -163,7 +163,7 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
           {/* Content */}
           <div className="flex flex-col items-center px-4 sm:px-5 pb-5 pt-2 text-center">
             {/* Reference text */}
-            <p className="text-xs text-neutral-400 mb-1">Imagen referencial</p>
+            <p className="text-xs text-[var(--text-faint,#9ca3af)] mb-1">Imagen referencial</p>
 
             {/* Product name */}
             <h3
@@ -179,7 +179,7 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
             {/* Pricing */}
             <div className="w-full mb-4">
               {/* Original quota (struck through) */}
-              <p className="text-sm text-neutral-400">
+              <p className="text-sm text-[var(--text-faint,#9ca3af)]">
                 Cuota Regular{' '}
                 {originalQuota && originalQuota > quota ? (
                   <span className="line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}</span>
@@ -191,17 +191,17 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
                   S/{formatMoneyNoDecimals(Math.floor(quota))}
                 </span>
               </div>
-              <p className="text-base text-neutral-600 font-medium">mensual</p>
+              <p className="text-base text-[var(--text-muted,#4b5563)] font-medium">mensual</p>
             </div>
 
             {/* Term and Initial selectors */}
             <div className="w-full grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="text-xs text-neutral-400 mb-1 block">Plazo</label>
+                <label className="text-xs text-[var(--text-faint,#9ca3af)] mb-1 block">Plazo</label>
                 <select
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(Number(e.target.value) as TermMonths)}
-                  className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm font-semibold text-neutral-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className="w-full border border-[var(--border-strong,#d1d5db)] rounded-lg px-3 py-2 text-sm font-semibold text-[var(--text,#374151)] bg-[var(--surface,#fff)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                 >
                   {TERM_OPTIONS.map((t) => (
                     <option key={t} value={t}>{t} meses</option>
@@ -209,11 +209,11 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
                 </select>
               </div>
               <div>
-                <label className="text-xs text-neutral-400 mb-1 block">Cuota inicial</label>
+                <label className="text-xs text-[var(--text-faint,#9ca3af)] mb-1 block">Cuota inicial</label>
                 <select
                   value={selectedInitial}
                   onChange={(e) => setSelectedInitial(Number(e.target.value) as InitialPaymentPercent)}
-                  className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm font-semibold text-neutral-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className="w-full border border-[var(--border-strong,#d1d5db)] rounded-lg px-3 py-2 text-sm font-semibold text-[var(--text,#374151)] bg-[var(--surface,#fff)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                 >
                   {INITIAL_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -227,7 +227,7 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
               onClick={() => onAddToCart?.(createCartItem())}
               className={`w-full py-3 rounded-full font-bold text-lg mb-4 transition-all ${
                 isGoldenCta
-                  ? 'bg-amber-400 hover:bg-amber-500 text-neutral-800'
+                  ? 'bg-amber-400 hover:bg-amber-500 text-[var(--text-strong,#1f2937)]'
                   : 'bg-[var(--color-primary)] hover:brightness-90 text-white'
               }`}
             >

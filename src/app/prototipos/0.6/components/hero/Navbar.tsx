@@ -275,7 +275,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
   if (logoOnly) {
     return (
       <nav
-        className="fixed left-0 right-0 z-50 bg-white shadow-sm"
+        className="fixed left-0 right-0 z-50 bg-[var(--surface,#fff)] shadow-sm"
         style={{ top: previewBannerOffset }}
       >
         <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
@@ -290,7 +290,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
               )}
               {institutionLogo && (
                 <>
-                  <span className="text-neutral-300 text-lg font-light">×</span>
+                  <span className="text-[var(--text-faint,#d4d4d4)] text-lg font-light">×</span>
                   <img
                     src={institutionLogo}
                     alt={institutionName || 'Institución'}
@@ -369,7 +369,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
       </AnimatePresence>
 
       <nav
-        className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
+        className="fixed left-0 right-0 z-50 bg-[var(--surface,#fff)] shadow-sm transition-all duration-200"
         style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (promoBannerHeight + previewBannerOffset) : previewBannerOffset }}
       >
         <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
@@ -385,7 +385,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
               )}
               {institutionLogo && (
                 <>
-                  <span className="text-neutral-300 text-lg font-light">×</span>
+                  <span className="text-[var(--text-faint,#d4d4d4)] text-lg font-light">×</span>
                   <img
                     src={institutionLogo}
                     alt={institutionName || 'Institución'}
@@ -414,7 +414,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                         tracker?.track('nav_click', { label: item.label, href: item.href, location: 'desktop' });
                         handleAnchorClick(e, item.href);
                       }}
-                      className="flex items-center gap-1 text-neutral-600 text-sm font-medium transition-colors hover:[color:var(--color-primary,#4654CD)]"
+                      className="flex items-center gap-1 text-[var(--text,#525252)] text-sm font-medium transition-colors hover:[color:var(--color-primary,#4654CD)]"
                       {...(isExternalLink(item.href) && { target: '_blank', rel: 'noopener noreferrer' })}
                     >
                       {item.label}
@@ -445,12 +445,12 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.15 }}
                           >
-                            <div className="bg-white rounded-xl shadow-xl border border-neutral-100 p-4 grid gap-2">
+                            <div className="bg-[var(--surface,#fff)] rounded-xl shadow-xl border border-[var(--border-soft,#f5f5f5)] p-4 grid gap-2">
                               {item.megaMenuItems.map((menuItem) => (
                                 <a
                                   key={menuItem.label}
                                   href={menuItem.href}
-                                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors group"
+                                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-[var(--surface-2,#fafafa)] transition-colors group"
                                   onClick={(e) => {
                                     tracker?.track('nav_click', { label: menuItem.label, href: menuItem.href, location: 'megamenu' });
                                     handleAnchorClick(e, menuItem.href);
@@ -467,10 +467,10 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                                     <menuItem.icon className="w-5 h-5 [color:var(--color-primary,#4654CD)]" />
                                   </div>
                                   <div>
-                                    <p className="font-medium text-neutral-800 group-hover:[color:var(--color-primary,#4654CD)] transition-colors">
+                                    <p className="font-medium text-[var(--text-strong,#1f2937)] group-hover:[color:var(--color-primary,#4654CD)] transition-colors">
                                       {menuItem.label}
                                     </p>
-                                    <p className="text-xs text-neutral-500">{menuItem.description}</p>
+                                    <p className="text-xs text-[var(--text-muted,#737373)]">{menuItem.description}</p>
                                   </div>
                                 </a>
                               ))}
@@ -535,13 +535,13 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
             {!minimal && (
               <div className="flex lg:hidden items-center gap-2">
                 <button
-                  className="p-2 rounded-lg hover:bg-neutral-100 cursor-pointer"
+                  className="p-2 rounded-lg hover:bg-[var(--surface-2,#f5f5f5)] cursor-pointer"
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                 >
                   {isMenuOpen ? (
-                    <X className="w-6 h-6 text-neutral-600" />
+                    <X className="w-6 h-6 text-[var(--text,#525252)]" />
                   ) : (
-                    <Menu className="w-6 h-6 text-neutral-600" />
+                    <Menu className="w-6 h-6 text-[var(--text,#525252)]" />
                   )}
                 </button>
               </div>
@@ -553,7 +553,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         <AnimatePresence>
           {!minimal && isMenuOpen && (
             <motion.div
-              className="lg:hidden bg-white border-t border-neutral-100"
+              className="lg:hidden bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#f5f5f5)]"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -564,7 +564,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     {item.megaMenuType ? (
                       <>
                         <button
-                          className="flex items-center justify-between w-full py-3 text-neutral-600 font-medium cursor-pointer hover:[color:var(--color-primary,#4654CD)]"
+                          className="flex items-center justify-between w-full py-3 text-[var(--text,#525252)] font-medium cursor-pointer hover:[color:var(--color-primary,#4654CD)]"
                           onClick={() => {
                             tracker?.track('nav_click', { label: item.label, location: 'mobile_megamenu_toggle' });
                             setMobileExpanded(mobileExpanded === item.megaMenuType ? null : item.megaMenuType!);
@@ -601,7 +601,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                                   <a
                                     key={subItem.label}
                                     href={subItem.href}
-                                    className="block py-2 text-sm text-neutral-500 hover:[color:var(--color-primary,#4654CD)]"
+                                    className="block py-2 text-sm text-[var(--text-muted,#737373)] hover:[color:var(--color-primary,#4654CD)]"
                                     onClick={(e) => {
                                       tracker?.track('nav_click', { label: subItem.label, href: subItem.href, location: 'mobile_megamenu' });
                                       // External links don't need special handling
@@ -648,7 +648,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     ) : (
                       <a
                         href={item.href}
-                        className="block py-3 text-neutral-600 font-medium hover:[color:var(--color-primary,#4654CD)]"
+                        className="block py-3 text-[var(--text,#525252)] font-medium hover:[color:var(--color-primary,#4654CD)]"
                         {...(isExternalLink(item.href) && { target: '_blank', rel: 'noopener noreferrer' })}
                         onClick={(e) => {
                           tracker?.track('nav_click', { label: item.label, href: item.href, location: 'mobile' });
@@ -689,7 +689,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     )}
                   </div>
                 ))}
-                <div className="pt-4 border-t border-neutral-100">
+                <div className="pt-4 border-t border-[var(--border-soft,#f5f5f5)]">
                   <Button
                     as="a"
                     href={customerPortalUrl}

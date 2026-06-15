@@ -298,7 +298,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       onMouseEnter={onMouseEnter}
     >
       <Card
-        className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white"
+        className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-[var(--surface,#fff)]"
         style={promoTemplate ? {
           border: `3px solid ${promoBorderColor}`,
           boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
@@ -367,7 +367,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
           {/* Image - Altura fija para consistencia */}
-          <div className="relative bg-white p-6 h-[220px] flex items-center justify-center">
+          <div className="relative bg-[var(--surface,#fff)] p-6 h-[220px] flex items-center justify-center">
             <ImageGallery
               images={selectedImages}
               alt={displayName}
@@ -382,13 +382,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   e.stopPropagation();
                   onFavorite?.(createWishlistItem());
                 }}
-                className="p-3 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
+                className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
               >
                 <Heart
                   className={`w-5 h-5 transition-colors ${
                     resolvedIsFavorite
                       ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'text-neutral-300 hover:text-[var(--color-primary)]'
+                      : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
                   }`}
                 />
               </button>
@@ -407,8 +407,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     resolvedIsCompareSelected
                       ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                       : compareDisabled
-                        ? 'bg-white/50 text-neutral-300 cursor-not-allowed'
-                        : 'bg-white/90 hover:bg-[rgba(var(--color-primary-rgb),0.1)] cursor-pointer'
+                        ? 'bg-[var(--surface,#fff)]/50 text-[var(--text-faint,#d4d4d4)] cursor-not-allowed'
+                        : 'bg-[var(--surface,#fff)]/90 hover:bg-[rgba(var(--color-primary-rgb),0.1)] cursor-pointer'
                   }`}
                   title={
                     compareDisabled && !resolvedIsCompareSelected
@@ -423,8 +423,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       resolvedIsCompareSelected
                         ? 'text-white'
                         : compareDisabled
-                          ? 'text-neutral-300'
-                          : 'text-neutral-300 hover:text-[var(--color-primary)]'
+                          ? 'text-[var(--text-faint,#d4d4d4)]'
+                          : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
                     }`}
                   />
                 </button>
@@ -469,7 +469,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 >
                   <h3
                     ref={titleRef}
-                    className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+                    className="font-bold text-[var(--text-strong,#1f2937)] text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
                   >
                     {displayName}
                   </h3>
@@ -477,7 +477,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               ) : (
                 <h3
                   ref={titleRef}
-                  className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+                  className="font-bold text-[var(--text-strong,#1f2937)] text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
                   onClick={() => {
                     if (promoTemplate) {
                       analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
@@ -489,9 +489,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </h3>
               )}
               {isTitleTruncated && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg max-w-sm whitespace-normal opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-opacity duration-200 z-50 pointer-events-none">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-[var(--surface,#1f2937)] text-white text-xs rounded-lg shadow-lg max-w-sm whitespace-normal opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-opacity duration-200 z-50 pointer-events-none">
                   {displayName}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-neutral-800" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--surface,#1f2937)]" />
                 </div>
               )}
             </div>
@@ -511,13 +511,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Specs técnicas con iconos - solo muestra specs con dato real */}
             <div className="space-y-2 min-h-[120px]">
               {displaySpecs?.processor?.model && (
-                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
                   <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                   <span>{displaySpecs.processor.model}</span>
                 </div>
               )}
               {displaySpecs?.ram && (
-                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
                   <MemoryStick className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                   <span>
                     {displaySpecs.ram.size}GB {displaySpecs.ram.type}
@@ -528,13 +528,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
               )}
               {displaySpecs?.storage && (
-                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
                   <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                   <span>{displaySpecs.storage.size}GB {displaySpecs.storage.type.toUpperCase()}</span>
                 </div>
               )}
               {displaySpecs?.gpu?.model && String(displaySpecs.gpu.model) !== 'null' && (
-                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
                   <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="6" width="20" height="12" rx="2"/>
                     <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01"/>
@@ -547,7 +547,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
               )}
               {displaySpecs?.display && (
-                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
                   <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                   <span>{displaySpecs.display.size}&quot; {displaySpecs.display.resolution.toUpperCase()}</span>
                 </div>
@@ -569,7 +569,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all cursor-pointer ${
                         freq === selectedFrequency
                           ? 'bg-[var(--color-primary)] text-white'
-                          : 'bg-neutral-200 text-neutral-500 hover:bg-neutral-300'
+                          : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-muted,#6b7280)] hover:bg-[var(--surface-2,#d4d4d4)]'
                       }`}
                     >
                       {freq === 'semanal' ? 'Semanal' : freq === 'quincenal' ? 'Quincenal' : freq}
@@ -609,18 +609,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
                   {/* Cuotas siguientes — visualmente atenuadas */}
                   <div className="flex flex-col items-center gap-0.5 text-center mt-2">
-                    <span className="text-[10px] sm:text-xs uppercase tracking-wide text-neutral-400 font-semibold">
+                    <span className="text-[10px] sm:text-xs uppercase tracking-wide text-[var(--text-faint,#9ca3af)] font-semibold">
                       Cuotas 2 en adelante
                     </span>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-sm sm:text-base font-bold text-neutral-500">
+                      <span className="text-sm sm:text-base font-bold text-[var(--text-muted,#6b7280)]">
                         S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.listQuota))}
                       </span>
-                      <span className="text-xs text-neutral-400">{freqShort}</span>
+                      <span className="text-xs text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                     </div>
                   </div>
 
-                  <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words text-center">
+                  <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-2 break-words text-center">
                     en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
                   </p>
                 </>
@@ -629,7 +629,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   <div className="h-5 flex items-center justify-center gap-1.5">
                     {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
                       <>
-                        <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
+                        <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
                         {displayDiscount && displayDiscount > 0 && (
                           <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
                             {product.promotion?.discountType === 'fixed'
@@ -639,16 +639,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                         )}
                       </>
                     ) : (
-                      <span className="text-xs text-neutral-400">Cuota {selectedFrequency !== 'mensual' ? selectedFrequency : 'mensual'}</span>
+                      <span className="text-xs text-[var(--text-faint,#9ca3af)]">Cuota {selectedFrequency !== 'mensual' ? selectedFrequency : 'mensual'}</span>
                     )}
                   </div>
                   <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
                     <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">
                       S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}
                     </span>
-                    <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
+                    <span className="text-base sm:text-lg text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
+                  <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-2 break-words">
                     en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
                   </p>
                 </>

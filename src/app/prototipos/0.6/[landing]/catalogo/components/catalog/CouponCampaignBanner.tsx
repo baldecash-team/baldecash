@@ -44,10 +44,10 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
 
       {/* Capa decorativa flotante (no clickeable) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-        <div className="absolute top-6 left-8 w-3 h-3 bg-white/25 rounded-full animate-pulse" />
+        <div className="absolute top-6 left-8 w-3 h-3 bg-[var(--surface,#fff)]/25 rounded-full animate-pulse" />
         <div className="absolute top-10 right-16 w-2.5 h-2.5 bg-amber-300/60 rounded-full coupon-banner-float" />
-        <div className="absolute bottom-8 left-1/4 w-4 h-4 bg-white/15 rounded-full coupon-banner-float-slow" />
-        <div className="absolute top-4 right-1/3 w-1.5 h-1.5 bg-white/30 rounded-full animate-pulse" />
+        <div className="absolute bottom-8 left-1/4 w-4 h-4 bg-[var(--surface,#fff)]/15 rounded-full coupon-banner-float-slow" />
+        <div className="absolute top-4 right-1/3 w-1.5 h-1.5 bg-[var(--surface,#fff)]/30 rounded-full animate-pulse" />
         <Sparkles className="absolute top-8 right-1/4 w-6 h-6 text-amber-200/50 coupon-banner-float" />
         <Sparkles className="absolute bottom-6 left-10 w-5 h-5 text-white/30 coupon-banner-float-slow" />
         <Gift className="absolute top-1/2 left-6 -translate-y-1/2 w-7 h-7 text-white/15 coupon-banner-float-slow" />
@@ -80,7 +80,7 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
               <span className="text-sm sm:text-base font-bold text-white">
                 Cupón
               </span>
-              <span className="font-mono text-base sm:text-lg font-black tracking-wider text-[var(--color-primary)] bg-white px-3 py-1 rounded-full uppercase shadow-sm">
+              <span className="font-mono text-base sm:text-lg font-black tracking-wider text-[var(--color-primary)] bg-[var(--surface,#fff)] px-3 py-1 rounded-full uppercase shadow-sm">
                 {coupon.code}
               </span>
             </div>

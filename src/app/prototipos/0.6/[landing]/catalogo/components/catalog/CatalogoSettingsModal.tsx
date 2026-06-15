@@ -93,13 +93,13 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
       backdrop="blur"
       placement="center"
       classNames={{
-        base: 'bg-white my-8 rounded-[14px]',
+        base: 'bg-[var(--surface,#fff)] my-8 rounded-[14px]',
         wrapper: 'items-center justify-center py-8 min-h-full z-[100]',
         backdrop: 'bg-black/50 z-[99]',
-        header: 'border-b border-neutral-200 bg-white py-4 pr-12 rounded-t-[14px]',
-        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
-        footer: 'border-t border-neutral-200 bg-white rounded-b-[14px]',
-        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+        header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4 pr-12 rounded-t-[14px]',
+        body: 'bg-[var(--surface,#fff)] max-h-[60vh] overflow-y-auto scrollbar-hide',
+        footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] rounded-b-[14px]',
+        closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
@@ -107,13 +107,13 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[var(--color-primary)]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">
+          <span className="text-lg font-semibold text-[var(--text-strong,#1f2937)]">
             Configuración del Catálogo
           </span>
         </ModalHeader>
 
-        <ModalBody className="py-6 bg-white">
-          <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
+        <ModalBody className="py-6 bg-[var(--surface,#fff)]">
+          <p className="text-sm text-[var(--text-muted,#4b5563)] mb-4 pb-4 border-b border-[var(--border-soft,#e5e7eb)]">
             Selecciona cómo mostrar las opciones de color en las cards de producto.
           </p>
 
@@ -121,7 +121,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Palette className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Selector de Color</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Selector de Color</h3>
             </div>
             <RadioGroup
               value={config.colorSelectorVersion.toString()}
@@ -142,12 +142,12 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                       ${
                         config.colorSelectorVersion === version
                           ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                          : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                          : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm font-medium',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={colorSelectorVersionLabels[version].description}
                 >
@@ -158,18 +158,18 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
           </div>
 
           {/* Separador */}
-          <div className="my-6 border-t border-neutral-200" />
+          <div className="my-6 border-t border-[var(--border-soft,#e5e7eb)]" />
 
           {/* Tour de Ayuda */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <GraduationCap className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Tour de Ayuda</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Tour de Ayuda</h3>
             </div>
 
             {/* Cantidad de pasos */}
             <div className="mb-5">
-              <p className="text-sm text-neutral-600 mb-3">Cantidad de pasos:</p>
+              <p className="text-sm text-[var(--text-muted,#4b5563)] mb-3">Cantidad de pasos:</p>
               <RadioGroup
                 value={onboardingConfig.stepCount}
                 onValueChange={(val) =>
@@ -189,12 +189,12 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                         ${
                           onboardingConfig.stepCount === stepCount
                             ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                            : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                            : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                         }`,
                       wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                       labelWrapper: 'ml-2',
                       label: 'text-sm font-medium',
-                      description: 'text-xs text-neutral-500',
+                      description: 'text-xs text-[var(--text-muted,#6b7280)]',
                     }}
                     description={onboardingStepCountLabels[stepCount].description}
                   >
@@ -206,7 +206,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
 
             {/* Estilo de highlight */}
             <div className="mb-5">
-              <p className="text-sm text-neutral-600 mb-3">Estilo de highlight:</p>
+              <p className="text-sm text-[var(--text-muted,#4b5563)] mb-3">Estilo de highlight:</p>
               <RadioGroup
                 value={onboardingConfig.highlightStyle}
                 onValueChange={(val) =>
@@ -226,12 +226,12 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                         ${
                           onboardingConfig.highlightStyle === style
                             ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                            : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                            : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                         }`,
                       wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                       labelWrapper: 'ml-2',
                       label: 'text-sm font-medium',
-                      description: 'text-xs text-neutral-500',
+                      description: 'text-xs text-[var(--text-muted,#6b7280)]',
                     }}
                     description={onboardingHighlightLabels[style].description}
                   >
@@ -243,15 +243,15 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
           </div>
 
           {/* Nota informativa sobre configuración fija */}
-          <div className="mt-6 pt-4 border-t border-neutral-200">
-            <p className="text-xs text-neutral-400">
+          <div className="mt-6 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
+            <p className="text-xs text-[var(--text-faint,#9ca3af)]">
               <span className="font-medium">Nota:</span> Los demás componentes del catálogo
               (layout, cards, filtros) están fijos en esta versión según la presentación v0.4.
             </p>
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white justify-between">
+        <ModalFooter className="bg-[var(--surface,#fff)] justify-between">
           <Button
             variant="flat"
             startContent={
@@ -265,7 +265,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
             className={`cursor-pointer transition-colors ${
               copied
                 ? 'bg-green-100 text-green-700'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
             }`}
           >
             {copied ? '¡Copiado!' : 'Generar URL'}

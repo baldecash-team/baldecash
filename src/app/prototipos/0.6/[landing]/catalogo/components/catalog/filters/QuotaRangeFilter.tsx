@@ -36,12 +36,12 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
       {/* Value badges - show local value for immediate feedback */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-lg px-3 py-2 text-center">
-          <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Desde</p>
+          <p className="text-[10px] text-[var(--text-muted,#6b7280)] uppercase tracking-wide">Desde</p>
           <p className="text-sm font-bold text-[var(--color-primary)]">S/{formatMoney(localValue[0])}</p>
         </div>
-        <div className="text-neutral-300 text-xs">—</div>
+        <div className="text-[var(--text-faint,#d4d4d4)] text-xs">—</div>
         <div className="flex-1 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-lg px-3 py-2 text-center">
-          <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Hasta</p>
+          <p className="text-[10px] text-[var(--text-muted,#6b7280)] uppercase tracking-wide">Hasta</p>
           <p className="text-sm font-bold text-[var(--color-primary)]">S/{formatMoney(localValue[1])}</p>
         </div>
       </div>
@@ -69,18 +69,18 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
             thumb: [
               // Larger touch target on mobile (w-6 h-6 = 24px minimum WCAG),
               // still compact on desktop via sm: override.
-              'bg-white border-2 border-[var(--color-primary)] w-6 h-6 sm:w-5 sm:h-5 shadow-md cursor-grab active:cursor-grabbing',
+              'bg-[var(--surface,#fff)] border-2 border-[var(--color-primary)] w-6 h-6 sm:w-5 sm:h-5 shadow-md cursor-grab active:cursor-grabbing',
               'hover:scale-110 hover:brightness-90 transition-transform',
               'after:bg-[var(--color-primary)] after:w-2 after:h-2 after:rounded-full',
               'data-[dragging=true]:scale-110 data-[dragging=true]:shadow-lg',
             ].join(' '),
-            track: 'bg-neutral-200 h-2 rounded-full',
+            track: 'bg-[var(--surface-2,#e5e7eb)] h-2 rounded-full',
           }}
         />
       </div>
 
       {/* Min/Max labels */}
-      <div className="flex justify-between text-[10px] text-neutral-400 px-1">
+      <div className="flex justify-between text-[10px] text-[var(--text-faint,#9ca3af)] px-1">
         <span>S/{formatMoney(min)}</span>
         <span>S/{formatMoney(max)}</span>
       </div>

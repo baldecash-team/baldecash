@@ -35,7 +35,7 @@ export const ColorSelectorV2: React.FC<ColorSelectorV2Props> = ({
           delay={0}
           closeDelay={0}
           classNames={{
-            content: 'bg-white shadow-lg border border-neutral-200 text-xs px-2 py-1',
+            content: 'bg-[var(--surface,#fff)] shadow-lg border border-[var(--border-soft,#e5e7eb)] text-xs px-2 py-1',
           }}
         >
           <button
@@ -45,7 +45,7 @@ export const ColorSelectorV2: React.FC<ColorSelectorV2Props> = ({
               w-3 h-3 rounded-full border transition-all cursor-pointer
               ${selectedColorId === color.id
                 ? 'border-[var(--color-primary)] scale-125 ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
-                : 'border-neutral-300 hover:scale-110 hover:border-neutral-400'}
+                : 'border-[var(--border-strong,#d1d5db)] hover:scale-110 hover:border-neutral-400'}
             `}
             style={{ backgroundColor: color.hex }}
             aria-label={`Seleccionar color ${color.name}`}
@@ -53,7 +53,7 @@ export const ColorSelectorV2: React.FC<ColorSelectorV2Props> = ({
         </Tooltip>
       ))}
       {remainingCount > 0 && (
-        <span className="text-xs text-neutral-500 ml-0.5">+{remainingCount}</span>
+        <span className="text-xs text-[var(--text-muted,#6b7280)] ml-0.5">+{remainingCount}</span>
       )}
     </div>
   );
