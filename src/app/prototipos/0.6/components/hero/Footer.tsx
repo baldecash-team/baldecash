@@ -11,6 +11,7 @@ import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter
 import { Toast } from '@/app/prototipos/_shared';
 import type { FooterData, AgreementData } from '../../types/hero';
 import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 
@@ -119,9 +120,14 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
 
   const socialLinks = buildSocialLinks();
 
-  // Logo URL from company - use white version for dark footer background
+  // Logo URL from company - use white version for dark footer background.
+  // nvidia: forzamos el lockup combo BaldeCash × NVIDIA (el mismo del header) para que
+  // el footer no dependa de la config de BD.
   const DEFAULT_LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
-  const logoUrl = logoOverride || data?.company?.logo_white_url || DEFAULT_LOGO_WHITE;
+  const NVIDIA_FOOTER_LOGO = 'https://baldecash.s3.amazonaws.com/images/nvidia/backgrounds/logo-baldecash-x-nvidia.png';
+  const logoUrl = isNvidiaLanding(landing)
+    ? NVIDIA_FOOTER_LOGO
+    : (logoOverride || data?.company?.logo_white_url || DEFAULT_LOGO_WHITE);
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -308,7 +314,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                 </>
               )}
             </div>
-            <p className="text-sm text-neutral-400 mb-4">{tagline}</p>
+            <p className="text-sm text-white mb-4">{tagline}</p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
                 <a

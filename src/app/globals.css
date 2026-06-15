@@ -426,3 +426,17 @@ select:focus-visible {
   -webkit-text-fill-color: var(--text-strong) !important;
   caret-color: var(--text-strong);
 }
+
+/* El footer compartido (components/hero/Footer.tsx) ya es oscuro por diseño y su
+   input es blanco con texto oscuro — debe verse IGUAL en todas las landings. El puente
+   de arriba no debe re-tematizarlo, así que restauramos sus colores dentro de footer. */
+[data-theme="nvidia"] footer .bg-white { background-color: #fff !important; }
+[data-theme="nvidia"] footer input,
+[data-theme="nvidia"] footer textarea {
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: #262626 !important;
+  background-color: transparent !important;
+  caret-color: #262626;
+}
+[data-theme="nvidia"] footer .text-neutral-800 { color: #262626 !important; }
