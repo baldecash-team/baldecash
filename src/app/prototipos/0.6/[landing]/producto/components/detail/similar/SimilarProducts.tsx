@@ -18,6 +18,7 @@ import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
@@ -285,6 +286,10 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
       >
         {products.map((product, index) => {
           const isCheaper = product.quotaDifference < 0;
+          // En nvidia todas las cards se ven iguales (oscuras, botón verde "Lo quiero"):
+          // no se aplica el destaque "Ahorrar" (caja mint + botón teal) de los más baratos.
+          // El indicador ↘/↗ vs actual sí se conserva (es factual).
+          const cheaper = isCheaper && !isNvidiaLanding(landingProp || 'home');
           const priceDiff = Math.abs(product.quotaDifference);
           const state = productStates[product.id] || { selectedImageIndex: 0 };
           const imageUrls = getImageUrls(product.images, product.thumbnail);
@@ -411,7 +416,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
 
                     {/* Giant Price - Estilo catálogo */}
                     <div className={`rounded-2xl py-4 px-6 mb-3 ${
-                      isCheaper
+                      cheaper
                         ? 'bg-emerald-50'
                         : 'bg-[rgba(var(--color-primary-rgb),0.05)]'
                     }`}>
@@ -432,7 +437,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       </div>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className={`text-3xl font-black ${
-                          isCheaper ? 'text-emerald-600' : 'text-[var(--color-primary)]'
+                          cheaper ? 'text-emerald-600' : 'text-[var(--color-primary)]'
                         }`}>
                           S/{formatMoneyNoDecimals(product.monthlyQuota)}
                         </span>
@@ -470,7 +475,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                         className={`flex-1 font-bold cursor-pointer rounded-xl ${
                           onAddToCart && cartItems.includes(product.id)
                             ? 'bg-emerald-500 text-white cursor-default'
-                            : isCheaper
+                            : cheaper
                               ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                               : 'bg-[var(--color-primary)] text-white hover:brightness-90'
                         }`}
@@ -484,7 +489,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                         }}
                         isDisabled={onAddToCart && cartItems.includes(product.id)}
                       >
-                        {onAddToCart && cartItems.includes(product.id) ? 'En el carrito' : isCheaper ? 'Ahorrar' : 'Lo quiero'}
+                        {onAddToCart && cartItems.includes(product.id) ? 'En el carrito' : cheaper ? 'Ahorrar' : 'Lo quiero'}
                       </Button>
                     </div>
                   </div>
