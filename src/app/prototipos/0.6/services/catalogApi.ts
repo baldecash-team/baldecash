@@ -140,6 +140,7 @@ export interface ApiCatalogProduct {
     sku?: string;
   } | null;
   promotion?: ApiProductPromotion | null;
+  combo?: unknown | null;
 }
 
 export interface ApiPromotionTemplate {
