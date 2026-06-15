@@ -112,7 +112,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({ product, hasLimitations 
     // the product's fixed bottom CTA bar. On mobile the user navigates via
     // natural scroll — the section anchors still work via deep-link.
     <div className="hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-[45]">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-neutral-200 p-2">
+      <div className="bg-[var(--surface,#fff)]/95 backdrop-blur-sm rounded-2xl shadow-lg border border-[var(--border-soft,#e5e7eb)] p-2">
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -124,7 +124,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({ product, hasLimitations 
                 className={`group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[var(--color-primary)] text-white shadow-md'
-                    : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
+                    : 'text-[var(--text-muted,#6b7280)] hover:bg-[var(--surface-2,#f3f4f6)] hover:text-[var(--text,#374151)]'
                 }`}
                 title={item.label}
               >

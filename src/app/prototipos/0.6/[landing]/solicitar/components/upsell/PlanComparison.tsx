@@ -72,7 +72,7 @@ export const PlanComparison: React.FC<PlanComparisonProps> = ({
               className={`h-full transition-all ${
                 isSelected
                   ? 'border-2 border-[var(--color-secondary)] shadow-lg'
-                  : 'border border-neutral-200'
+                  : 'border border-[var(--border-soft,#e5e7eb)]'
               }`}
               style={isSelected ? { boxShadow: '0 10px 25px -5px rgba(var(--color-secondary-rgb), 0.2)' } : undefined}
             >
@@ -92,7 +92,7 @@ export const PlanComparison: React.FC<PlanComparisonProps> = ({
                   ) : (
                     <div />
                   )}
-                  <ChevronRight className="w-4 h-4 text-neutral-400" />
+                  <ChevronRight className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
                 </div>
 
                 {/* Icon + Type label */}
@@ -105,11 +105,11 @@ export const PlanComparison: React.FC<PlanComparisonProps> = ({
                   </span>
                 </div>
 
-                <h3 className="font-semibold text-neutral-800 mb-1">{plan.description}</h3>
+                <h3 className="font-semibold text-[var(--text-strong,#1f2937)] mb-1">{plan.description}</h3>
 
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-3xl font-bold text-neutral-800">S/{formatMoneyNoDecimals(Math.floor(plan.monthlyPrice))}</span>
-                  <span className="text-sm text-neutral-500">/mes</span>
+                  <span className="text-3xl font-bold text-[var(--text-strong,#1f2937)]">S/{formatMoneyNoDecimals(Math.floor(plan.monthlyPrice))}</span>
+                  <span className="text-sm text-[var(--text-muted,#6b7280)]">/mes</span>
                 </div>
 
                 {/* Coverage items (if API returns them) */}
@@ -120,7 +120,7 @@ export const PlanComparison: React.FC<PlanComparisonProps> = ({
                         <div className="w-5 h-5 bg-[var(--color-secondary)]/10 rounded-full flex items-center justify-center">
                           <Check className="w-3 h-3 text-[var(--color-secondary)]" />
                         </div>
-                        <span className="text-neutral-600">{item.name}</span>
+                        <span className="text-[var(--text-muted,#4b5563)]">{item.name}</span>
                       </div>
                     ))}
                   </div>
@@ -132,20 +132,20 @@ export const PlanComparison: React.FC<PlanComparisonProps> = ({
                     <div className="w-5 h-5 bg-[var(--color-secondary)]/10 rounded-full flex items-center justify-center">
                       <Clock className="w-3 h-3 text-[var(--color-secondary)]" />
                     </div>
-                    <span className="text-neutral-600">Duración: {plan.durationMonths} meses</span>
+                    <span className="text-[var(--text-muted,#4b5563)]">Duración: {plan.durationMonths} meses</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-5 h-5 bg-[var(--color-secondary)]/10 rounded-full flex items-center justify-center">
                       <Check className="w-3 h-3 text-[var(--color-secondary)]" />
                     </div>
-                    <span className="text-neutral-600">Total: S/{formatMoneyNoDecimals(plan.totalPrice)} en {plan.paymentMonths} cuotas</span>
+                    <span className="text-[var(--text-muted,#4b5563)]">Total: S/{formatMoneyNoDecimals(plan.totalPrice)} en {plan.paymentMonths} cuotas</span>
                   </div>
                   {plan.provider && (
                     <div className="flex items-center gap-2 text-sm">
                       <div className="w-5 h-5 bg-[var(--color-secondary)]/10 rounded-full flex items-center justify-center">
                         <Check className="w-3 h-3 text-[var(--color-secondary)]" />
                       </div>
-                      <span className="text-neutral-600">Proveedor: {plan.provider.name}</span>
+                      <span className="text-[var(--text-muted,#4b5563)]">Proveedor: {plan.provider.name}</span>
                     </div>
                   )}
                 </div>

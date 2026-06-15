@@ -228,7 +228,7 @@ export const DateInput: React.FC<DateInputProps> = ({
     if (showError) return 'border-[#ef4444]';
     if (showSuccess) return 'border-[#22c55e]';
     if (isOpen) return 'border-[var(--color-primary)]';
-    return 'border-neutral-300';
+    return 'border-[var(--border-strong,#d1d5db)]';
   };
 
   // Generar array de años para mostrar (20 años)
@@ -255,7 +255,7 @@ export const DateInput: React.FC<DateInputProps> = ({
           <Button isIconOnly size="sm" variant="light" onPress={handlePrevYearRange}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="font-medium text-neutral-800">
+          <span className="font-medium text-[var(--text-strong,#1f2937)]">
             {yearRangeStart} - {yearRangeStart + 19}
           </span>
           <Button isIconOnly size="sm" variant="light" onPress={handleNextYearRange}>
@@ -274,7 +274,7 @@ export const DateInput: React.FC<DateInputProps> = ({
           <button
             type="button"
             onClick={handleHeaderClick}
-            className="font-medium text-neutral-800 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+            className="font-medium text-[var(--text-strong,#1f2937)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
           >
             {viewDate.getFullYear()}
           </button>
@@ -294,7 +294,7 @@ export const DateInput: React.FC<DateInputProps> = ({
         <button
           type="button"
           onClick={handleHeaderClick}
-          className="font-medium text-neutral-800 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+          className="font-medium text-[var(--text-strong,#1f2937)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
         >
           {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
         </button>
@@ -324,8 +324,8 @@ export const DateInput: React.FC<DateInputProps> = ({
                 className={`
                   py-2 rounded-lg text-sm font-medium transition-all
                   ${isCurrentYear && !isDisabled ? 'bg-[var(--color-primary)] text-white cursor-pointer' : ''}
-                  ${isDisabled ? 'text-neutral-300 cursor-not-allowed' : ''}
-                  ${!isCurrentYear && !isDisabled ? 'text-neutral-700 hover:bg-neutral-100 cursor-pointer' : ''}
+                  ${isDisabled ? 'text-[var(--text-faint,#d4d4d4)] cursor-not-allowed' : ''}
+                  ${!isCurrentYear && !isDisabled ? 'text-[var(--text,#374151)] hover:bg-[var(--surface-2,#f3f4f6)] cursor-pointer' : ''}
                 `}
               >
                 {year}
@@ -353,8 +353,8 @@ export const DateInput: React.FC<DateInputProps> = ({
                 className={`
                   py-3 rounded-lg text-sm font-medium transition-all
                   ${isCurrentMonth && !isDisabled ? 'bg-[var(--color-primary)] text-white cursor-pointer' : ''}
-                  ${isDisabled ? 'text-neutral-300 cursor-not-allowed' : ''}
-                  ${!isCurrentMonth && !isDisabled ? 'text-neutral-700 hover:bg-neutral-100 cursor-pointer' : ''}
+                  ${isDisabled ? 'text-[var(--text-faint,#d4d4d4)] cursor-not-allowed' : ''}
+                  ${!isCurrentMonth && !isDisabled ? 'text-[var(--text,#374151)] hover:bg-[var(--surface-2,#f3f4f6)] cursor-pointer' : ''}
                 `}
               >
                 {month}
@@ -371,7 +371,7 @@ export const DateInput: React.FC<DateInputProps> = ({
         {/* Day Headers */}
         <div className="grid grid-cols-7 gap-1 mb-2 w-full">
           {DAYS.map(day => (
-            <div key={day} className="text-center text-xs font-medium text-neutral-400 py-1">
+            <div key={day} className="text-center text-xs font-medium text-[var(--text-faint,#9ca3af)] py-1">
               {day}
             </div>
           ))}
@@ -398,8 +398,8 @@ export const DateInput: React.FC<DateInputProps> = ({
                   aspect-square rounded-lg text-sm font-medium transition-all cursor-pointer
                   ${selected ? 'bg-[var(--color-primary)] text-white' : ''}
                   ${today && !selected ? 'bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)]' : ''}
-                  ${isDisabled ? 'text-neutral-300 cursor-not-allowed' : ''}
-                  ${!selected && !today && !isDisabled ? 'text-neutral-700 hover:bg-neutral-100' : ''}
+                  ${isDisabled ? 'text-[var(--text-faint,#d4d4d4)] cursor-not-allowed' : ''}
+                  ${!selected && !today && !isDisabled ? 'text-[var(--text,#374151)] hover:bg-[var(--surface-2,#f3f4f6)]' : ''}
                 `}
               >
                 {day}
@@ -414,15 +414,15 @@ export const DateInput: React.FC<DateInputProps> = ({
   return (
     <div id={id} className="space-y-1.5">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
         {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+        {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
       {/* Help text */}
       {helpText && (
-        <p className="text-xs text-neutral-500">{helpText}</p>
+        <p className="text-xs text-[var(--text-muted,#6b7280)]">{helpText}</p>
       )}
 
       {/* Date Input with Popover */}
@@ -431,14 +431,14 @@ export const DateInput: React.FC<DateInputProps> = ({
           <div
             className={`
               flex items-center gap-2 h-11 px-3
-              rounded-lg border-2 transition-all duration-200 bg-white cursor-pointer
+              rounded-lg border-2 transition-all duration-200 bg-[var(--surface,#fff)] cursor-pointer
               ${getBorderColor()}
-              ${disabled ? 'opacity-50 bg-neutral-50 cursor-not-allowed' : 'hover:border-[var(--color-primary)]'}
+              ${disabled ? 'opacity-50 bg-[var(--surface-bg,#fafafa)] cursor-not-allowed' : 'hover:border-[var(--color-primary)]'}
             `}
             onClick={() => !disabled && setIsOpen(true)}
           >
-            <Calendar className="w-4 h-4 text-neutral-400" />
-            <span className={`flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
+            <Calendar className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+            <span className={`flex-1 text-base ${value ? 'text-[var(--text-strong,#1f2937)]' : 'text-[var(--text-faint,#9ca3af)]'}`}>
               {value ? formatDisplayDate(value) : placeholder}
             </span>
 
@@ -451,7 +451,7 @@ export const DateInput: React.FC<DateInputProps> = ({
                   onChange('');
                   onBlur?.();
                 }}
-                className="p-0.5 rounded-full hover:bg-neutral-100 transition-colors text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                className="p-0.5 rounded-full hover:bg-[var(--surface-2,#f3f4f6)] transition-colors text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] cursor-pointer"
                 aria-label="Limpiar fecha"
               >
                 <X className="w-4 h-4" />
@@ -463,15 +463,15 @@ export const DateInput: React.FC<DateInputProps> = ({
             {showError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[280px] bg-white border border-neutral-200 shadow-xl rounded-xl">
+        <PopoverContent className="p-0 w-[280px] bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-xl rounded-xl">
           <div className="p-3 w-full">
             {renderHeader()}
             {renderContent()}
 
             {/* Indicador de selección - solo en vista de días */}
             {calendarView === 'days' && selectedDate && (
-              <div className="mt-3 pt-3 border-t border-neutral-100">
-                <p className="text-xs text-center text-neutral-500">
+              <div className="mt-3 pt-3 border-t border-[var(--border-soft,#f3f4f6)]">
+                <p className="text-xs text-center text-[var(--text-muted,#6b7280)]">
                   <Check className="w-3 h-3 inline mr-1 text-[#22c55e]" />
                   Seleccionado
                 </p>

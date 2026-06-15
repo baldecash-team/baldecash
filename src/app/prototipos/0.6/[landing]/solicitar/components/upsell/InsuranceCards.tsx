@@ -86,10 +86,10 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
               <Shield className="w-5 h-5 text-white" />
             </motion.div>
             <div>
-              <h2 className="text-xl font-semibold text-neutral-800">
+              <h2 className="text-xl font-semibold text-[var(--text-strong,#1f2937)]">
                 Protege tu equipo
               </h2>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-[var(--text-muted,#6b7280)]">
                 Puedes elegir una o ambas coberturas. Son opcionales.
               </p>
             </div>
@@ -116,7 +116,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                 className={`rounded-2xl border-2 overflow-hidden transition-all ${
                   isSelected
                     ? 'border-[var(--color-secondary)] shadow-lg shadow-[rgba(var(--color-secondary-rgb),0.15)]'
-                    : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.3)]'
+                    : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.3)]'
                 }`}
               >
                 <div className="p-5 pb-4">
@@ -130,7 +130,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                         <p className="text-[11px] font-medium text-[var(--color-secondary)] uppercase tracking-wide">
                           {getInsuranceLabel(plan.insuranceType)}
                         </p>
-                        <h3 className="font-bold text-neutral-800 text-sm leading-tight">
+                        <h3 className="font-bold text-[var(--text-strong,#1f2937)] text-sm leading-tight">
                           {plan.name}
                         </h3>
                       </div>
@@ -152,15 +152,15 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                       <span className="text-2xl font-bold text-[var(--color-primary)]">
                         S/ {formatMoneyNoDecimals(Math.floor(plan.monthlyPrice))}
                       </span>
-                      <span className="text-sm text-neutral-500">/mes</span>
+                      <span className="text-sm text-[var(--text-muted,#6b7280)]">/mes</span>
                     </div>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">
+                    <p className="text-[11px] text-[var(--text-faint,#9ca3af)] mt-0.5">
                       Total S/ {formatMoneyNoDecimals(plan.totalPrice)} en {plan.paymentMonths} cuotas
                     </p>
                   </div>
 
                   {/* Description */}
-                  <p className="text-xs text-neutral-500 mb-3">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)] mb-3">
                     {description}
                   </p>
 
@@ -169,13 +169,13 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                     {benefits.map((benefit) => (
                       <div key={benefit} className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-[var(--color-secondary)] flex-shrink-0 mt-0.5" />
-                        <span className="text-xs text-neutral-600">{benefit}</span>
+                        <span className="text-xs text-[var(--text-muted,#4b5563)]">{benefit}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* Duration + Provider */}
-                  <div className="flex items-center gap-2 text-[11px] text-neutral-400 mb-4">
+                  <div className="flex items-center gap-2 text-[11px] text-[var(--text-faint,#9ca3af)] mb-4">
                     <Clock className="w-3 h-3" />
                     <span>{plan.durationMonths} meses</span>
                     {plan.provider && (
@@ -191,7 +191,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                     onClick={() => onToggle(plan.id)}
                     className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       isSelected
-                        ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        ? 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                         : 'bg-[var(--color-primary)] text-white hover:brightness-90'
                     }`}
                   >
@@ -206,7 +206,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                       analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
                       setDetailPlan(plan);
                     }}
-                    className="w-full py-1.5 mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                    className="w-full py-1.5 mt-1 text-[11px] text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] transition-colors cursor-pointer flex items-center justify-center gap-1"
                   >
                     <FileText className="w-3 h-3" />
                     Ver términos y condiciones
@@ -220,7 +220,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
 
       {/* Social proof */}
       {badgeText && (
-        <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-neutral-400">
+        <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-[var(--text-faint,#9ca3af)]">
           <Users className="w-3 h-3" />
           <span>{badgeText}</span>
         </div>

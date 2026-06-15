@@ -39,7 +39,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products }) =>
 
   return (
     <div>
-      <h2 className="text-lg font-bold text-neutral-800 mb-4">Productos similares</h2>
+      <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)] mb-4">Productos similares</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {products.map((product) => {
           const quota = product.quotaMonthly;
@@ -47,10 +47,10 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products }) =>
             <button
               key={product.id}
               onClick={() => handleViewProduct(product.id)}
-              className="bg-white rounded-xl border border-neutral-100 overflow-hidden text-left hover:shadow-md transition-shadow cursor-pointer group"
+              className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#f3f4f6)] overflow-hidden text-left hover:shadow-md transition-shadow cursor-pointer group"
             >
               {/* Image */}
-              <div className="relative aspect-square bg-neutral-50 overflow-hidden">
+              <div className="relative aspect-square bg-[var(--surface-bg,#fafafa)] overflow-hidden">
                 <Image
                   src={product.thumbnail}
                   alt={product.displayName}
@@ -62,19 +62,19 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products }) =>
 
               {/* Info */}
               <div className="p-3">
-                <p className="text-[10px] uppercase tracking-wider text-neutral-400 mb-0.5">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--text-faint,#9ca3af)] mb-0.5">
                   {product.brand}
                 </p>
-                <p className="text-sm font-medium text-neutral-800 line-clamp-2 mb-2 min-h-[2.5rem]">
+                <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 mb-2 min-h-[2.5rem]">
                   {product.displayName}
                 </p>
                 <div className="flex items-baseline gap-1">
                   <span className="text-base font-bold text-[#4654CD]">
                     S/ {formatPrice(quota)}
                   </span>
-                  <span className="text-[10px] text-neutral-400">/mes</span>
+                  <span className="text-[10px] text-[var(--text-faint,#9ca3af)]">/mes</span>
                 </div>
-                <p className="text-[10px] text-neutral-400 mt-0.5">
+                <p className="text-[10px] text-[var(--text-faint,#9ca3af)] mt-0.5">
                   S/ {formatPrice(product.price)}
                 </p>
               </div>

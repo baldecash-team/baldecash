@@ -58,17 +58,17 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   return (
     <div id={id} className="space-y-3">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
         {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+        {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
       {/* Segmented Control */}
       <div
         className={`
-          flex w-full p-1 rounded-xl bg-neutral-100 border
-          ${error ? 'border-red-300' : showSuccess ? 'border-green-400' : 'border-neutral-200'}
+          flex w-full p-1 rounded-xl bg-[var(--surface-2,#f3f4f6)] border
+          ${error ? 'border-red-300' : showSuccess ? 'border-green-400' : 'border-[var(--border-soft,#e5e7eb)]'}
           ${disabled ? 'opacity-50 pointer-events-none' : ''}
         `}
       >
@@ -93,7 +93,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
               className={`
                 relative flex-1 py-2.5 min-h-[44px] text-sm font-medium rounded-lg cursor-pointer
                 transition-colors duration-200 z-10
-                ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600 hover:text-neutral-800'}
+                ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted,#4b5563)] hover:text-[var(--text-strong,#1f2937)]'}
                 ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
@@ -114,7 +114,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
 
       {/* Help text */}
       {helpText && !error && (
-        <p className="text-xs text-neutral-500">{helpText}</p>
+        <p className="text-xs text-[var(--text-muted,#6b7280)]">{helpText}</p>
       )}
 
       {/* Success message */}

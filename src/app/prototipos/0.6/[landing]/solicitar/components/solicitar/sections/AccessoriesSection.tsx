@@ -277,7 +277,7 @@ export function AccessoriesSection({
   }
 
   return (
-    <div className={`bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 ${className}`}>
+    <div className={`bg-[var(--surface,#fff)] rounded-xl p-4 sm:p-6 border border-[var(--border-soft,#e5e7eb)] ${className}`}>
       {showIntro && <AccessoryIntro />}
 
       {isLoading ? (
@@ -299,7 +299,7 @@ export function AccessoriesSection({
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                     activeCategory === 'todos'
                       ? 'bg-[var(--color-primary)] text-white'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                   }`}
                 >
                   Todos ({accessories.length})
@@ -316,7 +316,7 @@ export function AccessoriesSection({
                       className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                         activeCategory === cat.slug
                           ? 'bg-[var(--color-primary)] text-white'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                       }`}
                     >
                       {cat.name} ({count})
@@ -330,13 +330,13 @@ export function AccessoriesSection({
             {/* Search + accessory count + arrows */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <div className="relative flex-1 sm:max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
                 <input
                   type="text"
                   placeholder="Buscar accesorio..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-[var(--border-soft,#e5e7eb)] rounded-lg bg-[var(--surface,#fff)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
                 />
               </div>
 
@@ -346,7 +346,7 @@ export function AccessoriesSection({
                     {selectedAccessories.length} seleccionado{selectedAccessories.length > 1 ? 's' : ''}
                   </span>
                 )}
-                <span className="text-xs text-neutral-400 ml-auto sm:ml-0">
+                <span className="text-xs text-[var(--text-faint,#9ca3af)] ml-auto sm:ml-0">
                   {filteredAccessories.length} accesorio{filteredAccessories.length !== 1 ? 's' : ''}
                 </span>
                 {totalPages > 1 && (
@@ -361,7 +361,7 @@ export function AccessoriesSection({
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         canGoBack
                           ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                          : 'bg-neutral-100 text-neutral-300 cursor-default'
+                          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#d4d4d4)] cursor-default'
                       }`}
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -376,7 +376,7 @@ export function AccessoriesSection({
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         canGoForward
                           ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                          : 'bg-neutral-100 text-neutral-300 cursor-default'
+                          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#d4d4d4)] cursor-default'
                       }`}
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -389,7 +389,7 @@ export function AccessoriesSection({
 
           {/* Grid */}
           {filteredAccessories.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-neutral-400">
+            <div className="flex flex-col items-center justify-center py-10 text-[var(--text-faint,#9ca3af)]">
               <Package className="w-10 h-10 mb-2" />
               <p className="text-sm">No se encontraron accesorios</p>
             </div>

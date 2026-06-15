@@ -202,7 +202,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
 
             {isLockedCampaign ? (
               <div
-                className="p-2 text-neutral-400 rounded-lg"
+                className="p-2 text-[var(--text-faint,#9ca3af)] rounded-lg"
                 title="Cupón de campaña — no se puede quitar"
               >
                 <Lock className="w-4 h-4" aria-hidden />
@@ -210,7 +210,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
             ) : (
               <button
                 onClick={handleRemoveCoupon}
-                className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                className="p-2 text-[var(--text-faint,#9ca3af)] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                 title="Quitar cupón"
               >
                 <X className="w-4 h-4" />
@@ -263,10 +263,10 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   }
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-neutral-200">
+    <div className="bg-[var(--surface,#fff)] rounded-xl p-4 border border-[var(--border-soft,#e5e7eb)]">
       <div className="flex items-center gap-2 mb-3">
         <Tag className="w-5 h-5 text-[var(--color-primary)]" />
-        <h3 className="font-semibold text-neutral-800">
+        <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">
           Cupón de descuento
           {isRequired && <span className="text-red-500 ml-1">*</span>}
         </h3>
@@ -299,7 +299,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
               transition-all duration-200 outline-none
               ${state === 'error'
                 ? 'border-red-300 bg-red-50 text-red-700 placeholder:text-red-300'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-800 placeholder:text-neutral-400 focus:border-[var(--color-primary)] focus:bg-white'
+                : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-bg,#fafafa)] text-[var(--text-strong,#1f2937)] placeholder:text-[var(--text-faint,#9ca3af)] focus:border-[var(--color-primary)] focus:bg-[var(--surface,#fff)]'
               }
               disabled:opacity-50 disabled:cursor-not-allowed
             `}

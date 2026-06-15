@@ -106,7 +106,7 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-white backdrop-blur-sm overflow-hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface,#fff)] backdrop-blur-sm overflow-hidden"
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -157,10 +157,10 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <p className="text-2xl font-bold text-neutral-800 mb-1">
+          <p className="text-2xl font-bold text-[var(--text-strong,#1f2937)] mb-1">
             {message}
           </p>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-[var(--text-muted,#6b7280)]">
             Paso {stepNumber} de {totalSteps} completado
           </p>
         </motion.div>
@@ -176,7 +176,7 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
             <motion.div
               key={step}
               className={`w-2 h-2 rounded-full ${
-                step <= stepNumber ? 'bg-[#22c55e]' : 'bg-neutral-300'
+                step <= stepNumber ? 'bg-[#22c55e]' : 'bg-[var(--surface-2,#d4d4d4)]'
               }`}
               initial={step === stepNumber ? { scale: 0 } : {}}
               animate={step === stepNumber ? { scale: [0, 1.5, 1] } : {}}

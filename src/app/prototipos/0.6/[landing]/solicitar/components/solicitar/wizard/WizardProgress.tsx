@@ -150,14 +150,14 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
       <>
         {/* Mobile Skeleton */}
         <div className="lg:hidden">
-          <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 animate-pulse">
-            <div className="w-14 h-14 bg-neutral-200 rounded-full" />
+          <div className="flex items-center gap-4 bg-[var(--surface,#fff)] rounded-2xl p-4 shadow-sm border border-[var(--border-soft,#f3f4f6)] animate-pulse">
+            <div className="w-14 h-14 bg-[var(--surface-2,#e5e7eb)] rounded-full" />
             <div className="flex-1">
-              <div className="h-3 bg-neutral-200 rounded w-20 mb-2" />
-              <div className="h-5 bg-neutral-200 rounded w-32 mb-2" />
+              <div className="h-3 bg-[var(--surface-2,#e5e7eb)] rounded w-20 mb-2" />
+              <div className="h-5 bg-[var(--surface-2,#e5e7eb)] rounded w-32 mb-2" />
               <div className="flex gap-2">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="w-2.5 h-2.5 bg-neutral-200 rounded-full" />
+                  <div key={i} className="w-2.5 h-2.5 bg-[var(--surface-2,#e5e7eb)] rounded-full" />
                 ))}
               </div>
             </div>
@@ -168,10 +168,10 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
           {[1, 2, 3, 4].map((_, i) => (
             <React.Fragment key={i}>
               <div className="flex flex-col items-center">
-                <div className="w-10 h-10 bg-neutral-200 rounded-full" />
-                <div className="h-3 bg-neutral-200 rounded w-16 mt-2" />
+                <div className="w-10 h-10 bg-[var(--surface-2,#e5e7eb)] rounded-full" />
+                <div className="h-3 bg-[var(--surface-2,#e5e7eb)] rounded w-16 mt-2" />
               </div>
-              {i < 3 && <div className="flex-1 h-1 mx-2 bg-neutral-200 rounded-full" />}
+              {i < 3 && <div className="flex-1 h-1 mx-2 bg-[var(--surface-2,#e5e7eb)] rounded-full" />}
             </React.Fragment>
           ))}
         </div>
@@ -183,7 +183,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
     <>
       {/* Mobile Version */}
       <div className="lg:hidden">
-        <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100">
+        <div className="flex items-center gap-4 bg-[var(--surface,#fff)] rounded-2xl p-4 shadow-sm border border-[var(--border-soft,#f3f4f6)]">
           {/* Baldi Illustration */}
           <img
             src={getIllustration(currentStep)}
@@ -193,10 +193,10 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 
           {/* Step Info */}
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-neutral-500 font-medium">
+            <p className="text-xs text-[var(--text-muted,#6b7280)] font-medium">
               Paso {currentIndex + 1} de {totalSteps}
             </p>
-            <p className="text-base font-bold text-neutral-800 truncate">
+            <p className="text-base font-bold text-[var(--text-strong,#1f2937)] truncate">
               {currentStepData?.title || currentStep}
             </p>
 
@@ -226,7 +226,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                             ? 'bg-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
                             : isReached
                             ? 'bg-[var(--color-primary)]'
-                            : 'bg-neutral-200'}
+                            : 'bg-[var(--surface-2,#e5e7eb)]'}
                           ${clickable ? 'hover:scale-125 hover:ring-2 hover:ring-[rgba(var(--color-primary-rgb),0.5)]' : ''}
                         `}
                       />
@@ -235,7 +235,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                       <div
                         className={`
                           flex-1 h-0.5 rounded-full transition-all duration-200
-                          ${index < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-neutral-200'}
+                          ${index < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-[var(--surface-2,#e5e7eb)]'}
                         `}
                       />
                     )}
@@ -275,7 +275,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                       ? 'bg-[var(--color-primary)] text-white ring-4 ring-[rgba(var(--color-primary-rgb),0.2)]'
                       : isReached
                       ? 'bg-[var(--color-primary)] text-white'
-                      : 'bg-neutral-200 text-neutral-500'}
+                      : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-muted,#6b7280)]'}
                     ${clickable
                       ? 'group-hover:scale-110 group-hover:ring-4 group-hover:ring-[rgba(var(--color-primary-rgb),0.3)]'
                       : ''}
@@ -291,7 +291,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                   className={`
                     mt-2 text-xs font-medium text-center max-w-[80px]
                     transition-colors duration-200
-                    ${isCurrent ? 'text-[var(--color-primary)]' : isReached ? 'text-neutral-700' : 'text-neutral-400'}
+                    ${isCurrent ? 'text-[var(--color-primary)]' : isReached ? 'text-[var(--text,#374151)]' : 'text-[var(--text-faint,#9ca3af)]'}
                     ${clickable ? 'group-hover:text-[var(--color-primary)]' : ''}
                   `}
                 >
@@ -304,7 +304,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                 <div
                   className={`
                     flex-1 h-1 mx-2 rounded-full transition-all duration-200
-                    ${index < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-neutral-200'}
+                    ${index < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-[var(--surface-2,#e5e7eb)]'}
                   `}
                 />
               )}

@@ -58,29 +58,29 @@ export const TextArea: React.FC<TextAreaProps> = ({
     if (showError) return 'border-[#ef4444]';
     if (showSuccess) return 'border-[#22c55e]';
     if (isFocused) return 'border-[var(--color-primary)]';
-    return 'border-neutral-300';
+    return 'border-[var(--border-strong,#d1d5db)]';
   };
 
   return (
     <div id={id} className="space-y-1.5">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
         {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+        {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
       {/* Help text */}
       {helpText && (
-        <p className="text-xs text-neutral-500">{helpText}</p>
+        <p className="text-xs text-[var(--text-muted,#6b7280)]">{helpText}</p>
       )}
 
       {/* Textarea */}
       <div
         className={`
-          relative rounded-lg border-2 transition-all duration-200 bg-white overflow-hidden
+          relative rounded-lg border-2 transition-all duration-200 bg-[var(--surface,#fff)] overflow-hidden
           ${getBorderColor()}
-          ${disabled ? 'opacity-50 bg-neutral-50' : ''}
+          ${disabled ? 'opacity-50 bg-[var(--surface-bg,#fafafa)]' : ''}
         `}
       >
         <textarea
@@ -101,14 +101,14 @@ export const TextArea: React.FC<TextAreaProps> = ({
           maxLength={maxLength}
           rows={rows}
           className={`
-            w-full pl-3 pr-10 py-3 bg-transparent outline-none text-base text-neutral-800
-            placeholder:text-neutral-400 resize-none
+            w-full pl-3 pr-10 py-3 bg-transparent outline-none text-base text-[var(--text-strong,#1f2937)]
+            placeholder:text-[var(--text-faint,#9ca3af)] resize-none
             ${disabled ? 'cursor-not-allowed' : ''}
           `}
           style={{
-            // Override browser autofill background
-            WebkitBoxShadow: '0 0 0 1000px white inset',
-            ...(value ? { WebkitTextFillColor: '#262626' } : {}),
+            // Override browser autofill background (tokenizado: oscuro en nvidia, blanco en claro)
+            WebkitBoxShadow: '0 0 0 1000px var(--surface, #fff) inset',
+            ...(value ? { WebkitTextFillColor: 'var(--text-strong, #262626)' } : {}),
           }}
         />
 
@@ -130,7 +130,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
           <span />
         )}
         {maxLength && (
-          <p className="text-xs text-neutral-400 flex-shrink-0">
+          <p className="text-xs text-[var(--text-faint,#9ca3af)] flex-shrink-0">
             {value.length}/{maxLength}
           </p>
         )}

@@ -77,16 +77,16 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       transition={{ delay: 0.5 }}
       className="mb-6 sm:mb-8 space-y-3"
     >
-      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 font-['Baloo_2',_sans-serif]">Tu solicitud</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] mb-3 font-['Baloo_2',_sans-serif]">Tu solicitud</h3>
 
       {/* Products Card */}
-      <Card className="border border-neutral-200 shadow-sm">
+      <Card className="border border-[var(--border-soft,#e5e7eb)] shadow-sm">
         <CardBody className="p-3 sm:p-4">
           {/* Header if multiple products */}
           {data.products.length > 1 && (
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--border-soft,#f3f4f6)]">
               <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
-              <span className="text-sm font-semibold text-neutral-800">
+              <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                 {data.products.length} productos seleccionados
               </span>
             </div>
@@ -97,10 +97,10 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
             {data.products.map((product, idx) => (
               <div
                 key={`${product.name}-${idx}`}
-                className={`flex items-start gap-4 ${idx > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}
+                className={`flex items-start gap-4 ${idx > 0 ? 'pt-4 border-t border-[var(--border-soft,#f3f4f6)]' : ''}`}
               >
                 {/* Product Image */}
-                <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 bg-[var(--surface-bg,#fafafa)] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.image ? (
                     <Image
                       src={product.image}
@@ -110,22 +110,22 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                       className="object-contain"
                     />
                   ) : (
-                    <Package className="w-8 h-8 text-neutral-300" />
+                    <Package className="w-8 h-8 text-[var(--text-faint,#d4d4d4)]" />
                   )}
                 </div>
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
                   {product.brand && (
-                    <p className="text-xs text-neutral-500 uppercase tracking-wide break-words">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase tracking-wide break-words">
                       {product.brand}
                     </p>
                   )}
-                  <p className="text-sm font-semibold text-neutral-800 break-words line-clamp-2">
+                  <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)] break-words line-clamp-2">
                     {product.name}
                   </p>
                   {product.specs && (
-                    <p className="text-xs text-neutral-500 mt-0.5">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)] mt-0.5">
                       {[
                         product.specs.processor,
                         product.specs.ram,
@@ -137,17 +137,17 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                   {product.variant && (
                     <div className="flex items-center gap-1.5 mt-1">
                       <span
-                        className="w-3 h-3 rounded-full border border-neutral-200 flex-shrink-0"
+                        className="w-3 h-3 rounded-full border border-[var(--border-soft,#e5e7eb)] flex-shrink-0"
                         style={{ backgroundColor: product.variant.colorHex }}
                         title={product.variant.colorName}
                       />
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-xs text-[var(--text-muted,#6b7280)]">
                         {product.variant.colorName}
                       </span>
                     </div>
                   )}
                   {product.quantity > 1 && (
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-xs text-[var(--text-muted,#6b7280)]">
                       Cantidad: {product.quantity}
                     </span>
                   )}
@@ -158,7 +158,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                   <p className="text-base font-bold text-[var(--color-primary)]">
                     {formatPrice(product.monthlyQuota)}{freqSuffix}
                   </p>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)]">
                     {periodCount} {periodLabel}
                     {equivalentMonths ? ` (${equivalentMonths} meses)` : ''}
                     {' · '}
@@ -173,8 +173,8 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
 
           {/* Subtotal - only if multiple products or has accessories/insurance */}
           {(data.products.length > 1 || hasAccessories || hasInsurance) && (
-            <div className="mt-4 pt-4 border-t border-neutral-200 flex items-center justify-between">
-              <span className="text-sm font-semibold text-neutral-800">Cuota total productos</span>
+            <div className="mt-4 pt-4 border-t border-[var(--border-soft,#e5e7eb)] flex items-center justify-between">
+              <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Cuota total productos</span>
               <span className="text-base font-bold text-[var(--color-primary)]">
                 {formatPrice(productsSubtotal)}{freqSuffix}
               </span>
@@ -200,7 +200,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
-              <p className="text-sm font-semibold text-neutral-800">
+              <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                 Seguro
               </p>
             </div>
@@ -208,7 +208,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
               +{formatPrice(ins.monthlyPrice)}/mes
             </span>
           </div>
-          <p className="text-xs text-neutral-600 mt-1 ml-6">
+          <p className="text-xs text-[var(--text-muted,#4b5563)] mt-1 ml-6">
             {ins.name}
           </p>
         </div>
@@ -224,7 +224,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
           >
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-[var(--color-primary)]" />
-              <p className="text-sm font-semibold text-neutral-800">
+              <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                 Accesorios ({data.accessories.length})
               </p>
             </div>
@@ -235,9 +235,9 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                 </span>
               )}
               {isAccessoriesExpanded ? (
-                <ChevronUp className="w-5 h-5 text-neutral-400" />
+                <ChevronUp className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-400" />
+                <ChevronDown className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
               )}
             </div>
           </button>
@@ -259,7 +259,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                       <div key={`${acc.name}-${idx}`} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2 min-w-0">
                           <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
-                          <span className="text-neutral-700 truncate">{acc.name}</span>
+                          <span className="text-[var(--text,#374151)] truncate">{acc.name}</span>
                         </div>
                         <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
                           +{formatPrice(acc.monthlyQuota)}{freqSuffix}
@@ -277,14 +277,14 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       {/* Total Card */}
       <div className="p-4 rounded-xl bg-[var(--color-primary)]/5">
         <div className="flex justify-between items-center gap-3">
-          <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</span>
+          <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)] min-w-0 break-words">Cuota mensual total</span>
           <div className="text-right flex-shrink-0">
             <span className="text-lg sm:text-xl font-bold text-[var(--color-primary)] break-words">
               {formatPrice(totalWithoutDiscount)}{freqSuffix}
             </span>
           </div>
         </div>
-        <p className="text-xs text-neutral-500 mt-1 break-words">
+        <p className="text-xs text-[var(--text-muted,#6b7280)] mt-1 break-words">
           {periodCount} cuotas
           {equivalentMonths ? ` (${equivalentMonths} meses)` : ''}
           {' · '}

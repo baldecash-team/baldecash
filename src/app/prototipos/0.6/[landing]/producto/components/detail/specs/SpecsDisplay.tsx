@@ -74,15 +74,15 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
         return (
           <Card
             key={catIdx}
-            className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            className="bg-[var(--surface,#fff)] shadow-sm hover:shadow-md transition-shadow cursor-pointer"
           >
             <CardBody className="p-5">
               {/* Category Header */}
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-neutral-200">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[var(--border-soft,#e5e7eb)]">
                 <div className="w-10 h-10 rounded-lg bg-[rgba(var(--color-primary-rgb),0.10)] flex items-center justify-center">
                   <IconComponent className="w-5 h-5 text-[var(--color-primary)]" />
                 </div>
-                <h3 className="font-semibold text-neutral-900 font-['Asap',_sans-serif]">
+                <h3 className="font-semibold text-[var(--text-strong,#111827)] font-['Asap',_sans-serif]">
                   {specCategory.category}
                 </h3>
               </div>
@@ -99,7 +99,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-neutral-600 font-['Asap',_sans-serif]">
+                      <span className="text-sm text-[var(--text-muted,#4b5563)] font-['Asap',_sans-serif]">
                         {spec.label}
                       </span>
                       {spec.tooltip && (
@@ -107,11 +107,11 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                           content={spec.tooltip}
                           placement="top"
                           classNames={{
-                            content: 'bg-white text-neutral-700 border border-neutral-200 shadow-lg px-3 py-2 max-w-[min(16rem,calc(100vw-2rem))] text-sm',
+                            content: 'bg-[var(--surface,#fff)] text-[var(--text,#374151)] border border-[var(--border-soft,#e5e7eb)] shadow-lg px-3 py-2 max-w-[min(16rem,calc(100vw-2rem))] text-sm',
                           }}
                         >
                           <span className="cursor-help">
-                            <HelpCircle className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />
+                            <HelpCircle className="w-4 h-4 text-[var(--text-faint,#9ca3af)] hover:text-[var(--color-primary)] transition-colors" />
                           </span>
                         </Tooltip>
                       )}
@@ -120,7 +120,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                         className={`text-sm font-medium font-['Asap',_sans-serif] text-right max-w-[40%] ${
                           spec.highlight
                             ? 'text-[var(--color-primary)]'
-                            : 'text-neutral-900'
+                            : 'text-[var(--text-strong,#111827)]'
                         }`}
                       >
                         {spec.value}

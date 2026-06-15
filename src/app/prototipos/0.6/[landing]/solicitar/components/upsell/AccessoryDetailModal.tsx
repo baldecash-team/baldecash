@@ -66,7 +66,7 @@ const ModalContentShared: React.FC<{
       {/* Header compacto con icono - estilo referencia (hidden on mobile, which has its own header) */}
       {!hideHeader && (
         <div className="bg-[var(--color-primary)] rounded-t-2xl px-5 py-4 flex items-center gap-3 relative">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[var(--surface,#fff)]/20 flex items-center justify-center flex-shrink-0">
             <Package className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
@@ -79,7 +79,7 @@ const ModalContentShared: React.FC<{
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+            className="w-7 h-7 rounded-full bg-[var(--surface,#fff)]/20 hover:bg-[var(--surface,#fff)]/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-4 h-4 text-white" />
           </button>
@@ -108,12 +108,12 @@ const ModalContentShared: React.FC<{
             {bullets.map((bullet, idx) => (
               <div key={idx} className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-[var(--color-secondary)] flex-shrink-0 mt-0.5" />
-                <span className="text-xs text-neutral-600">{bullet}</span>
+                <span className="text-xs text-[var(--text-muted,#4b5563)]">{bullet}</span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-neutral-600 leading-relaxed">
+          <p className="text-sm text-[var(--text-muted,#4b5563)] leading-relaxed">
             {accessory.description}
           </p>
         )}
@@ -122,9 +122,9 @@ const ModalContentShared: React.FC<{
         {accessory.specs && accessory.specs.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
             {accessory.specs.map((spec) => (
-              <div key={spec.label} className="bg-neutral-50 rounded-lg p-2.5">
-                <p className="text-xs text-neutral-500 mb-0.5">{spec.label}</p>
-                <p className="text-sm font-semibold text-neutral-800">{spec.value}</p>
+              <div key={spec.label} className="bg-[var(--surface-bg,#fafafa)] rounded-lg p-2.5">
+                <p className="text-xs text-[var(--text-muted,#6b7280)] mb-0.5">{spec.label}</p>
+                <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">{spec.value}</p>
               </div>
             ))}
           </div>
@@ -136,9 +136,9 @@ const ModalContentShared: React.FC<{
             <span className="text-lg font-bold text-[var(--color-primary)]">
               S/ {formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}
             </span>
-            <span className="text-sm text-neutral-500 ml-1 font-normal">/mes</span>
+            <span className="text-sm text-[var(--text-muted,#6b7280)] ml-1 font-normal">/mes</span>
           </div>
-          <span className="text-xs text-neutral-400 font-normal">
+          <span className="text-xs text-[var(--text-faint,#9ca3af)] font-normal">
             S/ {formatMoneyNoDecimals(Math.floor(accessory.price))} · {term} cuotas
           </span>
         </div>
@@ -164,7 +164,7 @@ const ModalContentShared: React.FC<{
 
         {/* Social proof */}
         {badgeText && (
-          <p className="text-xs text-neutral-400 text-center flex items-center justify-center gap-1.5">
+          <p className="text-xs text-[var(--text-faint,#9ca3af)] text-center flex items-center justify-center gap-1.5">
             <Users className="w-3.5 h-3.5" />
             {badgeText}
           </p>
@@ -191,7 +191,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
-      base: 'bg-white rounded-2xl',
+      base: 'bg-[var(--surface,#fff)] rounded-2xl',
       body: 'p-0',
       closeButton: 'hidden',
     }}
@@ -286,7 +286,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[10001] flex flex-col min-h-[50vh] max-h-[70vh]"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[10001] flex flex-col min-h-[50vh] max-h-[70vh]"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
@@ -294,7 +294,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
@@ -304,10 +304,10 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                   <Package className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">
                     Características
                   </h2>
-                  <p className="text-xs text-neutral-500 truncate max-w-[180px]">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)] truncate max-w-[180px]">
                     {accessory.name}
                   </p>
                 </div>

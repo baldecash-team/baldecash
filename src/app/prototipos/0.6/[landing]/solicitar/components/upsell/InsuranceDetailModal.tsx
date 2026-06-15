@@ -81,7 +81,7 @@ const ModalContentShared: React.FC<{
     <div className="flex flex-col">
       {/* Header */}
       <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3">
-        <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+        <div className="w-9 h-9 bg-[var(--surface,#fff)]/20 rounded-lg flex items-center justify-center">
           <Icon className="w-4.5 h-4.5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
@@ -93,7 +93,7 @@ const ModalContentShared: React.FC<{
       {/* Body */}
       <div className="px-5 py-4 space-y-4">
         {/* Description */}
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-[var(--text-muted,#4b5563)]">
           {config.description}
         </p>
 
@@ -102,7 +102,7 @@ const ModalContentShared: React.FC<{
           {config.coverageItems.map((item) => (
             <div key={item} className="flex items-start gap-2">
               <Check className="w-3.5 h-3.5 text-[var(--color-secondary)] flex-shrink-0 mt-0.5" />
-              <span className="text-xs text-neutral-600">{item}</span>
+              <span className="text-xs text-[var(--text-muted,#4b5563)]">{item}</span>
             </div>
           ))}
         </div>
@@ -110,12 +110,12 @@ const ModalContentShared: React.FC<{
         {/* Legal - collapsed */}
         {(config.legalText || config.conditionsText) && (
           <details className="group text-xs">
-            <summary className="text-neutral-400 cursor-pointer hover:text-neutral-500 select-none">
+            <summary className="text-[var(--text-faint,#9ca3af)] cursor-pointer hover:text-[var(--text-muted,#6b7280)] select-none">
               Información legal
             </summary>
             <div className="mt-2 space-y-2 text-[11px] leading-relaxed">
               {config.legalText && (
-                <p className="text-neutral-400 bg-neutral-50 rounded-lg p-3">
+                <p className="text-[var(--text-faint,#9ca3af)] bg-[var(--surface-bg,#fafafa)] rounded-lg p-3">
                   {config.legalText}
                 </p>
               )}
@@ -148,9 +148,9 @@ const ModalContentShared: React.FC<{
             <span className="text-xl font-bold text-[var(--color-primary)]">
               S/ {formatMoneyNoDecimals(Math.floor(plan.monthlyPrice))}
             </span>
-            <span className="text-xs text-neutral-500">/mes</span>
+            <span className="text-xs text-[var(--text-muted,#6b7280)]">/mes</span>
           </div>
-          <span className="text-[11px] text-neutral-400">
+          <span className="text-[11px] text-[var(--text-faint,#9ca3af)]">
             S/ {formatMoneyNoDecimals(plan.totalPrice)} · {plan.paymentMonths} cuotas
           </span>
         </div>
@@ -159,7 +159,7 @@ const ModalContentShared: React.FC<{
           onClick={handleToggleAndClose}
           className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
             isSelected
-              ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              ? 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
               : 'bg-[var(--color-primary)] text-white hover:brightness-90'
           }`}
         >
@@ -171,7 +171,7 @@ const ModalContentShared: React.FC<{
         </button>
 
         {badgeText && (
-          <p className="flex items-center justify-center gap-1 text-[10px] text-neutral-400 mt-3">
+          <p className="flex items-center justify-center gap-1 text-[10px] text-[var(--text-faint,#9ca3af)] mt-3">
             <Users className="w-3 h-3" />
             {badgeText}
           </p>
@@ -193,9 +193,9 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan }
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
-      base: 'bg-white rounded-2xl overflow-hidden',
+      base: 'bg-[var(--surface,#fff)] rounded-2xl overflow-hidden',
       body: 'p-0',
-      closeButton: 'top-3 right-3 z-10 bg-white/30 backdrop-blur hover:bg-white/50 text-white cursor-pointer',
+      closeButton: 'top-3 right-3 z-10 bg-[var(--surface,#fff)]/30 backdrop-blur hover:bg-[var(--surface,#fff)]/50 text-white cursor-pointer',
     }}
   >
     <ModalContent>
@@ -274,14 +274,14 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
             onDragEnd={(_, info) => {
               if (info.offset.y > 100) onClose();
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col max-h-[80vh]"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col max-h-[80vh]"
             style={{ overscrollBehavior: 'contain' }}
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
             <div
               className="flex-1 overflow-y-auto"

@@ -449,7 +449,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
       {/* pb-32 en mobile para dejar espacio al bottom CTA bar fijo */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-32 lg:pb-6">
         {/* Main Layout */}
@@ -484,13 +484,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-5 h-5 text-[var(--color-primary)]" />
-                  <span className="font-semibold text-neutral-800">Combo incluye</span>
+                  <span className="font-semibold text-[var(--text-strong,#1f2937)]">Combo incluye</span>
                 </div>
                 <div className="space-y-3">
                   {combo.accessories.map((accessory) => (
                     <div
                       key={accessory.productId}
-                      className="flex items-center gap-3 bg-white rounded-lg p-3 border border-neutral-100"
+                      className="flex items-center gap-3 bg-[var(--surface,#fff)] rounded-lg p-3 border border-[var(--border-soft,#f3f4f6)]"
                     >
                       {accessory.imageUrl && (
                         <img
@@ -500,7 +500,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-neutral-800 line-clamp-2 break-words">
+                        <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 break-words">
                           {accessory.productName}
                         </p>
                         {accessory.isIncludedFree ? (
@@ -510,13 +510,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                               ¡Gratis!
                             </span>
                             {accessory.unitPrice > 0 && (
-                              <span className="text-xs text-neutral-400 line-through ml-1">
+                              <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through ml-1">
                                 S/ {accessory.unitPrice.toFixed(2)}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <p className="text-xs text-neutral-500 mt-0.5">
+                          <p className="text-xs text-[var(--text-muted,#6b7280)] mt-0.5">
                             S/ {accessory.unitPrice.toFixed(2)}
                           </p>
                         )}
@@ -553,7 +553,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               // We inject the inline safe-area padding via a data attribute so
               // it only applies below lg via a tiny style helper below.
               <div
-                className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-white border-t border-neutral-200 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
+                className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
               >
                 <button
                   onClick={handleSolicitar}
@@ -645,7 +645,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-semibold transition-colors cursor-pointer border flex-shrink-0 ${
                       isInWishlist
                         ? 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-red-50 hover:text-red-500 hover:border-red-200'
-                        : 'text-neutral-500 bg-neutral-50 border-neutral-200 hover:text-[var(--color-primary)] hover:border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.05)]'
+                        : 'text-[var(--text-muted,#6b7280)] bg-[var(--surface-bg,#fafafa)] border-[var(--border-soft,#e5e7eb)] hover:text-[var(--color-primary)] hover:border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.05)]'
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
@@ -673,9 +673,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Description Section - Full Width */}
         {hasDescription && (
           <div id="section-description" className="mt-12">
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-neutral-100">
-                <h2 className="text-lg font-bold text-neutral-900">Descripción</h2>
+            <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#f3f4f6)] shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-[var(--border-soft,#f3f4f6)]">
+                <h2 className="text-lg font-bold text-[var(--text-strong,#111827)]">Descripción</h2>
               </div>
               <div className="px-6 py-5 space-y-3">
                 {displayShortDesc && (
@@ -684,7 +684,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   </p>
                 )}
                 {product.description && (
-                  <p className="text-neutral-600 leading-relaxed text-sm">
+                  <p className="text-[var(--text-muted,#4b5563)] leading-relaxed text-sm">
                     {product.description}
                   </p>
                 )}

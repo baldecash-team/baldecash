@@ -33,9 +33,9 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="bg-white border border-neutral-200 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8"
+      className="bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] rounded-xl p-4 sm:p-6 mb-6 sm:mb-8"
     >
-      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-5 sm:mb-6">Estado de tu solicitud</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] mb-5 sm:mb-6">Estado de tu solicitud</h3>
 
       {/* Timeline horizontal */}
       <div className="flex items-center justify-between mb-5 sm:mb-6 gap-1">
@@ -53,7 +53,7 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
                     ? 'bg-green-500 text-white'
                     : step.status === 'current'
                       ? 'bg-[var(--color-primary)] text-white animate-pulse'
-                      : 'bg-neutral-200 text-neutral-400'
+                      : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)]'
                 }`}
               >
                 {step.status === 'completed' ? (
@@ -64,19 +64,19 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
               </div>
               <p
                 className={`text-xs sm:text-sm font-medium break-words ${
-                  step.status === 'pending' ? 'text-neutral-400' : 'text-neutral-800'
+                  step.status === 'pending' ? 'text-[var(--text-faint,#9ca3af)]' : 'text-[var(--text-strong,#1f2937)]'
                 }`}
               >
                 {step.title}
               </p>
-              <p className="text-xs text-neutral-500 hidden sm:block break-words">{step.description}</p>
+              <p className="text-xs text-[var(--text-muted,#6b7280)] hidden sm:block break-words">{step.description}</p>
             </motion.div>
 
             {/* Connector line */}
             {index < steps.length - 1 && (
               <div
                 className={`h-0.5 flex-1 mx-1 sm:mx-2 mb-6 ${
-                  step.status === 'completed' ? 'bg-green-500' : 'bg-neutral-200'
+                  step.status === 'completed' ? 'bg-green-500' : 'bg-[var(--surface-2,#e5e7eb)]'
                 }`}
               />
             )}
@@ -86,7 +86,7 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
 
       {/* Notification info */}
       <div className="bg-[var(--color-primary)]/5 rounded-lg p-3 sm:p-4 text-center">
-        <p className="text-xs sm:text-sm text-neutral-600 break-words">
+        <p className="text-xs sm:text-sm text-[var(--text-muted,#4b5563)] break-words">
           Te notificaremos por{' '}
           <span className="font-semibold text-[var(--color-primary)]">
             {notificationChannels

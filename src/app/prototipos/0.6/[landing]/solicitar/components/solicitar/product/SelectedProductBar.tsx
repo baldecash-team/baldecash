@@ -109,7 +109,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
         <motion.div
           layout
-          className="bg-white border-t border-neutral-200 shadow-lg relative z-50"
+          className="bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] shadow-lg relative z-50"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {/* Collapsed State */}
@@ -118,7 +118,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             className="w-full px-4 py-3 flex items-center gap-3 cursor-pointer"
           >
             {/* Product Thumbnail */}
-            <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+            <div className="w-12 h-12 bg-[var(--surface-2,#f3f4f6)] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
               {allProducts.length > 1 ? (
                 <div className="w-full h-full flex items-center justify-center bg-[var(--color-primary)]/10">
                   <ShoppingCart className="w-6 h-6 text-[var(--color-primary)]" />
@@ -132,23 +132,23 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   className="object-contain"
                 />
               ) : (
-                <Package className="w-6 h-6 text-neutral-400" />
+                <Package className="w-6 h-6 text-[var(--text-faint,#9ca3af)]" />
               )}
             </div>
 
             {/* Product Info */}
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium text-neutral-800 truncate">
+              <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate">
                 {allProducts.length > 1 ? `${allProducts.length} productos` : mainProduct.shortName}
                 {(hasAccessories || hasInsurance) && (
-                  <span className="text-xs text-neutral-500 ml-1">
+                  <span className="text-xs text-[var(--text-muted,#6b7280)] ml-1">
                     {hasAccessories && `+${selectedAccessories.length} acc.`}
                     {hasAccessories && hasInsurance && ' '}
                     {hasInsurance && `+${selectedInsurances.length} seguro${selectedInsurances.length > 1 ? 's' : ''}`}
                   </span>
                 )}
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-[var(--text-muted,#6b7280)]">
                 {(() => {
                   const displayTerm = mainProduct.term ?? mainProduct.months;
                   return `${displayTerm} ${getTermUnit(displayTerm, mainProduct.paymentFrequency)}`;
@@ -164,9 +164,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 </span>
               </div>
               {isExpanded ? (
-                <ChevronDown className="w-5 h-5 text-neutral-400" />
+                <ChevronDown className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
               ) : (
-                <ChevronUp className="w-5 h-5 text-neutral-400" />
+                <ChevronUp className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
               )}
             </div>
           </button>
@@ -181,12 +181,12 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="px-4 pb-4 pt-1 border-t border-neutral-100 max-h-[60vh] overflow-y-auto">
+                <div className="px-4 pb-4 pt-1 border-t border-[var(--border-soft,#f3f4f6)] max-h-[60vh] overflow-y-auto">
                   {/* Products List */}
                   <div className="space-y-3">
                     {allProducts.map((product, index) => (
-                      <div key={`${product.id}-${index}`} className={`flex gap-4 ${index > 0 ? 'pt-3 border-t border-neutral-100' : ''}`}>
-                        <div className="w-20 h-20 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div key={`${product.id}-${index}`} className={`flex gap-4 ${index > 0 ? 'pt-3 border-t border-[var(--border-soft,#f3f4f6)]' : ''}`}>
+                        <div className="w-20 h-20 bg-[var(--surface-bg,#fafafa)] rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                           {product.image ? (
                             <Image
                               src={product.image}
@@ -196,28 +196,28 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                               className="object-contain"
                             />
                           ) : (
-                            <Package className="w-10 h-10 text-neutral-300" />
+                            <Package className="w-10 h-10 text-[var(--text-faint,#d4d4d4)]" />
                           )}
                         </div>
 
                         {/* Full Details */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                          <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase tracking-wide">
                             {product.brand}
                           </p>
-                          <p className="text-sm font-semibold text-neutral-800 mt-0.5">
+                          <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)] mt-0.5">
                             {product.name}
                           </p>
 
                           {product.specs && (
                             <div className="mt-1 space-y-0.5">
                               {product.specs.processor && (
-                                <p className="text-xs text-neutral-500">
+                                <p className="text-xs text-[var(--text-muted,#6b7280)]">
                                   {product.specs.processor}
                                 </p>
                               )}
                               {product.specs.ram && product.specs.storage && (
-                                <p className="text-xs text-neutral-500">
+                                <p className="text-xs text-[var(--text-muted,#6b7280)]">
                                   {product.specs.ram} • {product.specs.storage}
                                 </p>
                               )}
@@ -230,7 +230,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             if (initialOptions.length === 0) return null;
                             return (
                               <div className="mt-2">
-                                <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
+                                <p className="text-[10px] text-[var(--text-faint,#9ca3af)] mb-1">Inicial:</p>
                                 <div className="flex flex-wrap gap-1">
                                   {initialOptions.map((option) => (
                                     <button
@@ -242,7 +242,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                                       className={`text-[10px] px-2 py-0.5 rounded-full transition-all cursor-pointer ${
                                         product.initialPercent === option.percent
                                           ? 'bg-[var(--color-primary)] text-white font-medium'
-                                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                                       }`}
                                     >
                                       {option.label}
@@ -257,7 +257,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
                           </p>
                           {product.initialAmount > 0 && (
-                            <p className="text-xs text-neutral-400">
+                            <p className="text-xs text-[var(--text-faint,#9ca3af)]">
                               + {formatPrice(product.initialAmount)} inicial
                             </p>
                           )}
@@ -270,7 +270,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {hasAccessories && (
                     <div className="mt-3 space-y-1">
                       {selectedAccessories.map((acc) => (
-                        <div key={acc.id} className="flex items-center gap-2 text-xs text-neutral-600">
+                        <div key={acc.id} className="flex items-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
                           <Plus className="w-3 h-3 text-[var(--color-primary)]" />
                           <span className="flex-1 truncate">{acc.name}</span>
                           <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}</span>
@@ -283,7 +283,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {hasInsurance && (
                     <div className="mt-3 space-y-1.5">
                       {selectedInsurances.map((ins) => (
-                        <div key={ins.id} className="flex items-center gap-2 text-xs text-neutral-600 bg-[var(--color-secondary)]/10 px-3 py-2 rounded-lg">
+                        <div key={ins.id} className="flex items-center gap-2 text-xs text-[var(--text-muted,#4b5563)] bg-[var(--color-secondary)]/10 px-3 py-2 rounded-lg">
                           <Shield className="w-3 h-3 text-[var(--color-secondary)]" />
                           <span className="flex-1 truncate">{ins.name}</span>
                           <span className="text-[var(--color-secondary)] font-medium">+{formatPrice(ins.monthlyPrice)}/mes</span>
@@ -314,7 +314,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {/* Monthly Payment Summary */}
                   <div className={`mt-4 p-3 rounded-lg ${isOverQuotaLimit ? 'bg-red-50' : 'bg-[var(--color-primary)]/5'}`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
+                      <span className="text-sm font-medium text-[var(--text,#374151)]">Cuota mensual total</span>
                       <div className="text-right">
                         <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
                           {formatPrice(totalMonthlyPayment)}/mes
@@ -323,7 +323,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     </div>
                     {/* Term Selector - Mobile */}
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-neutral-500">Plazo:</span>
+                      <span className="text-xs text-[var(--text-muted,#6b7280)]">Plazo:</span>
                       <TermSelect
                         value={mainProduct.term ?? mainProduct.months}
                         options={availableTerms}
@@ -333,9 +333,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       />
                     </div>
                     {hasInitialPayment && !isGamer && (
-                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
-                        <span className="text-xs text-neutral-500">Inicial total</span>
-                        <span className="text-sm font-medium text-neutral-600">
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-[var(--border-soft,#f3f4f6)]">
+                        <span className="text-xs text-[var(--text-muted,#6b7280)]">Inicial total</span>
+                        <span className="text-sm font-medium text-[var(--text-muted,#4b5563)]">
                           {formatPrice(totalInitialPayment)}
                         </span>
                       </div>
@@ -367,18 +367,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
         )}
 
         {/* Products Card */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
+        <div className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#e5e7eb)] p-4">
           {/* Header with term selector */}
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-100">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border-soft,#f3f4f6)]">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
-              <span className="text-sm font-semibold text-neutral-800">
+              <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                 {allProducts.length > 1 ? `${allProducts.length} productos seleccionados` : 'Producto seleccionado'}
               </span>
             </div>
             {/* Term Selector - Desktop */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-500">Plazo:</span>
+              <span className="text-xs text-[var(--text-muted,#6b7280)]">Plazo:</span>
               <TermSelect
                 value={mainProduct.term ?? mainProduct.months}
                 options={availableTerms}
@@ -391,9 +391,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
           {/* Products List */}
           <div className="space-y-4">
             {allProducts.map((product, index) => (
-              <div key={`${product.id}-${index}`} className={`flex items-center gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
+              <div key={`${product.id}-${index}`} className={`flex items-center gap-4 ${index > 0 ? 'pt-4 border-t border-[var(--border-soft,#f3f4f6)]' : ''}`}>
                 {/* Product Image */}
-                <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 bg-[var(--surface-bg,#fafafa)] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.image ? (
                     <Image
                       src={product.image}
@@ -403,20 +403,20 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       className="object-contain"
                     />
                   ) : (
-                    <Package className="w-8 h-8 text-neutral-300" />
+                    <Package className="w-8 h-8 text-[var(--text-faint,#d4d4d4)]" />
                   )}
                 </div>
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase tracking-wide">
                     {product.brand}
                   </p>
-                  <p className="text-base font-semibold text-neutral-800">
+                  <p className="text-base font-semibold text-[var(--text-strong,#1f2937)]">
                     {product.name}
                   </p>
                   {product.specs && (
-                    <p className="text-sm text-neutral-500 mt-0.5">
+                    <p className="text-sm text-[var(--text-muted,#6b7280)] mt-0.5">
                       {[
                         product.specs.processor,
                         product.specs.ram,
@@ -431,7 +431,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     if (initialOptions.length === 0) return null;
                     return (
                       <div className="mt-2">
-                        <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
+                        <p className="text-[11px] text-[var(--text-faint,#9ca3af)] mb-1">Inicial:</p>
                         <div className="flex flex-wrap gap-1.5">
                           {initialOptions.map((option) => (
                             <button
@@ -440,7 +440,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                               className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
                                 product.initialPercent === option.percent
                                   ? 'bg-[var(--color-primary)] text-white font-medium'
-                                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                               }`}
                             >
                               {option.label}
@@ -460,13 +460,13 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {(() => {
                     const displayTerm = product.term ?? product.months;
                     return (
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-[var(--text-muted,#6b7280)]">
                         {displayTerm} {getTermUnit(displayTerm, product.paymentFrequency)}
                       </p>
                     );
                   })()}
                   {product.initialAmount > 0 && (
-                    <p className="text-xs text-neutral-400 mt-0.5">
+                    <p className="text-xs text-[var(--text-faint,#9ca3af)] mt-0.5">
                       + {formatPrice(product.initialAmount)} inicial
                     </p>
                   )}
@@ -477,10 +477,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
           {/* Initial payment total - only show if applicable (hidden for zona-gamer) */}
           {hasInitialPayment && !isGamer && (
-            <div className="mt-4 pt-4 border-t border-neutral-200">
+            <div className="mt-4 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-neutral-500">Inicial total</span>
-                <span className="text-sm font-medium text-neutral-600">
+                <span className="text-xs text-[var(--text-muted,#6b7280)]">Inicial total</span>
+                <span className="text-sm font-medium text-[var(--text-muted,#4b5563)]">
                   {formatPrice(totalInitialPayment)}
                 </span>
               </div>
@@ -508,7 +508,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             >
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
-                <p className="text-sm font-semibold text-neutral-800">
+                <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                   {selectedInsurances.length === 1 ? 'Seguro' : `Seguros (${selectedInsurances.length})`}
                 </p>
               </div>
@@ -519,9 +519,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   </span>
                 )}
                 {isInsuranceExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                  <ChevronUp className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                  <ChevronDown className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
                 )}
               </div>
             </button>
@@ -539,7 +539,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <div className="space-y-2">
                       {selectedInsurances.map((ins) => (
                         <div key={ins.id} className="flex items-center justify-between text-sm">
-                          <span className="text-neutral-700 truncate">{ins.name}</span>
+                          <span className="text-[var(--text,#374151)] truncate">{ins.name}</span>
                           <span className="text-[var(--color-secondary)] font-medium flex-shrink-0 ml-4">
                             +{formatPrice(ins.monthlyPrice)}/mes
                           </span>
@@ -549,7 +549,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
                     <div className="mt-3 pt-3 border-t border-[var(--color-secondary)]/10">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-neutral-700">Total seguros</span>
+                        <span className="text-sm font-medium text-[var(--text,#374151)]">Total seguros</span>
                         <span className="text-sm font-bold text-[var(--color-secondary)]">
                           +{formatPrice(selectedInsurances.reduce((sum, ins) => sum + ins.monthlyPrice, 0))}/mes
                         </span>
@@ -571,7 +571,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             >
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-[var(--color-primary)]" />
-                <p className="text-sm font-semibold text-neutral-800">
+                <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                   Accesorios ({selectedAccessories.length})
                 </p>
               </div>
@@ -582,9 +582,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   </span>
                 )}
                 {isAccessoriesExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                  <ChevronUp className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                  <ChevronDown className="w-5 h-5 text-[var(--text-faint,#9ca3af)]" />
                 )}
               </div>
             </button>
@@ -604,7 +604,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         <div key={acc.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
-                            <span className="text-neutral-700 truncate">{acc.name}</span>
+                            <span className="text-[var(--text,#374151)] truncate">{acc.name}</span>
                           </div>
                           <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
                             +{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}
@@ -615,7 +615,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
                     <div className="mt-3 pt-3 border-t border-[var(--color-primary)]/10">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
+                        <span className="text-sm font-medium text-[var(--text,#374151)]">Cuota mensual total</span>
                         <div className="text-right">
                           <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
                             {formatPrice(totalMonthlyPayment)}/mes

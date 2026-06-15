@@ -106,15 +106,15 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
           ${checked
             ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
             : error
-              ? 'border-red-300 bg-white'
-              : 'border-neutral-300 bg-white hover:border-neutral-400'
+              ? 'border-red-300 bg-[var(--surface,#fff)]'
+              : 'border-[var(--border-strong,#d1d5db)] bg-[var(--surface,#fff)] hover:border-neutral-400'
           }
         `}
       >
         {checked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
       </div>
       {checkboxLabel && (
-        <span className="text-sm text-neutral-700">{checkboxLabel}</span>
+        <span className="text-sm text-[var(--text,#374151)]">{checkboxLabel}</span>
       )}
     </button>
   );
@@ -123,9 +123,9 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
     <div id={id} className="space-y-3">
       {/* Label (solo para modo múltiple o como título) */}
       {!isSimpleMode && (
-        <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+        <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
           {label}
-          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
       )}
@@ -147,16 +147,16 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
               ${isCheckedSimple
                 ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                 : error
-                  ? 'border-red-300 bg-white'
-                  : 'border-neutral-300 bg-white hover:border-neutral-400'
+                  ? 'border-red-300 bg-[var(--surface,#fff)]'
+                  : 'border-[var(--border-strong,#d1d5db)] bg-[var(--surface,#fff)] hover:border-neutral-400'
               }
             `}
           >
             {isCheckedSimple && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
           </div>
-          <span className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
             {label}
-            {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+            {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
             {tooltip && <span onClick={(e) => e.stopPropagation()}><FieldTooltip tooltip={tooltip} /></span>}
           </span>
         </button>
@@ -173,8 +173,8 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
                 ${selectedValues.includes(option.value)
                   ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
                   : error
-                    ? 'border-red-200 bg-white'
-                    : 'border-neutral-200 bg-white hover:border-neutral-300'
+                    ? 'border-red-200 bg-[var(--surface,#fff)]'
+                    : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] hover:border-[var(--border-strong,#d1d5db)]'
                 }
               `}
             >
@@ -191,7 +191,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
 
       {/* Help text */}
       {helpText && !error && (
-        <p className="text-xs text-neutral-500">{helpText}</p>
+        <p className="text-xs text-[var(--text-muted,#6b7280)]">{helpText}</p>
       )}
 
       {/* Success message */}

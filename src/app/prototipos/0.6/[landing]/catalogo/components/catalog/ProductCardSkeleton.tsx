@@ -46,9 +46,9 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
     <Card className="h-full border-0 shadow-lg overflow-hidden bg-[var(--surface,#fff)]">
       <CardBody className="p-0 flex flex-col">
         {/* Image area - matching ProductCard structure */}
-        <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
+        <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-6">
           <GlowBox
-            className="w-full h-44 rounded-xl bg-gradient-to-br from-neutral-100 via-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-secondary-rgb),0.05)]"
+            className="w-full h-44 rounded-xl bg-gradient-to-br from-[var(--surface-2,#f3f4f6)] via-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-secondary-rgb),0.05)]"
             delay={index * 0.1}
             glow
           />
@@ -192,8 +192,8 @@ const SkeletonV2: React.FC<{ index: number }> = ({ index }) => {
       <Card className="h-full border-0 shadow-lg overflow-hidden bg-[var(--surface,#fff)]">
         <CardBody className="p-0 flex flex-col">
           {/* Image area */}
-          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
-            <ShimmerBox className="w-full h-44 rounded-xl !bg-gradient-to-br from-neutral-100 to-neutral-200" />
+          <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-6">
+            <ShimmerBox className="w-full h-44 rounded-xl !bg-gradient-to-br from-[var(--surface-2,#f3f4f6)] to-[var(--surface-2,#e5e7eb)]" />
 
             {/* Action buttons - top right */}
             <div className="absolute top-3 right-3 flex flex-col gap-1">
@@ -288,8 +288,8 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
       <Card className="h-full border-0 shadow-lg overflow-hidden bg-[var(--surface,#fff)]">
         <CardBody className="p-0 flex flex-col">
           {/* Image area - matching ProductCard structure */}
-          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
-            <div className="w-full h-44 rounded-xl bg-gradient-to-br from-neutral-100 via-neutral-50 to-neutral-100 flex items-center justify-center">
+          <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-6">
+            <div className="w-full h-44 rounded-xl bg-gradient-to-br from-[var(--surface-2,#f3f4f6)] via-[var(--surface-bg,#fafafa)] to-[var(--surface-2,#f3f4f6)] flex items-center justify-center">
               <motion.div
                 className="w-20 h-20 rounded-lg bg-[var(--surface-2,#e5e7eb)]/60"
                 animate={{ scale: [1, 1.05, 1] }}

@@ -24,7 +24,7 @@ const LoadMoreV1: React.FC<Omit<LoadMoreButtonProps, 'version'>> = ({
 }) => (
   <div className="col-span-full py-8">
     <div className="flex items-center gap-4">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-neutral-200 to-neutral-200" />
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--surface-2,#e5e7eb)] to-[var(--surface-2,#e5e7eb)]" />
       <button
         onClick={onLoadMore}
         className="group flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-muted,#6b7280)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
@@ -35,7 +35,7 @@ const LoadMoreV1: React.FC<Omit<LoadMoreButtonProps, 'version'>> = ({
         </span>
         <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
       </button>
-      <div className="flex-1 h-px bg-gradient-to-l from-transparent via-neutral-200 to-neutral-200" />
+      <div className="flex-1 h-px bg-gradient-to-l from-transparent via-[var(--surface-2,#e5e7eb)] to-[var(--surface-2,#e5e7eb)]" />
     </div>
   </div>
 );

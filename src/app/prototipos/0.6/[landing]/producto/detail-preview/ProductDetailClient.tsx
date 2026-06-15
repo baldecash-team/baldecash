@@ -89,7 +89,7 @@ function ProductDetailContent() {
   // Loading state
   if (isLayoutLoading || isProductLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
         <CubeGridSpinner />
       </div>
     );
@@ -98,7 +98,7 @@ function ProductDetailContent() {
   // No product found
   if (!product) {
     return (
-      <div className="min-h-screen bg-neutral-50">
+      <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
         <Navbar
           fullWidth
           landing={landing}
@@ -114,8 +114,8 @@ function ProductDetailContent() {
           institutionName={navbarProps?.institutionName}
         />
         <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-neutral-800 mb-4">Producto no encontrado</h1>
-          <p className="text-neutral-500 mb-6">El producto que buscas no esta disponible.</p>
+          <h1 className="text-2xl font-bold text-[var(--text-strong,#1f2937)] mb-4">Producto no encontrado</h1>
+          <p className="text-[var(--text-muted,#6b7280)] mb-6">El producto que buscas no esta disponible.</p>
           <button
             onClick={handleBack}
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl font-medium hover:bg-[#3a47b3] transition-colors cursor-pointer"
@@ -130,7 +130,7 @@ function ProductDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
       {/* Navbar */}
       <Navbar
         fullWidth
@@ -150,7 +150,7 @@ function ProductDetailContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-2">
         <button
           onClick={handleBack}
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#4654CD] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted,#6b7280)] hover:text-[#4654CD] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver al catalogo
@@ -210,7 +210,7 @@ export function ProductDetailClient() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
           <CubeGridSpinner />
         </div>
       }

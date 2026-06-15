@@ -374,3 +374,45 @@ select:focus-visible {
   --accent-green-glow: #8FE000;
   --accent-turquoise:  #00D9CB;
 }
+
+/* ------------------------------------------------------------
+   Puente de utilidades "legacy" → tokens (solo bajo nvidia).
+   Para componentes que NO se pueden tokenizar en el JSX porque
+   COMPARTEN sus utilidades con el tema de zona-gamer (StepClient,
+   complementos, confirmacion) o que son compartidos y se prefiere
+   no tocar (Footer). Estas reglas SOLO aplican cuando <html> tiene
+   data-theme="nvidia"; zona-gamer nunca lo tiene (usa .gamer-*),
+   y las demás landings tampoco → cero impacto fuera de nvidia.
+   ------------------------------------------------------------ */
+[data-theme="nvidia"] .bg-white { background-color: var(--surface) !important; }
+[data-theme="nvidia"] .bg-neutral-50,
+[data-theme="nvidia"] .bg-gray-50,
+[data-theme="nvidia"] .bg-slate-50 { background-color: var(--surface-bg) !important; }
+[data-theme="nvidia"] .bg-neutral-100,
+[data-theme="nvidia"] .bg-gray-100,
+[data-theme="nvidia"] .bg-slate-100,
+[data-theme="nvidia"] .bg-neutral-200,
+[data-theme="nvidia"] .bg-gray-200,
+[data-theme="nvidia"] .bg-slate-200 { background-color: var(--surface-2) !important; }
+
+[data-theme="nvidia"] .text-neutral-900,
+[data-theme="nvidia"] .text-gray-900,
+[data-theme="nvidia"] .text-neutral-800,
+[data-theme="nvidia"] .text-gray-800 { color: var(--text-strong) !important; }
+[data-theme="nvidia"] .text-neutral-700,
+[data-theme="nvidia"] .text-gray-700 { color: var(--text) !important; }
+[data-theme="nvidia"] .text-neutral-600,
+[data-theme="nvidia"] .text-gray-600,
+[data-theme="nvidia"] .text-neutral-500,
+[data-theme="nvidia"] .text-gray-500 { color: var(--text-muted) !important; }
+[data-theme="nvidia"] .text-neutral-400,
+[data-theme="nvidia"] .text-gray-400,
+[data-theme="nvidia"] .text-neutral-300,
+[data-theme="nvidia"] .text-gray-300 { color: var(--text-faint) !important; }
+
+[data-theme="nvidia"] .border-neutral-100,
+[data-theme="nvidia"] .border-gray-100,
+[data-theme="nvidia"] .border-neutral-200,
+[data-theme="nvidia"] .border-gray-200 { border-color: var(--border-soft) !important; }
+[data-theme="nvidia"] .border-neutral-300,
+[data-theme="nvidia"] .border-gray-300 { border-color: var(--border-strong) !important; }
