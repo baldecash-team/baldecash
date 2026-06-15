@@ -140,11 +140,11 @@ const SummaryFieldRow: React.FC<{
   const displayValue = resolveFieldValue(field, value, resolvedLabel);
 
   return (
-    <div className="flex justify-between items-start py-2 border-b border-[var(--border-soft,#f3f4f6)] last:border-b-0">
-      <span className="text-sm text-[var(--text-muted,#4b5563)] flex-shrink-0 pr-4">
+    <div className="flex justify-between items-start py-2 border-b border-neutral-100 last:border-b-0">
+      <span className="text-sm text-neutral-600 flex-shrink-0 pr-4">
         {field.label}
       </span>
-      <span className="text-sm font-medium text-[var(--text-strong,#1f2937)] text-right">
+      <span className="text-sm font-medium text-neutral-800 text-right">
         {displayValue}
       </span>
     </div>
@@ -186,15 +186,15 @@ const SummaryStepSection: React.FC<{
   }
 
   return (
-    <div className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden">
+    <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
       {/* Step Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[var(--surface-bg,#fafafa)] border-b border-[var(--border-soft,#e5e7eb)]">
+      <div className="flex items-center justify-between px-4 py-3 bg-neutral-50 border-b border-neutral-200">
         <div>
-          <h3 className="text-base font-semibold text-[var(--text-strong,#1f2937)]">
+          <h3 className="text-base font-semibold text-neutral-800">
             {step.title || step.name}
           </h3>
           {step.description && (
-            <p className="text-xs text-[var(--text-muted,#6b7280)] mt-0.5">{step.description}</p>
+            <p className="text-xs text-neutral-500 mt-0.5">{step.description}</p>
           )}
         </div>
         {showEditButton && onEdit && (
@@ -346,12 +346,12 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#e5e7eb)] p-4 animate-pulse"
+            className="bg-white rounded-xl border border-neutral-200 p-4 animate-pulse"
           >
-            <div className="h-5 bg-[var(--surface-2,#e5e7eb)] rounded w-1/3 mb-3" />
+            <div className="h-5 bg-neutral-200 rounded w-1/3 mb-3" />
             <div className="space-y-2">
-              <div className="h-4 bg-[var(--surface-2,#f3f4f6)] rounded w-full" />
-              <div className="h-4 bg-[var(--surface-2,#f3f4f6)] rounded w-2/3" />
+              <div className="h-4 bg-neutral-100 rounded w-full" />
+              <div className="h-4 bg-neutral-100 rounded w-2/3" />
             </div>
           </div>
         ))}
@@ -369,8 +369,8 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
 
   if (regularSteps.length === 0) {
     return (
-      <div className={`bg-[var(--surface-bg,#fafafa)] border border-[var(--border-soft,#e5e7eb)] rounded-xl p-4 ${className}`}>
-        <p className="text-[var(--text-muted,#6b7280)] text-sm text-center">
+      <div className={`bg-neutral-50 border border-neutral-200 rounded-xl p-4 ${className}`}>
+        <p className="text-neutral-500 text-sm text-center">
           No hay datos para mostrar
         </p>
       </div>
@@ -380,7 +380,7 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
   return (
     <div className={`space-y-4 ${className}`}>
       {isResolvingLabels && (
-        <div className="text-center text-sm text-[var(--text-muted,#6b7280)] py-2">
+        <div className="text-center text-sm text-neutral-500 py-2">
           Cargando información...
         </div>
       )}

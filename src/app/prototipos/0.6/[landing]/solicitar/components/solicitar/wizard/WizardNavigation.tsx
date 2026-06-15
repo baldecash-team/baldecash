@@ -39,7 +39,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
           onClick={onBack}
           disabled={isSubmitting}
           className="w-full lg:w-auto flex items-center justify-center gap-2 px-4 py-3 lg:py-2
-                     text-[var(--text-muted,#4b5563)] hover:text-[var(--text-strong,#1f2937)] border border-[var(--border-strong,#d1d5db)] rounded-xl lg:border-0
+                     text-neutral-600 hover:text-neutral-800 border border-neutral-300 rounded-xl lg:border-0
                      transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ArrowLeft className="w-4 h-4" />

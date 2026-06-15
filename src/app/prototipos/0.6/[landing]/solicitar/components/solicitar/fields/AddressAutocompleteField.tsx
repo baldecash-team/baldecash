@@ -332,15 +332,15 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     if (showDisplayError) return 'border-[#ef4444]';
     if (showSuccess) return 'border-[#22c55e]';
     if (isFocused) return 'border-[var(--color-primary)]';
-    return 'border-[var(--border-strong,#d1d5db)]';
+    return 'border-neutral-300';
   };
 
   return (
     <div id={field.code} className="space-y-1.5">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
         {field.label}
-        {!field.required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
+        {!field.required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
@@ -348,13 +348,13 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
       <div
         className={`
           flex items-center gap-2 h-11 px-3
-          rounded-lg border-2 transition-all duration-200 bg-[var(--surface,#fff)]
+          rounded-lg border-2 transition-all duration-200 bg-white
           ${getBorderColor()}
-          ${field.readonly ? 'opacity-50 bg-[var(--surface-bg,#fafafa)]' : ''}
+          ${field.readonly ? 'opacity-50 bg-neutral-50' : ''}
         `}
       >
         {/* Map pin icon */}
-        <MapPin className="w-5 h-5 text-[var(--text-faint,#9ca3af)] flex-shrink-0" />
+        <MapPin className="w-5 h-5 text-neutral-400 flex-shrink-0" />
 
         {/* Input for Google Places Autocomplete */}
         <input
@@ -374,8 +374,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           disabled={field.readonly || !isLoaded}
           style={{ fontSize: '16px' }}
           className={`
-            flex-1 bg-transparent outline-none text-[var(--text-strong,#1f2937)]
-            placeholder:text-[var(--text-faint,#9ca3af)]
+            flex-1 bg-transparent outline-none text-neutral-800
+            placeholder:text-neutral-400
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
           /* "new-password" (instead of "off") is the documented workaround to
@@ -429,7 +429,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
 
       {/* Loading state for Google Maps */}
       {isLoading && (
-        <p className="text-xs text-[var(--text-muted,#6b7280)] flex items-center gap-1">
+        <p className="text-xs text-neutral-500 flex items-center gap-1">
           <Loader2 className="w-3 h-3 animate-spin" />
           Cargando Google Maps...
         </p>

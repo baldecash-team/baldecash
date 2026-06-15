@@ -75,7 +75,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   const landing = (params.landing as string) || 'home';
 
   return (
-    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] relative">
+    <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar del Hero */}
       {!hideNavbar && <Navbar {...navbarProps} landing={landing} />}
 
@@ -99,14 +99,14 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
             {/* Header */}
             <div className="mb-4 sm:mb-6">
-              <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-strong,#1f2937)] leading-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-800 leading-tight">
                 {title}
               </h1>
-              <p className="text-sm sm:text-base text-[var(--text-muted,#4b5563)] mt-1">{description}</p>
+              <p className="text-sm sm:text-base text-neutral-600 mt-1">{description}</p>
             </div>
 
             {/* Content */}
-            <div className="bg-[var(--surface,#fff)] rounded-xl shadow-sm border border-[var(--border-soft,#e5e7eb)] p-4 sm:p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6">
               {children}
             </div>
 

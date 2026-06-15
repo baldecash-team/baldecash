@@ -95,7 +95,7 @@ export function InsuranceSection({
     <div className={className}>
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-[var(--text-faint,#9ca3af)]" />
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </div>
       ) : (
         <InsuranceCards

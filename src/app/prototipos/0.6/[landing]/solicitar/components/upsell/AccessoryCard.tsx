@@ -79,10 +79,10 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         </div>
 
         {/* Content */}
-        <h4 className="font-semibold text-sm text-[var(--text-strong,#1f2937)] mb-1 line-clamp-2 min-h-[2.5rem]">
+        <h4 className="font-semibold text-sm text-neutral-800 mb-1 line-clamp-2 min-h-[2.5rem]">
           {accessory.name}
         </h4>
-        <p className="text-xs text-[var(--text-muted,#6b7280)] mb-2 line-clamp-2 min-h-[2rem]">
+        <p className="text-xs text-neutral-500 mb-2 line-clamp-2 min-h-[2rem]">
           {accessory.description}
         </p>
 
@@ -116,11 +116,11 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
               +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}{freqSuffix}
             </span>
             {accessory.term && (
-              <p className="text-[10px] text-[var(--text-faint,#9ca3af)]">en {accessory.term} meses</p>
+              <p className="text-[10px] text-neutral-400">en {accessory.term} meses</p>
             )}
           </div>
           <Plus
-            className={`w-5 h-5 text-[var(--text-faint,#9ca3af)] transition-all duration-200 ${
+            className={`w-5 h-5 text-neutral-400 transition-all duration-200 ${
               isSelected ? 'opacity-0 scale-0' : 'opacity-100 scale-100'
             }`}
           />

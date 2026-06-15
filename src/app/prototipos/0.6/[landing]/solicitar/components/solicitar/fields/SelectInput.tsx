@@ -124,23 +124,23 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 
   const getBorderColor = () => {
     if (showError) return 'border-[#ef4444] bg-[#ef4444]/5';
-    if (showSuccess) return 'border-[#22c55e] bg-[var(--surface,#fff)]';
-    if (isOpen) return 'border-[var(--color-primary)] bg-[var(--surface,#fff)]';
-    return 'border-[var(--border-strong,#d1d5db)] hover:border-neutral-400 bg-[var(--surface,#fff)]';
+    if (showSuccess) return 'border-[#22c55e] bg-white';
+    if (isOpen) return 'border-[var(--color-primary)] bg-white';
+    return 'border-neutral-300 hover:border-neutral-400 bg-white';
   };
 
   return (
     <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
       {/* Label */}
-      <label className={`flex items-center gap-1.5 font-medium text-[var(--text,#374151)] ${small ? 'text-xs' : 'text-sm'}`}>
+      <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
         {label}
-        {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
+        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
       {/* Help text */}
       {helpText && (
-        <p className="text-xs text-[var(--text-muted,#6b7280)]">{helpText}</p>
+        <p className="text-xs text-neutral-500">{helpText}</p>
       )}
 
       {/* Select trigger */}
@@ -177,7 +177,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          <span className={displayLabel ? 'text-[var(--text-strong,#1f2937)]' : 'text-[var(--text-faint,#9ca3af)]'}>
+          <span className={displayLabel ? 'text-neutral-800' : 'text-neutral-400'}>
             {displayLabel || placeholder}
           </span>
 
@@ -189,14 +189,14 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   e.stopPropagation();
                   handleClear();
                 }}
-                className="w-5 h-5 rounded-full hover:bg-[var(--surface-2,#e5e7eb)] flex items-center justify-center cursor-pointer"
+                className="w-5 h-5 rounded-full hover:bg-neutral-200 flex items-center justify-center cursor-pointer"
               >
-                <X className="w-3 h-3 text-[var(--text-muted,#6b7280)]" />
+                <X className="w-3 h-3 text-neutral-500" />
               </button>
             )}
             {showSuccess && <Check className="w-5 h-5 text-[#22c55e]" />}
             {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
-            <ChevronDown className={`w-5 h-5 text-[var(--text-faint,#9ca3af)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
 
@@ -205,13 +205,13 @@ export const SelectInput: React.FC<SelectInputProps> = ({
           <div
             id={`${id}-listbox`}
             role="listbox"
-            className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] rounded-lg shadow-lg overflow-hidden"
+            className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden"
           >
             {/* Search input */}
             {searchable && (
-              <div className="p-2 border-b border-[var(--border-soft,#f3f4f6)]">
-                <div className="flex items-center gap-2 h-9 px-3 bg-[var(--surface-bg,#fafafa)] rounded-md">
-                  <Search className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+              <div className="p-2 border-b border-neutral-100">
+                <div className="flex items-center gap-2 h-9 px-3 bg-neutral-50 rounded-md">
+                  <Search className="w-4 h-4 text-neutral-400" />
                   <input
                     autoFocus
                     type="text"
@@ -226,10 +226,10 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                       }
                     }}
                     style={{ fontSize: '16px' }}
-                    className="flex-1 bg-transparent outline-none text-[var(--text-strong,#1f2937)] placeholder:text-[var(--text-faint,#9ca3af)]"
+                    className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />
                   {isSearching && (
-                    <div className="w-4 h-4 border-2 border-[var(--border-strong,#d1d5db)] border-t-neutral-600 rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
                   )}
                 </div>
               </div>
@@ -239,16 +239,16 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                 visible above the iOS virtual keyboard when it is open. */}
             <div className="max-h-[min(15rem,50vh)] overflow-y-auto p-1 pb-16 sm:pb-1 overscroll-contain">
               {needsMoreChars ? (
-                <div className="py-8 text-center text-[var(--text-faint,#9ca3af)] text-sm">
+                <div className="py-8 text-center text-neutral-400 text-sm">
                   {searchPrompt || `Escribe al menos ${minSearchLength} caracteres para buscar`}
                 </div>
               ) : isSearching ? (
-                <div className="py-8 text-center text-[var(--text-faint,#9ca3af)] text-sm flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-[var(--border-strong,#d1d5db)] border-t-neutral-600 rounded-full animate-spin" />
+                <div className="py-8 text-center text-neutral-400 text-sm flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
                   Buscando...
                 </div>
               ) : filteredOptions.length === 0 ? (
-                <div className="py-8 text-center text-[var(--text-faint,#9ca3af)] text-sm">
+                <div className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron resultados
                 </div>
               ) : (
@@ -263,7 +263,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                       transition-colors cursor-pointer
                       ${value === option.value
                         ? 'bg-[var(--color-primary)] text-white'
-                        : 'text-[var(--text,#374151)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
+                        : 'text-neutral-700 hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
                       }
                       ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
                     `}

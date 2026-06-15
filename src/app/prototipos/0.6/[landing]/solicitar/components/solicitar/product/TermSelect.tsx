@@ -55,7 +55,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
   const getBorderColor = () => {
     if (warning) return 'border-amber-300';
     if (isOpen) return 'border-[var(--color-primary)]';
-    return 'border-[var(--border-strong,#d1d5db)] hover:border-neutral-400';
+    return 'border-neutral-300 hover:border-neutral-400';
   };
 
   return (
@@ -65,21 +65,21 @@ export const TermSelect: React.FC<TermSelectProps> = ({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={`
-            flex items-center justify-between rounded-lg border-2 bg-[var(--surface,#fff)]
+            flex items-center justify-between rounded-lg border-2 bg-white
             transition-all cursor-pointer
             ${sizeClasses}
             ${getBorderColor()}
           `}
         >
-          <span className={hasValue ? 'text-[var(--text-strong,#1f2937)]' : 'text-[var(--text-faint,#9ca3af)]'}>
+          <span className={hasValue ? 'text-neutral-800' : 'text-neutral-400'}>
             {displayLabel}
           </span>
-          <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-faint,#9ca3af)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute z-50 top-full right-0 mt-1 min-w-[140px] bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute z-50 top-full right-0 mt-1 min-w-[140px] bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
             <div className="p-1">
               {options.map((term) => (
                 <button
@@ -91,7 +91,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
                     transition-colors cursor-pointer flex items-center justify-between
                     ${value === term
                       ? 'bg-[var(--color-primary)] text-white'
-                      : 'text-[var(--text,#374151)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
+                      : 'text-neutral-700 hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
                     }
                   `}
                 >

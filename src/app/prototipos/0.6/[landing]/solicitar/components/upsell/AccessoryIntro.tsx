@@ -15,10 +15,10 @@ export const AccessoryIntro: React.FC = () => {
           <Users className="w-6 h-6 text-[var(--color-primary)]" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[var(--text-strong,#1f2937)] mb-1">
+          <h2 className="text-lg font-semibold text-neutral-800 mb-1">
             Los estudiantes también llevan...
           </h2>
-          <p className="text-sm text-[var(--text-muted,#4b5563)]">
+          <p className="text-sm text-neutral-600">
             7 de cada 10 estudiantes agregan al menos un accesorio a su compra.
           </p>
         </div>

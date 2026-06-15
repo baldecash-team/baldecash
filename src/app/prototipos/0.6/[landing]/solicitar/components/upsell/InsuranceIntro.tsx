@@ -27,7 +27,7 @@ export const InsuranceIntro: React.FC = () => {
           <ShieldCheck className="w-5 h-5 text-white" />
         </motion.div>
         <div>
-          <h2 className="text-xl font-semibold text-[var(--text-strong,#1f2937)]">
+          <h2 className="text-xl font-semibold text-neutral-800">
             Tu laptop, siempre protegida
           </h2>
           <p className="text-sm text-[var(--color-primary)]">

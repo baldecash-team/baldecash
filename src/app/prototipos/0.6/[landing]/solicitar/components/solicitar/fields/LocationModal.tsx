@@ -325,10 +325,10 @@ const LocationModalContent: React.FC<{
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-bold text-[var(--text-strong,#1f2937)]">
+          <h3 className="text-xl font-bold text-neutral-800">
             Ubicación de domicilio
           </h3>
-          <p className="text-sm text-[var(--text-muted,#6b7280)] leading-relaxed max-w-xs mx-auto">
+          <p className="text-sm text-neutral-500 leading-relaxed max-w-xs mx-auto">
             Para realizar una mejor evaluación, deseamos conocer la ubicación de tu domicilio.
           </p>
         </div>
@@ -349,7 +349,7 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="w-full text-[var(--text-muted,#6b7280)] font-medium h-12 rounded-xl cursor-pointer hover:bg-[var(--surface-bg,#fafafa)] transition-colors"
+            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
           >
             No permitir
           </button>
@@ -366,8 +366,8 @@ const LocationModalContent: React.FC<{
           <Loader2 className="w-8 h-8 text-[var(--color-primary)] animate-spin" />
         </div>
         <div className="space-y-1 text-center">
-          <p className="text-base font-semibold text-[var(--text-strong,#1f2937)]">Obteniendo ubicación</p>
-          <p className="text-sm text-[var(--text-faint,#9ca3af)]">Esto puede tomar unos segundos...</p>
+          <p className="text-base font-semibold text-neutral-800">Obteniendo ubicación</p>
+          <p className="text-sm text-neutral-400">Esto puede tomar unos segundos...</p>
         </div>
       </div>
     );
@@ -382,10 +382,10 @@ const LocationModalContent: React.FC<{
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-bold text-[var(--text-strong,#1f2937)]">
+          <h3 className="text-xl font-bold text-neutral-800">
             No pudimos obtener tu ubicación
           </h3>
-          <p className="text-sm text-[var(--text-muted,#6b7280)] leading-relaxed max-w-xs mx-auto">
+          <p className="text-sm text-neutral-500 leading-relaxed max-w-xs mx-auto">
             {errorMessage}
           </p>
         </div>
@@ -402,7 +402,7 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="w-full text-[var(--text-muted,#6b7280)] font-medium h-12 rounded-xl cursor-pointer hover:bg-[var(--surface-bg,#fafafa)] transition-colors"
+            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
           >
             Cerrar
           </button>
@@ -415,19 +415,19 @@ const LocationModalContent: React.FC<{
   return (
     <div className="flex flex-col">
       {/* Header with icon */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--border-soft,#f3f4f6)]">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100">
         <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
           <MapPin className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-[var(--text-strong,#1f2937)]">Confirma tu ubicación</h3>
-          <p className="text-xs text-[var(--text-faint,#9ca3af)]">Arrastra el pin hasta la ubicación exacta de tu domicilio</p>
+          <h3 className="text-base font-bold text-neutral-800">Confirma tu ubicación</h3>
+          <p className="text-xs text-neutral-400">Arrastra el pin hasta la ubicación exacta de tu domicilio</p>
         </div>
       </div>
 
       {/* Map container with rounded corners and margin */}
       <div className="px-4 pt-4">
-        <div className="rounded-xl overflow-hidden border border-[var(--border-soft,#e5e7eb)] shadow-sm">
+        <div className="rounded-xl overflow-hidden border border-neutral-200 shadow-sm">
           <div
             ref={mapContainerRef}
             className="w-full h-[280px] lg:h-[320px]"
@@ -438,19 +438,19 @@ const LocationModalContent: React.FC<{
       {/* Address card + confirm */}
       <div className="px-4 pt-4 pb-6 space-y-4">
         {/* Address card */}
-        <div className="bg-[var(--surface-bg,#fafafa)] rounded-xl p-4 flex items-start gap-3">
+        <div className="bg-neutral-50 rounded-xl p-4 flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
             <MapPin className="w-4 h-4 text-[var(--color-primary)]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-[var(--text-faint,#9ca3af)] mb-1">Dirección detectada</p>
+            <p className="text-xs font-medium text-neutral-400 mb-1">Dirección detectada</p>
             {isReverseGeocoding ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 text-[var(--text-faint,#9ca3af)] animate-spin" />
-                <span className="text-sm text-[var(--text-faint,#9ca3af)]">Actualizando dirección...</span>
+                <Loader2 className="w-4 h-4 text-neutral-400 animate-spin" />
+                <span className="text-sm text-neutral-400">Actualizando dirección...</span>
               </div>
             ) : (
-              <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] leading-relaxed">
+              <p className="text-sm font-medium text-neutral-800 leading-relaxed">
                 {currentAddress || 'Obteniendo dirección...'}
               </p>
             )}
@@ -458,7 +458,7 @@ const LocationModalContent: React.FC<{
         </div>
 
         {/* Confirm question */}
-        <p className="text-sm font-medium text-[var(--text-muted,#4b5563)] text-center">
+        <p className="text-sm font-medium text-neutral-600 text-center">
           ¿Es la dirección correcta?
         </p>
 
@@ -488,9 +488,9 @@ const DesktopModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
-      base: 'bg-[var(--surface,#fff)] rounded-2xl shadow-2xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden',
+      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden',
       body: 'p-0',
-      closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer z-10',
+      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer z-10',
     }}
   >
     <ModalContent>
@@ -577,7 +577,7 @@ const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onCo
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col max-h-[90vh]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col max-h-[90vh]"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
@@ -585,7 +585,7 @@ const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onCo
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
+              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
             </div>
 
             {/* Close button */}

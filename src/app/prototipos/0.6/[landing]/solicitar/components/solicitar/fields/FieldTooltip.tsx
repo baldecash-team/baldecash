@@ -179,15 +179,15 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
 
     // String content
     if (typeof resolvedContent === 'string') {
-      return <p className="text-sm text-[var(--text,#374151)]">{resolvedContent}</p>;
+      return <p className="text-sm text-neutral-700">{resolvedContent}</p>;
     }
 
     // FieldTooltipInfo content
     if (isFieldTooltipInfo(resolvedContent)) {
       return (
         <>
-          <p className="font-semibold text-[var(--text-strong,#1f2937)] text-sm">{resolvedContent.title}</p>
-          <p className="text-xs text-[var(--text-muted,#6b7280)] mt-1">{resolvedContent.description}</p>
+          <p className="font-semibold text-neutral-800 text-sm">{resolvedContent.title}</p>
+          <p className="text-xs text-neutral-500 mt-1">{resolvedContent.description}</p>
           {resolvedContent.recommendation && (
             <p className="text-xs text-[var(--color-primary)] mt-2 flex items-center gap-1">
               <Info className="w-3 h-3 flex-shrink-0" />
@@ -208,7 +208,7 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
   const tooltipElement = isOpen && isMounted ? createPortal(
     <div
       ref={tooltipRef}
-      className="fixed z-[9999] w-64 p-3 bg-[var(--surface,#fff)] rounded-lg shadow-lg border border-[var(--border-soft,#e5e7eb)]"
+      className="fixed z-[9999] w-64 p-3 bg-white rounded-lg shadow-lg border border-neutral-200"
       style={{
         top: position.top,
         left: position.left,
@@ -240,7 +240,7 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {icon ?? <Info className="w-4 h-4 text-[var(--text-faint,#9ca3af)] hover:text-[var(--color-primary)] transition-colors" />}
+        {icon ?? <Info className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />}
       </span>
 
       {tooltipElement}

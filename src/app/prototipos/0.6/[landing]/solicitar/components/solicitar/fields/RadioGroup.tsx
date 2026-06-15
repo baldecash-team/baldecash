@@ -59,9 +59,9 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
   return (
     <div id={id} className="space-y-3">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
         {label}
-        {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
+        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
@@ -88,7 +88,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
               transition-all duration-200 cursor-pointer border-2
               ${value === option.value
                 ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
-                : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+                : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
               }
               ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
             `}
@@ -97,14 +97,14 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             <div className="min-w-0">
               <p className={`
                 font-medium text-sm sm:text-base break-words
-                ${value === option.value ? 'text-[var(--color-primary)]' : 'text-[var(--text-strong,#1f2937)]'}
+                ${value === option.value ? 'text-[var(--color-primary)]' : 'text-neutral-800'}
               `}>
                 {option.label}
               </p>
               {option.description && (
                 <p className={`
                   text-xs sm:text-sm mt-0.5 break-words
-                  ${value === option.value ? 'text-[rgba(var(--color-primary-rgb),0.7)]' : 'text-[var(--text-muted,#6b7280)]'}
+                  ${value === option.value ? 'text-[rgba(var(--color-primary-rgb),0.7)]' : 'text-neutral-500'}
                 `}>
                   {option.description}
                 </p>

@@ -105,7 +105,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                 activeCategory === 'todos'
                   ? 'bg-[var(--color-primary)] text-white'
-                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
               }`}
             >
               Todos ({accessories.length})
@@ -119,7 +119,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                     activeCategory === cat.slug
                       ? 'bg-[var(--color-primary)] text-white'
-                      : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
                   {cat.name} ({count})
@@ -136,7 +136,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                 canScrollLeft
                   ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#d4d4d4)]'
+                  : 'bg-neutral-100 text-neutral-300'
               }`}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -147,7 +147,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                 canScrollRight
                   ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#d4d4d4)]'
+                  : 'bg-neutral-100 text-neutral-300'
               }`}
             >
               <ChevronRight className="w-4 h-4" />
@@ -158,13 +158,13 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
         {/* Search + selected count */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
               placeholder="Buscar accesorio..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-[var(--border-soft,#e5e7eb)] rounded-lg bg-[var(--surface,#fff)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
             />
           </div>
           {selectedAccessories.length > 0 && (
@@ -177,7 +177,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
 
       {/* Carousel */}
       {filteredAccessories.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-[var(--text-faint,#9ca3af)]">
+        <div className="flex flex-col items-center justify-center py-10 text-neutral-400">
           <Package className="w-10 h-10 mb-2" />
           <p className="text-sm">No se encontraron accesorios</p>
         </div>
@@ -204,7 +204,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
                     className={`relative h-full rounded-xl border-2 p-3 cursor-pointer transition-all hover:shadow-md ${
                       isSelected
                         ? 'border-[#22c55e] bg-[#22c55e]/5'
-                        : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.3)] bg-[var(--surface,#fff)]'
+                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.3)] bg-white'
                     }`}
                   >
                     {/* Selection indicator */}
@@ -212,13 +212,13 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
                       className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${
                         isSelected
                           ? 'bg-[#22c55e] opacity-100 scale-100'
-                          : 'bg-[var(--surface-2,#f3f4f6)] opacity-60 scale-90'
+                          : 'bg-neutral-100 opacity-60 scale-90'
                       }`}
                     >
                       {isSelected ? (
                         <Check className="w-3.5 h-3.5 text-white" />
                       ) : (
-                        <Plus className="w-3.5 h-3.5 text-[var(--text-faint,#9ca3af)]" />
+                        <Plus className="w-3.5 h-3.5 text-neutral-400" />
                       )}
                     </div>
 
@@ -245,7 +245,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
                     </div>
 
                     {/* Name */}
-                    <h4 className="font-semibold text-xs text-[var(--text-strong,#1f2937)] line-clamp-2 min-h-[2rem] mb-1">
+                    <h4 className="font-semibold text-xs text-neutral-800 line-clamp-2 min-h-[2rem] mb-1">
                       {accessory.name}
                     </h4>
 
@@ -283,7 +283,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
           </div>
 
           {/* Mobile Scroll Hint */}
-          <p className="md:hidden text-center text-xs text-[var(--text-faint,#9ca3af)] mt-2">
+          <p className="md:hidden text-center text-xs text-neutral-400 mt-2">
             Desliza para ver mas →
           </p>
         </>

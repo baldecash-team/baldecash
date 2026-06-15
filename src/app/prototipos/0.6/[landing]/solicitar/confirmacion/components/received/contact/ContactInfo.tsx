@@ -55,13 +55,13 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
       className="space-y-4"
     >
       {/* Help section */}
-      <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#e5e7eb)] p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+      <div className="bg-white rounded-2xl border border-neutral-200 p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
         <div className="w-10 h-10 sm:w-11 sm:h-11 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-xl flex items-center justify-center flex-shrink-0">
           <HelpCircle className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-[var(--text-strong,#1f2937)] mb-0.5 text-sm sm:text-base">¿Tienes alguna duda?</p>
-          <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)] mb-3 break-words">
+          <p className="font-semibold text-neutral-800 mb-0.5 text-sm sm:text-base">¿Tienes alguna duda?</p>
+          <p className="text-xs sm:text-sm text-neutral-500 mb-3 break-words">
             Nuestro equipo está disponible para ayudarte con cualquier consulta sobre tu solicitud.
           </p>
           <button
@@ -85,7 +85,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
           tracker?.track('cta_click', { cta_name: 'go_home', location: 'confirmacion' });
           onGoToHome?.();
         }}
-        className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] text-sm text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] cursor-pointer transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] text-sm text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
       >
         <Home className="w-4 h-4" />
         <span>Volver al inicio</span>

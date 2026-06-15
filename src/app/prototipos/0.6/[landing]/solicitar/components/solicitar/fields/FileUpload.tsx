@@ -185,9 +185,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div id={id} className="space-y-2">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--text,#374151)]">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
         {label}
-        {!required && <span className="text-[var(--text-faint,#9ca3af)] text-xs">(Opcional)</span>}
+        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
@@ -215,7 +215,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             ? 'border-amber-300 bg-amber-50 hover:border-amber-400'
             : hasFiles
             ? 'border-green-300 bg-green-50 hover:border-green-400'
-            : 'border-[var(--border-strong,#d1d5db)] bg-[var(--surface-bg,#fafafa)] hover:border-neutral-400 hover:bg-[var(--surface-2,#f3f4f6)]'}
+            : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
@@ -236,16 +236,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           ) : hasFiles ? (
             <CheckCircle2 className="w-8 h-8 text-green-500" />
           ) : (
-            <Upload className="w-8 h-8 text-[var(--text-faint,#9ca3af)]" />
+            <Upload className="w-8 h-8 text-neutral-400" />
           )}
-          <p className="text-sm text-[var(--text-muted,#4b5563)]">
+          <p className="text-sm text-neutral-600">
             {isDragging
               ? 'Suelta el archivo aquí'
               : hasFiles
               ? 'Arrastra más archivos o haz clic para agregar'
               : 'Arrastra y suelta o haz clic para seleccionar'}
           </p>
-          <p className="text-xs text-[var(--text-faint,#9ca3af)]">
+          <p className="text-xs text-neutral-400">
             {accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')} · Máx {formatSize(maxSize)}{maxFiles > 1 ? ` · Máx ${maxFiles} archivos` : ''}
           </p>
         </div>
@@ -259,14 +259,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             return (
               <div
                 key={file.id}
-                className="flex items-center gap-3 p-3 bg-[var(--surface,#fff)] rounded-lg border border-[var(--border-soft,#e5e7eb)]"
+                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-neutral-200"
               >
-                <div className="w-10 h-10 bg-[var(--surface-2,#f3f4f6)] rounded flex items-center justify-center">
-                <FileIcon className="w-5 h-5 text-[var(--text-muted,#6b7280)]" />
+                <div className="w-10 h-10 bg-neutral-100 rounded flex items-center justify-center">
+                <FileIcon className="w-5 h-5 text-neutral-500" />
               </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate">{file.name}</p>
-                  <p className="text-xs text-[var(--text-muted,#6b7280)]">{formatSize(file.size)}</p>
+                  <p className="text-sm font-medium text-neutral-800 truncate">{file.name}</p>
+                  <p className="text-xs text-neutral-500">{formatSize(file.size)}</p>
                 </div>
                 <button
                   type="button"
@@ -274,10 +274,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     e.stopPropagation();
                     handleRemove(file.id);
                   }}
-                  className="p-2 hover:bg-[var(--surface-2,#f3f4f6)] rounded transition-colors flex-shrink-0"
+                  className="p-2 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
                   aria-label="Eliminar archivo"
                 >
-                  <X className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+                  <X className="w-4 h-4 text-neutral-400" />
                 </button>
               </div>
             );
@@ -289,7 +289,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       {(helpText || error || fileError) && (
         <p
           className={`text-xs ${
-            showError ? 'text-red-500' : 'text-[var(--text-muted,#6b7280)]'
+            showError ? 'text-red-500' : 'text-neutral-500'
           }`}
         >
           {error || fileError || helpText}

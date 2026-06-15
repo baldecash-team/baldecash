@@ -416,3 +416,13 @@ select:focus-visible {
 [data-theme="nvidia"] .border-gray-200 { border-color: var(--border-soft) !important; }
 [data-theme="nvidia"] .border-neutral-300,
 [data-theme="nvidia"] .border-gray-300 { border-color: var(--border-strong) !important; }
+
+/* Inputs/textarea: anula el hack de autofill `box-shadow: white inset` (inline en
+   TextInput/TextArea, compartidos con gamer y por eso no tokenizados en JSX). */
+[data-theme="nvidia"] input,
+[data-theme="nvidia"] textarea {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--text-strong) !important;
+  caret-color: var(--text-strong);
+}

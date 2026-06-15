@@ -75,16 +75,16 @@ const Checkbox: React.FC<CheckboxProps> = ({ checked, onChange, label, descripti
           ${checked
             ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
             : error
-              ? 'bg-[var(--surface,#fff)] border-red-500 ring-2 ring-red-500/20'
-              : 'bg-[var(--surface,#fff)] border-[var(--border-strong,#d1d5db)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+              ? 'bg-white border-red-500 ring-2 ring-red-500/20'
+              : 'bg-white border-neutral-300 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
           }
         `}
       >
         {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${error ? 'text-red-600' : 'text-[var(--text-strong,#1f2937)]'}`}>{label}</p>
-        <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-0.5 break-words">{description}</p>
+        <p className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-800'}`}>{label}</p>
+        <p className="text-[11px] sm:text-xs text-neutral-500 mt-0.5 break-words">{description}</p>
       </div>
     </button>
     {error && (
@@ -344,7 +344,7 @@ function WizardPreviewContent() {
 
   // Content JSX (no es componente para evitar remount en cada render)
   const pageContent = (
-    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] relative">
+    <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar del Hero */}
       <Navbar
         landing={landing}
@@ -370,10 +370,10 @@ function WizardPreviewContent() {
           <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <FileText className="w-7 h-7 sm:w-8 sm:h-8 text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--text-strong,#1f2937)] mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight">
             Solicitud de Financiamiento
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-[var(--text-muted,#4b5563)] max-w-xl mx-auto px-2">
+          <p className="text-sm sm:text-base md:text-lg text-neutral-600 max-w-xl mx-auto px-2">
             Completa el formulario para solicitar tu equipo tecnológico
           </p>
         </div>
@@ -386,12 +386,12 @@ function WizardPreviewContent() {
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
 
           return (
-            <div id="term-selector-section" className={`hidden lg:block bg-[var(--surface,#fff)] rounded-xl border mb-6 sm:mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-[var(--border-soft,#e5e7eb)]'}`}>
+            <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-6 sm:mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
               {/* Header with term selector - Always visible */}
-              <div className={`px-4 sm:px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--border-soft,#e5e7eb)]'}`}>
+              <div className={`px-4 sm:px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-neutral-200'}`}>
                 <div className="flex items-center gap-2">
                   <ShoppingCart className={`w-4 h-4 ${needsTermUnification ? 'text-amber-600' : 'text-[var(--color-primary)]'}`} />
-                  <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
+                  <span className="text-sm font-semibold text-neutral-800">
                     {productsToShow.length === 1 ? 'Producto seleccionado' : `${productsToShow.length} productos seleccionados`}
                   </span>
                 </div>
@@ -401,7 +401,7 @@ function WizardPreviewContent() {
                     <span className="text-xs text-amber-700">Unificar plazo:</span>
                   )}
                   {!needsTermUnification && (
-                    <span className="text-xs text-[var(--text-muted,#6b7280)]">Plazo:</span>
+                    <span className="text-xs text-neutral-500">Plazo:</span>
                   )}
                   <TermSelect
                     value={needsTermUnification ? 0 : ((productsToShow[0]?.term ?? productsToShow[0]?.months) || 0)}
@@ -446,8 +446,8 @@ function WizardPreviewContent() {
                 {productsToShow.map((product, index) => {
                   const isUnavailable = activeUnavailableIds.includes(product.id);
                   return (
-                  <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-[var(--border-soft,#f3f4f6)]' : ''} ${isUnavailable ? 'opacity-50' : ''}`}>
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[var(--surface-bg,#fafafa)] rounded-xl overflow-hidden flex-shrink-0 border border-[var(--border-soft,#f3f4f6)]">
+                  <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''} ${isUnavailable ? 'opacity-50' : ''}`}>
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
                       <img
                         src={product.image}
                         alt={product.name}
@@ -458,23 +458,23 @@ function WizardPreviewContent() {
                       <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wider">
                         {product.brand}
                       </p>
-                      <h3 className="text-sm font-bold text-[var(--text-strong,#1f2937)] line-clamp-2 mt-0.5">
+                      <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mt-0.5">
                         {product.name}
                       </h3>
                       {product.specs && (
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {product.specs.processor && (
-                            <span className="text-[11px] bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] px-1.5 py-0.5 rounded">
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
                               {product.specs.processor}
                             </span>
                           )}
                           {product.specs.ram && (
-                            <span className="text-[11px] bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] px-1.5 py-0.5 rounded">
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
                               {product.specs.ram}
                             </span>
                           )}
                           {product.specs.storage && (
-                            <span className="text-[11px] bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] px-1.5 py-0.5 rounded">
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
                               {product.specs.storage}
                             </span>
                           )}
@@ -487,7 +487,7 @@ function WizardPreviewContent() {
                         if (initialOptions.length === 0) return null;
                         return (
                           <div className="mt-2">
-                            <p className="text-[11px] text-[var(--text-muted,#6b7280)] mb-1">Inicial:</p>
+                            <p className="text-[11px] text-neutral-500 mb-1">Inicial:</p>
                             <div className="flex flex-wrap gap-1.5">
                               {initialOptions.map((option) => (
                                 <button
@@ -506,7 +506,7 @@ function WizardPreviewContent() {
                                   className={`text-[11px] px-2.5 py-1.5 rounded-full transition-all cursor-pointer min-h-[28px] ${
                                     product.initialPercent === option.percent
                                       ? 'bg-[var(--color-primary)] text-white font-medium'
-                                      : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
+                                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                                   }`}
                                 >
                                   {option.label}
@@ -528,14 +528,14 @@ function WizardPreviewContent() {
                             {(() => {
                               const displayTerm = product.term ?? product.months;
                               return (
-                                <span className="text-xs text-[var(--text-muted,#6b7280)] font-normal ml-1">
+                                <span className="text-xs text-neutral-500 font-normal ml-1">
                                   x {displayTerm} {getTermUnit(displayTerm, product.paymentFrequency)}
                                 </span>
                               );
                             })()}
                           </p>
                           {product.initialAmount > 0 && (
-                            <p className="text-xs text-[var(--text-muted,#6b7280)] mt-0.5">
+                            <p className="text-xs text-neutral-500 mt-0.5">
                               + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
                             </p>
                           )}
@@ -545,7 +545,7 @@ function WizardPreviewContent() {
                     {/* Remove button */}
                     <button
                       onClick={() => handleRemoveProduct(product.id)}
-                      className="p-2 rounded-full hover:bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                      className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
                       title="Quitar producto"
                       aria-label="Quitar producto"
                     >
@@ -561,14 +561,14 @@ function WizardPreviewContent() {
                 <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3">
                   {/* Insurance */}
                   {selectedInsurances.length > 0 && (
-                    <div className="pt-3 border-t border-[var(--border-soft,#f3f4f6)]">
-                      <p className="text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase tracking-wider mb-2">
+                    <div className="pt-3 border-t border-neutral-100">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
                         Seguros seleccionados
                       </p>
                       <div className="space-y-1.5">
                         {selectedInsurances.map((ins) => (
                           <div key={ins.id} className="flex items-center justify-between text-sm">
-                            <span className="text-[var(--text,#374151)]">{ins.name}</span>
+                            <span className="text-neutral-700">{ins.name}</span>
                             <span className="text-[var(--color-secondary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(ins.monthlyPrice))}/mes</span>
                           </div>
                         ))}
@@ -578,8 +578,8 @@ function WizardPreviewContent() {
 
                   {/* Accessories */}
                   {selectedAccessories.length > 0 && (
-                    <div className="pt-3 border-t border-[var(--border-soft,#f3f4f6)]">
-                      <p className="text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase tracking-wider mb-2">
+                    <div className="pt-3 border-t border-neutral-100">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
                         Accesorios seleccionados
                       </p>
                       <div className="space-y-1.5">
@@ -588,7 +588,7 @@ function WizardPreviewContent() {
                           const freqSfx = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
                           return (
                             <div key={acc.id} className="flex items-center justify-between text-sm">
-                              <span className="text-[var(--text,#374151)]">{acc.name}</span>
+                              <span className="text-neutral-700">{acc.name}</span>
                               <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}{freqSfx}</span>
                             </div>
                           );
@@ -598,8 +598,8 @@ function WizardPreviewContent() {
                   )}
 
                   {/* Total */}
-                  <div className="pt-3 border-t border-[var(--border-soft,#e5e7eb)] flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Cuota total</span>
+                  <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
                     <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
                       S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}
                       {productsToShow[0]?.paymentFrequency === 'semanal' ? ' / semana' : productsToShow[0]?.paymentFrequency === 'quincenal' ? ' / quincena' : ' / mes'}
@@ -627,30 +627,30 @@ function WizardPreviewContent() {
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
-          <div className="bg-[var(--surface,#fff)] rounded-xl p-4 sm:p-5 border border-[var(--border-soft,#e5e7eb)] text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
             <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">
+            <p className="text-sm font-medium text-neutral-800">
               {displayEstimatedMinutes < 1 ? '~1 minuto' : `~${displayEstimatedMinutes} minutos`}
             </p>
-            <p className="text-xs text-[var(--text-muted,#6b7280)]">Tiempo estimado</p>
+            <p className="text-xs text-neutral-500">Tiempo estimado</p>
           </div>
-          <div className="bg-[var(--surface,#fff)] rounded-xl p-4 sm:p-5 border border-[var(--border-soft,#e5e7eb)] text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
             <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">
+            <p className="text-sm font-medium text-neutral-800">
               {displayStepsCount} pasos
             </p>
-            <p className="text-xs text-[var(--text-muted,#6b7280)]">Proceso simple</p>
+            <p className="text-xs text-neutral-500">Proceso simple</p>
           </div>
-          <div className="bg-[var(--surface,#fff)] rounded-xl p-4 sm:p-5 border border-[var(--border-soft,#e5e7eb)] text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
             <Shield className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">100% Seguro</p>
-            <p className="text-xs text-[var(--text-muted,#6b7280)]">Datos protegidos</p>
+            <p className="text-sm font-medium text-neutral-800">100% Seguro</p>
+            <p className="text-xs text-neutral-500">Datos protegidos</p>
           </div>
         </div>
 
         {/* Requirements */}
-        <div className="bg-[var(--surface,#fff)] rounded-xl p-4 sm:p-6 border border-[var(--border-soft,#e5e7eb)] mb-6 sm:mb-8">
-          <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] mb-3 sm:mb-4">
+        <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 sm:mb-4">
             Lo que necesitarás
           </h2>
           <ul className="space-y-3">
@@ -659,8 +659,8 @@ function WizardPreviewContent() {
                 <span className="text-xs font-bold text-[var(--color-primary)]">1</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">Documento de identidad</p>
-                <p className="text-xs text-[var(--text-muted,#6b7280)]">DNI, CE o Pasaporte vigente</p>
+                <p className="text-sm font-medium text-neutral-800">Documento de identidad</p>
+                <p className="text-xs text-neutral-500">DNI, CE o Pasaporte vigente</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
@@ -668,8 +668,8 @@ function WizardPreviewContent() {
                 <span className="text-xs font-bold text-[var(--color-primary)]">2</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">Constancia de estudios</p>
-                <p className="text-xs text-[var(--text-muted,#6b7280)]">Documento que acredite tu matrícula vigente</p>
+                <p className="text-sm font-medium text-neutral-800">Constancia de estudios</p>
+                <p className="text-xs text-neutral-500">Documento que acredite tu matrícula vigente</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
@@ -677,8 +677,8 @@ function WizardPreviewContent() {
                 <span className="text-xs font-bold text-[var(--color-primary)]">3</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">Información de contacto</p>
-                <p className="text-xs text-[var(--text-muted,#6b7280)]">Teléfono y correo electrónico activos</p>
+                <p className="text-sm font-medium text-neutral-800">Información de contacto</p>
+                <p className="text-xs text-neutral-500">Teléfono y correo electrónico activos</p>
               </div>
             </li>
           </ul>
@@ -690,8 +690,8 @@ function WizardPreviewContent() {
         ))}
 
         {/* Términos y Condiciones */}
-        <div id="terms-section" className={`bg-[var(--surface,#fff)] rounded-xl p-4 sm:p-6 border mb-6 sm:mb-8 transition-all duration-300 ${termsError || privacyError ? 'border-red-300 bg-red-50/30' : 'border-[var(--border-soft,#e5e7eb)]'}`}>
-          <h3 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] mb-3 sm:mb-4">Términos y Condiciones</h3>
+        <div id="terms-section" className={`bg-white rounded-xl p-4 sm:p-6 border mb-6 sm:mb-8 transition-all duration-300 ${termsError || privacyError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
+          <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 sm:mb-4">Términos y Condiciones</h3>
           <div className="space-y-4">
             <Checkbox
               id="acceptTerms"
@@ -767,7 +767,7 @@ function WizardPreviewContent() {
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
                      ${isOverQuotaLimit || hasUnavailableProducts
-                       ? 'bg-[var(--surface-2,#d4d4d4)] text-[var(--text-muted,#6b7280)] cursor-not-allowed'
+                       ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                        : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
                      }`}
         >
@@ -778,7 +778,7 @@ function WizardPreviewContent() {
         {/* Back to catalog link */}
         <button
           onClick={() => router.push(fallbackRoute)}
-          className="w-full flex items-center justify-center gap-2 mt-4 py-3 text-[var(--text-muted,#6b7280)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 mt-4 py-3 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">{hasCatalog ? 'Volver al catálogo' : 'Volver al inicio'}</span>
@@ -812,7 +812,7 @@ function WizardPreviewContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <CubeGridSpinner />
     </div>
   );

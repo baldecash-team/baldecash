@@ -44,7 +44,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--surface,#fff)]/95 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-white/95 backdrop-blur-sm"
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -76,7 +76,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
               key={`title-${stage}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-2xl md:text-3xl font-bold text-[var(--text-strong,#1f2937)] mb-2 text-center"
+              className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2 text-center"
             >
               {stage === 'success'
                 ? '¡Solicitud enviada!'
@@ -91,7 +91,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.15 }}
-              className="text-[var(--text-muted,#4b5563)] mb-8 text-center"
+              className="text-neutral-600 mb-8 text-center"
             >
               {stage === 'success'
                 ? 'Redirigiendo a tu confirmación...'
@@ -101,8 +101,8 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
             </motion.p>
 
             {/* Timeline - matching ApplicationStatus style */}
-            <div className="bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] rounded-xl p-6 w-full">
-              <h3 className="font-semibold text-[var(--text-strong,#1f2937)] mb-6">Progreso del envío</h3>
+            <div className="bg-white border border-neutral-200 rounded-xl p-6 w-full">
+              <h3 className="font-semibold text-neutral-800 mb-6">Progreso del envío</h3>
 
               <div className="flex items-center justify-between">
                 {STEPS.map((step, index) => {
@@ -122,7 +122,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                               ? 'bg-green-500 text-white'
                               : status === 'current'
                                 ? 'bg-[var(--color-primary)] text-white animate-pulse'
-                                : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)]'
+                                : 'bg-neutral-200 text-neutral-400'
                           }`}
                         >
                           {status === 'completed' ? (
@@ -133,12 +133,12 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                         </div>
                         <p
                           className={`text-sm font-medium ${
-                            status === 'pending' ? 'text-[var(--text-faint,#9ca3af)]' : 'text-[var(--text-strong,#1f2937)]'
+                            status === 'pending' ? 'text-neutral-400' : 'text-neutral-800'
                           }`}
                         >
                           {step.title}
                         </p>
-                        <p className="text-xs text-[var(--text-muted,#6b7280)] hidden sm:block">
+                        <p className="text-xs text-neutral-500 hidden sm:block">
                           {step.description}
                         </p>
                       </motion.div>
@@ -147,7 +147,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                       {index < STEPS.length - 1 && (
                         <div
                           className={`h-0.5 flex-1 mx-2 mb-6 transition-all duration-500 ${
-                            status === 'completed' ? 'bg-green-500' : 'bg-[var(--surface-2,#e5e7eb)]'
+                            status === 'completed' ? 'bg-green-500' : 'bg-neutral-200'
                           }`}
                         />
                       )}
@@ -164,7 +164,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                 animate={{ opacity: 1 }}
                 className="mt-4 bg-[var(--color-primary)]/5 rounded-lg p-4 text-center w-full"
               >
-                <p className="text-sm text-[var(--text-muted,#4b5563)]">
+                <p className="text-sm text-neutral-600">
                   No cierres esta ventana, estamos procesando tu solicitud.
                 </p>
               </motion.div>
