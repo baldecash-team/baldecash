@@ -350,3 +350,27 @@ select:focus-visible {
   animation: lead-form-shake 0.6s ease-in-out;
   transform-origin: center;
 }
+
+/* ============================================================
+   Tema oscuro NVIDIA — páginas de flujo (catálogo, detalle,
+   solicitar, complementos, confirmación). Ver THEME_DARK.md.
+   Se activa con data-theme="nvidia" en <html> (LayoutContext),
+   lo que cubre también modales/drawers montados en portales.
+   En tema claro NO existe data-theme → estos tokens no aplican
+   y todo se ve idéntico a hoy (los componentes usan fallbacks).
+   ============================================================ */
+[data-theme="nvidia"] {
+  --surface-bg:        #06060A;             /* fondo de página         */
+  --surface-bg-2:      #0B0B12;             /* secciones alternas      */
+  --surface:           #0F0F18;             /* cards / paneles         */
+  --surface-2:         #14141F;             /* inputs / cards elevadas */
+  --border-soft:       rgba(255,255,255,.08);
+  --border-strong:     rgba(255,255,255,.14);
+  --text-strong:       #FFFFFF;             /* texto principal         */
+  --text:              #E7E9EF;             /* texto cuerpo            */
+  --text-muted:        #9AA0AE;             /* descripciones / labels  */
+  --text-faint:        #6B7080;             /* notas / captions        */
+  --accent-green:      #76B900;             /* = --color-primary       */
+  --accent-green-glow: #8FE000;
+  --accent-turquoise:  #00D9CB;
+}
