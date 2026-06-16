@@ -198,7 +198,7 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
 
       {/* ===== S2: Quiénes somos ===== */}
       <LazySection fallbackHeight={500}>
-        <section className="section" id="baldecash">
+        <section className="section bc-sec" id="baldecash">
           <div className="wrap">
             <div className="bc-grid">
               <div className="bc-copy reveal">
@@ -213,16 +213,17 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
                     </div>
                   ))}
                 </div>
-                <span className="bc-partner-label">{quienesSomos.partnerLabel}</span>
-                <img className="bc-partner" src={quienesSomos.partnerLogo} alt="BaldeCash × NVIDIA, partner oficial" />
-              </div>
-              <div className="bc-media reveal">
-                <img src={quienesSomos.media} alt="Baldi de BaldeCash con una laptop GeForce RTX" loading="lazy" />
               </div>
             </div>
           </div>
         </section>
       </LazySection>
+
+      {/* Franja partner oficial — entre Quiénes somos y Según tu carrera */}
+      <div className="nv-partner-band reveal">
+        <span className="bc-partner-label">{quienesSomos.partnerLabel}</span>
+        <img className="bc-partner" src={quienesSomos.partnerLogo} alt="BaldeCash × NVIDIA, partner oficial" />
+      </div>
 
       {/* ===== S3: Selector de software por carrera ===== */}
       <LazySection fallbackHeight={500}>
@@ -444,8 +445,8 @@ function SoftwareSelector({ onOpenGpu }: { onOpenGpu: (model: string) => void })
     <section className="section" id="selector">
       <div className="wrap">
         <div className="section-head reveal">
-          <h2>Tarjetas gráficas GeForce RTX <span className="grad-text">según tu carrera</span></h2>
-          <p>Cada software rinde mejor con la tarjeta adecuada. Mira qué GeForce RTX es la ideal para ti.</p>
+          <h2>Mira qué GeForce RTX <span className="grad-text">es ideal para ti</span></h2>
+          <p>Cada carrera y cada software rinden mejor con la tarjeta gráfica adecuada.</p>
         </div>
         <div className="sl reveal">
           <div className="sl-tabs" role="tablist" aria-label="Elige tu carrera">
@@ -669,6 +670,9 @@ const CSS = `
 @media(max-width:1100px){.nvidia-landing .nav-links{display:none;}}
 /* ===== HERO (#top .mac) ===== */
 .nvidia-landing .mac{position:relative;z-index:2;background:linear-gradient(100deg,rgba(6,6,10,.92) 0%,rgba(6,6,10,.6) 48%,rgba(6,6,10,.2) 100%),url('${NVIDIA_ASSETS}/backgrounds/fondo-header.png') right center/cover no-repeat,var(--bg);}
+/* Difuminado inferior del hero hacia --bg, para que se funda con la sección siguiente
+   (Quiénes somos) sin línea de corte. */
+.nvidia-landing .mac::after{content:"";position:absolute;left:0;right:0;bottom:0;height:180px;z-index:3;pointer-events:none;background:linear-gradient(to top,var(--bg),transparent);}
 .nvidia-landing .mac-sticky{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:94px 20px 46px;overflow:hidden;}
 .nvidia-landing .hero-grid{display:grid;grid-template-columns:.92fr 1.28fr;gap:clamp(28px,4vw,56px);align-items:center;width:100%;}
 .nvidia-landing .hero-copy{text-align:left;max-width:960px;}
@@ -693,6 +697,16 @@ const CSS = `
 .nvidia-landing .reveal.in{opacity:1;transform:none;}
 @media(prefers-reduced-motion:reduce){.nvidia-landing .reveal{opacity:1;transform:none;transition:none;}}
 /* ===== Quiénes somos (#baldecash) ===== */
+/* Fondo NVIDIA en la sección (sin Baldi). Gradiente oscuro a la izquierda para que el
+   texto se lea; el visual (chip/laptop) queda a la derecha. */
+.nvidia-landing .bc-sec{position:relative;background:linear-gradient(90deg,rgba(6,6,10,.97) 0%,rgba(6,6,10,.9) 30%,rgba(6,6,10,.4) 50%,rgba(6,6,10,0) 62%),url('${NVIDIA_ASSETS}/backgrounds/fondo-quienes-somos.png') center/cover no-repeat;}
+/* Difuminado arriba y abajo hacia --bg para fundir la sección con las vecinas (sin corte). */
+.nvidia-landing .bc-sec::before{content:"";position:absolute;left:0;right:0;top:0;height:140px;z-index:0;pointer-events:none;background:linear-gradient(to bottom,var(--bg),transparent);}
+.nvidia-landing .bc-sec::after{content:"";position:absolute;left:0;right:0;bottom:0;height:140px;z-index:0;pointer-events:none;background:linear-gradient(to top,var(--bg),transparent);}
+.nvidia-landing .bc-sec .wrap{position:relative;z-index:1;}
+.nvidia-landing .bc-sec .bc-grid{grid-template-columns:1fr;}
+.nvidia-landing .bc-sec .bc-copy{max-width:560px;}
+@media(max-width:860px){.nvidia-landing .bc-sec{background:linear-gradient(180deg,rgba(6,6,10,.95) 0%,rgba(6,6,10,.78) 42%,rgba(6,6,10,.3) 100%),url('${NVIDIA_ASSETS}/backgrounds/fondo-quienes-somos.png') center/cover no-repeat;}}
 .nvidia-landing .bc-grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:clamp(24px,3.5vw,44px);align-items:center;}
 .nvidia-landing .bc-copy{text-align:left;}
 .nvidia-landing .bc-copy .eyebrow{justify-content:flex-start;}
@@ -706,6 +720,10 @@ const CSS = `
 .nvidia-landing .bc-txt span{display:block;font-size:.77rem;color:var(--muted);margin-top:3px;}
 .nvidia-landing .bc-partner-label{display:block;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);font-weight:600;margin-top:30px;margin-bottom:9px;}
 .nvidia-landing .bc-partner{display:block;height:34px;width:auto;max-width:100%;object-fit:contain;}
+/* Franja partner oficial entre Quiénes somos y Según tu carrera: centrada, sobre --bg. */
+.nvidia-landing .nv-partner-band{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:6px 20px 46px;}
+.nvidia-landing .nv-partner-band .bc-partner-label{margin:0;}
+.nvidia-landing .nv-partner-band .bc-partner{height:40px;}
 .nvidia-landing .bc-media{display:flex;align-items:center;justify-content:flex-end;}
 .nvidia-landing .bc-media img{width:100%;max-width:380px;object-fit:contain;filter:drop-shadow(0 30px 50px rgba(0,0,0,.5));}
 @media(max-width:860px){.nvidia-landing .bc-grid{grid-template-columns:1fr;gap:28px;}.nvidia-landing .bc-media{order:-1;justify-content:center;}.nvidia-landing .bc-media img{max-width:260px;}}
@@ -784,8 +802,11 @@ const CSS = `
 .nvidia-landing .exp-chip{font-family:"Baloo 2";font-size:.74rem;font-weight:600;color:#cfd3dd;background:rgba(255,255,255,.05);border-radius:8px;padding:7px 12px;}
 @media(max-width:760px){.nvidia-landing .lp-grid{grid-template-columns:1fr;gap:20px;}.nvidia-landing .lp-visual{order:-1;}}
 /* ===== Selector de software por carrera (#selector) ===== */
-.nvidia-landing #selector .section-head{margin-left:auto;margin-right:auto;text-align:center;}
+.nvidia-landing #selector .section-head{margin-left:auto;margin-right:auto;text-align:center;max-width:none;}
 .nvidia-landing #selector .section-head p{margin-left:auto;margin-right:auto;}
+/* Título en una sola línea: la fuente escala con el ancho; en móvil se permite bajar. */
+.nvidia-landing #selector .section-head h2{white-space:nowrap;font-size:clamp(1.5rem,3.6vw,3rem);}
+@media(max-width:640px){.nvidia-landing #selector .section-head h2{white-space:normal;}}
 .nvidia-landing .sl{margin-top:42px;}
 .nvidia-landing .sl-tabs{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:24px;margin:0 auto 22px;border-bottom:1px solid var(--line);}
 /* Subrayado: hijo del tab activo (siempre en su fila, debajo del nombre).
