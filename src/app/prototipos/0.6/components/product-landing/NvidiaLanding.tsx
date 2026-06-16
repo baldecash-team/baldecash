@@ -721,9 +721,15 @@ const CSS = `
 .nvidia-landing .bc-partner-label{display:block;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);font-weight:600;margin-top:30px;margin-bottom:9px;}
 .nvidia-landing .bc-partner{display:block;height:34px;width:auto;max-width:100%;object-fit:contain;}
 /* Franja partner oficial entre Quiénes somos y Según tu carrera: centrada, sobre --bg. */
-.nvidia-landing .nv-partner-band{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:6px 20px 46px;}
-.nvidia-landing .nv-partner-band .bc-partner-label{margin:0;}
-.nvidia-landing .nv-partner-band .bc-partner{height:40px;}
+/* Franja partner centrada entre Quiénes somos y Según tu carrera. El difuminado del
+   borde inferior de Quiénes somos (140px) funde su padding con el fondo, así que ese
+   espacio NO cuenta como hueco "limpio" arriba. Por eso el padding de arriba es mayor
+   que el de abajo, ~por el padding superior del selector (.section ≈ 80px), para que
+   el hueco visible quede igual arriba y abajo. */
+.nvidia-landing .nv-partner-band{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center;gap:22px;padding:44px 28px 72px;}
+.nvidia-landing .nv-partner-band .bc-partner-label{margin:0;font-size:.92rem;}
+.nvidia-landing .nv-partner-band .bc-partner{height:56px;}
+@media(max-width:860px){.nvidia-landing .nv-partner-band{gap:14px;padding:32px 20px 52px;}.nvidia-landing .nv-partner-band .bc-partner{height:46px;}}
 .nvidia-landing .bc-media{display:flex;align-items:center;justify-content:flex-end;}
 .nvidia-landing .bc-media img{width:100%;max-width:380px;object-fit:contain;filter:drop-shadow(0 30px 50px rgba(0,0,0,.5));}
 @media(max-width:860px){.nvidia-landing .bc-grid{grid-template-columns:1fr;gap:28px;}.nvidia-landing .bc-media{order:-1;justify-content:center;}.nvidia-landing .bc-media img{max-width:260px;}}
