@@ -74,6 +74,7 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
   const studyCenters = socialProof?.studyCenters || [];
   const tracker = useEventTrackerOptional();
   const viewedSectionsRef = useRef<Set<string>>(new Set());
+  const sharedSubmittingRef = useRef(false);
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   useEffect(() => {
     setIsRegistered(getLeadId(landing) !== null);
@@ -295,6 +296,7 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
                     landing={landing}
                     studyCenters={studyCenters}
                     primaryColor={primaryColor}
+                    submittingRef={sharedSubmittingRef}
                   />
                   <div className="mt-3 flex items-center justify-center gap-1.5 text-[#767686] text-xs font-['Asap',_sans-serif]">
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -340,6 +342,7 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
                   landing={landing}
                   studyCenters={studyCenters}
                   primaryColor={primaryColor}
+                  submittingRef={sharedSubmittingRef}
                 />
               </div>
             </div>

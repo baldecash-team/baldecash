@@ -15,6 +15,7 @@ interface LeadLeadFormProps {
   landing: string;
   studyCenters: StudyCenter[];
   primaryColor?: string;
+  submittingRef?: React.MutableRefObject<boolean>;
 }
 
 interface FormState {
@@ -46,13 +47,16 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   landing,
   studyCenters,
   primaryColor = '#4654CD',
+  submittingRef,
 }) => {
   const router = useRouter();
   const session = useSessionOptional();
   const tracker = useEventTrackerOptional();
   const hasStarted = useRef(false);
   const partialLeadIdRef = useRef<number | null>(null);
-  const isSubmittingRef = useRef(false);
+  const localSubmittingRef = useRef(false);
+  // Usa el ref compartido del padre si se provee (evita doble submit entre instancias desktop/mobile)
+  const isSubmittingRef = submittingRef ?? localSubmittingRef;
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
