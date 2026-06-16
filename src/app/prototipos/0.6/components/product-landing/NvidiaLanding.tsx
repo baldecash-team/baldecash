@@ -29,7 +29,13 @@ function LazySection({ children, fallbackHeight = 400 }: { children: ReactNode; 
       { rootMargin: '200px' }
     );
     obs.observe(el);
-    return () => obs.disconnect();
+    // Montaje diferido en segundo plano: tras cargar, montamos la sección aunque esté
+    // fuera de pantalla, para que SIEMPRE exista en el DOM y el header pueda hacer scroll
+    // a ella (los links a #que-es/#beneficios fallaban si no se había bajado antes).
+    // Es invisible: el contenido queda en opacity:0 (.reveal) hasta entrar en viewport.
+    const onMountAll = () => { setVisible(true); obs.disconnect(); };
+    window.addEventListener('nv:mount-all', onMountAll);
+    return () => { obs.disconnect(); window.removeEventListener('nv:mount-all', onMountAll); };
   }, []);
   return (
     <div ref={ref}>
@@ -92,6 +98,7 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     const id = window.location.hash.slice(1);
     if (id && id !== 'top') {
+      window.dispatchEvent(new Event('nv:mount-all')); // monta las secciones lazy para poder llegar a la del hash
       let tries = 0;
       const tick = () => {
         const el = document.getElementById(id);
@@ -105,6 +112,15 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
     }
   }, []);
 
+  // Montaje diferido en segundo plano (~1s tras cargar): monta TODAS las secciones lazy
+  // aunque estén fuera de pantalla, para que el header pueda navegar a las últimas
+  // (#que-es, #beneficios) y el catálogo dinámico ya esté estable al hacer clic.
+  // Es invisible: las secciones quedan en opacity:0 (.reveal) hasta entrar en viewport.
+  useEffect(() => {
+    const t = setTimeout(() => window.dispatchEvent(new Event('nv:mount-all')), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
   // Nav scrolled state
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -115,7 +131,17 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (el) { el.scrollIntoView({ behavior: 'smooth' }); return; }
+    // Sección aún no montada (lazy, ej. #que-es/#beneficios si no se bajó antes):
+    // la montamos (invisible) y esperamos a que exista, luego UN scroll suave nativo.
+    window.dispatchEvent(new Event('nv:mount-all'));
+    let tries = 0;
+    const tick = () => {
+      const found = document.getElementById(id);
+      if (found) { found.scrollIntoView({ behavior: 'smooth' }); return; }
+      if (tries++ < 30) setTimeout(tick, 60);
+    };
+    tick();
   };
 
   return (
