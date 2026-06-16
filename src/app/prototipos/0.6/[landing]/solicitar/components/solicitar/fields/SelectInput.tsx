@@ -177,7 +177,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          <span className={displayLabel ? 'text-neutral-800' : 'text-neutral-400'}>
+          <span className={`truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
             {displayLabel || placeholder}
           </span>
 
