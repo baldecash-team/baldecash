@@ -943,21 +943,25 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     if (target.includes(`/${landing}/catalogo`)) {
       setGatePass(landing);
     }
-    // Reenviar el cupón de campaña (?coupon=) SOLO en el redirect del gate: el
-    // cupón acompaña al cliente a la URL que le corresponde según su clasificación
-    // Equifax (misma landing o convenio). normalizeCatalogUrl descarta el
-    // querystring, así que sin esto el cupón se perdería al salir del overlay.
-    // No altera la regla general: la navegación orgánica a otra landing sigue sin
-    // arrastrar cupón, porque únicamente este link del overlay lo reenvía. El
-    // catálogo destino lo captura de su propia URL y lo valida con su landing_id;
-    // si no aplica a esa landing, el backend responde valid:false y no se muestra.
-    const coupon =
-      typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('coupon')
-        : null;
-    if (coupon) {
-      const sep = target.includes('?') ? '&' : '?';
-      target = `${target}${sep}coupon=${encodeURIComponent(coupon)}`;
+    // Reenviar al catálogo TODOS los query params de la URL actual (utm_*, coupon,
+    // gclid/fbclid, y cualquier param futuro) SOLO en el redirect del gate: así no
+    // se pierde la atribución/tracking ni el cupón al salir del overlay.
+    // normalizeCatalogUrl descarta el querystring del backend, por lo que sin esto
+    // se perderían. Se EXCLUYEN los params de control del gate: vip_auto (re-dispara
+    // la evaluación del overlay y puede reabrir el loop de recarga) y keepData
+    // (flag de testing). La navegación orgánica a otra landing sigue sin arrastrar
+    // nada: únicamente este link del overlay reenvía los params. El catálogo destino
+    // valida el coupon con su propio landing_id; si no aplica, el backend responde
+    // valid:false y no se muestra.
+    if (typeof window !== 'undefined') {
+      const CONTROL_PARAMS = ['vip_auto', 'keepData'];
+      const forwarded = new URLSearchParams(window.location.search);
+      CONTROL_PARAMS.forEach((key) => forwarded.delete(key));
+      const qs = forwarded.toString();
+      if (qs) {
+        const sep = target.includes('?') ? '&' : '?';
+        target = `${target}${sep}${qs}`;
+      }
     }
     window.location.assign(target);
   }, [ctx.catalogUrl, landing]);
