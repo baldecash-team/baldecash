@@ -37,6 +37,7 @@ export const LOAD_MORE_LIMIT = 8;
  */
 const BEST_OFFER_LANDING_SLUGS = new Set<string>([
   'convenio-ucv-landing',
+  'copia-home',
 ]);
 
 /**
