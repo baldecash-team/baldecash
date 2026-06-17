@@ -38,10 +38,10 @@ export const EmptyIllustrationV6: React.FC<EmptyIllustrationProps> = ({ classNam
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.4 }}
       >
-        <h3 className="text-2xl font-bold text-neutral-800 mb-2">
+        <h3 className="text-2xl font-bold text-[var(--text-strong,#1f2937)] mb-2">
           resultados
         </h3>
-        <p className="text-neutral-500 max-w-md text-lg">
+        <p className="text-[var(--text-muted,#6b7280)] max-w-md text-lg">
           Los filtros aplicados no coinciden con ningún equipo en el catálogo
         </p>
       </motion.div>

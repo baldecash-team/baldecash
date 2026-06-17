@@ -17,6 +17,8 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Secondary Navbar with search, wishlist, cart
@@ -313,21 +315,25 @@ function ProductDetailContent() {
   const isAvailable = apiData.isAvailable;
 
   return (
-    <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
-      {/* Navbar from Hero */}
-      <Navbar
-        landing={landing}
-        promoBannerData={navbarProps?.promoBannerData}
-        logoUrl={navbarProps?.logoUrl}
-        logoClassName={navbarProps?.logoClassName}
-        customerPortalUrl={navbarProps?.customerPortalUrl}
-        portalButtonText={navbarProps?.portalButtonText}
-        navbarItems={navbarProps?.navbarItems}
-        megamenuItems={navbarProps?.megamenuItems}
-        activeSections={navbarProps?.activeSections || []}
-        institutionLogo={navbarProps?.institutionLogo}
-        institutionName={navbarProps?.institutionName}
-      />
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-hidden">
+      {/* Navbar — nvidia usa su header propio en todas sus rutas */}
+      {isNvidiaLanding(landing) ? (
+        <NvidiaNavbar landing={landing} />
+      ) : (
+        <Navbar
+          landing={landing}
+          promoBannerData={navbarProps?.promoBannerData}
+          logoUrl={navbarProps?.logoUrl}
+          logoClassName={navbarProps?.logoClassName}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
+          portalButtonText={navbarProps?.portalButtonText}
+          navbarItems={navbarProps?.navbarItems}
+          megamenuItems={navbarProps?.megamenuItems}
+          activeSections={navbarProps?.activeSections || []}
+          institutionLogo={navbarProps?.institutionLogo}
+          institutionName={navbarProps?.institutionName}
+        />
+      )}
 
       {/* Secondary Navbar with Search, Wishlist, Cart */}
       <CatalogSecondaryNavbar
@@ -509,7 +515,7 @@ function ProductDetailContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
       <CubeGridSpinner />
     </div>
   );

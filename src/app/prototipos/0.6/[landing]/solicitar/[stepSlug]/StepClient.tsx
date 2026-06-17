@@ -6,7 +6,7 @@
  * Handles both regular form steps and summary steps (is_summary_step=true)
  */
 
-import React, { Suspense, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { Suspense, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { AnimatePresence } from 'framer-motion';
@@ -37,6 +37,8 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { useToast } from '@/app/prototipos/_shared';
+import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
+import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
 // Types and utils
 import { WizardStepId } from '../types/solicitar';
@@ -96,6 +98,9 @@ function StepContent() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Reacondicionado: aceptación obligatoria antes de enviar la solicitud
+  const [showRefurbAcceptance, setShowRefurbAcceptance] = useState(false);
+  const refurbAcceptedRef = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
@@ -492,6 +497,11 @@ function StepContent() {
   }, [regularSteps, formValues, setFieldError, getAllDynamicOptions]);
 
   // Summary specific handlers
+  // Reacondicionado: ¿la selección (producto único o carrito) incluye un equipo reacondicionado?
+  const isRefurbishedSelection =
+    isRefurbishedCondition(selectedProduct?.condition) ||
+    cartProducts.some((p) => isRefurbishedCondition(p.condition));
+
   const handleSummarySubmit = async () => {
     // Wait for flow config to be ready
     if (isFlowConfigLoading) return;
@@ -515,6 +525,12 @@ function StepContent() {
       setTimeout(() => {
         navigateToStep(invalidStep.stepSlug);
       }, 1500);
+      return;
+    }
+
+    // Reacondicionado: exige aceptación explícita antes de continuar/enviar.
+    if (isRefurbishedSelection && !refurbAcceptedRef.current) {
+      setShowRefurbAcceptance(true);
       return;
     }
 
@@ -784,6 +800,18 @@ function StepContent() {
               />
             </div>
           )}
+
+          {/* Aceptación obligatoria de reacondicionado antes de enviar la solicitud */}
+          <RefurbishedAcceptanceModal
+            isOpen={showRefurbAcceptance}
+            onClose={() => setShowRefurbAcceptance(false)}
+            onAccept={() => {
+              refurbAcceptedRef.current = true;
+              setShowRefurbAcceptance(false);
+              handleSummarySubmit();
+            }}
+            productName={selectedProduct?.name}
+          />
         </div>
       </WizardLayout>
     );

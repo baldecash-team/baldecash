@@ -265,7 +265,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
   return (
     <>
-      <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
+      <div className="w-full bg-[var(--surface,#fff)] rounded-2xl p-6 shadow-sm border border-[var(--border-soft,#e5e7eb)]">
         {/* Header - Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -273,8 +273,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
               <Calendar className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-neutral-900">Detalle de Cuotas</h3>
-              <p className="text-sm text-neutral-500">{selectedTerm} pagos {freqLabelPlural}</p>
+              <h3 className="text-lg font-bold text-[var(--text-strong,#111827)]">Detalle de Cuotas</h3>
+              <p className="text-sm text-[var(--text-muted,#6b7280)]">{selectedTerm} pagos {freqLabelPlural}</p>
             </div>
           </div>
 
@@ -294,7 +294,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
                   selectedTerm === plan.term
                     ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                 }`}
               >
                 {plan.term}m
@@ -317,7 +317,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     className={`flex items-center gap-3 p-3 rounded-xl border ${
                       isLast
                         ? 'bg-green-50 border-green-200'
-                        : 'bg-white border-neutral-200'
+                        : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)]'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
@@ -328,10 +328,10 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-neutral-500 capitalize">Cuota {i + 1}</p>
-                      <p className="text-sm text-neutral-600 capitalize truncate">{getPaymentDate(i)}</p>
+                      <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize">Cuota {i + 1}</p>
+                      <p className="text-sm text-[var(--text-muted,#4b5563)] capitalize truncate">{getPaymentDate(i)}</p>
                     </div>
-                    <span className="text-sm font-semibold text-neutral-900 flex-shrink-0">
+                    <span className="text-sm font-semibold text-[var(--text-strong,#111827)] flex-shrink-0">
                       S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
                     </span>
                   </div>
@@ -340,20 +340,20 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
 
             {/* Desktop/tablet table */}
-            <div className="hidden sm:block overflow-x-auto rounded-xl border border-neutral-200">
+            <div className="hidden sm:block overflow-x-auto rounded-xl border border-[var(--border-soft,#e5e7eb)]">
             <table className="w-full min-w-[400px]">
               <thead>
-                <tr className="bg-neutral-50">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Cuota</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Fecha</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Monto</th>
+                <tr className="bg-[var(--surface-bg,#fafafa)]">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Cuota</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Fecha</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Monto</th>
                 </tr>
               </thead>
               <tbody>
                 {Array.from({ length: visibleMonths }, (_, i) => (
                   <tr
                     key={i}
-                    className={`border-t border-neutral-100 ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-white to-transparent' : ''}`}
+                    className={`border-t border-[var(--border-soft,#f3f4f6)] ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-[var(--surface,#fff)] to-transparent' : ''}`}
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
@@ -366,11 +366,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-neutral-600 capitalize">
+                    <td className="py-3 px-4 text-sm text-[var(--text-muted,#4b5563)] capitalize">
                       {getPaymentDate(i)}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <span className="text-sm font-semibold text-neutral-900">
+                      <span className="text-sm font-semibold text-[var(--text-strong,#111827)]">
                         S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
                       </span>
                     </td>
@@ -402,7 +402,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     className={`p-3 rounded-xl border ${
                       isLast
                         ? 'bg-green-50 border-green-200'
-                        : 'bg-white border-neutral-200'
+                        : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -414,30 +414,30 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         }`}>
                           {i + 1}
                         </div>
-                        <p className="text-xs text-neutral-500 capitalize truncate">{getPaymentDate(i)}</p>
+                        <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize truncate">{getPaymentDate(i)}</p>
                       </div>
-                      <span className="text-sm font-semibold text-neutral-900">
+                      <span className="text-sm font-semibold text-[var(--text-strong,#111827)]">
                         S/{formatMoneyNoDecimals(monto)}
                       </span>
                     </div>
-                    <div className="pt-2 border-t border-neutral-100 grid grid-cols-2 gap-1 text-[11px]">
+                    <div className="pt-2 border-t border-[var(--border-soft,#f3f4f6)] grid grid-cols-2 gap-1 text-[11px]">
                       <div className="flex justify-between">
-                        <span className="text-neutral-400">Capital</span>
-                        <span className="text-neutral-700">S/{formatMoneyNoDecimals(capital)}</span>
+                        <span className="text-[var(--text-faint,#9ca3af)]">Capital</span>
+                        <span className="text-[var(--text,#374151)]">S/{formatMoneyNoDecimals(capital)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-neutral-400">Interés</span>
-                        <span className="text-neutral-700">S/{formatMoneyNoDecimals(interest)}</span>
+                        <span className="text-[var(--text-faint,#9ca3af)]">Interés</span>
+                        <span className="text-[var(--text,#374151)]">S/{formatMoneyNoDecimals(interest)}</span>
                       </div>
                       {commissionAmount != null && commissionAmount > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-neutral-400">Comisión</span>
-                          <span className="text-neutral-700">S/{formatMoneyNoDecimals(commission)}</span>
+                          <span className="text-[var(--text-faint,#9ca3af)]">Comisión</span>
+                          <span className="text-[var(--text,#374151)]">S/{formatMoneyNoDecimals(commission)}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-neutral-400">Saldo</span>
-                        <span className="text-neutral-700">S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}</span>
+                        <span className="text-[var(--text-faint,#9ca3af)]">Saldo</span>
+                        <span className="text-[var(--text,#374151)]">S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}</span>
                       </div>
                     </div>
                   </div>
@@ -446,19 +446,19 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
 
             {/* Desktop/tablet table */}
-            <div className="hidden sm:block overflow-x-auto rounded-xl border border-neutral-200">
+            <div className="hidden sm:block overflow-x-auto rounded-xl border border-[var(--border-soft,#e5e7eb)]">
             <table className="w-full min-w-[600px]">
               <thead>
-                <tr className="bg-neutral-50">
-                  <th className="text-left py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Cuota</th>
-                  <th className="text-left py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Fecha</th>
-                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Capital</th>
-                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Interés</th>
+                <tr className="bg-[var(--surface-bg,#fafafa)]">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Cuota</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Fecha</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Capital</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Interés</th>
                   {commissionAmount != null && commissionAmount > 0 && (
-                    <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Comisión</th>
+                    <th className="text-right py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Comisión</th>
                   )}
-                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Monto</th>
-                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Saldo</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Monto</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase">Saldo</th>
                 </tr>
               </thead>
               <tbody>
@@ -467,7 +467,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   return (
                     <tr
                       key={i}
-                      className={`border-t border-neutral-100 ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-white to-transparent' : ''}`}
+                      className={`border-t border-[var(--border-soft,#f3f4f6)] ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-[var(--surface,#fff)] to-transparent' : ''}`}
                     >
                       <td className="py-3 px-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -478,7 +478,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                           {i + 1}
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-sm text-neutral-600 capitalize">
+                      <td className="py-3 px-3 text-sm text-[var(--text-muted,#4b5563)] capitalize">
                         {getPaymentDate(i)}
                       </td>
                       {(() => {
@@ -489,26 +489,26 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         const capital = monto - interest - commission;
                         return (
                           <>
-                            <td className="py-3 px-3 text-right text-sm text-neutral-700">
+                            <td className="py-3 px-3 text-right text-sm text-[var(--text,#374151)]">
                               S/{formatMoneyNoDecimals(capital)}
                             </td>
-                            <td className="py-3 px-3 text-right text-sm text-neutral-500">
+                            <td className="py-3 px-3 text-right text-sm text-[var(--text-muted,#6b7280)]">
                               S/{formatMoneyNoDecimals(interest)}
                             </td>
                             {commissionAmount != null && commissionAmount > 0 && (
-                              <td className="py-3 px-3 text-right text-sm text-neutral-500">
+                              <td className="py-3 px-3 text-right text-sm text-[var(--text-muted,#6b7280)]">
                                 S/{formatMoneyNoDecimals(commission)}
                               </td>
                             )}
                             <td className="py-3 px-3 text-right">
-                              <span className="text-sm font-semibold text-neutral-900">
+                              <span className="text-sm font-semibold text-[var(--text-strong,#111827)]">
                                 S/{formatMoneyNoDecimals(monto)}
                               </span>
                             </td>
                           </>
                         );
                       })()}
-                      <td className="py-3 px-3 text-right text-sm text-neutral-600">
+                      <td className="py-3 px-3 text-right text-sm text-[var(--text-muted,#4b5563)]">
                         S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}
                       </td>
                     </tr>
@@ -532,7 +532,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   className={`p-3 rounded-xl border transition-all ${
                     isLast
                       ? 'bg-green-50 border-green-200'
-                      : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.30)]'
+                      : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.30)]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -545,20 +545,20 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     </div>
                     {isLast && <Check className="w-4 h-4 text-green-500" />}
                   </div>
-                  <p className="text-xs text-neutral-500 capitalize mb-1">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize mb-1">
                     {getPaymentDate(i)}
                   </p>
-                  <p className="text-sm font-bold text-neutral-900">
+                  <p className="text-sm font-bold text-[var(--text-strong,#111827)]">
                     S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
                   </p>
-                  <div className="mt-2 pt-2 border-t border-neutral-100">
+                  <div className="mt-2 pt-2 border-t border-[var(--border-soft,#f3f4f6)]">
                     <div className="flex justify-between text-[10px]">
-                      <span className="text-neutral-400">Capital</span>
-                      <span className="text-neutral-600">S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}</span>
+                      <span className="text-[var(--text-faint,#9ca3af)]">Capital</span>
+                      <span className="text-[var(--text-muted,#4b5563)]">S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}</span>
                     </div>
                     <div className="flex justify-between text-[10px]">
-                      <span className="text-neutral-400">Interés</span>
-                      <span className="text-neutral-600">S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}</span>
+                      <span className="text-[var(--text-faint,#9ca3af)]">Interés</span>
+                      <span className="text-[var(--text-muted,#4b5563)]">S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}</span>
                     </div>
                   </div>
                 </div>
@@ -607,7 +607,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           </Button>
           <Button
             variant="bordered"
-            className="flex-1 border-neutral-300 text-neutral-700 cursor-pointer"
+            className="flex-1 border-[var(--border-strong,#d1d5db)] text-[var(--text,#374151)] cursor-pointer"
             startContent={isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             onPress={handleDownloadPDF}
             isDisabled={isGeneratingPDF}
@@ -650,7 +650,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     setIsModalOpen(false);
                   }
                 }}
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[10001] max-h-[calc(100vh-12rem)] flex flex-col"
+                className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[10001] max-h-[calc(100vh-12rem)] flex flex-col"
                 style={{ overscrollBehavior: 'contain' }}
               >
                 {/* Drag Handle */}
@@ -658,12 +658,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   onPointerDown={(e) => dragControls.start(e)}
                   className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
                 >
-                  <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+                  <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
                 </div>
 
                 {/* Header */}
                 <div className="bg-[var(--color-primary)] mx-4 rounded-xl px-4 py-3 flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 bg-[var(--surface,#fff)]/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <FileText className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -672,7 +672,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   </div>
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                    className="w-7 h-7 rounded-full bg-[var(--surface,#fff)]/20 hover:bg-[var(--surface,#fff)]/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
                   >
                     <X className="w-4 h-4 text-white" />
                   </button>
@@ -687,79 +687,79 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-1">
                     {productPrice > 0 && (
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-neutral-600">Precio de lista del equipo</span>
-                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(productPrice))}</span>
+                        <span className="text-[var(--text-muted,#4b5563)]">Precio de lista del equipo</span>
+                        <span className="font-semibold text-[var(--text-strong,#111827)]">S/{formatMoneyNoDecimals(Math.floor(productPrice))}</span>
                       </div>
                     )}
                     {selectedInitialPercent > 0 && initialAmount > 0 && (
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-neutral-600">Cuota inicial</span>
-                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
+                        <span className="text-[var(--text-muted,#4b5563)]">Cuota inicial</span>
+                        <span className="font-semibold text-[var(--text-strong,#111827)]">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-neutral-600">Cuota {freqLabel}</span>
+                      <span className="text-[var(--text-muted,#4b5563)]">Cuota {freqLabel}</span>
                       <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-neutral-600">Plazo</span>
-                      <span className="font-semibold text-neutral-900">{selectedTerm} {termUnitPlural}</span>
+                      <span className="text-[var(--text-muted,#4b5563)]">Plazo</span>
+                      <span className="font-semibold text-[var(--text-strong,#111827)]">{selectedTerm} {termUnitPlural}</span>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-1.5 mb-4">
-                    <Info className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0 mt-px" />
-                    <p className="text-xs text-neutral-400">
+                    <Info className="w-3.5 h-3.5 text-[var(--text-faint,#9ca3af)] flex-shrink-0 mt-px" />
+                    <p className="text-xs text-[var(--text-faint,#9ca3af)]">
                       La cuota está compuesta por capital + interés{commissionAmount != null && commissionAmount > 0 ? ' + comisión' : ''}.
                     </p>
                   </div>
 
                   {/* Financial Details */}
                   <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-[var(--text,#374151)] flex items-center gap-2">
                       <Percent className="w-4 h-4 text-[var(--color-primary)]" />
                       Tasas de Interés
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-neutral-50 rounded-lg p-3">
-                        <p className="text-xs text-neutral-500 mb-1">TEA</p>
-                        <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tea}%</p>
+                      <div className="bg-[var(--surface-bg,#fafafa)] rounded-lg p-3">
+                        <p className="text-xs text-[var(--text-muted,#6b7280)] mb-1">TEA</p>
+                        <p className="text-lg font-bold text-[var(--text-strong,#111827)]">{FINANCIAL_DATA.tea}%</p>
                       </div>
-                      <div className="bg-neutral-50 rounded-lg p-3">
-                        <p className="text-xs text-neutral-500 mb-1">TCEA</p>
-                        <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tcea}%</p>
+                      <div className="bg-[var(--surface-bg,#fafafa)] rounded-lg p-3">
+                        <p className="text-xs text-[var(--text-muted,#6b7280)] mb-1">TCEA</p>
+                        <p className="text-lg font-bold text-[var(--text-strong,#111827)]">{FINANCIAL_DATA.tcea}%</p>
                       </div>
                     </div>
 
-                    {/* <div className="border-t border-neutral-200 my-4" />
+                    {/* <div className="border-t border-[var(--border-soft,#e5e7eb)] my-4" />
 
-                    <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-[var(--text,#374151)] flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
                       Seguros
                     </h4>
                     <div className="space-y-2">
                       {showPlatformCommission && commissionAmount != null && commissionAmount > 0 && (
-                        <div className="flex justify-between py-2 border-b border-neutral-100">
-                          <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
-                          <span className="text-sm font-medium text-neutral-900">S/{commissionAmount}</span>
+                        <div className="flex justify-between py-2 border-b border-[var(--border-soft,#f3f4f6)]">
+                          <span className="text-sm text-[var(--text-muted,#4b5563)]">Comisión de plataformas digitales</span>
+                          <span className="text-sm font-medium text-[var(--text-strong,#111827)]">S/{commissionAmount}</span>
                         </div>
                       )}
-                      <div className="flex justify-between py-2 border-b border-neutral-100">
-                        <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
-                        <span className="text-sm font-medium text-neutral-900">
+                      <div className="flex justify-between py-2 border-b border-[var(--border-soft,#f3f4f6)]">
+                        <span className="text-sm text-[var(--text-muted,#4b5563)]">Seguro multiriesgo</span>
+                        <span className="text-sm font-medium text-[var(--text-strong,#111827)]">
                           {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
                         </span>
                       </div>
                     </div> */}
 
-                    <div className="border-t border-neutral-200 my-4" />
+                    <div className="border-t border-[var(--border-soft,#e5e7eb)] my-4" />
 
                     {/* Total */}
                     <div className="bg-green-50 rounded-xl p-4">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-sm text-[var(--text-muted,#4b5563)]">Monto total a pagar</p>
+                          <p className="text-xs text-[var(--text-muted,#6b7280)]">
                             {selectedInitialPercent > 0
                               ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
                               : `${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
@@ -771,7 +771,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     </div>
 
                     {/* Legal Notice */}
-                    <div className="flex items-start gap-2 text-xs text-neutral-500 mt-4">
+                    <div className="flex items-start gap-2 text-xs text-[var(--text-muted,#6b7280)] mt-4">
                       <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <p>
                         Esta información es referencial. Las tasas y condiciones finales serán confirmadas al momento de la aprobación.
@@ -781,10 +781,10 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-neutral-200 bg-white p-4 flex gap-3">
+                <div className="border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] p-4 flex gap-3">
                   <Button
                     variant="bordered"
-                    className="flex-1 border-neutral-300 cursor-pointer"
+                    className="flex-1 border-[var(--border-strong,#d1d5db)] cursor-pointer"
                     onPress={() => setIsModalOpen(false)}
                   >
                     Cerrar
@@ -814,14 +814,14 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           classNames={{
             wrapper: "z-[9999]",
             backdrop: "bg-black/50 backdrop-blur-sm z-[9998]",
-            base: "bg-white rounded-2xl overflow-hidden max-h-[90vh]",
+            base: "bg-[var(--surface,#fff)] rounded-2xl overflow-hidden max-h-[90vh]",
             body: "p-0",
             closeButton: "hidden",
           }}
         >
-          <ModalContent className="bg-white overflow-hidden">
+          <ModalContent className="bg-[var(--surface,#fff)] overflow-hidden">
             <ModalHeader className="bg-[var(--color-primary)] flex items-center gap-3 p-0 px-5 py-4">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[var(--surface,#fff)]/20 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -830,7 +830,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                className="w-7 h-7 rounded-full bg-[var(--surface,#fff)]/20 hover:bg-[var(--surface,#fff)]/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
               >
                 <X className="w-4 h-4 text-white" />
               </button>
@@ -840,66 +840,66 @@ export const Cronograma: React.FC<CronogramaProps> = ({
               <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-1">
                 {productPrice > 0 && (
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-neutral-600">Precio de lista del equipo</span>
-                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(productPrice))}</span>
+                    <span className="text-[var(--text-muted,#4b5563)]">Precio de lista del equipo</span>
+                    <span className="font-semibold text-[var(--text-strong,#111827)]">S/{formatMoneyNoDecimals(Math.floor(productPrice))}</span>
                   </div>
                 )}
                 {selectedInitialPercent > 0 && initialAmount > 0 && (
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-neutral-600">Cuota inicial</span>
-                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
+                    <span className="text-[var(--text-muted,#4b5563)]">Cuota inicial</span>
+                    <span className="font-semibold text-[var(--text-strong,#111827)]">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-neutral-600">Cuota {freqLabel}</span>
+                  <span className="text-[var(--text-muted,#4b5563)]">Cuota {freqLabel}</span>
                   <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-neutral-600">Plazo</span>
-                  <span className="font-semibold text-neutral-900">{selectedTerm} {termUnitPlural}</span>
+                  <span className="text-[var(--text-muted,#4b5563)]">Plazo</span>
+                  <span className="font-semibold text-[var(--text-strong,#111827)]">{selectedTerm} {termUnitPlural}</span>
                 </div>
               </div>
 
               <div className="flex items-start gap-1.5 mb-4">
-                <Info className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0 mt-px" />
-                <p className="text-xs text-neutral-400">
+                <Info className="w-3.5 h-3.5 text-[var(--text-faint,#9ca3af)] flex-shrink-0 mt-px" />
+                <p className="text-xs text-[var(--text-faint,#9ca3af)]">
                   La cuota está compuesta por capital + interés{commissionAmount != null && commissionAmount > 0 ? ' + comisión' : ''}.
                 </p>
               </div>
 
               {/* Financial Details */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-[var(--text,#374151)] flex items-center gap-2">
                   <Percent className="w-4 h-4 text-[var(--color-primary)]" />
                   Tasas de Interés
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-neutral-50 rounded-lg p-3">
-                    <p className="text-xs text-neutral-500 mb-1">TEA (Tasa Efectiva Anual)</p>
-                    <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tea}%</p>
+                  <div className="bg-[var(--surface-bg,#fafafa)] rounded-lg p-3">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)] mb-1">TEA (Tasa Efectiva Anual)</p>
+                    <p className="text-lg font-bold text-[var(--text-strong,#111827)]">{FINANCIAL_DATA.tea}%</p>
                   </div>
-                  <div className="bg-neutral-50 rounded-lg p-3">
-                    <p className="text-xs text-neutral-500 mb-1">TCEA (Tasa de Costo Efectivo Anual)</p>
-                    <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tcea}%</p>
+                  <div className="bg-[var(--surface-bg,#fafafa)] rounded-lg p-3">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)] mb-1">TCEA (Tasa de Costo Efectivo Anual)</p>
+                    <p className="text-lg font-bold text-[var(--text-strong,#111827)]">{FINANCIAL_DATA.tcea}%</p>
                   </div>
                 </div>
 
                 {/* <Divider className="my-4" />
 
-                <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-[var(--text,#374151)] flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
                   Seguros
                 </h4>
                 <div className="space-y-2">
                   {showPlatformCommission && commissionAmount != null && commissionAmount > 0 && (
-                    <div className="flex justify-between py-2 border-b border-neutral-100">
-                      <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
-                      <span className="text-sm font-medium text-neutral-900">S/{commissionAmount}</span>
+                    <div className="flex justify-between py-2 border-b border-[var(--border-soft,#f3f4f6)]">
+                      <span className="text-sm text-[var(--text-muted,#4b5563)]">Comisión de plataformas digitales</span>
+                      <span className="text-sm font-medium text-[var(--text-strong,#111827)]">S/{commissionAmount}</span>
                     </div>
                   )}
-                  <div className="flex justify-between py-2 border-b border-neutral-100">
-                    <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
-                    <span className="text-sm font-medium text-neutral-900">
+                  <div className="flex justify-between py-2 border-b border-[var(--border-soft,#f3f4f6)]">
+                    <span className="text-sm text-[var(--text-muted,#4b5563)]">Seguro multiriesgo</span>
+                    <span className="text-sm font-medium text-[var(--text-strong,#111827)]">
                       {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
                     </span>
                   </div>
@@ -911,8 +911,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 <div className="bg-green-50 rounded-xl p-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-sm text-[var(--text-muted,#4b5563)]">Monto total a pagar</p>
+                      <p className="text-xs text-[var(--text-muted,#6b7280)]">
                         {selectedInitialPercent > 0
                           ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
                           : `${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
@@ -924,7 +924,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </div>
 
                 {/* Legal Notice */}
-                <div className="flex items-start gap-2 text-xs text-neutral-500 mt-4">
+                <div className="flex items-start gap-2 text-xs text-[var(--text-muted,#6b7280)] mt-4">
                   <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <p>
                     Esta información es referencial. Las tasas y condiciones finales serán confirmadas al momento de la aprobación.
@@ -932,10 +932,10 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </div>
               </div>
             </ModalBody>
-            <ModalFooter className="border-t border-neutral-100">
+            <ModalFooter className="border-t border-[var(--border-soft,#f3f4f6)]">
               <Button
                 variant="bordered"
-                className="border-neutral-300 cursor-pointer"
+                className="border-[var(--border-strong,#d1d5db)] cursor-pointer"
                 onPress={() => setIsModalOpen(false)}
               >
                 Cerrar

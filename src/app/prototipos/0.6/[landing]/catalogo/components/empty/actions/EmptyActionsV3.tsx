@@ -37,7 +37,7 @@ export const EmptyActionsV3: React.FC<EmptyActionsProps> = ({
           as="button"
           onClick={onClearFilters}
           startContent={<Layers className="w-4 h-4" />}
-          className="bg-neutral-100 text-neutral-700 px-4 py-2 h-auto cursor-pointer hover:bg-neutral-200 transition-colors"
+          className="bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] px-4 py-2 h-auto cursor-pointer hover:bg-[var(--surface-2,#e5e7eb)] transition-colors"
           radius="lg"
           classNames={{
             base: 'cursor-pointer',
@@ -51,7 +51,7 @@ export const EmptyActionsV3: React.FC<EmptyActionsProps> = ({
       {/* Filtros aplicados (removibles) */}
       {appliedFilters.length > 0 && (
         <div className="flex flex-col items-center gap-2">
-          <p className="text-xs text-neutral-500">Filtros aplicados:</p>
+          <p className="text-xs text-[var(--text-muted,#6b7280)]">Filtros aplicados:</p>
           <div className="flex flex-wrap gap-1.5 justify-center max-w-md">
             {appliedFilters.slice(0, 5).map((filter) => (
               <Chip
@@ -59,16 +59,16 @@ export const EmptyActionsV3: React.FC<EmptyActionsProps> = ({
                 onClose={() => onRemoveFilter(filter.key)}
                 variant="flat"
                 size="sm"
-                className="bg-neutral-100 text-neutral-600 cursor-pointer"
+                className="bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] cursor-pointer"
                 classNames={{
-                  closeButton: 'text-neutral-400 hover:text-neutral-600',
+                  closeButton: 'text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)]',
                 }}
               >
                 {filter.label}
               </Chip>
             ))}
             {appliedFilters.length > 5 && (
-              <Chip size="sm" variant="flat" className="bg-neutral-50 text-neutral-500">
+              <Chip size="sm" variant="flat" className="bg-[var(--surface-bg,#fafafa)] text-[var(--text-muted,#6b7280)]">
                 +{appliedFilters.length - 5} más
               </Chip>
             )}

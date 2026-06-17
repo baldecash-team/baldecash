@@ -17,6 +17,8 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Layout context for shared data
@@ -345,7 +347,10 @@ function WizardPreviewContent() {
   // Content JSX (no es componente para evitar remount en cada render)
   const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Navbar del Hero — para cupón de campaña: solo logo, no clickeable */}
+      {/* Navbar — nvidia usa su header propio en todas sus rutas */}
+      {isNvidiaLanding(landing) ? (
+        <NvidiaNavbar landing={landing} />
+      ) : (
       <Navbar
         landing={landing}
         logoOnly={!!appliedCoupon?.lockedFromUrl}
@@ -360,6 +365,7 @@ function WizardPreviewContent() {
         institutionLogo={navbarProps?.institutionLogo}
         institutionName={navbarProps?.institutionName}
       />
+      )}
 
       {/* Spacer — dynamic, tracks --header-total-height exposed by Navbar
           (preview banner + promo banner + main navbar). */}

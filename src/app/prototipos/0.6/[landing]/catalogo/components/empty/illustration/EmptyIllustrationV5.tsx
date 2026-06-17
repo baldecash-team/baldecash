@@ -21,26 +21,26 @@ export const EmptyIllustrationV5: React.FC<EmptyIllustrationProps> = ({ classNam
         <div className="absolute inset-4 flex items-center justify-center">
           <div className="relative">
             {/* Caja 3D */}
-            <div className="w-20 h-16 border-2 border-dashed border-neutral-300 rounded-lg flex items-center justify-center bg-white/50">
-              <Package className="w-8 h-8 text-neutral-300" />
+            <div className="w-20 h-16 border-2 border-dashed border-[var(--border-strong,#d1d5db)] rounded-lg flex items-center justify-center bg-[var(--surface,#fff)]/50">
+              <Package className="w-8 h-8 text-[var(--text-faint,#d4d4d4)]" />
             </div>
             {/* Sombra */}
-            <div className="absolute -bottom-2 left-2 right-2 h-4 bg-neutral-100 rounded-full blur-md" />
+            <div className="absolute -bottom-2 left-2 right-2 h-4 bg-[var(--surface-2,#f3f4f6)] rounded-full blur-md" />
           </div>
         </div>
 
         {/* Elementos decorativos */}
         <div className="absolute top-2 right-2 w-3 h-3 bg-[rgba(var(--color-primary-rgb),0.3)] rounded-full" />
         <div className="absolute bottom-4 left-2 w-4 h-4 bg-[rgba(var(--color-secondary-rgb),0.3)] rounded-full" />
-        <div className="absolute top-1/2 right-0 w-2 h-2 bg-neutral-200 rounded-full" />
+        <div className="absolute top-1/2 right-0 w-2 h-2 bg-[var(--surface-2,#e5e7eb)] rounded-full" />
       </div>
 
       {/* Mensaje lado derecho */}
       <div className="flex flex-col items-center md:items-start">
-        <h3 className="text-xl font-bold text-neutral-800 mb-2">
+        <h3 className="text-xl font-bold text-[var(--text-strong,#1f2937)] mb-2">
           Catálogo vacío
         </h3>
-        <p className="text-neutral-600 max-w-sm mb-4">
+        <p className="text-[var(--text-muted,#4b5563)] max-w-sm mb-4">
           No hay equipos que coincidan con tu selección actual de filtros
         </p>
         <div className="flex items-center gap-2 text-[var(--color-primary)] text-sm font-medium">

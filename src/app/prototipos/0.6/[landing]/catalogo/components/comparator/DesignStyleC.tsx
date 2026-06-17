@@ -95,7 +95,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
               {/* Glow effect behind card */}
               <div className="absolute -inset-2 bg-[rgba(var(--color-primary-rgb),0.2)] rounded-3xl blur-xl" />
 
-              <Card className="relative border-2 border-[var(--color-primary)] bg-white overflow-hidden shadow-2xl">
+              <Card className="relative border-2 border-[var(--color-primary)] bg-[var(--surface,#fff)] overflow-hidden shadow-2xl">
                 <CardBody className="p-0">
                   <div className="flex flex-col md:flex-row">
                     {/* Hero Image & Badge */}
@@ -118,7 +118,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.4, type: 'spring' }}
-                        className="mt-8 md:mt-12 w-28 h-28 md:w-40 md:h-40 rounded-2xl bg-white shadow-md flex items-center justify-center p-3 md:p-4"
+                        className="mt-8 md:mt-12 w-28 h-28 md:w-40 md:h-40 rounded-2xl bg-[var(--surface,#fff)] shadow-md flex items-center justify-center p-3 md:p-4"
                       >
                         <img
                           src={bestProduct.images[0] || bestProduct.thumbnail}
@@ -156,11 +156,11 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         transition={{ delay: 0.3 }}
                         className="mb-3 md:mb-4"
                       >
-                        <p className="text-xs md:text-sm text-neutral-500 mb-1">{bestProduct.brand}</p>
-                        <h3 className="text-lg md:text-2xl font-bold text-neutral-800 mb-1 md:mb-2 line-clamp-2">
+                        <p className="text-xs md:text-sm text-[var(--text-muted,#6b7280)] mb-1">{bestProduct.brand}</p>
+                        <h3 className="text-lg md:text-2xl font-bold text-[var(--text-strong,#1f2937)] mb-1 md:mb-2 line-clamp-2">
                           {bestProduct.displayName}
                         </h3>
-                        <p className="text-xs md:text-sm text-neutral-600">
+                        <p className="text-xs md:text-sm text-[var(--text-muted,#4b5563)]">
                           La mejor relación precio-calidad basada en tus preferencias
                         </p>
                       </motion.div>
@@ -176,7 +176,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                           <span className="text-2xl md:text-4xl font-bold text-[var(--color-primary)]">
                             S/{formatMoney(getDisplayQuota(bestProduct))}
                           </span>
-                          <span className="text-base md:text-lg text-neutral-500">/mes</span>
+                          <span className="text-base md:text-lg text-[var(--text-muted,#6b7280)]">/mes</span>
                         </div>
                         <div className="mt-2 inline-block px-3 py-1 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-full">
                           <span className="text-xs md:text-sm font-semibold text-[var(--color-primary)]">
@@ -201,12 +201,12 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: 0.5 + index * 0.05 }}
                               className={`flex items-center justify-between p-2 md:p-3 rounded-lg md:rounded-xl ${
-                                isWinner ? 'bg-[rgba(var(--color-primary-rgb),0.1)]' : 'bg-neutral-50'
+                                isWinner ? 'bg-[rgba(var(--color-primary-rgb),0.1)]' : 'bg-[var(--surface-bg,#fafafa)]'
                               }`}
                             >
-                              <span className="text-[10px] md:text-xs text-neutral-500">{spec.label}</span>
+                              <span className="text-[10px] md:text-xs text-[var(--text-muted,#6b7280)]">{spec.label}</span>
                               <div className="flex items-center gap-1">
-                                <span className={`text-xs md:text-sm font-semibold ${isWinner ? 'text-[var(--color-primary)]' : 'text-neutral-700'}`}>
+                                <span className={`text-xs md:text-sm font-semibold ${isWinner ? 'text-[var(--color-primary)]' : 'text-[var(--text,#374151)]'}`}>
                                   {spec.values[bestProductIndex]}
                                 </span>
                                 {isWinner && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-[var(--color-primary)]" />}
@@ -251,7 +251,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
             transition={{ delay: 0.4 }}
             className="space-y-3"
           >
-            <h4 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">
+            <h4 className="text-sm font-semibold text-[var(--text-muted,#6b7280)] uppercase tracking-wide">
               Otras opciones
             </h4>
 
@@ -268,7 +268,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 + idx * 0.1 }}
                   >
-                    <Card className="border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.3)] transition-all cursor-pointer group opacity-80 hover:opacity-100">
+                    <Card className="border border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.3)] transition-all cursor-pointer group opacity-80 hover:opacity-100">
                       <CardBody className="p-4">
                         <div className="flex gap-4">
                           {/* Product thumbnail */}
@@ -278,11 +278,11 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                                 e.stopPropagation();
                                 onRemoveProduct(product.id);
                               }}
-                              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-neutral-200 hover:bg-red-50 hover:border-red-200 flex items-center justify-center cursor-pointer transition-all z-10 opacity-0 group-hover:opacity-100"
+                              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] hover:bg-red-50 hover:border-red-200 flex items-center justify-center cursor-pointer transition-all z-10 opacity-0 group-hover:opacity-100"
                             >
-                              <X className="w-3 h-3 text-neutral-500 hover:text-red-500" />
+                              <X className="w-3 h-3 text-[var(--text-muted,#6b7280)] hover:text-red-500" />
                             </button>
-                            <div className="w-20 h-20 rounded-xl bg-neutral-50 flex items-center justify-center p-2">
+                            <div className="w-20 h-20 rounded-xl bg-[var(--surface-bg,#fafafa)] flex items-center justify-center p-2">
                               <img
                                 src={product.images[0] || product.thumbnail}
                                 alt={product.displayName}
@@ -295,8 +295,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between mb-1">
                               <div>
-                                <p className="text-xs text-neutral-500">{product.brand}</p>
-                                <p className="text-sm font-semibold text-neutral-800 line-clamp-1">
+                                <p className="text-xs text-[var(--text-muted,#6b7280)]">{product.brand}</p>
+                                <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)] line-clamp-1">
                                   {product.displayName}
                                 </p>
                               </div>
@@ -319,7 +319,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                               <span className="text-lg font-bold text-[var(--color-primary)]">
                                 S/{formatMoney(getDisplayQuota(product))}
                               </span>
-                              <span className="text-xs text-neutral-500">/mes</span>
+                              <span className="text-xs text-[var(--text-muted,#6b7280)]">/mes</span>
                               {renderPriceDiff(originalIndex)}
                             </div>
 
@@ -333,7 +333,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                                     className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md ${
                                       isWinner
                                         ? 'bg-[#22c55e]/10 text-[#22c55e]'
-                                        : 'bg-neutral-100 text-neutral-600'
+                                        : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)]'
                                     }`}
                                   >
                                     <span>{spec.values[originalIndex]}</span>
@@ -349,7 +349,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             <Button
                               size="sm"
                               variant="bordered"
-                              className="border-neutral-200 cursor-pointer hover:bg-neutral-50"
+                              className="border-[var(--border-soft,#e5e7eb)] cursor-pointer hover:bg-[var(--surface-bg,#fafafa)]"
                               onPress={() => onSelectProduct?.(product.id)}
                             >
                               Elegir
@@ -367,10 +367,10 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
       </AnimatePresence>
 
       {/* Summary Table (Condensed) - Siempre visible */}
-      <div className="bg-neutral-50 rounded-xl border border-neutral-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-neutral-200 bg-white">
+      <div className="bg-[var(--surface-bg,#fafafa)] rounded-xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)]">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-neutral-700">Comparación resumida</h4>
+            <h4 className="text-sm font-semibold text-[var(--text,#374151)]">Comparación resumida</h4>
             {/* Checkbox - Siempre visible con diseño de Términos y Condiciones */}
             {onToggleDifferences && (
               <button
@@ -384,14 +384,14 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     transition-all duration-200
                     ${showOnlyDifferences
                       ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                      : 'bg-white border-neutral-300 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                      : 'bg-[var(--surface,#fff)] border-[var(--border-strong,#d1d5db)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                     }
                   `}
                 >
                   {showOnlyDifferences && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-medium text-neutral-800">Solo mostrar diferencias</p>
+                  <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">Solo mostrar diferencias</p>
                 </div>
               </button>
             )}
@@ -400,8 +400,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-neutral-200">
-                <th className="p-2 md:p-3 text-left text-xs font-medium text-neutral-500 w-[80px] md:w-[150px]">
+              <tr className="border-b border-[var(--border-soft,#e5e7eb)]">
+                <th className="p-2 md:p-3 text-left text-xs font-medium text-[var(--text-muted,#6b7280)] w-[80px] md:w-[150px]">
                   Specs
                 </th>
                 {products.map((product, index) => {
@@ -415,8 +415,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     >
                       <div className={`inline-flex flex-col items-center gap-1 md:gap-2 p-1.5 md:p-3 rounded-lg md:rounded-xl border ${
                         isBest
-                          ? 'border-[var(--color-primary)] bg-white shadow-sm'
-                          : 'border-neutral-200 bg-white'
+                          ? 'border-[var(--color-primary)] bg-[var(--surface,#fff)] shadow-sm'
+                          : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)]'
                       }`}>
                         {/* Best badge */}
                         {isBest && (
@@ -426,7 +426,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                           </div>
                         )}
                         {/* Product image */}
-                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-neutral-50 flex items-center justify-center p-0.5 md:p-1">
+                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-[var(--surface-bg,#fafafa)] flex items-center justify-center p-0.5 md:p-1">
                           <img
                             src={product.images[0] || product.thumbnail}
                             alt={product.displayName}
@@ -435,9 +435,9 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         </div>
                         {/* Product info */}
                         <div className="text-center">
-                          <p className="text-[8px] md:text-[10px] text-neutral-500 hidden md:block">{product.brand}</p>
+                          <p className="text-[8px] md:text-[10px] text-[var(--text-muted,#6b7280)] hidden md:block">{product.brand}</p>
                           <p className={`text-[10px] md:text-xs font-semibold line-clamp-1 md:line-clamp-2 max-w-[60px] md:max-w-[100px] ${
-                            isBest ? 'text-[var(--color-primary)]' : 'text-neutral-700'
+                            isBest ? 'text-[var(--color-primary)]' : 'text-[var(--text,#374151)]'
                           }`}>
                             {product.displayName}
                           </p>
@@ -458,7 +458,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             className={`cursor-pointer text-[10px] md:text-xs px-2 md:px-3 min-w-0 h-7 ${
                               cartItems.includes(product.id)
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
-                                : 'border-neutral-200 text-neutral-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                                : 'border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                             }`}
                             startContent={cartItems.includes(product.id) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
                             onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
@@ -478,9 +478,9 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
               {specs.map((spec, specIndex) => (
                 <tr
                   key={spec.key}
-                  className={`${specIndex % 2 === 0 ? 'bg-white' : ''} border-b border-neutral-100 last:border-b-0`}
+                  className={`${specIndex % 2 === 0 ? 'bg-[var(--surface,#fff)]' : ''} border-b border-[var(--border-soft,#f3f4f6)] last:border-b-0`}
                 >
-                  <td className="p-2 md:p-3 text-[10px] md:text-xs text-neutral-600 font-medium">
+                  <td className="p-2 md:p-3 text-[10px] md:text-xs text-[var(--text-muted,#4b5563)] font-medium">
                     {spec.label}
                   </td>
                   {products.map((product, index) => {
@@ -490,7 +490,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         key={`${product.id}-${spec.key}`}
                         className={`p-1.5 md:p-3 text-center text-[10px] md:text-xs ${
                           index === bestProductIndex ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : ''
-                        } ${isWinner ? 'font-semibold text-[var(--color-primary)]' : 'text-neutral-700'}`}
+                        } ${isWinner ? 'font-semibold text-[var(--color-primary)]' : 'text-[var(--text,#374151)]'}`}
                       >
                         <div className="flex items-center justify-center gap-0.5 md:gap-1">
                           {spec.values[index]}
@@ -508,7 +508,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
         {/* Annual saving for priceDiffVersion V2 */}
         {config.priceDiffVersion === 2 && priceDiff.annualSaving > 0 && (
           <div className="p-3 bg-[#22c55e]/10 border-t border-[#22c55e]/20 text-center">
-            <p className="text-xs text-neutral-600">Ahorro anual eligiendo el más económico:</p>
+            <p className="text-xs text-[var(--text-muted,#4b5563)]">Ahorro anual eligiendo el más económico:</p>
             <p className="text-lg font-bold text-[#22c55e]">S/{formatMoney(priceDiff.annualSaving)}</p>
           </div>
         )}

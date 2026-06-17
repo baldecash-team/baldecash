@@ -156,14 +156,14 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
       className="relative flex items-center w-full max-w-2xl xl:max-w-3xl transition-all duration-200"
     >
       <div
-        className={`flex items-center w-full bg-white rounded-xl border-2 transition-colors ${
+        className={`flex items-center w-full bg-[var(--surface,#fff)] rounded-xl border-2 transition-colors ${
           isFocused ? 'border-[var(--color-primary)]' : 'border-[rgba(var(--color-primary-rgb),0.3)]'
         }`}
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 text-[var(--color-primary)] ml-3 flex-shrink-0 animate-spin" />
         ) : (
-          <Search className="w-4 h-4 text-neutral-400 ml-3 flex-shrink-0" />
+          <Search className="w-4 h-4 text-[var(--text-faint,#9ca3af)] ml-3 flex-shrink-0" />
         )}
         <input
           type="text"
@@ -180,7 +180,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
           /* text-base (16px) prevents iOS Safari from auto-zooming the
              viewport when the input receives focus. */
           style={{ fontSize: '16px' }}
-          className="flex-1 bg-transparent px-3 py-2 text-base text-neutral-800 placeholder-neutral-400 outline-none"
+          className="flex-1 bg-transparent px-3 py-2 text-base text-[var(--text-strong,#1f2937)] placeholder-neutral-400 outline-none"
         />
         {value && (
           <button
@@ -190,7 +190,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
               setSuggestions([]);
               setShowSuggestions(false);
             }}
-            className="p-1.5 mr-1 rounded-lg hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
+            className="p-1.5 mr-1 rounded-lg hover:bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -205,7 +205,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-neutral-200 overflow-hidden z-[100]"
+            className="absolute top-full left-0 right-0 mt-2 bg-[var(--surface,#fff)] rounded-xl shadow-xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden z-[100]"
           >
             <div className="py-2">
               {suggestions.map((suggestion, index) => (
@@ -217,11 +217,11 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${
-                    index === selectedIndex ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : 'hover:bg-neutral-50'
+                    index === selectedIndex ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : 'hover:bg-[var(--surface-bg,#fafafa)]'
                   }`}
                 >
                   {/* Product Image */}
-                  <div className="w-10 h-10 bg-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-10 h-10 bg-[var(--surface-2,#f3f4f6)] rounded-lg overflow-hidden flex-shrink-0">
                     {suggestion.image ? (
                       <img
                         src={suggestion.image}
@@ -230,15 +230,15 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Search className="w-4 h-4 text-neutral-300" />
+                        <Search className="w-4 h-4 text-[var(--text-faint,#d4d4d4)]" />
                       </div>
                     )}
                   </div>
 
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-neutral-500 uppercase">{suggestion.brand}</p>
-                    <p className="text-sm font-medium text-neutral-800 truncate">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">{suggestion.brand}</p>
+                    <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate">
                       {suggestion.name}
                     </p>
                   </div>
@@ -252,7 +252,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                         <p className="text-sm font-semibold text-[var(--color-primary)]">
                           S/{formatMoney(quota)}/mes
                         </p>
-                        <p className="text-[10px] text-neutral-500">
+                        <p className="text-[10px] text-[var(--text-muted,#6b7280)]">
                           x {term} meses
                         </p>
                       </div>
@@ -264,7 +264,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
 
             {/* Ver todos los resultados */}
             {value.trim() && (
-              <div className="border-t border-neutral-100 px-4 py-2">
+              <div className="border-t border-[var(--border-soft,#f3f4f6)] px-4 py-2">
                 <button
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -310,14 +310,14 @@ export const NavbarFavorites: React.FC<NavbarFavoritesProps> = ({
       className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         isActive
           ? 'bg-[var(--color-primary)] text-white'
-          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
       }`}
     >
       <Heart className={`w-5 h-5 ${isActive || count > 0 ? 'fill-current' : ''}`} />
       {count > 0 && (
         <span
           className={`absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
-            isActive ? 'bg-white text-[var(--color-primary)]' : 'bg-[var(--color-primary)] text-white'
+            isActive ? 'bg-[var(--surface,#fff)] text-[var(--color-primary)]' : 'bg-[var(--color-primary)] text-white'
           }`}
         >
           {count}
@@ -345,7 +345,7 @@ export const NavbarSearchButton: React.FC<NavbarSearchButtonProps> = ({
       className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         isActive
           ? 'bg-[var(--color-primary)] text-white'
-          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
       }`}
     >
       <Search className="w-5 h-5" />
@@ -378,13 +378,13 @@ export const NavbarCartButton: React.FC<NavbarCartButtonProps> = ({
           ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
           : count > 0
             ? 'bg-[var(--color-primary)] text-white'
-            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+            : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
       }`}
     >
       <ShoppingCart className="w-5 h-5" />
       {count > 0 && (
         <span className={`absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
-          isOverLimit ? 'bg-white text-red-600' : 'bg-white text-[var(--color-primary)]'
+          isOverLimit ? 'bg-[var(--surface,#fff)] text-red-600' : 'bg-[var(--surface,#fff)] text-[var(--color-primary)]'
         }`}>
           {count}
         </span>
@@ -414,12 +414,12 @@ export const NavbarWishlistButton: React.FC<NavbarWishlistButtonProps> = ({
       className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         count > 0
           ? 'bg-[var(--color-primary)] text-white'
-          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+          : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
       }`}
     >
       <Heart className={`w-5 h-5 ${count > 0 ? 'fill-current' : ''}`} />
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-white text-[var(--color-primary)]">
+        <span className="absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-[var(--surface,#fff)] text-[var(--color-primary)]">
           {count}
         </span>
       )}
@@ -484,12 +484,12 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
         className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
           items.length > 0
             ? 'bg-[var(--color-primary)] text-white'
-            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+            : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
         }`}
       >
         <Heart className={`w-5 h-5 ${items.length > 0 ? 'fill-current' : ''}`} />
         {items.length > 0 && (
-          <span className="absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-white text-[var(--color-primary)]">
+          <span className="absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-[var(--surface,#fff)] text-[var(--color-primary)]">
             {items.length}
           </span>
         )}
@@ -503,20 +503,20 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-neutral-200 overflow-hidden z-50"
+            className="absolute top-full right-0 mt-2 w-80 bg-[var(--surface,#fff)] rounded-xl shadow-xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden z-50"
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-[var(--border-soft,#f3f4f6)] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Heart className="w-4 h-4 text-[var(--color-primary)] fill-[var(--color-primary)]" />
-                <span className="text-sm font-semibold text-neutral-800">
+                <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                   {config?.title || 'Mis favoritos'} ({items.length})
                 </span>
               </div>
               {items.length > 0 && (
                 <button
                   onClick={onClearAll}
-                  className="text-xs text-neutral-500 hover:text-red-500 transition-colors cursor-pointer"
+                  className="text-xs text-[var(--text-muted,#6b7280)] hover:text-red-500 transition-colors cursor-pointer"
                 >
                   {config?.clear_button || 'Limpiar'}
                 </button>
@@ -526,8 +526,8 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
             {/* Items */}
             {items.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <Heart className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
-                <p className="text-sm text-neutral-500">{config?.empty_title || 'Sin favoritos aún'}</p>
+                <Heart className="w-10 h-10 text-[var(--text-faint,#d4d4d4)] mx-auto mb-2" />
+                <p className="text-sm text-[var(--text-muted,#6b7280)]">{config?.empty_title || 'Sin favoritos aún'}</p>
               </div>
             ) : (
               <div className="max-h-[280px] overflow-y-auto">
@@ -538,14 +538,14 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                     return (
                       <div
                         key={item.productId}
-                        className={`flex items-center gap-3 p-2 rounded-lg group ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-neutral-50'}`}
+                        className={`flex items-center gap-3 p-2 rounded-lg group ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-[var(--surface-bg,#fafafa)]'}`}
                       >
                         <div
                           onClick={() => {
                             onViewProduct(item.productId);
                             setIsOpen(false);
                           }}
-                          className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200 cursor-pointer hover:border-[var(--color-primary)] transition-colors"
+                          className="w-12 h-12 bg-[var(--surface,#fff)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)] cursor-pointer hover:border-[var(--color-primary)] transition-colors"
                         >
                           <img
                             src={item.image}
@@ -554,7 +554,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-neutral-500 uppercase">
+                          <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">
                             {item.brand}
                           </p>
                           <p
@@ -562,7 +562,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                               onViewProduct(item.productId);
                               setIsOpen(false);
                             }}
-                            className="text-sm font-medium text-neutral-800 truncate cursor-pointer hover:text-[var(--color-primary)] transition-colors"
+                            className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate cursor-pointer hover:text-[var(--color-primary)] transition-colors"
                             title={item.name}
                           >
                             {item.name}
@@ -575,12 +575,12 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                             <>
                               <p className="text-sm font-bold text-[var(--color-primary)]">
                                 S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}/mes
-                                <span className="text-xs font-normal text-neutral-500 ml-1">
+                                <span className="text-xs font-normal text-[var(--text-muted,#6b7280)] ml-1">
                                   x {item.months} meses
                                 </span>
                               </p>
                               {hasInitial && (
-                                <p className="text-xs text-neutral-500">
+                                <p className="text-xs text-[var(--text-muted,#6b7280)]">
                                   + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
                                 </p>
                               )}
@@ -589,7 +589,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                         </div>
                         <button
                           onClick={() => onRemoveItem(item.productId)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -680,13 +680,13 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
             ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
             : items.length > 0
               ? 'bg-[var(--color-primary)] text-white'
-              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
         }`}
       >
         <ShoppingCart className="w-5 h-5" />
         {items.length > 0 && (
           <span className={`absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
-            isOverLimit ? 'bg-white text-red-600' : 'bg-white text-[var(--color-primary)]'
+            isOverLimit ? 'bg-[var(--surface,#fff)] text-red-600' : 'bg-[var(--surface,#fff)] text-[var(--color-primary)]'
           }`}>
             {items.length}
           </span>
@@ -701,20 +701,20 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-neutral-200 overflow-hidden z-50"
+            className="absolute top-full right-0 mt-2 w-80 bg-[var(--surface,#fff)] rounded-xl shadow-xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden z-50"
           >
             {/* Header */}
-            <div className={`px-4 py-3 border-b flex items-center justify-between ${isOverLimit ? 'border-red-100 bg-red-50' : 'border-neutral-100'}`}>
+            <div className={`px-4 py-3 border-b flex items-center justify-between ${isOverLimit ? 'border-red-100 bg-red-50' : 'border-[var(--border-soft,#f3f4f6)]'}`}>
               <div className="flex items-center gap-2">
                 <ShoppingCart className={`w-4 h-4 ${isOverLimit ? 'text-red-500' : 'text-[var(--color-primary)]'}`} />
-                <span className="text-sm font-semibold text-neutral-800">
+                <span className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                   {config?.title || 'Mi carrito'} ({items.length})
                 </span>
               </div>
               {items.length > 0 && (
                 <button
                   onClick={onClearAll}
-                  className="text-xs text-neutral-500 hover:text-red-500 transition-colors cursor-pointer"
+                  className="text-xs text-[var(--text-muted,#6b7280)] hover:text-red-500 transition-colors cursor-pointer"
                 >
                   {config?.clear_button || 'Vaciar'}
                 </button>
@@ -724,8 +724,8 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
             {/* Items */}
             {items.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <ShoppingCart className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
-                <p className="text-sm text-neutral-500">{config?.empty_title || 'Tu carrito está vacío'}</p>
+                <ShoppingCart className="w-10 h-10 text-[var(--text-faint,#d4d4d4)] mx-auto mb-2" />
+                <p className="text-sm text-[var(--text-muted,#6b7280)]">{config?.empty_title || 'Tu carrito está vacío'}</p>
               </div>
             ) : (
               <>
@@ -759,11 +759,11 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                       return (
                         <div
                           key={item.productId}
-                          className={`flex items-center gap-3 p-2 rounded-lg ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-neutral-50'}`}
+                          className={`flex items-center gap-3 p-2 rounded-lg ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-[var(--surface-bg,#fafafa)]'}`}
                         >
                           <div
                             onClick={() => onViewProduct?.(item.productId)}
-                            className={`w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200 ${onViewProduct ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                            className={`w-12 h-12 bg-[var(--surface,#fff)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)] ${onViewProduct ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
                           >
                             <img
                               src={item.image}
@@ -772,12 +772,12 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-neutral-500 uppercase">
+                            <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">
                               {item.brand}
                             </p>
                             <p
                               onClick={() => onViewProduct?.(item.productId)}
-                              className={`text-sm font-medium text-neutral-800 truncate ${onViewProduct ? 'cursor-pointer hover:text-[var(--color-primary)] transition-colors' : ''}`}
+                              className={`text-sm font-medium text-[var(--text-strong,#1f2937)] truncate ${onViewProduct ? 'cursor-pointer hover:text-[var(--color-primary)] transition-colors' : ''}`}
                               title={item.name}
                             >
                               {item.name}
@@ -790,12 +790,12 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                               <>
                                 <p className="text-sm font-bold text-[var(--color-primary)]">
                                   S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
-                                  <span className="text-xs font-normal text-neutral-500 ml-1">
+                                  <span className="text-xs font-normal text-[var(--text-muted,#6b7280)] ml-1">
                                     x {item.months} meses
                                   </span>
                                 </p>
                                 {hasInitial && (
-                                  <p className="text-xs text-neutral-500">
+                                  <p className="text-xs text-[var(--text-muted,#6b7280)]">
                                     + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
                                   </p>
                                 )}
@@ -804,7 +804,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                           </div>
                           <button
                             onClick={() => onRemoveItem(item.productId)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -815,12 +815,12 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="px-4 py-3 border-t border-neutral-100">
+                <div className="px-4 py-3 border-t border-[var(--border-soft,#f3f4f6)]">
                   <Button
                     className={`w-full font-semibold ${
                       !isDisabled
                         ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
-                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                        : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed'
                     }`}
                     onPress={() => {
                       onContinue();

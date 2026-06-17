@@ -46,6 +46,7 @@ import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
+import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -56,6 +57,8 @@ import { useOnboarding } from './hooks/useOnboarding';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -180,7 +183,7 @@ const LANDINGS_SIN_BANNER_CUPON: number[] = [138, 140, 167, 174];
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
       <CubeGridSpinner />
     </div>
   );
@@ -628,6 +631,7 @@ function CatalogoContent() {
       initialAmount: variantInfo?.initialAmount ?? 0,
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
+      condition: product.conditionCode || product.condition,
       variantId: variantInfo?.variantId || product.variantId,
       colorName: variantInfo?.colorName,
       colorHex: variantInfo?.colorHex,
@@ -861,6 +865,8 @@ function CatalogoContent() {
   const [isBlipChatOpen, setIsBlipChatOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
+  // Reacondicionado: aviso de confirmación al dar "Lo quiero" en un card reacondicionado
+  const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1200,7 +1206,7 @@ function CatalogoContent() {
           term: item.term ?? item.months,
           paymentFrequency: item.paymentFrequency,
           initialPercent: item.initialPercent,
-          initialAmount: Math.round((item.price * item.initialPercent) / 100),
+          initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
           type: product?.deviceType || 'laptop',  // Product type for accessory compatibility filtering
           specs: product?.specs ? {
@@ -1420,6 +1426,41 @@ function CatalogoContent() {
     return null;
   }, [catalogProducts]);
 
+  // "Lo quiero" del card: dispara analítica y navega/abre el modal de carrito.
+  // Extraído del handler inline para poder diferirlo tras el aviso de reacondicionado.
+  const proceedAddToCart = useCallback((cartItem: CartItem, product: CatalogProduct) => {
+    // Fire filter snapshot before the user leaves or opens the modal
+    const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
+    analytics.trackFilterSnapshot({
+      ...snap,
+      results_shown: totalProducts,
+      trigger: 'lo_quiero',
+    });
+
+    // Track Lo quiero click from catalog card
+    analytics.track('product_cta_click', {
+      product_id: cartItem.productId,
+      product_name: cartItem.name,
+      brand: cartItem.brand,
+      months: cartItem.months,
+      monthly_quota: Math.floor(cartItem.monthlyPayment),
+      initial_percent: cartItem.initialPercent,
+      location: 'catalog_card',
+    });
+
+    if (!ALLOW_MULTI_PRODUCT) {
+      // Single-product mode: go directly to solicitar
+      const target = findProductOrSibling(cartItem.productId) || product;
+      selectProductForWizard(target, cartItem);
+      router.push(getWizardUrl(landing));
+      return;
+    }
+    // Multi-product mode: open cart selection modal
+    setSelectedVariantForCart(cartItem);
+    const target = findProductOrSibling(cartItem.productId) || product;
+    handleOpenCartModal(target);
+  }, [filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
     // Si tiene deviceType definido, usarlo. Si no, asumir 'laptop' (productos generados)
@@ -1540,7 +1581,10 @@ function CatalogoContent() {
   // If filters are applied and result is empty, the normal catalog view handles it with "Catálogo vacío"
   if (productsError && !hasActiveFilters) {
     return (
-      <div className="min-h-screen bg-neutral-50">
+      <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
+        {isNvidiaLanding(landing) ? (
+          <NvidiaNavbar landing={landing} />
+        ) : (
         <Navbar
           landing={landing}
           promoBannerData={navbarProps?.promoBannerData}
@@ -1555,6 +1599,7 @@ function CatalogoContent() {
           institutionName={navbarProps?.institutionName}
           previewBannerOffset={previewBannerOffset}
         />
+        )}
         <main
           style={{
             paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
@@ -1590,7 +1635,10 @@ function CatalogoContent() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Navbar from Hero — para cupón de campaña: solo logo, no clickeable */}
+      {/* Navbar — nvidia usa su header propio en todas sus rutas */}
+      {isNvidiaLanding(landing) ? (
+        <NvidiaNavbar landing={landing} />
+      ) : (
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
@@ -1608,6 +1656,7 @@ function CatalogoContent() {
         institutionName={navbarProps?.institutionName}
         previewBannerOffset={previewBannerOffset}
       />
+      )}
 
       {/* Secondary Navbar with Search, Wishlist, Cart — oculta para usuarios con cupón */}
       {!showCouponUi && (
@@ -1732,37 +1781,14 @@ function CatalogoContent() {
                 hideColors
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
+                conditions={apiFilters?.conditions}
                 onAddToCart={(cartItem: CartItem) => {
-                  // Fire filter snapshot before the user leaves or opens the modal
-                  const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
-                  analytics.trackFilterSnapshot({
-                    ...snap,
-                    results_shown: totalProducts,
-                    trigger: 'lo_quiero',
-                  });
-
-                  // Track Lo quiero click from catalog card
-                  analytics.track('product_cta_click', {
-                    product_id: cartItem.productId,
-                    product_name: cartItem.name,
-                    brand: cartItem.brand,
-                    months: cartItem.months,
-                    monthly_quota: Math.floor(cartItem.monthlyPayment),
-                    initial_percent: cartItem.initialPercent,
-                    location: 'catalog_card',
-                  });
-
-                  if (!ALLOW_MULTI_PRODUCT) {
-                    // Single-product mode: go directly to solicitar
-                    const target = findProductOrSibling(cartItem.productId) || product;
-                    selectProductForWizard(target, cartItem);
-                    router.push(getWizardUrl(landing));
+                  // Reacondicionado: confirmar aviso antes de continuar
+                  if (isRefurbishedCondition(product.conditionCode || product.condition)) {
+                    setPendingRefurb({ cartItem, product });
                     return;
                   }
-                  // Multi-product mode: open cart selection modal
-                  setSelectedVariantForCart(cartItem);
-                  const target = findProductOrSibling(cartItem.productId) || product;
-                  handleOpenCartModal(target);
+                  proceedAddToCart(cartItem, product);
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info
@@ -1827,13 +1853,13 @@ function CatalogoContent() {
             {viewMode === 'favorites' ? (
               // Empty state for favorites view
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="w-24 h-24 rounded-full bg-neutral-100 flex items-center justify-center mb-6">
-                  <Heart className="w-12 h-12 text-neutral-300" />
+                <div className="w-24 h-24 rounded-full bg-[var(--surface-2,#f3f4f6)] flex items-center justify-center mb-6">
+                  <Heart className="w-12 h-12 text-[var(--text-faint,#d4d4d4)]" />
                 </div>
-                <h3 className="text-xl font-semibold text-neutral-800 mb-2">
+                <h3 className="text-xl font-semibold text-[var(--text-strong,#1f2937)] mb-2">
                   {wishlist.length === 0 ? 'Sin favoritos aún' : 'No hay favoritos que coincidan'}
                 </h3>
-                <p className="text-neutral-500 mb-6 max-w-md">
+                <p className="text-[var(--text-muted,#6b7280)] mb-6 max-w-md">
                   {wishlist.length === 0
                     ? 'Haz clic en el corazón de cualquier producto para agregarlo a tus favoritos'
                     : 'Tus favoritos no coinciden con los filtros actuales. Prueba ajustar los filtros o ver todos los productos.'}
@@ -1853,7 +1879,7 @@ function CatalogoContent() {
                         setFiltersTracked(defaultFilterState);
                         analytics.trackFilterClearAll({ source: 'favorites_empty_state' });
                       }}
-                      className="cursor-pointer text-neutral-600"
+                      className="cursor-pointer text-[var(--text-muted,#4b5563)]"
                     >
                       Limpiar filtros
                     </Button>
@@ -1915,8 +1941,8 @@ function CatalogoContent() {
                           <HelpCircle className="w-7 h-7 text-white" />
                         </div>
                         <div className="flex-1 text-center md:text-left">
-                          <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
-                          <p className="text-sm text-neutral-600">
+                          <h3 className="text-lg font-semibold text-[var(--text-strong,#1f2937)] mb-1">¿No encuentras lo que buscas?</h3>
+                          <p className="text-sm text-[var(--text-muted,#4b5563)]">
                             Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
                           </p>
                         </div>
@@ -2068,16 +2094,16 @@ function CatalogoContent() {
 
       {/* Floating Comparison Bar - Desktop only */}
       {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && !isCartModalOpen && !isSettingsOpen && (
-        <div className="hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4 transition-all bottom-6">
+        <div className="hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-[var(--surface,#fff)] rounded-2xl shadow-xl border border-[var(--border-soft,#e5e7eb)] px-4 py-3 items-center gap-4 transition-all bottom-6">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
               <Scale className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-neutral-800">
+              <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">
                 {compareList.length} de {maxCompareProducts}
               </p>
-              <p className="text-xs text-neutral-500">equipos seleccionados</p>
+              <p className="text-xs text-[var(--text-muted,#6b7280)]">equipos seleccionados</p>
             </div>
           </div>
 
@@ -2085,7 +2111,7 @@ function CatalogoContent() {
             {compareProducts.slice(0, 4).map((product, index) => (
               <div
                 key={product.id}
-                className="w-10 h-10 rounded-lg bg-white border-2 border-white shadow-sm overflow-hidden"
+                className="w-10 h-10 rounded-lg bg-[var(--surface,#fff)] border-2 border-white shadow-sm overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
                 <img src={product.images[0] || product.thumbnail} alt={product.displayName} className="w-full h-full object-cover" />
@@ -2093,13 +2119,13 @@ function CatalogoContent() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2 border-l border-neutral-200 pl-4">
+          <div className="flex items-center gap-2 border-l border-[var(--border-soft,#e5e7eb)] pl-4">
             <Button
               variant="light"
               size="sm"
               isIconOnly
               onPress={handleClearCompare}
-              className="cursor-pointer text-neutral-500 hover:text-red-500"
+              className="cursor-pointer text-[var(--text-muted,#6b7280)] hover:text-red-500"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -2108,7 +2134,7 @@ function CatalogoContent() {
               className={`px-6 font-bold ${
                 compareList.length >= 2
                   ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
-                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                  : 'bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed'
               }`}
               style={{ borderRadius: '14px' }}
               onPress={() => {
@@ -2155,7 +2181,7 @@ function CatalogoContent() {
               className={`lg:hidden shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 ${
                 compareList.length >= 2
                   ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                  : 'bg-white text-[var(--color-primary)] border border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-neutral-100'
+                  : 'bg-[var(--surface,#fff)] text-[var(--color-primary)] border border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[var(--surface-2,#f3f4f6)]'
               }`}
               onPress={() => {
                 if (compareList.length >= 2) {
@@ -2168,7 +2194,7 @@ function CatalogoContent() {
               <Scale className="w-5 h-5" />
               <span className="hidden sm:inline lg:hidden">Comparar</span>
               <span className={`text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${
-                compareList.length >= 2 ? 'bg-white text-[var(--color-primary)]' : 'bg-[var(--color-primary)] text-white'
+                compareList.length >= 2 ? 'bg-[var(--surface,#fff)] text-[var(--color-primary)]' : 'bg-[var(--color-primary)] text-white'
               }`}>
                 {compareList.length}/{maxCompareProducts}
               </span>
@@ -2185,7 +2211,7 @@ function CatalogoContent() {
             onOpenChange={setIsHelpPopoverOpen}
             classNames={{
               base: 'z-[100]',
-              content: 'p-0 bg-white border border-neutral-200 shadow-xl rounded-xl overflow-hidden',
+              content: 'p-0 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-xl rounded-xl overflow-hidden',
             }}
           >
             <PopoverTrigger>
@@ -2207,14 +2233,14 @@ function CatalogoContent() {
                       setIsHelpPopoverOpen(false);
                       setIsQuizOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-bg,#fafafa)] transition-colors cursor-pointer text-left border-b border-[var(--border-soft,#f3f4f6)]"
                   >
                     <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                       <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-neutral-800">Encuentra tu equipo ideal</p>
-                      <p className="text-xs text-neutral-500">Responde {questionCount} preguntas</p>
+                      <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Encuentra tu equipo ideal</p>
+                      <p className="text-xs text-[var(--text-muted,#6b7280)]">Responde {questionCount} preguntas</p>
                     </div>
                   </button>
                 )}
@@ -2225,14 +2251,14 @@ function CatalogoContent() {
                     setIsHelpPopoverOpen(false);
                     onboarding.restartTour();
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-bg,#fafafa)] transition-colors cursor-pointer text-left border-b border-[var(--border-soft,#f3f4f6)]"
                 >
                   <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-secondary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                     <GraduationCap className="w-5 h-5 text-[var(--color-secondary)]" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-neutral-800">Ver tour guiado</p>
-                    <p className="text-xs text-neutral-500">Aprende a usar el catálogo</p>
+                    <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Ver tour guiado</p>
+                    <p className="text-xs text-[var(--text-muted,#6b7280)]">Aprende a usar el catálogo</p>
                   </div>
                 </button>
 
@@ -2242,14 +2268,14 @@ function CatalogoContent() {
                     setIsHelpPopoverOpen(false);
                     blipChat.openChat();
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-bg,#fafafa)] transition-colors cursor-pointer text-left"
                 >
                   <div className="w-9 h-9 rounded-lg bg-[#22C55E]/10 flex items-center justify-center flex-shrink-0">
                     <MessageCircle className="w-5 h-5 text-[#22C55E]" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-neutral-800">Habla con nosotros</p>
-                    <p className="text-xs text-neutral-500">Te ayudamos al instante</p>
+                    <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Habla con nosotros</p>
+                    <p className="text-xs text-[var(--text-muted,#6b7280)]">Te ayudamos al instante</p>
                   </div>
                 </button>
               </div>
@@ -2361,6 +2387,16 @@ function CatalogoContent() {
           totalMonthlyQuota={totalMonthlyQuota}
         />
       )}
+
+      {/* Aviso de reacondicionado al dar "Lo quiero" en un card */}
+      <RefurbishedWarningModal
+        isOpen={!!pendingRefurb}
+        onClose={() => setPendingRefurb(null)}
+        onConfirm={() => {
+          if (pendingRefurb) proceedAddToCart(pendingRefurb.cartItem, pendingRefurb.product);
+        }}
+        productName={pendingRefurb?.product.displayName}
+      />
 
       {/* Toast para alertas de comparación */}
       {toast && (

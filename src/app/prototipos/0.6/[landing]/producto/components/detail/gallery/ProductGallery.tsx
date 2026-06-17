@@ -224,7 +224,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   }, [isLightboxOpen, closeLightbox, handleLightboxPrev, handleLightboxNext, handleZoomIn, handleZoomOut]);
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+    <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden">
       {/* Product Name + Brand - Above photos */}
       {(displayName || brand) && (
         <div id="section-info" className="p-5 pb-0 relative z-10">
@@ -239,16 +239,16 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               {rating !== undefined && rating > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                  <span className="text-base font-bold text-neutral-800">{rating}</span>
+                  <span className="text-base font-bold text-[var(--text-strong,#1f2937)]">{rating}</span>
                   {reviewCount !== undefined && reviewCount > 0 && (
-                    <span className="text-sm text-neutral-400">({reviewCount})</span>
+                    <span className="text-sm text-[var(--text-faint,#9ca3af)]">({reviewCount})</span>
                   )}
                 </div>
               )}
             </div>
           )}
           {displayName && (
-            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-strong,#111827)] font-['Baloo_2',_sans-serif] leading-tight">
               {displayName}
             </h1>
           )}
@@ -351,9 +351,9 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
 
           {/* Zoom Indicator */}
           {!isZoomed && (
-            <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Maximize2 className="w-4 h-4 text-neutral-600" />
-              <span className="text-xs font-medium text-neutral-700">Click para ampliar</span>
+            <div className="absolute top-4 right-4 bg-[var(--surface,#fff)]/80 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Maximize2 className="w-4 h-4 text-[var(--text-muted,#4b5563)]" />
+              <span className="text-xs font-medium text-[var(--text,#374151)]">Click para ampliar</span>
             </div>
           )}
 
@@ -374,7 +374,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
       )}
 
       {/* Thumbnails */}
-      <div className="px-4 py-3 border-t border-neutral-100">
+      <div className="px-4 py-3 border-t border-[var(--border-soft,#f3f4f6)]">
         <div className="grid grid-cols-5 md:grid-cols-6 gap-2">
           {filteredImages.map((image, index) => (
             <motion.div
@@ -382,7 +382,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               className={`relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
                 selectedImage === index
                   ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.20)]'
-                  : 'border-neutral-200 hover:border-neutral-300'
+                  : 'border-[var(--border-soft,#e5e7eb)] hover:border-[var(--border-strong,#d1d5db)]'
               }`}
               onClick={() => {
                 setSelectedImage(index);
@@ -405,7 +405,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                 <img
                   src={image.url || undefined}
                   alt={image.alt}
-                  className="w-full h-full object-contain p-1.5 bg-white"
+                  className="w-full h-full object-contain p-1.5 bg-[var(--surface,#fff)]"
                   loading="lazy"
                   onError={handleImageError}
                 />
@@ -429,7 +429,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             {/* Close button */}
             <button
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+              className="absolute top-4 right-4 z-10 p-2 bg-[var(--surface,#fff)]/10 hover:bg-[var(--surface,#fff)]/20 rounded-full transition-colors cursor-pointer"
               aria-label="Cerrar"
             >
               <X className="w-6 h-6 text-white" />
@@ -437,11 +437,11 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
 
             {/* Zoom controls — hide for videos */}
             {!(filteredImages[selectedImage] && isVideo(filteredImages[selectedImage])) && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white/10 rounded-full px-3 py-2">
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-[var(--surface,#fff)]/10 rounded-full px-3 py-2">
                 <button
                   onClick={handleZoomOut}
                   disabled={lightboxZoom <= 1}
-                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                  className="p-1.5 hover:bg-[var(--surface,#fff)]/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                   aria-label="Reducir zoom"
                 >
                   <ZoomOut className="w-5 h-5 text-white" />
@@ -452,7 +452,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                 <button
                   onClick={handleZoomIn}
                   disabled={lightboxZoom >= 3}
-                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                  className="p-1.5 hover:bg-[var(--surface,#fff)]/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                   aria-label="Aumentar zoom"
                 >
                   <ZoomIn className="w-5 h-5 text-white" />
@@ -465,14 +465,14 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               <>
                 <button
                   onClick={handleLightboxPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-[var(--surface,#fff)]/10 hover:bg-[var(--surface,#fff)]/20 rounded-full transition-colors cursor-pointer"
                   aria-label="Imagen anterior"
                 >
                   <ChevronLeft className="w-6 h-6 text-white" />
                 </button>
                 <button
                   onClick={handleLightboxNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-[var(--surface,#fff)]/10 hover:bg-[var(--surface,#fff)]/20 rounded-full transition-colors cursor-pointer"
                   aria-label="Imagen siguiente"
                 >
                   <ChevronRight className="w-6 h-6 text-white" />
@@ -530,7 +530,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             )}
 
             {/* Image counter */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 rounded-full px-4 py-2">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--surface,#fff)]/10 rounded-full px-4 py-2">
               <span className="text-white text-sm font-medium">
                 {selectedImage + 1} / {filteredImages.length}
               </span>
@@ -538,7 +538,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
 
             {/* Thumbnails strip */}
             {filteredImages.length > 1 && (
-              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white/10 rounded-xl p-2 max-w-[80vw] overflow-x-auto">
+              <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 bg-[var(--surface,#fff)]/10 rounded-xl p-2 max-w-[80vw] overflow-x-auto">
                 {filteredImages.map((image, index) => (
                   <button
                     key={image.id}
@@ -560,14 +560,14 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                     }`}
                   >
                     {isVideo(image) ? (
-                      <div className="w-full h-full flex items-center justify-center bg-white/10">
+                      <div className="w-full h-full flex items-center justify-center bg-[var(--surface,#fff)]/10">
                         <Play className="w-4 h-4 text-white fill-white" />
                       </div>
                     ) : (
                       <img
                         src={image.url || undefined}
                         alt={image.alt}
-                        className="w-full h-full object-contain bg-white/10"
+                        className="w-full h-full object-contain bg-[var(--surface,#fff)]/10"
                         onError={handleImageError}
                       />
                     )}

@@ -184,7 +184,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col max-h-[calc(100vh-12rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col max-h-[calc(100vh-12rem)]"
             style={{
               overscrollBehavior: 'contain',
               paddingBottom: 'env(safe-area-inset-bottom)',
@@ -195,7 +195,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
@@ -205,10 +205,10 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                   <Search className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">
                     Buscar equipos
                   </h2>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)]">
                     Encuentra tu equipo ideal
                   </p>
                 </div>
@@ -226,11 +226,11 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
 
             {/* Search Input */}
             <form onSubmit={handleSubmit} className="px-4 pb-4">
-              <div className="flex items-center w-full bg-neutral-100 rounded-xl border-2 border-transparent focus-within:border-[var(--color-primary)] focus-within:bg-white transition-colors">
+              <div className="flex items-center w-full bg-[var(--surface-2,#f3f4f6)] rounded-xl border-2 border-transparent focus-within:border-[var(--color-primary)] focus-within:bg-[var(--surface,#fff)] transition-colors">
                 {isLoadingSuggestions ? (
                   <Loader2 className="w-5 h-5 text-[var(--color-primary)] ml-4 flex-shrink-0 animate-spin" />
                 ) : (
-                  <Search className="w-5 h-5 text-neutral-400 ml-4 flex-shrink-0" />
+                  <Search className="w-5 h-5 text-[var(--text-faint,#9ca3af)] ml-4 flex-shrink-0" />
                 )}
                 <input
                   ref={inputRef}
@@ -239,7 +239,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                   onChange={(e) => handleInputChange(e.target.value)}
                   onFocus={() => analytics.trackSearchFocus({ location: 'search_drawer' })}
                   placeholder="Buscar por marca, modelo..."
-                  className="flex-1 bg-transparent px-3 py-4 text-base text-neutral-800 placeholder-neutral-400 outline-none"
+                  className="flex-1 bg-transparent px-3 py-4 text-base text-[var(--text-strong,#1f2937)] placeholder-neutral-400 outline-none"
                 />
                 {value && (
                   <button
@@ -248,7 +248,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                       analytics.trackSearchClear({ location: 'search_drawer' });
                       onClear();
                     }}
-                    className="p-2 mr-2 rounded-lg hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
+                    className="p-2 mr-2 rounded-lg hover:bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -269,10 +269,10 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                       <button
                         key={suggestion.id}
                         onClick={() => handleSelectSuggestion(suggestion)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-neutral-50 active:bg-neutral-100 transition-colors cursor-pointer"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-[var(--surface-bg,#fafafa)] active:bg-[var(--surface-2,#f3f4f6)] transition-colors cursor-pointer"
                       >
                         {/* Product Image */}
-                        <div className="w-11 h-11 bg-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="w-11 h-11 bg-[var(--surface-2,#f3f4f6)] rounded-lg overflow-hidden flex-shrink-0">
                           {suggestion.image ? (
                             <img
                               src={suggestion.image}
@@ -281,15 +281,15 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Search className="w-4 h-4 text-neutral-300" />
+                              <Search className="w-4 h-4 text-[var(--text-faint,#d4d4d4)]" />
                             </div>
                           )}
                         </div>
 
                         {/* Product Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-neutral-500 uppercase">{suggestion.brand}</p>
-                          <p className="text-sm font-medium text-neutral-800 truncate">
+                          <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">{suggestion.brand}</p>
+                          <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate">
                             {suggestion.name}
                           </p>
                         </div>
@@ -300,7 +300,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                             <p className="text-sm font-semibold text-[var(--color-primary)]">
                               S/{formatMoney(quota)}/mes
                             </p>
-                            <p className="text-[10px] text-neutral-500">
+                            <p className="text-[10px] text-[var(--text-muted,#6b7280)]">
                               x {term} meses
                             </p>
                           </div>
@@ -313,13 +313,13 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
             )}
 
             {/* Footer with action buttons */}
-            <div className="border-t border-neutral-200 bg-white p-4 flex gap-2">
+            <div className="border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] p-4 flex gap-2">
               {value && (
                 <Button
                   variant="light"
                   startContent={<Trash2 className="w-4 h-4" />}
                   onPress={handleClearAndClose}
-                  className="cursor-pointer text-neutral-500"
+                  className="cursor-pointer text-[var(--text-muted,#6b7280)]"
                 >
                   Limpiar
                 </Button>

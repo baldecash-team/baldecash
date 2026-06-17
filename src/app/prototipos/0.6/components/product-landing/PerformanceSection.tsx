@@ -92,7 +92,7 @@ function ChapterCard({ chapter, imageLeft }: { chapter: { id: string; title: str
   );
 }
 
-export default function PerformanceSection() {
+export default function PerformanceSection({ minPrice }: { minPrice?: number | null }) {
   const tracker = useEventTrackerOptional();
   const handleScrollToPlans = () => {
     tracker?.track('section_cta_click', { section: 'performance', cta_label: 'Ver planes', target: 'financing' });
@@ -164,7 +164,7 @@ export default function PerformanceSection() {
             <p className="text-[17px] sm:text-xl md:text-2xl text-[#f5f5f7] m-0 mb-4">
               Desde{' '}
               <span className="font-bold" style={{ color: BC.primary, fontFamily: "'Baloo 2', cursive" }}>
-                S/249
+                S/{minPrice ?? 239}
               </span>
               <span className="text-[#86868b]">/mes</span>
             </p>

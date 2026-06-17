@@ -19,6 +19,8 @@ import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
@@ -246,7 +248,9 @@ function ComplementosContent() {
   const pageContent = (
     <div className={`min-h-screen relative ${isGamer ? '' : 'bg-neutral-50'}`}>
       {/* Navbar */}
-      {!isGamer && <Navbar {...navbarProps} landing={landing} logoOnly={!!appliedCoupon?.lockedFromUrl} />}
+      {!isGamer && (isNvidiaLanding(landing)
+        ? <NvidiaNavbar landing={landing} />
+        : <Navbar {...navbarProps} landing={landing} logoOnly={!!appliedCoupon?.lockedFromUrl} />)}
 
       {/* Spacer — dynamic height (gamer has its own navbar spacing) */}
       {!isGamer && <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />}

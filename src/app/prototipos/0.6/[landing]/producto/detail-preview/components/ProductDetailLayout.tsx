@@ -30,7 +30,7 @@ export const ProductDetailLayout: React.FC<ProductDetailLayoutProps> = ({
   stockAvailable,
 }) => {
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
         {/* Main 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -40,9 +40,9 @@ export const ProductDetailLayout: React.FC<ProductDetailLayoutProps> = ({
 
             {/* Short description */}
             {description && (
-              <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-                <h2 className="text-sm font-semibold text-neutral-700 mb-2">Descripcion</h2>
-                <p className="text-sm text-neutral-600 leading-relaxed">{description}</p>
+              <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#f3f4f6)] p-5">
+                <h2 className="text-sm font-semibold text-[var(--text,#374151)] mb-2">Descripcion</h2>
+                <p className="text-sm text-[var(--text-muted,#4b5563)] leading-relaxed">{description}</p>
               </div>
             )}
 
@@ -54,7 +54,7 @@ export const ProductDetailLayout: React.FC<ProductDetailLayoutProps> = ({
                     ? 'bg-green-50 text-green-700'
                     : 'bg-amber-50 text-amber-700'
                 }`}>
-                  {condition === 'nuevo' || condition === 'nueva' ? 'Nuevo' : 'Reacondicionado'}
+                  {condition === 'nuevo' || condition === 'nueva' ? 'Nuevo' : 'Semi nuevo'}
                 </span>
               )}
               {stockAvailable !== undefined && stockAvailable > 0 && stockAvailable <= 5 && (

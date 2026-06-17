@@ -79,18 +79,18 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+    <div className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden">
       {specs.length === 0 ? (
-        <div className="p-8 text-center text-neutral-500">
+        <div className="p-8 text-center text-[var(--text-muted,#6b7280)]">
           <p>No hay diferencias entre los productos seleccionados.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full table-fixed">
             {/* Sticky Header with Products */}
-            <thead className="sticky top-0 z-10 bg-white shadow-sm">
-              <tr className="border-b-2 border-neutral-200">
-                <th className="p-4 text-left font-semibold text-neutral-600 border-r border-neutral-200 w-[200px] bg-neutral-50">
+            <thead className="sticky top-0 z-10 bg-[var(--surface,#fff)] shadow-sm">
+              <tr className="border-b-2 border-[var(--border-soft,#e5e7eb)]">
+                <th className="p-4 text-left font-semibold text-[var(--text-muted,#4b5563)] border-r border-[var(--border-soft,#e5e7eb)] w-[200px] bg-[var(--surface-bg,#fafafa)]">
                   Especificación
                 </th>
                 {products.map((product, index) => {
@@ -101,15 +101,15 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                       key={product.id}
                       style={{ width: productColumnWidth }}
                       className={`p-4 text-center relative group ${
-                        isBest ? 'bg-[#22c55e]/5' : 'bg-white'
-                      } ${index < products.length - 1 ? 'border-r border-neutral-100' : ''}`}
+                        isBest ? 'bg-[#22c55e]/5' : 'bg-[var(--surface,#fff)]'
+                      } ${index < products.length - 1 ? 'border-r border-[var(--border-soft,#f3f4f6)]' : ''}`}
                     >
                       {/* Remove button */}
                       <button
                         onClick={() => onRemoveProduct(product.id)}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-neutral-100 hover:bg-red-100 flex items-center justify-center cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--surface-2,#f3f4f6)] hover:bg-red-100 flex items-center justify-center cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
                       >
-                        <X className="w-3 h-3 text-neutral-500 hover:text-red-500" />
+                        <X className="w-3 h-3 text-[var(--text-muted,#6b7280)] hover:text-red-500" />
                       </button>
 
                       <div className="flex flex-col items-center gap-2">
@@ -130,7 +130,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                         )}
 
                         {/* Product image */}
-                        <div className={`w-20 h-20 rounded-lg border ${isBest ? 'border-[#22c55e]' : 'border-neutral-100'} flex items-center justify-center p-2 bg-white`}>
+                        <div className={`w-20 h-20 rounded-lg border ${isBest ? 'border-[#22c55e]' : 'border-[var(--border-soft,#f3f4f6)]'} flex items-center justify-center p-2 bg-[var(--surface,#fff)]`}>
                           <img
                             src={product.images[0] || product.thumbnail}
                             alt={product.displayName}
@@ -140,15 +140,15 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
 
                         {/* Product info */}
                         <div className="text-center">
-                          <p className="text-xs text-neutral-500">{product.brand}</p>
-                          <p className="text-sm font-semibold text-neutral-800 line-clamp-2 max-w-[140px]">
+                          <p className="text-xs text-[var(--text-muted,#6b7280)]">{product.brand}</p>
+                          <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)] line-clamp-2 max-w-[140px]">
                             {product.displayName}
                           </p>
                           <div className="mt-1">
                             <span className={`font-bold text-base ${isBest ? 'text-[#22c55e]' : 'text-[var(--color-primary)]'}`}>
                               S/{formatMoney(getDisplayQuota(product))}
                             </span>
-                            <span className="text-xs font-normal text-neutral-500">/mes</span>
+                            <span className="text-xs font-normal text-[var(--text-muted,#6b7280)]">/mes</span>
                             {renderPriceDiff(index)}
                           </div>
                         </div>
@@ -169,7 +169,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                             className={`cursor-pointer text-xs px-3 min-w-0 h-7 ${
                               cartItems.includes(product.id)
                                 ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
-                                : 'border-neutral-200 text-neutral-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                                : 'border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                             }`}
                             startContent={cartItems.includes(product.id) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
                             onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
@@ -191,9 +191,9 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
               {specs.map((spec, specIndex) => (
                 <tr
                   key={spec.key}
-                  className={`${specIndex % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'} border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50 transition-colors`}
+                  className={`${specIndex % 2 === 0 ? 'bg-[var(--surface,#fff)]' : 'bg-[var(--surface-bg,#fafafa)]/50'} border-b border-[var(--border-soft,#f3f4f6)] last:border-b-0 hover:bg-[var(--surface-bg,#fafafa)] transition-colors`}
                 >
-                  <td className="p-4 font-medium text-neutral-700 border-r border-neutral-200 w-[200px]">
+                  <td className="p-4 font-medium text-[var(--text,#374151)] border-r border-[var(--border-soft,#e5e7eb)] w-[200px]">
                     <div className="flex items-center gap-2">
                       <span>{spec.label}</span>
                       {spec.isDifferent && (
@@ -209,13 +209,13 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                         className={`p-4 text-center transition-colors ${
                           getWinnerStyle(spec, index)
                         } ${isBest && !getWinnerStyle(spec, index) ? 'bg-[#22c55e]/5' : ''} ${
-                          index < products.length - 1 ? 'border-r border-neutral-100' : ''
+                          index < products.length - 1 ? 'border-r border-[var(--border-soft,#f3f4f6)]' : ''
                         }`}
                       >
                         <div className="flex items-center justify-center gap-2">
                           {/* V2: Barras Proporcionales */}
                           {config.highlightVersion === 2 && spec.isDifferent && (
-                            <div className="w-full max-w-[80px] h-2 bg-neutral-200 rounded-full overflow-hidden mr-2">
+                            <div className="w-full max-w-[80px] h-2 bg-[var(--surface-2,#e5e7eb)] rounded-full overflow-hidden mr-2">
                               <div
                                 className="h-full bg-[var(--color-primary)] rounded-full transition-all"
                                 style={{
@@ -242,7 +242,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
       {/* Annual saving for priceDiffVersion V2 */}
       {config.priceDiffVersion === 2 && priceDiff.annualSaving > 0 && (
         <div className="p-4 bg-[#22c55e]/10 border-t border-[#22c55e]/20 text-center">
-          <p className="text-sm text-neutral-600">Ahorro anual eligiendo el más económico:</p>
+          <p className="text-sm text-[var(--text-muted,#4b5563)]">Ahorro anual eligiendo el más económico:</p>
           <p className="text-2xl font-bold text-[#22c55e]">S/{formatMoney(priceDiff.annualSaving)}</p>
         </div>
       )}

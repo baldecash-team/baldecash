@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, ArrowRight, Zap, Star, Crown, type LucideIcon } from 'lucide-react';
-import { financingPlans } from './data/v5Data';
 import { BC } from './lib/constants';
+import { useMacbookNeoFinancingPlans } from './shared/hooks/useMacbookNeoFinancingPlans';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { useReducedMotion } from './shared/hooks/useReducedMotion';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -21,16 +21,26 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
   const cardsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
+  const { plans: financingPlans, minPrice } = useMacbookNeoFinancingPlans();
+
   // Track selected color per plan
-  const [selectedColors, setSelectedColors] = useState<Record<string, string>>(() => {
-    const defaults: Record<string, string> = {};
-    financingPlans.forEach((plan) => {
-      if (plan.colorOptions?.length) {
-        defaults[plan.id] = plan.colorOptions[0].id;
-      }
+  const [selectedColors, setSelectedColors] = useState<Record<string, string>>({});
+
+  // Sync selectedColors cuando llegan los planes del API
+  // Resetea si el color guardado ya no está en los nuevos colorOptions (ej. silver desactivado)
+  useEffect(() => {
+    setSelectedColors((prev) => {
+      const next = { ...prev };
+      financingPlans.forEach((plan) => {
+        const currentId = next[plan.id];
+        const stillValid = plan.colorOptions?.some(c => c.id === currentId);
+        if ((!currentId || !stillValid) && plan.colorOptions?.length) {
+          next[plan.id] = plan.colorOptions[0].id;
+        }
+      });
+      return next;
     });
-    return defaults;
-  });
+  }, [financingPlans]);
 
   const isEnhanced = tier === 'enhanced' && !reducedMotion;
 
@@ -114,13 +124,13 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             Tu MacBook, a tu ritmo
           </h2>
           <p className="text-[13px] sm:text-[15px] text-[#86868b] max-w-[540px] mx-auto leading-[1.5]">
-            Desde <span className="text-[#f5f5f7] font-semibold">S/249/mes</span>. Sin inicial.
+            Desde <span className="text-[#f5f5f7] font-semibold">S/{minPrice ?? 239}/mes</span>. Sin inicial.
           </p>
         </div>
 
         {/* Plan cards */}
         <div ref={cardsRef} className="flex flex-col md:flex-row gap-5 md:gap-4 items-stretch justify-center">
-          {financingPlans.filter((p) => p.id !== 'avanzado').map((plan) => {
+          {financingPlans.map((plan) => {
             const Icon = ICON_MAP[plan.icono] || Zap;
             const accent = plan.colorAccent;
             const isDestacado = plan.destacado;
@@ -131,6 +141,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             const rawUrl = selectedColorOption?.productUrl ?? plan.colorOptions?.[0]?.productUrl ?? '#';
             const ctaUrl = rawUrl.startsWith('/') ? `${BASE_PATH}${rawUrl}` : rawUrl;
             const displayImage = selectedColorOption?.image ?? plan.imagen;
+            const displayPrice = selectedColorOption?.monthlyPrice ?? plan.cuotaMensual;
 
             return (
               <div
@@ -253,7 +264,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                         textShadow: isCombo ? `0 0 20px ${accent}4D` : undefined,
                       }}
                     >
-                      S/{plan.cuotaMensual}
+                      S/{displayPrice}
                     </span>
                     <span className="text-sm text-[#86868b] ml-1">/mes</span>
                   </p>

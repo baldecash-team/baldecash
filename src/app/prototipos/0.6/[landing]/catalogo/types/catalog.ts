@@ -115,7 +115,7 @@ export function calculateQuotaWithInitial(
   initialPercent: InitialPaymentPercent,
   tea: number = DEFAULT_TEA
 ): { quota: number; initialAmount: number; financedAmount: number } {
-  const initialAmount = Math.ceil(price * (initialPercent / 100));
+  const initialAmount = Math.ceil(price * (initialPercent / 100) / 10) * 10;
   const financedAmount = price - initialAmount;
   const quota = calculateQuotaForTerm(financedAmount, term, tea);
 
@@ -700,6 +700,8 @@ export interface CatalogProduct {
   variantId?: string;
   gama: GamaTier;
   condition: ProductCondition;
+  /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Conserva el valor sin normalizar para el badge de condición y el match contra el facet. */
+  conditionCode?: string;
   stock: StockStatus;
   stockQuantity: number;
   usage: UsageType[];

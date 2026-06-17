@@ -17,7 +17,7 @@ export const ProductInfoHeader: React.FC<ProductInfoHeaderProps> = ({
   onColorSelect,
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+    <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden">
       {/* Top Section */}
       <div className="p-5">
         {/* Brand + Rating Row */}
@@ -28,15 +28,15 @@ export const ProductInfoHeader: React.FC<ProductInfoHeaderProps> = ({
             </span>
             <div className="flex items-center gap-1.5">
               <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-              <span className="text-base font-bold text-neutral-800">{product.rating}</span>
-              <span className="text-sm text-neutral-400">({product.reviewCount})</span>
+              <span className="text-base font-bold text-[var(--text-strong,#1f2937)]">{product.rating}</span>
+              <span className="text-sm text-[var(--text-faint,#9ca3af)]">({product.reviewCount})</span>
             </div>
           </div>
 
           </div>
 
         {/* Product Name */}
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-strong,#111827)] font-['Baloo_2',_sans-serif] leading-tight">
           {product.displayName}
         </h1>
 
@@ -53,26 +53,26 @@ export const ProductInfoHeader: React.FC<ProductInfoHeaderProps> = ({
       </div>
 
       {/* Specs Strip - Responsive */}
-      <div className="px-5 py-4 bg-neutral-50 border-t border-neutral-100">
+      <div className="px-5 py-4 bg-[var(--surface-bg,#fafafa)] border-t border-[var(--border-soft,#f3f4f6)]">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="text-neutral-600">Ryzen 5</span>
+            <span className="text-[var(--text-muted,#4b5563)]">Ryzen 5</span>
           </div>
-          <div className="hidden sm:block w-px h-4 bg-neutral-200" />
+          <div className="hidden sm:block w-px h-4 bg-[var(--surface-2,#e5e7eb)]" />
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-neutral-600">8GB RAM</span>
+            <span className="text-[var(--text-muted,#4b5563)]">8GB RAM</span>
           </div>
-          <div className="hidden sm:block w-px h-4 bg-neutral-200" />
+          <div className="hidden sm:block w-px h-4 bg-[var(--surface-2,#e5e7eb)]" />
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-purple-500" />
-            <span className="text-neutral-600">256GB SSD</span>
+            <span className="text-[var(--text-muted,#4b5563)]">256GB SSD</span>
           </div>
-          <div className="hidden sm:block w-px h-4 bg-neutral-200" />
+          <div className="hidden sm:block w-px h-4 bg-[var(--surface-2,#e5e7eb)]" />
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-cyan-500" />
-            <span className="text-neutral-600">15.6" FHD</span>
+            <span className="text-[var(--text-muted,#4b5563)]">15.6" FHD</span>
           </div>
 
           <button

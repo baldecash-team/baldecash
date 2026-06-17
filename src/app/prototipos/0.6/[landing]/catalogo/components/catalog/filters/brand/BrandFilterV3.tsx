@@ -44,7 +44,7 @@ export const BrandFilterV3: React.FC<BrandFilterProps> = ({
             className={`relative flex flex-col items-center justify-center px-1 py-2 pt-3 rounded-lg border-2 transition-all cursor-pointer ${
               isSelected
                 ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
             }`}
           >
             {isSelected && (
@@ -64,14 +64,14 @@ export const BrandFilterV3: React.FC<BrandFilterProps> = ({
                   onError={() => handleImageError(option.value)}
                 />
               ) : (
-                <span className="text-sm font-bold text-neutral-500 text-center leading-tight">
+                <span className="text-sm font-bold text-[var(--text-muted,#6b7280)] text-center leading-tight">
                   {option.label}
                 </span>
               )}
             </div>
 
             {showCounts && (
-              <span className="text-[10px] text-neutral-400">({option.count})</span>
+              <span className="text-[10px] text-[var(--text-faint,#9ca3af)]">({option.count})</span>
             )}
           </button>
         );

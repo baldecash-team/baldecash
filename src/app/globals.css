@@ -350,3 +350,93 @@ select:focus-visible {
   animation: lead-form-shake 0.6s ease-in-out;
   transform-origin: center;
 }
+
+/* ============================================================
+   Tema oscuro NVIDIA — páginas de flujo (catálogo, detalle,
+   solicitar, complementos, confirmación). Ver THEME_DARK.md.
+   Se activa con data-theme="nvidia" en <html> (LayoutContext),
+   lo que cubre también modales/drawers montados en portales.
+   En tema claro NO existe data-theme → estos tokens no aplican
+   y todo se ve idéntico a hoy (los componentes usan fallbacks).
+   ============================================================ */
+[data-theme="nvidia"] {
+  --surface-bg:        #06060A;             /* fondo de página         */
+  --surface-bg-2:      #0B0B12;             /* secciones alternas      */
+  --surface:           #0F0F18;             /* cards / paneles         */
+  --surface-2:         #14141F;             /* inputs / cards elevadas */
+  --border-soft:       rgba(255,255,255,.08);
+  --border-strong:     rgba(255,255,255,.14);
+  --text-strong:       #FFFFFF;             /* texto principal         */
+  --text:              #E7E9EF;             /* texto cuerpo            */
+  --text-muted:        #9AA0AE;             /* descripciones / labels  */
+  --text-faint:        #6B7080;             /* notas / captions        */
+  --accent-green:      #76B900;             /* = --color-primary       */
+  --accent-green-glow: #8FE000;
+  --accent-turquoise:  #00D9CB;
+}
+
+/* ------------------------------------------------------------
+   Puente de utilidades "legacy" → tokens (solo bajo nvidia).
+   Para componentes que NO se pueden tokenizar en el JSX porque
+   COMPARTEN sus utilidades con el tema de zona-gamer (StepClient,
+   complementos, confirmacion) o que son compartidos y se prefiere
+   no tocar (Footer). Estas reglas SOLO aplican cuando <html> tiene
+   data-theme="nvidia"; zona-gamer nunca lo tiene (usa .gamer-*),
+   y las demás landings tampoco → cero impacto fuera de nvidia.
+   ------------------------------------------------------------ */
+[data-theme="nvidia"] .bg-white { background-color: var(--surface) !important; }
+[data-theme="nvidia"] .bg-neutral-50,
+[data-theme="nvidia"] .bg-gray-50,
+[data-theme="nvidia"] .bg-slate-50 { background-color: var(--surface-bg) !important; }
+[data-theme="nvidia"] .bg-neutral-100,
+[data-theme="nvidia"] .bg-gray-100,
+[data-theme="nvidia"] .bg-slate-100,
+[data-theme="nvidia"] .bg-neutral-200,
+[data-theme="nvidia"] .bg-gray-200,
+[data-theme="nvidia"] .bg-slate-200 { background-color: var(--surface-2) !important; }
+
+[data-theme="nvidia"] .text-neutral-900,
+[data-theme="nvidia"] .text-gray-900,
+[data-theme="nvidia"] .text-neutral-800,
+[data-theme="nvidia"] .text-gray-800 { color: var(--text-strong) !important; }
+[data-theme="nvidia"] .text-neutral-700,
+[data-theme="nvidia"] .text-gray-700 { color: var(--text) !important; }
+[data-theme="nvidia"] .text-neutral-600,
+[data-theme="nvidia"] .text-gray-600,
+[data-theme="nvidia"] .text-neutral-500,
+[data-theme="nvidia"] .text-gray-500 { color: var(--text-muted) !important; }
+[data-theme="nvidia"] .text-neutral-400,
+[data-theme="nvidia"] .text-gray-400,
+[data-theme="nvidia"] .text-neutral-300,
+[data-theme="nvidia"] .text-gray-300 { color: var(--text-faint) !important; }
+
+[data-theme="nvidia"] .border-neutral-100,
+[data-theme="nvidia"] .border-gray-100,
+[data-theme="nvidia"] .border-neutral-200,
+[data-theme="nvidia"] .border-gray-200 { border-color: var(--border-soft) !important; }
+[data-theme="nvidia"] .border-neutral-300,
+[data-theme="nvidia"] .border-gray-300 { border-color: var(--border-strong) !important; }
+
+/* Inputs/textarea: anula el hack de autofill `box-shadow: white inset` (inline en
+   TextInput/TextArea, compartidos con gamer y por eso no tokenizados en JSX). */
+[data-theme="nvidia"] input,
+[data-theme="nvidia"] textarea {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--text-strong) !important;
+  caret-color: var(--text-strong);
+}
+
+/* El footer compartido (components/hero/Footer.tsx) ya es oscuro por diseño y su
+   input es blanco con texto oscuro — debe verse IGUAL en todas las landings. El puente
+   de arriba no debe re-tematizarlo, así que restauramos sus colores dentro de footer. */
+[data-theme="nvidia"] footer .bg-white { background-color: #fff !important; }
+[data-theme="nvidia"] footer input,
+[data-theme="nvidia"] footer textarea {
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: #262626 !important;
+  background-color: transparent !important;
+  caret-color: #262626;
+}
+[data-theme="nvidia"] footer .text-neutral-800 { color: #262626 !important; }

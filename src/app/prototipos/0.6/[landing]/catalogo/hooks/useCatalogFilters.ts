@@ -33,7 +33,7 @@ const FALLBACK_FILTERS: CatalogFiltersResponse = {
   },
   conditions: [
     { value: 'nueva', label: 'Nuevo', count: 0 },
-    { value: 'reacondicionada', label: 'Reacondicionado', count: 0 },
+    { value: 'reacondicionada', label: 'Semi nuevo', count: 0 },
   ],
   gamas: [
     { value: 'economica', label: 'Económica', count: 0 },

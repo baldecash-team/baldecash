@@ -29,6 +29,7 @@ import { FloatingCtaButton } from '../components/FloatingCtaButton';
 
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
+import NvidiaLanding from '../components/product-landing/NvidiaLanding';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { LeadLanding } from '../components/lead/LeadLanding';
 import type { BannerImage, LeadFormConfig, LeadProductsConfig } from '../types/hero';
@@ -470,6 +471,22 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
         <MacBookNeoLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} promoBannerData={heroData?.promoBannerData} />
         <FloatingCtaButton config={landingConfig.features.floating_cta} />
+      </div>
+    );
+  }
+
+  // NVIDIA landing — patrón MacBook Neo: HOME especializado, detección por landingId.
+  if (heroData?.landingId === LANDING_IDS.NVIDIA) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData?.primaryColor || '#4654CD',
+          '--color-secondary': heroData?.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
+        <NvidiaLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} promoBannerData={heroData?.promoBannerData} />
+        {/* Sin FloatingCtaButton (Guía de becas) en la landing NVIDIA: no corresponde aquí. */}
       </div>
     );
   }

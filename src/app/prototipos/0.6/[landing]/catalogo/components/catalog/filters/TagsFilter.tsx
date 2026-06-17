@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { Chip } from '@nextui-org/react';
 import { FilterSection } from './FilterSection';
 import { FilterOption, ProductTagType } from '../../../types/catalog';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 
 interface TagsFilterProps {
   tagOptions: FilterOption[] | null;
@@ -24,7 +26,9 @@ const tagColors: Record<string, { bg: string; text: string; border: string }> = 
 };
 
 // Default colors for unknown tags
-const defaultTagColors = { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-300' };
+const defaultTagColors = { bg: 'bg-[var(--surface-bg,#fafafa)]', text: 'text-[var(--text,#374151)]', border: 'border-[var(--border-strong,#d1d5db)]' };
+// nvidia: gris medio (superficie elevada), misma tonalidad que los otros botones del filtro
+const nvidiaTagColors = { bg: 'bg-[var(--surface-2,#f3f4f6)]', text: 'text-[var(--text,#374151)]', border: 'border-[var(--border-soft,#e5e7eb)]' };
 
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -39,6 +43,12 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
   onTagsChange,
   showCounts = true,
 }) => {
+  const params = useParams();
+  // En nvidia (tema oscuro) los chips de tags usan el estilo por defecto (tokens →
+  // gris/oscuro) en vez de los pasteles hardcodeados (ej. oferta=bg-red-50 ≈ blanco),
+  // que el puente oscuro no toca y desentonan sobre el sidebar oscuro.
+  const isNvidia = isNvidiaLanding((params?.landing as string) || '');
+
   const toggleTag = (tag: ProductTagType) => {
     if (selectedTags.includes(tag)) {
       onTagsChange(selectedTags.filter((t) => t !== tag));
@@ -56,7 +66,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
         {tagOptions === null ? (
           <>
             {[0, 1, 2, 3].map(i => (
-              <div key={`skel-tag-${i}`} className="h-7 rounded-md bg-neutral-100 animate-pulse" style={{ width: `${60 + i * 15}px` }} />
+              <div key={`skel-tag-${i}`} className="h-7 rounded-md bg-[var(--surface-2,#f3f4f6)] animate-pulse" style={{ width: `${60 + i * 15}px` }} />
             ))}
           </>
         ) : (
@@ -64,8 +74,9 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
             const isSelected = selectedTags.includes(opt.value as ProductTagType);
             const hardcoded = tagColors[opt.value];
 
-            // For tags with a dynamic color from API (e.g. nvidia), use it inline
-            if (!hardcoded && opt.color) {
+            // For tags with a dynamic color from API (e.g. nvidia), use it inline.
+            // En nvidia forzamos el estilo gris por defecto (abajo) para que no desentonen.
+            if (!hardcoded && opt.color && !isNvidia) {
               const { r, g, b } = hexToRgb(opt.color);
               return (
                 <Chip
@@ -99,7 +110,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
               );
             }
 
-            const colors = hardcoded || defaultTagColors;
+            const colors = isNvidia ? nvidiaTagColors : (hardcoded || defaultTagColors);
             return (
               <Chip
                 key={opt.value}

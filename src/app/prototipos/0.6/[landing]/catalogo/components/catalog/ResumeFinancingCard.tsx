@@ -52,7 +52,7 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-0 z-[201] flex items-center justify-center p-4"
           >
-            <div className="bg-white rounded-xl shadow-xl border border-neutral-200 w-full max-w-md space-y-4 overflow-hidden">
+            <div className="bg-[var(--surface,#fff)] rounded-xl shadow-xl border border-[var(--border-soft,#e5e7eb)] w-full max-w-md space-y-4 overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-5 pt-5">
                 <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                     <Clock className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-neutral-800 leading-tight">
+                    <h3 className="text-base font-bold text-[var(--text-strong,#1f2937)] leading-tight">
                       Retoma tu financiamiento
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -68,29 +68,29 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[rgba(var(--color-primary-rgb),0.4)]" />
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-primary)]" />
                       </span>
-                      <span className="text-xs text-neutral-500">Solicitud pendiente</span>
+                      <span className="text-xs text-[var(--text-muted,#6b7280)]">Solicitud pendiente</span>
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-neutral-100 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--surface-2,#f3f4f6)] transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4 text-neutral-400" />
+                  <X className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
                 </button>
               </div>
 
               {/* Product info */}
               <div className="mx-5">
-                <div className="flex items-center gap-3 bg-neutral-50 rounded-lg p-3">
-                  <div className="w-10 h-10 rounded-lg bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
-                    <Laptop className="w-5 h-5 text-neutral-500" />
+                <div className="flex items-center gap-3 bg-[var(--surface-bg,#fafafa)] rounded-lg p-3">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] flex items-center justify-center flex-shrink-0">
+                    <Laptop className="w-5 h-5 text-[var(--text-muted,#6b7280)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-neutral-800 truncate">
+                    <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)] truncate">
                       {MOCK_PENDING.productName}
                     </p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)]">
                       Cuota desde {MOCK_PENDING.monthlyQuota}/mes
                     </p>
                   </div>
@@ -98,7 +98,7 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                     <Chip size="sm" className="bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] text-xs font-medium">
                       Paso {MOCK_PENDING.stepNumber}/{MOCK_PENDING.totalSteps}
                     </Chip>
-                    <div className="flex items-center gap-1 text-xs text-neutral-400">
+                    <div className="flex items-center gap-1 text-xs text-[var(--text-faint,#9ca3af)]">
                       <CalendarDays className="w-3 h-3" />
                       <span>{MOCK_PENDING.date}</span>
                     </div>
@@ -109,12 +109,12 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
               {/* Progress bar */}
               <div className="mx-5 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-neutral-500">
-                    Siguiente: <span className="font-medium text-neutral-700">{MOCK_PENDING.step}</span>
+                  <span className="text-[var(--text-muted,#6b7280)]">
+                    Siguiente: <span className="font-medium text-[var(--text,#374151)]">{MOCK_PENDING.step}</span>
                   </span>
                   <span className="text-[var(--color-primary)] font-semibold">{Math.round(progressPercent)}%</span>
                 </div>
-                <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-[var(--surface-2,#f3f4f6)] rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-[var(--color-primary)] rounded-full"
                     initial={{ width: 0 }}
@@ -128,7 +128,7 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
               <div className="px-5 pb-5 flex gap-3">
                 <Button
                   variant="bordered"
-                  className="flex-1 border-neutral-200 text-neutral-600 font-medium cursor-pointer hover:bg-neutral-50 rounded-xl"
+                  className="flex-1 border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] font-medium cursor-pointer hover:bg-[var(--surface-bg,#fafafa)] rounded-xl"
                   onPress={onClose}
                 >
                   Ahora no

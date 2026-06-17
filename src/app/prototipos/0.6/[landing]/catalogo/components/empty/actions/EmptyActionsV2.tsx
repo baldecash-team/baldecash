@@ -22,7 +22,7 @@ export const EmptyActionsV2: React.FC<EmptyActionsProps> = ({
       <Card
         isPressable
         onPress={onClearFilters}
-        className="border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-md transition-all cursor-pointer w-full"
+        className="border border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-md transition-all cursor-pointer w-full"
       >
         <CardBody className="p-4">
           <div className="flex items-start gap-3">
@@ -30,10 +30,10 @@ export const EmptyActionsV2: React.FC<EmptyActionsProps> = ({
               <RefreshCw className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div className="flex-1">
-              <h4 className="font-semibold text-neutral-800 mb-1">
+              <h4 className="font-semibold text-[var(--text-strong,#1f2937)] mb-1">
                 Limpiar filtros
               </h4>
-              <p className="text-sm text-neutral-600 mb-2">
+              <p className="text-sm text-[var(--text-muted,#4b5563)] mb-2">
                 Quita los {filterCount} filtros activos para ver todo el catálogo
               </p>
               <div className="flex items-center gap-1 text-[var(--color-primary)] text-sm font-medium">

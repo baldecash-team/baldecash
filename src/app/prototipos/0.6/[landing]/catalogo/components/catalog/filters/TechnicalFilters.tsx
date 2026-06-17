@@ -114,30 +114,30 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
           {ramOptions.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
             >
               <Checkbox
                 isSelected={selectedRam.includes(parseInt(opt.value))}
                 onValueChange={() => toggleArrayValue(selectedRam, parseInt(opt.value), onRamChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+              <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
-          <div className="flex items-center justify-between p-2 mt-2 border-t border-neutral-100">
-            <span className="text-sm text-neutral-600">RAM expandible</span>
+          <div className="flex items-center justify-between p-2 mt-2 border-t border-[var(--border-soft,#f3f4f6)]">
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">RAM expandible</span>
             <Switch
               size="sm"
               isSelected={ramExpandable === true}
               onValueChange={(val) => onRamExpandableChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
@@ -151,18 +151,18 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
           {storageOptions.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
             >
               <Checkbox
                 isSelected={selectedStorage.includes(parseInt(opt.value))}
                 onValueChange={() => toggleArrayValue(selectedStorage, parseInt(opt.value), onStorageChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+              <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -174,18 +174,18 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
           {displaySizeOptions.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
             >
               <Checkbox
                 isSelected={selectedDisplaySize.includes(parseFloat(opt.value))}
                 onValueChange={() => toggleArrayValue(selectedDisplaySize, parseFloat(opt.value), onDisplaySizeChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+              <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -197,18 +197,18 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
           {resolutionOptions.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
             >
               <Checkbox
                 isSelected={selectedResolution.includes(opt.value as Resolution)}
                 onValueChange={() => toggleArrayValue(selectedResolution, opt.value as Resolution, onResolutionChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+              <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -220,30 +220,30 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
           {displayTypeOptions.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
             >
               <Checkbox
                 isSelected={selectedDisplayType.includes(opt.value as DisplayType)}
                 onValueChange={() => toggleArrayValue(selectedDisplayType, opt.value as DisplayType, onDisplayTypeChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label.toUpperCase()} ({opt.count})</span>
+              <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label.toUpperCase()} ({opt.count})</span>
             </label>
           ))}
-          <div className="flex items-center justify-between p-2 mt-2 border-t border-neutral-100">
-            <span className="text-sm text-neutral-600">Pantalla táctil</span>
+          <div className="flex items-center justify-between p-2 mt-2 border-t border-[var(--border-soft,#f3f4f6)]">
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Pantalla táctil</span>
             <Switch
               size="sm"
               isSelected={touchScreen === true}
               onValueChange={(val) => onTouchScreenChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
@@ -257,18 +257,18 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
           {processorOptions.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
             >
               <Checkbox
                 isSelected={selectedProcessor.includes(opt.value as ProcessorModel)}
                 onValueChange={() => toggleArrayValue(selectedProcessor, opt.value as ProcessorModel, onProcessorChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+              <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -277,15 +277,15 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
       {/* GPU */}
       <FilterSection title="Tarjeta de video" tooltip={filterTooltips.gpu} defaultExpanded={false}>
         <div className="flex items-center justify-between p-2">
-          <span className="text-sm text-neutral-600">GPU dedicada</span>
+          <span className="text-sm text-[var(--text-muted,#4b5563)]">GPU dedicada</span>
           <Switch
             size="sm"
             isSelected={gpuDedicated === true}
             onValueChange={(val) => onGpuDedicatedChange(val ? true : null)}
             classNames={{
               base: 'cursor-pointer',
-              wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-              thumb: 'bg-white shadow-md',
+              wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+              thumb: 'bg-[var(--surface,#fff)] shadow-md',
               hiddenInput: 'z-0',
             }}
           />
@@ -296,43 +296,43 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
       <FilterSection title="Teclado y seguridad" defaultExpanded={false}>
         <div className="space-y-2">
           <div className="flex items-center justify-between p-2">
-            <span className="text-sm text-neutral-600">Teclado retroiluminado</span>
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Teclado retroiluminado</span>
             <Switch
               size="sm"
               isSelected={backlitKeyboard === true}
               onValueChange={(val) => onBacklitChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
           </div>
           <div className="flex items-center justify-between p-2">
-            <span className="text-sm text-neutral-600">Teclado numerico</span>
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Teclado numerico</span>
             <Switch
               size="sm"
               isSelected={numericKeypad === true}
               onValueChange={(val) => onNumericChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
           </div>
           <div className="flex items-center justify-between p-2">
-            <span className="text-sm text-neutral-600">Lector de huella</span>
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Lector de huella</span>
             <Switch
               size="sm"
               isSelected={fingerprint === true}
               onValueChange={(val) => onFingerprintChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
@@ -344,43 +344,43 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
       <FilterSection title="Sistema y conectividad" tooltip={filterTooltips.thunderbolt} defaultExpanded={false}>
         <div className="space-y-2">
           <div className="flex items-center justify-between p-2">
-            <span className="text-sm text-neutral-600">Con Windows</span>
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Con Windows</span>
             <Switch
               size="sm"
               isSelected={hasWindows === true}
               onValueChange={(val) => onWindowsChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
           </div>
           <div className="flex items-center justify-between p-2">
-            <span className="text-sm text-neutral-600">Thunderbolt</span>
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Thunderbolt</span>
             <Switch
               size="sm"
               isSelected={hasThunderbolt === true}
               onValueChange={(val) => onThunderboltChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />
           </div>
           <div className="flex items-center justify-between p-2">
-            <span className="text-sm text-neutral-600">Puerto Ethernet</span>
+            <span className="text-sm text-[var(--text-muted,#4b5563)]">Puerto Ethernet</span>
             <Switch
               size="sm"
               isSelected={hasEthernet === true}
               onValueChange={(val) => onEthernetChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
-                thumb: 'bg-white shadow-md',
+                wrapper: 'bg-[var(--surface-2,#d4d4d4)] group-data-[selected=true]:bg-[var(--color-primary)]',
+                thumb: 'bg-[var(--surface,#fff)] shadow-md',
                 hiddenInput: 'z-0',
               }}
             />

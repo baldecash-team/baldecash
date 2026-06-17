@@ -234,18 +234,18 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const hasFrequencySelector = paymentFrequencies && paymentFrequencies.length > 1;
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-lg">
-      <h3 className="text-xl font-semibold text-neutral-800 mb-2">
+    <div className="w-full max-w-4xl mx-auto p-6 bg-[var(--surface,#fff)] rounded-2xl shadow-lg">
+      <h3 className="text-xl font-semibold text-[var(--text-strong,#1f2937)] mb-2">
         Calcula tu cuota
       </h3>
-      <p className="text-sm text-neutral-500 mb-4">
+      <p className="text-sm text-[var(--text-muted,#6b7280)] mb-4">
         Selecciona el plazo que mejor se ajuste a tu presupuesto
       </p>
 
       {/* Frequency Selector — only shown when multiple frequencies are available */}
       {hasFrequencySelector && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-neutral-700 mb-3">
+          <label className="block text-sm font-medium text-[var(--text,#374151)] mb-3">
             Frecuencia de pago
           </label>
           <div className="flex flex-wrap gap-2">
@@ -257,7 +257,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                 className={`py-2.5 px-5 text-sm font-semibold rounded-full transition-all cursor-pointer min-h-[40px] ${
                   selectedFrequency === freq
                     ? 'bg-[var(--color-primary)] text-white shadow-md'
-                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                    : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
                 } ${isLoadingPlans ? 'opacity-60 cursor-wait' : ''}`}
               >
                 {FREQ_DISPLAY[freq] ?? freq}
@@ -269,7 +269,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
 
       {/* Initial Payment Selection */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-neutral-700 mb-3">
+        <label className="block text-sm font-medium text-[var(--text,#374151)] mb-3">
           Cuota inicial{initialPaymentOptions.length > 1 ? ' (opcional)' : ''}
         </label>
         <div className="flex flex-wrap gap-2">
@@ -280,7 +280,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
               className={`py-2.5 px-4 text-sm font-medium rounded-full transition-all cursor-pointer min-h-[40px] ${
                 selectedInitialPercent === option.percent
                   ? 'bg-[var(--color-primary)] text-white shadow-md'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
               }`}
             >
               {option.label}
@@ -293,7 +293,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       {isLoadingPlans ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] rounded-xl bg-neutral-100 animate-pulse" />
+            <div key={i} className="h-[100px] rounded-xl bg-[var(--surface-2,#f3f4f6)] animate-pulse" />
           ))}
         </div>
       ) : (
@@ -316,7 +316,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                   ${
                     isSelected
                       ? 'bg-[var(--color-primary)] text-white shadow-xl scale-105'
-                      : 'bg-white border-2 border-neutral-200 hover:border-[var(--color-primary)] hover:shadow-lg'
+                      : 'bg-[var(--surface,#fff)] border-2 border-[var(--border-soft,#e5e7eb)] hover:border-[var(--color-primary)] hover:shadow-lg'
                   }
                   ${isHovered && !isSelected ? 'scale-[1.02]' : ''}
                 `}
@@ -330,7 +330,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                 <div className="text-center min-w-0">
                   <p
                     className={`text-xs sm:text-sm font-medium mb-2 ${
-                      isSelected ? 'text-white/80' : 'text-neutral-500'
+                      isSelected ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'
                     }`}
                   >
                     {plan.termMonths ?? termToMonths(plan.term, selectedFrequency)}<br />meses
@@ -339,7 +339,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                   {option.originalQuota && (
                     <p
                       className={`text-[10px] sm:text-xs line-through mb-1 break-words ${
-                        isSelected ? 'text-white/60' : 'text-neutral-400'
+                        isSelected ? 'text-white/60' : 'text-[var(--text-faint,#9ca3af)]'
                       }`}
                     >
                       S/{formatMoneyNoDecimals(Math.floor(option.originalQuota))}
@@ -356,7 +356,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
 
                   <p
                     className={`text-[10px] sm:text-xs mt-1 ${
-                      isSelected ? 'text-white/80' : 'text-neutral-500'
+                      isSelected ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'
                     }`}
                   >
                     {freqLabel.title}
@@ -371,19 +371,19 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       {/* Selected Quote Summary */}
       <div className="mt-6 p-5 bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/15 rounded-xl">
         <div className="text-center">
-          <p className="text-sm text-neutral-500 mb-1">{freqLabel.summary}</p>
+          <p className="text-sm text-[var(--text-muted,#6b7280)] mb-1">{freqLabel.summary}</p>
           {selectedOption?.originalQuota && (
-            <p className="line-through text-neutral-400 text-xl mb-1">
+            <p className="line-through text-[var(--text-faint,#9ca3af)] text-xl mb-1">
               S/{formatMoneyNoDecimals(Math.floor(selectedOption.originalQuota))}{freqLabel.short}
             </p>
           )}
           <p className="text-4xl font-bold text-[var(--color-primary)]">
             S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}{freqLabel.short}
           </p>
-          <p className="text-sm text-neutral-500 mt-2">
+          <p className="text-sm text-[var(--text-muted,#6b7280)] mt-2">
             durante {(paymentPlans.find(p => p.term === selectedTerm)?.termMonths ?? termToMonths(selectedTerm, selectedFrequency))} meses
             {selectedInitialPercent > 0 && selectedOption && (
-              <span className="block text-xs text-neutral-400 mt-1">
+              <span className="block text-xs text-[var(--text-faint,#9ca3af)] mt-1">
                 + S/{formatMoneyNoDecimals(Math.floor(selectedOption.initialAmount))} de inicial
               </span>
             )}

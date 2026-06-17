@@ -43,12 +43,12 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4, delay: index * 0.06 }}
   >
-    <Card className="h-full border-0 shadow-lg overflow-hidden bg-white">
+    <Card className="h-full border-0 shadow-lg overflow-hidden bg-[var(--surface,#fff)]">
       <CardBody className="p-0 flex flex-col">
         {/* Image area - matching ProductCard structure */}
-        <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
+        <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-6">
           <GlowBox
-            className="w-full h-44 rounded-xl bg-gradient-to-br from-neutral-100 via-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-secondary-rgb),0.05)]"
+            className="w-full h-44 rounded-xl bg-gradient-to-br from-[var(--surface-2,#f3f4f6)] via-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-secondary-rgb),0.05)]"
             delay={index * 0.1}
             glow
           />
@@ -56,11 +56,11 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
           {/* Action buttons - top right */}
           <div className="absolute top-3 right-3 flex flex-col gap-1">
             <GlowBox
-              className="w-10 h-10 rounded-full bg-white/90 shadow-md"
+              className="w-10 h-10 rounded-full bg-[var(--surface,#fff)]/90 shadow-md"
               delay={index * 0.1 + 0.1}
             />
             <GlowBox
-              className="w-10 h-10 rounded-full bg-white/90 shadow-md"
+              className="w-10 h-10 rounded-full bg-[var(--surface,#fff)]/90 shadow-md"
               delay={index * 0.1 + 0.15}
             />
           </div>
@@ -85,11 +85,11 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
           {/* Title */}
           <div className="space-y-1.5 mb-3">
             <GlowBox
-              className="h-5 w-4/5 rounded bg-neutral-200/80 mx-auto"
+              className="h-5 w-4/5 rounded bg-[var(--surface-2,#e5e7eb)]/80 mx-auto"
               delay={index * 0.1 + 0.25}
             />
             <GlowBox
-              className="h-5 w-3/5 rounded bg-neutral-200/60 mx-auto"
+              className="h-5 w-3/5 rounded bg-[var(--surface-2,#e5e7eb)]/60 mx-auto"
               delay={index * 0.1 + 0.3}
             />
           </div>
@@ -99,7 +99,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
             {[0, 1, 2, 3].map((i) => (
               <GlowBox
                 key={i}
-                className="w-6 h-6 rounded-full bg-neutral-200"
+                className="w-6 h-6 rounded-full bg-[var(--surface-2,#e5e7eb)]"
                 delay={index * 0.1 + 0.35 + i * 0.03}
               />
             ))}
@@ -114,7 +114,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
                   delay={index * 0.1 + 0.4 + i * 0.05}
                 />
                 <GlowBox
-                  className="h-3 w-32 rounded bg-neutral-200/70"
+                  className="h-3 w-32 rounded bg-[var(--surface-2,#e5e7eb)]/70"
                   delay={index * 0.1 + 0.4 + i * 0.05}
                 />
               </div>
@@ -124,7 +124,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
           {/* Price box */}
           <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
             <GlowBox
-              className="h-3 w-20 rounded bg-neutral-300/50 mx-auto mb-2"
+              className="h-3 w-20 rounded bg-[var(--surface-2,#d4d4d4)]/50 mx-auto mb-2"
               delay={index * 0.1 + 0.5}
             />
             <GlowBox
@@ -133,7 +133,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
               glow
             />
             <GlowBox
-              className="h-3 w-40 rounded bg-neutral-300/50 mx-auto"
+              className="h-3 w-40 rounded bg-[var(--surface-2,#d4d4d4)]/50 mx-auto"
               delay={index * 0.1 + 0.6}
             />
           </div>
@@ -164,7 +164,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
  * Skeleton con efecto shimmer/brillo que se mueve horizontalmente
  */
 const ShimmerBox: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`relative overflow-hidden bg-neutral-200 ${className}`}>
+  <div className={`relative overflow-hidden bg-[var(--surface-2,#e5e7eb)] ${className}`}>
     <div
       className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent"
       style={{
@@ -189,16 +189,16 @@ const SkeletonV2: React.FC<{ index: number }> = ({ index }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, delay: index * 0.08 }}
     >
-      <Card className="h-full border-0 shadow-lg overflow-hidden bg-white">
+      <Card className="h-full border-0 shadow-lg overflow-hidden bg-[var(--surface,#fff)]">
         <CardBody className="p-0 flex flex-col">
           {/* Image area */}
-          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
-            <ShimmerBox className="w-full h-44 rounded-xl !bg-gradient-to-br from-neutral-100 to-neutral-200" />
+          <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-6">
+            <ShimmerBox className="w-full h-44 rounded-xl !bg-gradient-to-br from-[var(--surface-2,#f3f4f6)] to-[var(--surface-2,#e5e7eb)]" />
 
             {/* Action buttons - top right */}
             <div className="absolute top-3 right-3 flex flex-col gap-1">
-              <ShimmerBox className="w-10 h-10 rounded-full !bg-white shadow-md" />
-              <ShimmerBox className="w-10 h-10 rounded-full !bg-white shadow-md" />
+              <ShimmerBox className="w-10 h-10 rounded-full !bg-[var(--surface,#fff)] shadow-md" />
+              <ShimmerBox className="w-10 h-10 rounded-full !bg-[var(--surface,#fff)] shadow-md" />
             </div>
 
             {/* Tags - top left */}
@@ -237,9 +237,9 @@ const SkeletonV2: React.FC<{ index: number }> = ({ index }) => {
 
             {/* Price box */}
             <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
-              <ShimmerBox className="h-3 w-20 rounded mx-auto mb-2 !bg-neutral-300/50" />
+              <ShimmerBox className="h-3 w-20 rounded mx-auto mb-2 !bg-[var(--surface-2,#d4d4d4)]/50" />
               <ShimmerBox className="h-10 w-36 rounded-lg mx-auto mb-2 !bg-[rgba(var(--color-primary-rgb),0.2)]" />
-              <ShimmerBox className="h-3 w-40 rounded mx-auto !bg-neutral-300/50" />
+              <ShimmerBox className="h-3 w-40 rounded mx-auto !bg-[var(--surface-2,#d4d4d4)]/50" />
             </div>
 
             {/* Spacer */}
@@ -285,13 +285,13 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: staggerDelay }}
     >
-      <Card className="h-full border-0 shadow-lg overflow-hidden bg-white">
+      <Card className="h-full border-0 shadow-lg overflow-hidden bg-[var(--surface,#fff)]">
         <CardBody className="p-0 flex flex-col">
           {/* Image area - matching ProductCard structure */}
-          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
-            <div className="w-full h-44 rounded-xl bg-gradient-to-br from-neutral-100 via-neutral-50 to-neutral-100 flex items-center justify-center">
+          <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-6">
+            <div className="w-full h-44 rounded-xl bg-gradient-to-br from-[var(--surface-2,#f3f4f6)] via-[var(--surface-bg,#fafafa)] to-[var(--surface-2,#f3f4f6)] flex items-center justify-center">
               <motion.div
-                className="w-20 h-20 rounded-lg bg-neutral-200/60"
+                className="w-20 h-20 rounded-lg bg-[var(--surface-2,#e5e7eb)]/60"
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
               />
@@ -300,11 +300,11 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
             {/* Action buttons - top right */}
             <div className="absolute top-3 right-3 flex flex-col gap-1">
               <WaveBox
-                className="w-10 h-10 rounded-full bg-white/90 shadow-md"
+                className="w-10 h-10 rounded-full bg-[var(--surface,#fff)]/90 shadow-md"
                 delay={staggerDelay + 0.1}
               />
               <WaveBox
-                className="w-10 h-10 rounded-full bg-white/90 shadow-md"
+                className="w-10 h-10 rounded-full bg-[var(--surface,#fff)]/90 shadow-md"
                 delay={staggerDelay + 0.15}
               />
             </div>
@@ -329,11 +329,11 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
             {/* Title */}
             <div className="space-y-1.5 mb-3">
               <WaveBox
-                className="h-5 w-4/5 rounded bg-neutral-200/80 mx-auto"
+                className="h-5 w-4/5 rounded bg-[var(--surface-2,#e5e7eb)]/80 mx-auto"
                 delay={staggerDelay + 0.25}
               />
               <WaveBox
-                className="h-5 w-3/5 rounded bg-neutral-200/60 mx-auto"
+                className="h-5 w-3/5 rounded bg-[var(--surface-2,#e5e7eb)]/60 mx-auto"
                 delay={staggerDelay + 0.3}
               />
             </div>
@@ -343,7 +343,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
               {[0, 1, 2, 3].map((i) => (
                 <WaveBox
                   key={i}
-                  className="w-6 h-6 rounded-full bg-neutral-200"
+                  className="w-6 h-6 rounded-full bg-[var(--surface-2,#e5e7eb)]"
                   delay={staggerDelay + 0.35 + i * 0.03}
                 />
               ))}
@@ -358,7 +358,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
                     delay={staggerDelay + 0.4 + i * 0.05}
                   />
                   <WaveBox
-                    className="h-3 w-32 rounded bg-neutral-200/70"
+                    className="h-3 w-32 rounded bg-[var(--surface-2,#e5e7eb)]/70"
                     delay={staggerDelay + 0.4 + i * 0.05}
                   />
                 </div>
@@ -368,7 +368,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
             {/* Price box */}
             <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
               <WaveBox
-                className="h-3 w-20 rounded bg-neutral-300/50 mx-auto mb-2"
+                className="h-3 w-20 rounded bg-[var(--surface-2,#d4d4d4)]/50 mx-auto mb-2"
                 delay={staggerDelay + 0.5}
               />
               <WaveBox
@@ -376,7 +376,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
                 delay={staggerDelay + 0.55}
               />
               <WaveBox
-                className="h-3 w-40 rounded bg-neutral-300/50 mx-auto"
+                className="h-3 w-40 rounded bg-[var(--surface-2,#d4d4d4)]/50 mx-auto"
                 delay={staggerDelay + 0.6}
               />
             </div>

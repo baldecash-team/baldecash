@@ -131,13 +131,13 @@ const WishlistContentShared: React.FC<{
   if (normalizedItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center px-6 py-12">
-        <div className="w-20 h-20 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-          <Heart className="w-10 h-10 text-neutral-300" />
+        <div className="w-20 h-20 rounded-full bg-[var(--surface-2,#f3f4f6)] flex items-center justify-center mb-4">
+          <Heart className="w-10 h-10 text-[var(--text-faint,#d4d4d4)]" />
         </div>
-        <h3 className="text-lg font-semibold text-neutral-700 mb-2">
+        <h3 className="text-lg font-semibold text-[var(--text,#374151)] mb-2">
           {config?.empty_title || 'Sin favoritos aún'}
         </h3>
-        <p className="text-sm text-neutral-500 mb-4">
+        <p className="text-sm text-[var(--text-muted,#6b7280)] mb-4">
           {config?.empty_description || 'Haz clic en el corazón de cualquier producto para agregarlo aquí'}
         </p>
         <Button
@@ -175,12 +175,12 @@ const WishlistContentShared: React.FC<{
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className={`bg-neutral-50 rounded-xl p-3 flex gap-3 group ${isUnavailable ? 'opacity-60 border border-amber-300' : ''}`}
+            className={`bg-[var(--surface-bg,#fafafa)] rounded-xl p-3 flex gap-3 group ${isUnavailable ? 'opacity-60 border border-amber-300' : ''}`}
           >
             {/* Product Image */}
             <div
               onClick={() => onViewProduct(item.id)}
-              className="w-20 h-20 rounded-lg bg-white flex-shrink-0 flex items-center justify-center p-2 cursor-pointer hover:shadow-md transition-shadow"
+              className="w-20 h-20 rounded-lg bg-[var(--surface,#fff)] flex-shrink-0 flex items-center justify-center p-2 cursor-pointer hover:shadow-md transition-shadow"
             >
               <img
                 src={item.image}
@@ -191,10 +191,10 @@ const WishlistContentShared: React.FC<{
 
             {/* Product Info */}
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500">{item.brand}</p>
+              <p className="text-xs text-[var(--text-muted,#6b7280)]">{item.brand}</p>
               <p
                 onClick={() => onViewProduct(item.id)}
-                className="text-sm font-semibold text-neutral-800 line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
+                className="text-sm font-semibold text-[var(--text-strong,#1f2937)] line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
               >
                 {item.name}
               </p>
@@ -202,10 +202,10 @@ const WishlistContentShared: React.FC<{
               {item.colorName && (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full border border-neutral-200 flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full border border-[var(--border-soft,#e5e7eb)] flex-shrink-0"
                     style={{ backgroundColor: item.colorHex }}
                   />
-                  <span className="text-xs text-neutral-400">{item.colorName}</span>
+                  <span className="text-xs text-[var(--text-faint,#9ca3af)]">{item.colorName}</span>
                 </div>
               )}
               {isUnavailable ? (
@@ -218,13 +218,13 @@ const WishlistContentShared: React.FC<{
                     <span className="text-lg font-bold text-[var(--color-primary)]">
                       S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}
                     </span>
-                    <span className="text-xs text-neutral-500">/mes</span>
-                    <span className="text-xs text-neutral-400 ml-1">
+                    <span className="text-xs text-[var(--text-muted,#6b7280)]">/mes</span>
+                    <span className="text-xs text-[var(--text-faint,#9ca3af)] ml-1">
                       x {item.months} meses
                     </span>
                   </div>
                   {item.initialAmount > 0 && (
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-[var(--text-muted,#6b7280)]">
                       + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
                     </p>
                   )}
@@ -254,7 +254,7 @@ const WishlistContentShared: React.FC<{
                     className={`cursor-pointer text-xs h-7 ${
                       isInCompare
                         ? 'bg-[var(--color-primary)] text-white'
-                        : 'border-neutral-300'
+                        : 'border-[var(--border-strong,#d1d5db)]'
                     }`}
                     startContent={<GitCompare className="w-3 h-3" />}
                   >
@@ -301,11 +301,11 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
     size="full"
     scrollBehavior="inside"
     classNames={{
-      base: `bg-white m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full ${themeClassName || ''}`,
-      header: 'border-b border-neutral-200 bg-white py-4',
-      body: 'bg-white p-0',
-      footer: 'border-t border-neutral-200 bg-white',
-      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+      base: `bg-[var(--surface,#fff)] m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full ${themeClassName || ''}`,
+      header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4',
+      body: 'bg-[var(--surface,#fff)] p-0',
+      footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)]',
+      closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
     }}
   >
     <ModalContent>
@@ -314,8 +314,8 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
           <Heart className="w-5 h-5 text-[var(--color-primary)] fill-[var(--color-primary)]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-neutral-800">{config?.title || 'Mis Favoritos'}</h2>
-          <p className="text-sm text-neutral-500 font-normal">
+          <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)]">{config?.title || 'Mis Favoritos'}</h2>
+          <p className="text-sm text-[var(--text-muted,#6b7280)] font-normal">
             {products.length} {products.length === 1 ? 'producto' : 'productos'}
           </p>
         </div>
@@ -342,7 +342,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
             fullWidth
             variant="light"
             onPress={onClearAll}
-            className="cursor-pointer text-neutral-600 hover:text-red-500"
+            className="cursor-pointer text-[var(--text-muted,#4b5563)] hover:text-red-500"
             startContent={<Trash2 className="w-4 h-4" />}
           >
             {config?.clear_all_button || 'Limpiar favoritos'}
@@ -434,7 +434,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 onClose();
               }
             }}
-            className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)] ${themeClassName || ''}`}
+            className={`fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)] ${themeClassName || ''}`}
             style={{
               overscrollBehavior: 'contain',
               paddingBottom: 'env(safe-area-inset-bottom)',
@@ -445,7 +445,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
@@ -455,10 +455,10 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                   <Heart className="w-4 h-4 text-[var(--color-primary)] fill-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">
                     {config?.title || 'Mis Favoritos'}
                   </h2>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)]">
                     {products.length} {products.length === 1 ? 'producto' : 'productos'}
                   </p>
                 </div>
@@ -495,12 +495,12 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
 
             {/* Footer */}
             {products.length > 0 && (
-              <div className="border-t border-neutral-200 bg-white p-4">
+              <div className="border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] p-4">
                 <Button
                   fullWidth
                   variant="light"
                   onPress={onClearAll}
-                  className="cursor-pointer text-neutral-600 hover:text-red-500"
+                  className="cursor-pointer text-[var(--text-muted,#4b5563)] hover:text-red-500"
                   startContent={<Trash2 className="w-4 h-4" />}
                 >
                   {config?.clear_all_button || 'Limpiar favoritos'}

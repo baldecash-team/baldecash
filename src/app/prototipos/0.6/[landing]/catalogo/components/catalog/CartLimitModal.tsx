@@ -56,13 +56,13 @@ const LimitModalContent: React.FC<{
       </div>
 
       {/* Instruction */}
-      <p className="text-sm text-neutral-600 text-center font-medium">
+      <p className="text-sm text-[var(--text-muted,#4b5563)] text-center font-medium">
         Quita algún producto del carrito para poder continuar.
       </p>
 
       {/* Current Cart Items */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+        <p className="text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase tracking-wider">
           Tu carrito ({cartItems.length} {cartItems.length === 1 ? 'producto' : 'productos'})
         </p>
         <div className="max-h-[240px] overflow-y-auto space-y-2 pr-1">
@@ -72,9 +72,9 @@ const LimitModalContent: React.FC<{
             return (
               <div
                 key={`${item.productId}-${index}`}
-                className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100"
+                className="flex items-center gap-3 p-3 bg-[var(--surface-bg,#fafafa)] rounded-xl border border-[var(--border-soft,#f3f4f6)]"
               >
-                <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
+                <div className="w-12 h-12 bg-[var(--surface,#fff)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)]">
                   <img
                     src={item.image}
                     alt={item.name}
@@ -82,8 +82,8 @@ const LimitModalContent: React.FC<{
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-neutral-500 uppercase">{item.brand}</p>
-                  <p className="text-sm font-medium text-neutral-800 truncate">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">{item.brand}</p>
+                  <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate">
                     {item.name}
                   </p>
                   <p className="text-sm font-bold text-[#4654CD]">
@@ -92,7 +92,7 @@ const LimitModalContent: React.FC<{
                 </div>
                 <button
                   onClick={() => onRemoveItem(item.productId)}
-                  className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                  className="p-2 rounded-lg hover:bg-red-50 text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
                   title="Quitar del carrito"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -106,11 +106,11 @@ const LimitModalContent: React.FC<{
       {/* Attempted product (what they tried to add) */}
       {attemptedProduct && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-[var(--text-muted,#6b7280)] uppercase tracking-wider">
             Producto que intentas agregar
           </p>
           <div className="flex items-center gap-3 p-3 bg-red-50/50 rounded-xl border border-red-100">
-            <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
+            <div className="w-12 h-12 bg-[var(--surface,#fff)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)]">
               <img
                 src={attemptedProduct.thumbnail}
                 alt={attemptedProduct.displayName}
@@ -118,8 +118,8 @@ const LimitModalContent: React.FC<{
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500 uppercase">{attemptedProduct.brand}</p>
-              <p className="text-sm font-medium text-neutral-800 truncate">
+              <p className="text-xs text-[var(--text-muted,#6b7280)] uppercase">{attemptedProduct.brand}</p>
+              <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate">
                 {attemptedProduct.displayName}
               </p>
               <p className="text-sm font-bold text-red-600">
@@ -131,8 +131,8 @@ const LimitModalContent: React.FC<{
       )}
 
       {/* Total Summary */}
-      <div className="bg-neutral-100 rounded-xl p-3 flex items-center justify-between">
-        <span className="text-sm text-neutral-600">Cuota total actual</span>
+      <div className="bg-[var(--surface-2,#f3f4f6)] rounded-xl p-3 flex items-center justify-between">
+        <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota total actual</span>
         <span className={`text-base font-bold ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-[#4654CD]'}`}>
           S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes
         </span>
@@ -168,10 +168,10 @@ const DesktopModal: React.FC<CartLimitModalProps> = ({
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
-      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200',
-      header: 'border-b border-neutral-100 pb-4',
+      base: 'bg-[var(--surface,#fff)] rounded-2xl shadow-2xl border border-[var(--border-soft,#e5e7eb)]',
+      header: 'border-b border-[var(--border-soft,#f3f4f6)] pb-4',
       body: 'p-0',
-      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+      closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
     }}
   >
     <ModalContent>
@@ -180,7 +180,7 @@ const DesktopModal: React.FC<CartLimitModalProps> = ({
           <ShoppingCart className="w-5 h-5 text-red-600" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-neutral-800">Asistente de Compra</h2>
+          <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)]">Asistente de Compra</h2>
           <p className="text-sm text-red-500 font-medium">Límite de cuota excedido</p>
         </div>
       </ModalHeader>
@@ -265,7 +265,7 @@ const MobileBottomSheet: React.FC<CartLimitModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col max-h-[calc(100vh-6rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col max-h-[calc(100vh-6rem)]"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
@@ -273,7 +273,7 @@ const MobileBottomSheet: React.FC<CartLimitModalProps> = ({
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
@@ -283,7 +283,7 @@ const MobileBottomSheet: React.FC<CartLimitModalProps> = ({
                   <ShoppingCart className="w-4 h-4 text-red-600" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">Asistente de Compra</h2>
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">Asistente de Compra</h2>
                   <p className="text-xs text-red-500 font-medium">Límite de cuota excedido</p>
                 </div>
               </div>

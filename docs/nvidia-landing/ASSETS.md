@@ -117,7 +117,44 @@ Ruta: `images/nvidia/videos/{nombre}.mp4`
 images/nvidia/
 ├── gpus/          6 chips RTX (rtx-3050.png … rtx-5060.png)
 ├── laptops/       15 renders de laptops
-├── software/      27 logos de programas
+├── software/      41 logos de programas (27 + 14 nuevos del selector)
 ├── backgrounds/   4 fondos y marca
 └── videos/        2 MP4
 ```
+
+---
+
+## 🆕 Software adicional — selector (segunda tanda)
+
+14 imágenes nuevas para el selector de software/tecnologías, subidas también a `/software/`.
+
+Ruta: `images/nvidia/software/{nombre}.png`
+
+**Software de creación / render:**
+
+| Archivo | Programa |
+|---|---|
+| `3ds-max.png` | Autodesk 3ds Max |
+| `blender-2.png` | Blender (variante adicional) |
+| `d5-render.png` | D5 Render |
+| `enscape.png` | Enscape |
+| `twinmotion.png` | Twinmotion |
+
+**Ingeniería / datos:**
+
+| Archivo | Programa |
+|---|---|
+| `matlab.png` | MATLAB |
+| `simulink.png` | Simulink |
+| `rapids.png` | NVIDIA RAPIDS |
+
+**Tecnologías NVIDIA:**
+
+| Archivo | Tecnología |
+|---|---|
+| `dlss.png` | DLSS |
+| `ray-tracing-rtx.png` | Ray Tracing RTX |
+| `rtx-ia.png` | RTX IA |
+| `nvidia-studio.png` | NVIDIA Studio |
+| `nvidia-broadcast.png` | NVIDIA Broadcast |
+| `geforce-experience.png` | GeForce Experience |

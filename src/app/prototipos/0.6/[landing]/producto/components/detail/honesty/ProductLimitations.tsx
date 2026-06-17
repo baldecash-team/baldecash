@@ -18,16 +18,16 @@ export const ProductLimitations: React.FC<ProductLimitationsProps> = ({ limitati
 
   return (
     <div className="w-full">
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-gray-200 rounded-2xl p-6">
+      <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-[var(--border-soft,#e5e7eb)] rounded-2xl p-6">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-[var(--color-primary)] rounded-lg">
               <AlertCircle className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800">Consideraciones importantes</h3>
+            <h3 className="text-2xl font-bold text-[var(--text-strong,#1f2937)]">Consideraciones importantes</h3>
           </div>
-          <p className="text-sm text-gray-600 ml-14">
+          <p className="text-sm text-[var(--text-muted,#4b5563)] ml-14">
             Información que debes tener en cuenta antes de decidir
           </p>
         </div>
@@ -62,20 +62,20 @@ export const ProductLimitations: React.FC<ProductLimitationsProps> = ({ limitati
 
                   {/* Content */}
                   <div className="flex-1">
-                    <h4 className="font-bold text-gray-800 mb-1">
+                    <h4 className="font-bold text-[var(--text-strong,#1f2937)] mb-1">
                       {limitation.category}
                     </h4>
 
-                    <p className="text-sm leading-relaxed text-gray-700">
+                    <p className="text-sm leading-relaxed text-[var(--text,#374151)]">
                       {limitation.description}
                     </p>
 
                     {limitation.alternative && (
-                      <div className="mt-3 p-3 bg-white rounded-lg border border-[rgba(var(--color-primary-rgb),0.30)] flex items-start gap-2">
+                      <div className="mt-3 p-3 bg-[var(--surface,#fff)] rounded-lg border border-[rgba(var(--color-primary-rgb),0.30)] flex items-start gap-2">
                         <Lightbulb className="w-4 h-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
                         <p className="text-sm">
                           <span className="font-semibold text-[var(--color-primary)]">Alternativa:</span>{' '}
-                          <span className="text-gray-700">{limitation.alternative}</span>
+                          <span className="text-[var(--text,#374151)]">{limitation.alternative}</span>
                         </p>
                       </div>
                     )}

@@ -86,13 +86,13 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
       backdrop="blur"
       placement="center"
       classNames={{
-        base: 'bg-white my-8 rounded-[14px]',
+        base: 'bg-[var(--surface,#fff)] my-8 rounded-[14px]',
         wrapper: 'items-center justify-center py-8 min-h-full z-[100]',
         backdrop: 'bg-black/50 z-[99]',
-        header: 'border-b border-neutral-200 bg-white py-4 pr-12 rounded-t-[14px]',
-        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
-        footer: 'border-t border-neutral-200 bg-white rounded-b-[14px]',
-        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+        header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4 pr-12 rounded-t-[14px]',
+        body: 'bg-[var(--surface,#fff)] max-h-[60vh] overflow-y-auto scrollbar-hide',
+        footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] rounded-b-[14px]',
+        closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
@@ -100,13 +100,13 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.10)] flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[var(--color-primary)]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">
+          <span className="text-lg font-semibold text-[var(--text-strong,#1f2937)]">
             Configuración del Detalle
           </span>
         </ModalHeader>
 
-        <ModalBody className="py-6 bg-white">
-          <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
+        <ModalBody className="py-6 bg-[var(--surface,#fff)]">
+          <p className="text-sm text-[var(--text-muted,#4b5563)] mb-4 pb-4 border-b border-[var(--border-soft,#e5e7eb)]">
             Selecciona el tipo de dispositivo para ver su detalle de producto.
           </p>
 
@@ -114,7 +114,7 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Laptop className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Tipo de Equipo</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Tipo de Equipo</h3>
             </div>
             <RadioGroup
               value={config.deviceType}
@@ -135,17 +135,17 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
                       ${
                         config.deviceType === deviceType
                           ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                          : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.50)]'
+                          : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.50)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm font-medium',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={deviceTypeLabels[deviceType].description}
                 >
                   <div className="flex items-center gap-2">
-                    <span className={config.deviceType === deviceType ? 'text-[var(--color-primary)]' : 'text-neutral-500'}>
+                    <span className={config.deviceType === deviceType ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted,#6b7280)]'}>
                       {deviceTypeIcons[deviceType]}
                     </span>
                     <span>{deviceTypeLabels[deviceType].name}</span>
@@ -156,10 +156,10 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
           </div>
 
           {/* Selector de Versión del Cronograma */}
-          <div className="mt-6 pt-4 border-t border-neutral-200">
+          <div className="mt-6 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Detalle de Cuotas</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Detalle de Cuotas</h3>
             </div>
             <RadioGroup
               value={config.cronogramaVersion.toString()}
@@ -180,17 +180,17 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
                       ${
                         config.cronogramaVersion === version
                           ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                          : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.50)]'
+                          : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.50)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm font-medium',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={cronogramaVersionLabels[version].description}
                 >
                   <div className="flex items-center gap-2">
-                    <span className={config.cronogramaVersion === version ? 'text-[var(--color-primary)]' : 'text-neutral-500'}>
+                    <span className={config.cronogramaVersion === version ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted,#6b7280)]'}>
                       {cronogramaVersionIcons[version]}
                     </span>
                     <span>{cronogramaVersionLabels[version].name}</span>
@@ -201,15 +201,15 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
           </div>
 
           {/* Nota informativa */}
-          <div className="mt-6 pt-4 border-t border-neutral-200">
-            <p className="text-xs text-neutral-400">
+          <div className="mt-6 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
+            <p className="text-xs text-[var(--text-faint,#9ca3af)]">
               <span className="font-medium">Nota:</span> Los demás componentes del detalle
               (layout, pricing, similar products) están fijos en esta versión.
             </p>
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white justify-between">
+        <ModalFooter className="bg-[var(--surface,#fff)] justify-between">
           <Button
             variant="flat"
             startContent={
@@ -223,7 +223,7 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
             className={`cursor-pointer transition-colors ${
               copied
                 ? 'bg-green-100 text-green-700'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
             }`}
           >
             {copied ? '¡Copiado!' : 'Generar URL'}

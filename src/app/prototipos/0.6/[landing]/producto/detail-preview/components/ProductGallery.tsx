@@ -50,7 +50,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+    <div className="bg-[var(--surface,#fff)] rounded-2xl shadow-sm border border-[var(--border-soft,#f3f4f6)] overflow-hidden">
       {/* Brand bar */}
       <div className="px-6 pt-5 pb-3 flex items-center gap-3">
         {brandLogo ? (
@@ -62,7 +62,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
             className="h-7 w-auto object-contain"
           />
         ) : (
-          <span className="text-sm font-semibold uppercase tracking-wider text-neutral-400">
+          <span className="text-sm font-semibold uppercase tracking-wider text-[var(--text-faint,#9ca3af)]">
             {brand}
           </span>
         )}
@@ -70,14 +70,14 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
 
       {/* Product name */}
       <div className="px-6 pb-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-800 leading-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-strong,#1f2937)] leading-tight">
           {productName}
         </h1>
       </div>
 
       {/* Main image with zoom */}
       <div
-        className="relative aspect-square mx-6 mb-4 rounded-xl overflow-hidden bg-neutral-50 cursor-zoom-in"
+        className="relative aspect-square mx-6 mb-4 rounded-xl overflow-hidden bg-[var(--surface-bg,#fafafa)] cursor-zoom-in"
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
@@ -107,7 +107,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
               className={`relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${
                 index === selectedImageIndex
                   ? 'border-[#4654CD] shadow-md'
-                  : 'border-neutral-200 hover:border-neutral-400'
+                  : 'border-[var(--border-soft,#e5e7eb)] hover:border-neutral-400'
               }`}
             >
               <Image
@@ -125,7 +125,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
       {/* Color selector */}
       {colors && colors.length > 0 && (
         <div className="px-6 pb-5">
-          <p className="text-xs text-neutral-500 mb-2">Color disponible</p>
+          <p className="text-xs text-[var(--text-muted,#6b7280)] mb-2">Color disponible</p>
           <div className="flex gap-2">
             {colors.map((color) => (
               <button
@@ -135,7 +135,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
                 className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer ${
                   selectedColorId === color.id
                     ? 'border-[#4654CD] ring-2 ring-[#4654CD]/30 scale-110'
-                    : 'border-neutral-300 hover:border-neutral-500'
+                    : 'border-[var(--border-strong,#d1d5db)] hover:border-neutral-500'
                 }`}
                 style={{ backgroundColor: color.hex }}
               />

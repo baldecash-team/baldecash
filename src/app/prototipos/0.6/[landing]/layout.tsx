@@ -25,6 +25,7 @@ import { routes, normalizeCatalogUrl } from '../utils/routes';
 import { evaluateLandingAccess } from '../services/landingApi';
 import type { EvaluatePayload } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
+import { isDarkLanding } from '../utils/theme';
 
 /**
  * Persists ?keepData=true from URL to sessionStorage.
@@ -1640,6 +1641,7 @@ export default function LandingLayout({
 }) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  const dark = isDarkLanding(landing);
 
   return (
     <LayoutProvider>
@@ -1648,9 +1650,13 @@ export default function LandingLayout({
           <Suspense>
             <KeepDataFlag />
           </Suspense>
-          <VipGate landing={landing}>
-            {children}
-          </VipGate>
+          {/* Fondo oscuro para las páginas de flujo de landings dark (nvidia).
+              Los tokens viven en <html data-theme="nvidia"> (LayoutContext). THEME_DARK.md §5.2 */}
+          <div className={dark ? 'min-h-screen bg-[var(--surface-bg,#06060A)]' : undefined}>
+            <VipGate landing={landing}>
+              {children}
+            </VipGate>
+          </div>
         </EventTrackerProvider>
       </SessionProvider>
     </LayoutProvider>

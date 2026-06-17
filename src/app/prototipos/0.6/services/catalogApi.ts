@@ -30,6 +30,24 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 export const INITIAL_LOAD_LIMIT = 15;
 export const LOAD_MORE_LIMIT = 8;
 
+/**
+ * Slugs de landings cuyo catálogo se sirve desde el endpoint `/products/best-offer`
+ * en lugar del `/products` estándar. Este endpoint devuelve cada producto con su
+ * mejor oferta disponible aplicada, manteniendo el mismo shape de respuesta.
+ */
+const BEST_OFFER_LANDING_SLUGS = new Set<string>([
+  'copia-home',
+]);
+
+/**
+ * Devuelve el segmento de endpoint de productos para un landing dado.
+ * Para los slugs en BEST_OFFER_LANDING_SLUGS usa `products/best-offer`,
+ * para el resto el `products` estándar.
+ */
+function getProductsEndpoint(landingSlug: string): string {
+  return BEST_OFFER_LANDING_SLUGS.has(landingSlug) ? 'products/best-offer' : 'products';
+}
+
 // ============================================
 // API Response Types
 // ============================================
@@ -140,6 +158,7 @@ export interface ApiCatalogProduct {
     sku?: string;
   } | null;
   promotion?: ApiProductPromotion | null;
+  combo?: unknown | null;
 }
 
 export interface ApiPromotionTemplate {
@@ -337,7 +356,7 @@ export async function getCatalogProducts(
     if (options.page_size && options.limit === undefined) params.set('page_size', String(options.page_size));
 
     const queryString = params.toString();
-    const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE_URL}/public/landing/${landingSlug}/${getProductsEndpoint(landingSlug)}${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(url, {
       cache: 'no-store' as const,
@@ -632,6 +651,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
+    conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response
     usage: inferUsage(apiProduct.type, apiProduct.name),
@@ -1089,6 +1109,7 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
     maxTermMonths: 24,
     gama: inferGamaTier(price),
     condition: mapCondition(apiProduct.condition || 'nuevo'),
+    conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
     stock: apiProduct.stock_available > 0 ? 'available' as StockStatus : 'out_of_stock' as StockStatus,
     stockQuantity: apiProduct.stock_available,
     usage: inferUsage(apiProduct.type || 'laptop', apiProduct.name),

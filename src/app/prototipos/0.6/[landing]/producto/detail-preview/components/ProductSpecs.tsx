@@ -111,19 +111,19 @@ export const ProductSpecs: React.FC<ProductSpecsProps> = ({ specs, rawSpecs, dev
 
     return (
       <div>
-        <h2 className="text-lg font-bold text-neutral-800 mb-4">Especificaciones</h2>
+        <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)] mb-4">Especificaciones</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {specItems.map((item, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl border border-neutral-100 p-4 flex items-start gap-3"
+              className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#f3f4f6)] p-4 flex items-start gap-3"
             >
               <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#4654CD]/5 flex items-center justify-center text-[#4654CD]">
                 {item.icon}
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-neutral-500 mb-0.5">{item.label}</p>
-                <p className="text-sm font-medium text-neutral-800">{item.value}</p>
+                <p className="text-xs text-[var(--text-muted,#6b7280)] mb-0.5">{item.label}</p>
+                <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">{item.value}</p>
               </div>
             </div>
           ))}
@@ -245,19 +245,19 @@ export const ProductSpecs: React.FC<ProductSpecsProps> = ({ specs, rawSpecs, dev
 
   return (
     <div>
-      <h2 className="text-lg font-bold text-neutral-800 mb-4">Especificaciones</h2>
+      <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)] mb-4">Especificaciones</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {specItems.map((item, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl border border-neutral-100 p-4 flex items-start gap-3"
+            className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#f3f4f6)] p-4 flex items-start gap-3"
           >
             <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#4654CD]/5 flex items-center justify-center text-[#4654CD]">
               {item.icon}
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-neutral-500 mb-0.5">{item.label}</p>
-              <p className="text-sm font-medium text-neutral-800">{item.value}</p>
+              <p className="text-xs text-[var(--text-muted,#6b7280)] mb-0.5">{item.label}</p>
+              <p className="text-sm font-medium text-[var(--text-strong,#1f2937)]">{item.value}</p>
             </div>
           </div>
         ))}

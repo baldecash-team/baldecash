@@ -58,7 +58,7 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
                   flex items-center justify-center cursor-pointer relative
                   ${isSelected
                     ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.2)]'
-                    : 'border-neutral-200 hover:border-neutral-400'}
+                    : 'border-[var(--border-soft,#e5e7eb)] hover:border-neutral-400'}
                 `}
                 style={{ backgroundColor: color.hex }}
                 aria-label={`Seleccionar color ${color.name}`}
@@ -66,7 +66,7 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
               >
                 {isSelected && (
                   <Check
-                    className={`w-4 h-4 ${isDarkColor ? 'text-white' : 'text-neutral-800'}`}
+                    className={`w-4 h-4 ${isDarkColor ? 'text-white' : 'text-[var(--text-strong,#1f2937)]'}`}
                     style={{
                       filter: isDarkColor ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' : 'none',
                     }}
@@ -84,8 +84,8 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
       </div>
       {/* Nombre del color seleccionado */}
       {selectedColor && (
-        <p className="text-xs text-neutral-600 font-medium">
-          Color: <span className="text-neutral-800">{selectedColor.name}</span>
+        <p className="text-xs text-[var(--text-muted,#4b5563)] font-medium">
+          Color: <span className="text-[var(--text-strong,#1f2937)]">{selectedColor.name}</span>
         </p>
       )}
     </div>

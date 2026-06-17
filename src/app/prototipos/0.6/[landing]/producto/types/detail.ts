@@ -128,6 +128,8 @@ export interface ProductDetail {
   brand: string;
   category: string;
   deviceType: string;
+  /** Condición del equipo: 'nueva' | 'reacondicionada' | 'open_box'. */
+  condition?: string;
   price: number;
   originalPrice?: number;
   discount?: number;

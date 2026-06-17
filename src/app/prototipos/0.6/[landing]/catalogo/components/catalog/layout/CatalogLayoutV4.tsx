@@ -5,6 +5,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
@@ -131,7 +132,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       if (apiFilters.conditions && apiFilters.conditions.length > 0) {
         return apiFilters.conditions.map(c => ({
           value: c.value,
-          label: c.label,
+          label: conditionDisplayLabel(c.value, c.label),
           count: c.count || 0,
         }));
       }
@@ -535,9 +536,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       return (
         <div className="grid grid-cols-2 gap-2">
           {[0, 1, 2, 3].map(i => (
-            <div key={`skel-brand-${i}`} className="flex items-center gap-2 p-2 rounded-lg border border-neutral-100 animate-pulse">
-              <div className="w-8 h-8 bg-neutral-200 rounded" />
-              <div className="w-16 h-3 bg-neutral-200 rounded" />
+            <div key={`skel-brand-${i}`} className="flex items-center gap-2 p-2 rounded-lg border border-[var(--border-soft,#f3f4f6)] animate-pulse">
+              <div className="w-8 h-8 bg-[var(--surface-2,#e5e7eb)] rounded" />
+              <div className="w-16 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
             </div>
           ))}
         </div>
@@ -562,7 +563,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
       <div className="min-h-screen">
         {/* Campaign Coupon Banner — sobre el header del catálogo
             (nada se muestra mientras se valida; aparece sólo cuando hay cupón válido) */}
@@ -577,7 +578,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
         {/* Full Width Header Section - Inside Card */}
         <div className="w-full p-3 sm:p-4 lg:p-6">
-          <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
+          <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
             <CardBody className="p-4 sm:p-5 md:p-6">
               {/* Header */}
               <motion.div
@@ -590,10 +591,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-semibold text-neutral-800 font-['Baloo_2',_sans-serif] leading-tight">
+                    <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
                       Encuentra tu equipo ideal
                     </h2>
-                    <p className="text-xs sm:text-sm text-neutral-500">
+                    <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
                       Selecciona según tu necesidad principal
                     </p>
                   </div>
@@ -673,8 +674,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   <p className="text-sm font-semibold mb-1" style={{ color: '#00BFB3' }}>
                     Promoción exclusiva CADE
                   </p>
-                  <p className="text-sm text-neutral-600 leading-relaxed">
-                    Los productos de este catálogo cuentan con <strong className="text-neutral-800">precios promocionales exclusivos</strong> para participantes de <strong className="text-neutral-800">CADE Universitario 2026</strong>. También puedes explorar nuestro catálogo general, pero <strong className="text-neutral-800">los precios promocionales de CADE solo aplican aquí</strong>.
+                  <p className="text-sm text-[var(--text-muted,#4b5563)] leading-relaxed">
+                    Los productos de este catálogo cuentan con <strong className="text-[var(--text-strong,#1f2937)]">precios promocionales exclusivos</strong> para participantes de <strong className="text-[var(--text-strong,#1f2937)]">CADE Universitario 2026</strong>. También puedes explorar nuestro catálogo general, pero <strong className="text-[var(--text-strong,#1f2937)]">los precios promocionales de CADE solo aplican aquí</strong>.
                   </p>
                   <a
                     href={routes.catalogo('home')}
@@ -709,7 +710,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
             }}
           >
-            <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
+            <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
               <CardBody
                 className="p-4 overflow-y-auto lg:pb-32"
                 style={{
@@ -718,15 +719,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-200">
-                  <h2 className="font-semibold text-neutral-800">Filtros</h2>
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-[var(--border-soft,#e5e7eb)]">
+                  <h2 className="font-semibold text-[var(--text-strong,#1f2937)]">Filtros</h2>
                   {appliedFilters.length > 0 && (
                     <Button
                       size="sm"
                       variant="light"
                       startContent={<Trash2 className="w-4 h-4" />}
                       onPress={handleClearAll}
-                      className="text-neutral-500 hover:text-red-500 cursor-pointer"
+                      className="text-[var(--text-muted,#6b7280)] hover:text-red-500 cursor-pointer"
                     >
                       Limpiar
                     </Button>
@@ -741,9 +742,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                       // Skeleton while API loads
                       <>
                         {[0, 1, 2].map(i => (
-                          <div key={`skel-device-${i}`} className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-neutral-100 animate-pulse">
-                            <div className="w-6 h-6 bg-neutral-200 rounded mb-2" />
-                            <div className="w-12 h-3 bg-neutral-200 rounded" />
+                          <div key={`skel-device-${i}`} className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-[var(--border-soft,#f3f4f6)] animate-pulse">
+                            <div className="w-6 h-6 bg-[var(--surface-2,#e5e7eb)] rounded mb-2" />
+                            <div className="w-12 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
                           </div>
                         ))}
                       </>
@@ -765,7 +766,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                             className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
                               isSelected
                                 ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                                : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                                : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                             }`}
                           >
                             {isSelected && (
@@ -776,12 +777,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                             <div className="w-12 h-8 flex items-center justify-center mb-1">
                               {Icon && (
                                 <Icon className={`w-6 h-6 transition-all ${
-                                  isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
+                                  isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-faint,#9ca3af)]'
                                 }`} />
                               )}
                             </div>
                             <span className={`text-xs font-medium ${
-                              isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
+                              isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted,#4b5563)]'
                             }`}>
                               {opt.label} ({opt.count})
                             </span>
@@ -814,16 +815,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   {!apiFilters ? (
                     <div className="space-y-4 animate-pulse">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
-                        <div className="text-neutral-200 text-xs">—</div>
-                        <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
+                        <div className="flex-1 bg-[var(--surface-2,#f3f4f6)] rounded-lg px-3 py-2 h-12" />
+                        <div className="text-[var(--text-faint,#e5e7eb)] text-xs">—</div>
+                        <div className="flex-1 bg-[var(--surface-2,#f3f4f6)] rounded-lg px-3 py-2 h-12" />
                       </div>
                       <div className="px-1">
-                        <div className="h-2 bg-neutral-200 rounded-full" />
+                        <div className="h-2 bg-[var(--surface-2,#e5e7eb)] rounded-full" />
                       </div>
                       <div className="flex justify-between px-1">
-                        <div className="w-10 h-3 bg-neutral-200 rounded" />
-                        <div className="w-10 h-3 bg-neutral-200 rounded" />
+                        <div className="w-10 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
+                        <div className="w-10 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
                       </div>
                     </div>
                   ) : (
@@ -851,10 +852,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 />
 
                 {/* Advanced Technical Filters */}
-                <div className="border-t border-neutral-200 mt-4 pt-4">
+                <div className="border-t border-[var(--border-soft,#e5e7eb)] mt-4 pt-4">
                   <button
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+                    className="flex items-center justify-between w-full py-2 text-sm font-medium text-[var(--text,#374151)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <Settings2 className="w-4 h-4" />
@@ -932,7 +933,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         <button
           id="onboarding-filters-mobile"
           onClick={handleDrawerOpen}
-          className="flex items-center gap-2 bg-[var(--color-primary)] text-white rounded-2xl shadow-xl border border-neutral-200/20 p-3 px-4 hover:brightness-90 transition-all cursor-pointer"
+          className="flex items-center gap-2 bg-[var(--color-primary)] text-white rounded-2xl shadow-xl border border-[var(--border-soft,#e5e7eb)]/20 p-3 px-4 hover:brightness-90 transition-all cursor-pointer"
         >
           <SlidersHorizontal className="w-4 h-4" />
           <span className="font-medium text-sm">Filtros</span>
@@ -953,11 +954,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         classNames={{
           wrapper: 'z-[100]',
           backdrop: 'z-[99]',
-          base: 'bg-white m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full',
-          header: 'border-b border-neutral-200 bg-white py-4',
-          body: 'bg-white p-0',
-          footer: 'border-t border-neutral-200 bg-white',
-          closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+          base: 'bg-[var(--surface,#fff)] m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full',
+          header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4',
+          body: 'bg-[var(--surface,#fff)] p-0',
+          footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)]',
+          closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
         }}
       >
         <ModalContent>
@@ -965,7 +966,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
               <Filter className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
-            <span className="text-lg font-semibold text-neutral-800">Filtros</span>
+            <span className="text-lg font-semibold text-[var(--text-strong,#1f2937)]">Filtros</span>
           </ModalHeader>
 
           <ModalBody className="px-4 py-6 overflow-y-auto">
@@ -976,9 +977,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 {dynamicDeviceTypeOptions === null ? (
                   <>
                     {[0, 1, 2].map(i => (
-                      <div key={`skel-mobile-device-${i}`} className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-neutral-100 animate-pulse">
-                        <div className="w-6 h-6 bg-neutral-200 rounded mb-2" />
-                        <div className="w-12 h-3 bg-neutral-200 rounded" />
+                      <div key={`skel-mobile-device-${i}`} className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-[var(--border-soft,#f3f4f6)] animate-pulse">
+                        <div className="w-6 h-6 bg-[var(--surface-2,#e5e7eb)] rounded mb-2" />
+                        <div className="w-12 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
                       </div>
                     ))}
                   </>
@@ -1000,7 +1001,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                         className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
                           isSelected
                             ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                            : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                            : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                         }`}
                       >
                         {isSelected && (
@@ -1011,12 +1012,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                         <div className="w-12 h-8 flex items-center justify-center mb-1">
                           {Icon && (
                             <Icon className={`w-6 h-6 transition-all ${
-                              isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
+                              isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-faint,#9ca3af)]'
                             }`} />
                           )}
                         </div>
                         <span className={`text-xs font-medium ${
-                          isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
+                          isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted,#4b5563)]'
                         }`}>
                           {opt.label} ({opt.count})
                         </span>
@@ -1049,16 +1050,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               {!apiFilters ? (
                 <div className="space-y-4 animate-pulse">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
-                    <div className="text-neutral-200 text-xs">—</div>
-                    <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
+                    <div className="flex-1 bg-[var(--surface-2,#f3f4f6)] rounded-lg px-3 py-2 h-12" />
+                    <div className="text-[var(--text-faint,#e5e7eb)] text-xs">—</div>
+                    <div className="flex-1 bg-[var(--surface-2,#f3f4f6)] rounded-lg px-3 py-2 h-12" />
                   </div>
                   <div className="px-1">
-                    <div className="h-2 bg-neutral-200 rounded-full" />
+                    <div className="h-2 bg-[var(--surface-2,#e5e7eb)] rounded-full" />
                   </div>
                   <div className="flex justify-between px-1">
-                    <div className="w-10 h-3 bg-neutral-200 rounded" />
-                    <div className="w-10 h-3 bg-neutral-200 rounded" />
+                    <div className="w-10 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
+                    <div className="w-10 h-3 bg-[var(--surface-2,#e5e7eb)] rounded" />
                   </div>
                 </div>
               ) : (
@@ -1086,10 +1087,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             />
 
             {/* Advanced Technical Filters */}
-            <div className="border-t border-neutral-200 mt-4 pt-4">
+            <div className="border-t border-[var(--border-soft,#e5e7eb)] mt-4 pt-4">
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+                className="flex items-center justify-between w-full py-2 text-sm font-medium text-[var(--text,#374151)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <Settings2 className="w-4 h-4" />

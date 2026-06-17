@@ -26,6 +26,7 @@ import {
 import { type GamerTheme } from './gamerTheme';
 import { type FilterState, type SortOption, defaultFilterState } from '../../types/catalog';
 import type { CatalogFiltersResponse } from '@/app/prototipos/0.6/types/filters';
+import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 
 // ============================================
 // Brand Button (used inside sidebar brand grid)
@@ -767,7 +768,7 @@ export function GamerSidebar({
                   ) : (
                     <CheckCircle2 size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
                   )}
-                  <span style={{ ...gridLabelStyle(isActive), fontSize: 11, lineHeight: 1.2 }}>{c.label}</span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 11, lineHeight: 1.2 }}>{conditionDisplayLabel(c.value, c.label)}</span>
                   <span style={{ ...gridCountStyle, marginTop: 2 }}>{c.count} equipo{c.count !== 1 ? 's' : ''}</span>
                 </button>
               );
