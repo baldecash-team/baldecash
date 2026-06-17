@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
-import { ShieldCheck, Lock, Check, Plus, X, ExternalLink, Users } from 'lucide-react';
+import { ShieldCheck, Lock, Check, Plus, X, Users } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
@@ -128,6 +128,7 @@ const ModalContentShared: React.FC<{
           </details>
         )}
 
+        {/* BAL-1734: ocultamos el link a baldecash.com/seguros en el modal de detalle del seguro
         {plan.insuranceType === 'garantia_extendida' && (
           <a
             href="https://baldecash.com/seguros"
@@ -139,6 +140,7 @@ const ModalContentShared: React.FC<{
             baldecash.com/seguros
           </a>
         )}
+        */}
       </div>
 
       {/* Footer - Price + CTA */}
