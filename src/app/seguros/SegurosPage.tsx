@@ -19,8 +19,10 @@ import {
   Info,
   ArrowRight,
 } from 'lucide-react';
-import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
+import { SegurosNavbar } from './SegurosNavbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.baldecash.com';
 
 type CoverageType = 'robo' | 'garantia';
 
@@ -207,11 +209,10 @@ export default function SegurosPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* promoHref="#" neutraliza el "Ver más" del banner: en seguros no debe redirigir al catálogo de prototipos (BAL-1734) */}
-      <Navbar promoHref="#" />
+      <SegurosNavbar />
 
-      {/* Spacer for fixed navbar (banner + nav) */}
-      <div className="h-[104px]" />
+      {/* Spacer for fixed navbar (sin barra promocional) */}
+      <div className="h-16" />
 
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#4654CD] to-[#3a47b3] text-white">
@@ -697,7 +698,7 @@ export default function SegurosPage() {
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
               <Button
                 as="a"
-                href="/prototipos/0.5/hero/hero-preview"
+                href={`${SITE_URL}/home`}
                 size="lg"
                 radius="lg"
                 className="bg-white text-[#4654CD] font-semibold cursor-pointer hover:bg-neutral-100"
