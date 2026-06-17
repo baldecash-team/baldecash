@@ -474,16 +474,17 @@ function SolicitarContent() {
       return;
     }
 
-    // Validate terms
+    // Validate terms & privacy: marcar AMBOS si faltan (no cortar en el primero)
+    let hasConsentError = false;
     if (!acceptTerms) {
       setTermsError(true);
-      scrollToSection('terms-section');
-      return;
+      hasConsentError = true;
     }
-
-    // Validate privacy
     if (!acceptPrivacy) {
       setPrivacyError(true);
+      hasConsentError = true;
+    }
+    if (hasConsentError) {
       scrollToSection('terms-section');
       return;
     }

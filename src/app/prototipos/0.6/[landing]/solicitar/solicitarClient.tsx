@@ -303,17 +303,19 @@ function WizardPreviewContent() {
       return;
     }
 
-    // Validar términos antes de continuar (primera validación requerida)
+    // Validar términos y política de privacidad: marcar AMBOS si faltan
+    // (no cortar en el primero, así si ambos están sin marcar se ponen rojos a la vez)
+    let hasConsentError = false;
     if (!acceptTerms) {
       setTermsError('Debes aceptar los términos y condiciones para continuar');
-      // Scroll al checkbox de términos
-      scrollToSection('terms-section');
-      return;
+      hasConsentError = true;
     }
-
-    // Validar política de privacidad
     if (!acceptPrivacy) {
       setPrivacyError('Debes aceptar la política de privacidad para continuar');
+      hasConsentError = true;
+    }
+    if (hasConsentError) {
+      // Scroll una sola vez a la sección de términos
       scrollToSection('terms-section');
       return;
     }
