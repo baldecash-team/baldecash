@@ -207,7 +207,8 @@ export default function SegurosPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      {/* promoHref="#" neutraliza el "Ver más" del banner: en seguros no debe redirigir al catálogo de prototipos (BAL-1734) */}
+      <Navbar promoHref="#" />
 
       {/* Spacer for fixed navbar (banner + nav) */}
       <div className="h-[104px]" />

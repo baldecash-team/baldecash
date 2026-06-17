@@ -54,6 +54,8 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
 interface NavbarProps {
   isCleanMode?: boolean;
   hidePromoBanner?: boolean;
+  /** Destino del "Ver más" del banner promocional. Default: catálogo con tag de oferta. */
+  promoHref?: string;
   fullWidth?: boolean;
   minimal?: boolean;
   logoOnly?: boolean;
@@ -61,10 +63,11 @@ interface NavbarProps {
   mobileRightContent?: React.ReactNode;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent }) => {
+export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false, promoHref, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent }) => {
   const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
   const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode);
   const heroUrl = buildInternalUrl('/prototipos/0.5/hero/hero-preview', isCleanMode);
+  const promoUrl = promoHref ?? buildInternalUrl(catalogBasePath, isCleanMode, { tag: 'oferta' });
 
   const megaMenuItems = [
     { label: 'Laptops', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
@@ -109,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
             <span>
               <strong>Oferta especial:</strong> 0% interés en tu primera cuota
             </span>
-            <a href={buildInternalUrl(catalogBasePath, isCleanMode, { tag: 'oferta' })} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
+            <a href={promoUrl} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
               Ver más
             </a>
             <button
