@@ -94,6 +94,14 @@ export interface SubmitApplicationResponse {
 export interface CheckPersonRequest {
   document_type: 'dni' | 'ce' | 'passport';
   document_number: string;
+  /** Slug de la landing (p. ej. "canal-preferente"). El backend lo usa para evaluar whitelist. */
+  landing_slug?: string;
+}
+
+/** Resultado de whitelist devuelto por check-person. allowed=false bloquea el flujo. */
+export interface CheckPersonWhitelist {
+  allowed: boolean;
+  message: string;
 }
 
 export interface PrefillData {
@@ -108,6 +116,8 @@ export interface PrefillData {
 export interface CheckPersonResponse {
   exists: boolean;
   prefill_data: PrefillData | null;
+  /** Si viene con allowed=false, el flujo se bloquea mostrando `message`. */
+  whitelist?: CheckPersonWhitelist | null;
 }
 
 export interface SaveStepRequest {
@@ -206,6 +216,7 @@ export async function checkPerson(
       return {
         exists: false,
         prefill_data: null,
+        whitelist: null,
       };
     }
 
@@ -215,6 +226,7 @@ export async function checkPerson(
     return {
       exists: false,
       prefill_data: null,
+      whitelist: null,
     };
   }
 }

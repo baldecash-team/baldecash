@@ -218,7 +218,25 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     onPrefillReady: handlePrefillReady,
     onNoPrefillData: handleNoPrefillData,
     debounceMs: 500,
+    landingSlug: landing,
   });
+
+  // Whitelist: si el backend responde allowed === false, se bloquea el flujo.
+  // Guardamos el estado en formData para que StepClient impida avanzar y mostramos
+  // el mensaje del backend como error del campo.
+  const whitelist = response?.whitelist;
+  const isWhitelistBlocked = whitelist?.allowed === false;
+  const whitelistMessage = isWhitelistBlocked
+    ? (whitelist?.message || 'No es posible continuar con este documento.')
+    : '';
+
+  useEffect(() => {
+    updateField('_whitelist_blocked', isWhitelistBlocked ? 'true' : '');
+    updateField('_whitelist_message', whitelistMessage);
+    if (isWhitelistBlocked) {
+      updateField('_whitelist_field', field.code);
+    }
+  }, [isWhitelistBlocked, whitelistMessage, updateField, field.code]);
 
   // Trigger check when document number is complete
   useEffect(() => {
@@ -258,9 +276,13 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     recommendation: field.help_text.recommendation ?? undefined,
   } : undefined;
 
+  // El mensaje de whitelist (bloqueo) tiene prioridad y se muestra siempre,
+  // aunque el campo todavía no haya sido marcado como "submitted".
+  const displayError = isWhitelistBlocked ? whitelistMessage : error;
+
   // Determine success state
   const hasValue = !!value;
-  const isSuccess = !error && hasValue;
+  const isSuccess = !displayError && hasValue;
 
   const isPassport = documentType === 'pasaporte' || documentType === 'passport';
 
@@ -270,7 +292,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       label={field.label}
       value={value}
       onChange={handleChange}
-      error={error}
+      error={displayError}
       required={field.required}
       disabled={field.readonly || lockedByModal}
       tooltip={tooltip}

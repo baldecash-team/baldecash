@@ -25,6 +25,8 @@ interface UseCheckPersonOptions {
   onError?: (error: string) => void;
   /** Debounce delay in ms (default: 300) */
   debounceMs?: number;
+  /** Slug de la landing a enviar en check-person (para evaluación de whitelist). */
+  landingSlug?: string;
 }
 
 interface UseCheckPersonResult {
@@ -68,6 +70,7 @@ export function useCheckPerson(
     onNoPrefillData,
     onError,
     debounceMs = 300,
+    landingSlug,
   } = options;
 
   const [isChecking, setIsChecking] = useState(false);
@@ -107,6 +110,7 @@ export function useCheckPerson(
           const result = await checkPerson({
             document_type: documentType as 'dni' | 'ce' | 'passport',
             document_number: cleanNumber,
+            landing_slug: landingSlug,
           });
 
           setResponse(result);
@@ -127,7 +131,7 @@ export function useCheckPerson(
         }
       }, debounceMs);
     },
-    [onPrefillReady, onNoPrefillData, onError, debounceMs]
+    [onPrefillReady, onNoPrefillData, onError, debounceMs, landingSlug]
   );
 
   const reset = useCallback(() => {

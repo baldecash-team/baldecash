@@ -430,6 +430,17 @@ function StepContent() {
   // Navigation handlers
   const handleNext = () => {
     setSubmitted(true);
+
+    // Bloqueo por whitelist (check-person): si el backend marcó allowed === false,
+    // no se permite avanzar. El mensaje ya se muestra en el campo del documento.
+    if (formData['_whitelist_blocked']?.value === 'true') {
+      const wlField = formData['_whitelist_field']?.value as string | undefined;
+      if (wlField) {
+        document.getElementById(wlField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     const firstErrorField = validateStep();
     if (firstErrorField) {
       tracker?.track('form_step_validation_error', {
