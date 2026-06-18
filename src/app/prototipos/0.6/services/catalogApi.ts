@@ -160,7 +160,9 @@ export interface ApiCatalogProduct {
   } | null;
   promotion?: ApiProductPromotion | null;
   combo?: unknown | null;
+  // El listado viene en snake_case; aceptamos camelCase por robustez.
   deferred_delivery?: ApiDeferredDelivery | null;
+  deferredDelivery?: ApiDeferredDelivery | null;
 }
 
 export interface ApiPromotionTemplate {
@@ -671,7 +673,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     specs: productSpecs,
     rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),
-    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferred_delivery),
+    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferred_delivery ?? apiProduct.deferredDelivery),
     promotion: apiProduct.promotion ? {
       id: apiProduct.promotion.id,
       name: apiProduct.promotion.name,

@@ -260,10 +260,13 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             </h1>
           )}
           {/* Entrega diferida — debajo del nombre, solo si el producto está taggeado */}
-          {deferredRange && (
-            <div className="mt-2 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted,#6b7280)]">
+          {deferredDelivery?.isDeferred && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-[var(--text-muted,#6b7280)]">
               <Truck className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
-              <span>Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{deferredRange}</span></span>
+              <span className="font-semibold text-[var(--text-strong,#1f2937)]">Envío gratis</span>
+              {deferredRange && (
+                <span>· Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{deferredRange}</span></span>
+              )}
             </div>
           )}
           {/* Color Selector - Below product name */}

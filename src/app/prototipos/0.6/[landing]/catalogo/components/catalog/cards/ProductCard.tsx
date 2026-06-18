@@ -699,11 +699,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Entrega diferida (informativa) — solo si el producto está taggeado */}
             {product.deferredDelivery?.isDeferred && (() => {
               const range = formatDeferredFrom(product.deferredDelivery.estimatedFrom);
-              if (!range) return null;
               return (
-                <div className="flex items-center justify-center gap-1.5 mb-3 text-xs text-[var(--text-muted,#6b7280)]">
-                  <Truck className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
-                  <span>Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{range}</span></span>
+                <div className="mb-3 text-xs">
+                  <div className="flex items-center justify-center gap-1.5 font-semibold text-[var(--text-strong,#1f2937)]">
+                    <Truck className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+                    <span>Envío gratis</span>
+                  </div>
+                  {range && (
+                    <p className="text-center text-[var(--text-muted,#6b7280)] mt-0.5">
+                      Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{range}</span>
+                    </p>
+                  )}
                 </div>
               );
             })()}

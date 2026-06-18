@@ -132,6 +132,8 @@ interface ApiProductData {
   review_count: number;
   tea?: number;
   tcea?: number;
+  // El detalle viene en camelCase; aceptamos snake_case por robustez.
+  deferredDelivery?: ApiDeferredDelivery | null;
   deferred_delivery?: ApiDeferredDelivery | null;
 }
 
@@ -497,7 +499,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     tea: apiProduct.tea,
     tcea: apiProduct.tcea,
     variantId: extractVariantId(apiProduct),
-    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferred_delivery),
+    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferredDelivery ?? apiProduct.deferred_delivery),
   };
 }
 

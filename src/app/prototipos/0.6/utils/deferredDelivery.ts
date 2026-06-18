@@ -32,43 +32,53 @@ export const NO_DEFERRED_DELIVERY: DeferredDelivery = {
   estimatedTo: null,
 };
 
-/** Shape crudo del API (snake_case): Product.deferred_delivery. */
+/**
+ * Shape crudo del API. OJO: el casing difiere por endpoint:
+ *   - Listado  /products            → snake_case (deferred_delivery, is_deferred…)
+ *   - Detalle  /products/{slug}/detail → camelCase (deferredDelivery, isDeferred…)
+ * Por eso aceptamos ambas convenciones.
+ */
 export interface ApiDeferredDelivery {
   is_deferred?: boolean;
+  isDeferred?: boolean;
   days_min?: number | null;
+  daysMin?: number | null;
   days_max?: number | null;
+  daysMax?: number | null;
   estimated_from?: string | null;
+  estimatedFrom?: string | null;
   estimated_to?: string | null;
+  estimatedTo?: string | null;
 }
 
 /**
- * Normaliza el `deferred_delivery` crudo del API (snake_case) al tipo del FE.
- * Si no viene o no está taggeado, devuelve el valor "no diferido" para que el
- * FE oculte el bloque.
+ * Normaliza el bloque crudo del API (snake_case del listado o camelCase del
+ * detalle) al tipo del FE. Si no viene o no está taggeado, devuelve el valor
+ * "no diferido" para que el FE oculte el bloque.
  */
 export function mapApiDeferredDelivery(
   raw?: ApiDeferredDelivery | null,
 ): DeferredDelivery {
-  if (!raw || raw.is_deferred !== true) {
-    return NO_DEFERRED_DELIVERY;
-  }
+  if (!raw) return NO_DEFERRED_DELIVERY;
+  const isDeferred = raw.is_deferred ?? raw.isDeferred ?? false;
+  if (isDeferred !== true) return NO_DEFERRED_DELIVERY;
   return {
     isDeferred: true,
-    daysMin: raw.days_min ?? null,
-    daysMax: raw.days_max ?? null,
-    estimatedFrom: raw.estimated_from ?? null,
-    estimatedTo: raw.estimated_to ?? null,
+    daysMin: raw.days_min ?? raw.daysMin ?? null,
+    daysMax: raw.days_max ?? raw.daysMax ?? null,
+    estimatedFrom: raw.estimated_from ?? raw.estimatedFrom ?? null,
+    estimatedTo: raw.estimated_to ?? raw.estimatedTo ?? null,
   };
 }
 
-// Abreviaturas de mes en español (estilo "jul.").
+// Abreviaturas de mes en español, mayúsculas (estilo "JUN.").
 const MONTHS_ABBR = [
-  'ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.',
-  'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.',
+  'ENE.', 'FEB.', 'MAR.', 'ABR.', 'MAY.', 'JUN.',
+  'JUL.', 'AGO.', 'SEP.', 'OCT.', 'NOV.', 'DIC.',
 ];
 
 /**
- * Formatea una fecha ISO (YYYY-MM-DD) a "02 jul.".
+ * Formatea una fecha ISO (YYYY-MM-DD) a "30 de JUN.".
  * Parseo manual para evitar corrimientos por zona horaria.
  */
 export function formatDeferredDate(iso: string | null): string {
@@ -77,7 +87,7 @@ export function formatDeferredDate(iso: string | null): string {
   if (!m) return '';
   const monthIdx = parseInt(m[2], 10) - 1;
   const abbr = MONTHS_ABBR[monthIdx] ?? '';
-  return abbr ? `${m[3]} ${abbr}` : '';
+  return abbr ? `${m[3]} de ${abbr}` : '';
 }
 
 /**
