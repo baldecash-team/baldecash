@@ -41,6 +41,7 @@ import {
   SimilarProducts,
   ProductLimitations,
   Certifications,
+  ProductCommitment,
   PortsDisplay,
   SpecSheetDownload,
 } from './index';
@@ -672,6 +673,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 )}
               </div>
               )}
+            </div>
+
+            {/* Compromiso / Garantía BaldeCash */}
+            <div id="section-commitment">
+              <ProductCommitment deferredDelivery={product.deferredDelivery} />
             </div>
 
             {/* Certifications */}

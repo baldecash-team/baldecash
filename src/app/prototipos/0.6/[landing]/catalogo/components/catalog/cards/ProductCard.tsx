@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, Truck, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -65,6 +65,7 @@ import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
+import { formatDeferredRange } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 interface ProductCardProps {
   product: CatalogProduct;
@@ -680,6 +681,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </>
               )}
             </div>
+
+            {/* Entrega diferida (informativa) — solo si el producto está taggeado */}
+            {product.deferredDelivery?.isDeferred && (() => {
+              const range = formatDeferredRange(
+                product.deferredDelivery.estimatedFrom,
+                product.deferredDelivery.estimatedTo,
+              );
+              if (!range) return null;
+              return (
+                <div className="flex items-center justify-center gap-1.5 mb-3 text-xs text-[var(--text-muted,#6b7280)]">
+                  <Truck className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+                  <span>Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{range}</span></span>
+                </div>
+              );
+            })()}
 
             {/* CTAs */}
             <div className="flex gap-2 w-full">

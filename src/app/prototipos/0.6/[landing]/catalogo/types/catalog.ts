@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import type { CatalogFiltersResponse } from '../../../types/filters';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import type { DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 // ============================================
 // Enums y tipos base
@@ -713,6 +714,8 @@ export interface CatalogProduct {
   rawSpecs?: Record<string, string | number | boolean>;
   createdAt: string;
   promotion?: ProductPromotion | null;
+  /** Entrega diferida (informativa). isDeferred=false → el FE oculta el bloque. */
+  deferredDelivery?: DeferredDelivery;
 }
 
 export interface ProductSpecs {

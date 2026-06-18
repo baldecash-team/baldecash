@@ -2,6 +2,7 @@
 // Copied from v0.5 with mock data support
 
 import type { PaymentFrequency } from '../../../utils/paymentTerm';
+import type { DeferredDelivery } from '../../../utils/deferredDelivery';
 
 // ============================================
 // Device Type Configuration (Iterable)
@@ -157,6 +158,8 @@ export interface ProductDetail {
   tcea?: number;
   /** Variant ID real del producto (extraído de colors[].id o images[].variant_id). */
   variantId?: number;
+  /** Entrega diferida (informativa). isDeferred=false → el FE oculta el bloque. */
+  deferredDelivery?: DeferredDelivery;
 }
 
 // ============================================

@@ -25,6 +25,7 @@ import {
   ComboInfo,
   ComboAccessory,
 } from '../types/detail';
+import { mapApiDeferredDelivery, type DeferredDelivery } from '../../../utils/deferredDelivery';
 
 // API base URL - uses environment variable or falls back to localhost
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -131,6 +132,7 @@ interface ApiProductData {
   review_count: number;
   tea?: number;
   tcea?: number;
+  deferredDelivery?: Partial<DeferredDelivery> | null;
 }
 
 interface ApiInitialPaymentOption {
@@ -495,6 +497,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     tea: apiProduct.tea,
     tcea: apiProduct.tcea,
     variantId: extractVariantId(apiProduct),
+    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferredDelivery),
   };
 }
 
