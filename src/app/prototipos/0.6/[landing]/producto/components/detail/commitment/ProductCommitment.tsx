@@ -13,7 +13,7 @@
 
 import React from 'react';
 import { Truck, ShieldCheck, Check, RefreshCw, Lock } from 'lucide-react';
-import { formatDeferredRange, type DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
+import { formatDeferredFrom, type DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 interface CommitmentBullet {
   text: string;
@@ -32,7 +32,7 @@ interface ProductCommitmentProps {
 
 export const ProductCommitment: React.FC<ProductCommitmentProps> = ({ deferredDelivery }) => {
   const deferredRange = deferredDelivery?.isDeferred
-    ? formatDeferredRange(deferredDelivery.estimatedFrom, deferredDelivery.estimatedTo)
+    ? formatDeferredFrom(deferredDelivery.estimatedFrom)
     : '';
 
   return (

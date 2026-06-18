@@ -14,7 +14,7 @@ import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play, T
 import { ProductGalleryProps } from '../../../types/detail';
 import { ColorSelector } from '../color-selector/ColorSelector';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
-import { formatDeferredRange, type DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
+import { formatDeferredFrom, type DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 interface ExtendedProductGalleryProps extends ProductGalleryProps {
   // Product info
@@ -45,7 +45,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
 }) => {
   const analytics = useAnalytics();
   const deferredRange = deferredDelivery?.isDeferred
-    ? formatDeferredRange(deferredDelivery.estimatedFrom, deferredDelivery.estimatedTo)
+    ? formatDeferredFrom(deferredDelivery.estimatedFrom)
     : '';
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);

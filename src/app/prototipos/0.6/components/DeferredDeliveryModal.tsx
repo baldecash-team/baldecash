@@ -12,7 +12,7 @@ import React from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { Truck, CalendarClock } from 'lucide-react';
 import {
-  formatDeferredRange,
+  formatDeferredFrom,
   formatDeferredDays,
   type DeferredDelivery,
 } from '@/app/prototipos/0.6/utils/deferredDelivery';
@@ -35,10 +35,7 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
   deferredDelivery,
   productName,
 }) => {
-  const range = formatDeferredRange(
-    deferredDelivery?.estimatedFrom ?? null,
-    deferredDelivery?.estimatedTo ?? null,
-  );
+  const range = formatDeferredFrom(deferredDelivery?.estimatedFrom ?? null);
   const daysText = formatDeferredDays(
     deferredDelivery?.daysMin ?? null,
     deferredDelivery?.daysMax ?? null,

@@ -96,6 +96,15 @@ export function formatDeferredRange(
 }
 
 /**
+ * Etiqueta "Desde 25 jun." a partir de estimatedFrom (vacío si no hay fecha).
+ * Es el formato que se muestra junto a la palabra "Entrega:".
+ */
+export function formatDeferredFrom(from: string | null): string {
+  const d = formatDeferredDate(from);
+  return d ? `Desde ${d}` : '';
+}
+
+/**
  * Texto de días estimados: "7 días" o "15–25 días".
  * Útil para el modal informativo de entrega.
  */

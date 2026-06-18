@@ -65,7 +65,7 @@ import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
-import { formatDeferredRange } from '@/app/prototipos/0.6/utils/deferredDelivery';
+import { formatDeferredFrom } from '@/app/prototipos/0.6/utils/deferredDelivery';
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
 interface ProductCardProps {
@@ -698,10 +698,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Entrega diferida (informativa) — solo si el producto está taggeado */}
             {product.deferredDelivery?.isDeferred && (() => {
-              const range = formatDeferredRange(
-                product.deferredDelivery.estimatedFrom,
-                product.deferredDelivery.estimatedTo,
-              );
+              const range = formatDeferredFrom(product.deferredDelivery.estimatedFrom);
               if (!range) return null;
               return (
                 <div className="flex items-center justify-center gap-1.5 mb-3 text-xs text-[var(--text-muted,#6b7280)]">
