@@ -469,6 +469,7 @@ export interface LeadFormConfig {
   description: string;
   cta_text: string;
   redirect_url?: string;
+  study_center_label?: string;
 }
 
 export interface LeadProductsConfig {

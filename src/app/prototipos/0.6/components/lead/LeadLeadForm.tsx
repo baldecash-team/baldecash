@@ -303,7 +303,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         {/* Lugar de estudio */}
         <SelectInput
           id="lead-estudio"
-          label="Lugar de estudio"
+          label={config.study_center_label ?? "Lugar de estudio"}
           placeholder="¿Dónde estudias?"
           value={form.study_center_id}
           options={studyCenterOptions}
