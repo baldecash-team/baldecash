@@ -956,6 +956,7 @@ export function transformLandingData(data: LandingHeroResponse): {
     cta_text: (rawLeadForm.cta_text as string) ?? '',
     redirect_url: (rawLeadForm.redirect_url as string) || undefined,
     study_center_label: (rawLeadForm.study_center_label as string) || undefined,
+    study_center_placeholder: (rawLeadForm.study_center_placeholder as string) || undefined,
   } : null;
 
   // Extract lead products config from lead_products component (for lead landings)
