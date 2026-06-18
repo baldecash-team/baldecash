@@ -22,7 +22,7 @@ import type {
 } from '../[landing]/catalogo/types/catalog';
 
 import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/catalog';
-import { mapApiDeferredDelivery, type DeferredDelivery } from '../utils/deferredDelivery';
+import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../utils/deferredDelivery';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -160,7 +160,7 @@ export interface ApiCatalogProduct {
   } | null;
   promotion?: ApiProductPromotion | null;
   combo?: unknown | null;
-  deferredDelivery?: Partial<DeferredDelivery> | null;
+  deferred_delivery?: ApiDeferredDelivery | null;
 }
 
 export interface ApiPromotionTemplate {
@@ -671,7 +671,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     specs: productSpecs,
     rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),
-    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferredDelivery),
+    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferred_delivery),
     promotion: apiProduct.promotion ? {
       id: apiProduct.promotion.id,
       name: apiProduct.promotion.name,

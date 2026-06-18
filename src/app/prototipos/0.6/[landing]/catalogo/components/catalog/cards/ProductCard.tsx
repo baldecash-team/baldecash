@@ -66,6 +66,7 @@ import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { formatDeferredRange } from '@/app/prototipos/0.6/utils/deferredDelivery';
+import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
 interface ProductCardProps {
   product: CatalogProduct;
@@ -135,6 +136,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedColorId, setSelectedColorId] = useState<string>(
     currentProductColor?.id || product.colors?.[0]?.id || ''
   );
+
+  // Entrega diferida: al dar "Lo quiero" se muestra primero el aviso de fecha.
+  const [showDeferredModal, setShowDeferredModal] = useState(false);
 
   // Hover capability detection — disables sticky :hover side-effects on touch
   // devices (iOS/Android) where the last tapped card would stay "hovered".
@@ -289,6 +293,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     monthlyPayment: quota,
     addedAt: Date.now(),
   });
+
+  // "Lo quiero": si el producto tiene entrega diferida, primero el aviso de fecha;
+  // al confirmar se agrega al carrito.
+  const handleQuieroClick = () => {
+    if (product.deferredDelivery?.isDeferred) {
+      setShowDeferredModal(true);
+      return;
+    }
+    onAddToCart?.(createCartItem());
+  };
 
   // Promotion template data
   const promoTemplate = product.promotion?.template;
@@ -742,7 +756,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       }
                     : undefined
                 }
-                onPress={!resolvedIsInCart ? () => onAddToCart?.(createCartItem()) : undefined}
+                onPress={!resolvedIsInCart ? handleQuieroClick : undefined}
                 isDisabled={resolvedIsInCart}
               >
                 {resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
@@ -751,6 +765,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </CardBody>
       </Card>
+
+      {/* Aviso de entrega diferida al dar "Lo quiero" */}
+      <DeferredDeliveryModal
+        isOpen={showDeferredModal}
+        onClose={() => setShowDeferredModal(false)}
+        onConfirm={() => onAddToCart?.(createCartItem())}
+        deferredDelivery={product.deferredDelivery}
+        productName={displayName}
+      />
     </motion.div>
   );
 };

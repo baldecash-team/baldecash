@@ -10,10 +10,11 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play } from 'lucide-react';
+import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play, Truck } from 'lucide-react';
 import { ProductGalleryProps } from '../../../types/detail';
 import { ColorSelector } from '../color-selector/ColorSelector';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { formatDeferredRange, type DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 interface ExtendedProductGalleryProps extends ProductGalleryProps {
   // Product info
@@ -25,6 +26,8 @@ interface ExtendedProductGalleryProps extends ProductGalleryProps {
   colors?: Array<{ id: string; name: string; hex: string }>;
   selectedColorId?: string;
   onColorSelect?: (colorId: string) => void;
+  // Entrega diferida (informativa)
+  deferredDelivery?: DeferredDelivery | null;
 }
 
 export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
@@ -38,8 +41,12 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   colors,
   selectedColorId,
   onColorSelect,
+  deferredDelivery,
 }) => {
   const analytics = useAnalytics();
+  const deferredRange = deferredDelivery?.isDeferred
+    ? formatDeferredRange(deferredDelivery.estimatedFrom, deferredDelivery.estimatedTo)
+    : '';
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -251,6 +258,13 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-strong,#111827)] font-['Baloo_2',_sans-serif] leading-tight">
               {displayName}
             </h1>
+          )}
+          {/* Entrega diferida — debajo del nombre, solo si el producto está taggeado */}
+          {deferredRange && (
+            <div className="mt-2 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted,#6b7280)]">
+              <Truck className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
+              <span>Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{deferredRange}</span></span>
+            </div>
           )}
           {/* Color Selector - Below product name */}
           {colors && colors.length > 0 && selectedColorId && onColorSelect && (

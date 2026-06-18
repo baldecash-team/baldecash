@@ -48,6 +48,7 @@ import {
 import type { PricingSelection } from './pricing/PricingCalculator';
 import { RefurbishedInfoBanner } from './RefurbishedInfoBanner';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -156,6 +157,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Reacondicionado: aviso de confirmación antes de pasar a solicitar.
   const isRefurbished = isRefurbishedCondition(product.condition);
   const [showRefurbModal, setShowRefurbModal] = useState(false);
+
+  // Entrega diferida: aviso de fecha de entrega antes de pasar a solicitar.
+  const isDeferred = product.deferredDelivery?.isDeferred ?? false;
+  const [showDeferredModal, setShowDeferredModal] = useState(false);
 
   // Navigate to sibling product when color is selected
   const handleColorSelect = useCallback((colorId: string) => {
@@ -395,10 +400,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return spec?.value;
   };
 
-  // Gate: en reacondicionados, primero confirmar el aviso; luego proceder.
+  // Gate: en reacondicionados, primero confirmar el aviso; luego (si aplica) el
+  // aviso de entrega diferida; luego proceder.
   const handleSolicitar = () => {
     if (isRefurbished) {
       setShowRefurbModal(true);
+      return;
+    }
+    if (isDeferred) {
+      setShowDeferredModal(true);
+      return;
+    }
+    proceedToSolicitar();
+  };
+
+  // Tras confirmar el aviso de reacondicionado, encadenar el de entrega diferida.
+  const handleRefurbConfirm = () => {
+    if (isDeferred) {
+      setShowDeferredModal(true);
       return;
     }
     proceedToSolicitar();
@@ -484,6 +503,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               colors={displayColors}
               selectedColorId={selectedColorId}
               onColorSelect={handleColorSelect}
+              deferredDelivery={product.deferredDelivery}
             />
           </div>
 
@@ -791,7 +811,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       <RefurbishedWarningModal
         isOpen={showRefurbModal}
         onClose={() => setShowRefurbModal(false)}
+        onConfirm={handleRefurbConfirm}
+        productName={product.displayName}
+      />
+
+      {/* Aviso de entrega diferida antes de pasar a solicitar */}
+      <DeferredDeliveryModal
+        isOpen={showDeferredModal}
+        onClose={() => setShowDeferredModal(false)}
         onConfirm={proceedToSolicitar}
+        deferredDelivery={product.deferredDelivery}
         productName={product.displayName}
       />
     </div>

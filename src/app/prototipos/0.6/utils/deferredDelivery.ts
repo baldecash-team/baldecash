@@ -32,22 +32,32 @@ export const NO_DEFERRED_DELIVERY: DeferredDelivery = {
   estimatedTo: null,
 };
 
+/** Shape crudo del API (snake_case): Product.deferred_delivery. */
+export interface ApiDeferredDelivery {
+  is_deferred?: boolean;
+  days_min?: number | null;
+  days_max?: number | null;
+  estimated_from?: string | null;
+  estimated_to?: string | null;
+}
+
 /**
- * Normaliza el `deferredDelivery` crudo del API. Si no viene o no está taggeado,
- * devuelve el valor "no diferido" para que el FE oculte el bloque.
+ * Normaliza el `deferred_delivery` crudo del API (snake_case) al tipo del FE.
+ * Si no viene o no está taggeado, devuelve el valor "no diferido" para que el
+ * FE oculte el bloque.
  */
 export function mapApiDeferredDelivery(
-  raw?: Partial<DeferredDelivery> | null,
+  raw?: ApiDeferredDelivery | null,
 ): DeferredDelivery {
-  if (!raw || raw.isDeferred !== true) {
+  if (!raw || raw.is_deferred !== true) {
     return NO_DEFERRED_DELIVERY;
   }
   return {
     isDeferred: true,
-    daysMin: raw.daysMin ?? null,
-    daysMax: raw.daysMax ?? null,
-    estimatedFrom: raw.estimatedFrom ?? null,
-    estimatedTo: raw.estimatedTo ?? null,
+    daysMin: raw.days_min ?? null,
+    daysMax: raw.days_max ?? null,
+    estimatedFrom: raw.estimated_from ?? null,
+    estimatedTo: raw.estimated_to ?? null,
   };
 }
 
@@ -80,6 +90,24 @@ export function formatDeferredRange(
 ): string {
   const a = formatDeferredDate(from);
   const b = formatDeferredDate(to);
-  if (a && b) return `${a} – ${b}`;
+  // Si ambas fechas coinciden (days_min === days_max) mostramos una sola.
+  if (a && b) return a === b ? a : `${a} – ${b}`;
   return a || b || '';
+}
+
+/**
+ * Texto de días estimados: "7 días" o "15–25 días".
+ * Útil para el modal informativo de entrega.
+ */
+export function formatDeferredDays(
+  daysMin: number | null,
+  daysMax: number | null,
+): string {
+  if (daysMin == null && daysMax == null) return '';
+  if (daysMin != null && daysMax != null) {
+    if (daysMin === daysMax) return `${daysMin} ${daysMin === 1 ? 'día' : 'días'}`;
+    return `${daysMin}–${daysMax} días`;
+  }
+  const d = (daysMin ?? daysMax) as number;
+  return `${d} ${d === 1 ? 'día' : 'días'}`;
 }
