@@ -37,6 +37,7 @@ export const LOAD_MORE_LIMIT = 8;
  * mejor oferta disponible aplicada, manteniendo el mismo shape de respuesta.
  */
 const BEST_OFFER_LANDING_SLUGS = new Set<string>([
+  'home',
   'copia-home',
 ]);
 
