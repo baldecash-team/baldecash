@@ -315,7 +315,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
               )}
             </div>
             <p className="text-sm text-white mb-4">{tagline}</p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap gap-2.5">
               {socialLinks.map((social) => (
                 <a
                   key={social.label}

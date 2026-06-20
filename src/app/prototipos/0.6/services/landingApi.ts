@@ -24,6 +24,7 @@ import type {
   CtaQuickLink,
   LeadProductsConfig,
   LeadFormConfig,
+  LeadFormFieldConfig,
   BannerImage,
 } from '../types/hero';
 
@@ -394,6 +395,7 @@ export async function getFooterData(slug: string, previewKey?: string | null): P
         legal_name: company.legal_name,
         logo_url: company.logo_url,
         main_phone: company.main_phone,
+        main_address: company.main_address,
         main_email: company.main_email,
         website_url: company.website_url,
         customer_portal_url: company.customer_portal_url,
@@ -472,7 +474,7 @@ export async function getLandingLayoutById(landingId: number, previewKey: string
 /**
  * Transforma los datos de la API al formato esperado por los componentes
  */
-export function transformLandingData(data: LandingHeroResponse): {
+export function transformLandingData(data: LandingHeroResponse, leadFormFields?: LeadFormFieldConfig[]): {
   landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
@@ -949,7 +951,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   // Extract lead form config from hero component (for lead landings)
   const heroContentConfig = (heroComponent?.content_config || {}) as Record<string, unknown>;
   const rawLeadForm = heroContentConfig.lead_form as Record<string, unknown> | null | undefined;
-  const leadFormConfig: import('../types/hero').LeadFormConfig | null = rawLeadForm ? {
+  const leadFormConfigBase: LeadFormConfig | null = rawLeadForm ? {
     title_count: (rawLeadForm.title_count as number) ?? 0,
     title: (rawLeadForm.title as string) ?? '',
     description: (rawLeadForm.description as string) ?? '',
@@ -958,6 +960,10 @@ export function transformLandingData(data: LandingHeroResponse): {
     study_center_label: (rawLeadForm.study_center_label as string) || undefined,
     study_center_placeholder: (rawLeadForm.study_center_placeholder as string) || undefined,
   } : null;
+
+  const leadFormConfig: LeadFormConfig | null = leadFormConfigBase
+    ? { ...leadFormConfigBase, fields: leadFormFields }
+    : null;
 
   // Extract lead products config from lead_products component (for lead landings)
   const leadProductsComponent = components.find(c => c.component_code === 'lead_products');
@@ -1063,7 +1069,24 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
     return null;
   }
 
-  return transformLandingData(data);
+  // Fetch dynamic lead form field config (per-landing overrides from form_builder)
+  let leadFormFields: LeadFormFieldConfig[] | undefined;
+  if (data.landing?.id) {
+    try {
+      const formConfigRes = await fetch(
+        `${API_BASE_URL}/public/leads/form-config?landing_id=${data.landing.id}`,
+        { cache: 'no-store' }
+      );
+      if (formConfigRes.ok) {
+        const formConfigData = await formConfigRes.json();
+        if (Array.isArray(formConfigData.fields) && formConfigData.fields.length > 0) {
+          leadFormFields = formConfigData.fields as LeadFormFieldConfig[];
+        }
+      }
+    } catch { /* non-blocking — fallback to hardcoded DEFAULT_FIELDS */ }
+  }
+
+  return transformLandingData(data, leadFormFields);
 }
 
 // ============================================
