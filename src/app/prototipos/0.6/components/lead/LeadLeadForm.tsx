@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { LeadFormConfig, StudyCenter } from '../../types/hero';
+import type { LeadFormConfig, LeadFormFieldConfig, LeadFormFieldOptionsFilter, StudyCenter } from '../../types/hero';
 import { useSessionOptional } from '../../[landing]/solicitar/context/SessionContext';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 import { TextInput } from '../../[landing]/solicitar/components/solicitar/fields/TextInput';
@@ -41,6 +41,22 @@ interface FormErrors {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 const APP_BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
 
+// Campos hardcodeados usados cuando la landing no tiene configuración dinámica en BD
+const DEFAULT_FIELDS: LeadFormFieldConfig[] = [
+  { code: 'document_number', label: 'DNI', field_type: 'document_number', placeholder: 'Ej. 12345678', is_required: true, is_visible: true, display_order: 0, input_mode: 'numeric', max_length: 8, pattern: '^\\d{8}$' },
+  { code: 'first_name',      label: 'Nombre',   field_type: 'text', placeholder: 'Tus nombres',    is_required: true, is_visible: true, display_order: 1 },
+  { code: 'last_name',       label: 'Apellido',  field_type: 'text', placeholder: 'Tus apellidos',  is_required: true, is_visible: true, display_order: 2 },
+  { code: 'phone',           label: 'Celular',   field_type: 'phone', placeholder: 'Ej. 987654321', is_required: true, is_visible: true, display_order: 3, input_mode: 'numeric', max_length: 9, pattern: '^\\d{9}$' },
+  { code: 'institution',     label: 'Lugar de estudio', field_type: 'autocomplete', placeholder: '¿Dónde estudias?', is_required: true, is_visible: true, display_order: 4, options_source: 'study-centers', min_search_length: 3 },
+];
+
+function buildSearchUrl(search: string, filter?: LeadFormFieldOptionsFilter | null): string {
+  const params = new URLSearchParams({ search });
+  if (filter?.type?.length) params.set('type', filter.type.join(','));
+  if (filter?.ids?.length) params.set('ids', filter.ids.join(','));
+  return `${API_BASE_URL}/public/options/study-centers?${params.toString()}`;
+}
+
 export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   config,
   landingId,
@@ -52,6 +68,28 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   const router = useRouter();
   const session = useSessionOptional();
   const tracker = useEventTrackerOptional();
+
+  const [dynamicFields, setDynamicFields] = useState<LeadFormFieldConfig[] | null>(null);
+  const [fieldsLoading, setFieldsLoading] = useState(true);
+
+  useEffect(() => {
+    setFieldsLoading(true);
+    fetch(`${API_BASE_URL}/public/leads/form-config?landing_id=${landingId}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.fields?.length) setDynamicFields(data.fields); })
+      .catch(() => {})
+      .finally(() => setFieldsLoading(false));
+  }, [landingId]);
+
+  // Prioridad: BD dinámica > config.fields del hero > DEFAULT_FIELDS hardcodeados
+  const activeFields = (dynamicFields ?? config.fields ?? DEFAULT_FIELDS)
+    .filter(f => f.is_visible)
+    .sort((a, b) => a.display_order - b.display_order);
+
+  const studyCenterField = activeFields.find(
+    f => f.options_source === 'study-centers' || f.code === 'institution'
+  );
+
   const hasStarted = useRef(false);
   const partialLeadIdRef = useRef<number | null>(null);
   const localSubmittingRef = useRef(false);
@@ -93,7 +131,8 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
 
   const handleStudyCenterSearch = useCallback(async (search: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/public/options/study-centers?search=${encodeURIComponent(search)}`);
+      const url = buildSearchUrl(search, studyCenterField?.options_filter);
+      const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
       setStudyCenterOptions((data.options || []).map((o: { value: number; label: string }) => ({
@@ -101,15 +140,26 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         label: o.label,
       })));
     } catch { /* ignore */ }
-  }, []);
+  }, [studyCenterField?.options_filter]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!/^\d{8}$/.test(form.document_number.trim())) newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
-    if (!form.first_name.trim()) newErrors.first_name = 'Ingresa tu nombre';
-    if (!form.last_name.trim()) newErrors.last_name = 'Ingresa tu apellido';
-    if (!/^\d{9}$/.test(form.phone.trim())) newErrors.phone = 'Ingresa un celular válido (9 dígitos)';
-    if (!form.study_center_id) newErrors.study_center_id = 'Selecciona tu lugar de estudio';
+    for (const field of activeFields) {
+      if (!field.is_required) continue;
+      const key = field.code === 'institution' ? 'study_center_id' : field.code as keyof FormState;
+      const rawValue = form[key as keyof FormState];
+      const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+      if (!value) {
+        if (field.code === 'document_number') newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
+        else if (field.code === 'phone') newErrors.phone = 'Ingresa un celular válido (9 dígitos)';
+        else if (field.code === 'institution') newErrors.study_center_id = `Selecciona ${field.label.toLowerCase()}`;
+        else newErrors[key as keyof FormErrors] = `Ingresa tu ${field.label.toLowerCase()}`;
+      } else if (field.pattern && typeof value === 'string' && !new RegExp(field.pattern).test(value)) {
+        if (field.code === 'document_number') newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
+        else if (field.code === 'phone') newErrors.phone = 'Ingresa un celular válido (9 dígitos)';
+        else newErrors[key as keyof FormErrors] = `${field.label} inválido`;
+      }
+    }
     if (!form.accepts_terms) newErrors.accepts_terms = 'Debes aceptar los términos para continuar';
     setErrors(newErrors);
     const hasErrors = Object.keys(newErrors).length > 0;
@@ -238,85 +288,63 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-2">
-        {/* DNI */}
-        <TextInput
-          id="lead-dni"
-          label="DNI"
-          placeholder="Ej. 12345678"
-          value={form.document_number}
-          inputMode="numeric"
-          maxLength={8}
-          showCounter={false}
-          compact
-          small
-          hideErrorText={isDesktop}
-          error={errors.document_number}
-          onChange={(v) => handleChange('document_number', v.replace(/\D/g, ''))}
-          onBlur={() => handleBlur('document_number', form.document_number)}
-        />
+        {fieldsLoading ? (
+          <>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-10 rounded-lg bg-neutral-100 animate-pulse" />
+            ))}
+          </>
+        ) : null}
+        {!fieldsLoading && activeFields.map((field) => {
+          const isStudyCenter = field.options_source === 'study-centers' || field.code === 'institution';
+          const isNumericInput = field.code === 'document_number' || field.code === 'phone';
 
-        {/* Nombre */}
-        <TextInput
-          id="lead-nombre"
-          label="Nombre"
-          placeholder="Tus nombres"
-          value={form.first_name}
-          compact
-          small
-          hideErrorText={isDesktop}
-          error={errors.first_name}
-          onChange={(v) => handleChange('first_name', v)}
-          onBlur={() => handleBlur('first_name', form.first_name)}
-        />
+          if (isStudyCenter) {
+            const label = config.study_center_label ?? field.label;
+            const placeholder = config.study_center_placeholder ?? field.placeholder ?? '¿Dónde estudias?';
+            return (
+              <SelectInput
+                key={field.code}
+                id="lead-estudio"
+                label={label}
+                placeholder={placeholder}
+                value={form.study_center_id}
+                options={studyCenterOptions}
+                error={errors.study_center_id}
+                small
+                hideErrorText={isDesktop}
+                onChange={(v) => {
+                  handleChange('study_center_id', v);
+                  handleBlur('study_center_id', v);
+                }}
+                searchable
+                onSearch={handleStudyCenterSearch}
+              />
+            );
+          }
 
-        {/* Apellido */}
-        <TextInput
-          id="lead-apellido"
-          label="Apellido"
-          placeholder="Tus apellidos"
-          value={form.last_name}
-          compact
-          small
-          hideErrorText={isDesktop}
-          error={errors.last_name}
-          onChange={(v) => handleChange('last_name', v)}
-          onBlur={() => handleBlur('last_name', form.last_name)}
-        />
-
-        {/* Celular */}
-        <TextInput
-          id="lead-celular"
-          label="Celular"
-          placeholder="Ej. 987654321"
-          value={form.phone}
-          inputMode="numeric"
-          maxLength={9}
-          showCounter={false}
-          compact
-          small
-          hideErrorText={isDesktop}
-          error={errors.phone}
-          onChange={(v) => handleChange('phone', v.replace(/\D/g, ''))}
-          onBlur={() => handleBlur('phone', form.phone)}
-        />
-
-        {/* Lugar de estudio */}
-        <SelectInput
-          id="lead-estudio"
-          label={config.study_center_label ?? "Lugar de estudio"}
-          placeholder={config.study_center_placeholder ?? "¿Dónde estudias?"}
-          value={form.study_center_id}
-          options={studyCenterOptions}
-          error={errors.study_center_id}
-          small
-          hideErrorText={isDesktop}
-          onChange={(v) => {
-            handleChange('study_center_id', v);
-            handleBlur('study_center_id', v);
-          }}
-          searchable
-          onSearch={handleStudyCenterSearch}
-        />
+          const formKey = field.code as TextFormField;
+          const formValue = (form[formKey as keyof FormState] as string) ?? '';
+          const errorValue = errors[formKey as keyof FormErrors];
+          return (
+            <TextInput
+              key={field.code}
+              id={`lead-${field.code}`}
+              label={field.label}
+              placeholder={field.placeholder ?? ''}
+              value={formValue}
+              inputMode={field.input_mode as React.HTMLAttributes<HTMLInputElement>['inputMode'] | undefined}
+              maxLength={field.max_length ?? undefined}
+              showCounter={false}
+              compact
+              small
+              hideErrorText={isDesktop}
+              error={errorValue}
+              onChange={(v) => handleChange(formKey, isNumericInput ? v.replace(/\D/g, '') : v)}
+              onBlur={() => handleBlur(formKey, formValue)}
+            />
+          );
+        })}
 
         {/* Checkbox 1: TyC + Privacidad (obligatorio) */}
         <div className="pt-1">

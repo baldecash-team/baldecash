@@ -463,6 +463,29 @@ export interface BannerImage {
   mobile_zoom?: number;
 }
 
+export interface LeadFormFieldOptionsFilter {
+  type?: string[];
+  ids?: number[];
+}
+
+export interface LeadFormFieldConfig {
+  code: string;
+  label: string;
+  field_type: string;
+  placeholder?: string;
+  is_required: boolean;
+  is_visible: boolean;
+  display_order: number;
+  input_mode?: string;
+  max_length?: number;
+  min_length?: number;
+  pattern?: string;
+  mask?: string;
+  options_source?: string;
+  options_filter?: LeadFormFieldOptionsFilter | null;
+  min_search_length?: number;
+}
+
 export interface LeadFormConfig {
   title_count: number;
   title: string;
@@ -471,6 +494,7 @@ export interface LeadFormConfig {
   redirect_url?: string;
   study_center_label?: string;
   study_center_placeholder?: string;
+  fields?: LeadFormFieldConfig[];
 }
 
 export interface LeadProductsConfig {

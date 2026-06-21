@@ -388,8 +388,9 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     }
   }, [heroData]);
 
-  // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
-  const showPreviewBanner = isPreviewMode || isPreviewParam || !!previewKey;
+  // Show preview banner only after hydration to avoid SSR mismatch.
+  // isPreviewMode and previewKey depend on sessionStorage which is client-only.
+  const showPreviewBanner = isPreviewHydrated && (isPreviewMode || isPreviewParam || !!previewKey);
   // Preview banner height in pixels (py-1 = 4px top + 4px bottom + ~16px text = ~24px)
   const previewBannerHeight = 24;
 
