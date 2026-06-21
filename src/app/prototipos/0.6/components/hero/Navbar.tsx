@@ -221,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
     badge_color: item.badge_color,
     is_visible: item.is_visible,
     // Transformar megamenu_items individuales
-    megaMenuItems: (item.megamenu_items || []).map(mi => ({
+    megaMenuItems: (item.megamenu_items || []).filter(mi => mi.is_visible !== false).map(mi => ({
       label: mi.label,
       href: transformLink(mi.href),
       icon: iconMap[mi.icon] || ArrowRight,
