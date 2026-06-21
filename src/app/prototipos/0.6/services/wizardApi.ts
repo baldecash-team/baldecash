@@ -4,12 +4,14 @@
  */
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
+import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 function handleVip403(slug: string): void {
   if (typeof window === 'undefined') return;
+  if (hasLockertruckEvalCache(slug)) return;
   clearVipData(slug);
   window.location.reload();
 }

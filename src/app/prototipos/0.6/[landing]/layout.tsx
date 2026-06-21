@@ -762,17 +762,11 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('vip_auto')
         : null;
-    // Camino vip_auto: guardar el token antes de correr /evaluate para que
-    // appendVipToken lo encuentre disponible en las rutas protegidas posteriores.
-    // El guard del backend acepta este token vía fallback landing_dni_whitelist.access_token.
+    // Camino vip_auto: el token de la URL se guarda solo en ctx.accessToken para
+    // correr /evaluate. NO se guarda en localStorage como vip_token porque el
+    // backend no lo acepta en /wizard — el vip_token válido lo genera validate-dni.
     // El ?vip_auto= tiene prioridad sobre el caché: un link fresco re-evalúa.
     if (token) {
-      saveVipToken(landing, token);
-      // Limpiar ?vip_auto= de la URL para que VipGate no lo relea en navegaciones
-      // posteriores y re-dispare /evaluate innecesariamente.
-      const url = new URL(window.location.href);
-      url.searchParams.delete('vip_auto');
-      window.history.replaceState({}, '', url.toString());
       return { state: 'd2-loading', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: token };
     }
     // Reingreso sin ?vip_auto=: si hay un resultado de evaluación cacheado y
@@ -793,6 +787,20 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     }
     return { state: 'd1', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: null };
   });
+
+  // Limpiar ?vip_auto= de la URL después del primer render — no se puede hacer
+  // en el inicializador de useState (causa "setState during render" en React).
+  useEffect(() => {
+    if (ctx.accessToken && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('vip_auto')) {
+        url.searchParams.delete('vip_auto');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  // Solo al montar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Ref-guard para evitar doble disparo en StrictMode
   // Se resetea cuando el estado sale de 'd2-loading' (permite reintentar)
@@ -907,7 +915,10 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
           (resp.status === 'normal' || resp.status === 'no_normal') &&
           resp.catalog_url
         ) {
-          // Acceso normal o no_normal con catálogo → mostrar botón "Ver catálogo".
+          // Acceso normal: guardar el access_token válido para /wizard y /solicitar-config.
+          if (resp.status === 'normal' && resp.access_token) {
+            saveVipToken(landing, resp.access_token);
+          }
           // Cacheamos el outcome (7 días) para no re-pedir DNI ni re-evaluar al
           // reingresar a este navegador.
           setEvalCache(landing, {
@@ -1551,7 +1562,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         // redirigir al catálogo en lugar de mostrar el gate encima.
         // También aplica cuando handleVip403 borró el token (sin token + en subpágina).
         if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
-          router.replace(`/${landing}/catalogo`);
+          window.location.assign(routes.catalogo(landing));
           return;
         }
         setOverlayVariant(variant);
@@ -1576,7 +1587,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
           // Si el usuario está en /solicitar o /producto sin token, redirigir
           // al catálogo en lugar de mostrar el gate encima.
           if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
-            router.replace(`/${landing}/catalogo`);
+            window.location.assign(routes.catalogo(landing));
             return;
           }
           setCaptureMode(cfg.features.dni_capture_mode || 'modal');
