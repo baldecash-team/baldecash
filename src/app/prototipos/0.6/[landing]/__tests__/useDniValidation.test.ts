@@ -21,6 +21,16 @@ const mockSendEventsBatch = sendEventsBatch as jest.MockedFunction<typeof sendEv
 const API_BASE_URL = 'https://api.baldecash.com/api/v1';
 
 // Replica la lógica de handleSubmit de useDniValidation para testear en aislamiento
+function resolveSessionUuid(landing: string, contextUuid: string): string {
+  return contextUuid
+    || localStorage.getItem(`baldecash-${landing}-wizard-session-uuid`)
+    || (() => {
+      const uuid = 'test-generated-uuid';
+      localStorage.setItem(`baldecash-${landing}-wizard-session-uuid`, uuid);
+      return uuid;
+    })();
+}
+
 async function simulateDniSubmit({
   landing,
   dni,
@@ -35,20 +45,21 @@ async function simulateDniSubmit({
   const pageUrl = 'https://www.baldecash.com/renueva-tu-equipo-1';
   const clientTs = 1000000;
 
-  sendEventsBatch(sessionUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl }]);
+  const resolvedUuid = resolveSessionUuid(landing, sessionUuid);
+  sendEventsBatch(resolvedUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl }]);
 
-  const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${sessionUuid ? `?session_uuid=${sessionUuid}` : ''}`;
+  const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${resolvedUuid ? `?session_uuid=${resolvedUuid}` : ''}`;
   const res = await fetch(validateUrl);
   const data = await res.json();
 
   if (!data.valid) {
-    sendEventsBatch(sessionUuid, [{ event_type: 'dni_rejected', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing } }]);
-    return { validated: false };
+    sendEventsBatch(resolvedUuid, [{ event_type: 'dni_rejected', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing } }]);
+    return { validated: false, sessionUuid: resolvedUuid };
   }
 
   try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
-  sendEventsBatch(sessionUuid, [{ event_type: 'dni_validated', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing } }]);
-  return { validated: true };
+  sendEventsBatch(resolvedUuid, [{ event_type: 'dni_validated', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing } }]);
+  return { validated: true, sessionUuid: resolvedUuid };
 }
 
 describe('useDniValidation — eventos de tracking (BAL-1806)', () => {
@@ -196,25 +207,55 @@ describe('useDniValidation — eventos de tracking (BAL-1806)', () => {
     expect(localStorage.getItem('baldecash-dni-renueva-tu-equipo-1')).toBeNull();
   });
 
-  it('funciona sin sessionUuid (usuario sin sesión)', async () => {
+  it('genera UUID propio si no hay sesión — eventos siempre se envían', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ valid: true, access_token: 'tok123' }),
     }) as jest.Mock;
 
-    await simulateDniSubmit({
+    // Sin sesión en contexto ni en localStorage
+    const result = await simulateDniSubmit({
       landing: 'renueva-tu-equipo-1',
       dni: '12345678',
       sessionUuid: '',
       apiResponse: { valid: true },
     });
 
+    // UUID generado y guardado en localStorage
+    expect(localStorage.getItem('baldecash-renueva-tu-equipo-1-wizard-session-uuid')).toBeTruthy();
+
+    // Eventos enviados con ese UUID (no vacío)
+    expect(result.sessionUuid).toBe('test-generated-uuid');
     expect(mockSendEventsBatch).toHaveBeenCalledWith(
-      '',
+      'test-generated-uuid',
       expect.arrayContaining([expect.objectContaining({ event_type: 'dni_submit' })]),
     );
     expect(mockSendEventsBatch).toHaveBeenCalledWith(
-      '',
+      'test-generated-uuid',
+      expect.arrayContaining([expect.objectContaining({ event_type: 'dni_validated' })]),
+    );
+  });
+
+  it('reutiliza UUID existente en localStorage — misma sesión en todo el recorrido', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ valid: true, access_token: 'tok123' }),
+    }) as jest.Mock;
+
+    // UUID ya existe en localStorage (puesto por SessionProvider en visita anterior)
+    localStorage.setItem('baldecash-renueva-tu-equipo-1-wizard-session-uuid', 'existing-uuid-123');
+
+    const result = await simulateDniSubmit({
+      landing: 'renueva-tu-equipo-1',
+      dni: '12345678',
+      sessionUuid: '',
+      apiResponse: { valid: true },
+    });
+
+    // Reutiliza el UUID existente, no genera uno nuevo
+    expect(result.sessionUuid).toBe('existing-uuid-123');
+    expect(mockSendEventsBatch).toHaveBeenCalledWith(
+      'existing-uuid-123',
       expect.arrayContaining([expect.objectContaining({ event_type: 'dni_validated' })]),
     );
   });

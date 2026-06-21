@@ -87,7 +87,17 @@ function useDniValidation(landing: string, onValidated: () => void) {
     setErrorMsg(null);
     setSiblingMatch(null);
     setShowRegister(false);
-    const sessionUuid = session?.sessionUuid ?? '';
+    // Garantizar UUID para tracking: contexto → localStorage → generar nuevo
+    // El UUID generado aquí es reutilizado por SessionProvider al entrar al wizard
+    const sessionUuid = session?.sessionUuid
+      ?? (typeof window !== 'undefined'
+        ? localStorage.getItem(`baldecash-${landing}-wizard-session-uuid`)
+          ?? (() => {
+              const uuid = crypto.randomUUID();
+              localStorage.setItem(`baldecash-${landing}-wizard-session-uuid`, uuid);
+              return uuid;
+            })()
+        : '');
     const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
     const clientTs = Date.now();
     sendEventsBatch(sessionUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl }]);
