@@ -151,7 +151,7 @@ function WizardPreviewContent() {
   const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config for dynamic first step
-  const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
+  const { config, steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
 
   // Preview mode support
   const preview = usePreview();
@@ -658,40 +658,35 @@ function WizardPreviewContent() {
         </div>
 
         {/* Requirements */}
-        <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
-          <h2 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 sm:mb-4">
-            Lo que necesitarás
-          </h2>
-          <ul className="space-y-3">
-            <li className="flex items-start gap-3">
-              <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[var(--color-primary)]">1</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-800">Documento de identidad</p>
-                <p className="text-xs text-neutral-500">DNI, CE o Pasaporte vigente</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[var(--color-primary)]">2</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-800">Constancia de estudios</p>
-                <p className="text-xs text-neutral-500">Documento que acredite tu matrícula vigente</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[var(--color-primary)]">3</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-800">Información de contacto</p>
-                <p className="text-xs text-neutral-500">Teléfono y correo electrónico activos</p>
-              </div>
-            </li>
-          </ul>
-        </div>
+        {(() => {
+          const reqData = config?.form_extra_data?.requirements;
+          const reqTitle = reqData?.title ?? 'Lo que necesitarás';
+          const reqItems = reqData?.items ?? [
+            { title: 'Documento de identidad', description: 'DNI, CE o Pasaporte vigente' },
+            { title: 'Constancia de estudios', description: 'Documento que acredite tu matrícula vigente' },
+            { title: 'Información de contacto', description: 'Teléfono y correo electrónico activos' },
+          ];
+          return (
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
+              <h2 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 sm:mb-4">
+                {reqTitle}
+              </h2>
+              <ul className="space-y-3">
+                {reqItems.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-[var(--color-primary)]">{idx + 1}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-neutral-800">{item.title}</p>
+                      <p className="text-xs text-neutral-500">{item.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
 
         {/* Dynamic Sections Before Wizard - Rendered in configured order */}
         {sectionsBeforeWizard.map((section) => (

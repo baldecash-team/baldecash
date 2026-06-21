@@ -74,7 +74,7 @@ export function AccessoriesSection({
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const { badgeText } = useWizardConfig();
+  const { config, badgeText } = useWizardConfig();
   const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
   const analytics = useAnalytics();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -278,7 +278,13 @@ export function AccessoriesSection({
 
   return (
     <div className={`bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 ${className}`}>
-      {showIntro && <AccessoryIntro />}
+      {showIntro && (
+        <AccessoryIntro
+          icon={config?.form_extra_data?.accessories?.icon}
+          title={config?.form_extra_data?.accessories?.title}
+          description={config?.form_extra_data?.accessories?.description}
+        />
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-8">

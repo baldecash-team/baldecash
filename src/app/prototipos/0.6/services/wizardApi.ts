@@ -191,6 +191,24 @@ export interface WizardConfigForm {
   estimated_time_minutes: number;
 }
 
+export interface WizardConfigRequirementItem {
+  icon?: string;
+  title: string;
+  description: string;
+}
+
+export interface WizardConfigExtraData {
+  requirements?: {
+    title?: string;
+    items?: WizardConfigRequirementItem[];
+  };
+  accessories?: {
+    icon?: string;
+    title?: string;
+    description?: string;
+  };
+}
+
 /**
  * WizardConfig supports two coexisting shapes from the backend during migration:
  * - Legacy flat: `landing_id`, `landing_slug`, `landing_name`, `display_steps_count`,
@@ -212,6 +230,9 @@ export interface WizardConfig {
   display_estimated_minutes?: number;
   badge_text?: string | null;
   total_fields?: number;
+
+  // Dynamic texts configured per form in admin
+  form_extra_data?: WizardConfigExtraData | null;
 
   // Shared
   steps: WizardStep[];

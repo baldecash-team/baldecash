@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'rea
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { AlertTriangle, FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2, Package, Plus, Search, ShoppingCart, Tag, Users, X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { useWizardConfig } from './context/WizardConfigContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -575,24 +576,33 @@ function SolicitarContent() {
           </div>
 
           <div style={{ background: T.bgCard, borderRadius: 12, padding: 16, border: `1px solid ${T.border}`, marginBottom: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 12 }}>Lo que necesitarás</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { num: '1', title: 'Documento de identidad', sub: 'DNI, CE o Pasaporte vigente' },
-                { num: '2', title: 'Constancia de estudios', sub: 'Matrícula vigente' },
-                { num: '3', title: 'Información de contacto', sub: 'Teléfono y correo activos' },
-              ].map((item) => (
-                <div key={item.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: T.neonCyan }}>{item.num}</span>
+            {(() => {
+              const reqData = wizardConfigData?.form_extra_data?.requirements;
+              const reqTitle = reqData?.title ?? 'Lo que necesitarás';
+              const reqItems = reqData?.items ?? [
+                { title: 'Documento de identidad', description: 'DNI, CE o Pasaporte vigente' },
+                { title: 'Constancia de estudios', description: 'Matrícula vigente' },
+                { title: 'Información de contacto', description: 'Teléfono y correo activos' },
+              ];
+              return (
+                <>
+                  <h2 style={{ fontSize: 16, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 12 }}>{reqTitle}</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {reqItems.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: T.neonCyan }}>{idx + 1}</span>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 500, color: T.textPrimary, margin: 0 }}>{item.title}</p>
+                          <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{item.description}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 500, color: T.textPrimary, margin: 0 }}>{item.title}</p>
-                    <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{item.sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -823,24 +833,33 @@ function SolicitarContent() {
 
         {/* Lo que necesitarás — desktop only */}
         <div className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${T.border}`, marginBottom: 32 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 16 }}>Lo que necesitarás</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { num: '1', title: 'Documento de identidad', sub: 'DNI, CE o Pasaporte vigente' },
-              { num: '2', title: 'Constancia de estudios', sub: 'Documento que acredite tu matrícula vigente' },
-              { num: '3', title: 'Información de contacto', sub: 'Teléfono y correo electrónico activos' },
-            ].map((item) => (
-              <div key={item.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T.neonCyan }}>{item.num}</span>
+          {(() => {
+            const reqData = wizardConfigData?.form_extra_data?.requirements;
+            const reqTitle = reqData?.title ?? 'Lo que necesitarás';
+            const reqItems = reqData?.items ?? [
+              { title: 'Documento de identidad', description: 'DNI, CE o Pasaporte vigente' },
+              { title: 'Constancia de estudios', description: 'Documento que acredite tu matrícula vigente' },
+              { title: 'Información de contacto', description: 'Teléfono y correo electrónico activos' },
+            ];
+            return (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 16 }}>{reqTitle}</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {reqItems.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: T.neonCyan }}>{idx + 1}</span>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary }}>{item.title}</p>
+                        <p style={{ fontSize: 12, color: T.textMuted }}>{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary }}>{item.title}</p>
-                  <p style={{ fontSize: 12, color: T.textMuted }}>{item.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Accesorios — solo si el backend habilita la sección en la landing */}
@@ -850,11 +869,11 @@ function SolicitarContent() {
           <div style={{ background: cyanAlpha(0.05), borderRadius: 12, padding: 16, marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
               <div style={{ width: 48, height: 48, background: cyanAlpha(0.1), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Users size={24} style={{ color: T.neonCyan }} />
+                {(() => { const AccIcon = (LucideIcons as unknown as Record<string, typeof Users>)[wizardConfigData?.form_extra_data?.accessories?.icon ?? 'Users'] ?? Users; return <AccIcon size={24} style={{ color: T.neonCyan }} />; })()}
               </div>
               <div>
-                <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 4 }}>Los estudiantes también llevan...</h2>
-                <p style={{ fontSize: 14, color: T.textSecondary }}>7 de cada 10 estudiantes agregan al menos un accesorio a su compra.</p>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 4 }}>{wizardConfigData?.form_extra_data?.accessories?.title ?? 'Los estudiantes también llevan...'}</h2>
+                <p style={{ fontSize: 14, color: T.textSecondary }}>{wizardConfigData?.form_extra_data?.accessories?.description ?? '7 de cada 10 estudiantes agregan al menos un accesorio a su compra.'}</p>
               </div>
             </div>
           </div>
