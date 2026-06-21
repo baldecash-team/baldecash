@@ -1423,6 +1423,7 @@ export interface EvaluateResponse {
   status: 'normal' | 'no_normal' | 'no_access';
   catalog_url: string | null;
   first_name?: string | null;
+  access_token?: string | null;
 }
 
 /**
