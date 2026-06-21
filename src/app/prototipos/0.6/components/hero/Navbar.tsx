@@ -88,6 +88,7 @@ interface MegaMenuItemData {
   href: string;
   icon: string;
   description: string;
+  is_visible?: boolean;
 }
 
 interface NavbarItemData {
