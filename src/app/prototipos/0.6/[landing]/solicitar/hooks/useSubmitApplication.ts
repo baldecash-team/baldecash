@@ -333,7 +333,7 @@ export function useSubmitApplication(
           files: uploadFiles.length > 0 ? uploadFiles : undefined,
         });
 
-        if (result.success && result.public_token) {
+        if (result.success) {
           analytics.track('form_submit_success', {
             product_count: allProducts.length,
             accessory_count: selectedAccessories.length,
@@ -364,10 +364,10 @@ export function useSubmitApplication(
           // Show success toast
           onToast?.('Solicitud enviada correctamente', 'success');
 
-          // Redirect to confirmation page with public token (UUID - secure)
+          // Redirect to confirmation page with application code
           succeeded = true;
           router.push(
-            routes.solicitarConfirmacion(landing, result.public_token)
+            routes.solicitarConfirmacion(landing, result.application_code)
           );
 
           return true;
