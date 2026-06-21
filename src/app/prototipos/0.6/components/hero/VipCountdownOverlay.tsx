@@ -114,7 +114,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
 
   const handleDniSubmit = useCallback(async () => {
     if (!isValidDni || submitting || !landingSlug) return;
-    tracker?.track('dni_submit', { landing_slug: landingSlug, whitelist: validateWhitelist, source: 'vip_overlay' });
+    tracker?.track('dni_submit', { landing_slug: landingSlug, whitelist: validateWhitelist, source: 'vip_overlay', dni });
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -123,7 +123,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
         const res = await fetch(validateUrl);
         const data = await res.json();
         if (!data.valid) {
-          tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay' });
+          tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', dni });
           if (landingSlug) clearVipData(landingSlug);
           setErrorMsg('No encontramos un registro con este número de documento.');
           setSubmitting(false);
@@ -134,7 +134,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
           saveVipName(landingSlug, data.first_name);
           setVipWelcomePending(landingSlug);
         }
-        tracker?.track('dni_validated', { landing_slug: landingSlug, source: 'vip_overlay' });
+        tracker?.track('dni_validated', { landing_slug: landingSlug, source: 'vip_overlay', dni });
         try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
         onValidated?.({
           firstName: data.first_name || '',
@@ -145,7 +145,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
       try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
       onValidated?.({ firstName: '', accessToken: '' });
     } catch {
-      tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error' });
+      tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error', dni });
       if (landingSlug) clearVipData(landingSlug);
       setErrorMsg('No encontramos un registro con este número de documento.');
       setSubmitting(false);
