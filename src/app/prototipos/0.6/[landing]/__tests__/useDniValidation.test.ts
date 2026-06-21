@@ -14,7 +14,10 @@ import { sendEventsBatch } from '../../services/eventsApi';
 
 jest.mock('../../services/eventsApi', () => ({
   sendEventsBatch: jest.fn(),
+  sanitizeProperties: jest.requireActual('../../services/eventsApi').sanitizeProperties,
 }));
+
+import { sanitizeProperties } from '../../services/eventsApi';
 
 const mockSendEventsBatch = sendEventsBatch as jest.MockedFunction<typeof sendEventsBatch>;
 
@@ -46,19 +49,19 @@ async function simulateDniSubmit({
   const clientTs = 1000000;
 
   const resolvedUuid = resolveSessionUuid(landing, sessionUuid);
-  sendEventsBatch(resolvedUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl }]);
+  sendEventsBatch(resolvedUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl, properties: { landing_slug: landing, whitelist: true, source: 'vip_overlay', dni } }]);
 
   const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${resolvedUuid ? `?session_uuid=${resolvedUuid}` : ''}`;
   const res = await fetch(validateUrl);
   const data = await res.json();
 
   if (!data.valid) {
-    sendEventsBatch(resolvedUuid, [{ event_type: 'dni_rejected', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing } }]);
+    sendEventsBatch(resolvedUuid, [{ event_type: 'dni_rejected', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing_slug: landing, source: 'vip_overlay', dni } }]);
     return { validated: false, sessionUuid: resolvedUuid };
   }
 
   try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
-  sendEventsBatch(resolvedUuid, [{ event_type: 'dni_validated', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing } }]);
+  sendEventsBatch(resolvedUuid, [{ event_type: 'dni_validated', client_ts: clientTs + 100, page_url: pageUrl, properties: { landing_slug: landing, source: 'vip_overlay', dni } }]);
   return { validated: true, sessionUuid: resolvedUuid };
 }
 
@@ -112,7 +115,7 @@ describe('useDniValidation — eventos de tracking (BAL-1806)', () => {
     expect(mockSendEventsBatch).toHaveBeenCalledWith(
       'session-abc',
       expect.arrayContaining([
-        expect.objectContaining({ event_type: 'dni_validated', properties: { landing: 'renueva-tu-equipo-1' } }),
+        expect.objectContaining({ event_type: 'dni_validated', properties: { landing_slug: 'renueva-tu-equipo-1', source: 'vip_overlay', dni: '12345678' } }),
       ])
     );
   });
@@ -134,7 +137,7 @@ describe('useDniValidation — eventos de tracking (BAL-1806)', () => {
     expect(mockSendEventsBatch).toHaveBeenCalledWith(
       'session-abc',
       expect.arrayContaining([
-        expect.objectContaining({ event_type: 'dni_rejected', properties: { landing: 'renueva-tu-equipo-1' } }),
+        expect.objectContaining({ event_type: 'dni_rejected', properties: { landing_slug: 'renueva-tu-equipo-1', source: 'vip_overlay', dni: '99999999' } }),
       ])
     );
   });
@@ -260,7 +263,12 @@ describe('useDniValidation — eventos de tracking (BAL-1806)', () => {
     );
   });
 
-  it('el DNI no aparece en las properties de los eventos (privacidad)', async () => {
+  it('sanitizeProperties NO bloquea el dni — pasa al payload', () => {
+    const result = sanitizeProperties({ landing_slug: 'renueva-tu-equipo-1', source: 'vip_overlay', dni: '12345678' });
+    expect(result).toEqual({ landing_slug: 'renueva-tu-equipo-1', source: 'vip_overlay', dni: '12345678' });
+  });
+
+  it('el DNI SÍ aparece en las properties de los eventos (requerido para tracking)', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ valid: true, access_token: 'tok123' }),
@@ -277,7 +285,7 @@ describe('useDniValidation — eventos de tracking (BAL-1806)', () => {
     calls.forEach(([, events]) => {
       events.forEach((e) => {
         if (e.properties) {
-          expect(e.properties).not.toHaveProperty('dni');
+          expect(e.properties).toHaveProperty('dni', '12345678');
           expect(e.properties).not.toHaveProperty('document_number');
         }
       });
