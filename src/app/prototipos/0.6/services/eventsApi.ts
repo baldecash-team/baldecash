@@ -166,7 +166,7 @@ export type EventType =
   | 'lead_products_scroll'
   | 'lead_banner_slide_change';
 
-/** Properties that are BLOCKED for privacy reasons */
+/** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
   'value',
   'field_value',

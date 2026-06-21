@@ -768,6 +768,11 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     // El ?vip_auto= tiene prioridad sobre el caché: un link fresco re-evalúa.
     if (token) {
       saveVipToken(landing, token);
+      // Limpiar ?vip_auto= de la URL para que VipGate no lo relea en navegaciones
+      // posteriores y re-dispare /evaluate innecesariamente.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('vip_auto');
+      window.history.replaceState({}, '', url.toString());
       return { state: 'd2-loading', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: token };
     }
     // Reingreso sin ?vip_auto=: si hay un resultado de evaluación cacheado y
@@ -1512,9 +1517,15 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       // llega con ?vip_auto=. El token queda en la URL para que el overlay lo lea.
       if (VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW.includes(variant)) {
         if (hasGatePass(landing)) {
-          // El usuario ya pasó el gate en esta sesión → acceso directo
-          setStatus('allowed');
-          return;
+          // El usuario ya pasó el gate en esta sesión — verificar que el eval
+          // cache sigue vigente. Si lo borraron (DevTools), invalidar el pass
+          // y caer al overlay para re-validar.
+          const cachedEvalForPass = getEvalCache(landing);
+          if (cachedEvalForPass) {
+            setStatus('allowed');
+            return;
+          }
+          sessionStorage.removeItem(`baldecash-gate-pass-${landing}`);
         }
         // Reingreso dentro de la ventana de caché (7 días): si el outcome
         // cacheado fue acceso normal a ESTA landing, se concede acceso directo
@@ -1536,6 +1547,12 @@ function VipGate({ landing, children }: { landing: string; children: React.React
             return;
           }
         }
+        // Si el usuario está en /solicitar o /producto y va a ver el overlay,
+        // redirigir al catálogo en lugar de mostrar el gate encima.
+        if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
+          router.replace(`/${landing}/catalogo`);
+          return;
+        }
         setOverlayVariant(variant);
         setOverlayDeadline(overlayDl);
         setStatus('blocked');
@@ -1555,6 +1572,12 @@ function VipGate({ landing, children }: { landing: string; children: React.React
           setStatus('redirecting');
           router.replace(routes.landingHome(landing));
         } else {
+          // Si el usuario está en /solicitar o /producto sin token, redirigir
+          // al catálogo en lugar de mostrar el gate encima.
+          if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
+            router.replace(`/${landing}/catalogo`);
+            return;
+          }
           setCaptureMode(cfg.features.dni_capture_mode || 'modal');
           setOverlayVariant(variant);
           setOverlayDeadline(overlayDl);

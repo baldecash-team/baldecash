@@ -117,6 +117,11 @@ export function normalizeCatalogUrl(absoluteUrl: string): string {
   }
 }
 
+/** Mi oferta pública: /mi-oferta/{token} */
+export function miOferta(token: string): string {
+  return `${BASE_PATH}/mi-oferta/${token}`;
+}
+
 // ─── Convenience namespace ───────────────────────────────────────────────────
 export const routes = {
   BASE_PATH,
@@ -134,6 +139,7 @@ export const routes = {
   preview,
   previewWizard,
   normalizeCatalogUrl,
+  miOferta,
 };
 
 export default routes;
