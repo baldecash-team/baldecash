@@ -1547,15 +1547,9 @@ function VipGate({ landing, children }: { landing: string; children: React.React
             return;
           }
         }
-        // Sin eval cache y sin token: handleVip403 limpió todo tras un 403 en
-        // /solicitar. No hay forma de recuperar acceso desde aquí — redirigir al
-        // catálogo igual que hace VipGate para landings con whitelist normal.
-        if (typeof window !== 'undefined' && !getVipToken(landing)) {
-          router.replace(`/${landing}/catalogo`);
-          return;
-        }
         // Si el usuario está en /solicitar o /producto y va a ver el overlay,
         // redirigir al catálogo en lugar de mostrar el gate encima.
+        // También aplica cuando handleVip403 borró el token (sin token + en subpágina).
         if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
           router.replace(`/${landing}/catalogo`);
           return;
