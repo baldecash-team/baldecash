@@ -57,9 +57,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const prefilledRef = useRef(false);
   const [lockedByModal, setLockedByModal] = useState(false);
 
-  // Pre-fill from DNI modal for CADE landings
+  // Pre-fill from DNI overlay (VIP gate, CADE, InlineDniGate)
   useEffect(() => {
-    if (overlayVariant !== 'cade') return;
     const savedDni = getSavedDni(landing);
     if (!savedDni) return;
     const current = getFieldValue(field.code) as string;

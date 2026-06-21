@@ -25,6 +25,7 @@ import { routes, normalizeCatalogUrl } from '../utils/routes';
 import { evaluateLandingAccess } from '../services/landingApi';
 import type { EvaluatePayload } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
+import { sendEventsBatch } from '../services/eventsApi';
 import { isDarkLanding } from '../utils/theme';
 
 /**
@@ -86,11 +87,16 @@ function useDniValidation(landing: string, onValidated: () => void) {
     setErrorMsg(null);
     setSiblingMatch(null);
     setShowRegister(false);
+    const sessionUuid = session?.sessionUuid ?? '';
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const clientTs = Date.now();
+    sendEventsBatch(sessionUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl }]);
     try {
-      const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${session?.sessionUuid ? `?session_uuid=${session.sessionUuid}` : ''}`;
+      const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${sessionUuid ? `?session_uuid=${sessionUuid}` : ''}`;
       const res = await fetch(validateUrl);
       const data = await res.json();
       if (!data.valid) {
+        sendEventsBatch(sessionUuid, [{ event_type: 'dni_rejected', client_ts: Date.now(), page_url: pageUrl, properties: { landing } }]);
         if (data.found_in_sibling && data.sibling_landing_slug) {
           setSiblingMatch({
             slug: data.sibling_landing_slug,
@@ -108,12 +114,13 @@ function useDniValidation(landing: string, onValidated: () => void) {
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
       try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
+      sendEventsBatch(sessionUuid, [{ event_type: 'dni_validated', client_ts: Date.now(), page_url: pageUrl, properties: { landing } }]);
       onValidated();
     } catch {
       setErrorMsg('Error de conexión. Intenta de nuevo.');
       setSubmitting(false);
     }
-  }, [isValidDni, submitting, landing, dni, onValidated]);
+  }, [isValidDni, submitting, landing, dni, onValidated, session?.sessionUuid]);
 
   return { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister };
 }
