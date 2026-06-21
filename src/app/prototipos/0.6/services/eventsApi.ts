@@ -173,7 +173,6 @@ const BLOCKED_PROPERTIES = new Set([
   'input_value',
   'text_value',
   'password',
-  'dni',
   'email_value',
   'phone_value',
   'nombre',
