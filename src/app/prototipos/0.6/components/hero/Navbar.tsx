@@ -8,7 +8,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
-import { PreviewBanner } from '../PreviewBanner';
+import dynamic from 'next/dynamic';
+const PreviewBanner = dynamic(() => import('../PreviewBanner').then(m => m.PreviewBanner), { ssr: false });
 import { usePreview } from '../../context/PreviewContext';
 import {
   Menu,
@@ -157,10 +158,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick }) => {
-  // Auto-detect preview banner offset based on whether THIS landing is being previewed
+  // Auto-detect preview banner offset based on whether THIS landing is being previewed.
+  // Start at 0 to match SSR, update after mount to avoid hydration mismatch.
   const { isPreviewingLanding } = usePreview();
-  const isThisLandingPreviewed = isPreviewingLanding(landing);
-  const previewBannerOffset = previewBannerOffsetProp ?? (isThisLandingPreviewed ? 24 : 0);
+  const [previewBannerOffset, setPreviewBannerOffset] = useState(previewBannerOffsetProp ?? 0);
+  useEffect(() => {
+    if (previewBannerOffsetProp !== undefined) return;
+    setPreviewBannerOffset(isPreviewingLanding(landing) ? 24 : 0);
+  }, [isPreviewingLanding, landing, previewBannerOffsetProp]);
   // Readable color for text/borders on white background (auto-darkens light colors like yellow)
   const readablePrimary = getReadableColorOnWhite(primaryColor || '#4654CD');
   const hoverTextColor = getContrastTextColor(primaryColor || '#4654CD');
