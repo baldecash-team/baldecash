@@ -100,13 +100,13 @@ function useDniValidation(landing: string, onValidated: () => void) {
         : '');
     const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
     const clientTs = Date.now();
-    sendEventsBatch(sessionUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl }]);
+    sendEventsBatch(sessionUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl, properties: { landing_slug: landing, whitelist: true, source: 'vip_overlay', dni } }]);
     try {
       const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${sessionUuid ? `?session_uuid=${sessionUuid}` : ''}`;
       const res = await fetch(validateUrl);
       const data = await res.json();
       if (!data.valid) {
-        sendEventsBatch(sessionUuid, [{ event_type: 'dni_rejected', client_ts: Date.now(), page_url: pageUrl, properties: { landing } }]);
+        sendEventsBatch(sessionUuid, [{ event_type: 'dni_rejected', client_ts: Date.now(), page_url: pageUrl, properties: { landing_slug: landing, source: 'vip_overlay', dni } }]);
         if (data.found_in_sibling && data.sibling_landing_slug) {
           setSiblingMatch({
             slug: data.sibling_landing_slug,
@@ -124,7 +124,7 @@ function useDniValidation(landing: string, onValidated: () => void) {
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
       try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
-      sendEventsBatch(sessionUuid, [{ event_type: 'dni_validated', client_ts: Date.now(), page_url: pageUrl, properties: { landing } }]);
+      sendEventsBatch(sessionUuid, [{ event_type: 'dni_validated', client_ts: Date.now(), page_url: pageUrl, properties: { landing_slug: landing, source: 'vip_overlay', dni } }]);
       onValidated();
     } catch {
       setErrorMsg('Error de conexión. Intenta de nuevo.');

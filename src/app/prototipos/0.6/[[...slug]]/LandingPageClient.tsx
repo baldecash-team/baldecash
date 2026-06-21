@@ -401,22 +401,6 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   }
 
   // Lead landing: formulario de captura + sección productos + secciones estándar
-  console.log('[LeadLanding DEBUG]', {
-    slug,
-    landingType: heroData?.landingType,
-    landingId: heroData?.landingId,
-    heroContent: heroData ? {
-      headline: mergedHeroContent?.headline,
-      subheadline: mergedHeroContent?.subheadline,
-      backgroundImage: mergedHeroContent?.backgroundImage,
-      badgeText: mergedHeroContent?.badgeText,
-    } : null,
-    bannerImages: heroData?.bannerImages,
-    leadFormConfig: heroData?.leadFormConfig,
-    leadProductsConfig: heroData?.leadProductsConfig,
-    primaryColor: heroData?.primaryColor,
-    activeSections: heroData?.activeSections,
-  });
   if (heroData?.landingType === 'lead') {
     return (
       <div
