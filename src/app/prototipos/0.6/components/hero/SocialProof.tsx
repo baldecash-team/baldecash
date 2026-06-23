@@ -86,8 +86,8 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
     return findStudyCenter(testimonial.institution)?.logo || '';
   };
 
-  const getInstitutionDisplayName = (testimonial: { institution: string; institutionName?: string }) => {
-    // Prefer pre-resolved name from API, fallback to studyCenters lookup
+  const getInstitutionDisplayName = (testimonial: { institution: string; location?: string; institutionName?: string }) => {
+    if (testimonial.location) return testimonial.location;
     if (testimonial.institutionName) return testimonial.institutionName;
     if (!testimonial.institution) return '';
     const sc = findStudyCenter(testimonial.institution);

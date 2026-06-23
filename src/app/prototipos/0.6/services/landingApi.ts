@@ -782,6 +782,7 @@ export function transformLandingData(data: LandingHeroResponse): {
         id: t.id || String(index + 1),
         name: t.name || '',
         institution: t.institution || '',
+        location: t.location,
         quote: t.quote || '',
         avatar: t.avatar,
         rating: t.rating ?? 0,

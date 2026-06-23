@@ -101,7 +101,7 @@ export const ConvenioTestimonials: React.FC<ConvenioTestimonialsProps> = ({
                 />
                 <div className="min-w-0">
                   <p className="font-semibold text-neutral-800 text-sm sm:text-base truncate">{testimonial.name}</p>
-                  <p className="text-xs sm:text-sm text-neutral-500 truncate">{testimonial.institution}</p>
+                  <p className="text-xs sm:text-sm text-neutral-500 truncate">{testimonial.location || testimonial.institutionName || testimonial.institution}</p>
                 </div>
               </div>
             </div>
