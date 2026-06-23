@@ -685,7 +685,7 @@ function setGatePass(slug: string): void {
 // un cliente que ya validó su DNI en este navegador no tenga que reingresarlo ni
 // re-evaluar Equifax al volver. Cubre todos los destinos (catálogo propio y
 // convenio), no solo el normal. Vencido el TTL, se vuelve a pedir DNI y evaluar.
-const LOCKERTRUCK_EVAL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const LOCKERTRUCK_EVAL_TTL_MS = 24 * 60 * 60 * 1000;
 
 interface LockertruckEvalCache {
   status: string;

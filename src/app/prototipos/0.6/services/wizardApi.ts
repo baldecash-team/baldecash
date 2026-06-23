@@ -11,7 +11,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 
 function handleVip403(slug: string): void {
   if (typeof window === 'undefined') return;
-  if (hasLockertruckEvalCache(slug)) return;
+  if (hasLockertruckEvalCache(slug)) {
+    clearVipData(slug);
+    window.location.assign(`/prototipos/0.6/${slug}/catalogo`);
+    return;
+  }
   clearVipData(slug);
   window.location.reload();
 }

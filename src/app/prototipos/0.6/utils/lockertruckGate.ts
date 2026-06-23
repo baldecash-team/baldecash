@@ -15,7 +15,7 @@
  * gate-pass (`baldecash-gate-pass-<slug>`) definidas en
  * src/app/prototipos/0.6/[landing]/layout.tsx.
  */
-const EVAL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const EVAL_TTL_MS = 24 * 60 * 60 * 1000;
 
 export function hasLockertruckEvalCache(slug: string): boolean {
   if (typeof window === 'undefined') return false;

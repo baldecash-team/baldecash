@@ -47,7 +47,11 @@ function appendVipToken(url: string, slug: string): string {
 
 function handleVip403(slug: string): void {
   if (typeof window === 'undefined') return;
-  if (hasLockertruckEvalCache(slug)) return;
+  if (hasLockertruckEvalCache(slug)) {
+    clearVipData(slug);
+    window.location.assign(`/prototipos/0.6/${slug}/catalogo`);
+    return;
+  }
   clearVipData(slug);
   window.location.reload();
 }
