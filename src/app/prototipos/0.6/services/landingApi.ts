@@ -783,6 +783,7 @@ export function transformLandingData(data: LandingHeroResponse): {
         name: t.name || '',
         institution: t.institution || '',
         location: t.location,
+        show_institution_logo: t.show_institution_logo !== false,
         quote: t.quote || '',
         avatar: t.avatar,
         rating: t.rating ?? 0,

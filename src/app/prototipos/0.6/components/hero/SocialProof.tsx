@@ -80,8 +80,8 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
     ) || null;
   };
 
-  const getInstitutionLogo = (testimonial: { institution: string; institutionLogo?: string }) => {
-    // Prefer pre-resolved logo from API, fallback to studyCenters lookup
+  const getInstitutionLogo = (testimonial: { institution: string; show_institution_logo?: boolean; institutionLogo?: string }) => {
+    if (testimonial.show_institution_logo === false) return '';
     if (testimonial.institutionLogo) return testimonial.institutionLogo;
     return findStudyCenter(testimonial.institution)?.logo || '';
   };

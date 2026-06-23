@@ -224,6 +224,7 @@ export interface Testimonial {
   name: string;
   institution: string;
   location?: string;
+  show_institution_logo?: boolean;
   institutionLogo?: string;
   institutionName?: string;
   quote: string;
