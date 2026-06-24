@@ -421,7 +421,6 @@ export function AccessoriesSection({
                   />
                 ))}
               </div>
-
             </>
           )}
         </>
