@@ -612,7 +612,6 @@ function StepContent() {
 
   // Error state - step not found
   if (configError || !step) {
-    const isGamer = isGamerLanding(landing);
     const errorContent = (
       <div className="text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -679,6 +678,8 @@ function StepContent() {
       <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>
     </div>
   );
+
+  const isGamer = isGamerLanding(landing);
 
   // Render summary step content
   if (isSummaryStep) {
@@ -846,7 +847,6 @@ function StepContent() {
   // Render regular form step content
   // Determinar dinámicamente si es el último paso del wizard
   // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-  const isGamer = isGamerLanding(landing);
   const isActuallyLastRegularStep = navigation.isLast && !shouldShowComplementos;
 
   const pageContent = (
