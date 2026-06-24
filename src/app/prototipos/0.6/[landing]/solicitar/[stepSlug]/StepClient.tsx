@@ -1035,6 +1035,8 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
           background: #1e1e1e !important;
           color: #f0f0f0 !important;
           border-color: #2a2a2a !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
         .gamer-wizard-dark input::placeholder,
         .gamer-wizard-dark textarea::placeholder { color: #555 !important; }
@@ -1043,6 +1045,18 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         .gamer-wizard-dark textarea:focus {
           border-color: #00ffd5 !important;
           box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
+          outline: none !important;
+        }
+        /* NextUI input wrapper inset shadow */
+        .gamer-wizard-dark [data-slot="input-wrapper"],
+        .gamer-wizard-dark [data-slot="innerWrapper"],
+        .gamer-wizard-dark [data-slot="trigger"] {
+          box-shadow: none !important;
+          background: #1e1e1e !important;
+        }
+        .gamer-wizard-dark [data-slot="input-wrapper"]:hover,
+        .gamer-wizard-dark [data-slot="input-wrapper"][data-focus="true"] {
+          box-shadow: none !important;
         }
         /* Segmented controls */
         .gamer-wizard-dark .bg-neutral-100.border { background: #1e1e1e !important; }
