@@ -195,6 +195,7 @@ export function LibroReclamacionesClient() {
         {/* Header — shared Navbar con theme="gamer" */}
         <Navbar
           theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -203,7 +204,7 @@ export function LibroReclamacionesClient() {
         />
 
         {/* Main Content */}
-        <main className="gamer-libro" style={{ maxWidth: 896, margin: '0 auto', padding: '40px 16px 64px' }}>
+        <main className="gamer-libro" style={{ maxWidth: 896, margin: '0 auto', padding: '0 16px 64px', paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + 24px)' }}>
           {/* Header */}
           <div style={{ marginBottom: 32, textAlign: 'center' }}>
             <div style={{
