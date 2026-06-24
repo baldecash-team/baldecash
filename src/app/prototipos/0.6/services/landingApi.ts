@@ -1120,6 +1120,7 @@ interface ApiAccessory {
   micro_url?: string;
   category: { slug: string; name: string } | null;
   isRecommended: boolean;
+  isMoltiTop?: boolean;
   compatibleWith: string[];
   specs?: { label: string; value: string }[];
   brand?: {

@@ -26,6 +26,7 @@ export interface Accessory {
   category: AccessoryCategory | null;
   term?: number;
   isRecommended: boolean;
+  isMoltiTop?: boolean;
   compatibleWith: string[];
   specs?: AccessorySpec[];
   brand?: { name: string; slug: string } | null;

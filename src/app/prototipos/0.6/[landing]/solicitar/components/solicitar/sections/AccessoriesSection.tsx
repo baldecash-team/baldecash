@@ -160,6 +160,7 @@ export function AccessoriesSection({
             thumbnailUrl: acc.image || acc.thumbnail_url,
             category: acc.category ?? { slug: 'otro', name: 'Otro' },
             isRecommended: acc.isRecommended || false,
+            isMoltiTop: acc.isMoltiTop || false,
             compatibleWith: acc.compatibleWith || ['all'],
             specs: acc.specs || [],
             brand: acc.brand,
@@ -402,7 +403,7 @@ export function AccessoriesSection({
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleAccessories.map((accessory) => (
+                {visibleAccessories.map((accessory, index) => (
                   <AccessoryCard
                     key={accessory.id}
                     accessory={accessory}
@@ -416,6 +417,7 @@ export function AccessoriesSection({
                       setDetailAccessory(accessory);
                     }}
                     paymentFrequency={currentPaymentFrequency}
+                    isMoltiTop={accessory.isMoltiTop && index === 0}
                   />
                 ))}
               </div>
