@@ -10,6 +10,7 @@ import type {
   FaqData,
   Testimonial,
   StudyCenter,
+  Partner,
   TrustSignal,
   CtaData,
   PromoBannerData,
@@ -182,11 +183,21 @@ interface ApiCompanyInfo {
   } | null;
 }
 
+interface ApiPartner {
+  id: string;
+  code: string;
+  name: string;
+  short_name?: string;
+  logo?: string;
+  type?: string;
+}
+
 interface LandingHeroResponse {
   landing: LandingResponse;
   components: HomeComponentResponse[];
   faqs?: ApiFaqItem[];
   study_centers?: ApiStudyCenter[];
+  partners?: ApiPartner[];
   company?: ApiCompanyInfo;
 }
 
@@ -684,6 +695,15 @@ export function transformLandingData(data: LandingHeroResponse): {
         : 0;
     const institutionCount = parsedInstitutionCount > 0 ? parsedInstitutionCount : studyCenters.length;
 
+    const partners: Partner[] = (data.partners || []).map((p) => ({
+      id: p.id,
+      code: p.code || '',
+      name: p.name || '',
+      shortName: p.short_name || p.name || '',
+      logo: p.logo || '',
+      type: p.type,
+    }));
+
     socialProof = {
       title: socialTitle,
       subtitle: socialSubtitle,
@@ -695,6 +715,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       institutionCount,
       yearsInMarket: stats.years_in_market || 0,
       studyCenters,
+      partners,
       mediaLogos: (socialConfig.media_logos as { name: string; logo: string; url?: string }[]) || [],
     };
   }

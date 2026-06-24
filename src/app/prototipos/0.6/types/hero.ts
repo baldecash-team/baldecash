@@ -36,6 +36,15 @@ export interface MediaLogo {
   url?: string;
 }
 
+export interface Partner {
+  id: string;
+  code: string;
+  name: string;
+  shortName?: string;
+  logo?: string;
+  type?: string;
+}
+
 export interface SocialProofData {
   title?: string;
   subtitle?: string;
@@ -47,6 +56,7 @@ export interface SocialProofData {
   institutionCount: number;
   yearsInMarket: number;
   studyCenters: StudyCenter[];
+  partners: Partner[];
   mediaLogos: MediaLogo[];
 }
 
