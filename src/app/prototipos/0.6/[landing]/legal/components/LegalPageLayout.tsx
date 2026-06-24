@@ -97,6 +97,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         {/* Header — shared Navbar con theme="gamer" */}
         <Navbar
           theme="gamer"
+          gamerTheme={theme ?? 'dark'}
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -105,7 +106,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         />
 
         {/* Main Content */}
-        <main className="px-4 sm:px-6 pt-6 sm:pt-10 pb-12 sm:pb-16" style={{ maxWidth: 896, margin: '0 auto' }}>
+        <main className="px-4 sm:px-6 pb-12 sm:pb-16" style={{ maxWidth: 896, margin: '0 auto', paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + 24px)' }}>
           {/* Header */}
           <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: `1px solid ${border}` }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '5px 14px', borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: neonCyan, background: isDark ? 'rgba(0,255,213,0.05)' : 'rgba(14,148,133,0.06)', border: `1px solid ${isDark ? 'rgba(0,255,213,0.12)' : 'rgba(14,148,133,0.15)'}` }}>

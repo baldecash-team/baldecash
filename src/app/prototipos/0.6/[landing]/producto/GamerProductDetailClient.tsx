@@ -165,7 +165,7 @@ function DetailContent() {
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-  const { settings, newsletterData, navbarProps } = useLayout();
+  const { settings, newsletterData, navbarProps, footerData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
@@ -1015,6 +1015,7 @@ function DetailContent() {
       {/* HEADER */}
       <Navbar
         theme="gamer"
+        gamerTheme={theme}
         onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}
         catalogUrl={routes.catalogo(landing)}
         portalButtonText={navbarProps?.portalButtonText}
@@ -1783,7 +1784,7 @@ function DetailContent() {
       {/* Newsletter — before footer */}
       <GamerNewsletter theme={theme} data={newsletterData} />
 
-      <Footer theme="gamer" landing={landing} />
+      <Footer theme="gamer" data={footerData} landing={landing} />
       {/* Spacer for mobile fixed CTA bar */}
       <div className="gamer-detail-mobile-spacer" />
 

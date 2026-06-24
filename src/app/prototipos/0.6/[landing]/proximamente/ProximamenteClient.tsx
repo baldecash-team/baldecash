@@ -183,7 +183,7 @@ function ProximamenteContent() {
           @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px ${cyanAlpha(0.15)}, 0 0 60px ${cyanAlpha(0.05)}; } 50% { box-shadow: 0 0 30px ${cyanAlpha(0.25)}, 0 0 80px ${cyanAlpha(0.1)}; } }
           @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         `}</style>
-        <Navbar theme="gamer" onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
+        <Navbar theme="gamer" gamerTheme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
         <main style={{ paddingTop: 24 }}>
           <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
 

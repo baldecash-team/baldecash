@@ -14,8 +14,9 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { LazySection } from './LazySection';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
-import { getLandingLayout } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingLayout, getFooterData } from '@/app/prototipos/0.6/services/landingApi';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
+import type { FooterData } from '@/app/prototipos/0.6/types/hero';
 
 const LANDING_SLUG = 'zona-gamer';
 
@@ -28,8 +29,10 @@ export function ZonaGamerLanding() {
   const [customerPortalUrl, setCustomerPortalUrl] = useState<string | undefined>(undefined);
   const [promoBannerData, setPromoBannerData] = useState<PromoBannerData | null>(null);
   const [newsletterData, setNewsletterData] = useState<GamerNewsletterData | null>(null);
+  const [footerData, setFooterData] = useState<FooterData | null>(null);
 
   useEffect(() => {
+    getFooterData(LANDING_SLUG).then((data) => { if (data) setFooterData(data); });
     getLandingLayout(LANDING_SLUG).then((layout) => {
       if (!layout) return;
       const navbarConfig = layout.navbar?.content_config as Record<string, unknown> | undefined;
@@ -166,7 +169,7 @@ export function ZonaGamerLanding() {
 
         <LazySection minHeight={300}>
           <div id="footer">
-            <Footer theme="gamer" landing={LANDING_SLUG} />
+            <Footer theme="gamer" data={footerData} landing={LANDING_SLUG} />
           </div>
         </LazySection>
       </div>

@@ -140,6 +140,8 @@ interface NavbarProps {
   onMobileMenuChange?: (open: boolean) => void;
   /** Required when theme="gamer": callback to toggle dark/light */
   onToggleTheme?: () => void;
+  /** When theme="gamer": current dark/light variant (default: "dark") */
+  gamerTheme?: 'dark' | 'light';
 }
 
 // Map de iconos para megamenu (sincronizado con admin MEGAMENU_ICONS)
@@ -169,11 +171,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
-        theme="dark"
+        theme={gamerTheme}
         onToggleTheme={onToggleTheme ?? (() => {})}
         catalogUrl={catalogUrl ?? '#'}
         fullWidth={fullWidth}
