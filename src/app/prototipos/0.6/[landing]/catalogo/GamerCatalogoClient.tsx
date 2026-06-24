@@ -132,7 +132,7 @@ function GamerLoadingFallback() {
 // Content
 // ============================================
 
-function GamerCatalogoContent() {
+export function GamerCatalogoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();

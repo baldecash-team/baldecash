@@ -20,6 +20,11 @@ export function isNvidiaLanding(slug: string): boolean {
   return slug === 'nvidia';
 }
 
+/** La landing zona-gamer usa su propio header/footer y tema gaming en todas sus rutas de flujo. */
+export function isGamerLanding(slug: string): boolean {
+  return slug === 'zona-gamer';
+}
+
 /** Colores de marca para landings oscuras (paleta oficial NVIDIA). */
 export const NVIDIA_GREEN = '#76B900';
 export const NVIDIA_TURQUOISE = '#00D9CB';
