@@ -20,7 +20,7 @@ import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototip
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
@@ -442,7 +442,7 @@ function ComplementosContent() {
 
 function LoadingFallback() {
   const params = useParams();
-  const isGamer = (params?.landing as string) === 'zona-gamer';
+  const isGamer = isGamerLanding(params?.landing as string);
 
   if (isGamer) {
     return (
