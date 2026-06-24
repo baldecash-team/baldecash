@@ -17,7 +17,6 @@ import * as LucideIcons from 'lucide-react';
 import { WizardLayout } from '../components/solicitar/wizard';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
-import { GamerStepSuccess } from '../components/solicitar/celebration/GamerStepSuccess';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
@@ -849,27 +848,20 @@ function StepContent() {
   // Render regular form step content
   // Determinar dinámicamente si es el último paso del wizard
   // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
+  const isGamer = isGamerLanding(landing);
   const isActuallyLastRegularStep = navigation.isLast && !shouldShowComplementos;
 
   const pageContent = (
     <>
       <AnimatePresence>
         {showCelebration && (
-          landingId === LANDING_IDS.ZONA_GAMER ? (
-            <GamerStepSuccess
-              stepName={step.title}
-              stepNumber={step.order + 1}
-              totalSteps={steps.length}
-              onComplete={handleCelebrationComplete}
-            />
-          ) : (
-            <StepSuccessMessage
-              stepName={step.title}
-              stepNumber={step.order + 1}
-              totalSteps={steps.length}
-              onComplete={handleCelebrationComplete}
-            />
-          )
+          <StepSuccessMessage
+            stepName={step.title}
+            stepNumber={step.order + 1}
+            totalSteps={steps.length}
+            onComplete={handleCelebrationComplete}
+            theme={isGamer ? 'gamer' : undefined}
+          />
         )}
       </AnimatePresence>
 
