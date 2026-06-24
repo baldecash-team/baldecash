@@ -22,8 +22,6 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
 import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
@@ -719,8 +717,8 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
         .gamer-complementos-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
       `}</style>
       <div className={isDark ? 'gamer-complementos-dark' : 'gamer-complementos-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -729,7 +727,7 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
         />
         {children}
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" data={footerData} landing={landing} />
       </div>
     </div>
   );

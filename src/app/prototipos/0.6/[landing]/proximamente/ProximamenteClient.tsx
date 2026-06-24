@@ -31,8 +31,6 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
@@ -185,7 +183,7 @@ function ProximamenteContent() {
           @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px ${cyanAlpha(0.15)}, 0 0 60px ${cyanAlpha(0.05)}; } 50% { box-shadow: 0 0 30px ${cyanAlpha(0.25)}, 0 0 80px ${cyanAlpha(0.1)}; } }
           @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         `}</style>
-        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
+        <Navbar theme="gamer" onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
         <main style={{ paddingTop: 24 }}>
           <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
 
@@ -326,7 +324,7 @@ function ProximamenteContent() {
           </div>
         </main>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" data={footerData} landing={landing} />
       </div>
     );
   }

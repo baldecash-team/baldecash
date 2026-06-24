@@ -11,6 +11,7 @@ import { Button, Chip } from '@nextui-org/react';
 import dynamic from 'next/dynamic';
 const PreviewBanner = dynamic(() => import('../PreviewBanner').then(m => m.PreviewBanner), { ssr: false });
 import { usePreview } from '../../context/PreviewContext';
+import { GamerNavbar } from '../zona-gamer/GamerNavbar';
 import {
   Menu,
   X,
@@ -129,6 +130,16 @@ interface NavbarProps {
   primaryColor?: string;
   /** If provided, intercepts clicks on catalog links instead of navigating */
   onCatalogClick?: () => void;
+  /** Gamer theme — delegates rendering to GamerNavbar */
+  theme?: 'gamer';
+  /** Required when theme="gamer": URL to the catalog page */
+  catalogUrl?: string;
+  /** Required when theme="gamer": hides the secondary search/wishlist bar */
+  hideSecondaryBar?: boolean;
+  /** Required when theme="gamer": callback when mobile menu opens/closes */
+  onMobileMenuChange?: (open: boolean) => void;
+  /** Required when theme="gamer": callback to toggle dark/light */
+  onToggleTheme?: () => void;
 }
 
 // Map de iconos para megamenu (sincronizado con admin MEGAMENU_ICONS)
@@ -158,7 +169,23 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme }) => {
+  if (theme === 'gamer') {
+    return (
+      <GamerNavbar
+        theme="dark"
+        onToggleTheme={onToggleTheme ?? (() => {})}
+        catalogUrl={catalogUrl ?? '#'}
+        fullWidth={fullWidth}
+        hideSecondaryBar={hideSecondaryBar}
+        onMobileMenuChange={onMobileMenuChange}
+        portalButtonText={portalButtonText}
+        customerPortalUrl={customerPortalUrl}
+        promoBannerData={promoBannerData}
+      />
+    );
+  }
+
   // Auto-detect preview banner offset based on whether THIS landing is being previewed.
   // Start at 0 to match SSR, update after mount to avoid hydration mismatch.
   const { isPreviewingLanding } = usePreview();

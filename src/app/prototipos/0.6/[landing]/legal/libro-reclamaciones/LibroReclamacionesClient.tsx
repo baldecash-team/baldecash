@@ -12,8 +12,6 @@ import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
 import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -194,9 +192,9 @@ export function LibroReclamacionesClient() {
           .gamer-libro [data-slot="description"] { color: ${textMuted} !important; }
         `}</style>
 
-        {/* Header — shared GamerNavbar */}
-        <GamerNavbar
-          theme={theme || 'dark'}
+        {/* Header — shared Navbar con theme="gamer" */}
+        <Navbar
+          theme="gamer"
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -366,7 +364,7 @@ export function LibroReclamacionesClient() {
           </div>
         </main>
 
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" data={footerData} landing={landing} />
 
         {isSuccess && (
           <div style={{

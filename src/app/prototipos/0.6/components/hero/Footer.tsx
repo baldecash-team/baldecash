@@ -13,6 +13,8 @@ import type { FooterData, AgreementData } from '../../types/hero';
 import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import Image from 'next/image';
 
 
 // TikTok icon component (not available in lucide-react)
@@ -46,11 +48,17 @@ interface FooterProps {
   onCatalogClick?: () => void;
   /** Optional logo URL that overrides the company logo (e.g. a co-branded partner lockup). */
   logoOverride?: string;
+  /** Gamer theme — applies dark gaming aesthetic */
+  theme?: 'gamer';
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick, logoOverride }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick, logoOverride, theme }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
+  const isGamer = theme === 'gamer';
+  const isGamerDark = isGamer && typeof window !== 'undefined' ? localStorage.getItem('baldecash-zona-gamer-theme') !== 'light' : true;
+  const CYAN = '#00ffd5';
+  const PURPLE = '#6366f1';
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {
@@ -198,11 +206,22 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
 
   return (
     <footer
-      className="bg-neutral-900 text-white"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className={isGamer ? 'text-white' : 'bg-neutral-900 text-white'}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        ...(isGamer ? {
+          background: isGamerDark ? '#141414' : '#eaeaea',
+          color: isGamerDark ? '#f0f0f0' : '#333',
+          borderTop: `1px solid ${isGamerDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.2)'}`,
+          position: 'relative',
+        } : {}),
+      }}
     >
+      {isGamer && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${PURPLE}, ${CYAN}, ${PURPLE}, transparent)`, opacity: 0.3 }} />
+      )}
       {/* Newsletter Section - Only render if newsletter is enabled */}
-      {newsletterConfig?.enabled && (
+      {newsletterConfig?.enabled && !isGamer && (
         <div style={{ backgroundColor: '#4654CD' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -283,11 +302,15 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
           <div className="col-span-full lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <a href={heroUrl} className="inline-block">
+                {isGamer ? (
+                  <Image src={`${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`} alt="BaldeCash" width={160} height={40} style={{ height: 32, width: 'auto', objectFit: 'contain', filter: isGamerDark ? 'drop-shadow(0 0 8px rgba(0,255,213,0.3))' : 'none' }} />
+                ) : (
                 <img
                   src={logoUrl}
                   alt="BaldeCash"
                   className="h-8 object-contain"
                 />
+                )}
               </a>
               {agreementData?.institution_logo && (
                 <>
@@ -322,12 +345,12 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center transition-colors social-link-hover"
-                  style={{ '--hover-bg': 'var(--color-primary, #4654CD)' } as React.CSSProperties}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                  style={{ backgroundColor: isGamer ? (isGamerDark ? '#1e1e1e' : '#f0f0f0') : '#262626', border: isGamer ? `1px solid ${isGamerDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.15)'}` : 'none' }}
                   aria-label={social.label}
                   onClick={() => tracker?.track('cta_click', { cta_name: `social_${social.label.toLowerCase()}`, href: social.href, location: 'footer' })}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = isGamer ? 'rgba(99,102,241,0.3)' : 'var(--color-primary, #4654CD)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isGamer ? (isGamerDark ? '#1e1e1e' : '#f0f0f0') : '#262626'; }}
                 >
                   <social.icon className="w-4 h-4" />
                 </a>
@@ -338,7 +361,10 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
           {/* Link Columns - Only render if columns exist */}
           {columns?.map((column) => (
             <div key={column.title}>
-              <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">{column.title}</h4>
+              <h4
+                className="mb-4 uppercase"
+                style={isGamer ? { fontFamily: "'Share Tech Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: isGamerDark ? CYAN : '#00897a' } : { fontWeight: 600, fontSize: '0.875rem', letterSpacing: '0.05em' }}
+              >{column.title}</h4>
               <ul className="space-y-2">
                 {column.links.map((link) => {
                   const rawHref = link.href || '#';
@@ -350,14 +376,20 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                       {onCatalogClick && isCatalogLink ? (
                         <button
                           onClick={() => { tracker?.track('nav_click', { label: link.label, href, location: 'footer' }); onCatalogClick(); }}
-                          className="text-sm text-neutral-400 hover:text-white transition-colors bg-transparent border-0 p-0 cursor-pointer text-left"
+                          className="text-sm transition-colors bg-transparent border-0 p-0 cursor-pointer text-left"
+                          style={{ color: isGamer ? (isGamerDark ? '#a0a0a0' : '#666') : '#a3a3a3' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = isGamer ? (isGamerDark ? CYAN : '#00897a') : '#fff'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = isGamer ? (isGamerDark ? '#a0a0a0' : '#666') : '#a3a3a3'; }}
                         >
                           {link.label}
                         </button>
                       ) : (
                         <a
                           href={href}
-                          className="text-sm text-neutral-400 hover:text-white transition-colors"
+                          className="text-sm transition-colors"
+                          style={{ color: isGamer ? (isGamerDark ? '#a0a0a0' : '#666') : '#a3a3a3' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = isGamer ? (isGamerDark ? CYAN : '#00897a') : '#fff'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = isGamer ? (isGamerDark ? '#a0a0a0' : '#666') : '#a3a3a3'; }}
                           onClick={() => tracker?.track('nav_click', { label: link.label, href, location: 'footer' })}
                           {...(!isInternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                         >
@@ -373,8 +405,8 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
         </div>
 
         {/* Contacto - Fila completa */}
-        <div className="border-t border-neutral-800 pt-6 mb-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-3">Contáctanos</p>
+        <div className="pt-6 mb-6" style={{ borderTop: `1px solid ${isGamer ? (isGamerDark ? 'rgba(0,255,213,0.1)' : 'rgba(0,137,122,0.15)') : 'rgb(38,38,38)'}` }}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: isGamer ? (isGamerDark ? '#c0c0c0' : '#555') : '#d4d4d4', fontFamily: isGamer ? "'Share Tech Mono', monospace" : undefined, letterSpacing: isGamer ? 2 : undefined }}>{data?.contact_title ?? 'Contáctanos'}</p>
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2">
             {data?.company?.main_phone && (
               <a
@@ -407,7 +439,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-neutral-800 pt-6 flex flex-col gap-4 mt-0">
+        <div className="pt-6 flex flex-col gap-4 mt-0" style={{ borderTop: `1px solid ${isGamer ? (isGamerDark ? 'rgba(0,255,213,0.1)' : 'rgba(0,137,122,0.15)') : 'rgb(38,38,38)'}` }}>
           {data?.company?.main_address && (
             <div className="flex items-center gap-2 text-sm text-neutral-500">
               <MapPin className="w-4 h-4 flex-shrink-0" />

@@ -19,8 +19,7 @@ import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardS
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
@@ -1481,8 +1480,8 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         }
       `}</style>
       <div className={isDark ? 'gamer-wizard-dark' : 'gamer-wizard-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -1491,7 +1490,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         />
         {children}
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" data={footerData} landing={landing} />
       </div>
     </div>
   );

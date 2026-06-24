@@ -11,8 +11,6 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -96,9 +94,9 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
         `}</style>
 
-        {/* Header — shared GamerNavbar */}
-        <GamerNavbar
-          theme={theme}
+        {/* Header — shared Navbar con theme="gamer" */}
+        <Navbar
+          theme="gamer"
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -153,7 +151,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         </main>
 
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" data={footerData} landing={landing} />
       </div>
     );
   }
