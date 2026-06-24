@@ -71,9 +71,9 @@ import { fetchCatalogData, fetchProductsByIds } from '../../services/catalogApi'
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Zona Gamer components
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
 import type { OnboardingStep } from './types/catalog';
@@ -1159,8 +1159,8 @@ export function GamerCatalogoContent() {
   if (error && activeFilterCount === 0) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif" }}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
           onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -1229,8 +1229,8 @@ export function GamerCatalogoContent() {
       `}</style>
 
       {/* ====== HEADER (promo banner incluido dentro del sticky wrapper de GamerNavbar) ====== */}
-      <GamerNavbar
-        theme={theme}
+      <Navbar
+        theme="gamer"
         onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
         catalogUrl={routes.catalogo(landing)}
         hideSecondaryBar
@@ -2699,7 +2699,7 @@ export function GamerCatalogoContent() {
       )}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <GamerFooter theme={theme} />
+      <Footer theme="gamer" data={footerData} landing={landing} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}
       <BlipChat
