@@ -18,7 +18,8 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { GamerSolicitarContent } from './GamerSolicitarClient';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Layout context for shared data
@@ -823,6 +824,17 @@ function LoadingFallback() {
 }
 
 export default function WizardPreviewPage() {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
+  if (isGamerLanding(landing)) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <GamerSolicitarContent />
+      </Suspense>
+    );
+  }
+
   return (
     <Suspense fallback={<LoadingFallback />}>
       <WizardPreviewContent />

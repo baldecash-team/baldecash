@@ -24,6 +24,7 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 
 // Context
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -917,7 +918,7 @@ function StepContent() {
 
 function LoadingFallback() {
   const params = useParams();
-  const isGamer = (params?.landing as string) === 'zona-gamer';
+  const isGamer = isGamerLanding(params?.landing as string);
 
   if (isGamer) {
     return (

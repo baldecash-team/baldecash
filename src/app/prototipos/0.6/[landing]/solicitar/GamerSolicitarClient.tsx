@@ -72,12 +72,12 @@ const ACC_PAGE_SIZE = 6;
 export function GamerSolicitarClient() {
   return (
     <Suspense fallback={<div className="gamer-loading-fallback"><CubeGridSpinner /></div>}>
-      <SolicitarContent />
+      <GamerSolicitarContent />
     </Suspense>
   );
 }
 
-function SolicitarContent() {
+export function GamerSolicitarContent() {
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
