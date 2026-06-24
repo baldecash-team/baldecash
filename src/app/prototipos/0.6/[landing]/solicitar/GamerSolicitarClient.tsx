@@ -20,8 +20,8 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { useScrollToTop, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { SectionRenderer } from './components/solicitar/sections';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -545,7 +545,7 @@ export function GamerSolicitarContent() {
       `}</style>
 
       {/* NAVBAR */}
-      <GamerNavbar theme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} />
+      <Navbar theme="gamer" onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} />
 
       {/* MAIN */}
       <main style={{ maxWidth: 896, margin: '0 auto', padding: '56px 16px 80px' }}>
@@ -1391,7 +1391,7 @@ export function GamerSolicitarContent() {
       })()}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <GamerFooter theme={theme} footerData={footerData} />
+      <Footer theme="gamer" data={footerData} landing={landing} />
     </div>
   );
 }
