@@ -1047,7 +1047,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
           box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
           outline: none !important;
         }
-        /* NextUI input wrapper inset shadow */
+        /* NextUI input wrapper — quitar inset shadow/ring doble */
         .gamer-wizard-dark [data-slot="input-wrapper"],
         .gamer-wizard-dark [data-slot="innerWrapper"],
         .gamer-wizard-dark [data-slot="trigger"] {
@@ -1057,6 +1057,17 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         .gamer-wizard-dark [data-slot="input-wrapper"]:hover,
         .gamer-wizard-dark [data-slot="input-wrapper"][data-focus="true"] {
           box-shadow: none !important;
+        }
+        /* Radio/Segmented buttons — quitar ring interior doble */
+        .gamer-wizard-dark [class*="ring-"] {
+          --tw-ring-shadow: none !important;
+          --tw-ring-offset-shadow: none !important;
+          box-shadow: none !important;
+        }
+        .gamer-wizard-dark .border-\\[\\#4654CD\\].ring-2,
+        .gamer-wizard-dark .border-\\[var\\(--color-primary\\)\\].ring-2 {
+          box-shadow: none !important;
+          --tw-ring-shadow: none !important;
         }
         /* Segmented controls */
         .gamer-wizard-dark .bg-neutral-100.border { background: #1e1e1e !important; }
