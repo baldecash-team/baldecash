@@ -10,7 +10,7 @@ import { GamerGamesRanking } from './GamerGamesRanking';
 import { GamerStories } from './GamerStories';
 import { GamerCta } from './GamerCta';
 import { GamerNewsletter, type GamerNewsletterData } from './GamerNewsletter';
-import { GamerFooter } from './GamerFooter';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { LazySection } from './LazySection';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -166,7 +166,7 @@ export function ZonaGamerLanding() {
 
         <LazySection minHeight={300}>
           <div id="footer">
-            <GamerFooter theme={theme} />
+            <Footer theme="gamer" landing={LANDING_SLUG} />
           </div>
         </LazySection>
       </div>
