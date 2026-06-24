@@ -1784,7 +1784,7 @@ function DetailContent() {
       {/* Newsletter — before footer */}
       <GamerNewsletter theme={theme} data={newsletterData} />
 
-      <Footer theme="gamer" data={footerData} landing={landing} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       {/* Spacer for mobile fixed CTA bar */}
       <div className="gamer-detail-mobile-spacer" />
 

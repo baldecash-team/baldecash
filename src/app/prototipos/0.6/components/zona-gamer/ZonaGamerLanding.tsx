@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { GamerNavbar } from './GamerNavbar';
@@ -169,10 +169,11 @@ export function ZonaGamerLanding() {
 
         <LazySection minHeight={300}>
           <div id="footer">
-            <Footer theme="gamer" data={footerData} landing={LANDING_SLUG} />
+            <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={LANDING_SLUG} />
           </div>
         </LazySection>
       </div>
     </>
   );
 }
+

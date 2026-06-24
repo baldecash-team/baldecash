@@ -365,7 +365,7 @@ export function LibroReclamacionesClient() {
           </div>
         </main>
 
-        <Footer theme="gamer" data={footerData} landing={landing} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
 
         {isSuccess && (
           <div style={{

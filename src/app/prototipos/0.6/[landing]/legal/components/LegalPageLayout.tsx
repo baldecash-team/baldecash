@@ -152,7 +152,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         </main>
 
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <Footer theme="gamer" data={footerData} landing={landing} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     );
   }

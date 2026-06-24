@@ -1517,7 +1517,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
           {children}
         </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <Footer theme="gamer" data={footerData} landing={landing} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

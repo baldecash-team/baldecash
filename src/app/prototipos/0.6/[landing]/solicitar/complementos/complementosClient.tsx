@@ -718,15 +718,18 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
       <div className={isDark ? 'gamer-complementos-dark' : 'gamer-complementos-light'}>
         <Navbar
           theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
         />
-        {children}
+        <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
+          {children}
+        </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <Footer theme="gamer" data={footerData} landing={landing} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

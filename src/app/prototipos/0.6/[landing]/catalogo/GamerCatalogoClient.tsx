@@ -2701,7 +2701,7 @@ export function GamerCatalogoContent() {
       )}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <Footer theme="gamer" data={footerData} landing={landing} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}
       <BlipChat

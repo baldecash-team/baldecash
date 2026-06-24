@@ -1391,7 +1391,7 @@ export function GamerSolicitarContent() {
       })()}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <Footer theme="gamer" data={footerData} landing={landing} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
     </div>
   );
 }

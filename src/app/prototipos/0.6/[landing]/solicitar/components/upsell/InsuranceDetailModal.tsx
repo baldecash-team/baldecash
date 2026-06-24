@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { ShieldCheck, Lock, Check, Plus, X, Users, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { useParams } from 'next/navigation';
 
 interface InsuranceDetailModalProps {
   plan: InsurancePlan | null;
@@ -15,6 +17,26 @@ interface InsuranceDetailModalProps {
   isSelected: boolean;
   onToggle: () => void;
   badgeText?: string | null;
+}
+
+function useGamerTheme() {
+  const params = useParams<{ landing?: string }>();
+  const landing = params?.landing ?? '';
+  const isGamer = isGamerLanding(landing);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    if (!isGamer) return;
+    const read = () => {
+      const saved = localStorage.getItem('baldecash-zona-gamer-theme');
+      setIsDark(saved !== 'light');
+    };
+    read();
+    window.addEventListener('storage', read);
+    return () => window.removeEventListener('storage', read);
+  }, [isGamer]);
+
+  return { isGamer, isDark };
 }
 
 const MODAL_CONFIG: Record<string, {
@@ -68,14 +90,110 @@ const ModalContentShared: React.FC<{
   onToggle: () => void;
   onClose: () => void;
   badgeText?: string | null;
-}> = ({ plan, isSelected, onToggle, onClose, badgeText }) => {
+  isGamer?: boolean;
+  isDark?: boolean;
+}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true }) => {
   const config = getModalConfig(plan.insuranceType);
   const Icon = config.icon;
+  const CYAN = isDark ? '#00ffd5' : '#00897a';
 
   const handleToggleAndClose = () => {
     onToggle();
     onClose();
   };
+
+  if (isGamer) {
+    const bg = isDark ? '#141414' : '#f0f0f0';
+    const cardBg = isDark ? '#1e1e1e' : '#ffffff';
+    const border = isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.2)';
+    const text = isDark ? '#f0f0f0' : '#1a1a1a';
+    const muted = isDark ? '#a0a0a0' : '#666';
+    const legalBg = isDark ? 'rgba(0,255,213,0.05)' : 'rgba(0,137,122,0.05)';
+
+    return (
+      <div className="flex flex-col" style={{ background: bg, color: text, fontFamily: "'Rajdhani', sans-serif" }}>
+        {/* Header */}
+        <div style={{ background: `linear-gradient(135deg, #0e0e0e 0%, #1a1a1a 100%)`, borderBottom: `1px solid ${border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 36, height: 36, background: `rgba(0,255,213,0.1)`, border: `1px solid ${border}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon style={{ width: 18, height: 18, color: CYAN }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: CYAN, fontFamily: "'Orbitron', sans-serif", letterSpacing: 1 }}>{config.title}</h2>
+            <p style={{ fontSize: 11, color: muted, fontFamily: "'Share Tech Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{plan.name}</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ fontSize: 13, color: muted, lineHeight: 1.6 }}>{config.description}</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px 16px' }}>
+            {config.coverageItems.map((item) => (
+              <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <Check style={{ width: 14, height: 14, color: CYAN, flexShrink: 0, marginTop: 2 }} />
+                <span style={{ fontSize: 12, color: muted }}>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          {(config.legalText || config.conditionsText) && (
+            <details style={{ fontSize: 11 }}>
+              <summary style={{ color: muted, cursor: 'pointer', userSelect: 'none' }}>Información legal</summary>
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {config.legalText && (
+                  <p style={{ color: muted, background: legalBg, borderRadius: 6, padding: 10, lineHeight: 1.7 }}>{config.legalText}</p>
+                )}
+                {config.conditionsText && (
+                  <p style={{ color: isDark ? '#b8860b' : '#856404', background: isDark ? 'rgba(184,134,11,0.08)' : 'rgba(255,243,205,0.8)', borderRadius: 6, padding: 10, lineHeight: 1.7 }}>{config.conditionsText}</p>
+                )}
+              </div>
+            </details>
+          )}
+        </div>
+
+        {/* Footer - Price + CTA */}
+        <div style={{ padding: '4px 20px 20px' }}>
+          <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: CYAN, fontFamily: "'Orbitron', sans-serif" }}>
+                S/ {formatMoneyNoDecimals(Math.floor(plan.monthlyPrice))}
+              </span>
+              <span style={{ fontSize: 11, color: muted }}>/mes</span>
+            </div>
+            <span style={{ fontSize: 11, color: muted }}>
+              S/ {formatMoneyNoDecimals(plan.totalPrice)} · {plan.paymentMonths} cuotas
+            </span>
+          </div>
+
+          <button
+            onClick={handleToggleAndClose}
+            style={{
+              width: '100%', padding: '10px 0', borderRadius: 8, fontWeight: 700, fontSize: 13,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              fontFamily: "'Share Tech Mono', monospace", letterSpacing: 1,
+              border: isSelected ? `1px solid ${border}` : 'none',
+              background: isSelected ? 'transparent' : CYAN,
+              color: isSelected ? muted : '#0e0e0e',
+              transition: 'opacity 0.15s',
+            }}
+          >
+            {isSelected ? (
+              <><X style={{ width: 16, height: 16 }} /> QUITAR PROTECCIÓN</>
+            ) : (
+              <><Plus style={{ width: 16, height: 16 }} /> AGREGAR PROTECCIÓN</>
+            )}
+          </button>
+
+          {badgeText && (
+            <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 10, color: muted, marginTop: 12 }}>
+              <Users style={{ width: 12, height: 12 }} />
+              {badgeText}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
@@ -182,8 +300,8 @@ const ModalContentShared: React.FC<{
 };
 
 // Desktop Modal
-const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan }> = ({
-  plan, isOpen, onClose, isSelected, onToggle, badgeText,
+const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; isGamer: boolean; isDark: boolean }> = ({
+  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -193,22 +311,22 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan }
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
-      base: 'bg-white rounded-2xl overflow-hidden',
+      base: `rounded-2xl overflow-hidden ${isGamer ? (isDark ? 'bg-[#141414]' : 'bg-[#f0f0f0]') : 'bg-white'}`,
       body: 'p-0',
-      closeButton: 'top-3 right-3 z-10 bg-white/30 backdrop-blur hover:bg-white/50 text-white cursor-pointer',
+      closeButton: `top-3 right-3 z-10 backdrop-blur cursor-pointer ${isGamer ? 'bg-black/30 hover:bg-black/50 text-[#00ffd5]' : 'bg-white/30 hover:bg-white/50 text-white'}`,
     }}
   >
     <ModalContent>
       <ModalBody>
-        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} />
+        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} />
       </ModalBody>
     </ModalContent>
   </Modal>
 );
 
 // Mobile Bottom Sheet
-const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
-  plan, isOpen, onClose, isSelected, onToggle, badgeText,
+const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean; isDark: boolean }> = ({
+  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && plan;
@@ -274,20 +392,20 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
             onDragEnd={(_, info) => {
               if (info.offset.y > 100) onClose();
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col max-h-[80vh]"
-            style={{ overscrollBehavior: 'contain' }}
+            className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[9999] flex flex-col max-h-[80vh]"
+            style={{ overscrollBehavior: 'contain', background: isGamer ? (isDark ? '#141414' : '#f0f0f0') : '#ffffff' }}
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 rounded-full" style={{ background: isGamer ? 'rgba(0,255,213,0.3)' : '#d4d4d4' }} />
             </div>
             <div
               className="flex-1 overflow-y-auto"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} />
+              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} />
             </div>
           </motion.div>
         </>
@@ -298,10 +416,11 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
 
 export const InsuranceDetailModal: React.FC<InsuranceDetailModalProps> = (props) => {
   const isMobile = useIsMobile();
+  const { isGamer, isDark } = useGamerTheme();
 
-  if (isMobile) return <MobileBottomSheet {...props} />;
+  if (isMobile) return <MobileBottomSheet {...props} isGamer={isGamer} isDark={isDark} />;
   if (!props.plan) return null;
-  return <DesktopModal {...props} plan={props.plan} />;
+  return <DesktopModal {...props} plan={props.plan} isGamer={isGamer} isDark={isDark} />;
 };
 
 export default InsuranceDetailModal;

@@ -50,13 +50,17 @@ interface FooterProps {
   logoOverride?: string;
   /** Gamer theme — applies dark gaming aesthetic */
   theme?: 'gamer';
+  /** When theme="gamer": current dark/light variant (default reads localStorage) */
+  gamerTheme?: 'dark' | 'light';
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick, logoOverride, theme }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick, logoOverride, theme, gamerTheme }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
   const isGamer = theme === 'gamer';
-  const isGamerDark = isGamer && typeof window !== 'undefined' ? localStorage.getItem('baldecash-zona-gamer-theme') !== 'light' : true;
+  const isGamerDark = isGamer
+    ? (gamerTheme ? gamerTheme === 'dark' : (typeof window !== 'undefined' ? localStorage.getItem('baldecash-zona-gamer-theme') !== 'light' : true))
+    : true;
   const CYAN = '#00ffd5';
   const PURPLE = '#6366f1';
 
