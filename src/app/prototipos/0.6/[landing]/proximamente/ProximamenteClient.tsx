@@ -184,7 +184,7 @@ function ProximamenteContent() {
           @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         `}</style>
         <Navbar theme="gamer" gamerTheme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
-        <main style={{ paddingTop: 24 }}>
+        <main style={{ paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + 24px)' }}>
           <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
 
             {/* Icon — animated floating with glow */}
