@@ -75,7 +75,7 @@ import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/Game
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
-import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
+import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import type { OnboardingStep } from './types/catalog';
 import { Toast, useToast, CubeGridSpinner, useIsMobile, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -2749,12 +2749,13 @@ export function GamerCatalogoContent() {
       )}
 
       {/* Onboarding Tour */}
-      <GamerOnboardingTour
+      <OnboardingTour
         isActive={tourActive}
         currentStep={currentTourStep}
         currentStepIndex={tourStep}
         totalSteps={gamerTourSteps.length}
-        theme={theme}
+        highlightStyle="pulse"
+        theme="gamer"
         onNext={handleTourNext}
         onPrev={handleTourPrev}
         onSkip={handleTourSkip}
