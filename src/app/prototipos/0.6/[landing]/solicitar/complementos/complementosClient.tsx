@@ -35,7 +35,6 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -111,7 +110,7 @@ function ComplementosContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(params?.landing as string);
 
   // Get solicitar flow configuration
   const {

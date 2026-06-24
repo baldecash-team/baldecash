@@ -21,7 +21,6 @@ import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/them
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
@@ -441,7 +440,7 @@ function ConfirmacionContent() {
     router.push(routes.landingHome(landing));
   };
 
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(params?.landing as string);
 
   // 404 if landing not found — checked before the gamer wrap so the user sees
   // NotFoundContent instead of an empty gamer shell when the landing fails.

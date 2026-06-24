@@ -14,7 +14,7 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useLayout } from '../../context/LayoutContext';
 import { Zap } from 'lucide-react';
 
@@ -35,7 +35,7 @@ function LoadingFallback() {
 export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayoutProps) {
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing, newsletterData } = useLayout();
   const isConvenio = !!agreementData;
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(landing);
 
   useScrollToTop();
 

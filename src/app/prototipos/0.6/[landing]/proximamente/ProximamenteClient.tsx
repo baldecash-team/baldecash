@@ -35,7 +35,7 @@ import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/Game
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useLayout } from '../context/LayoutContext';
 import { getComingSoonContent, ComingSoonSection } from '@/app/prototipos/0.6/services/landingApi';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -83,7 +83,7 @@ function ProximamenteContent() {
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing, newsletterData } = useLayout();
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(landing);
   const tracker = useEventTrackerOptional();
 
   // Gamer theme
