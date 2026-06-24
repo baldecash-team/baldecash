@@ -29,15 +29,17 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   const activeStudyCenters = data.studyCenters.filter((sc) => sc.is_active !== false);
   const visibleTestimonials = testimonials.filter((t) => t.is_visible !== false);
 
-  // Usar study centers desde API (data.studyCenters tiene logo_url)
-  // Filtrar study centers sin logo para evitar src=""
-  const logos = activeStudyCenters
+  // Combinar study centers + partners para el carrusel de logos
+  const studyCenterLogos = activeStudyCenters
     .filter((inst) => inst.logo)
-    .map((inst, idx) => ({
-      id: idx + 1,
-      name: inst.name,
-      url: inst.logo,
-    }));
+    .map((inst, idx) => ({ id: idx + 1, name: inst.name, url: inst.logo }));
+
+  const activePartners = (data.partners || []);
+  const partnerLogos = activePartners
+    .filter((p) => p.logo)
+    .map((p, idx) => ({ id: studyCenterLogos.length + idx + 1, name: p.name, url: p.logo as string }));
+
+  const logos = [...studyCenterLogos, ...partnerLogos];
 
   // Calcular cuántas veces repetir los logos para llenar el ancho
   // Mínimo 2 repeticiones, más si hay pocos logos
