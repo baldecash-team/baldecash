@@ -610,6 +610,8 @@ function StepContent() {
     return <NotFoundContent homeUrl={routes.home()} />;
   }
 
+  const isGamer = isGamerLanding(landing);
+
   // Error state - step not found
   if (configError || !step) {
     const errorContent = (
@@ -678,8 +680,6 @@ function StepContent() {
       <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>
     </div>
   );
-
-  const isGamer = isGamerLanding(landing);
 
   // Render summary step content
   if (isSummaryStep) {
