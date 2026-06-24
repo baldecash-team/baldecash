@@ -17,11 +17,9 @@ import * as LucideIcons from 'lucide-react';
 import { WizardLayout } from '../components/solicitar/wizard';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
-import { GamerStepSuccess } from '../components/solicitar/celebration/GamerStepSuccess';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
@@ -58,7 +56,6 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 
@@ -613,9 +610,10 @@ function StepContent() {
     return <NotFoundContent homeUrl={routes.home()} />;
   }
 
+  const isGamer = isGamerLanding(landing);
+
   // Error state - step not found
   if (configError || !step) {
-    const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
     const errorContent = (
       <div className="text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -710,8 +708,8 @@ function StepContent() {
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
         canProceed={true}
-        hideNavbar={landingId === LANDING_IDS.ZONA_GAMER}
-        navbarProps={landingId === LANDING_IDS.ZONA_GAMER ? undefined : (navbarProps || undefined)}
+        hideNavbar={isGamer}
+        navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
@@ -829,7 +827,7 @@ function StepContent() {
     );
 
     // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
-    if (landingId === LANDING_IDS.ZONA_GAMER) {
+    if (isGamer) {
       return (
         <GamerWizardWrapper footerData={footerData}>
           {pageContent}
@@ -855,21 +853,13 @@ function StepContent() {
     <>
       <AnimatePresence>
         {showCelebration && (
-          landingId === LANDING_IDS.ZONA_GAMER ? (
-            <GamerStepSuccess
-              stepName={step.title}
-              stepNumber={step.order + 1}
-              totalSteps={steps.length}
-              onComplete={handleCelebrationComplete}
-            />
-          ) : (
-            <StepSuccessMessage
-              stepName={step.title}
-              stepNumber={step.order + 1}
-              totalSteps={steps.length}
-              onComplete={handleCelebrationComplete}
-            />
-          )
+          <StepSuccessMessage
+            stepName={step.title}
+            stepNumber={step.order + 1}
+            totalSteps={steps.length}
+            onComplete={handleCelebrationComplete}
+            theme={isGamer ? 'gamer' : undefined}
+          />
         )}
       </AnimatePresence>
 
@@ -883,8 +873,8 @@ function StepContent() {
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
         canProceed={true}
-        hideNavbar={landingId === LANDING_IDS.ZONA_GAMER}
-        navbarProps={landingId === LANDING_IDS.ZONA_GAMER ? undefined : (navbarProps || undefined)}
+        hideNavbar={isGamer}
+        navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={stepMotivational}
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
@@ -898,7 +888,7 @@ function StepContent() {
   );
 
   // Zona Gamer: wrap with dark theme, gamer navbar and footer
-  if (landingId === LANDING_IDS.ZONA_GAMER) {
+  if (isGamer) {
     return (
       <GamerWizardWrapper footerData={footerData}>
         {pageContent}
@@ -1045,6 +1035,8 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
           background: #1e1e1e !important;
           color: #f0f0f0 !important;
           border-color: #2a2a2a !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
         .gamer-wizard-dark input::placeholder,
         .gamer-wizard-dark textarea::placeholder { color: #555 !important; }
@@ -1053,6 +1045,29 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         .gamer-wizard-dark textarea:focus {
           border-color: #00ffd5 !important;
           box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
+          outline: none !important;
+        }
+        /* NextUI input wrapper — quitar inset shadow/ring doble */
+        .gamer-wizard-dark [data-slot="input-wrapper"],
+        .gamer-wizard-dark [data-slot="innerWrapper"],
+        .gamer-wizard-dark [data-slot="trigger"] {
+          box-shadow: none !important;
+          background: #1e1e1e !important;
+        }
+        .gamer-wizard-dark [data-slot="input-wrapper"]:hover,
+        .gamer-wizard-dark [data-slot="input-wrapper"][data-focus="true"] {
+          box-shadow: none !important;
+        }
+        /* Radio/Segmented buttons — quitar ring interior doble */
+        .gamer-wizard-dark [class*="ring-"] {
+          --tw-ring-shadow: none !important;
+          --tw-ring-offset-shadow: none !important;
+          box-shadow: none !important;
+        }
+        .gamer-wizard-dark .border-\\[\\#4654CD\\].ring-2,
+        .gamer-wizard-dark .border-\\[var\\(--color-primary\\)\\].ring-2 {
+          box-shadow: none !important;
+          --tw-ring-shadow: none !important;
         }
         /* Segmented controls */
         .gamer-wizard-dark .bg-neutral-100.border { background: #1e1e1e !important; }
@@ -1489,17 +1504,20 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         }
       `}</style>
       <div className={isDark ? 'gamer-wizard-dark' : 'gamer-wizard-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
         />
-        {children}
+        <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
+          {children}
+        </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

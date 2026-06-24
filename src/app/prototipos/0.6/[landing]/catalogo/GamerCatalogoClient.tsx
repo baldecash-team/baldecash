@@ -71,11 +71,11 @@ import { fetchCatalogData, fetchProductsByIds } from '../../services/catalogApi'
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Zona Gamer components
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
-import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
+import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import type { OnboardingStep } from './types/catalog';
 import { Toast, useToast, CubeGridSpinner, useIsMobile, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -196,7 +196,7 @@ export function GamerCatalogoContent() {
   }, []);
 
   // Layout data (navbar items, promo banner) desde /landing/zona-gamer/layout
-  const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, newsletterData } = useLayout();
+  const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, newsletterData, footerData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
@@ -1159,8 +1159,9 @@ export function GamerCatalogoContent() {
   if (error && activeFilterCount === 0) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif" }}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -1229,8 +1230,9 @@ export function GamerCatalogoContent() {
       `}</style>
 
       {/* ====== HEADER (promo banner incluido dentro del sticky wrapper de GamerNavbar) ====== */}
-      <GamerNavbar
-        theme={theme}
+      <Navbar
+        theme="gamer"
+        gamerTheme={theme}
         onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
         catalogUrl={routes.catalogo(landing)}
         hideSecondaryBar
@@ -2699,7 +2701,7 @@ export function GamerCatalogoContent() {
       )}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <GamerFooter theme={theme} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}
       <BlipChat
@@ -2749,12 +2751,13 @@ export function GamerCatalogoContent() {
       )}
 
       {/* Onboarding Tour */}
-      <GamerOnboardingTour
+      <OnboardingTour
         isActive={tourActive}
         currentStep={currentTourStep}
         currentStepIndex={tourStep}
         totalSteps={gamerTourSteps.length}
-        theme={theme}
+        highlightStyle="pulse"
+        theme="gamer"
         onNext={handleTourNext}
         onPrev={handleTourPrev}
         onSkip={handleTourSkip}

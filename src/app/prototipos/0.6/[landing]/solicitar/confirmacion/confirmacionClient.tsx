@@ -19,11 +19,8 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
 import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
@@ -443,7 +440,7 @@ function ConfirmacionContent() {
     router.push(routes.landingHome(landing));
   };
 
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(params?.landing as string);
 
   // 404 if landing not found — checked before the gamer wrap so the user sees
   // NotFoundContent instead of an empty gamer shell when the landing fails.
@@ -714,17 +711,20 @@ function GamerConfirmacionWrapper({ children, footerData }: { children: React.Re
         .gamer-confirmacion-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
       `}</style>
       <div className={isDark ? 'gamer-confirmacion-dark' : 'gamer-confirmacion-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
         />
-        {children}
+        <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
+          {children}
+        </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

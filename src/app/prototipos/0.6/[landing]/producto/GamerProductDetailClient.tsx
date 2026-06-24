@@ -18,9 +18,9 @@ import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi'
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import type { CartItem, TermMonths, InitialPaymentPercent, CatalogDeviceType, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -165,7 +165,7 @@ function DetailContent() {
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-  const { settings, newsletterData, navbarProps } = useLayout();
+  const { settings, newsletterData, navbarProps, footerData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
@@ -1013,8 +1013,9 @@ function DetailContent() {
       `}</style>
 
       {/* HEADER */}
-      <GamerNavbar
-        theme={theme}
+      <Navbar
+        theme="gamer"
+        gamerTheme={theme}
         onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}
         catalogUrl={routes.catalogo(landing)}
         portalButtonText={navbarProps?.portalButtonText}
@@ -1783,7 +1784,7 @@ function DetailContent() {
       {/* Newsletter — before footer */}
       <GamerNewsletter theme={theme} data={newsletterData} />
 
-      <GamerFooter theme={theme} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       {/* Spacer for mobile fixed CTA bar */}
       <div className="gamer-detail-mobile-spacer" />
 

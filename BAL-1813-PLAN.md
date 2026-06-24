@@ -2,265 +2,162 @@
 
 ## Problema
 
-Zona Gamer tiene 3 archivos cliente completamente clonados de Home:
+Zona Gamer tiene componentes cliente clonados de Home. Cualquier feature nueva en Home debe replicarse manualmente — y sistemáticamente se olvida.
 
-| Cliente clonado | Original |
-|---|---|
-| `GamerCatalogoClient.tsx` (2,880 líneas) | `CatalogoClient.tsx` (2,434 líneas) |
-| `GamerProductDetailClient.tsx` (~1,500 líneas) | `ProductDetailClient.tsx` |
-| `GamerSolicitarClient.tsx` (~900 líneas) | `SolicitarClient.tsx` |
+## Objetivo final
 
-**Consecuencia directa:** cualquier nueva funcionalidad en Home (lógica, componentes, analytics, integración backend) hay que replicarla manualmente a Zona Gamer — y sistemáticamente se olvida.
+Un único conjunto de componentes generales parametrizados con `theme="gamer"`. Zona Gamer no tiene clones — usa los mismos componentes de Home con estética gaming. Cualquier feature nueva en Home llega a Zona Gamer automáticamente.
 
 ---
 
-## Análisis técnico: qué es diferente en Zona Gamer
+## Estado actual por página
 
-### Lo que SÓLO cambia en Zona Gamer (diseño puro)
-- Navbar/Footer (`GamerNavbar`, `GamerFooter`)
-- Colores y tipografías (neonCyan `#00ffd5`, neonPurple `#6366f1`, fondo `#0e0e0e`, fuentes Rajdhani/Orbitron/Bebas)
-- localStorage key para dark mode: `baldecash-zona-gamer-theme` (no es `baldecash-theme`)
-- Tokens de tema via `gamerTheme(isDark)` desde `components/gamer/gamerTheme.ts`
-- Tarjetas de producto con estética gaming
-- SecondaryNav con tipografía distinta
-- EmptyState con texto "gaming"
-- CompareModal con colores gamer
-
-### Lo que es ESTRUCTURALMENTE diferente (requiere slot/bifurcación)
-- **Sidebar / filtros**: orden y subconjunto distintos
-  - Home: 15+ specs (ram, storage, storage_type, processor_brand, processor, gpu, screen_size, screen_type, screen_resolution, touch_screen, refresh_rate, backlit_keyboard, numeric_keypad, fingerprint_sensor, windows_included, thunderbolt_port, ethernet_port, hdmi_port, sd_card_slot, usb_ports, ram_expandable)
-  - Gamer: 5 specs (ram, storage, gpu, processor, screen_size)
-  - Home sidebar: Tipo equipo → Marca → Cuota → advanced drawer (TechnicalFiltersStyled)
-  - Gamer sidebar: GPU → CPU → RAM → Almacenamiento → Pantalla → Cuota → Destacados → Marca → Uso → Condición
-  - El componente `GamerSidebar.tsx` ya existe y está correcto — se pasa como slot
-
-### Lo que Zona Gamer tiene que Home NO tiene (lógica exclusiva Gamer)
-- **Sección de accesorios en detalle**: `AccessoriesCarousel`, `getLandingAccessories()`, estado `accessories[]`, nav item `#accesorios`, localStorage `baldecash-{landing}-solicitar-selected-accessories`
-  - Al unificar `ProductDetailClient`, esta lógica entra al cliente unificado bajo `{isGamer && <AccessoriesCarousel />}`
-  - **No es solo diseño** — es una llamada API adicional y estado propio
-
-### Lo que Zona Gamer NO tiene (features de Home que se perdieron)
-- `RefurbishedWarningModal`
-- `campaignCoupon` / `VipCountdownBanner`
-- `OnboardingWelcomeModal`
-- `viewMode` (favorites/all toggle)
-- `CouponCampaignBanner`
-- `QuickUsageCards`
-- Brand filter versioning (V1-V6)
-
----
-
-## Patrón a seguir: NVIDIA
-
-En `utils/theme.ts` ya existe el precedente exacto:
-
-```ts
-export const DARK_LANDINGS = ['nvidia'];
-export function isDarkLanding(slug: string): boolean { ... }
-export function isNvidiaLanding(slug: string): boolean { return slug === 'nvidia'; }
-```
-
-El mismo patrón se aplica para Zona Gamer con `isGamerLanding(slug)`.
-
----
-
-## Solución
-
-### Principio central
-Un único cliente unificado que recibe presentación por parámetro `theme="gamer"` o detectado via `isGamerLanding(slug)`. La lógica, hooks, API calls, analytics y todo comportamiento son compartidos. Solo el JSX de presentación bifurca.
-
-### Lo que NO cambia
-- `page.tsx` de cada ruta mantiene el `if (landing === 'zona-gamer')` — solo el destino cambia al cliente unificado
-- `GamerSidebar.tsx` se mantiene como componente separado, se pasa como slot
-- `CatalogLayoutV4.tsx` se mantiene para Home (estructuralmente incompatible)
-- `gamerTheme.ts` se mantiene como fuente de tokens
-
----
-
-## Iteración 1: Catálogo + Detalle
-
-### Archivos afectados
-
-```
-src/app/prototipos/0.6/utils/theme.ts            ← agregar isGamerLanding()
-src/app/prototipos/0.6/[landing]/catalogo/
-  page.tsx                                        ← apuntar if-gamer al cliente unificado
-  CatalogoClient.tsx                              ← agregar bifurcaciones gamer (~10 puntos)
-  GamerCatalogoClient.tsx                         ← ELIMINAR al final de iteración
-src/app/prototipos/0.6/[landing]/producto/
-  page.tsx                                        ← apuntar if-gamer al cliente unificado
-  ProductDetailClient.tsx                         ← agregar bifurcaciones gamer
-  GamerProductDetailClient.tsx                    ← ELIMINAR al final de iteración
-```
-
-### Paso 1: Agregar `isGamerLanding` en `utils/theme.ts`
-
-```ts
-export const GAMER_LANDINGS = ['zona-gamer'];
-
-export function isGamerLanding(slug: string): boolean {
-  return GAMER_LANDINGS.includes(slug);
-}
-```
-
-### Paso 2: Unificar `CatalogoClient.tsx`
-
-El cliente recibe `slug` (ya lo tiene via `useParams`). Se deriva `isGamer = isGamerLanding(slug)`.
-
-**Puntos de bifurcación en JSX (~10 puntos):**
-
-| # | Punto | Home | Gamer |
-|---|---|---|---|
-| 1 | Navbar | `<Navbar>` | `<GamerNavbar>` |
-| 2 | Footer | `<Footer>` | `<GamerFooter>` |
-| 3 | Layout/Sidebar | `<CatalogLayoutV4 sidebar={...}>` | inline layout + `<GamerSidebar>` |
-| 4 | localStorage key dark mode | `baldecash-theme` | `baldecash-zona-gamer-theme` |
-| 5 | Tokens de color CSS vars | sistema NextUI | `gamerTheme(isDark)` inline styles |
-| 6 | Tipografías | estándar | Rajdhani/Orbitron/Bebas via `<style>` |
-| 7 | API specs solicitados | 21+ specs | 5 specs (ram, storage, gpu, processor, screen_size) |
-| 8 | ProductCard | estándar | `<GamerProductCard>` |
-| 9 | SecondaryNav | estándar | tipografía gamer |
-| 10 | EmptyState / CompareModal | estándar | colores gamer |
-
-**Specs API para catálogo:**
-```ts
-const catalogSpecs = isGamer
-  ? ['ram', 'storage', 'gpu', 'processor', 'screen_size']
-  : ['ram', 'storage', 'storage_type', 'processor_brand', /* ...21 specs Home */];
-```
-
-**Default expanded sections:**
-```ts
-const defaultExpanded = isGamer
-  ? { gpu: true, procesador: true, ram: true, almacenamiento: true, pantalla: true, cuota: true }
-  : { /* valores Home */ };
-```
-
-**Layout:**
-```tsx
-{isGamer ? (
-  <div style={{ background: theme.bg, minHeight: '100vh', fontFamily: 'Rajdhani, ...' }}>
-    <GamerNavbar />
-    <div className="flex">
-      <GamerSidebar filters={filters} onUpdate={updateFilter} isDark={isDark} />
-      <main>{products.map(p => <GamerProductCard ... />)}</main>
-    </div>
-    <GamerFooter />
-  </div>
-) : (
-  <CatalogLayoutV4 sidebar={...} {...homeProps} />
-)}
-```
-
-### Paso 3: Actualizar `page.tsx` de catálogo
-
-```tsx
-// ANTES
-if (landing === 'zona-gamer') return <GamerCatalogoClient />;
-return <CatalogoClient />;
-
-// DESPUÉS
-// CatalogoClient detecta isGamer internamente via useParams()
-return <CatalogoClient />;
-```
-
-O, si se prefiere pasar `theme` explícito:
-```tsx
-if (landing === 'zona-gamer') return <CatalogoClient theme="gamer" />;
-return <CatalogoClient />;
-```
-
-**Decisión recomendada:** pasar `theme="gamer"` explícito — más legible que leer params internamente.
-
-### Paso 4: Detalle de producto — decisión de arquitectura
-
-**HALLAZGO CRÍTICO tras análisis profundo:**
-
-`ProductDetailClient` (Home, 537 líneas) es un **cliente delgado** que delega todo el renderizado al componente `<ProductDetail>` importado de `../components/detail/ProductDetail`.
-
-`GamerProductDetailClient` (3,098 líneas) es un **monolito autocontenido** que reimplementa todo inline — galería, specs, cronograma, similares, accesorios, SideNav, modal de financiamiento. No usa `<ProductDetail>`.
-
-#### Diferencias exclusivas de Gamer (no existen en Home):
-| Feature | Líneas aprox. | Naturaleza |
+| Página | Archivo cliente | Estado |
 |---|---|---|
-| `AccessoriesCarousel` + `GamerAccessoryDetailModal` | ~250 | Lógica + API call + estado propio |
-| `SideNav` flotante lateral (scroll tracking) | ~90 | UI exclusiva gamer |
-| `PortsSection` con diagrama izq/der | ~80 | UI exclusiva gamer |
-| `CronogramaSection` con amortización inline + PDF gamer | ~250 | Reimplementación con colores gamer |
-| `FinanciamientoModal` con tabla de amortización | ~200 | Reimplementación con colores gamer |
-| Galería custom (zoom cursor-guided, grid thumbs diferente) | ~300 | Reimplementación visual completa |
-| `GamerNewsletter` antes del footer | ~5 | Componente ya existe |
-| `NvidiaBadge` en GPU specs | ~5 | Feature puntual |
-
-#### Diferencias exclusivas de Home (Gamer no las tiene):
-- `SearchDrawer` + `WishlistDrawer` móvil
-- `CatalogSecondaryNavbar`
-- `useLeadGuard`
-- `NotFoundContent` componente
-
-#### Opciones para el detalle:
-
-**Opción A (recomendada para BAL-1813): Dejar GamerProductDetailClient, conectar hooks**
-- No unificar el rendering — son arquitecturas demasiado distintas
-- Asegurar que mejoras en hooks compartidos (`useCatalogSharedState`, `useAnalytics`, `useProduct`) lleguen automáticamente
-- El riesgo del problema original (replicar features) aplica principalmente al catálogo, no al detalle: las features nuevas en Home-detalle van a `<ProductDetail>` component, no a `ProductDetailClient`
-- Costo: bajo. Riesgo: bajo.
-
-**Opción B (iteración futura): Parametrizar `<ProductDetail>` con tema + slots**
-- Agregar `theme`, `sideNav`, `accessories`, `newsletter` como props/slots al componente compartido
-- Refactorizar `CronogramaSection` y galería para aceptar tokens de tema
-- Costo: alto (~1-2 semanas). Riesgo: medio (puede romper Home).
-
-**Decisión BAL-1813:** Aplicar Opción A. El detalle gamer permanece como está. El win principal está en el catálogo (2,880 vs 2,434 líneas, con features nuevas que llegan constantemente).
-
-### Paso 5: Borrar único archivo clone
-
-Una vez verificado que el cliente unificado funciona en ambos modos:
-- Eliminar `GamerCatalogoClient.tsx` ✓
-- `GamerProductDetailClient.tsx` — **NO eliminar en esta iteración** (ver decisión arriba)
+| `/zona-gamer` (index) | `ZonaGamerLanding.tsx` | No es clon, no se toca |
+| `/[landing]/catalogo` | `CatalogoClient.tsx` | ✅ Unificado — delega a `GamerCatalogoContent` |
+| `/[landing]/producto` | `GamerProductDetailClient.tsx` | ⚠️ Clon activo — arquitectura distinta, ticket futuro |
+| `/[landing]/solicitar` | `SolicitarClient.tsx` | ✅ Unificado — delega a `GamerSolicitarContent` |
+| `/[landing]/solicitar/[step]` | `StepClient.tsx` | ✅ Ya bifurcado con `isGamerLanding()` |
+| `/[landing]/solicitar/complementos` | `complementosClient.tsx` | ✅ Ya bifurcado con `isGamerLanding()` |
+| `/[landing]/solicitar/confirmacion` | `confirmacionClient.tsx` | ✅ Ya bifurcado con `isGamerLanding()` |
+| `/[landing]/legal` | `LegalPageLayout.tsx` | ⚠️ Bifurcado pero usa `landingId === LANDING_IDS.ZONA_GAMER` |
+| `/[landing]/legal/libro-reclamaciones` | `LibroReclamacionesClient.tsx` | ⚠️ Bifurcado pero usa `landingId === LANDING_IDS.ZONA_GAMER` |
+| `/[landing]/proximamente` | `ProximamenteClient.tsx` | ⚠️ Bifurcado pero usa `landingId === LANDING_IDS.ZONA_GAMER` |
 
 ---
 
-## Iteración 2: Solicitar (ticket separado)
+## Componentes gamer activos (no del index)
 
-Archivos a unificar:
-- `GamerSolicitarClient.tsx` → `SolicitarClient.tsx`
-- Sub-páginas del flujo solicitar que tengan bifurcaciones gamer
-
-Nota: `StepClient.tsx` ya tiene `isGamer = (params?.landing as string) === 'zona-gamer'` en L920 — esto se migra a `isGamerLanding()` de `utils/theme.ts`.
-
----
-
-## Invariantes a preservar (no romper)
-
-1. **localStorage key** `baldecash-zona-gamer-theme` — verbatim, no cambiar
-2. **LANDING_IDS.ZONA_GAMER = 136** en `utils/landingIds.ts` — sin tocar
-3. **Tokens `gamerTheme(isDark)`** — mantener el objeto, seguir usándolo desde `gamerTheme.ts`
-4. **`GamerSidebar.tsx`** — no fusionar con el sidebar de Home; se pasa como slot
-5. **`page.tsx` guards** — el `if (landing === 'zona-gamer')` puede simplificarse a pasar `theme="gamer"` como prop, pero el guard de ruta permanece
-6. **Features de Home que Gamer no tenía** — tras unificación, Gamer las hereda automáticamente; validar que no rompen visualmente con el tema gamer (especialmente `VipCountdownBanner`, `OnboardingWelcomeModal`)
-
----
-
-## Resultado esperado
-
-| Antes | Después |
-|---|---|
-| 3 archivos clonados | 1 cliente por página |
-| Feature nueva en Home → hay que replicar manualmente | Feature nueva en Home → Zona Gamer la hereda sola |
-| ~7,700 líneas de código duplicado | ~3,000 líneas unificadas (catálogo) + detalle pendiente |
-| Bugs divergentes silenciosos | Un solo punto de fallo/mejora |
+| Componente | Símil general | Estado |
+|---|---|---|
+| `GamerNavbar` | `Navbar` | Clon — pendiente parametrizar |
+| `GamerFooter` | `Footer` | Clon — pendiente parametrizar |
+| `GamerNewsletter` | Newsletter general | Clon — pendiente parametrizar |
+| `GamerProductCard` | ProductCard estándar | Clon — pendiente parametrizar |
+| `GamerStepSuccess` | `StepSuccessMessage` | Clon — pendiente parametrizar |
+| `GamerSidebar` | Sidebar Home | Orden/subconjunto distinto — se mantiene como slot |
+| `GamerActiveFilters` | Filtros activos Home | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerCardSkeleton` | Skeleton Home | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerCatalogHeader` | Header catálogo | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerCompareModal` | CompareModal Home | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerHelpButton` | HelpButton Home | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerPromoBanner` | PromoBanner Home | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerSortDropdown` | SortDropdown Home | Dentro de `GamerCatalogoContent` — pendiente |
+| `GamerAccessoryDetailModal` | Sin símil — exclusivo gamer | Se mantiene siempre |
 
 ---
 
-## Orden de implementación
+## Por qué la solución actual NO es completamente escalable
 
-1. `utils/theme.ts` — agregar `isGamerLanding()` (5 min)
-2. `CatalogoClient.tsx` — 10 bifurcaciones JSX + specs API (2-3h)
-3. Prueba visual: modo Home y modo Gamer en dev server
-4. `page.tsx` catálogo — apuntar al cliente unificado
-5. Eliminar `GamerCatalogoClient.tsx`
-6. `ProductDetailClient.tsx` — bifurcaciones Gamer (2-3h)
-7. `page.tsx` detalle — apuntar al cliente unificado
-8. Eliminar `GamerProductDetailClient.tsx`
-9. Iteración 2 (ticket separado): solicitar flow
+Lo hecho hasta ahora (Iteraciones 1 y 2) unifica los **puntos de entrada** pero no los **contenidos**. El diagrama real es:
+
+```
+CatalogoClient
+├── isGamerLanding → GamerCatalogoContent  ← clon de 2,880 líneas, paralelo
+└── else → CatalogoContent                 ← contenido Home
+
+SolicitarClient
+├── isGamerLanding → GamerSolicitarContent ← clon de 1,397 líneas, paralelo
+└── else → WizardPreviewContent            ← contenido Home
+```
+
+**Consecuencia:** feature nueva en `CatalogoContent` o `WizardPreviewContent` sigue sin llegar a Zona Gamer.
+
+**Causa raíz:** `GamerNavbar`, `GamerFooter`, `GamerProductCard`, etc. son clones independientes. Para fusionar los contenidos, primero hay que parametrizar los componentes generales.
+
+---
+
+## Iteración 1 — Catálogo ✅ DONE (mergeado a main 2026-06-23)
+
+- `isGamerLanding()` agregado en `utils/theme.ts`
+- `CatalogoClient` detecta `isGamerLanding` y delega a `GamerCatalogoContent`
+- `page.tsx` catálogo limpio — un solo `<CatalogoClient />`
+- `GamerCatalogoContent` exportada desde `GamerCatalogoClient.tsx`
+
+## Iteración 2 — Solicitar ✅ DONE (mergeado a main 2026-06-24)
+
+- `SolicitarClient` detecta `isGamerLanding` y delega a `GamerSolicitarContent`
+- `page.tsx` solicitar limpio — un solo `<SolicitarClient />`
+- `GamerSolicitarContent` exportada desde `GamerSolicitarClient.tsx`
+- Checks `isGamer` migrados a `isGamerLanding()` en StepClient, complementosClient, confirmacionClient
+
+---
+
+## Iteración 3 — Parametrizar componentes generales (BAL-1814)
+
+### Objetivo
+Que los componentes generales acepten `theme="gamer"` y renderizen con estética gaming. Una vez hecho, los contenidos clonados (`GamerCatalogoContent`, `GamerSolicitarContent`) se pueden fusionar con los generales.
+
+### Orden por impacto y riesgo (de menor a mayor)
+
+**3a — `StepSuccessMessage` con `theme` (BAL-1815)**
+- Agregar prop `theme?: 'gamer'` a `StepSuccessMessage`
+- Cuando `theme="gamer"`: colores neon, fuente Orbitron, animación gamer
+- En `StepClient.tsx`: reemplazar bifurcación `GamerStepSuccess` / `StepSuccessMessage` por `<StepSuccessMessage theme={isGamer ? 'gamer' : undefined} />`
+- **Pendiente eliminar:** `GamerStepSuccess.tsx` — cuando haya 100% confianza
+
+**3b — `Navbar` y `Footer` con `theme` (BAL-1816)**
+- Agregar prop `theme?: 'gamer'` a `Navbar` y `Footer`
+- Cuando `theme="gamer"`: fondo oscuro `#0e0e0e`, tipografía Rajdhani, colores neon, toggle dark/light
+- Reemplazar `GamerNavbar`/`GamerFooter` en: `GamerCatalogoContent`, `GamerSolicitarContent`, `GamerProductDetailClient`, `LegalPageLayout`, `LibroReclamacionesClient`, `ProximamenteClient`, `StepClient`, `complementosClient`, `confirmacionClient`
+- **Pendiente eliminar:** `GamerNavbar.tsx`, `GamerFooter.tsx` — cuando haya 100% confianza
+
+**3c — `ProductCard` con `theme` (BAL-1817)**
+- Agregar prop `theme?: 'gamer'` al componente de tarjeta de producto
+- Cuando `theme="gamer"`: bordes neon, fondo oscuro, tipografía gaming, badges con paleta gamer
+- Reemplazar `GamerProductCard` en `GamerCatalogoContent`
+- **Pendiente eliminar:** `GamerProductCard.tsx` — cuando haya 100% confianza
+
+**3d — Migrar checks `landingId` a `isGamerLanding()` en páginas restantes (BAL-1818)**
+- `LegalPageLayout.tsx`: `landingId === LANDING_IDS.ZONA_GAMER` → `isGamerLanding(landing)`
+- `LibroReclamacionesClient.tsx`: ídem
+- `ProximamenteClient.tsx`: ídem
+- Bajo riesgo, solo limpieza de consistencia
+
+**3e — Fusionar `GamerCatalogoContent` → `CatalogoContent` (BAL-1819)**
+- Prerequisito: 3b y 3c completados
+- Un único `CatalogoContent` con bifurcaciones de presentación usando componentes parametrizados
+- Sidebar: `isGamer ? <GamerSidebar> : <HomeSidebar>` (GamerSidebar se mantiene como slot)
+- **Pendiente eliminar:** `GamerCatalogoClient.tsx` completo — cuando haya 100% confianza
+
+**3f — Fusionar `GamerSolicitarContent` → `WizardPreviewContent` (BAL-1820)**
+- Prerequisito: 3b completado
+- Un único `WizardPreviewContent` con bifurcaciones de presentación
+- Zonas complejas (mobile bar, cupón, accesorios) se bifurcan con `isGamer`
+- **Pendiente eliminar:** `GamerSolicitarClient.tsx` completo — cuando haya 100% confianza
+
+---
+
+## Iteración 4 — Detalle de producto (ticket futuro)
+
+`GamerProductDetailClient` (3,098 líneas) reimplementa todo inline — galería con zoom, lightbox, cronograma con amortización francesa, AccessoriesCarousel, SideNav flotante, PortsSection, FinanciamientoModal, PDF ficha técnica, analytics granular, tema dark/light.
+
+No usa `<ProductDetail>` de Home. La unificación requiere refactorizar `<ProductDetail>` para aceptar tema + slots — varias semanas, riesgo alto.
+
+**Decisión:** NO tocar hasta tener Iteración 3 completa y probada. Ticket separado a crear en su momento.
+
+---
+
+## Invariantes a preservar siempre
+
+1. `localStorage key` `baldecash-zona-gamer-theme` — no cambiar verbatim
+2. `LANDING_IDS.ZONA_GAMER = 136` en `utils/landingIds.ts` — no tocar
+3. `gamerTheme(isDark)` tokens — mantener desde `gamerTheme.ts`
+4. `GamerSidebar.tsx` — no fusionar con sidebar de Home; orden y subconjunto de filtros son distintos; se pasa siempre como slot
+5. `GamerAccessoryDetailModal` — exclusivo gamer, sin símil en Home, se mantiene siempre
+6. `GamerStepSuccess`, `GamerNavbar`, `GamerFooter`, `GamerProductCard` — NO eliminar hasta tener 100% confianza en los componentes parametrizados
+
+---
+
+## Pendientes de limpieza (cuando haya 100% confianza)
+
+- Eliminar función raíz `GamerCatalogoClient` de `GamerCatalogoClient.tsx` (el archivo sigue por `GamerCatalogoContent`)
+- Eliminar función raíz `GamerSolicitarClient` de `GamerSolicitarClient.tsx` (el archivo sigue por `GamerSolicitarContent`)
+- Renombrar `GamerCatalogoClient.tsx` → `GamerCatalogoContent.tsx`
+- Renombrar `GamerSolicitarClient.tsx` → `GamerSolicitarContent.tsx`
+- Eliminar `GamerStepSuccess.tsx` (tras BAL-1815)
+- Eliminar `GamerNavbar.tsx`, `GamerFooter.tsx` (tras BAL-1816)
+- Eliminar `GamerProductCard.tsx` (tras BAL-1817)
+- Eliminar `GamerCatalogoClient.tsx` completo (tras BAL-1819)
+- Eliminar `GamerSolicitarClient.tsx` completo (tras BAL-1820)

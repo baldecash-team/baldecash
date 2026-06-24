@@ -18,7 +18,8 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { GamerProductDetailClient } from '../GamerProductDetailClient';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Secondary Navbar with search, wishlist, cart
@@ -524,6 +525,10 @@ function LoadingFallback() {
 export function ProductDetailClient() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  if (isGamerLanding(landing)) {
+    return <GamerProductDetailClient />;
+  }
 
   return (
     <ProductProvider landingSlug={landing}>

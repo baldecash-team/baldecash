@@ -22,6 +22,7 @@ interface OnboardingTourProps {
   totalSteps: number;
   highlightStyle: OnboardingHighlightStyle;
   isHelpOnlyMode?: boolean;
+  theme?: 'gamer';
   onNext: () => void;
   onPrev: () => void;
   onSkip: () => void;
@@ -43,10 +44,12 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   totalSteps,
   highlightStyle,
   isHelpOnlyMode = false,
+  theme,
   onNext,
   onPrev,
   onSkip,
 }) => {
+  const isGamer = theme === 'gamer';
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const isMobile = useIsMobile();
@@ -182,6 +185,10 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === totalSteps - 1;
 
+  // Gamer palette (only used when theme="gamer")
+  const gamerCyan = '#00ffd5';
+  const gamerPurple = '#6366f1';
+
   // Calculate tooltip position
   const getTooltipPosition = () => {
     if (!targetRect) return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
@@ -310,19 +317,22 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 style={{
-                  top: targetRect.top - 8,
-                  left: targetRect.left - 8,
-                  width: targetRect.width + 16,
-                  height: targetRect.height + 16,
-                  boxShadow: '0 0 0 4px var(--color-primary), 0 0 0 8px rgba(var(--color-primary-rgb), 0.3)',
+                  top: targetRect.top - (isGamer ? 6 : 8),
+                  left: targetRect.left - (isGamer ? 6 : 8),
+                  width: targetRect.width + (isGamer ? 12 : 16),
+                  height: targetRect.height + (isGamer ? 12 : 16),
+                  boxShadow: isGamer
+                    ? `0 0 0 3px ${gamerCyan}, 0 0 0 6px ${gamerCyan}40`
+                    : '0 0 0 4px var(--color-primary), 0 0 0 8px rgba(var(--color-primary-rgb), 0.3)',
                 }}
               >
                 {/* Animated pulse */}
                 <motion.div
-                  className="absolute inset-0 rounded-xl border-2 border-[var(--color-primary)]"
+                  className={`absolute inset-0 rounded-xl border-2 ${isGamer ? '' : 'border-[var(--color-primary)]'}`}
+                  style={isGamer ? { border: `2px solid ${gamerCyan}` } : undefined}
                   animate={{
-                    scale: [1, 1.05, 1],
-                    opacity: [1, 0.5, 1],
+                    scale: [1, isGamer ? 1.04 : 1.05, 1],
+                    opacity: [1, isGamer ? 0.4 : 0.5, 1],
                   }}
                   transition={{
                     duration: 1.5,
@@ -336,49 +346,108 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
           {/* Tooltip Card */}
           <motion.div
-            className="fixed z-[10000] bg-[var(--surface,#fff)] rounded-2xl shadow-2xl border border-[var(--border-soft,#e5e7eb)] p-5 pointer-events-auto"
+            className="fixed z-[10000] pointer-events-auto"
             style={{
               ...tooltipStyle,
-              width: isMobile ? 'calc(100vw - 32px)' : 320,
-              maxWidth: isMobile ? 'calc(100vw - 32px)' : 320,
+              width: isMobile ? 'calc(100vw - 32px)' : (isGamer ? 340 : 320),
+              maxWidth: isMobile ? 'calc(100vw - 32px)' : (isGamer ? 340 : 320),
+              background: isGamer ? '#1a1a1a' : 'var(--surface, #fff)',
+              border: isGamer ? '1px solid #2a2a2a' : '1px solid var(--border-soft, #e5e7eb)',
+              borderRadius: 16,
+              padding: 'clamp(16px, 4vw, 20px)',
+              boxShadow: isGamer
+                ? `0 0 40px rgba(0,0,0,0.6), 0 0 20px ${gamerCyan}15`
+                : '0 20px 60px rgba(0,0,0,0.15)',
+              fontFamily: isGamer ? "'Rajdhani', sans-serif" : undefined,
             }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ type: 'spring', duration: 0.4 }}
           >
+            {/* Gamer accent top line */}
+            {isGamer && (
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '16px 16px 0 0',
+                background: `linear-gradient(90deg, ${gamerPurple}, ${gamerCyan})`,
+              }} />
+            )}
+
             {/* Skip button */}
             <button
               onClick={onSkipTracked}
-              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-[var(--surface-2,#f3f4f6)] transition-colors cursor-pointer"
+              style={isGamer ? {
+                position: 'absolute', top: 12, right: 12,
+                width: 28, height: 28, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: '1px solid #2a2a2a',
+                color: '#707070', cursor: 'pointer',
+              } : undefined}
+              className={isGamer ? '' : 'absolute top-3 right-3 p-1.5 rounded-lg hover:bg-[var(--surface-2,#f3f4f6)] transition-colors cursor-pointer'}
             >
-              <X className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+              <X className="w-3.5 h-3.5" style={isGamer ? { color: '#707070' } : { color: 'var(--text-faint, #9ca3af)' }} />
             </button>
 
             {/* Step indicator - hidden in help only mode */}
             {!isHelpOnlyMode && (
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-semibold text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] px-2 py-1 rounded-full">
-                  Paso {currentStepIndex + 1} de {totalSteps}
-                </span>
-              </div>
+              isGamer ? (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '3px 10px', borderRadius: 6, marginBottom: 12,
+                  background: `${gamerCyan}15`, border: `1px solid ${gamerCyan}30`,
+                }}>
+                  <span style={{
+                    fontFamily: "'Share Tech Mono', monospace",
+                    fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' as const,
+                    color: gamerCyan, fontWeight: 700,
+                  }}>
+                    Paso {currentStepIndex + 1} de {totalSteps}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] px-2 py-1 rounded-full">
+                    Paso {currentStepIndex + 1} de {totalSteps}
+                  </span>
+                </div>
+              )
             )}
 
             {/* Content */}
-            <h3 className="text-lg font-bold text-[var(--text-strong,#1f2937)] mb-2 pr-6">
-              {currentStep.title}
-            </h3>
-            <p className="text-sm text-[var(--text-muted,#4b5563)] mb-5">
-              {currentStep.description}
-            </p>
+            {isGamer ? (
+              <>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#f0f0f0', margin: '0 0 8px', paddingRight: 24 }}>
+                  {currentStep.title}
+                </h3>
+                <p style={{ fontSize: 14, lineHeight: 1.5, color: '#a0a0a0', margin: '0 0 20px' }}>
+                  {currentStep.description}
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-bold text-[var(--text-strong,#1f2937)] mb-2 pr-6">
+                  {currentStep.title}
+                </h3>
+                <p className="text-sm text-[var(--text-muted,#4b5563)] mb-5">
+                  {currentStep.description}
+                </p>
+              </>
+            )}
 
             {/* Progress dots - hidden in help only mode */}
             {!isHelpOnlyMode && (
-              <div className="flex items-center justify-center gap-1.5 mb-4">
+              <div className={isGamer ? '' : 'flex items-center justify-center gap-1.5 mb-4'}
+                style={isGamer ? { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 16 } : undefined}
+              >
                 {Array.from({ length: totalSteps }).map((_, idx) => (
                   <div
                     key={idx}
-                    className={`h-1.5 rounded-full transition-all ${
+                    style={isGamer ? {
+                      height: 4, borderRadius: 4, transition: 'all 0.3s',
+                      width: idx === currentStepIndex ? 20 : 4,
+                      background: idx === currentStepIndex ? gamerCyan : idx < currentStepIndex ? `${gamerCyan}80` : '#333',
+                    } : undefined}
+                    className={isGamer ? '' : `h-1.5 rounded-full transition-all ${
                       idx === currentStepIndex
                         ? 'w-6 bg-[var(--color-primary)]'
                         : idx < currentStepIndex
@@ -391,39 +460,87 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             )}
 
             {/* Navigation buttons */}
-            <div className={`flex items-center gap-3 ${isHelpOnlyMode ? 'justify-center' : 'justify-between'}`}>
-              {!isHelpOnlyMode && (
+            {isGamer ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <button
+                  onClick={onPrev}
+                  disabled={isFirstStep}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '8px 14px', borderRadius: 10,
+                    background: 'none', border: `1px solid ${isFirstStep ? '#333' : '#2a2a2a'}`,
+                    color: isFirstStep ? '#707070' : '#a0a0a0',
+                    fontSize: 13, fontWeight: 600, fontFamily: "'Rajdhani', sans-serif",
+                    cursor: isFirstStep ? 'not-allowed' : 'pointer',
+                    opacity: isFirstStep ? 0.4 : 1,
+                  }}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Anterior
+                </button>
+                <button
+                  onClick={onNext}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '8px 20px', borderRadius: 10,
+                    background: gamerCyan, border: 'none',
+                    color: '#0a0a0a', fontSize: 13, fontWeight: 700,
+                    fontFamily: "'Rajdhani', sans-serif", cursor: 'pointer',
+                    boxShadow: `0 0 16px ${gamerCyan}40`,
+                  }}
+                >
+                  {isLastStep ? '¡Listo!' : 'Siguiente'}
+                  {!isLastStep && <ChevronRight className="w-4 h-4" />}
+                </button>
+              </div>
+            ) : (
+              <div className={`flex items-center gap-3 ${isHelpOnlyMode ? 'justify-center' : 'justify-between'}`}>
+                {!isHelpOnlyMode && (
+                  <Button
+                    size="sm"
+                    variant="light"
+                    isDisabled={isFirstStep}
+                    onPress={onPrev}
+                    startContent={<ChevronLeft className="w-4 h-4" />}
+                    className="cursor-pointer"
+                  >
+                    Anterior
+                  </Button>
+                )}
                 <Button
                   size="sm"
-                  variant="light"
-                  isDisabled={isFirstStep}
-                  onPress={onPrev}
-                  startContent={<ChevronLeft className="w-4 h-4" />}
-                  className="cursor-pointer"
+                  className={`bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90 ${isHelpOnlyMode ? 'px-8' : ''}`}
+                  style={{ borderRadius: '10px' }}
+                  onPress={onNext}
+                  endContent={!isLastStep && !isHelpOnlyMode && <ChevronRight className="w-4 h-4" />}
                 >
-                  Anterior
+                  {isHelpOnlyMode ? 'Entendido' : isLastStep ? '¡Listo!' : 'Siguiente'}
                 </Button>
-              )}
-
-              <Button
-                size="sm"
-                className={`bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90 ${isHelpOnlyMode ? 'px-8' : ''}`}
-                style={{ borderRadius: '10px' }}
-                onPress={onNext}
-                endContent={!isLastStep && !isHelpOnlyMode && <ChevronRight className="w-4 h-4" />}
-              >
-                {isHelpOnlyMode ? 'Entendido' : isLastStep ? '¡Listo!' : 'Siguiente'}
-              </Button>
-            </div>
+              </div>
+            )}
 
             {/* Skip link - hidden in help only mode */}
             {!isHelpOnlyMode && (
-              <button
-                onClick={onSkipTracked}
-                className="w-full text-center text-xs text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] mt-3 cursor-pointer"
-              >
-                Saltar tour
-              </button>
+              isGamer ? (
+                <button
+                  onClick={onSkipTracked}
+                  style={{
+                    display: 'block', width: '100%', marginTop: 10,
+                    background: 'none', border: 'none',
+                    fontSize: 11, color: '#707070', fontFamily: "'Rajdhani', sans-serif",
+                    cursor: 'pointer', textAlign: 'center',
+                  }}
+                >
+                  Saltar tour
+                </button>
+              ) : (
+                <button
+                  onClick={onSkipTracked}
+                  className="w-full text-center text-xs text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] mt-3 cursor-pointer"
+                >
+                  Saltar tour
+                </button>
+              )
             )}
           </motion.div>
         </>
