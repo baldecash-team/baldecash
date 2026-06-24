@@ -58,7 +58,8 @@ import { useOnboarding } from './hooks/useOnboarding';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { GamerCatalogoContent } from './GamerCatalogoClient';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -192,6 +193,16 @@ function LoadingFallback() {
 export function CatalogoClient() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  if (isGamerLanding(landing)) {
+    return (
+      <ProductProvider landingSlug={landing}>
+        <Suspense fallback={<LoadingFallback />}>
+          <GamerCatalogoContent />
+        </Suspense>
+      </ProductProvider>
+    );
+  }
 
   return (
     <ProductProvider landingSlug={landing}>

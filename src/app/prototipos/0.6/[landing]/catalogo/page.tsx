@@ -7,7 +7,6 @@
 
 import { redirect } from 'next/navigation';
 import { CatalogoClient } from './CatalogoClient';
-import { GamerCatalogoClient } from './GamerCatalogoClient';
 import { getLandingMeta } from '../../services/landingApi';
 import { fetchLandingConfig } from '../../services/landingConfigApi';
 import { routes } from '../../utils/routes';
@@ -22,10 +21,6 @@ export default async function CatalogoPage({
 
   if (!landingConfig.layout.has_catalog) {
     redirect(routes.landingHome(landing));
-  }
-
-  if (landing === 'zona-gamer') {
-    return <GamerCatalogoClient />;
   }
 
   return <CatalogoClient />;
