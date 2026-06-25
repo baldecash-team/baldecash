@@ -164,7 +164,9 @@ export type EventType =
   | 'lead_form_error'
   | 'lead_products_filter'
   | 'lead_products_scroll'
-  | 'lead_banner_slide_change';
+  | 'lead_banner_slide_change'
+  // Phase 13: A/B testing
+  | 'accessory_variant_assigned';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
