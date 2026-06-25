@@ -11,7 +11,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ShoppingCart, Check, Heart, Package, Gift } from 'lucide-react';
+import { ShoppingCart, Check, Heart, Package, Gift, ShieldCheck } from 'lucide-react';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
   DeviceType,
@@ -330,10 +330,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       colorHex: selectedColor?.hex,
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
+      // Combo del que nace el ítem (para resolver el combo correcto en el submit)
+      comboId: combo?.id,
     };
 
     onAddToCart(cartItem);
-  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product, cartPaymentPlans]);
+  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product, cartPaymentPlans, combo]);
 
   // Build WishlistItem with pricing config and toggle wishlist
   const handleToggleWishlist = useCallback(() => {
@@ -387,10 +389,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const hasLimitations = limitations.length > 0;
 
   // First non-video image URL (for thumbnails in cart, solicitar, spec-sheet, etc.)
+  // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
   const productThumbnail = useMemo(() => {
     const img = product.images.find(i => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
-    return img?.url || product.images[0]?.url || '';
-  }, [product.images]);
+    return combo?.thumbnailUrl || img?.url || product.images[0]?.url || '';
+  }, [product.images, combo]);
 
   // Helper to extract spec value
   const getSpecValue = (category: string, label: string): string | undefined => {
@@ -469,6 +472,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
       paymentFrequency: pricingSelection?.paymentFrequency,
+      // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
+      comboId: combo?.id,
     };
 
     // Save to localStorage
@@ -519,8 +524,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Refurbished Info Banner */}
             {isRefurbished && <RefurbishedInfoBanner />}
 
-            {/* Combo Banner */}
-            {combo && combo.accessories.length > 0 && (
+            {/* Combo Banner — accesorios (regalos) y/o seguro incluido */}
+            {combo && (combo.accessories.length > 0 || combo.insurance) && (
               <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-5 h-5 text-[var(--color-primary)]" />
@@ -549,20 +554,45 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                             <span className="text-xs font-semibold text-green-600">
                               ¡Gratis!
                             </span>
-                            {accessory.unitPrice > 0 && (
+                            {accessory.unitPrice != null && accessory.unitPrice > 0 && (
                               <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through ml-1">
                                 S/ {accessory.unitPrice.toFixed(2)}
                               </span>
                             )}
                           </div>
-                        ) : (
+                        ) : accessory.unitPrice != null ? (
                           <p className="text-xs text-[var(--text-muted,#6b7280)] mt-0.5">
                             S/ {accessory.unitPrice.toFixed(2)}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   ))}
+
+                  {/* Seguro incluido (price 0 → "Incluido") */}
+                  {combo.insurance && (
+                    <div
+                      key={`insurance-${combo.insurance.planId}`}
+                      className="flex items-center gap-3 bg-[var(--surface,#fff)] rounded-lg p-3 border border-[var(--border-soft,#f3f4f6)]"
+                    >
+                      <div className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center bg-[rgba(var(--color-primary-rgb),0.08)]">
+                        <ShieldCheck className="w-6 h-6 text-[var(--color-primary)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 break-words">
+                          {combo.insurance.name}
+                        </p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
+                          <span className="text-xs font-semibold text-green-600">
+                            {combo.insurance.price > 0
+                              ? `S/ ${combo.insurance.price.toFixed(2)}`
+                              : 'Incluido'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
