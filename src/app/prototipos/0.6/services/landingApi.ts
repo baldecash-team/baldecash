@@ -1147,6 +1147,7 @@ export async function getLandingAccessories(
   term?: number,
   previewKey?: string | null,
   paymentFrequency?: string,
+  variant?: string,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1168,6 +1169,9 @@ export async function getLandingAccessories(
     }
     if (previewKey) {
       queryParams.set('preview_key', previewKey);
+    }
+    if (variant) {
+      queryParams.set('variant', variant);
     }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 

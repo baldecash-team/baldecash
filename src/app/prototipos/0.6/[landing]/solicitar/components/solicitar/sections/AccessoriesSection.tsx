@@ -79,6 +79,16 @@ export function AccessoriesSection({
   const analytics = useAnalytics();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
 
+  // A/B variant: assign once per browser session, persist in sessionStorage
+  const [abVariant] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'A';
+    const stored = sessionStorage.getItem('ab_accessories_variant');
+    if (stored) return stored;
+    const assigned = Math.random() < 0.5 ? 'A' : 'B';
+    sessionStorage.setItem('ab_accessories_variant', assigned);
+    return assigned;
+  });
+
   // Wrapper con tracking. Diferencia add vs remove mirando si ya está en la lista.
   const toggleAccessoryTracked = (accessory: Accessory) => {
     const wasSelected = selectedAccessories.some((a) => a.id === accessory.id);
@@ -147,8 +157,9 @@ export function AccessoriesSection({
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency);
+        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant);
         if (apiAccessories && apiAccessories.length > 0) {
+          analytics.track('accessory_variant_assigned', { variant: abVariant, count: apiAccessories.length });
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
             name: acc.name,
@@ -179,7 +190,7 @@ export function AccessoriesSection({
 
     fetchAccessories();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(',')]);
+  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(','), abVariant]);
 
   // Update selected accessories when term changes or accessories list changes
   const selectedAccessoriesRef = useRef(selectedAccessories);
