@@ -23,8 +23,8 @@ import { Navbar } from '../../components/hero/Navbar';
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
-import { CountdownBar } from './components/CountdownBar';
 import { OfertaSkeleton } from './components/OfertaSkeleton';
+import VipCountdownBanner from '../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -108,9 +108,14 @@ export function MiOfertaClient({ token }: { token: string }) {
             </TabChip>
           </nav>
         </div>
-        {/* Countdown fijo bajo los tabs — visible en ambas vistas */}
-        <CountdownBar expiresAt={offer.expiresAt} />
       </div>
+
+      {/* Countdown destacado (banner del proyecto) arriba del contenido, visible en ambas vistas */}
+      {offer.expiresAt ? (
+        <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
+          <VipCountdownBanner endDate={offer.expiresAt} />
+        </div>
+      ) : null}
 
       {tab === 'oferta' ? (
         <TuOfertaTab offer={offer} onVerCatalogo={() => setTab('catalogo')} onSelect={handleSelect} />

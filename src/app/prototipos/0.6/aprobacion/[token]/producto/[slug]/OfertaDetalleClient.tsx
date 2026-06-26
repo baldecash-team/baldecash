@@ -12,7 +12,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
+import { Navbar } from '../../../../components/hero/Navbar';
 import { Illustration } from '../../../../[landing]/solicitar/confirmacion/components/received/illustration/Illustration';
+
+const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
 import { ProductDetail } from '../../../../[landing]/producto/components/detail/ProductDetail';
 import {
@@ -124,12 +127,18 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   const { data } = state;
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur">
-        <a href={backToOffer} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
-          <ArrowLeft className="h-4 w-4" />
-          Volver a mi oferta
-        </a>
-      </header>
+      {/* Header con logo (como la página de oferta) */}
+      <Navbar logoOnly fullWidth logoUrl={BRAND_LOGO_URL} />
+      <div className="pt-16" />
+      {/* Sub-barra: volver a mi oferta */}
+      <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div className="w-full px-3 py-2.5 sm:px-4 lg:px-6">
+          <a href={backToOffer} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="h-4 w-4" />
+            Volver a mi oferta
+          </a>
+        </div>
+      </div>
       <main className="mx-auto max-w-7xl px-4 py-6">
         <ProductDetail
           product={data.product}
