@@ -7,10 +7,12 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 
 import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/layout/CatalogLayoutV4';
 import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
+import { SearchDrawer } from '../../../[landing]/catalogo/components/catalog/SearchDrawer';
 import type {
   CatalogProduct,
   FilterState,
@@ -64,6 +66,8 @@ export function CatalogoOfertaTab({
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults({}));
   const [sort, setSort] = useState<SortOption>('recommended');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Filtros dinámicos (specs, marcas, etc.) — vienen de la landing real de la oferta.
@@ -74,12 +78,13 @@ export function CatalogoOfertaTab({
   // Traduce el FilterState del catálogo a los params que acepta /offer/{token}/catalog.
   const offerFilters = useMemo<OfferCatalogFilters>(() => {
     const f: OfferCatalogFilters = { sortBy: SORT_TO_API[sort] ?? 'price_desc' };
+    if (searchQuery.trim().length >= 2) f.q = searchQuery.trim();
     if (filters.brands?.length) f.brandIds = filters.brands.map(Number).filter((n) => !Number.isNaN(n));
     if (filters.deviceTypes?.length) f.types = filters.deviceTypes;
     if (filters.gama?.length) f.gamas = filters.gama;
     if (filters.usage?.length) f.usages = filters.usage;
     return f;
-  }, [filters, sort]);
+  }, [filters, sort, searchQuery]);
 
   useEffect(() => {
     let active = true;
@@ -96,41 +101,67 @@ export function CatalogoOfertaTab({
   const items = products ?? [];
 
   return (
-    <CatalogLayoutV4
-      products={items}
-      filters={filters}
-      onFiltersChange={setFilters}
-      sort={sort}
-      onSortChange={setSort}
-      config={OFFER_CONFIG}
-      apiFilters={apiFilters}
-      isApiFiltersLoading={isApiFiltersLoading}
-      totalProducts={items.length}
-      gridRef={gridRef}
-    >
-      {loading ? (
-        Array.from({ length: 8 }).map((_, i) => (
-          <ProductCardSkeleton key={`sk-${i}`} version={OFFER_CONFIG.skeletonVersion} index={i} />
-        ))
-      ) : items.length === 0 ? (
-        <p className="col-span-full py-10 text-center text-sm text-gray-500">
-          No hay equipos disponibles para tu cuota con estos filtros.
-        </p>
-      ) : (
-        items.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            hideColors
-            hideFavorite
-            ctaLabel="Elegir"
-            onCtaClick={() => onSelect(product)}
-            getDetailHref={(slug) =>
-              `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug || product.slug}`
-            }
-          />
-        ))
-      )}
-    </CatalogLayoutV4>
+    <>
+      {/* Barra de búsqueda (abre el SearchDrawer del catálogo) */}
+      <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-400 transition-shadow hover:shadow-sm"
+        >
+          <Search className="h-5 w-5 shrink-0" style={{ color: 'var(--color-primary)' }} />
+          <span className="truncate">{searchQuery || 'Buscar por marca, modelo…'}</span>
+        </button>
+      </div>
+
+      <CatalogLayoutV4
+        products={items}
+        filters={filters}
+        onFiltersChange={setFilters}
+        sort={sort}
+        onSortChange={setSort}
+        config={OFFER_CONFIG}
+        apiFilters={apiFilters}
+        isApiFiltersLoading={isApiFiltersLoading}
+        totalProducts={items.length}
+        gridRef={gridRef}
+        searchQuery={searchQuery}
+        onSearchClear={() => setSearchQuery('')}
+      >
+        {loading ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <ProductCardSkeleton key={`sk-${i}`} version={OFFER_CONFIG.skeletonVersion} index={i} />
+          ))
+        ) : items.length === 0 ? (
+          <p className="col-span-full py-10 text-center text-sm text-gray-500">
+            No hay equipos disponibles para tu cuota con estos filtros.
+          </p>
+        ) : (
+          items.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              hideColors
+              hideFavorite
+              ctaLabel="Elegir"
+              onCtaClick={() => onSelect(product)}
+              getDetailHref={(slug) =>
+                `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug || product.slug}`
+              }
+            />
+          ))
+        )}
+      </CatalogLayoutV4>
+
+      {/* Buscador del catálogo (mismo SearchDrawer) */}
+      <SearchDrawer
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
+        onSubmit={() => setSearchOpen(false)}
+      />
+    </>
   );
 }
