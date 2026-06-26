@@ -1,17 +1,21 @@
 'use client';
 
 /**
- * Modal "¿estás seguro?" antes de registrar la elección de un equipo (Caso 4).
+ * Modal "¿confirmas tu elección?" antes de registrar la elección de un equipo
+ * (Caso 4). Estilo inspirado en el modal "Detalle del Financiamiento" del
+ * detalle de producto: header con fondo de marca + ícono, resumen del equipo.
+ *
  * Elegir es una acción importante: consume el link y registra la selección.
  */
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
-import { AlertTriangle } from 'lucide-react';
+import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
+import { ShoppingBag, X, AlertTriangle } from 'lucide-react';
 
 export interface EquipoAConfirmar {
   name: string;
   brand?: string;
   imageUrl?: string;
   monthly?: number;
+  term?: number;
 }
 
 export function ConfirmarEleccionModal({
@@ -33,49 +37,75 @@ export function ConfirmarEleccionModal({
       onClose={onClose}
       placement="center"
       size="md"
+      hideCloseButton
       backdrop="opaque"
       classNames={{
         wrapper: 'z-[101]',
         backdrop: 'z-[100] bg-black/50',
-        base: 'bg-[var(--surface,#fff)] rounded-2xl',
-        header: 'bg-[var(--surface,#fff)]',
-        body: 'bg-[var(--surface,#fff)]',
+        base: 'bg-[var(--surface,#fff)] rounded-2xl overflow-hidden',
+        body: 'bg-[var(--surface,#fff)] p-0',
         footer: 'bg-[var(--surface,#fff)]',
-        closeButton: 'top-3 right-3 hover:bg-gray-100 rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          <span className="text-lg font-bold text-[var(--foreground)]">¿Confirmas tu elección?</span>
-        </ModalHeader>
+        {/* Header con fondo de marca (estilo "Detalle del Financiamiento") */}
+        <div className="flex items-center gap-3 bg-[var(--color-primary)] px-5 py-4">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/20">
+            <ShoppingBag className="h-4 w-4 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold text-white">¿Confirmas tu elección?</h2>
+            <p className="text-xs text-white/60">Estás a un paso de elegir tu equipo</p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 disabled:opacity-50"
+          >
+            <X className="h-4 w-4 text-white" />
+          </button>
+        </div>
+
         <ModalBody>
-          {equipo ? (
-            <div className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-              {equipo.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={equipo.imageUrl} alt={equipo.name} className="h-16 w-16 shrink-0 object-contain" />
-              ) : (
-                <div className="h-16 w-16 shrink-0 rounded-lg bg-gray-200" />
-              )}
-              <div className="min-w-0">
-                {equipo.brand ? (
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{equipo.brand}</p>
-                ) : null}
-                <p className="truncate text-sm font-semibold text-[var(--foreground)]">{equipo.name}</p>
+          <div className="px-5 py-4">
+            {/* Resumen del equipo */}
+            {equipo ? (
+              <div className="rounded-xl bg-[rgba(var(--color-primary-rgb),0.05)] p-4">
+                <div className="flex items-center gap-4">
+                  {equipo.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={equipo.imageUrl} alt={equipo.name} className="h-16 w-16 shrink-0 object-contain" />
+                  ) : (
+                    <div className="h-16 w-16 shrink-0 rounded-lg bg-gray-200" />
+                  )}
+                  <div className="min-w-0">
+                    {equipo.brand ? (
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{equipo.brand}</p>
+                    ) : null}
+                    <p className="text-sm font-semibold text-[var(--text-strong,#111827)]">{equipo.name}</p>
+                  </div>
+                </div>
+
                 {equipo.monthly ? (
-                  <p className="mt-0.5 text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
-                    Desde S/{Math.round(equipo.monthly)}/mes
-                  </p>
+                  <div className="mt-4 flex items-center justify-between border-t border-[rgba(var(--color-primary-rgb),0.12)] pt-3">
+                    <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota mensual</span>
+                    <span className="text-xl font-bold text-[var(--color-primary)]">
+                      Desde S/{Math.round(equipo.monthly)}
+                      <span className="text-sm font-normal text-[var(--text-muted,#4b5563)]">/mes</span>
+                    </span>
+                  </div>
                 ) : null}
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Esta acción registrará tu elección y no podrás cambiarla.</span>
+            {/* Aviso */}
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Esta acción registrará tu elección y no podrás cambiarla.</span>
+            </div>
           </div>
         </ModalBody>
+
         <ModalFooter>
           <Button variant="bordered" onPress={onClose} isDisabled={loading}>
             Cancelar
