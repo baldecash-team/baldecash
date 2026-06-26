@@ -560,6 +560,10 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   const pricing = apiProduct.pricing;
   const hook = pricing.hook;
 
+  // Combo (cuando aplica): su portada encabeza thumbnail y galería de la card.
+  const combo = apiProduct.combo as { image_url?: string | null; thumbnail_url?: string | null } | null | undefined;
+  const comboImage = combo ? (combo.thumbnail_url || combo.image_url || apiProduct.images?.[0] || undefined) : undefined;
+
   // Calculate biweekly and weekly from monthly
   const quotaMonthly = hook.monthly_price;
   const quotaBiweekly = Math.floor(quotaMonthly / 2);
@@ -595,8 +599,8 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     brand: apiProduct.brand.name.toLowerCase(),
     brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1'),
     // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
-    thumbnail: (apiProduct.combo as { thumbnail_url?: string | null } | null)?.thumbnail_url
-      || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
+    thumbnail: comboImage || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
+    comboImage,
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],

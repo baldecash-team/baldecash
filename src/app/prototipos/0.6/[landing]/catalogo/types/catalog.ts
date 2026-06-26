@@ -683,6 +683,8 @@ export interface CatalogProduct {
   brandLogo?: string;
   thumbnail: string;
   images: string[];
+  /** Portada del combo (cuando el producto es un combo). Encabeza la galería de la card. */
+  comboImage?: string;
   colors?: ProductColor[]; // NUEVO v0.6: colores disponibles
   deviceType?: CatalogDeviceType; // NUEVO v0.6: tipo de dispositivo para link al detalle
   price: number;
