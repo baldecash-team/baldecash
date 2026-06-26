@@ -149,12 +149,12 @@ export function VideoRecorder({
         <>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 self-start text-[#4654CD] text-sm font-medium hover:opacity-80 transition-opacity"
+            className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors"
             onClick={() => setShowExample(true)}
           >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4M12 8h.01" />
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
             </svg>
             Ver ejemplo
           </button>
@@ -299,7 +299,7 @@ export function VideoRecorder({
       {/* ── file upload path ──────────────────────────────────────────────── */}
       {(!canRecord || showFileInput) && (
         <>
-          {cameraMsg && <ErrorBanner message={cameraMsg} />}
+          {cameraMsg && <ErrorBanner message={cameraMsg} icon="camera" />}
 
           <label
             htmlFor={inputId}

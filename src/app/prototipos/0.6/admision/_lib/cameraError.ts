@@ -13,24 +13,24 @@ export function cameraErrorMessage(err: unknown): string {
   switch (name) {
     case 'NotAllowedError':
     case 'PermissionDeniedError':
-      return 'Bloqueaste el acceso a la cámara. Actívalo desde el ícono de candado en la barra de direcciones y vuelve a intentar. También puedes subir un archivo de video.';
+      return 'Bloqueaste la cámara. Actívala desde el candado del navegador, o sube un archivo.';
     case 'NotFoundError':
     case 'DevicesNotFoundError':
-      return 'No pudimos acceder a tu cámara. Puede estar desactivada, en uso por otra app (Zoom, Teams, Meet) o bloqueada por la privacidad del sistema. Revisa esos puntos e inténtalo de nuevo, o sube un archivo de video.';
+      return 'No pudimos acceder a tu cámara. Reintenta o sube un archivo de video.';
     case 'NotReadableError':
     case 'TrackStartError':
-      return 'Tu cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo, o sube un archivo.';
+      return 'Tu cámara está en uso por otra app. Ciérrala y reintenta, o sube un archivo.';
     case 'OverconstrainedError':
     case 'ConstraintNotSatisfiedError':
-      return 'No pudimos configurar la cámara de este dispositivo. Inténtalo de nuevo o sube un archivo.';
+      return 'No pudimos configurar la cámara. Reintenta o sube un archivo.';
     case 'SecurityError':
-      return 'El navegador bloqueó la cámara por seguridad. Abre la página con https:// (o en localhost) o sube un archivo.';
+      return 'El navegador bloqueó la cámara. Usa https:// o sube un archivo.';
     case 'AbortError':
-      return 'Se interrumpió el acceso a la cámara. Inténtalo de nuevo.';
+      return 'Se interrumpió la cámara. Inténtalo de nuevo.';
     default:
       if (!isCameraAvailable()) {
-        return 'Tu navegador no permite usar la cámara en esta página (normalmente requiere https). Sube un archivo de video para continuar.';
+        return 'Tu navegador no permite la cámara aquí. Sube un archivo de video.';
       }
-      return 'No pudimos acceder a la cámara. Inténtalo de nuevo o sube un archivo de video.';
+      return 'No pudimos acceder a la cámara. Reintenta o sube un archivo.';
   }
 }
