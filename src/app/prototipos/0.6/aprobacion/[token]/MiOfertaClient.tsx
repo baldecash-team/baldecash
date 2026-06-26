@@ -21,12 +21,12 @@ import {
   type OfferErrorReason,
 } from '../../services/offerApi';
 import { Navbar } from '../../components/hero/Navbar';
+import { NavbarSearch } from '../../[landing]/catalogo/components/catalog/NavbarActions';
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
 import { OfertaSkeleton } from './components/OfertaSkeleton';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
-import VipCountdownBanner from '../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -45,9 +45,19 @@ const ERROR_COPY: Record<string, { title: string; body: string }> = {
   default: { title: 'No pudimos cargar tu oferta', body: 'Ocurrió un problema. Intenta nuevamente más tarde.' },
 };
 
+function readInitialTab(): TabKey {
+  if (typeof window === 'undefined') return 'oferta';
+  return new URLSearchParams(window.location.search).get('tab') === 'catalogo' ? 'catalogo' : 'oferta';
+}
+function readInitialQuery(): string {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('q') || '';
+}
+
 export function MiOfertaClient({ token }: { token: string }) {
   const [state, setState] = useState<PageState>({ kind: 'loading' });
-  const [tab, setTab] = useState<TabKey>('oferta');
+  const [tab, setTab] = useState<TabKey>(readInitialTab);
+  const [searchQuery, setSearchQuery] = useState(readInitialQuery);
 
   // Modal de confirmación de elección desde una card del catálogo.
   const [pending, setPending] = useState<{ product: CatalogProduct; equipo: EquipoAConfirmar } | null>(null);
@@ -132,28 +142,43 @@ export function MiOfertaClient({ token }: { token: string }) {
       <div className="pt-16" />
       <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
         <div className="w-full px-3 sm:px-4 lg:px-6">
-          <nav className="flex gap-2 py-2.5">
-            <TabChip active={tab === 'oferta'} onClick={() => setTab('oferta')}>
-              Tu oferta
-            </TabChip>
-            <TabChip active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
-              Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
-            </TabChip>
-          </nav>
+          {/* Tabs a la izquierda; buscador CENTRADO en la misma fila (tab Catálogo, desktop). */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-2.5">
+            <nav className="flex gap-2">
+              <TabChip active={tab === 'oferta'} onClick={() => setTab('oferta')}>
+                Tu oferta
+              </TabChip>
+              <TabChip active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
+                Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
+              </TabChip>
+            </nav>
+            {tab === 'catalogo' ? (
+              <div className="hidden md:flex md:justify-center">
+                <NavbarSearch
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onClear={() => setSearchQuery('')}
+                  placeholder="Buscar por marca, modelo…"
+                />
+              </div>
+            ) : (
+              <span aria-hidden />
+            )}
+            <span aria-hidden className="hidden md:block" />
+          </div>
         </div>
       </div>
-
-      {/* Countdown destacado (banner del proyecto) arriba del contenido, visible en ambas vistas */}
-      {offer.expiresAt ? (
-        <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
-          <VipCountdownBanner endDate={offer.expiresAt} />
-        </div>
-      ) : null}
 
       {tab === 'oferta' ? (
         <TuOfertaTab offer={offer} onVerCatalogo={() => setTab('catalogo')} onSelect={handleSelect} />
       ) : (
-        <CatalogoOfertaTab token={token} offer={offer} onSelect={handleSelect} />
+        <CatalogoOfertaTab
+          token={token}
+          offer={offer}
+          onSelect={handleSelect}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
       )}
 
       <ConfirmarEleccionModal

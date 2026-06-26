@@ -12,6 +12,7 @@
 import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
 import type { OfferView } from '../../../services/offerApi';
+import VipCountdownBanner from '../../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 
 export function TuOfertaTab({
   offer,
@@ -24,6 +25,13 @@ export function TuOfertaTab({
 }) {
   return (
     <main className="w-full px-3 py-6 sm:px-4 lg:px-6">
+      {/* Countdown destacado */}
+      {offer.expiresAt ? (
+        <div className="mb-6">
+          <VipCountdownBanner endDate={offer.expiresAt} />
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         {/* EL QUE PEDISTE */}
         <section>

@@ -8,11 +8,12 @@
  *   - NUNCA navega a /solicitar; sin lead-guard, sin carrito, sin navbar comercial.
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import { Navbar } from '../../../../components/hero/Navbar';
+import { NavbarSearch } from '../../../../[landing]/catalogo/components/catalog/NavbarActions';
 import { Illustration } from '../../../../[landing]/solicitar/confirmacion/components/received/illustration/Illustration';
 import { ConfirmarEleccionModal } from '../../components/ConfirmarEleccionModal';
 
@@ -42,6 +43,17 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [selecting, setSelecting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+
+  const goToCatalog = useCallback(
+    (q: string) => {
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}`;
+      const qs = q.trim() ? `?tab=catalogo&q=${encodeURIComponent(q.trim())}` : '?tab=catalogo';
+      window.location.href = `${base}${qs}`;
+    },
+    [token],
+  );
+  const irAlCatalogoConBusqueda = useCallback(() => goToCatalog(searchValue), [goToCatalog, searchValue]);
 
   useEffect(() => {
     let active = true;
@@ -139,13 +151,33 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       {/* Header con logo (como la página de oferta) */}
       <Navbar logoOnly fullWidth logoUrl={BRAND_LOGO_URL} />
       <div className="pt-16" />
-      {/* Sub-barra: volver a mi oferta */}
+      {/* Sub-barra: volver a mi oferta + buscador (lleva al catálogo de la oferta) */}
       <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="w-full px-3 py-2.5 sm:px-4 lg:px-6">
-          <a href={backToOffer} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
+        <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-3 py-2.5 sm:px-4 lg:px-6">
+          <a href={backToOffer} className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
             <ArrowLeft className="h-4 w-4" />
-            Volver a mi oferta
+            <span className="hidden sm:inline">Volver a mi oferta</span>
           </a>
+          {/* Desktop: buscador centrado, ancho como el flujo regular */}
+          <div className="hidden md:flex md:justify-center">
+            <NavbarSearch
+              value={searchValue}
+              onChange={setSearchValue}
+              onClear={() => setSearchValue('')}
+              onSubmit={irAlCatalogoConBusqueda}
+              placeholder="Buscar otro equipo…"
+            />
+          </div>
+          {/* Mobile: botón que lleva al catálogo */}
+          <button
+            type="button"
+            onClick={() => goToCatalog('')}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-500 md:hidden"
+          >
+            <Search className="h-4 w-4" style={{ color: 'var(--color-primary)' }} />
+            Buscar
+          </button>
+          <span aria-hidden className="hidden md:block" />
         </div>
       </div>
       <main className="mx-auto max-w-7xl px-4 py-6">

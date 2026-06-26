@@ -13,6 +13,7 @@ import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/
 import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
 import { SearchDrawer } from '../../../[landing]/catalogo/components/catalog/SearchDrawer';
+import VipCountdownBanner from '../../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 import type {
   CatalogProduct,
   FilterState,
@@ -57,16 +58,19 @@ export function CatalogoOfertaTab({
   token,
   offer,
   onSelect,
+  searchQuery,
+  onSearchChange,
 }: {
   token: string;
   offer: OfferView;
   onSelect: (product: CatalogProduct) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
 }) {
   const [products, setProducts] = useState<CatalogProduct[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults({}));
   const [sort, setSort] = useState<SortOption>('recommended');
-  const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -102,8 +106,8 @@ export function CatalogoOfertaTab({
 
   return (
     <>
-      {/* Barra de búsqueda (abre el SearchDrawer del catálogo) */}
-      <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
+      {/* Búsqueda mobile (en desktop el buscador vive en la fila de tabs) */}
+      <div className="w-full px-3 pt-4 sm:px-4 lg:px-6 md:hidden">
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
@@ -113,6 +117,13 @@ export function CatalogoOfertaTab({
           <span className="truncate">{searchQuery || 'Buscar por marca, modelo…'}</span>
         </button>
       </div>
+
+      {/* Countdown destacado */}
+      {offer.expiresAt ? (
+        <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
+          <VipCountdownBanner endDate={offer.expiresAt} />
+        </div>
+      ) : null}
 
       <CatalogLayoutV4
         products={items}
@@ -126,7 +137,7 @@ export function CatalogoOfertaTab({
         totalProducts={items.length}
         gridRef={gridRef}
         searchQuery={searchQuery}
-        onSearchClear={() => setSearchQuery('')}
+        onSearchClear={() => onSearchChange('')}
       >
         {loading ? (
           Array.from({ length: 8 }).map((_, i) => (
@@ -153,13 +164,13 @@ export function CatalogoOfertaTab({
         )}
       </CatalogLayoutV4>
 
-      {/* Buscador del catálogo (mismo SearchDrawer) */}
+      {/* Buscador del catálogo (mismo SearchDrawer) — mobile */}
       <SearchDrawer
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
         value={searchQuery}
-        onChange={setSearchQuery}
-        onClear={() => setSearchQuery('')}
+        onChange={onSearchChange}
+        onClear={() => onSearchChange('')}
         onSubmit={() => setSearchOpen(false)}
       />
     </>
