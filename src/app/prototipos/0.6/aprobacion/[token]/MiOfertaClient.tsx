@@ -27,6 +27,7 @@ import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
+import { SeleccionConfirmada } from './components/SeleccionConfirmada';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -62,6 +63,8 @@ export function MiOfertaClient({ token }: { token: string }) {
   // Modal de confirmación de elección desde una card del catálogo.
   const [pending, setPending] = useState<{ product: CatalogProduct; equipo: EquipoAConfirmar } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // Equipo ya elegido → pantalla de confirmación "¡Listo!".
+  const [selected, setSelected] = useState<EquipoAConfirmar | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -103,8 +106,10 @@ export function MiOfertaClient({ token }: { token: string }) {
     setConfirming(true);
     try {
       await selectEquipment(token, variantId);
-      // Éxito: lleva al detalle (que muestra la pantalla "¡Listo!") con el flag.
-      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${pending.product.slug}?selected=1`;
+      // Éxito: mostramos la confirmación EN LA MISMA página (sin redirigir ni
+      // re-validar el token, que ya quedó consumido).
+      setPending(null);
+      setSelected(pending.equipo);
     } catch (err) {
       const reason = err instanceof OfferApiError ? err.reason : 'unknown';
       const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
@@ -114,6 +119,16 @@ export function MiOfertaClient({ token }: { token: string }) {
       setConfirming(false);
     }
   }, [pending, token]);
+
+  // Ya eligió un equipo → pantalla de confirmación "¡Listo!".
+  if (selected) {
+    return (
+      <SeleccionConfirmada
+        chosen={selected}
+        backHref={`${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}`}
+      />
+    );
+  }
 
   if (state.kind === 'loading') {
     return (
