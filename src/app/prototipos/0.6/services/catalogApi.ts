@@ -594,7 +594,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand.name.toLowerCase(),
     brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1'),
-    thumbnail: apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
+    // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
+    thumbnail: (apiProduct.combo as { thumbnail_url?: string | null } | null)?.thumbnail_url
+      || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],

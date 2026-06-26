@@ -470,11 +470,13 @@ function DetailContent() {
   }, [product?.specs]);
 
   // Thumbnail: filter out video URLs (same as normal landing)
+  // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
   const productThumbnail = useMemo(() => {
+    if (data?.combo?.thumbnailUrl) return data.combo.thumbnailUrl;
     if (!product?.images?.length) return '';
     const img = product.images.find((i: { type?: string; url: string }) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
     return img?.url || product.images[0]?.url || '';
-  }, [product?.images]);
+  }, [product?.images, data?.combo]);
 
   const paymentPlans = data?.paymentPlans || [];
   const similarProducts = data?.similarProducts || [];
