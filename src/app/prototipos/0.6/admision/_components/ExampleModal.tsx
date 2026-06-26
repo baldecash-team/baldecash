@@ -74,8 +74,7 @@ export function ExampleModal({ open, onClose, title, example }: ExampleModalProp
           <p className="text-sm text-[#6b7280] leading-relaxed">{example.intro}</p>
 
           {/* Frase de ejemplo destacada */}
-          <figure className="relative rounded-xl bg-[#F7F7FB] border border-[#ECECFB] pl-4 pr-3.5 py-3">
-            <span className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#4654CD]" />
+          <figure className="rounded-xl bg-[#F7F7FB] border border-[#ECECFB] px-3.5 py-3">
             <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#4654CD] mb-1">
               Ejemplo
             </span>

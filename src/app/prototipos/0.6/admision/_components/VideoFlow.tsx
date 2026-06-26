@@ -54,7 +54,9 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
   const [error, setError] = useState<string | null>(null);
   const [cameraGranted, setCameraGranted] = useState(false);
 
-  const total = documentTypeCodes.length;
+  // El número de videos lo marcan los document_type_codes; si el link no los trae,
+  // se cae a la cantidad de preguntas de negocio (evita "PREGUNTA 1 DE 0").
+  const total = documentTypeCodes.length > 0 ? documentTypeCodes.length : BUSINESS_QUESTIONS.length;
   const events = useMemo(() => admissionEvents(token), [token]);
 
   // ── seguimiento de etapas (mejora #10) ──────────────────────────────────────
