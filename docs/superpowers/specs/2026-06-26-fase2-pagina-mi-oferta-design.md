@@ -142,6 +142,26 @@ baldecash/src/app/prototipos/0.6/services/
 4. **Respetar `CONVENTIONS.md`** del frontend (lucide-react no emojis, NextUI, español latino, sin gradientes prohibidos).
 5. **No builds pesados** (MacBook Air M3 8GB) → desarrollo incremental, dev server en vez de build de producción.
 
+## 11.bis Validación realizada (FE-4)
+
+**Routing (en ejecución, dev server):**
+- `/aprobacion/{token}` → HTTP 200 (página carga).
+- `/home`, `/home/catalogo`, `/senati` → HTTP 200 (landings INTACTAS). Sin colisión.
+
+**E2E con datos reales (baldecash_test, catálogo real 1307 productos):**
+- Emitir oferta → "Tu oferta" (recomendado = MacBook Neo, 31 alternativas) → catálogo
+  filtrado (31 equipos, ninguno > S/245) → ver detalle → "Elegir este equipo" → /select.
+- BD verificada: offer ACCEPTED, `selected_variant_id`, link CONSUMED, eventos
+  (issued/viewed/opened/selected). Anti-replay: re-uso rechazado (consumed).
+- Filtros del catálogo (quick-cards "uso") filtran dentro de la oferta SIN sacar al
+  usuario del flujo (URL se mantiene en /aprobacion/...).
+
+**Unit (Jest):** `offerApi.test.ts` (7/7) — mapeo getOffer, error 410, recommended null,
+query params de filtros, sin filtros, selectEquipment, error consumed.
+
+**Typecheck:** `tsc --noEmit` del proyecto completo → 0 errores. Cambios a ProductCard
+y ProductDetail 100% aditivos (el catálogo/detalle normal mantiene su comportamiento).
+
 ## 12. Fuera de alcance (Fase 2)
 
 - Destino real del botón "Hablar con un asesor" (placeholder).
