@@ -1141,6 +1141,15 @@ interface ApiAccessory {
  *               semanal ∈ {12,24,36,48}, quincenal ∈ {12,24}, mensual = múltiplo de 4.
  * @param paymentFrequency - Optional payment frequency ('semanal' | 'quincenal' | 'mensual')
  */
+export function resolveEcosistema(brand?: string, type?: string): 'apple' | 'samsung' | 'windows' | undefined {
+  const b = (brand || '').toLowerCase();
+  const t = (type || '').toLowerCase();
+  if (b.includes('apple') || b.includes('iphone') || b.includes('macbook') || b.includes('ipad')) return 'apple';
+  if (t === 'celular' && b.includes('samsung')) return 'samsung';
+  if (t === 'laptop' || t === 'laptop gamer' || t === 'tablet') return 'windows';
+  return undefined;
+}
+
 export async function getLandingAccessories(
   slug: string,
   deviceType?: string | string[],
@@ -1148,6 +1157,7 @@ export async function getLandingAccessories(
   previewKey?: string | null,
   paymentFrequency?: string,
   variant?: string,
+  ecosistema?: string,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1172,6 +1182,9 @@ export async function getLandingAccessories(
     }
     if (variant) {
       queryParams.set('variant', variant);
+    }
+    if (ecosistema) {
+      queryParams.set('ecosistema', ecosistema);
     }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
