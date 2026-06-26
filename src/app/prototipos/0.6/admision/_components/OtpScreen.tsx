@@ -346,11 +346,17 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
       )}
 
       {/* ── Estado CONFIRMED ──────────────────────────────────────────────── */}
+      {/* Mismo patrón visual que LinkStatus: badge circular + título + ayuda. */}
       {state === 'confirmed' && (
-        <div className="flex flex-col items-center gap-4 text-center">
-          <h1 className="text-2xl font-bold text-[#1f2937]">¡Correo confirmado!</h1>
+        <div className="flex flex-col items-center gap-4 py-10 text-center">
+          <span className="w-14 h-14 rounded-full flex items-center justify-center bg-[#16a34a]/10 text-[#16a34a]">
+            <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+          <p className="text-[#1f2937] font-semibold text-lg">¡Correo confirmado!</p>
           <p className="text-[#6b7280] text-sm">
-            Tu correo institucional ha sido verificado exitosamente.
+            Verificamos tu correo institucional. Seguimos con tu evaluación.
           </p>
         </div>
       )}
