@@ -88,7 +88,7 @@ export function TuOfertaTab({
       <button
         type="button"
         onClick={onVerCatalogo}
-        className="mt-6 w-full rounded-xl py-3 font-semibold text-white"
+        className="mt-6 w-full cursor-pointer rounded-xl py-3 font-semibold text-white transition-all hover:brightness-90"
         style={{ backgroundColor: 'var(--color-primary)' }}
       >
         Ver catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)

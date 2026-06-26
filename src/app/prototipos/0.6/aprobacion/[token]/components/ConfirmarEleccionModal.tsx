@@ -60,7 +60,7 @@ export function ConfirmarEleccionModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 disabled:opacity-50"
+            className="flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X className="h-4 w-4 text-white" />
           </button>
@@ -107,13 +107,13 @@ export function ConfirmarEleccionModal({
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="bordered" onPress={onClose} isDisabled={loading}>
+          <Button variant="bordered" onPress={onClose} isDisabled={loading} className="cursor-pointer">
             Cancelar
           </Button>
           <Button
             onPress={onConfirm}
             isLoading={loading}
-            className="font-bold text-white"
+            className="cursor-pointer font-bold text-white"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             Sí, elegir este equipo

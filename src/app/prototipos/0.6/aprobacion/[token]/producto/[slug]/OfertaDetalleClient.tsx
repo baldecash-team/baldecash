@@ -154,7 +154,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       {/* Sub-barra: volver a mi oferta + buscador (lleva al catálogo de la oferta) */}
       <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
         <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-3 py-2.5 sm:px-4 lg:px-6">
-          <a href={backToOffer} className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
+          <a href={backToOffer} className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Volver a mi oferta</span>
           </a>
@@ -172,7 +172,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           <button
             type="button"
             onClick={() => goToCatalog('')}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-500 md:hidden"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-50 md:hidden"
           >
             <Search className="h-4 w-4" style={{ color: 'var(--color-primary)' }} />
             Buscar
@@ -250,7 +250,7 @@ function SeleccionConfirmada({
 
         <a
           href={backHref}
-          className="mt-6 inline-block text-sm font-medium"
+          className="mt-6 inline-block cursor-pointer text-sm font-medium hover:underline"
           style={{ color: 'var(--color-primary)' }}
         >
           Volver a mi oferta
@@ -279,7 +279,7 @@ function Centered({
       <h2 className="text-lg font-semibold text-[var(--foreground)]">{title}</h2>
       {body ? <p className="mt-2 max-w-sm text-sm text-gray-500">{body}</p> : null}
       {backHref ? (
-        <a href={backHref} className="mt-4 text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
+        <a href={backHref} className="mt-4 cursor-pointer text-sm font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
           Volver a mi oferta
         </a>
       ) : null}

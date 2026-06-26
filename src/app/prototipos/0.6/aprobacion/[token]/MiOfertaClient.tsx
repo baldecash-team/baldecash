@@ -85,7 +85,8 @@ export function MiOfertaClient({ token }: { token: string }) {
       equipo: {
         name: product.displayName || product.name,
         brand: product.brand,
-        imageUrl: product.thumbnail || product.images?.[0],
+        // images[0] es la imagen principal (carga); el thumbnail puede dar 403.
+        imageUrl: product.images?.[0] || product.thumbnail,
         monthly: product.quotaMonthly,
       },
     });
