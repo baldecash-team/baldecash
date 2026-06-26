@@ -2877,6 +2877,6 @@ export function GamerCatalogoContent() {
   );
 }
 
-// NOTE: PromoBanner, GamerCatalogHeader, GamerSidebar, FilterSection, SortDropdown,
+// NOTE: PromoBanner, GamerSidebar, FilterSection, SortDropdown,
 // ActiveFiltersBar, GamerProductCard, BrandButton, GamerHelpButton, GamerCompareModal,
 // and GamerCardSkeleton have been extracted to ./components/gamer/
