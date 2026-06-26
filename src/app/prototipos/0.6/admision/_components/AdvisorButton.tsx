@@ -14,8 +14,8 @@ interface AdvisorButtonProps {
 export function AdvisorButton({ variant = 'inline', label = '¿Necesitas ayuda? Habla con un asesor' }: AdvisorButtonProps) {
   const className =
     variant === 'solid'
-      ? 'inline-flex items-center justify-center gap-2 w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity'
-      : 'inline-flex items-center justify-center gap-2 w-full text-[#6b7280] hover:text-[#4654CD] font-medium text-sm transition-colors py-2';
+      ? 'inline-flex items-center justify-center gap-2 w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer'
+      : 'inline-flex items-center justify-center gap-2 w-full text-[#6b7280] hover:text-[#4654CD] font-medium text-sm transition-colors py-2 cursor-pointer';
 
   return (
     <a href={BLIP_ADVISOR_URL} target="_blank" rel="noopener noreferrer" className={className}>

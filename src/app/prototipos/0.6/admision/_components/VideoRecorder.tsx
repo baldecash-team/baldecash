@@ -148,7 +148,7 @@ export function VideoRecorder({
         <>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors"
+            className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors cursor-pointer"
             onClick={() => setShowExample(true)}
           >
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -171,7 +171,7 @@ export function VideoRecorder({
         <>
           {!stream && !previewBlob && !requesting && (
             <button
-              className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+              className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
               onClick={handleRequestCamera}
             >
               Permitir cámara / Grabar
@@ -202,7 +202,7 @@ export function VideoRecorder({
                   <>
                     <button
                       aria-label="Iniciar grabación"
-                      className="w-16 h-16 rounded-full bg-[#ef4444] ring-4 ring-[#ef4444]/25 hover:ring-[#ef4444]/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg"
+                      className="w-16 h-16 rounded-full bg-[#ef4444] ring-4 ring-[#ef4444]/25 hover:ring-[#ef4444]/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg cursor-pointer"
                       onClick={startRecording}
                     >
                       <span className="w-6 h-6 rounded-full bg-white" />
@@ -213,7 +213,7 @@ export function VideoRecorder({
                   <>
                     <button
                       aria-label="Detener grabación"
-                      className="w-16 h-16 rounded-full bg-[#6b7280] ring-4 ring-[#6b7280]/25 hover:ring-[#6b7280]/40 active:scale-95 transition-all flex items-center justify-center shadow-lg"
+                      className="w-16 h-16 rounded-full bg-[#6b7280] ring-4 ring-[#6b7280]/25 hover:ring-[#6b7280]/40 active:scale-95 transition-all flex items-center justify-center shadow-lg cursor-pointer"
                       onClick={stopRecording}
                     >
                       <span className="w-6 h-6 rounded-sm bg-white" />
@@ -242,7 +242,7 @@ export function VideoRecorder({
                   <button
                     type="button"
                     aria-label="Reproducir"
-                    className="absolute inset-0 flex items-center justify-center bg-black/30 active:bg-black/40 transition-colors"
+                    className="absolute inset-0 flex items-center justify-center bg-black/30 active:bg-black/40 transition-colors cursor-pointer"
                     onClick={() => playbackVideoRef.current?.play()}
                   >
                     <span className="w-16 h-16 rounded-full bg-[#4654CD] flex items-center justify-center shadow-lg">
@@ -254,7 +254,7 @@ export function VideoRecorder({
 
               <div className="flex gap-3">
                 <button
-                  className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors text-sm"
+                  className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors text-sm cursor-pointer"
                   onClick={async () => {
                     reRecord();
                     await handleRequestCamera();
@@ -263,7 +263,7 @@ export function VideoRecorder({
                   Re-grabar
                 </button>
                 <button
-                  className="flex-1 bg-[#4654CD] text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-opacity text-sm"
+                  className="flex-1 bg-[#4654CD] text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-opacity cursor-pointer text-sm"
                   onClick={handleUseVideo}
                 >
                   Usar este video
@@ -281,7 +281,7 @@ export function VideoRecorder({
               </div>
               <button
                 type="button"
-                className="inline-flex items-center justify-center gap-2 w-full border border-[#e5e7eb] text-[#6b7280] font-medium py-2.5 rounded-xl hover:border-[#4654CD] hover:text-[#4654CD] transition-colors text-sm"
+                className="inline-flex items-center justify-center gap-2 w-full border border-[#e5e7eb] text-[#6b7280] font-medium py-2.5 rounded-xl hover:border-[#4654CD] hover:text-[#4654CD] transition-colors text-sm cursor-pointer"
                 onClick={() => setShowFileInput(true)}
               >
                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -325,7 +325,9 @@ export function VideoRecorder({
 
           {fileChosen && (
             <div className="flex items-center gap-2 rounded-xl bg-[#16a34a]/10 border border-[#16a34a]/30 px-4 py-3">
-              <span className="text-[#16a34a] font-bold">✓</span>
+              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0 text-[#16a34a]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
               <span className="text-sm text-[#1f2937] truncate">Video listo · {fileChosen}</span>
             </div>
           )}
@@ -333,7 +335,7 @@ export function VideoRecorder({
           {canRecord && showFileInput && (
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-2 w-full border border-[#e5e7eb] text-[#6b7280] font-medium py-2.5 rounded-xl hover:border-[#4654CD] hover:text-[#4654CD] transition-colors text-sm"
+              className="inline-flex items-center justify-center gap-2 w-full border border-[#e5e7eb] text-[#6b7280] font-medium py-2.5 rounded-xl hover:border-[#4654CD] hover:text-[#4654CD] transition-colors text-sm cursor-pointer"
               onClick={() => {
                 const retry = permissionDenied;
                 setPermissionDenied(false);

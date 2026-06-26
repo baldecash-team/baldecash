@@ -29,7 +29,7 @@ export function PhoneFrame({ title, children }: PhoneFrameProps) {
 
       {/* Cuerpo: a ancho cómodo y centrado vertical/horizontalmente en desktop.
           `my-auto` centra cuando el contenido es corto y permite scroll si es alto. */}
-      <div className="bg-white flex-1 overflow-y-auto px-6 pb-6 pt-1 md:px-10 md:py-12 md:flex md:flex-col">
+      <div className="bg-white flex-1 overflow-y-auto px-6 pb-6 pt-6 md:px-10 md:py-12 md:flex md:flex-col">
         <div className="w-full md:max-w-md md:mx-auto md:my-auto">{children}</div>
       </div>
     </div>

@@ -252,7 +252,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
             <>
               <ErrorBanner message={error} className="w-full" />
               <button
-                className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
                 onClick={autoSendByToken}
                 disabled={loading}
               >
@@ -291,7 +291,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           {error && <ErrorBanner message={error} className="w-full" />}
 
           <button
-            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
             onClick={handleContinue}
             disabled={!dni.trim() || loading}
           >
@@ -319,7 +319,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           )}
 
           <button
-            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
             onClick={isTokenMode ? handleValidateByToken : handleValidate}
             disabled={code.length < 6 || loading}
           >
@@ -327,21 +327,27 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           </button>
 
           {/* Reenviar con cooldown */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className={[
-                'text-[#4654CD] text-sm underline transition-opacity',
-                cooldown > 0 || loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80',
-              ].join(' ')}
-              onClick={isTokenMode ? handleResendByToken : handleResend}
-              disabled={cooldown > 0 || loading}
-              aria-disabled={cooldown > 0 || loading ? 'true' : 'false'}
-            >
-              Reenviar código
-            </button>
-            {cooldown > 0 && <span className="text-[#6b7280] text-sm">({cooldown}s)</span>}
-          </div>
+          {cooldown > 0 ? (
+            <p className="flex items-center justify-center gap-1.5 text-[#9ca3af] text-sm" aria-live="polite">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              Podrás reenviar el código en {cooldown}s
+            </p>
+          ) : (
+            <p className="text-[#6b7280] text-sm">
+              ¿No te llegó el código?{' '}
+              <button
+                type="button"
+                className="text-[#4654CD] font-semibold hover:underline disabled:opacity-50 cursor-pointer"
+                onClick={isTokenMode ? handleResendByToken : handleResend}
+                disabled={loading}
+              >
+                Reenviar
+              </button>
+            </p>
+          )}
         </div>
       )}
 

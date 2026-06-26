@@ -15,7 +15,7 @@ const BULLETS = [
  */
 export function VideoIntro({ onStart, applicantName }: VideoIntroProps) {
   return (
-    <div className="flex flex-col gap-5 mt-4 md:mt-0">
+    <div className="flex flex-col gap-5">
       {applicantName && (
         <p className="text-[#4654CD] text-sm font-semibold">Hola, {applicantName}</p>
       )}
@@ -41,7 +41,7 @@ export function VideoIntro({ onStart, applicantName }: VideoIntroProps) {
       </div>
 
       <button
-        className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+        className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
         onClick={onStart}
       >
         Comenzar
