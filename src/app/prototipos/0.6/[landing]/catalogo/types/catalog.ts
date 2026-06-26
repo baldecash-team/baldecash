@@ -975,6 +975,9 @@ export interface CartItem {
   // Metadata
   addedAt: number;
 
+  // Combo del que nace el ítem (para resolver el combo correcto en el submit)
+  comboId?: number;
+
   // Payment plans from API (for term standardization in /solicitar)
   paymentPlans?: CartPaymentPlan[];
 }

@@ -175,6 +175,12 @@ export interface ComboAccessory {
   imageUrl?: string;
 }
 
+export interface ComboInsurance {
+  planId: number | string;
+  name: string;
+  price: number;
+}
+
 export interface ComboInfo {
   id: number;
   code: string;
@@ -185,6 +191,8 @@ export interface ComboInfo {
   thumbnailUrl?: string;
   microUrl?: string;
   accessories: ComboAccessory[];
+  /** Seguro incluido en el combo, o undefined si no aplica. */
+  insurance?: ComboInsurance;
 }
 
 // ============================================

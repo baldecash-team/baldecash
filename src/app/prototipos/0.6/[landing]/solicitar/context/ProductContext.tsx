@@ -73,6 +73,8 @@ export interface SelectedProduct {
   paymentPlans?: PaymentPlan[];
   // Payment frequency selected by user (e.g. 'semanal', 'quincenal', 'mensual')
   paymentFrequency?: string;
+  // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
+  comboId?: number;
 }
 
 export type { Accessory, InsurancePlan };
