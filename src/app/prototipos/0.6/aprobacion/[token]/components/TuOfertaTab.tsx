@@ -9,12 +9,9 @@
  *   - Botón para ir al catálogo completo.
  */
 
-import { Clock } from 'lucide-react';
-
 import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
 import type { OfferView } from '../../../services/offerApi';
-import { useCountdown } from './useCountdown';
 
 export function TuOfertaTab({
   offer,
@@ -25,20 +22,8 @@ export function TuOfertaTab({
   onVerCatalogo: () => void;
   onSelect: (product: CatalogProduct) => void;
 }) {
-  const countdown = useCountdown(offer.expiresAt);
-
   return (
     <main className="w-full px-3 py-6 sm:px-4 lg:px-6">
-      {/* Countdown */}
-      {countdown && !countdown.expired ? (
-        <div className="mb-5 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          <Clock className="h-4 w-4" />
-          <span>
-            Tu oferta vence en <strong>{countdown.label}</strong>
-          </span>
-        </div>
-      ) : null}
-
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         {/* EL QUE PEDISTE */}
         <section>
@@ -82,7 +67,7 @@ export function TuOfertaTab({
                 product={offer.recommended}
                 hideColors
                 hideFavorite
-                ctaLabel="Elegir este equipo"
+                ctaLabel="Elegir"
                 onCtaClick={() => onSelect(offer.recommended as CatalogProduct)}
               />
             </div>

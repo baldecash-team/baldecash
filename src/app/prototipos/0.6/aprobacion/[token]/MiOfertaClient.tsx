@@ -23,6 +23,8 @@ import { Navbar } from '../../components/hero/Navbar';
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
+import { CountdownBar } from './components/CountdownBar';
+import { OfertaSkeleton } from './components/OfertaSkeleton';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -70,7 +72,7 @@ export function MiOfertaClient({ token }: { token: string }) {
   );
 
   if (state.kind === 'loading') {
-    return <CenteredMessage icon={<Clock className="h-8 w-8 animate-pulse" />} title="Cargando tu oferta…" />;
+    return <OfertaSkeleton logoUrl={BRAND_LOGO_URL} />;
   }
 
   if (state.kind === 'error') {
@@ -106,6 +108,8 @@ export function MiOfertaClient({ token }: { token: string }) {
             </TabChip>
           </nav>
         </div>
+        {/* Countdown fijo bajo los tabs — visible en ambas vistas */}
+        <CountdownBar expiresAt={offer.expiresAt} />
       </div>
 
       {tab === 'oferta' ? (

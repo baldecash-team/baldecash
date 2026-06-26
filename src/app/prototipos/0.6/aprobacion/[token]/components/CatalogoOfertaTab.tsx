@@ -123,7 +123,7 @@ export function CatalogoOfertaTab({
             product={product}
             hideColors
             hideFavorite
-            ctaLabel="Elegir este equipo"
+            ctaLabel="Elegir"
             onCtaClick={() => onSelect(product)}
             getDetailHref={(slug) =>
               `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug || product.slug}`

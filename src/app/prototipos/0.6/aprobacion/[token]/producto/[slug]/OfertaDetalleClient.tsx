@@ -9,7 +9,10 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { CubeGridSpinner } from '@/app/prototipos/_shared';
+
+import { Illustration } from '../../../../[landing]/solicitar/confirmacion/components/received/illustration/Illustration';
 
 import { ProductDetail } from '../../../../[landing]/producto/components/detail/ProductDetail';
 import {
@@ -18,11 +21,18 @@ import {
 } from '../../../../[landing]/producto/api/productDetailApi';
 import { getOffer, selectEquipment, OfferApiError } from '../../../../services/offerApi';
 
+interface ChosenSummary {
+  name: string;
+  brand?: string;
+  imageUrl?: string;
+  monthly?: number;
+}
+
 type State =
   | { kind: 'loading' }
   | { kind: 'ready'; data: ProductDetailResult; landingSlug: string }
   | { kind: 'error'; message: string }
-  | { kind: 'selected' };
+  | { kind: 'selected'; chosen: ChosenSummary };
 
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -64,11 +74,22 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   }, [state]);
 
   async function handleElegir() {
-    if (variantId == null) return;
+    if (variantId == null || state.kind !== 'ready') return;
     setSelecting(true);
+    const p = state.data.product;
+    // Cuota "desde" = la más baja entre todas las opciones (plazo más largo / inicial mín).
+    const allQuotas = (state.data.paymentPlans ?? [])
+      .flatMap((plan) => (plan.options ?? []).map((o) => o.monthlyQuota))
+      .filter((q): q is number => typeof q === 'number' && q > 0);
+    const chosen: ChosenSummary = {
+      name: p?.displayName || p?.name || 'Tu equipo',
+      brand: p?.brand,
+      imageUrl: p?.images?.[0]?.url,
+      monthly: allQuotas.length ? Math.min(...allQuotas) : undefined,
+    };
     try {
       await selectEquipment(token, variantId);
-      setState({ kind: 'selected' });
+      setState({ kind: 'selected', chosen });
     } catch (err) {
       const msg = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
       setState({ kind: 'error', message: msg });
@@ -78,7 +99,13 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   }
 
   if (state.kind === 'loading') {
-    return <Centered icon={<Clock className="h-8 w-8 animate-pulse" />} title="Cargando equipo…" />;
+    // Sin pantalla intermedia "cargando equipo" (como el detalle regular):
+    // solo el spinner de marca del proyecto, breve, hasta que llegan los datos.
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+        <CubeGridSpinner />
+      </div>
+    );
   }
   if (state.kind === 'error') {
     return (
@@ -91,13 +118,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     );
   }
   if (state.kind === 'selected') {
-    return (
-      <Centered
-        icon={<CheckCircle2 className="h-10 w-10" />}
-        title="¡Listo! Elegiste tu equipo"
-        body="Registramos tu elección. Pronto nos pondremos en contacto contigo."
-      />
-    );
+    return <SeleccionConfirmada chosen={state.chosen} backHref={backToOffer} />;
   }
 
   const { data } = state;
@@ -125,6 +146,58 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           ctaText={selecting ? 'Registrando…' : 'Elegir este equipo'}
         />
       </main>
+    </div>
+  );
+}
+
+/** Confirmación celebratoria con resumen del equipo elegido. */
+function SeleccionConfirmada({
+  chosen,
+  backHref,
+}: {
+  chosen: ChosenSummary;
+  backHref: string;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-xl">
+        {/* Check celebratorio (reutiliza Illustration del 0.6) */}
+        <Illustration />
+
+        <h2 className="text-xl font-bold text-[var(--foreground)]">¡Listo! Elegiste tu equipo</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Registramos tu elección. Pronto nos pondremos en contacto contigo.
+        </p>
+
+        {/* Resumen del equipo */}
+        <div className="mt-6 flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-left">
+          {chosen.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={chosen.imageUrl} alt={chosen.name} className="h-16 w-16 shrink-0 object-contain" />
+          ) : (
+            <div className="h-16 w-16 shrink-0 rounded-lg bg-gray-200" />
+          )}
+          <div className="min-w-0">
+            {chosen.brand ? (
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{chosen.brand}</p>
+            ) : null}
+            <p className="truncate text-sm font-semibold text-[var(--foreground)]">{chosen.name}</p>
+            {chosen.monthly ? (
+              <p className="mt-0.5 text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+                Desde S/{Math.round(chosen.monthly)}/mes
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <a
+          href={backHref}
+          className="mt-6 inline-block text-sm font-medium"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          Volver a mi oferta
+        </a>
+      </div>
     </div>
   );
 }
