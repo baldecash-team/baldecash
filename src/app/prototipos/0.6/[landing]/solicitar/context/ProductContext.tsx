@@ -11,7 +11,7 @@ import type { Accessory, InsurancePlan } from '../types/upsell';
 import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
-import { getLandingAccessories, getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingAccessories, getLandingInsurances, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSessionOptional } from './SessionContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -653,7 +653,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         else if (activePaymentFrequency === 'quincenal') rawTerm = months * 2;
         else rawTerm = months;
       }
-      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], rawTerm, previewKey, activePaymentFrequency)
+      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], rawTerm, previewKey, activePaymentFrequency, undefined, resolveEcosistema(activeProduct?.brand, activeProduct?.type))
         .then((apiAccessories) => {
           if (!apiAccessories || apiAccessories.length === 0) return;
           const accessoriesMap = new Map(apiAccessories.map(a => [a.id, a]));
