@@ -12,6 +12,7 @@ import { Search } from 'lucide-react';
 import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/layout/CatalogLayoutV4';
 import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
+import { LoadMoreButton } from '../../../[landing]/catalogo/components/catalog/LoadMoreButton';
 import { SearchDrawer } from '../../../[landing]/catalogo/components/catalog/SearchDrawer';
 import VipCountdownBanner from '../../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 import type {
@@ -46,6 +47,10 @@ const OFFER_CONFIG: CatalogLayoutConfig & { colorSelectorVersion: 1 | 2 } = {
   colorSelectorVersion: 1,
 };
 
+// Cuántos equipos mostrar antes del botón "Cargar más" (paginación en cliente:
+// el endpoint de oferta devuelve todos los que entran en la cuota de una vez).
+const PAGE_SIZE = 12;
+
 const SORT_TO_API: Record<string, string> = {
   recommended: 'price_desc',
   price_asc: 'price_asc',
@@ -72,6 +77,7 @@ export function CatalogoOfertaTab({
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults({}));
   const [sort, setSort] = useState<SortOption>('recommended');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Filtros dinámicos (specs, marcas, etc.) — vienen de la landing real de la oferta.
@@ -93,6 +99,7 @@ export function CatalogoOfertaTab({
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setVisibleCount(PAGE_SIZE); // al cambiar filtros/orden/búsqueda, reinicia la paginación
     getCatalog(token, offerFilters)
       .then((res) => active && setProducts(res.items))
       .catch(() => active && setProducts([]))
@@ -103,6 +110,8 @@ export function CatalogoOfertaTab({
   }, [token, offerFilters]);
 
   const items = products ?? [];
+  const visibleItems = items.slice(0, visibleCount);
+  const remaining = Math.max(0, items.length - visibleItems.length);
 
   return (
     <>
@@ -148,19 +157,32 @@ export function CatalogoOfertaTab({
             No hay equipos disponibles para tu cuota con estos filtros.
           </p>
         ) : (
-          items.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              hideColors
-              hideFavorite
-              ctaLabel="Elegir"
-              onCtaClick={() => onSelect(product)}
-              getDetailHref={(slug) =>
-                `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug || product.slug}`
-              }
-            />
-          ))
+          <>
+            {visibleItems.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                hideColors
+                hideFavorite
+                ctaLabel="Elegir"
+                onCtaClick={() => onSelect(product)}
+                getDetailHref={(slug) =>
+                  `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug || product.slug}`
+                }
+              />
+            ))}
+            {remaining > 0 ? (
+              <div className="col-span-full">
+                <LoadMoreButton
+                  version={OFFER_CONFIG.loadMoreVersion}
+                  remainingProducts={remaining}
+                  totalProducts={items.length}
+                  visibleProducts={visibleItems.length}
+                  onLoadMore={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                />
+              </div>
+            ) : null}
+          </>
         )}
       </CatalogLayoutV4>
 
