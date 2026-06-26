@@ -2,18 +2,28 @@
 
 import { useEffect } from 'react';
 
+/** Contenido del ejemplo de una pregunta de video (mejora #8). */
+export interface VideoExample {
+  /** Indicación breve de qué decir. */
+  intro: string;
+  /** Frase de ejemplo, tal como podría decirla la persona. */
+  quote: string;
+  /** Tip opcional para dar confianza. */
+  tip?: string;
+}
+
 interface ExampleModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  text: string;
+  example: VideoExample;
 }
 
 /**
- * Modal de "Ver ejemplo" por pregunta de video (mejora #8). Muestra texto guía.
+ * Modal de "Ver ejemplo" por pregunta de video (mejora #8).
  * Accesible: cierra por backdrop, botón y tecla Escape.
  */
-export function ExampleModal({ open, onClose, title, text }: ExampleModalProps) {
+export function ExampleModal({ open, onClose, title, example }: ExampleModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -27,22 +37,30 @@ export function ExampleModal({ open, onClose, title, text }: ExampleModalProps) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px] cursor-pointer"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white shadow-xl p-5 flex flex-col gap-3"
+        className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-bold text-[#1f2937]">{title}</h3>
+        {/* Cabecera */}
+        <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-[#f1f1f4]">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-full bg-[#ECECFB] flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#4654CD]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" />
+              </svg>
+            </span>
+            <h3 className="text-base font-bold text-[#1f2937]">{title}</h3>
+          </div>
           <button
             type="button"
             aria-label="Cerrar"
-            className="text-[#6b7280] hover:text-[#1f2937] transition-colors"
+            className="text-[#9ca3af] hover:text-[#1f2937] transition-colors cursor-pointer"
             onClick={onClose}
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -50,14 +68,42 @@ export function ExampleModal({ open, onClose, title, text }: ExampleModalProps) 
             </svg>
           </button>
         </div>
-        <p className="text-sm text-[#6b7280] leading-relaxed whitespace-pre-line">{text}</p>
-        <button
-          type="button"
-          className="mt-1 w-full bg-[#4654CD] text-white font-semibold py-2.5 rounded-xl hover:opacity-90 transition-opacity text-sm"
-          onClick={onClose}
-        >
-          Entendido
-        </button>
+
+        {/* Cuerpo */}
+        <div className="px-5 py-4 flex flex-col gap-3.5">
+          <p className="text-sm text-[#6b7280] leading-relaxed">{example.intro}</p>
+
+          {/* Frase de ejemplo destacada */}
+          <figure className="relative rounded-xl bg-[#F7F7FB] border border-[#ECECFB] pl-4 pr-3.5 py-3">
+            <span className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#4654CD]" />
+            <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#4654CD] mb-1">
+              Ejemplo
+            </span>
+            <blockquote className="text-sm text-[#1f2937] leading-relaxed italic">
+              “{example.quote}”
+            </blockquote>
+          </figure>
+
+          {example.tip && (
+            <div className="flex items-start gap-2 text-xs text-[#6b7280]">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 mt-0.5 shrink-0 text-[#16a34a]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <span>{example.tip}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Pie */}
+        <div className="px-5 pb-5 pt-1">
+          <button
+            type="button"
+            className="w-full bg-[#4654CD] text-white font-semibold py-2.5 rounded-xl hover:opacity-90 transition-opacity text-sm cursor-pointer"
+            onClick={onClose}
+          >
+            Entendido
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -440,3 +440,11 @@ select:focus-visible {
   caret-color: #262626;
 }
 [data-theme="nvidia"] footer .text-neutral-800 { color: #262626 !important; }
+/* Admisión: cursor pointer en elementos interactivos del flujo (Tailwind v4 no lo
+   aplica por defecto a <button>). Scoped a .admision-flow para no afectar el resto. */
+.admision-flow button:not(:disabled),
+.admision-flow a,
+.admision-flow label[for],
+.admision-flow [role="button"] {
+  cursor: pointer;
+}
