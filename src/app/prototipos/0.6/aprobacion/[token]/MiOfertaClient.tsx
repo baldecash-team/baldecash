@@ -10,7 +10,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, Clock } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
 import {
@@ -25,7 +26,6 @@ import { NavbarSearch } from '../../[landing]/catalogo/components/catalog/Navbar
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
-import { OfertaSkeleton } from './components/OfertaSkeleton';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
@@ -115,7 +115,11 @@ export function MiOfertaClient({ token }: { token: string }) {
   }, [pending, token]);
 
   if (state.kind === 'loading') {
-    return <OfertaSkeleton logoUrl={BRAND_LOGO_URL} />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--surface-bg,#fafafa)]">
+        <CubeGridSpinner />
+      </div>
+    );
   }
 
   if (state.kind === 'error') {
