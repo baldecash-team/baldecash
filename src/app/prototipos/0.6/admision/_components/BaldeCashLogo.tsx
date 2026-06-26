@@ -7,7 +7,9 @@ interface BaldeCashLogoProps {
   alt?: string;
 }
 
-export const BALDECASH_LOGO_SVG_URL = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
+// Versión monocromática en el azul de la web (#4654CD): nítida y sin tonos claros
+// que se laven contra fondos claros.
+export const BALDECASH_LOGO_SVG_URL = 'https://baldecash.s3.amazonaws.com/company/logo-blue.svg';
 
 export function BaldeCashLogo({ className = 'h-7 w-auto', alt = 'BaldeCash' }: BaldeCashLogoProps) {
   // eslint-disable-next-line @next/next/no-img-element
