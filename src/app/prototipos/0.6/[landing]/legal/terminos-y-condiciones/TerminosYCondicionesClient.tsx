@@ -208,51 +208,6 @@ export function TerminosYCondicionesClient() {
         <p className="mt-3">Las controversias derivadas de la Plataforma, Servicios, campañas o contratos podrán ser atendidas inicialmente a través de los canales de atención de Baldecash. Sin perjuicio de ello, el Usuario conserva su derecho de acudir al Libro de Reclamaciones, INDECOPI, la Autoridad Nacional de Protección de Datos Personales, autoridades competentes, mecanismos administrativos, judiciales o alternativos reconocidos por ley.</p>
         <p className="mt-3">En lo que resulte legalmente válido y sin limitar derechos de consumidores, las controversias judiciales se someterán a los jueces y tribunales competentes de Lima, Perú, salvo que la normativa aplicable determine una competencia distinta o más favorable al consumidor.</p>
       </Section>
-
-      <Section title="ANEXO 1: PROCEDIMIENTO GENERAL PARA SOLICITUD DE SERVICIOS">
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">1. Registro o remisión de solicitud</h4>
-        <p>El Usuario completa el formulario correspondiente, selecciona el producto, campaña o servicio de interés y proporciona información veraz, vigente y verificable.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">2. Validación preliminar</h4>
-        <p>Baldecash revisa que la información esté completa y puede solicitar documentos, datos adicionales, validaciones de identidad o aceptación de autorizaciones necesarias.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">3. Evaluación del perfil</h4>
-        <p>Baldecash y/o las entidades que correspondan analizan el perfil del Usuario conforme a criterios académicos, comerciales, crediticios, documentarios, de prevención de fraude y disponibilidad.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">4. Comunicación de resultado</h4>
-        <p>Baldecash informa si la solicitud fue aprobada, observada, rechazada o requiere información adicional. La preaprobación o simulación no equivale a aprobación definitiva.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">5. Información previa</h4>
-        <p>Antes de contratar, el Usuario recibe las condiciones esenciales: descripción del bien o servicio, precio, cuotas, tasa, TCEA cuando corresponda, cronograma, cargos, garantías, restricciones y consecuencias de incumplimiento.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">6. Firma y aceptación</h4>
-        <p>El Usuario acepta expresamente los documentos aplicables mediante firma electrónica, aceptación digital, video-selfie, checkboxes u otros mecanismos habilitados.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">7. Ejecución</h4>
-        <p>Baldecash coordina la entrega del bien, prestación del servicio, desembolso, activación de beneficio o ejecución contractual, conforme a las condiciones aceptadas.</p>
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">8. Gestión posterior</h4>
-        <p>El Usuario podrá realizar consultas, pagos, soporte, garantías, reclamos, actualización de datos o solicitudes de derechos por los canales oficiales.</p>
-      </Section>
-
-      <Section title="ANEXO 2: MODELO REFERENCIAL DE ACEPTACIONES PARA FORMULARIOS WEB">
-        <p>Para formularios, landing pages, campañas y flujos de contratación, se recomienda utilizar aceptaciones separadas, claras y trazables. El texto final puede adecuarse al diseño de cada punto de la web:</p>
-        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2 mt-2">
-          <li>He leído y acepto los Términos y Condiciones Generales de Baldecash.</li>
-          <li>He leído la Política de Privacidad y autorizo el tratamiento de mis datos personales para evaluar mi solicitud, validar mi identidad, gestionar la contratación y ejecutar el servicio solicitado.</li>
-          <li>Autorizo, cuando corresponda, la consulta y comunicación de mis datos a centrales de riesgo, entidades vinculadas, aliados y proveedores necesarios para la evaluación, prevención de fraude y ejecución del servicio.</li>
-          <li>Autorizo el uso de mi imagen, voz, video-selfie y demás mecanismos de validación para verificar mi identidad, acreditar mi manifestación de voluntad y prevenir fraude.</li>
-          <li>Autorizo de manera opcional recibir comunicaciones comerciales, promociones, beneficios, campañas y publicidad de Baldecash por correo, llamadas, SMS, WhatsApp u otros medios. Declaro conocer que puedo revocar esta autorización en cualquier momento.</li>
-          <li>Autorizo de manera opcional que mis datos sean compartidos con aliados comerciales o instituciones educativas para campañas, beneficios o promociones específicas informadas por Baldecash.</li>
-        </ul>
-        <p className="mt-3">Nota: las aceptaciones vinculadas a publicidad, campañas comerciales o transferencia a aliados para fines no necesarios deben mantenerse como opcionales y separadas de la contratación principal.</p>
-      </Section>
-
-      <Section title="ANEXO 3: MARCO NORMATIVO REFERENCIAL">
-        <p>El presente documento ha sido estructurado considerando, entre otras, las siguientes normas peruanas vigentes o relevantes para la operación digital de Baldecash:</p>
-        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2 mt-2">
-          <li>Ley N.° 29733, Ley de Protección de Datos Personales, y su Reglamento aprobado por Decreto Supremo N.° 016-2024-JUS.</li>
-          <li>Ley N.° 29571, Código de Protección y Defensa del Consumidor, incluyendo obligaciones sobre información, idoneidad, cláusulas abusivas, métodos comerciales, financiamiento al consumidor y Libro de Reclamaciones.</li>
-          <li>Ley N.° 32495, que incorpora a las plataformas digitales de comercio electrónico dentro de la obligación de contar con Libro de Reclamaciones.</li>
-          <li>Ley N.° 27269, Ley de Firmas y Certificados Digitales, su Reglamento y normas complementarias.</li>
-          <li>Código Civil peruano, especialmente reglas sobre manifestación de voluntad y contratación por medios electrónicos.</li>
-          <li>Ley N.° 30096, Ley de Delitos Informáticos, y normas vinculadas a seguridad, acceso no autorizado y protección de sistemas y datos informáticos.</li>
-          <li>Normativa tributaria, contable, contractual, civil, comercial y administrativa aplicable según la naturaleza de cada servicio, campaña o contrato específico.</li>
-        </ul>
-      </Section>
     </LegalPageLayout>
   );
 }
