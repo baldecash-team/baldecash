@@ -1,0 +1,156 @@
+/**
+ * Offer API Service - BaldeCash v0.6 (Caso 4 · BAL-1785)
+ *
+ * Cliente de los endpoints públicos de la oferta condicionada a capacidad de
+ * pago. El estudiante abre /aprobacion/{token} y esta capa consume:
+ *   GET  /public/offer/{token}          → "Tu oferta" (recomendado + alternativas)
+ *   GET  /public/offer/{token}/catalog  → catálogo filtrado EN VIVO por su cuota
+ *   POST /public/offer/{token}/select   → registra el equipo elegido
+ *
+ * Reutiliza mapApiProductToCatalogProduct del catálogo: los productos llegan en
+ * el mismo shape que el catálogo normal.
+ */
+
+import type { CatalogProduct } from '../[landing]/catalogo/types/catalog';
+import {
+  mapApiProductToCatalogProduct,
+  type ApiCatalogProduct,
+} from './catalogApi';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+
+/** Razones de error que devuelve el backend (SecureLinkError.reason). */
+export type OfferErrorReason =
+  | 'invalid'
+  | 'expired'
+  | 'consumed'
+  | 'revoked'
+  | 'purpose_mismatch'
+  | 'offer_not_found'
+  | 'unknown';
+
+export class OfferApiError extends Error {
+  reason: OfferErrorReason;
+  status: number;
+  constructor(reason: OfferErrorReason, message: string, status: number) {
+    super(message);
+    this.reason = reason;
+    this.status = status;
+  }
+}
+
+/** Equipo que el estudiante pidió originalmente (se muestra tachado). */
+export interface RequestedProduct {
+  id: number;
+  variant_id: number | null;
+  name: string | null;
+  slug: string | null;
+  image_url: string | null;
+}
+
+export interface OfferView {
+  offerCode: string;
+  maxMonthlyQuota: number;
+  expiresAt: string | null;
+  landingSlug: string | null;
+  requestedProduct: RequestedProduct | null;
+  recommended: CatalogProduct | null;
+  alternativesCount: number;
+}
+
+export interface OfferCatalog {
+  maxMonthlyQuota: number;
+  items: CatalogProduct[];
+  count: number;
+}
+
+export interface OfferCatalogFilters {
+  q?: string;
+  brandIds?: number[];
+  types?: string[];
+  gamas?: string[];
+  usages?: string[];
+  labels?: string[];
+  minQuota?: number;
+  sortBy?: string;
+}
+
+async function parseError(res: Response): Promise<OfferApiError> {
+  let reason: OfferErrorReason = 'unknown';
+  let message = 'Ocurrió un error al cargar la oferta.';
+  try {
+    const body = await res.json();
+    const detail = body?.detail ?? body;
+    if (detail?.reason) reason = detail.reason as OfferErrorReason;
+    if (detail?.message) message = detail.message;
+  } catch {
+    /* respuesta sin JSON */
+  }
+  return new OfferApiError(reason, message, res.status);
+}
+
+/** GET /public/offer/{token} — datos de "Tu oferta". */
+export async function getOffer(token: string): Promise<OfferView> {
+  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw await parseError(res);
+  const data = await res.json();
+  return {
+    offerCode: data.offer_code,
+    maxMonthlyQuota: data.max_monthly_quota,
+    expiresAt: data.expires_at ?? null,
+    landingSlug: data.landing_slug ?? null,
+    requestedProduct: data.requested_product ?? null,
+    recommended: data.recommended
+      ? mapApiProductToCatalogProduct(data.recommended as ApiCatalogProduct)
+      : null,
+    alternativesCount: data.alternatives_count ?? 0,
+  };
+}
+
+/** GET /public/offer/{token}/catalog — catálogo filtrado por la cuota (en vivo). */
+export async function getCatalog(
+  token: string,
+  filters: OfferCatalogFilters = {},
+): Promise<OfferCatalog> {
+  const params = new URLSearchParams();
+  if (filters.q) params.set('q', filters.q);
+  if (filters.brandIds?.length) params.set('brand_ids', filters.brandIds.join(','));
+  if (filters.types?.length) params.set('types', filters.types.join(','));
+  if (filters.gamas?.length) params.set('gamas', filters.gamas.join(','));
+  if (filters.usages?.length) params.set('usages', filters.usages.join(','));
+  if (filters.labels?.length) params.set('labels', filters.labels.join(','));
+  if (filters.minQuota != null) params.set('min_quota', String(filters.minQuota));
+  if (filters.sortBy) params.set('sort_by', filters.sortBy);
+
+  const qs = params.toString();
+  const url = `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/catalog${qs ? `?${qs}` : ''}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw await parseError(res);
+  const data = await res.json();
+  return {
+    maxMonthlyQuota: data.max_monthly_quota,
+    items: (data.items ?? []).map((it: ApiCatalogProduct) => mapApiProductToCatalogProduct(it)),
+    count: data.count ?? 0,
+  };
+}
+
+/** POST /public/offer/{token}/select — registra el equipo elegido. */
+export async function selectEquipment(
+  token: string,
+  variantId: number,
+): Promise<{ offerId: number; selectedVariantId: number; status: string }> {
+  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/select`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ variant_id: variantId }),
+  });
+  if (!res.ok) throw await parseError(res);
+  const data = await res.json();
+  return {
+    offerId: data.offer_id,
+    selectedVariantId: data.selected_variant_id,
+    status: data.status,
+  };
+}
