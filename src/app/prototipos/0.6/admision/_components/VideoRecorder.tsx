@@ -125,7 +125,8 @@ export function VideoRecorder({
   function togglePlayback() {
     const el = playbackVideoRef.current;
     if (!el) return;
-    el.paused ? el.play() : el.pause();
+    if (el.paused) el.play();
+    else el.pause();
   }
 
   return (

@@ -17,9 +17,8 @@ export async function uploadFile(
       if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => {
-      xhr.status >= 200 && xhr.status < 300
-        ? resolve()
-        : reject(new Error(`upload_failed_${xhr.status}`));
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`upload_failed_${xhr.status}`));
     };
     xhr.onerror = () => reject(new Error('upload_network_error'));
     xhr.send(file as Blob);

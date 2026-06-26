@@ -17,16 +17,16 @@ export function ValidacionLaboralClient({ token }: { token: string }) {
   const [page, setPage] = useState<PageState>({ status: 'loading' });
 
   useEffect(() => {
-    if (!token) {
-      setPage({ status: 'invalid', reason: undefined });
-      return;
-    }
-
-    admissionEvents(token).linkOpen(); // mejora #10
-
     let cancelled = false;
 
     (async () => {
+      if (!token) {
+        if (!cancelled) setPage({ status: 'invalid', reason: undefined });
+        return;
+      }
+
+      admissionEvents(token).linkOpen(); // mejora #10
+
       const linkResult = await validateLink(token);
       if (cancelled) return;
 
