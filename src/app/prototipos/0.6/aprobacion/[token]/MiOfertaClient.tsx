@@ -27,7 +27,7 @@ import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
-import { SeleccionConfirmada } from './components/SeleccionConfirmada';
+import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -63,8 +63,8 @@ export function MiOfertaClient({ token }: { token: string }) {
   // Modal de confirmación de elección desde una card del catálogo.
   const [pending, setPending] = useState<{ product: CatalogProduct; equipo: EquipoAConfirmar } | null>(null);
   const [confirming, setConfirming] = useState(false);
-  // Equipo ya elegido → pantalla de confirmación "¡Listo!".
-  const [selected, setSelected] = useState<EquipoAConfirmar | null>(null);
+  // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
+  const [selected, setSelected] = useState<ChosenSummary | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -107,9 +107,19 @@ export function MiOfertaClient({ token }: { token: string }) {
     try {
       await selectEquipment(token, variantId);
       // Éxito: mostramos la confirmación EN LA MISMA página (sin redirigir ni
-      // re-validar el token, que ya quedó consumido).
+      // re-validar el token, que ya quedó consumido). Construimos el resumen
+      // completo para el ReceivedScreen reutilizado.
+      const p = pending.product;
+      const offerCode = state.kind === 'ready' ? state.offer.offerCode : undefined;
       setPending(null);
-      setSelected(pending.equipo);
+      setSelected({
+        name: pending.equipo.name,
+        brand: pending.equipo.brand,
+        imageUrl: pending.equipo.imageUrl,
+        monthly: p.quotaMonthly,
+        finalPrice: p.price,
+        offerCode,
+      });
     } catch (err) {
       const reason = err instanceof OfferApiError ? err.reason : 'unknown';
       const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
@@ -118,7 +128,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     } finally {
       setConfirming(false);
     }
-  }, [pending, token]);
+  }, [pending, token, state]);
 
   // Ya eligió un equipo → pantalla de confirmación "¡Listo!".
   if (selected) {
