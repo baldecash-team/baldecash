@@ -3,26 +3,25 @@
 /**
  * MiOfertaClient — orquestador de la página "Mi Oferta" (Caso 4 · BAL-1785).
  *
- * Carga la oferta por token y maneja los estados (cargando / válido / expirado /
- * usado / inválido). Muestra 2 tabs: "Tu oferta" (default) y "Catálogo".
- *
- * FE-1: estructura, estados y catálogo funcional (ProductCard alimentado por
- * offerApi, con el tope de cuota aplicado por el backend).
- * FE-2: pulido de "Tu oferta" (pedido tachado, recomendado destacado, countdown).
+ * Carga la oferta por token y maneja estados (cargando / válido / expirado /
+ * usado / inválido). Dos tabs que usan el LAYOUT REAL del catálogo:
+ *   - "Tu oferta": recomendado + el que pediste (sin filtros).
+ *   - "Catálogo":  CatalogLayoutV4 completo con filtros, alimentado por offerApi.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { AlertCircle, Clock } from 'lucide-react';
 
-import { ProductCard } from '../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
 import {
   getOffer,
-  getCatalog,
   OfferApiError,
   type OfferView,
   type OfferErrorReason,
 } from '../../services/offerApi';
+import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
+import { TuOfertaTab } from './components/TuOfertaTab';
+import { CenteredMessage } from './components/CenteredMessage';
 
 type TabKey = 'oferta' | 'catalogo';
 
@@ -42,10 +41,7 @@ const ERROR_COPY: Record<string, { title: string; body: string }> = {
 export function MiOfertaClient({ token }: { token: string }) {
   const [state, setState] = useState<PageState>({ kind: 'loading' });
   const [tab, setTab] = useState<TabKey>('oferta');
-  const [catalog, setCatalog] = useState<CatalogProduct[] | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(false);
 
-  // Carga inicial de la oferta
   useEffect(() => {
     let active = true;
     getOffer(token)
@@ -61,23 +57,14 @@ export function MiOfertaClient({ token }: { token: string }) {
     };
   }, [token]);
 
-  // Carga del catálogo la primera vez que se entra al tab "Catálogo"
-  const loadCatalog = useCallback(async () => {
-    if (catalog !== null) return;
-    setCatalogLoading(true);
-    try {
-      const res = await getCatalog(token);
-      setCatalog(res.items);
-    } catch {
-      setCatalog([]);
-    } finally {
-      setCatalogLoading(false);
-    }
-  }, [token, catalog]);
-
-  useEffect(() => {
-    if (tab === 'catalogo') void loadCatalog();
-  }, [tab, loadCatalog]);
+  const handleSelect = useCallback(
+    (product: CatalogProduct) => {
+      // El detalle / la card de oferta navega al detalle de oferta para confirmar.
+      const slug = product.slug;
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug}`;
+    },
+    [token],
+  );
 
   if (state.kind === 'loading') {
     return <CenteredMessage icon={<Clock className="h-8 w-8 animate-pulse" />} title="Cargando tu oferta…" />;
@@ -97,87 +84,34 @@ export function MiOfertaClient({ token }: { token: string }) {
   const { offer } = state;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">
-      {/* Header */}
-      <header className="mb-6 flex items-center gap-2">
-        <CheckCircle2 className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-        <h1 className="text-xl font-semibold text-[var(--foreground)]">Mi oferta</h1>
+    <div className="min-h-screen bg-[var(--background)]">
+      {/* Header sticky + tabs */}
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+          <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
+            BaldeCash
+          </span>
+          <span className="text-sm text-gray-400">·</span>
+          <span className="text-sm font-medium text-gray-700">Mi oferta</span>
+        </div>
+        <nav className="mx-auto flex max-w-7xl gap-1 px-4">
+          <TabButton active={tab === 'oferta'} onClick={() => setTab('oferta')}>
+            Tu oferta
+          </TabButton>
+          <TabButton active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
+            Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
+          </TabButton>
+        </nav>
       </header>
 
-      {/* Tabs */}
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
-        <TabButton active={tab === 'oferta'} onClick={() => setTab('oferta')}>
-          Tu oferta
-        </TabButton>
-        <TabButton active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
-          Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
-        </TabButton>
-      </div>
-
-      {/* Contenido */}
       {tab === 'oferta' ? (
-        <OfertaTab offer={offer} onVerCatalogo={() => setTab('catalogo')} />
+        <TuOfertaTab offer={offer} onVerCatalogo={() => setTab('catalogo')} onSelect={handleSelect} />
       ) : (
-        <CatalogoTab token={token} items={catalog} loading={catalogLoading} />
+        <CatalogoOfertaTab token={token} offer={offer} onSelect={handleSelect} />
       )}
-    </main>
-  );
-}
-
-/** Tab "Tu oferta" — FE-1: estructura base. FE-2 lo pule (tachado, countdown). */
-function OfertaTab({ offer, onVerCatalogo }: { offer: OfferView; onVerCatalogo: () => void }) {
-  return (
-    <section className="space-y-6">
-      {offer.recommended ? (
-        <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
-            Aprobado para ti
-          </p>
-          <ProductCard product={offer.recommended} hideColors />
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500">No hay un equipo recomendado disponible.</p>
-      )}
-
-      <button
-        type="button"
-        onClick={onVerCatalogo}
-        className="w-full rounded-xl py-3 font-semibold text-white"
-        style={{ backgroundColor: 'var(--color-primary)' }}
-      >
-        Ver catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
-      </button>
-    </section>
-  );
-}
-
-/** Tab "Catálogo" — grilla de ProductCards filtrada por la cuota (backend). */
-function CatalogoTab({
-  token,
-  items,
-  loading,
-}: {
-  token: string;
-  items: CatalogProduct[] | null;
-  loading: boolean;
-}) {
-  void token;
-  if (loading || items === null) {
-    return <CenteredMessage icon={<Clock className="h-6 w-6 animate-pulse" />} title="Cargando catálogo…" />;
-  }
-  if (items.length === 0) {
-    return <p className="py-10 text-center text-sm text-gray-500">No hay equipos disponibles para tu cuota.</p>;
-  }
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((product) => (
-        <ProductCard key={product.id} product={product} hideColors />
-      ))}
     </div>
   );
 }
-
-// ── helpers de UI ──────────────────────────────────────────────────────────
 
 function TabButton({
   active,
@@ -192,7 +126,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+      className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
         active
           ? 'border-[var(--color-primary)] text-[var(--foreground)]'
           : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -200,25 +134,5 @@ function TabButton({
     >
       {children}
     </button>
-  );
-}
-
-function CenteredMessage({
-  icon,
-  title,
-  body,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body?: string;
-}) {
-  return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-      <div className="mb-3" style={{ color: 'var(--color-primary)' }}>
-        {icon}
-      </div>
-      <h2 className="text-lg font-semibold text-[var(--foreground)]">{title}</h2>
-      {body ? <p className="mt-2 max-w-sm text-sm text-gray-500">{body}</p> : null}
-    </div>
   );
 }

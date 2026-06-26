@@ -102,6 +102,14 @@ interface ProductCardProps {
   campaignCoupon?: AppliedCoupon | null;
   /** Catálogo de condiciones del facet — estilo (label/icon/color) del badge de condición */
   conditions?: ConditionFilter[] | null;
+  /**
+   * Modo oferta (BAL-1785): cuando se pasa `onCtaClick`, el botón principal
+   * muestra `ctaLabel` (ej. "Elegir este equipo") y llama a `onCtaClick` en vez
+   * de agregar al carrito / ir a solicitar. Aditivo: sin estos props, el
+   * comportamiento es el de siempre ("Lo quiero").
+   */
+  ctaLabel?: string;
+  onCtaClick?: () => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -119,6 +127,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   compareDisabled = false,
   isInCart = false,
   isInCartCheck,
+  ctaLabel,
+  onCtaClick,
   isFavoriteCheck,
   favoriteButtonId,
   compareButtonId,
@@ -761,10 +771,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       }
                     : undefined
                 }
-                onPress={!resolvedIsInCart ? handleQuieroClick : undefined}
-                isDisabled={resolvedIsInCart}
+                onPress={
+                  onCtaClick
+                    ? onCtaClick
+                    : !resolvedIsInCart
+                      ? handleQuieroClick
+                      : undefined
+                }
+                isDisabled={onCtaClick ? false : resolvedIsInCart}
               >
-                {resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
+                {onCtaClick ? (ctaLabel ?? 'Elegir este equipo') : resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>
             </div>
           </div>

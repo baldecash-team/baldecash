@@ -83,6 +83,13 @@ interface ProductDetailProps {
   paymentFrequencies?: string[];
   // Landing config flags
   showPlatformCommission?: boolean;
+  /**
+   * Modo oferta (BAL-1785): cuando se pasa `onClickCTA`, el botón principal
+   * muestra `ctaText` (ej. "Elegir este equipo") y llama a `onClickCTA` en vez
+   * de navegar a /solicitar. Aditivo: sin estos props, comportamiento de siempre.
+   */
+  onClickCTA?: () => void;
+  ctaText?: string;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -113,6 +120,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   defaultFrequency,
   paymentFrequencies,
   showPlatformCommission = false,
+  onClickCTA,
+  ctaText,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -626,12 +635,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
               >
                 <button
-                  onClick={handleSolicitar}
+                  onClick={onClickCTA ?? handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
-                  ¡Lo quiero!
+                  {onClickCTA ? (ctaText ?? 'Elegir este equipo') : '¡Lo quiero!'}
                 </button>
-                {onAddToCart && (() => {
+                {!onClickCTA && onAddToCart && (() => {
                   // Determine cart button state
                   const configChanged = isInCart && cartItem && pricingSelection && (
                     cartItem.months !== (selectedTermMonths ?? pricingSelection.term) ||
