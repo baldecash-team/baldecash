@@ -17,7 +17,7 @@ import { useParams } from 'next/navigation';
 import { Search, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
-import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingAccessories, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { Accessory, AccessoryCategory } from '../../../types/upsell';
@@ -152,14 +152,25 @@ export function AccessoriesSection({
     return products[0]?.paymentFrequency;
   }, [getAllProducts]);
 
+  // Ecosystem filter for Molti accessories
+  const ecosistema = useMemo(() => {
+    const p = cartProducts?.length > 0 ? cartProducts[0] : selectedProduct;
+    if (!p) return undefined;
+    return resolveEcosistema(p.brand, p.type);
+  }, [cartProducts, selectedProduct]);
+
   // Load accessories from API - filtered by all device types in cart
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant);
+        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema);
+        if (cancelled) return;
         if (apiAccessories && apiAccessories.length > 0) {
-          analytics.track('accessory_variant_assigned', { variant: abVariant, count: apiAccessories.length });
+          analytics.track('accessory_variant_assigned', { variant: abVariant, count: apiAccessories.length, ecosistema: ecosistema ?? null });
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
             name: acc.name,
@@ -181,16 +192,21 @@ export function AccessoriesSection({
           setAccessories([]);
         }
       } catch (error) {
+        if (cancelled) return;
         console.error('Error loading accessories:', error);
         setAccessories([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
-    fetchAccessories();
+    timer = setTimeout(fetchAccessories, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(','), abVariant]);
+  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(','), abVariant, ecosistema]);
 
   // Update selected accessories when term changes or accessories list changes
   const selectedAccessoriesRef = useRef(selectedAccessories);
