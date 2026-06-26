@@ -166,7 +166,12 @@ export type EventType =
   | 'lead_products_scroll'
   | 'lead_banner_slide_change'
   // Phase 13: A/B testing
-  | 'accessory_variant_assigned';
+  | 'accessory_variant_assigned'
+  // Phase 14: Admisión (OTP correo + autoservicio de video) — eventos por link/etapa
+  | 'admission_link_open'
+  | 'admission_stage_enter'
+  | 'admission_stage_exit'
+  | 'admission_completed';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
