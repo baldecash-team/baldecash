@@ -15,6 +15,7 @@ import { AlertCircle, Clock } from 'lucide-react';
 import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
 import {
   getOffer,
+  selectEquipment,
   OfferApiError,
   type OfferView,
   type OfferErrorReason,
@@ -24,6 +25,7 @@ import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
 import { OfertaSkeleton } from './components/OfertaSkeleton';
+import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import VipCountdownBanner from '../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
@@ -47,6 +49,10 @@ export function MiOfertaClient({ token }: { token: string }) {
   const [state, setState] = useState<PageState>({ kind: 'loading' });
   const [tab, setTab] = useState<TabKey>('oferta');
 
+  // Modal de confirmación de elección desde una card del catálogo.
+  const [pending, setPending] = useState<{ product: CatalogProduct; equipo: EquipoAConfirmar } | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
   useEffect(() => {
     let active = true;
     getOffer(token)
@@ -62,14 +68,41 @@ export function MiOfertaClient({ token }: { token: string }) {
     };
   }, [token]);
 
-  const handleSelect = useCallback(
-    (product: CatalogProduct) => {
-      // El detalle / la card de oferta navega al detalle de oferta para confirmar.
-      const slug = product.slug;
-      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug}`;
-    },
-    [token],
-  );
+  // Card "Elegir" → abre el modal de confirmación (no navega ni selecciona aún).
+  const handleSelect = useCallback((product: CatalogProduct) => {
+    setPending({
+      product,
+      equipo: {
+        name: product.displayName || product.name,
+        brand: product.brand,
+        imageUrl: product.thumbnail || product.images?.[0],
+        monthly: product.quotaMonthly,
+      },
+    });
+  }, []);
+
+  const confirmSelect = useCallback(async () => {
+    if (!pending) return;
+    const variantId = pending.product.variantId ? Number(pending.product.variantId) : null;
+    if (variantId == null) {
+      // Sin variante usable → caer al detalle para resolver allí.
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${pending.product.slug}`;
+      return;
+    }
+    setConfirming(true);
+    try {
+      await selectEquipment(token, variantId);
+      // Éxito: lleva al detalle (que muestra la pantalla "¡Listo!") con el flag.
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${pending.product.slug}?selected=1`;
+    } catch (err) {
+      const reason = err instanceof OfferApiError ? err.reason : 'unknown';
+      const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
+      setPending(null);
+      setState({ kind: 'error', reason, message });
+    } finally {
+      setConfirming(false);
+    }
+  }, [pending, token]);
 
   if (state.kind === 'loading') {
     return <OfertaSkeleton logoUrl={BRAND_LOGO_URL} />;
@@ -122,6 +155,14 @@ export function MiOfertaClient({ token }: { token: string }) {
       ) : (
         <CatalogoOfertaTab token={token} offer={offer} onSelect={handleSelect} />
       )}
+
+      <ConfirmarEleccionModal
+        isOpen={pending !== null}
+        equipo={pending?.equipo ?? null}
+        loading={confirming}
+        onConfirm={confirmSelect}
+        onClose={() => (confirming ? undefined : setPending(null))}
+      />
     </div>
   );
 }
@@ -141,10 +182,10 @@ function TabChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+      className={`cursor-pointer rounded-xl border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
         active
           ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary)] shadow-md -translate-y-0.5'
-          : 'border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+          : 'border-transparent bg-gray-100 text-gray-500 hover:-translate-y-0.5 hover:bg-gray-200 hover:text-gray-700 hover:shadow-sm'
       }`}
     >
       {children}

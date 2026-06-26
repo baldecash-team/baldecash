@@ -14,6 +14,7 @@ import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import { Navbar } from '../../../../components/hero/Navbar';
 import { Illustration } from '../../../../[landing]/solicitar/confirmacion/components/received/illustration/Illustration';
+import { ConfirmarEleccionModal } from '../../components/ConfirmarEleccionModal';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -40,6 +41,7 @@ type State =
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [selecting, setSelecting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -76,25 +78,32 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return v != null ? Number(v) : null;
   }, [state]);
 
-  async function handleElegir() {
-    if (variantId == null || state.kind !== 'ready') return;
-    setSelecting(true);
+  // Resumen del equipo (para el modal de confirmación y la pantalla de éxito).
+  const chosen = useMemo<ChosenSummary | null>(() => {
+    if (state.kind !== 'ready') return null;
     const p = state.data.product;
-    // Cuota "desde" = la más baja entre todas las opciones (plazo más largo / inicial mín).
     const allQuotas = (state.data.paymentPlans ?? [])
       .flatMap((plan) => (plan.options ?? []).map((o) => o.monthlyQuota))
       .filter((q): q is number => typeof q === 'number' && q > 0);
-    const chosen: ChosenSummary = {
+    return {
       name: p?.displayName || p?.name || 'Tu equipo',
       brand: p?.brand,
       imageUrl: p?.images?.[0]?.url,
       monthly: allQuotas.length ? Math.min(...allQuotas) : undefined,
     };
+  }, [state]);
+
+  // Confirmación real (llamada desde el modal).
+  async function confirmarEleccion() {
+    if (variantId == null || !chosen) return;
+    setSelecting(true);
     try {
       await selectEquipment(token, variantId);
+      setConfirmOpen(false);
       setState({ kind: 'selected', chosen });
     } catch (err) {
       const msg = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
+      setConfirmOpen(false);
       setState({ kind: 'error', message: msg });
     } finally {
       setSelecting(false);
@@ -151,10 +160,18 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           defaultInitialPercent={data.defaultInitial}
           paymentFrequencies={data.paymentFrequencies}
           isAvailable={data.isAvailable && variantId != null}
-          onClickCTA={selecting ? undefined : handleElegir}
-          ctaText={selecting ? 'Registrando…' : 'Elegir este equipo'}
+          onClickCTA={() => setConfirmOpen(true)}
+          ctaText="Elegir este equipo"
         />
       </main>
+
+      <ConfirmarEleccionModal
+        isOpen={confirmOpen}
+        equipo={chosen}
+        loading={selecting}
+        onConfirm={confirmarEleccion}
+        onClose={() => (selecting ? undefined : setConfirmOpen(false))}
+      />
     </div>
   );
 }
