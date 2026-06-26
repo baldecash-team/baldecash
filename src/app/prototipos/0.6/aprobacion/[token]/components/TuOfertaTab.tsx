@@ -28,7 +28,7 @@ export function TuOfertaTab({
   const countdown = useCountdown(offer.expiresAt);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
+    <main className="w-full px-3 py-6 sm:px-4 lg:px-6">
       {/* Countdown */}
       {countdown && !countdown.expired ? (
         <div className="mb-5 flex items-center justify-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800">

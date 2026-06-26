@@ -88,21 +88,25 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Header con logo (como el home) — fixed, h-16 */}
-      <Navbar logoOnly logoUrl={BRAND_LOGO_URL} />
+      {/* Header con logo (como el home). El Navbar logoOnly es fixed h-16 y trae
+          su propio contenedor; lo dejamos full-width para alinear con el catálogo. */}
+      <Navbar logoOnly fullWidth logoUrl={BRAND_LOGO_URL} />
 
-      {/* Offset para el navbar fixed + tabs sticky justo debajo */}
+      {/* Offset para el navbar fixed + barra de tabs sticky justo debajo.
+          Mismo wrapper (w-full px-3 sm:px-4 lg:px-6) que filtros+cards → todo arranca igual. */}
       <div className="pt-16" />
-      <nav className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl gap-1 px-4">
-          <TabButton active={tab === 'oferta'} onClick={() => setTab('oferta')}>
-            Tu oferta
-          </TabButton>
-          <TabButton active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
-            Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
-          </TabButton>
+      <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div className="w-full px-3 sm:px-4 lg:px-6">
+          <nav className="flex gap-2 py-2.5">
+            <TabChip active={tab === 'oferta'} onClick={() => setTab('oferta')}>
+              Tu oferta
+            </TabChip>
+            <TabChip active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
+              Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
+            </TabChip>
+          </nav>
         </div>
-      </nav>
+      </div>
 
       {tab === 'oferta' ? (
         <TuOfertaTab offer={offer} onVerCatalogo={() => setTab('catalogo')} onSelect={handleSelect} />
@@ -113,7 +117,8 @@ export function MiOfertaClient({ token }: { token: string }) {
   );
 }
 
-function TabButton({
+/** Tab estilo card/chip: el activo se eleva con sombra + borde de color de marca. */
+function TabChip({
   active,
   onClick,
   children,
@@ -126,10 +131,11 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+      aria-pressed={active}
+      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
         active
-          ? 'border-[var(--color-primary)] text-[var(--foreground)]'
-          : 'border-transparent text-gray-500 hover:text-gray-700'
+          ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary)] shadow-md -translate-y-0.5'
+          : 'border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
       }`}
     >
       {children}
