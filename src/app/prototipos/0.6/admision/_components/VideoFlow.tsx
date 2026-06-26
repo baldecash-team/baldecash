@@ -11,6 +11,7 @@ import type { VideoExample } from './ExampleModal';
 import { requestUploadUrl, confirmUpload, completeLink } from '../_lib/api/links';
 import { uploadFile } from '../_lib/upload';
 import { admissionEvents } from '../_lib/events';
+import { friendlyError } from '../_lib/errors';
 
 type FlowState = 'intro' | 'capture' | 'uploading' | 'completing' | 'confirmed';
 
@@ -51,7 +52,8 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
   const [state, setState] = useState<FlowState>('intro');
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  // Un solo error a la vez (cámara, formato o subida), con su ícono.
+  const [error, setError] = useState<{ msg: string; icon?: 'alert' | 'camera' } | null>(null);
   const [cameraGranted, setCameraGranted] = useState(false);
 
   // El número de videos lo marcan los document_type_codes; si el link no los trae,
@@ -77,7 +79,9 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
 
   async function handleCaptured(file: File) {
     const i = index;
-    const code = documentTypeCodes[i];
+    // El backend exige document_type_code; si el link no trae códigos, usamos uno
+    // por defecto por pregunta (evita el error "document_type_required").
+    const code = documentTypeCodes[i] ?? `video_negocio_${i + 1}`;
 
     setError(null);
     setProgress(0);
@@ -92,7 +96,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
       });
 
       if (!urlResult.ok) {
-        setError('No pudimos preparar la subida. Inténtalo de nuevo.');
+        setError({ msg: friendlyError(urlResult.error) });
         goStage('capture');
         return;
       }
@@ -104,7 +108,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
       const confirmResult = await confirmUpload(token, { file_key, document_type_code: code });
 
       if (!confirmResult.ok) {
-        setError('No pudimos confirmar el video. Inténtalo de nuevo.');
+        setError({ msg: friendlyError(confirmResult.error) });
         goStage('capture');
         return;
       }
@@ -119,7 +123,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
         goStage('completing');
         const completeResult = await completeLink(token);
         if (!completeResult.ok) {
-          setError('No pudimos completar la solicitud. Inténtalo de nuevo.');
+          setError({ msg: friendlyError(completeResult.error) });
           goStage('capture');
           return;
         }
@@ -128,7 +132,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
         onDone?.();
       }
     } catch {
-      setError('Ocurrió un error al subir el video. Inténtalo de nuevo.');
+      setError({ msg: 'Ocurrió un error al subir el video. Inténtalo de nuevo.' });
       goStage('capture');
     }
   }
@@ -155,12 +159,12 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
             index={index}
             total={total}
             onCaptured={handleCaptured}
-            onError={setError}
+            onError={(msg, opts) => setError(msg ? { msg, icon: opts?.icon } : null)}
             autoStart={cameraGranted}
             onCameraReady={() => setCameraGranted(true)}
           />
 
-          {error && <ErrorBanner message={error} />}
+          {error && <ErrorBanner message={error.msg} icon={error.icon} />}
 
           {/* Habla con un asesor → Blip (mejora #7) */}
           <AdvisorButton variant="inline" />

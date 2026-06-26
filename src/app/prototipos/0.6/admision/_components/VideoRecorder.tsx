@@ -5,7 +5,6 @@ import { isAllowedVideoType, baseContentType } from '../_lib/videoTypes';
 import { cameraErrorMessage } from '../_lib/cameraError';
 import { useRecorder } from '../_hooks/useRecorder';
 import { ExampleModal, type VideoExample } from './ExampleModal';
-import { ErrorBanner } from './ErrorBanner';
 
 function formatSeconds(s: number): string {
   const mm = String(Math.floor(s / 60)).padStart(2, '0');
@@ -18,7 +17,8 @@ export interface VideoRecorderProps {
   index: number;
   total: number;
   onCaptured: (file: File) => void;
-  onError?: (msg: string) => void;
+  /** Notifica un error (o lo limpia con null) al contenedor; un solo error a la vez. */
+  onError?: (msg: string | null, opts?: { icon?: 'alert' | 'camera' }) => void;
   /** Ejemplo guía para esta pregunta (mejora #8). */
   example?: VideoExample;
   /** Si el permiso de cámara ya se concedió, arranca directo en la vista de grabación. */
@@ -60,19 +60,18 @@ export function VideoRecorder({
   const [showFileInput, setShowFileInput] = useState(!canRecord);
   const [fileChosen, setFileChosen] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
-  const [cameraMsg, setCameraMsg] = useState<string | null>(null);
   const [showExample, setShowExample] = useState(false);
 
   const inputId = `video-file-${index}`;
 
   async function handleRequestCamera() {
     setPermissionDenied(false);
-    setCameraMsg(null);
+    onError?.(null); // limpia cualquier error previo (un solo error a la vez)
     try {
       await requestCamera();
       onCameraReady?.();
     } catch (err) {
-      setCameraMsg(cameraErrorMessage(err));
+      onError?.(cameraErrorMessage(err), { icon: 'camera' });
       setPermissionDenied(true);
       setShowFileInput(true);
     }
@@ -299,7 +298,6 @@ export function VideoRecorder({
       {/* ── file upload path ──────────────────────────────────────────────── */}
       {(!canRecord || showFileInput) && (
         <>
-          {cameraMsg && <ErrorBanner message={cameraMsg} icon="camera" />}
 
           <label
             htmlFor={inputId}
@@ -339,7 +337,7 @@ export function VideoRecorder({
               onClick={() => {
                 const retry = permissionDenied;
                 setPermissionDenied(false);
-                setCameraMsg(null);
+                onError?.(null);
                 setShowFileInput(false);
                 // Si venía de un bloqueo/denegación, vuelve a pedir permiso al navegador directo.
                 if (retry) void handleRequestCamera();
