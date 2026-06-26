@@ -52,9 +52,24 @@ export function OtpField({ length = 6, value, onChange }: OtpFieldProps) {
     inputRefs.current[lastFilled]?.focus();
   }
 
+  /** Elimina el dígito en la posición `i` (compacta hacia la izquierda). */
+  function clearAt(i: number) {
+    if (i >= value.length) return;
+    onChange(value.slice(0, i) + value.slice(i + 1));
+  }
+
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Backspace' && !digit(i) && i > 0) {
-      inputRefs.current[i - 1]?.focus();
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (digit(i)) {
+        clearAt(i); // borra el dígito de esta casilla
+      } else if (i > 0) {
+        clearAt(i - 1); // casilla vacía: borra el anterior y retrocede
+        inputRefs.current[i - 1]?.focus();
+      }
+    } else if (e.key === 'Delete') {
+      e.preventDefault();
+      if (digit(i)) clearAt(i);
     }
   }
 

@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { isAllowedVideoType, baseContentType } from '../_lib/videoTypes';
+import { cameraErrorMessage } from '../_lib/cameraError';
 import { useRecorder } from '../_hooks/useRecorder';
-import { ExampleModal } from './ExampleModal';
+import { ExampleModal, type VideoExample } from './ExampleModal';
+import { ErrorBanner } from './ErrorBanner';
 
 function formatSeconds(s: number): string {
   const mm = String(Math.floor(s / 60)).padStart(2, '0');
@@ -17,8 +19,8 @@ export interface VideoRecorderProps {
   total: number;
   onCaptured: (file: File) => void;
   onError?: (msg: string) => void;
-  /** Texto guía del ejemplo para esta pregunta (mejora #8). */
-  exampleText?: string;
+  /** Ejemplo guía para esta pregunta (mejora #8). */
+  example?: VideoExample;
   /** Si el permiso de cámara ya se concedió, arranca directo en la vista de grabación. */
   autoStart?: boolean;
   /** Se llama cuando la cámara queda lista (permiso concedido). */
@@ -31,7 +33,7 @@ export function VideoRecorder({
   total,
   onCaptured,
   onError,
-  exampleText,
+  example,
   autoStart,
   onCameraReady,
 }: VideoRecorderProps) {
@@ -58,16 +60,19 @@ export function VideoRecorder({
   const [showFileInput, setShowFileInput] = useState(!canRecord);
   const [fileChosen, setFileChosen] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [cameraMsg, setCameraMsg] = useState<string | null>(null);
   const [showExample, setShowExample] = useState(false);
 
   const inputId = `video-file-${index}`;
 
   async function handleRequestCamera() {
     setPermissionDenied(false);
+    setCameraMsg(null);
     try {
       await requestCamera();
       onCameraReady?.();
-    } catch {
+    } catch (err) {
+      setCameraMsg(cameraErrorMessage(err));
       setPermissionDenied(true);
       setShowFileInput(true);
     }
@@ -140,25 +145,27 @@ export function VideoRecorder({
       </div>
 
       {/* Ver ejemplo (mejora #8) */}
-      {exampleText && (
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 self-start text-[#4654CD] text-sm font-medium hover:opacity-80 transition-opacity"
-          onClick={() => setShowExample(true)}
-        >
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-          Ver ejemplo
-        </button>
+      {example && (
+        <>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 self-start text-[#4654CD] text-sm font-medium hover:opacity-80 transition-opacity"
+            onClick={() => setShowExample(true)}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            Ver ejemplo
+          </button>
+          <ExampleModal
+            open={showExample}
+            onClose={() => setShowExample(false)}
+            title={`Ejemplo · Pregunta ${index + 1}`}
+            example={example}
+          />
+        </>
       )}
-      <ExampleModal
-        open={showExample}
-        onClose={() => setShowExample(false)}
-        title={`Ejemplo · Pregunta ${index + 1}`}
-        text={exampleText ?? ''}
-      />
 
       {/* ── camera recording path ─────────────────────────────────────────── */}
       {canRecord && !showFileInput && (
@@ -292,11 +299,7 @@ export function VideoRecorder({
       {/* ── file upload path ──────────────────────────────────────────────── */}
       {(!canRecord || showFileInput) && (
         <>
-          {permissionDenied && (
-            <p className="text-sm text-[#ef4444]">
-              No se pudo acceder a la cámara. Por favor sube un archivo de video.
-            </p>
-          )}
+          {cameraMsg && <ErrorBanner message={cameraMsg} />}
 
           <label
             htmlFor={inputId}
@@ -329,17 +332,24 @@ export function VideoRecorder({
             </div>
           )}
 
-          {canRecord && showFileInput && !permissionDenied && (
+          {canRecord && showFileInput && (
             <button
               type="button"
               className="inline-flex items-center justify-center gap-2 w-full border border-[#e5e7eb] text-[#6b7280] font-medium py-2.5 rounded-xl hover:border-[#4654CD] hover:text-[#4654CD] transition-colors text-sm"
-              onClick={() => setShowFileInput(false)}
+              onClick={() => {
+                const retry = permissionDenied;
+                setPermissionDenied(false);
+                setCameraMsg(null);
+                setShowFileInput(false);
+                // Si venía de un bloqueo/denegación, vuelve a pedir permiso al navegador directo.
+                if (retry) void handleRequestCamera();
+              }}
             >
               <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 7l-7 5 7 5V7z" />
                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
               </svg>
-              Grabar con la cámara
+              {permissionDenied ? 'Reintentar con la cámara' : 'Grabar con la cámara'}
             </button>
           )}
         </>

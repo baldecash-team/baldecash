@@ -38,4 +38,35 @@ describe('admision/OtpField', () => {
     fireEvent.change(inputs[0], { target: { value: 'a' } });
     expect(inputs[0].value).toBe('');
   });
+
+  it('clears the last digit with Backspace', () => {
+    render(<Harness />);
+    const inputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+    fireEvent.paste(inputs[0], { clipboardData: { getData: () => '123456' } });
+    expect(inputs.map((i) => i.value).join('')).toBe('123456');
+
+    inputs[5].focus();
+    fireEvent.keyDown(inputs[5], { key: 'Backspace' });
+    expect(inputs.map((i) => i.value).join('')).toBe('12345');
+  });
+
+  it('clears the current digit with Delete', () => {
+    render(<Harness />);
+    const inputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+    fireEvent.paste(inputs[0], { clipboardData: { getData: () => '123456' } });
+
+    inputs[5].focus();
+    fireEvent.keyDown(inputs[5], { key: 'Delete' });
+    expect(inputs[5].value).toBe('');
+  });
+
+  it('Backspace on an empty box clears the previous digit and moves focus back', () => {
+    render(<Harness />);
+    const inputs = screen.getAllByRole('textbox') as HTMLInputElement[];
+    fireEvent.change(inputs[0], { target: { value: '1' } });
+    // focus moved to box 1 (empty)
+    fireEvent.keyDown(inputs[1], { key: 'Backspace' });
+    expect(inputs[0].value).toBe('');
+    expect(document.activeElement).toBe(inputs[0]);
+  });
 });

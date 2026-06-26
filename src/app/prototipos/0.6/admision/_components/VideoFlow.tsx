@@ -6,6 +6,8 @@ import { VideoConfirm } from './VideoConfirm';
 import { VideoRecorder } from './VideoRecorder';
 import { AdvisorButton } from './AdvisorButton';
 import { PhoneFrame } from './PhoneFrame';
+import { ErrorBanner } from './ErrorBanner';
+import type { VideoExample } from './ExampleModal';
 import { requestUploadUrl, confirmUpload, completeLink } from '../_lib/api/links';
 import { uploadFile } from '../_lib/upload';
 import { admissionEvents } from '../_lib/events';
@@ -26,11 +28,23 @@ const BUSINESS_QUESTIONS = [
   'Si puedes, muéstranos un poco tu espacio de trabajo.',
 ];
 
-/** Texto guía por pregunta (mejora #8). Editable. */
-const QUESTION_EXAMPLES = [
-  'Cuenta de forma natural: "Tengo una bodega desde hace 3 años. Vendo abarrotes y productos de limpieza en mi barrio." Menciona el tipo de negocio y hace cuánto lo tienes.',
-  'Da un estimado honesto: "En un mes normal vendo entre S/4,000 y S/5,000. En campañas como Navidad sube un poco." No necesitas cifras exactas, solo un rango realista.',
-  'Muestra tu espacio con la cámara: el mostrador, los productos, la zona de atención. No tiene que ser perfecto, solo que se vea tu día a día.',
+/** Ejemplo guía por pregunta (mejora #8). Editable. */
+const QUESTION_EXAMPLES: VideoExample[] = [
+  {
+    intro: 'Cuéntalo de forma natural: menciona qué tipo de negocio tienes y desde cuándo.',
+    quote: 'Tengo una bodega desde hace 3 años. Vendo abarrotes y productos de limpieza en mi barrio.',
+    tip: 'No necesitas un guion: háblanos como si le contaras a un amigo.',
+  },
+  {
+    intro: 'Da un estimado honesto de tus ventas en un mes normal. No hace falta una cifra exacta, basta un rango.',
+    quote: 'En un mes normal vendo entre S/4,000 y S/5,000. En campañas como Navidad sube un poco.',
+    tip: 'Si tus ventas cambian por temporada, menciónalo.',
+  },
+  {
+    intro: 'Muestra tu espacio con la cámara: el mostrador, los productos, la zona de atención.',
+    quote: 'Aquí atiendo a mis clientes; este es mi mostrador y allá guardo el stock.',
+    tip: 'No tiene que verse perfecto, solo que se vea tu día a día.',
+  },
 ];
 
 export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: VideoFlowProps) {
@@ -135,7 +149,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
 
           <VideoRecorder
             question={BUSINESS_QUESTIONS[index] ?? `Cuéntanos (video ${index + 1})`}
-            exampleText={QUESTION_EXAMPLES[index]}
+            example={QUESTION_EXAMPLES[index]}
             index={index}
             total={total}
             onCaptured={handleCaptured}
@@ -144,7 +158,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
             onCameraReady={() => setCameraGranted(true)}
           />
 
-          {error && <p className="text-sm text-[#ef4444]">{error}</p>}
+          {error && <ErrorBanner message={error} />}
 
           {/* Habla con un asesor → Blip (mejora #7) */}
           <AdvisorButton variant="inline" />

@@ -101,7 +101,21 @@ export function useRecorder(): UseRecorderReturn {
   const requestCamera = useCallback(async () => {
     setRequesting(true);
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      let s: MediaStream;
+      try {
+        // Ideal: cámara + micrófono.
+        s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (e) {
+        const name = (e as { name?: string } | null)?.name ?? '';
+        // Si falla por un problema del micrófono (no encontrado / en uso / restricción),
+        // reintenta solo con cámara para no bloquear al usuario. Los bloqueos de permiso
+        // (NotAllowedError) o de seguridad se propagan tal cual.
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'NotReadableError' || name === 'TrackStartError' || name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+          s = await navigator.mediaDevices.getUserMedia({ video: true });
+        } else {
+          throw e;
+        }
+      }
       setStreamState(s);
       streamRef.current = s;
     } finally {

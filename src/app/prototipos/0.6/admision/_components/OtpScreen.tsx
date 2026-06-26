@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { OtpField } from './OtpField';
 import { PhoneFrame } from './PhoneFrame';
+import { ErrorBanner } from './ErrorBanner';
 import { sendEmailByToken, verifyEmailByToken, emailStatusByToken } from '../_lib/api/links';
 import { sendEmailVerification, verifyEmailCode, getEmailStatus } from '../_lib/api/verification';
 import { friendlyError, attemptsCopy } from '../_lib/errors';
@@ -249,7 +250,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
             </>
           ) : (
             <>
-              <p className="text-[#ef4444] text-sm">{error}</p>
+              <ErrorBanner message={error} className="w-full" />
               <button
                 className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
                 onClick={autoSendByToken}
@@ -287,7 +288,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
             />
           </div>
 
-          {error && <p className="text-[#ef4444] text-sm">{error}</p>}
+          {error && <ErrorBanner message={error} className="w-full" />}
 
           <button
             className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
@@ -311,8 +312,8 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           <OtpField value={code} onChange={setCode} />
 
           {error && (
-            <div className="flex flex-col gap-1">
-              <p className="text-[#ef4444] text-sm">{error}</p>
+            <div className="w-full flex flex-col gap-1.5">
+              <ErrorBanner message={error} />
               {attempts > 0 && <p className="text-[#6b7280] text-xs">{attemptsCopy(attempts)}</p>}
             </div>
           )}
