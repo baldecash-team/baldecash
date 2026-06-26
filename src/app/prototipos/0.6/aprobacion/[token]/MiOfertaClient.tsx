@@ -19,9 +19,12 @@ import {
   type OfferView,
   type OfferErrorReason,
 } from '../../services/offerApi';
+import { Navbar } from '../../components/hero/Navbar';
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { CenteredMessage } from './components/CenteredMessage';
+
+const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
 type TabKey = 'oferta' | 'catalogo';
 
@@ -85,24 +88,21 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Header sticky + tabs */}
-      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
-          <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
-            BaldeCash
-          </span>
-          <span className="text-sm text-gray-400">·</span>
-          <span className="text-sm font-medium text-gray-700">Mi oferta</span>
-        </div>
-        <nav className="mx-auto flex max-w-7xl gap-1 px-4">
+      {/* Header con logo (como el home) — fixed, h-16 */}
+      <Navbar logoOnly logoUrl={BRAND_LOGO_URL} />
+
+      {/* Offset para el navbar fixed + tabs sticky justo debajo */}
+      <div className="pt-16" />
+      <nav className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl gap-1 px-4">
           <TabButton active={tab === 'oferta'} onClick={() => setTab('oferta')}>
             Tu oferta
           </TabButton>
           <TabButton active={tab === 'catalogo'} onClick={() => setTab('catalogo')}>
             Catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
           </TabButton>
-        </nav>
-      </header>
+        </div>
+      </nav>
 
       {tab === 'oferta' ? (
         <TuOfertaTab offer={offer} onVerCatalogo={() => setTab('catalogo')} onSelect={handleSelect} />

@@ -81,6 +81,7 @@ export function TuOfertaTab({
               <ProductCard
                 product={offer.recommended}
                 hideColors
+                hideFavorite
                 ctaLabel="Elegir este equipo"
                 onCtaClick={() => onSelect(offer.recommended as CatalogProduct)}
               />

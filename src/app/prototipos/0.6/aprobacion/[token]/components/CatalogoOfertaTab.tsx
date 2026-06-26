@@ -122,6 +122,7 @@ export function CatalogoOfertaTab({
             key={product.id}
             product={product}
             hideColors
+            hideFavorite
             ctaLabel="Elegir este equipo"
             onCtaClick={() => onSelect(product)}
             getDetailHref={(slug) =>

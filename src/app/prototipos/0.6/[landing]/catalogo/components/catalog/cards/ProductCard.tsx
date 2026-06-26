@@ -110,6 +110,8 @@ interface ProductCardProps {
    */
   ctaLabel?: string;
   onCtaClick?: () => void;
+  /** Oculta el botón de favoritos (no aplica en el flujo de oferta). */
+  hideFavorite?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -129,6 +131,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isInCartCheck,
   ctaLabel,
   onCtaClick,
+  hideFavorite = false,
   isFavoriteCheck,
   favoriteButtonId,
   compareButtonId,
@@ -419,22 +422,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Action buttons - top right (p-3 = 44px touch target WCAG 2.5.5) */}
             <div className="absolute top-3 right-3 flex flex-col gap-1.5">
               {/* Favorite */}
-              <button
-                id={favoriteButtonId}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite?.(createWishlistItem());
-                }}
-                className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
-              >
-                <Heart
-                  className={`w-5 h-5 transition-colors ${
-                    resolvedIsFavorite
-                      ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
-                  }`}
-                />
-              </button>
+              {!hideFavorite && (
+                <button
+                  id={favoriteButtonId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite?.(createWishlistItem());
+                  }}
+                  className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
+                >
+                  <Heart
+                    className={`w-5 h-5 transition-colors ${
+                      resolvedIsFavorite
+                        ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
+                        : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
+                    }`}
+                  />
+                </button>
+              )}
               {/* Compare */}
               {onCompare && (
                 <button
