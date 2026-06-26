@@ -13,8 +13,9 @@ interface PhoneFrameProps {
 export function PhoneFrame({ title, children }: PhoneFrameProps) {
   return (
     <div className="flex flex-col w-full max-w-sm mx-auto rounded-2xl shadow-xl overflow-hidden border border-[#e5e7eb] bg-white">
-      {/* Cabecera de marca con el logo SVG monocromático en azul de marca (mejora #9). */}
-      <div className="flex justify-center px-6 py-4 border-b border-[#ECECFB]">
+      {/* Cabecera de marca con el logo SVG original (azul + celeste). Banda tintada
+          para que los tonos claros no se laven contra el blanco de la card (mejora #9). */}
+      <div className="flex justify-center px-6 py-4 bg-[#F4F5FB] border-b border-[#ECECFB]">
         <BaldeCashLogo className="h-8 w-auto" />
       </div>
 
