@@ -10,7 +10,6 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
@@ -25,7 +24,7 @@ import { Navbar } from '../../components/hero/Navbar';
 import { NavbarSearch } from '../../[landing]/catalogo/components/catalog/NavbarActions';
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
-import { CenteredMessage } from './components/CenteredMessage';
+import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 
@@ -38,13 +37,16 @@ type PageState =
   | { kind: 'ready'; offer: OfferView }
   | { kind: 'error'; reason: OfferErrorReason; message: string };
 
-const ERROR_COPY: Record<string, { title: string; body: string }> = {
-  expired: { title: 'Esta oferta venció', body: 'El enlace de tu oferta ya no está disponible. Escríbenos para ayudarte.' },
-  consumed: { title: 'Ya elegiste tu equipo', body: 'Esta oferta ya fue utilizada. Si necesitas ayuda, contáctanos.' },
-  revoked: { title: 'Oferta no disponible', body: 'Este enlace fue desactivado. Escríbenos para más información.' },
-  invalid: { title: 'Enlace no válido', body: 'No pudimos encontrar tu oferta. Verifica el enlace que recibiste.' },
-  default: { title: 'No pudimos cargar tu oferta', body: 'Ocurrió un problema. Intenta nuevamente más tarde.' },
+const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: string }> = {
+  expired: { icon: 'clock', title: 'Esta oferta venció', body: 'El tiempo para elegir tu equipo ya terminó. Escríbenos y con gusto te ayudamos a reactivarla.' },
+  consumed: { icon: 'alert', title: 'Ya elegiste tu equipo', body: 'Esta oferta ya fue utilizada. Si necesitas ayuda, contáctanos.' },
+  revoked: { icon: 'ban', title: 'Oferta no disponible', body: 'Este enlace fue desactivado. Escríbenos para más información.' },
+  invalid: { icon: 'search', title: 'Enlace no válido', body: 'No pudimos encontrar tu oferta. Verifica el enlace que recibiste o escríbenos.' },
+  default: { icon: 'alert', title: 'No pudimos cargar tu oferta', body: 'Ocurrió un problema. Intenta nuevamente más tarde.' },
 };
+
+// WhatsApp de contacto (mismo enlace que usa el flujo regular en ContactInfo).
+const WHATSAPP_URL = 'https://wa.link/osgxjf';
 
 function readInitialTab(): TabKey {
   if (typeof window === 'undefined') return 'oferta';
@@ -69,7 +71,24 @@ export function MiOfertaClient({ token }: { token: string }) {
   useEffect(() => {
     let active = true;
     getOffer(token)
-      .then((offer) => active && setState({ kind: 'ready', offer }))
+      .then((offer) => {
+        if (!active) return;
+        // Link ya consumido con selección → mostrar directo la confirmación.
+        if (offer.alreadySelected && offer.selectedEquipment) {
+          const eq = offer.selectedEquipment;
+          setSelected({
+            name: eq.name,
+            brand: eq.brand ?? undefined,
+            imageUrl: eq.imageUrl ?? undefined,
+            monthly: eq.monthlyPayment ?? undefined,
+            termMonths: eq.termMonths ?? undefined,
+            offerCode: offer.applicationCode ?? offer.offerCode,
+            userName: offer.clientName ?? undefined,
+          });
+          return;
+        }
+        setState({ kind: 'ready', offer });
+      })
       .catch((err) => {
         if (!active) return;
         const reason = err instanceof OfferApiError ? err.reason : 'unknown';
@@ -151,10 +170,11 @@ export function MiOfertaClient({ token }: { token: string }) {
   if (state.kind === 'error') {
     const copy = ERROR_COPY[state.reason] ?? ERROR_COPY.default;
     return (
-      <CenteredMessage
-        icon={<AlertCircle className="h-8 w-8 text-amber-500" />}
+      <OfertaEstadoMensaje
+        icon={copy.icon}
         title={copy.title}
-        body={copy.body}
+        description={copy.body}
+        whatsappUrl={WHATSAPP_URL}
       />
     );
   }

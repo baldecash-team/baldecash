@@ -67,5 +67,6 @@ export function SeleccionConfirmada({
     notificationChannels: ['whatsapp', 'email'],
   };
 
-  return <ReceivedScreen data={data} onGoToHome={() => (window.location.href = backHref)} />;
+  // En la oferta no mostramos "Volver al inicio" (el estudiante no tiene a dónde volver).
+  return <ReceivedScreen data={data} showGoHome={false} />;
 }

@@ -48,6 +48,16 @@ export interface RequestedProduct {
   image_url: string | null;
 }
 
+export interface SelectedEquipment {
+  variantId: number;
+  name: string;
+  slug: string | null;
+  imageUrl: string | null;
+  brand: string | null;
+  monthlyPayment: number | null;
+  termMonths: number | null;
+}
+
 export interface OfferView {
   offerCode: string;
   maxMonthlyQuota: number;
@@ -56,6 +66,12 @@ export interface OfferView {
   requestedProduct: RequestedProduct | null;
   recommended: CatalogProduct | null;
   alternativesCount: number;
+  /** Si el link ya fue consumido: el equipo que el estudiante eligió. */
+  alreadySelected?: boolean;
+  selectedEquipment?: SelectedEquipment | null;
+  /** Código de la solicitud y nombre del estudiante (de la BD). */
+  applicationCode?: string | null;
+  clientName?: string | null;
 }
 
 export interface OfferCatalog {
@@ -96,6 +112,35 @@ export async function getOffer(token: string): Promise<OfferView> {
   });
   if (!res.ok) throw await parseError(res);
   const data = await res.json();
+
+  // Link ya consumido con selección → el backend devuelve already_selected.
+  if (data.already_selected) {
+    const eq = data.selected_equipment ?? null;
+    return {
+      offerCode: data.offer_code,
+      maxMonthlyQuota: data.max_monthly_quota ?? 0,
+      expiresAt: null,
+      landingSlug: data.landing_slug ?? null,
+      requestedProduct: null,
+      recommended: null,
+      alternativesCount: 0,
+      alreadySelected: true,
+      applicationCode: data.application_code ?? null,
+      clientName: data.client_name ?? null,
+      selectedEquipment: eq
+        ? {
+            variantId: eq.variant_id,
+            name: eq.name,
+            slug: eq.slug ?? null,
+            imageUrl: eq.image_url ?? null,
+            brand: eq.brand ?? null,
+            monthlyPayment: eq.monthly_payment ?? null,
+            termMonths: eq.term_months ?? null,
+          }
+        : null,
+    };
+  }
+
   return {
     offerCode: data.offer_code,
     maxMonthlyQuota: data.max_monthly_quota,
