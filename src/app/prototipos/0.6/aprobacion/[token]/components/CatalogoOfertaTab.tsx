@@ -160,7 +160,7 @@ export function CatalogoOfertaTab({
           <>
             {visibleItems.map((product) => (
               <ProductCard
-                key={product.id}
+                key={product.landingProductId ?? product.id}
                 product={product}
                 hideColors
                 hideFavorite
