@@ -2,7 +2,7 @@
  * Offer API Service - BaldeCash v0.6 (Caso 4 · BAL-1785)
  *
  * Cliente de los endpoints públicos de la oferta condicionada a capacidad de
- * pago. El estudiante abre /aprobacion/{token} y esta capa consume:
+ * pago. El estudiante abre /oferta/{token} y esta capa consume:
  *   GET  /public/offer/{token}          → "Tu oferta" (recomendado + alternativas)
  *   GET  /public/offer/{token}/catalog  → catálogo filtrado EN VIVO por su cuota
  *   POST /public/offer/{token}/select   → registra el equipo elegido

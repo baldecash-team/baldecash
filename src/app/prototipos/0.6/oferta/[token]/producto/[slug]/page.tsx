@@ -1,6 +1,6 @@
 /**
  * Detalle de producto en contexto de OFERTA (Caso 4 · BAL-1785).
- * Ruta: /aprobacion/{token}/producto/{slug}
+ * Ruta: /oferta/{token}/producto/{slug}
  *
  * Reutiliza el componente ProductDetail real, pero el CTA es "Elegir este
  * equipo" (registra la selección vía /select) — NUNCA navega a /solicitar.

@@ -40,7 +40,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
 
   const goToCatalog = useCallback(
     (q: string) => {
-      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}`;
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
       const qs = q.trim() ? `?tab=catalogo&q=${encodeURIComponent(q.trim())}` : '?tab=catalogo';
       window.location.href = `${base}${qs}`;
     },
@@ -73,7 +73,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   }, [token, slug]);
 
   const backToOffer = useMemo(
-    () => `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}`,
+    () => `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`,
     [token],
   );
 

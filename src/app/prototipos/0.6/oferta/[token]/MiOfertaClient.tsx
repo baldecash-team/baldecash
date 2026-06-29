@@ -119,7 +119,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     const variantId = pending.product.variantId ? Number(pending.product.variantId) : null;
     if (variantId == null) {
       // Sin variante usable → caer al detalle para resolver allí.
-      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${pending.product.slug}`;
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${pending.product.slug}`;
       return;
     }
     setConfirming(true);
@@ -154,7 +154,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     return (
       <SeleccionConfirmada
         chosen={selected}
-        backHref={`${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}`}
+        backHref={`${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`}
       />
     );
   }

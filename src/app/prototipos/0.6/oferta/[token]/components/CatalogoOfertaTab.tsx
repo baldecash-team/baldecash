@@ -167,7 +167,7 @@ export function CatalogoOfertaTab({
                 ctaLabel="Elegir"
                 onCtaClick={() => onSelect(product)}
                 getDetailHref={(slug) =>
-                  `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/aprobacion/${token}/producto/${slug || product.slug}`
+                  `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug || product.slug}`
                 }
               />
             ))}

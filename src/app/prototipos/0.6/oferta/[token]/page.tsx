@@ -1,8 +1,8 @@
 /**
  * Página "Mi Oferta" (Mockup 4 · Caso 4 · BAL-1785) — Server Component.
  *
- * Ruta pública por token de secure-link: /aprobacion/{token}.
- * `aprobacion` es un segmento ESTÁTICO → tiene prioridad sobre el [landing]
+ * Ruta pública por token de secure-link: /oferta/{token}.
+ * `oferta` es un segmento ESTÁTICO → tiene prioridad sobre el [landing]
  * dinámico, así que no colisiona con los slugs de landings.
  *
  * Renderiza el cliente; los datos se cargan client-side por token (no-store).
