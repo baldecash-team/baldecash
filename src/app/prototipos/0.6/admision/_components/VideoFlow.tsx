@@ -8,6 +8,7 @@ import { AdvisorButton } from './AdvisorButton';
 import { PhoneFrame } from './PhoneFrame';
 import { ErrorBanner } from './ErrorBanner';
 import type { VideoExample } from './ExampleModal';
+import type { VideoQuestion } from '../_lib/api/types';
 import { requestUploadUrl, confirmUpload, completeLink } from '../_lib/api/links';
 import { uploadFile } from '../_lib/upload';
 import { admissionEvents } from '../_lib/events';
@@ -18,6 +19,8 @@ type FlowState = 'intro' | 'capture' | 'uploading' | 'completing' | 'confirmed';
 interface VideoFlowProps {
   token: string;
   documentTypeCodes: string[];
+  /** Preguntas personalizadas provenientes del LinkContext (snapshot del banco). */
+  questions?: VideoQuestion[];
   /** Nombre del solicitante (mejora #6). */
   applicantName?: string;
   onDone?: () => void;
@@ -48,7 +51,34 @@ const QUESTION_EXAMPLES: VideoExample[] = [
   },
 ];
 
-export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: VideoFlowProps) {
+/**
+ * Resuelve la pregunta y el ejemplo para el índice dado.
+ * Prioridad: questions[index] → documentTypeCodes + pregunta hardcodeada.
+ */
+export function resolveQuestion(
+  questions: VideoQuestion[],
+  documentTypeCodes: string[],
+  index: number,
+): { code: string; text: string; example?: VideoExample } {
+  const q = questions[index];
+  if (q) {
+    return {
+      code: q.code,
+      text: q.description,
+      example: q.example_video_url
+        ? { intro: 'Mira este ejemplo:', videoUrl: q.example_video_url }
+        : undefined,
+    };
+  }
+  const code = documentTypeCodes[index] ?? `video_negocio_${index + 1}`;
+  return {
+    code,
+    text: BUSINESS_QUESTIONS[index] ?? `Cuéntanos (video ${index + 1})`,
+    example: QUESTION_EXAMPLES[index],
+  };
+}
+
+export function VideoFlow({ token, documentTypeCodes, questions = [], applicantName, onDone }: VideoFlowProps) {
   const [state, setState] = useState<FlowState>('intro');
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -56,9 +86,9 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
   const [error, setError] = useState<{ msg: string; icon?: 'alert' | 'camera' } | null>(null);
   const [cameraGranted, setCameraGranted] = useState(false);
 
-  // El número de videos lo marcan los document_type_codes; si el link no los trae,
-  // se cae a la cantidad de preguntas de negocio (evita "PREGUNTA 1 DE 0").
-  const total = documentTypeCodes.length > 0 ? documentTypeCodes.length : BUSINESS_QUESTIONS.length;
+  // El número de videos lo marcan questions (si las hay), luego document_type_codes,
+  // y como último recurso las preguntas de negocio hardcodeadas (evita "PREGUNTA 1 DE 0").
+  const total = questions.length || documentTypeCodes.length || BUSINESS_QUESTIONS.length;
   const events = useMemo(() => admissionEvents(token), [token]);
 
   // ── seguimiento de etapas (mejora #10) ──────────────────────────────────────
@@ -79,9 +109,7 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
 
   async function handleCaptured(file: File) {
     const i = index;
-    // El backend exige document_type_code; si el link no trae códigos, usamos uno
-    // por defecto por pregunta (evita el error "document_type_required").
-    const code = documentTypeCodes[i] ?? `video_negocio_${i + 1}`;
+    const code = resolveQuestion(questions, documentTypeCodes, i).code;
 
     setError(null);
     setProgress(0);
@@ -153,16 +181,21 @@ export function VideoFlow({ token, documentTypeCodes, applicantName, onDone }: V
             </p>
           )}
 
-          <VideoRecorder
-            question={BUSINESS_QUESTIONS[index] ?? `Cuéntanos (video ${index + 1})`}
-            example={QUESTION_EXAMPLES[index]}
-            index={index}
-            total={total}
-            onCaptured={handleCaptured}
-            onError={(msg, opts) => setError(msg ? { msg, icon: opts?.icon } : null)}
-            autoStart={cameraGranted}
-            onCameraReady={() => setCameraGranted(true)}
-          />
+          {(() => {
+            const { text: questionText, example } = resolveQuestion(questions, documentTypeCodes, index);
+            return (
+              <VideoRecorder
+                question={questionText}
+                example={example}
+                index={index}
+                total={total}
+                onCaptured={handleCaptured}
+                onError={(msg, opts) => setError(msg ? { msg, icon: opts?.icon } : null)}
+                autoStart={cameraGranted}
+                onCameraReady={() => setCameraGranted(true)}
+              />
+            );
+          })()}
 
           {error && <ErrorBanner message={error.msg} icon={error.icon} />}
 

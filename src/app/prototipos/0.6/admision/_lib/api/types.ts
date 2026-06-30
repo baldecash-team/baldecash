@@ -2,8 +2,15 @@ export type SendEmailResp = { status: 'sent' | 'already_verified'; email: string
 export type VerifyEmailResp = { verified: boolean; status: string; verified_at?: string; workflow_resumed?: boolean };
 export type EmailStatusResp = { verified: boolean; email: string; pending: boolean; expires_at?: string; attempts_used: number };
 
-/** Contexto del link. `applicant_name` (mejora #6) lo agrega el backend para personalizar la pantalla. */
-export type LinkContext = { document_type_codes?: string[]; applicant_name?: string } | null;
+/** Una pregunta del banco horneada en el context del link (snapshot). */
+export type VideoQuestion = { code: string; description: string; example_video_url?: string };
+
+/** Contexto del link. `applicant_name` lo agrega el backend para personalizar. */
+export type LinkContext = {
+  document_type_codes?: string[];
+  questions?: VideoQuestion[];
+  applicant_name?: string;
+} | null;
 
 export type LinkValidation =
   | { valid: true; purpose: string; application_id: number; expires_at?: string; context?: LinkContext }
