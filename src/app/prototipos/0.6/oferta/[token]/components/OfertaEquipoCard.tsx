@@ -100,6 +100,9 @@ export function OfertaEquipoCard({
             <p className="mt-0.5 text-xs text-gray-400">
               en {termMonths ?? 24} meses · sin inicial
             </p>
+            <p className="mt-2 text-xs font-medium text-emerald-600">
+              Elige este equipo y tu solicitud quedará aprobada.
+            </p>
           </div>
         ) : null}
         {atenuado ? (

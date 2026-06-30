@@ -8,7 +8,7 @@
  * Elegir es una acción importante: consume el link y registra la selección.
  */
 import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
-import { ShoppingBag, X, AlertTriangle } from 'lucide-react';
+import { ShoppingBag, X, CheckCircle2 } from 'lucide-react';
 
 export interface EquipoAConfirmar {
   name: string;
@@ -98,10 +98,10 @@ export function ConfirmarEleccionModal({
               </div>
             ) : null}
 
-            {/* Aviso */}
-            <div className="mt-4 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Esta acción registrará tu elección y no podrás cambiarla.</span>
+            {/* Aviso (wording de Marco): qué pasa al aceptar */}
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada.</span>
             </div>
           </div>
         </ModalBody>
