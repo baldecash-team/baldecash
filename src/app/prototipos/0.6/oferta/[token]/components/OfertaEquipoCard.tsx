@@ -9,7 +9,11 @@
  *   Ver otros equipos).
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
+import { motion } from 'framer-motion';
 import { CheckCircle2, Eye, ArrowRight } from 'lucide-react';
+
+// Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
+const APPROVED_GREEN = '#16a34a';
 
 export interface OfertaEquipoCardProps {
   /** Marca (ej. "Asus"). */
@@ -50,20 +54,42 @@ export function OfertaEquipoCard({
   return (
     <div
       className={`relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white transition-shadow ${
-        isAprobado ? 'border-2 shadow-sm' : 'border-gray-200'
+        isAprobado ? 'border-2' : 'border-gray-200'
       }`}
-      style={isAprobado ? { borderColor: 'var(--color-primary)' } : undefined}
+      style={
+        isAprobado
+          ? {
+              borderColor: APPROVED_GREEN,
+              boxShadow: `0 0 20px 4px ${APPROVED_GREEN}40, 0 4px 12px ${APPROVED_GREEN}26`,
+            }
+          : undefined
+      }
     >
-      {/* Tag verde "Aprobado" (solo en el recomendado) */}
+      {/* Banner premium "APROBADO" full-width (mismo lenguaje visual que COMBO EXCLUSIVO) */}
       {isAprobado ? (
-        <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white shadow">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          Aprobado
+        <div
+          className="flex w-full items-center justify-center gap-2.5 px-4 py-2.5"
+          style={{
+            background: `linear-gradient(135deg, ${APPROVED_GREEN} 0%, ${APPROVED_GREEN}cc 50%, ${APPROVED_GREEN} 100%)`,
+          }}
+        >
+          <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+            <CheckCircle2 className="h-5 w-5 text-white" />
+          </motion.div>
+          <span
+            className="text-base font-black uppercase tracking-widest text-white"
+            style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+          >
+            Aprobado para ti
+          </span>
+          <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+            <CheckCircle2 className="h-5 w-5 text-white" />
+          </motion.div>
         </div>
       ) : null}
 
       {/* Imagen */}
-      <div className="flex items-center justify-center bg-gray-50 px-6 pt-8 pb-4">
+      <div className={`flex items-center justify-center bg-gray-50 px-6 pb-4 ${isAprobado ? 'pt-6' : 'pt-8'}`}>
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
