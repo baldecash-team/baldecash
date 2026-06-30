@@ -351,18 +351,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <Card
         className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-[var(--surface,#fff)]"
-        style={promoTemplate ? {
-          border: `3px solid ${promoBorderColor}`,
-          boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
-        } : undefined}
+        style={
+          approvedTag
+            ? { border: '2px solid #16a34a', boxShadow: '0 0 16px 3px #16a34a33, 0 4px 12px #16a34a26' }
+            : promoTemplate
+            ? {
+                border: `3px solid ${promoBorderColor}`,
+                boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
+              }
+            : undefined
+        }
       >
         <CardBody className="p-0 flex flex-col">
+          {/* Banner "APROBADO" (flujo de oferta): reemplaza al banner de promoción
+              — en la oferta todas las cards llevan el mismo banner verde. */}
+          {approvedTag && (
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
+              style={{ background: 'linear-gradient(135deg, #16a34a 0%, #16a34acc 50%, #16a34a 100%)' }}
+            >
+              <CheckCircle2 className="w-5 h-5 text-white" />
+              <span
+                className="text-base font-black tracking-widest uppercase text-center text-white"
+                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+              >
+                Aprobado
+              </span>
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+          )}
           {/* Spacer for non-promo cards in rows that have promo cards */}
-          {needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
+          {!approvedTag && needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
             <div className="h-[44px] shrink-0" />
           )}
-          {/* Promotion Banner */}
-          {promoTemplate && isTopBarBanner && (
+          {/* Promotion Banner (oculto en oferta: lo reemplaza el banner Aprobado) */}
+          {!approvedTag && promoTemplate && isTopBarBanner && (
             <div
               className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
               style={{
@@ -394,7 +417,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
           )}
-          {promoTemplate && !isTopBarBanner && (
+          {!approvedTag && promoTemplate && !isTopBarBanner && (
             <div className="absolute top-0 left-0 z-20">
               <div
                 className="px-4 py-1.5 text-sm font-black rounded-br-xl"
@@ -420,12 +443,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
           {/* Image - Altura fija para consistencia */}
           <div className="relative bg-[var(--surface,#fff)] p-6 h-[220px] flex items-center justify-center">
-            {approvedTag && (
-              <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white shadow">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Aprobado
-              </div>
-            )}
             <ImageGallery
               images={selectedImages}
               alt={displayName}
