@@ -128,7 +128,8 @@ export function MiOfertaClient({ token }: { token: string }) {
       // re-validar el token, que ya quedó consumido). Construimos el resumen
       // completo para el ReceivedScreen reutilizado.
       const p = pending.product;
-      const offerCode = state.kind === 'ready' ? state.offer.offerCode : undefined;
+      const offer = state.kind === 'ready' ? state.offer : null;
+      const req = offer?.requestedProduct;
       setPending(null);
       setSelected({
         name: pending.equipo.name,
@@ -136,7 +137,9 @@ export function MiOfertaClient({ token }: { token: string }) {
         imageUrl: pending.equipo.imageUrl,
         monthly: p.quotaMonthly,
         finalPrice: p.price,
-        offerCode,
+        offerCode: offer?.offerCode,
+        userName: offer?.clientName ?? undefined,
+        previous: req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null,
       });
     } catch (err) {
       const reason = err instanceof OfferApiError ? err.reason : 'unknown';
