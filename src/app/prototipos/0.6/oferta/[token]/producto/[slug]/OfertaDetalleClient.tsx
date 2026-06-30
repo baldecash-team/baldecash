@@ -83,20 +83,39 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return v != null ? Number(v) : null;
   }, [state]);
 
+  // La oferta SOLO ofrece 24 meses / inicial 0 (feedback de Marco). Filtramos los
+  // payment_plans a esa combinación para que el cliente no pueda cambiar el plazo,
+  // y para que la cuota mostrada coincida con la del catálogo.
+  const OFFER_TERM = 24;
+  const OFFER_INITIAL = 0;
+  const offerPlans = useMemo(() => {
+    if (state.kind !== 'ready') return [];
+    return (state.data.paymentPlans ?? [])
+      .filter((plan) => plan.term === OFFER_TERM)
+      .map((plan) => ({
+        ...plan,
+        options: (plan.options ?? []).filter((o) => o.initialPercent === OFFER_INITIAL),
+      }))
+      .filter((plan) => plan.options.length > 0);
+  }, [state]);
+
+  // Cuota de la oferta: la de 24m / inicial 0 (la misma del catálogo).
+  const offerMonthly = useMemo(() => {
+    const opt = offerPlans[0]?.options?.[0];
+    return opt && typeof opt.monthlyQuota === 'number' ? opt.monthlyQuota : undefined;
+  }, [offerPlans]);
+
   // Resumen del equipo (para el modal de confirmación y la pantalla de éxito).
   const chosen = useMemo<ChosenSummary | null>(() => {
     if (state.kind !== 'ready') return null;
     const p = state.data.product;
-    const allQuotas = (state.data.paymentPlans ?? [])
-      .flatMap((plan) => (plan.options ?? []).map((o) => o.monthlyQuota))
-      .filter((q): q is number => typeof q === 'number' && q > 0);
     return {
       name: p?.displayName || p?.name || 'Tu equipo',
       brand: p?.brand,
       imageUrl: p?.images?.[0]?.url,
-      monthly: allQuotas.length ? Math.min(...allQuotas) : undefined,
+      monthly: offerMonthly,
     };
-  }, [state]);
+  }, [state, offerMonthly]);
 
   // Confirmación real (llamada desde el modal).
   async function confirmarEleccion() {
@@ -177,12 +196,12 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         <ProductDetail
           product={data.product}
           combo={data.combo}
-          paymentPlans={data.paymentPlans}
+          paymentPlans={offerPlans}
           similarProducts={[]}
           limitations={data.limitations}
           certifications={data.certifications}
-          defaultTerm={data.defaultTerm}
-          defaultInitialPercent={data.defaultInitial}
+          defaultTerm={OFFER_TERM}
+          defaultInitialPercent={OFFER_INITIAL}
           paymentFrequencies={data.paymentFrequencies}
           isAvailable={data.isAvailable && variantId != null}
           onClickCTA={() => setConfirmOpen(true)}

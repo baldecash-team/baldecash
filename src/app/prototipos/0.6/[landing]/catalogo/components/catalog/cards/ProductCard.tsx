@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, Truck, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, Truck, CheckCircle2, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -112,6 +112,10 @@ interface ProductCardProps {
   onCtaClick?: () => void;
   /** Oculta el botón de favoritos (no aplica en el flujo de oferta). */
   hideFavorite?: boolean;
+  /** Muestra un tag verde "Aprobado" (solo en el catálogo de oferta, BAL-1785). */
+  approvedTag?: boolean;
+  /** Fuerza el plazo mostrado (ej. 24 en la oferta) en vez de max(available_terms). */
+  forcedTerm?: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -132,6 +136,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   ctaLabel,
   onCtaClick,
   hideFavorite = false,
+  approvedTag = false,
+  forcedTerm,
   isFavoriteCheck,
   favoriteButtonId,
   compareButtonId,
@@ -220,7 +226,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const selectedImages = getImagesForSelectedColor();
 
   // Financiamiento: plazo más alto del producto, inicial según hook del producto
-  const selectedTerm = product.maxTermMonths as TermMonths;
+  const selectedTerm = (forcedTerm ?? product.maxTermMonths) as TermMonths;
   const selectedInitial = (product.hookInitialPercent ?? 0) as InitialPaymentPercent;
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
@@ -414,6 +420,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
           {/* Image - Altura fija para consistencia */}
           <div className="relative bg-[var(--surface,#fff)] p-6 h-[220px] flex items-center justify-center">
+            {approvedTag && (
+              <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white shadow">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Aprobado
+              </div>
+            )}
             <ImageGallery
               images={selectedImages}
               alt={displayName}

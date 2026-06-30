@@ -14,7 +14,6 @@ import { ProductCard } from '../../../[landing]/catalogo/components/catalog/card
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../../../[landing]/catalogo/components/catalog/LoadMoreButton';
 import { SearchDrawer } from '../../../[landing]/catalogo/components/catalog/SearchDrawer';
-import VipCountdownBanner from '../../../[landing]/catalogo/components/catalog/VipCountdownBanner';
 import type {
   CatalogProduct,
   FilterState,
@@ -127,13 +126,6 @@ export function CatalogoOfertaTab({
         </button>
       </div>
 
-      {/* Countdown destacado */}
-      {offer.expiresAt ? (
-        <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
-          <VipCountdownBanner endDate={offer.expiresAt} />
-        </div>
-      ) : null}
-
       <CatalogLayoutV4
         products={items}
         filters={filters}
@@ -164,6 +156,8 @@ export function CatalogoOfertaTab({
                 product={product}
                 hideColors
                 hideFavorite
+                approvedTag
+                forcedTerm={24}
                 ctaLabel="Elegir"
                 onCtaClick={() => onSelect(product)}
                 getDetailHref={(slug) =>

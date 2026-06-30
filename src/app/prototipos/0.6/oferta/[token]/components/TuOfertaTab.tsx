@@ -1,98 +1,81 @@
 'use client';
 
 /**
- * TuOfertaTab — pestaña "Tu oferta" (sin filtros). Usa el ancho y estilo del
- * catálogo (no centrado angosto). Muestra:
- *   - Countdown de vencimiento.
- *   - "EL QUE PEDISTE" (tachado, de requested_product).
- *   - "APROBADO PARA TI" (recomendado destacado, ProductCard en modo oferta).
- *   - Botón para ir al catálogo completo.
+ * TuOfertaTab — sección destacada de la oferta (sin tabs, dentro del scroll).
+ * Muestra dos cards CUSTOM (OfertaEquipoCard, no la del catálogo):
+ *   - "EL QUE PEDISTE": atenuado/tachado si no entra en la cuota; solo "Ver detalle".
+ *   - "APROBADO PARA TI": destacado con tag verde "Aprobado" + 3 CTAs.
  */
 
-import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
 import type { OfferView } from '../../../services/offerApi';
-import VipCountdownBanner from '../../../[landing]/catalogo/components/catalog/VipCountdownBanner';
+import { OfertaEquipoCard } from './OfertaEquipoCard';
+
+function detailHref(token: string, slug?: string | null): string | undefined {
+  if (!slug) return undefined;
+  return `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug}`;
+}
 
 export function TuOfertaTab({
+  token,
   offer,
   onVerCatalogo,
   onSelect,
 }: {
+  token: string;
   offer: OfferView;
   onVerCatalogo: () => void;
   onSelect: (product: CatalogProduct) => void;
 }) {
+  const rec = offer.recommended;
+  const req = offer.requestedProduct;
+
   return (
     <main className="w-full px-3 py-6 sm:px-4 lg:px-6">
-      {/* Countdown destacado */}
-      {offer.expiresAt ? (
-        <div className="mb-6">
-          <VipCountdownBanner endDate={offer.expiresAt} />
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
         {/* EL QUE PEDISTE */}
-        <section>
+        <section className="flex flex-col">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
             El que pediste
           </p>
-          {offer.requestedProduct ? (
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 opacity-70">
-              {offer.requestedProduct.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={offer.requestedProduct.image_url}
-                  alt={offer.requestedProduct.name ?? 'Equipo solicitado'}
-                  className="mx-auto mb-3 h-32 w-auto object-contain grayscale"
-                />
-              ) : (
-                <div className="mx-auto mb-3 flex h-32 items-center justify-center text-gray-300">
-                  Sin imagen
-                </div>
-              )}
-              <p className="text-center text-sm font-medium text-gray-500 line-through">
-                {offer.requestedProduct.name}
-              </p>
-              <p className="mt-1 text-center text-xs text-gray-400">
-                No disponible para tu cuota aprobada.
-              </p>
-            </div>
+          {req ? (
+            <OfertaEquipoCard
+              variant="pedido"
+              fits={false}
+              name={req.name ?? 'Tu equipo'}
+              imageUrl={req.image_url}
+              href={detailHref(token, req.slug)}
+            />
           ) : (
             <p className="text-sm text-gray-400">—</p>
           )}
         </section>
 
         {/* APROBADO PARA TI */}
-        <section>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
+        <section className="flex flex-col">
+          <p
+            className="mb-2 text-xs font-semibold uppercase tracking-wide"
+            style={{ color: 'var(--color-primary)' }}
+          >
             Aprobado para ti
           </p>
-          {offer.recommended ? (
-            <div className="rounded-2xl border-2 p-2" style={{ borderColor: 'var(--color-primary)' }}>
-              <ProductCard
-                product={offer.recommended}
-                hideColors
-                hideFavorite
-                ctaLabel="Elegir"
-                onCtaClick={() => onSelect(offer.recommended as CatalogProduct)}
-              />
-            </div>
+          {rec ? (
+            <OfertaEquipoCard
+              variant="aprobado"
+              brand={rec.brand}
+              name={rec.displayName || rec.name}
+              imageUrl={rec.images?.[0] || rec.thumbnail}
+              monthly={rec.quotaMonthly}
+              termMonths={24}
+              href={detailHref(token, rec.slug)}
+              onAceptar={() => onSelect(rec)}
+              onVerOtros={onVerCatalogo}
+            />
           ) : (
             <p className="text-sm text-gray-500">No hay un equipo recomendado disponible.</p>
           )}
         </section>
       </div>
-
-      <button
-        type="button"
-        onClick={onVerCatalogo}
-        className="mt-6 w-full cursor-pointer rounded-xl py-3 font-semibold text-white transition-all hover:brightness-90"
-        style={{ backgroundColor: 'var(--color-primary)' }}
-      >
-        Ver catálogo (hasta S/ {Math.round(offer.maxMonthlyQuota)}/mes)
-      </button>
     </main>
   );
 }

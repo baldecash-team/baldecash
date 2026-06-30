@@ -143,6 +143,8 @@ export async function getOffer(token: string): Promise<OfferView> {
 
   return {
     offerCode: data.offer_code,
+    applicationCode: data.application_code ?? null,
+    clientName: data.client_name ?? null,
     maxMonthlyQuota: data.max_monthly_quota,
     expiresAt: data.expires_at ?? null,
     landingSlug: data.landing_slug ?? null,
