@@ -85,6 +85,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
   // Un solo error a la vez (cámara, formato o subida), con su ícono.
   const [error, setError] = useState<{ msg: string; icon?: 'alert' | 'camera' } | null>(null);
   const [cameraGranted, setCameraGranted] = useState(false);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number; accuracy_m?: number } | null>(null);
 
   // El número de videos lo marcan questions (si las hay), luego document_type_codes,
   // y como último recurso las preguntas de negocio hardcodeadas (evita "PREGUNTA 1 DE 0").
@@ -149,7 +150,11 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
         goStage('capture');
       } else {
         goStage('completing');
-        const completeResult = await completeLink(token);
+        const completeResult = await completeLink(token, {
+          latitude: coords!.latitude,
+          longitude: coords!.longitude,
+          accuracy_m: coords?.accuracy_m,
+        });
         if (!completeResult.ok) {
           setError({ msg: friendlyError(completeResult.error) });
           goStage('capture');
@@ -169,7 +174,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
     <PhoneFrame>
       {/* ── intro ────────────────────────────────────────────────────────── */}
       {state === 'intro' && (
-        <VideoIntro applicantName={applicantName} onStart={() => goStage('capture')} />
+        <VideoIntro applicantName={applicantName} onStart={(c) => { setCoords(c); goStage('capture'); }} />
       )}
 
       {/* ── capture ──────────────────────────────────────────────────────── */}

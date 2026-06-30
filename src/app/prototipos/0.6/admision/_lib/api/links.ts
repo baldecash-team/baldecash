@@ -15,9 +15,15 @@ export async function confirmUpload(token: string, body: { file_key: string; doc
   if (config.apiMode === 'mock') return mock.confirmUpload(body);
   return apiFetch(`/public/links/${token}/confirm`, { method: 'POST', body: JSON.stringify(body) });
 }
-export async function completeLink(token: string): Promise<ApiResult<CompleteResp>> {
-  if (config.apiMode === 'mock') return mock.completeLink();
-  return apiFetch(`/public/links/${token}/complete`, { method: 'POST' });
+export async function completeLink(
+  token: string,
+  body: { latitude: number; longitude: number; accuracy_m?: number },
+): Promise<ApiResult<CompleteResp>> {
+  if (config.apiMode === 'mock') return mock.complete(token, body);
+  return apiFetch<CompleteResp>(`/public/links/${token}/complete`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 export async function sendEmailByToken(token: string): Promise<ApiResult<SendEmailResp>> {
   if (config.apiMode === 'mock') return mock.sendEmailVerification();
