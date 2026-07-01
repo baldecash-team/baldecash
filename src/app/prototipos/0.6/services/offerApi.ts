@@ -121,7 +121,7 @@ export async function getOffer(token: string): Promise<OfferView> {
       maxMonthlyQuota: data.max_monthly_quota ?? 0,
       expiresAt: null,
       landingSlug: data.landing_slug ?? null,
-      requestedProduct: null,
+      requestedProduct: data.requested_product ?? null,
       recommended: null,
       alternativesCount: 0,
       alreadySelected: true,

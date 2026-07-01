@@ -75,6 +75,7 @@ export function MiOfertaClient({ token }: { token: string }) {
         // Link ya consumido con selección → mostrar directo la confirmación.
         if (offer.alreadySelected && offer.selectedEquipment) {
           const eq = offer.selectedEquipment;
+          const req = offer.requestedProduct;
           setSelected({
             name: eq.name,
             brand: eq.brand ?? undefined,
@@ -83,6 +84,9 @@ export function MiOfertaClient({ token }: { token: string }) {
             termMonths: eq.termMonths ?? undefined,
             offerCode: offer.applicationCode ?? offer.offerCode,
             userName: offer.clientName ?? undefined,
+            // Equipo anterior → para el UI "anterior → nuevo" (igual que al elegir
+            // desde una card). El backend lo devuelve en already_selected.
+            previous: req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null,
           });
           return;
         }

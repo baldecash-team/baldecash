@@ -24,13 +24,12 @@ import {
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
 import { getOffer, selectEquipment, OfferApiError } from '../../../../services/offerApi';
-import { SeleccionConfirmada, type ChosenSummary } from '../../components/SeleccionConfirmada';
+import type { ChosenSummary } from '../../components/SeleccionConfirmada';
 
 type State =
   | { kind: 'loading' }
   | { kind: 'ready'; data: ProductDetailResult; landingSlug: string }
-  | { kind: 'error'; message: string }
-  | { kind: 'selected'; chosen: ChosenSummary };
+  | { kind: 'error'; message: string };
 
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -123,13 +122,15 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     setSelecting(true);
     try {
       await selectEquipment(token, variantId);
-      setConfirmOpen(false);
-      setState({ kind: 'selected', chosen });
+      // Tras elegir, volvemos a la página principal de la oferta: como el link ya
+      // quedó consumido, esa página detecta already_selected y muestra la
+      // confirmación (equipo anterior → nuevo). Así el refresh es consistente y
+      // hay una sola pantalla de confirmación.
+      window.location.href = backToOffer;
     } catch (err) {
       const msg = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
       setConfirmOpen(false);
       setState({ kind: 'error', message: msg });
-    } finally {
       setSelecting(false);
     }
   }
@@ -152,9 +153,6 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         backHref={backToOffer}
       />
     );
-  }
-  if (state.kind === 'selected') {
-    return <SeleccionConfirmada chosen={state.chosen} backHref={backToOffer} />;
   }
 
   const { data } = state;
