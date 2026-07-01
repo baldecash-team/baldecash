@@ -6,7 +6,7 @@
  * tope de cuota aplicado por el backend) y SIN carrito / wishlist / comparador.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 
 import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/layout/CatalogLayoutV4';
@@ -23,6 +23,7 @@ import type {
 } from '../../../[landing]/catalogo/types/catalog';
 import { mergeFiltersWithDefaults } from '../../../[landing]/catalogo/utils/queryFilters';
 import { useCatalogFilters } from '../../../[landing]/catalogo/hooks/useCatalogProducts';
+import { useGridColumns, roundToColumns } from '../../../[landing]/catalogo/hooks/useGridColumns';
 import {
   getCatalog,
   getOfferFilterCounts,
@@ -90,7 +91,10 @@ export function CatalogoOfertaTab({
   const [sort, setSort] = useState<SortOption>('recommended');
   const [searchOpen, setSearchOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const gridRef = useRef<HTMLDivElement>(null);
+  // Columnas reales del grid (fluido: 3/4/5 según el ancho). Se usa para paginar
+  // en múltiplos de columnas y que la última fila no quede coja (igual que el
+  // catálogo general).
+  const { gridRef, columns: gridColumns } = useGridColumns();
 
   // Sugerencias del dropdown DESDE el catálogo de la oferta (no el normal): ya
   // vienen filtradas por cuota, sin el pedido y con la cuota a 24m/0%.
@@ -246,7 +250,13 @@ export function CatalogoOfertaTab({
     return base; // recommended / newest → orden del API
   }, [products, sort]);
 
-  const visibleItems = items.slice(0, visibleCount);
+  // Paso de paginación redondeado a las columnas reales, para que cada bloque
+  // llene filas completas (12→10/12/15 según haya 5/4/3 columnas).
+  const pageStep = roundToColumns(PAGE_SIZE, gridColumns);
+  // Muestra al menos `visibleCount` items pero redondeado hacia arriba a fila
+  // completa según las columnas actuales (evita la última fila coja).
+  const shownCount = Math.min(items.length, roundToColumns(visibleCount, gridColumns));
+  const visibleItems = items.slice(0, shownCount);
   const remaining = Math.max(0, items.length - visibleItems.length);
 
   // Conteos de filtros COHERENTES con el catálogo de oferta: vienen del endpoint
@@ -365,7 +375,7 @@ export function CatalogoOfertaTab({
                   remainingProducts={remaining}
                   totalProducts={items.length}
                   visibleProducts={visibleItems.length}
-                  onLoadMore={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                  onLoadMore={() => setVisibleCount((c) => c + pageStep)}
                 />
               </div>
             ) : null}
