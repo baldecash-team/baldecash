@@ -4,6 +4,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { baseContentType } from '../_lib/videoTypes';
 import { MAX_RECORDING_SECONDS } from '../_lib/recordingLimits';
 
+/** Cap de calidad para mantener los clips livianos (subida rápida, calidad
+ * suficiente para validación): 720p e ~2 Mbps. Reduce el peso ~4-8× vs 1080p sin
+ * tope. Constraints "ideal": si el device no puede, degrada en vez de fallar. */
+const VIDEO_CONSTRAINTS = { width: { ideal: 1280 }, height: { ideal: 720 } } as const;
+const VIDEO_BITS_PER_SECOND = 2_000_000;
+
 export function detectRecordingSupport(): boolean {
   return (
     typeof navigator !== 'undefined' &&
@@ -141,7 +147,7 @@ export function useRecorder(): UseRecorderReturn {
         try {
           // Ideal: cámara (con facingMode preferido) + micrófono.
           s = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: fm } },
+            video: { facingMode: { ideal: fm }, ...VIDEO_CONSTRAINTS },
             audio: true,
           });
         } catch (e) {
@@ -150,7 +156,7 @@ export function useRecorder(): UseRecorderReturn {
           // reintenta solo con cámara para no bloquear al usuario. Los bloqueos de permiso
           // (NotAllowedError) o de seguridad se propagan tal cual.
           if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'NotReadableError' || name === 'TrackStartError' || name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
-            s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: fm } } });
+            s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: fm }, ...VIDEO_CONSTRAINTS } });
           } else {
             throw e;
           }
@@ -178,7 +184,7 @@ export function useRecorder(): UseRecorderReturn {
     if (!currentStream) return;
     chunksRef.current = [];
     const baseMime = pickRecorderMime();
-    const mr = new MediaRecorder(currentStream, { mimeType: baseMime });
+    const mr = new MediaRecorder(currentStream, { mimeType: baseMime, videoBitsPerSecond: VIDEO_BITS_PER_SECOND });
 
     mr.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
