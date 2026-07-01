@@ -16,6 +16,18 @@ import {
   formatMMSS,
 } from '../_lib/recordingLimits';
 
+/** Guía por defecto cuando la pregunta no trae video ni indicaciones propias. */
+const DEFAULT_HELP: VideoExample = {
+  intro: 'Respóndela hablando a la cámara, con naturalidad y en pocas palabras.',
+  tips: [
+    'Busca un lugar tranquilo, iluminado y sin ruido.',
+    'Mira a la cámara y habla claro y pausado.',
+    'Da detalles concretos (nombres, fechas, montos).',
+    'Si te trabas, no pasa nada: puedes volver a grabar.',
+  ],
+  tip: 'Cada video dura entre 10 segundos y 5 minutos.',
+};
+
 export interface VideoRecorderProps {
   question: string;
   index: number;
@@ -185,31 +197,35 @@ export function VideoRecorder({
         <p className="text-base font-semibold text-[#4654CD] leading-snug">{question}</p>
       </div>
 
-      {/* Ver ejemplo (mejora #8) */}
-      {example && (
-        <>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors cursor-pointer"
-            onClick={() => {
-              events?.track('video_example_opened', { question_index: index });
-              setShowExample(true);
-            }}
-          >
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            Ver ejemplo
-          </button>
-          <ExampleModal
-            open={showExample}
-            onClose={() => setShowExample(false)}
-            title={`Ejemplo · Pregunta ${index + 1}`}
-            example={example}
-          />
-        </>
-      )}
+      {/* Ayuda / cómo responder — SIEMPRE visible (con video de ejemplo si existe,
+          o indicaciones configurables del banco / guía por defecto si no). */}
+      <>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors cursor-pointer"
+          onClick={() => {
+            events?.track('video_example_opened', { question_index: index });
+            setShowExample(true);
+          }}
+        >
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+          {example?.videoUrl ? 'Ver ejemplo' : '¿Cómo respondo?'}
+        </button>
+        <ExampleModal
+          open={showExample}
+          onClose={() => setShowExample(false)}
+          title={
+            example?.videoUrl
+              ? `Ejemplo · Pregunta ${index + 1}`
+              : `Cómo responder · Pregunta ${index + 1}`
+          }
+          example={example ?? DEFAULT_HELP}
+        />
+      </>
 
       {/* ── camera recording path ─────────────────────────────────────────── */}
       {!stream && !previewBlob && !requesting && (

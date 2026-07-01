@@ -12,6 +12,8 @@ export interface VideoExample {
   tip?: string;
   /** URL de video de ejemplo (cuando existe, reemplaza al quote). */
   videoUrl?: string;
+  /** Guía paso a paso de cómo responder (cuando no hay video de ejemplo). */
+  tips?: string[];
 }
 
 interface ExampleModalProps {
@@ -75,19 +77,35 @@ export function ExampleModal({ open, onClose, title, example }: ExampleModalProp
         <div className="px-5 py-4 flex flex-col gap-3.5">
           <p className="text-sm text-[#6b7280] leading-relaxed">{example.intro}</p>
 
-          {/* Frase de ejemplo destacada */}
-          <figure className="rounded-xl bg-[#F7F7FB] border border-[#ECECFB] px-3.5 py-3">
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#4654CD] mb-1">
-              Ejemplo
-            </span>
-            {example.videoUrl ? (
-              <video src={example.videoUrl} controls playsInline className="w-full rounded-lg" />
-            ) : example.quote ? (
-              <blockquote className="text-sm text-[#1f2937] leading-relaxed italic">
-                {'"'}{example.quote}{'"'}
-              </blockquote>
-            ) : null}
-          </figure>
+          {/* Video / frase de ejemplo (solo si hay contenido) */}
+          {(example.videoUrl || example.quote) && (
+            <figure className="rounded-xl bg-[#F7F7FB] border border-[#ECECFB] px-3.5 py-3">
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#4654CD] mb-1">
+                Ejemplo
+              </span>
+              {example.videoUrl ? (
+                <video src={example.videoUrl} controls playsInline className="w-full rounded-lg" />
+              ) : (
+                <blockquote className="text-sm text-[#1f2937] leading-relaxed italic">
+                  {'"'}{example.quote}{'"'}
+                </blockquote>
+              )}
+            </figure>
+          )}
+
+          {/* Indicaciones paso a paso (configurables desde el banco de preguntas) */}
+          {example.tips && example.tips.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {example.tips.map((t) => (
+                <li key={t} className="flex items-start gap-2 text-sm text-[#374151]">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 mt-0.5 shrink-0 text-[#4654CD]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {example.tip && (
             <div className="flex items-start gap-2 text-xs text-[#6b7280]">
