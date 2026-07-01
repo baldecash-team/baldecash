@@ -52,6 +52,14 @@ const QUESTION_EXAMPLES: VideoExample[] = [
   },
 ];
 
+/** Fallback por code cuando la pregunta del banco no trae video ni indicaciones
+ * propias. Si el code no está mapeado, el recorder cae a la guía genérica. */
+const FALLBACK_BY_CODE: Record<string, VideoExample> = {
+  video_negocio_1: QUESTION_EXAMPLES[0],
+  video_negocio_2: QUESTION_EXAMPLES[1],
+  video_negocio_3: QUESTION_EXAMPLES[2],
+};
+
 /**
  * Resuelve la pregunta y el ejemplo para el índice dado.
  * Prioridad: questions[index] → documentTypeCodes + pregunta hardcodeada.
@@ -73,7 +81,7 @@ export function resolveQuestion(
             intro: 'Así puedes responder:',
             tips: q.instructions.split('\n').map((s) => s.trim()).filter(Boolean),
           }
-        : undefined,
+        : FALLBACK_BY_CODE[q.code],
     };
   }
   const code = documentTypeCodes[index] ?? `video_negocio_${index + 1}`;
