@@ -7,9 +7,11 @@ export interface VideoExample {
   /** Indicación breve de qué decir. */
   intro: string;
   /** Frase de ejemplo, tal como podría decirla la persona. */
-  quote: string;
+  quote?: string;
   /** Tip opcional para dar confianza. */
   tip?: string;
+  /** URL de video de ejemplo (cuando existe, reemplaza al quote). */
+  videoUrl?: string;
 }
 
 interface ExampleModalProps {
@@ -78,9 +80,13 @@ export function ExampleModal({ open, onClose, title, example }: ExampleModalProp
             <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#4654CD] mb-1">
               Ejemplo
             </span>
-            <blockquote className="text-sm text-[#1f2937] leading-relaxed italic">
-              “{example.quote}”
-            </blockquote>
+            {example.videoUrl ? (
+              <video src={example.videoUrl} controls playsInline className="w-full rounded-lg" />
+            ) : example.quote ? (
+              <blockquote className="text-sm text-[#1f2937] leading-relaxed italic">
+                {'"'}{example.quote}{'"'}
+              </blockquote>
+            ) : null}
           </figure>
 
           {example.tip && (

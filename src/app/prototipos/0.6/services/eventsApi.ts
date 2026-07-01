@@ -171,7 +171,27 @@ export type EventType =
   | 'admission_link_open'
   | 'admission_stage_enter'
   | 'admission_stage_exit'
-  | 'admission_completed';
+  | 'admission_completed'
+  // Phase 15: Video de admisión — eventos granulares por acción del funnel
+  | 'video_permission_location_requested'
+  | 'video_permission_location_granted'
+  | 'video_permission_location_denied'
+  | 'video_permission_camera_requested'
+  | 'video_permission_camera_granted'
+  | 'video_permission_camera_denied'
+  | 'video_recording_started'
+  | 'video_recording_stopped'
+  | 'video_clip_preview_shown'
+  | 'video_clip_accepted'
+  | 'video_clip_rerecord'
+  | 'video_question_shown'
+  | 'video_example_opened'
+  | 'video_upload_error'
+  | 'video_completion_error'
+  | 'video_success_shown'
+  | 'video_device_unsupported'
+  | 'video_session_resumed'
+  | 'video_session_started';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([

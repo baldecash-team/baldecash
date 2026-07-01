@@ -1,7 +1,7 @@
 import { config } from '../config';
 import { apiFetch, type ApiResult } from './client';
 import { mock } from './mock';
-import type { LinkValidation, UploadUrlResp, ConfirmResp, CompleteResp, SendEmailResp, VerifyEmailResp, EmailStatusResp } from './types';
+import type { LinkValidation, UploadUrlResp, ConfirmResp, CompleteResp } from './types';
 
 export async function validateLink(token: string): Promise<ApiResult<LinkValidation>> {
   if (config.apiMode === 'mock') return mock.validateLink(token);
@@ -15,19 +15,13 @@ export async function confirmUpload(token: string, body: { file_key: string; doc
   if (config.apiMode === 'mock') return mock.confirmUpload(body);
   return apiFetch(`/public/links/${token}/confirm`, { method: 'POST', body: JSON.stringify(body) });
 }
-export async function completeLink(token: string): Promise<ApiResult<CompleteResp>> {
-  if (config.apiMode === 'mock') return mock.completeLink();
-  return apiFetch(`/public/links/${token}/complete`, { method: 'POST' });
-}
-export async function sendEmailByToken(token: string): Promise<ApiResult<SendEmailResp>> {
-  if (config.apiMode === 'mock') return mock.sendEmailVerification();
-  return apiFetch(`/public/links/${token}/email/send`, { method: 'POST' });
-}
-export async function verifyEmailByToken(token: string, code: string): Promise<ApiResult<VerifyEmailResp>> {
-  if (config.apiMode === 'mock') return mock.verifyEmailCode(code);
-  return apiFetch(`/public/links/${token}/email/verify`, { method: 'POST', body: JSON.stringify({ code }) });
-}
-export async function emailStatusByToken(token: string): Promise<ApiResult<EmailStatusResp>> {
-  if (config.apiMode === 'mock') return mock.emailStatus();
-  return apiFetch(`/public/links/${token}/email/status`);
+export async function completeLink(
+  token: string,
+  body: { latitude: number; longitude: number; accuracy_m?: number },
+): Promise<ApiResult<CompleteResp>> {
+  if (config.apiMode === 'mock') return mock.complete(token, body);
+  return apiFetch<CompleteResp>(`/public/links/${token}/complete`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }

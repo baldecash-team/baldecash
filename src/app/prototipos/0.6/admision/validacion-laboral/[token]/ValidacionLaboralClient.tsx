@@ -7,11 +7,12 @@ import { LinkLoading, LinkStatus } from '../../_components/LinkScreens';
 import { VIDEO_DONE_TITLE, VIDEO_DONE_MESSAGE } from '../../_components/VideoConfirm';
 import { validateLink } from '../../_lib/api/links';
 import { admissionEvents } from '../../_lib/events';
+import type { VideoQuestion } from '../../_lib/api/types';
 
 type PageState =
   | { status: 'loading' }
   | { status: 'invalid'; reason?: string }
-  | { status: 'valid'; token: string; documentTypeCodes: string[]; applicantName?: string };
+  | { status: 'valid'; token: string; documentTypeCodes: string[]; questions: VideoQuestion[]; applicantName?: string };
 
 export function ValidacionLaboralClient({ token }: { token: string }) {
   const [page, setPage] = useState<PageState>({ status: 'loading' });
@@ -43,10 +44,11 @@ export function ValidacionLaboralClient({ token }: { token: string }) {
       }
 
       const documentTypeCodes = data.context?.document_type_codes ?? [];
+      const questions = data.context?.questions ?? [];
       const applicantName = data.context?.applicant_name;
 
       if (!cancelled) {
-        setPage({ status: 'valid', token, documentTypeCodes, applicantName });
+        setPage({ status: 'valid', token, documentTypeCodes, questions, applicantName });
       }
     })();
 
@@ -72,6 +74,7 @@ export function ValidacionLaboralClient({ token }: { token: string }) {
         <VideoFlow
           token={page.token}
           documentTypeCodes={page.documentTypeCodes}
+          questions={page.questions}
           applicantName={page.applicantName}
         />
       )}
