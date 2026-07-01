@@ -37,6 +37,11 @@ export function SectionRenderer({
       // wizard_steps are rendered by the wizard pages, not by SectionRenderer
       return null;
 
+    case 'otp_verification':
+      // otp_verification is a full-screen gate shown AFTER submit (before the
+      // resumen), handled by OtpGate via useSubmitApplication — not inline here.
+      return null;
+
     default:
       return null;
   }
