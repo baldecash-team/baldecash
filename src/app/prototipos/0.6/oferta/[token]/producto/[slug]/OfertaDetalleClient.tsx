@@ -23,7 +23,8 @@ import {
   fetchProductDetail,
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
-import { getOffer, selectEquipment, OfferApiError } from '../../../../services/offerApi';
+import { getOffer, getCatalog, selectEquipment, OfferApiError } from '../../../../services/offerApi';
+import type { ProductSuggestion } from '../../../../services/catalogApi';
 import type { ChosenSummary } from '../../components/SeleccionConfirmada';
 
 type State =
@@ -46,6 +47,36 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     [token],
   );
   const irAlCatalogoConBusqueda = useCallback(() => goToCatalog(searchValue), [goToCatalog, searchValue]);
+
+  // Sugerencias del dropdown DESDE el catálogo de la oferta (no el catálogo
+  // normal): ya vienen filtradas por cuota, sin el equipo pedido y con la cuota
+  // a 24m/0%. Así el dropdown no muestra productos fuera de la oferta.
+  const fetchOfferSuggestions = useCallback(
+    async (q: string): Promise<ProductSuggestion[]> => {
+      const res = await getCatalog(token, { q, sortBy: 'price_desc' });
+      return res.items.slice(0, 6).map((p) => ({
+        id: p.id,
+        name: p.displayName || p.name,
+        slug: p.slug,
+        brand: p.brand,
+        category: '',
+        price: p.price,
+        image: p.images?.[0] || p.thumbnail || null,
+        maxTermMonths: 24, // la oferta siempre muestra 24 meses
+        quotaMonthly: p.quotaMonthly ?? null,
+      }));
+    },
+    [token],
+  );
+
+  // Al elegir una sugerencia, quedarse en el flujo de oferta (no ir al detalle
+  // del catálogo normal).
+  const goToOfferDetail = useCallback(
+    (s: ProductSuggestion) => {
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${s.slug}`;
+    },
+    [token],
+  );
 
   useEffect(() => {
     let active = true;
@@ -176,6 +207,8 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
               onClear={() => setSearchValue('')}
               onSubmit={irAlCatalogoConBusqueda}
               placeholder="Buscar otro equipo…"
+              fetchSuggestions={fetchOfferSuggestions}
+              onSelectSuggestion={goToOfferDetail}
             />
           </div>
           {/* Mobile: botón que lleva al catálogo */}

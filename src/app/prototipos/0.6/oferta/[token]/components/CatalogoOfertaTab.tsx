@@ -6,10 +6,11 @@
  * tope de cuota aplicado por el backend) y SIN carrito / wishlist / comparador.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 
 import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/layout/CatalogLayoutV4';
+import { NavbarSearch } from '../../../[landing]/catalogo/components/catalog/NavbarActions';
 import { ProductCard } from '../../../[landing]/catalogo/components/catalog/cards/ProductCard';
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../../../[landing]/catalogo/components/catalog/LoadMoreButton';
@@ -23,6 +24,7 @@ import type {
 import { mergeFiltersWithDefaults } from '../../../[landing]/catalogo/utils/queryFilters';
 import { useCatalogFilters } from '../../../[landing]/catalogo/hooks/useCatalogProducts';
 import { getCatalog, type OfferView, type OfferCatalogFilters } from '../../../services/offerApi';
+import type { ProductSuggestion } from '../../../services/catalogApi';
 
 // Config de presentación fijo (mismos valores que usa el catálogo v0.6).
 const OFFER_CONFIG: CatalogLayoutConfig & { colorSelectorVersion: 1 | 2 } = {
@@ -83,6 +85,34 @@ export function CatalogoOfertaTab({
   const [searchOpen, setSearchOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Sugerencias del dropdown DESDE el catálogo de la oferta (no el normal): ya
+  // vienen filtradas por cuota, sin el pedido y con la cuota a 24m/0%.
+  const fetchOfferSuggestions = useCallback(
+    async (q: string): Promise<ProductSuggestion[]> => {
+      const res = await getCatalog(token, { q, sortBy: 'price_desc' });
+      return res.items.slice(0, 6).map((p) => ({
+        id: p.id,
+        name: p.displayName || p.name,
+        slug: p.slug,
+        brand: p.brand,
+        category: '',
+        price: p.price,
+        image: p.images?.[0] || p.thumbnail || null,
+        maxTermMonths: 24, // la oferta siempre muestra 24 meses
+        quotaMonthly: p.quotaMonthly ?? null,
+      }));
+    },
+    [token],
+  );
+
+  // Al elegir una sugerencia, ir al detalle DENTRO de la oferta (no salir del flujo).
+  const goToOfferDetail = useCallback(
+    (s: ProductSuggestion) => {
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${s.slug}`;
+    },
+    [token],
+  );
 
   // Filtros dinámicos (specs, marcas, etc.) — vienen de la landing real de la oferta.
   // Los usamos SOLO por su estructura (labels, logos, specs); los CONTEOS se
@@ -264,34 +294,19 @@ export function CatalogoOfertaTab({
         </button>
       </div>
 
-      {/* Búsqueda desktop: input propio de la oferta (SIN el dropdown de
-          sugerencias del catálogo normal, que fugaba precios a 36m y equipos
-          fuera de cuota). Solo escribe en searchQuery → filtra el catálogo de
-          la oferta en vivo. */}
+      {/* Búsqueda desktop: mismo NavbarSearch del detalle/catálogo normal, pero
+          con el dropdown de sugerencias alimentado por el catálogo de la OFERTA
+          (filtrado por cuota, sin el pedido, cuota a 24m/0%). Al elegir una
+          sugerencia se queda en el flujo de oferta. */}
       <div className="hidden w-full justify-center px-3 pt-4 sm:px-4 lg:px-6 md:flex">
-        <div className="relative w-full max-w-2xl">
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
-            style={{ color: 'var(--color-primary)' }}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar entre tus equipos disponibles…"
-            className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-12 pr-11 text-sm text-gray-700 shadow-sm outline-none transition-colors placeholder:text-gray-400 focus:border-[var(--color-primary)]"
-          />
-          {searchQuery ? (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              aria-label="Limpiar búsqueda"
-              className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
+        <NavbarSearch
+          value={searchQuery}
+          onChange={onSearchChange}
+          onClear={() => onSearchChange('')}
+          placeholder="Buscar entre tus equipos disponibles…"
+          fetchSuggestions={fetchOfferSuggestions}
+          onSelectSuggestion={goToOfferDetail}
+        />
       </div>
 
       <CatalogLayoutV4

@@ -31,6 +31,19 @@ interface NavbarSearchProps {
   onClear: () => void;
   onSubmit?: () => void;
   placeholder?: string;
+  /**
+   * Fuente de sugerencias. Por defecto usa el catálogo NORMAL de la landing.
+   * La oferta (Caso 4) inyecta aquí su propio buscador (catálogo filtrado por
+   * cuota, sin el equipo pedido, con cuota a 24m/0%) para que el dropdown no
+   * fugue productos fuera de la oferta.
+   */
+  fetchSuggestions?: (query: string) => Promise<ProductSuggestion[]>;
+  /**
+   * Acción al elegir una sugerencia. Por defecto navega a /[landing]/producto.
+   * La oferta la sobreescribe para quedarse en /oferta/{token}/producto y no
+   * salir del flujo.
+   */
+  onSelectSuggestion?: (suggestion: ProductSuggestion) => void;
 }
 
 export const NavbarSearch: React.FC<NavbarSearchProps> = ({
@@ -39,6 +52,8 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   onClear,
   onSubmit,
   placeholder = 'Buscar equipos...',
+  fetchSuggestions,
+  onSelectSuggestion,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -65,7 +80,10 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
 
     setIsLoading(true);
     try {
-      const results = await searchProductSuggestions(landing, query, 6, previewKey);
+      // Fuente inyectada (oferta) o el catálogo normal de la landing por defecto.
+      const results = fetchSuggestions
+        ? await fetchSuggestions(query)
+        : await searchProductSuggestions(landing, query, 6, previewKey);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     } catch (error) {
@@ -74,7 +92,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [landing, previewKey]);
+  }, [landing, previewKey, fetchSuggestions]);
 
   // Handle input change with debounce
   const handleInputChange = (newValue: string) => {
@@ -93,13 +111,17 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   // Track if we're navigating to prevent parent's useEffect from overriding
   const isNavigatingRef = useRef(false);
 
-  // Navigate to product detail
+  // Navigate to product detail (default: catálogo normal; oferta: inyecta la suya)
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
     if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
     setShowSuggestions(false);
     setSuggestions([]);
-    router.push(routes.producto(landing, suggestion.slug));
+    if (onSelectSuggestion) {
+      onSelectSuggestion(suggestion);
+    } else {
+      router.push(routes.producto(landing, suggestion.slug));
+    }
   };
 
   // Keyboard navigation
@@ -210,7 +232,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
             <div className="py-2">
               {suggestions.map((suggestion, index) => (
                 <button
-                  key={suggestion.id}
+                  key={`${suggestion.id}-${index}`}
                   onMouseDown={(e) => {
                     e.preventDefault(); // Prevent input blur
                     handleSelectSuggestion(suggestion);
