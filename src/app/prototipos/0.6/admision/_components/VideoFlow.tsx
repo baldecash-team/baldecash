@@ -259,10 +259,27 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
           <div className="w-12 h-12 rounded-full border-4 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
           <p className="text-[#1f2937] font-semibold">Subiendo tu video…</p>
           <p className="text-[#6b7280] text-sm text-center">Por favor no cierres esta pantalla.</p>
-          <div className="w-full max-w-xs h-2 rounded-full bg-[#e5e7eb] overflow-hidden">
-            <div className="h-full bg-[#4654CD] transition-all duration-200" style={{ width: `${progress}%` }} />
+
+          {/* Barra de progreso real de la subida a S3 (estado `progress`, 0–100%). */}
+          <div className="w-full max-w-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[#6b7280] text-xs font-medium">Progreso</span>
+              <span className="text-[#4654CD] text-sm font-semibold tabular-nums">{progress}%</span>
+            </div>
+            <div
+              className="w-full h-2.5 rounded-full bg-[#e5e7eb] overflow-hidden"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Progreso de subida del video"
+            >
+              <div
+                className="h-full rounded-full bg-[#4654CD] transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-          <p className="text-[#4654CD] text-sm font-semibold">{progress}%</p>
         </div>
       )}
 
