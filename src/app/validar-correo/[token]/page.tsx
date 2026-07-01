@@ -1,5 +1,5 @@
 /**
- * Validación de correo institucional por link — ruta pública raíz.
+ * Validación de correo por link — ruta pública raíz.
  * Ruta: /validar-correo/[token]  (coincide con los links que recibe el usuario)
  */
 import { ValidarCorreoClient } from '@/app/prototipos/0.6/admision/validar-correo/[token]/ValidarCorreoClient';

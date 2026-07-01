@@ -25,7 +25,7 @@ interface OtpScreenProps {
 }
 
 /**
- * Pantalla de verificación de correo institucional.
+ * Pantalla de verificación de correo.
  *
  * MODO TOKEN (link): al montar se ENVÍA el código automáticamente y se aterriza
  * directo en el campo OTP (sin paso previo). Mejoras #1/#2.
@@ -242,11 +242,11 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
       {/* ── MODO TOKEN: Envío automático del código (#1/#2) ─────────────────── */}
       {state === 'sending' && (
         <div className="flex flex-col items-center gap-5 text-center py-6">
-          <h1 className="text-xl font-bold text-[#1f2937]">Valida tu correo institucional</h1>
+          <h1 className="text-xl font-bold text-[#1f2937]">Valida tu correo</h1>
           {!error ? (
             <>
               <div className="w-12 h-12 rounded-full border-4 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
-              <p className="text-[#6b7280] text-sm">Enviando el código a tu correo institucional…</p>
+              <p className="text-[#6b7280] text-sm">Enviando el código a tu correo…</p>
             </>
           ) : (
             <>
@@ -268,7 +268,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
         <div className="flex flex-col items-center gap-6 text-center">
           <h1 className="text-2xl font-bold text-[#1f2937]">Verifica tu correo</h1>
           <p className="text-[#6b7280] text-sm">
-            Ingresa tu número de DNI para enviar un código a tu correo institucional
+            Ingresa tu número de DNI para enviar un código a tu correo
             (ej: usuario@universidad.edu.pe).
           </p>
 
@@ -305,7 +305,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
         <div className="flex flex-col items-center gap-5 text-center">
           <h1 className="text-xl font-bold text-[#1f2937]">Ingresa tu código</h1>
           <p className="text-[#6b7280] text-sm">
-            Enviamos un código a tu correo institucional{' '}
+            Enviamos un código a tu correo{' '}
             <span className="font-semibold text-[#1f2937]">{maskedEmail}</span>
           </p>
 
@@ -362,7 +362,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           </span>
           <p className="text-[#1f2937] font-semibold text-lg">¡Correo confirmado!</p>
           <p className="text-[#6b7280] text-sm">
-            Verificamos tu correo institucional. Seguimos con tu evaluación.
+            Verificamos tu correo. Seguimos con tu evaluación.
           </p>
         </div>
       )}
