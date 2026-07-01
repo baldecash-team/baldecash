@@ -1,7 +1,3 @@
-export type SendEmailResp = { status: 'sent' | 'already_verified'; email: string; channel?: string; expires_at?: string; expires_in_minutes?: number };
-export type VerifyEmailResp = { verified: boolean; status: string; verified_at?: string; workflow_resumed?: boolean };
-export type EmailStatusResp = { verified: boolean; email: string; pending: boolean; expires_at?: string; attempts_used: number };
-
 /** Una pregunta del banco horneada en el context del link (snapshot). */
 export type VideoQuestion = { code: string; description: string; example_video_url?: string };
 
