@@ -230,7 +230,7 @@ export function VideoRecorder({
 
       {!!stream && !previewBlob && (
         <>
-          <div className="relative rounded-xl overflow-hidden bg-[#1f2937] aspect-video flex items-center justify-center border border-[#e5e7eb]">
+          <div className="relative rounded-xl overflow-hidden bg-[#1f2937] aspect-[3/4] sm:aspect-video flex items-center justify-center border border-[#e5e7eb]">
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
             {isRecording && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
@@ -293,7 +293,7 @@ export function VideoRecorder({
 
       {!!previewBlob && (
         <>
-          <div className="relative rounded-xl overflow-hidden bg-black aspect-video border border-[#e5e7eb]">
+          <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] sm:aspect-video border border-[#e5e7eb]">
             <video
               ref={playbackVideoRef}
               src={previewUrl ?? undefined}
