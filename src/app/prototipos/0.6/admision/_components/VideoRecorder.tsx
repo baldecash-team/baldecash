@@ -246,7 +246,7 @@ export function VideoRecorder({
 
       {!!stream && !previewBlob && (
         <>
-          <div className="relative rounded-xl overflow-hidden bg-[#1f2937] aspect-[3/4] sm:aspect-video flex items-center justify-center border border-[#e5e7eb]">
+          <div className="relative rounded-xl overflow-hidden bg-[#1f2937] aspect-[9/16] sm:aspect-video flex items-center justify-center border border-[#e5e7eb]">
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
             {isRecording && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
@@ -302,14 +302,20 @@ export function VideoRecorder({
                 <span className="text-[#6b7280] text-xs font-medium">Grabando… toca para detener</span>
               </>
             )}
-            <span className="mt-1 text-[11px] text-center text-[#9ca3af]">{RECORDING_LIMITS_HINT}</span>
+            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[#F3F4F6] px-3 py-1 text-[11px] text-[#6b7280]">
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              {RECORDING_LIMITS_HINT}
+            </span>
           </div>
         </>
       )}
 
       {!!previewBlob && (
         <>
-          <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] sm:aspect-video border border-[#e5e7eb]">
+          <div className="relative rounded-xl overflow-hidden bg-black aspect-[9/16] sm:aspect-video border border-[#e5e7eb]">
             <video
               ref={playbackVideoRef}
               src={previewUrl ?? undefined}
@@ -335,9 +341,16 @@ export function VideoRecorder({
           </div>
 
           {isTooShort(recSeconds) && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-[#b91c1c]">
-              El video dura {recSeconds}s. Debe durar al menos {MIN_RECORDING_SECONDS} segundos: vuelve a grabar.
-            </p>
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs text-amber-800">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <path d="M12 9v4M12 17h.01" />
+              </svg>
+              <span>
+                Muy corto: dura <strong>{recSeconds}s</strong> y el mínimo son{' '}
+                <strong>{MIN_RECORDING_SECONDS} segundos</strong>. Vuelve a grabar.
+              </span>
+            </div>
           )}
           <div className="flex gap-3">
             <button
