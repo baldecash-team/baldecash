@@ -50,7 +50,9 @@ export function TuOfertaTab({
               monthly={req.monthly_price}
               maxQuota={offer.maxMonthlyQuota}
               termMonths={24}
-              href={detailHref(token, req.slug)}
+              // Sin href: la card "el que pediste" es SOLO informativa. El equipo
+              // que pidió no se puede elegir ni abrir su detalle desde aquí (la
+              // oferta existe porque no calificaba). Solo elige del catálogo/recomendado.
             />
           ) : (
             <p className="text-sm text-gray-400">—</p>

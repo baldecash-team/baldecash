@@ -84,6 +84,16 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       try {
         const offer = await getOffer(token); // valida token + da landing_slug
         const landing = offer.landingSlug || 'home';
+
+        // El equipo que el estudiante PIDIÓ no se puede elegir desde la oferta
+        // (la oferta existe porque no calificaba). Si alguien abre su detalle a
+        // mano (URL directa), lo devolvemos a la página principal de la oferta.
+        const reqSlug = offer.requestedProduct?.slug;
+        if (reqSlug && reqSlug === slug) {
+          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
+          return;
+        }
+
         const detail = await fetchProductDetail(landing, slug);
         if (!active) return;
         if (!detail) {

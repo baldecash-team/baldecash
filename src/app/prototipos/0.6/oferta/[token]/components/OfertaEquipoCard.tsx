@@ -201,9 +201,10 @@ export function OfertaEquipoCard({
               </div>
             </div>
           ) : (
-            // Card "pediste": "Ver detalle" solo si el equipo SÍ entra en la cuota.
-            // Si está atenuado (no entra), no ofrecemos entrar a su detalle.
-            !atenuado && href ? (
+            // Card "pediste": SOLO informativa. No se puede elegir ni abrir su
+            // detalle (la oferta existe porque no calificaba). El botón solo
+            // aparece si se pasa `href`, cosa que la oferta ya no hace.
+            href ? (
               <a
                 href={href}
                 className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
