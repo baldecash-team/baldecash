@@ -13,6 +13,7 @@ import { requestUploadUrl, confirmUpload, completeLink } from '../_lib/api/links
 import { uploadFile } from '../_lib/upload';
 import { admissionEvents } from '../_lib/events';
 import { friendlyError } from '../_lib/errors';
+import { loadProgress, saveProgress, clearProgress } from '../_lib/videoProgress';
 
 type FlowState = 'intro' | 'capture' | 'uploading' | 'completing' | 'confirmed';
 
@@ -103,10 +104,27 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
     setState(next);
   }
 
+  // Reanudación con ventana de 10 min: si hay avance vigente para este token,
+  // retomamos en esa pregunta tras el gate de ubicación del intro (no antes:
+  // la ubicación se reconfirma cada sesión). El índice se resuelve en el mount.
+  const resumeIndexRef = useRef(0);
+  const resumedRef = useRef(false);
+
   useEffect(() => {
     events.stageEnter('intro');
+    const saved = loadProgress(token);
+    if (saved && saved.index > 0 && saved.index < total) {
+      resumeIndexRef.current = saved.index;
+      resumedRef.current = true;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function handleStart(c: { latitude: number; longitude: number; accuracy_m?: number }) {
+    setCoords(c);
+    setIndex(resumeIndexRef.current);
+    goStage('capture');
+  }
 
   async function handleCaptured(file: File) {
     const i = index;
@@ -145,6 +163,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
       const nextIndex = i + 1;
 
       if (nextIndex < total) {
+        saveProgress(token, nextIndex);
         setIndex(nextIndex);
         setProgress(0);
         goStage('capture');
@@ -160,6 +179,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
           goStage('capture');
           return;
         }
+        clearProgress(token);
         goStage('confirmed');
         events.completed();
         onDone?.();
@@ -174,7 +194,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
     <PhoneFrame>
       {/* ── intro ────────────────────────────────────────────────────────── */}
       {state === 'intro' && (
-        <VideoIntro applicantName={applicantName} onStart={(c) => { setCoords(c); goStage('capture'); }} />
+        <VideoIntro applicantName={applicantName} onStart={handleStart} />
       )}
 
       {/* ── capture ──────────────────────────────────────────────────────── */}
