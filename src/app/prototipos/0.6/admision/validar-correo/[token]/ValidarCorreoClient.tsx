@@ -61,6 +61,17 @@ export function ValidarCorreoClient({ token }: { token: string }) {
     };
   }, [token]);
 
+  // Pantalla de OTP: "solo la parte blanca" — la tarjeta blanca limpia, sin el
+  // chrome de AdmisionLayout (panel de marca azul) ni PhoneFrame. Consistente con
+  // el gate inline full-screen (`…/solicitar/verificacion`).
+  if (page.status === 'valid') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8 overflow-y-auto">
+        <OtpScreen token={page.token} initialVerified={page.initialVerified} />
+      </div>
+    );
+  }
+
   return (
     <AdmisionLayout>
       {page.status === 'loading' && <LinkLoading />}
@@ -71,10 +82,6 @@ export function ValidarCorreoClient({ token }: { token: string }) {
           consumedTitle="¡Correo confirmado!"
           consumedMessage="Ya validaste tu correo, no necesitas hacer nada más."
         />
-      )}
-
-      {page.status === 'valid' && (
-        <OtpScreen token={page.token} initialVerified={page.initialVerified} />
       )}
     </AdmisionLayout>
   );

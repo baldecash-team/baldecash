@@ -35,7 +35,6 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
-import { OtpGate } from '../components/solicitar/otp/OtpGate';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -70,7 +69,7 @@ function ComplementosContent() {
   }, []);
 
   // Submit application hook
-  const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded, error: submitError, otpGate, proceedAfterOtp } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded, error: submitError } = useSubmitApplication({
     onToast: showToast,
   });
   const isProductDisabled = submitError?.includes('ya no están disponibles') ?? false;
@@ -401,13 +400,6 @@ function ComplementosContent() {
         {pageContent}
         <SelectedProductSpacer />
         <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
-        {otpGate && (
-          <OtpGate
-            applicationId={otpGate.applicationId}
-            documentNumber={otpGate.documentNumber}
-            onConfirmed={proceedAfterOtp}
-          />
-        )}
         {toast && (
           <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
         )}
@@ -436,15 +428,6 @@ function ComplementosContent() {
 
       {/* Submit progress overlay */}
       <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
-
-      {/* OTP full-screen gate — se muestra tras el submit y antes del resumen */}
-      {otpGate && (
-        <OtpGate
-          applicationId={otpGate.applicationId}
-          documentNumber={otpGate.documentNumber}
-          onConfirmed={proceedAfterOtp}
-        />
-      )}
 
       {/* Toast notifications */}
       {toast && (
