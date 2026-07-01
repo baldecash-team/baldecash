@@ -18,7 +18,10 @@ export type FacingMode = 'user' | 'environment';
 /** Heurística de dispositivo móvil (para ofrecer el cambio de cámara). */
 export function detectMobile(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+  // iPadOS 13+ se reporta como "Macintosh"; detectar por soporte táctil.
+  return /Macintosh/.test(ua) && typeof document !== 'undefined' && 'ontouchend' in document;
 }
 
 export function pickRecorderMime(): string {
@@ -42,6 +45,8 @@ export interface RecorderState {
   facingMode: FacingMode;
   /** true en móviles → se ofrece cambiar de cámara. */
   isMobile: boolean;
+  /** true si hay >1 cámara (o es móvil) → se muestra el botón de cambio. */
+  canSwitchCamera: boolean;
 }
 
 export interface RecorderActions {
@@ -77,6 +82,7 @@ export function useRecorder(): UseRecorderReturn {
   const [playing, setPlaying] = useState(false);
   const [facingMode, setFacingMode] = useState<FacingMode>('user');
   const [isMobile, setIsMobile] = useState(false);
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
 
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const playbackVideoRef = useRef<HTMLVideoElement>(null);
@@ -99,10 +105,14 @@ export function useRecorder(): UseRecorderReturn {
     previewUrlRef.current = previewUrl;
   }, [previewUrl]);
 
+  // Reasignar el srcObject cada vez que se (re)monta la vista en vivo — no solo
+  // cuando cambia `stream`. Al re-grabar, `stream` se mantiene pero el <video>
+  // se desmonta/remonta, así que sin `previewBlob`/`requesting` en las deps el
+  // elemento nuevo quedaba sin feed (cuadro sólido negro).
   useEffect(() => {
     const el = liveVideoRef.current;
     if (el) el.srcObject = stream ?? null;
-  }, [stream]);
+  }, [stream, previewBlob, requesting]);
 
   useEffect(() => {
     return () => {
@@ -147,6 +157,15 @@ export function useRecorder(): UseRecorderReturn {
         }
         setStreamState(s);
         streamRef.current = s;
+        // Detectar si hay más de una cámara para ofrecer el cambio (más fiable
+        // que el user-agent). En móvil, aunque enumere 1, se permite por facingMode.
+        try {
+          const devs = await navigator.mediaDevices.enumerateDevices();
+          const cams = devs.filter((d) => d.kind === 'videoinput').length;
+          setCanSwitchCamera(cams >= 2 || detectMobile());
+        } catch {
+          setCanSwitchCamera(detectMobile());
+        }
       } finally {
         setRequesting(false);
       }
@@ -275,6 +294,7 @@ export function useRecorder(): UseRecorderReturn {
     playing,
     facingMode,
     isMobile,
+    canSwitchCamera,
     requestCamera,
     startRecording,
     stopRecording,

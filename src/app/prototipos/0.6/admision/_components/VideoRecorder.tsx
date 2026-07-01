@@ -59,7 +59,7 @@ export function VideoRecorder({
     resetForNext,
     switchCamera,
     facingMode,
-    isMobile,
+    canSwitchCamera,
     getFile,
     setPlaying,
     liveVideoRef,
@@ -255,7 +255,7 @@ export function VideoRecorder({
                   <span className="w-6 h-6 rounded-full bg-white" />
                 </button>
                 <span className="text-[#6b7280] text-xs font-medium">Toca el círculo para grabar</span>
-                {isMobile && (
+                {canSwitchCamera && (
                   <button
                     type="button"
                     onClick={switchCamera}
