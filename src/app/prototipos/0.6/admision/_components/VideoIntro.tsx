@@ -64,9 +64,9 @@ export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Co
       </div>
 
       {/* Card llamativo: requisitos bloqueantes */}
-      <div className="rounded-2xl border-2 border-violet-300 bg-violet-50 p-4">
-        <p className="flex items-center gap-2 font-bold text-violet-900">📍 Antes de empezar</p>
-        <ul className="mt-2 space-y-2 text-sm text-violet-900">
+      <div className="rounded-2xl border-2 border-[#4654CD]/30 bg-[#ECECFB] p-4">
+        <p className="flex items-center gap-2 font-bold text-[#4654CD]">📍 Antes de empezar</p>
+        <ul className="mt-2 space-y-2 text-sm text-[#1f2937]">
           <li className="flex gap-2"><span>🏢</span><span>Debes estar <strong>en tu lugar de trabajo</strong>.</span></li>
           <li className="flex gap-2"><span>📡</span><span>Acepta <strong>compartir tu ubicación</strong>: es obligatorio para iniciar.</span></li>
         </ul>
@@ -82,7 +82,7 @@ export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Co
         type="button"
         onClick={handleStart}
         disabled={locating}
-        className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white disabled:opacity-60"
+        className="w-full rounded-xl bg-[#4654CD] px-4 py-3 font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
       >
         {locating ? 'Obteniendo ubicación…' : 'Permitir ubicación y comenzar'}
       </button>
