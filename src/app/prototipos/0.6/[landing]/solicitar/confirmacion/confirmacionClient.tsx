@@ -719,6 +719,7 @@ function GamerConfirmacionWrapper({ children, footerData }: { children: React.Re
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
+          promoBannerData={navbarProps?.promoBannerData}
         />
         <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
           {children}

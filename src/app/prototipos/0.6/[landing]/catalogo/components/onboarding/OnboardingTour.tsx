@@ -23,6 +23,7 @@ interface OnboardingTourProps {
   highlightStyle: OnboardingHighlightStyle;
   isHelpOnlyMode?: boolean;
   theme?: 'gamer';
+  isDark?: boolean;
   onNext: () => void;
   onPrev: () => void;
   onSkip: () => void;
@@ -45,6 +46,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   highlightStyle,
   isHelpOnlyMode = false,
   theme,
+  isDark = true,
   onNext,
   onPrev,
   onSkip,
@@ -185,9 +187,15 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === totalSteps - 1;
 
-  // Gamer palette (only used when theme="gamer")
-  const gamerCyan = '#00ffd5';
-  const gamerPurple = '#6366f1';
+  // Gamer palette (only used when theme="gamer") — adapts to dark/light
+  const gamerCyan = isDark ? '#00ffd5' : '#00897a';
+  const gamerPurple = isDark ? '#6366f1' : '#4f46e5';
+  const gamerBg = isDark ? '#1a1a1a' : '#ffffff';
+  const gamerBorder = isDark ? '#2a2a2a' : '#e0e0e0';
+  const gamerTextPrimary = isDark ? '#f0f0f0' : '#1a1a1a';
+  const gamerTextMuted = isDark ? '#a0a0a0' : '#666666';
+  const gamerTextFaint = isDark ? '#707070' : '#999999';
+  const gamerDotInactive = isDark ? '#333' : '#d0d0d0';
 
   // Calculate tooltip position
   const getTooltipPosition = () => {
@@ -351,8 +359,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
               ...tooltipStyle,
               width: isMobile ? 'calc(100vw - 32px)' : (isGamer ? 340 : 320),
               maxWidth: isMobile ? 'calc(100vw - 32px)' : (isGamer ? 340 : 320),
-              background: isGamer ? '#1a1a1a' : 'var(--surface, #fff)',
-              border: isGamer ? '1px solid #2a2a2a' : '1px solid var(--border-soft, #e5e7eb)',
+              background: isGamer ? gamerBg : 'var(--surface, #fff)',
+              border: isGamer ? `1px solid ${gamerBorder}` : '1px solid var(--border-soft, #e5e7eb)',
               borderRadius: 16,
               padding: 'clamp(16px, 4vw, 20px)',
               boxShadow: isGamer
@@ -380,12 +388,12 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                 position: 'absolute', top: 12, right: 12,
                 width: 28, height: 28, borderRadius: 8,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'none', border: '1px solid #2a2a2a',
-                color: '#707070', cursor: 'pointer',
+                background: 'none', border: `1px solid ${gamerBorder}`,
+                color: gamerTextFaint, cursor: 'pointer',
               } : undefined}
               className={isGamer ? '' : 'absolute top-3 right-3 p-1.5 rounded-lg hover:bg-[var(--surface-2,#f3f4f6)] transition-colors cursor-pointer'}
             >
-              <X className="w-3.5 h-3.5" style={isGamer ? { color: '#707070' } : { color: 'var(--text-faint, #9ca3af)' }} />
+              <X className="w-3.5 h-3.5" style={isGamer ? { color: gamerTextFaint } : { color: 'var(--text-faint, #9ca3af)' }} />
             </button>
 
             {/* Step indicator - hidden in help only mode */}
@@ -416,10 +424,10 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             {/* Content */}
             {isGamer ? (
               <>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#f0f0f0', margin: '0 0 8px', paddingRight: 24 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: gamerTextPrimary, margin: '0 0 8px', paddingRight: 24 }}>
                   {currentStep.title}
                 </h3>
-                <p style={{ fontSize: 14, lineHeight: 1.5, color: '#a0a0a0', margin: '0 0 20px' }}>
+                <p style={{ fontSize: 14, lineHeight: 1.5, color: gamerTextMuted, margin: '0 0 20px' }}>
                   {currentStep.description}
                 </p>
               </>
@@ -445,7 +453,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                     style={isGamer ? {
                       height: 4, borderRadius: 4, transition: 'all 0.3s',
                       width: idx === currentStepIndex ? 20 : 4,
-                      background: idx === currentStepIndex ? gamerCyan : idx < currentStepIndex ? `${gamerCyan}80` : '#333',
+                      background: idx === currentStepIndex ? gamerCyan : idx < currentStepIndex ? `${gamerCyan}80` : gamerDotInactive,
                     } : undefined}
                     className={isGamer ? '' : `h-1.5 rounded-full transition-all ${
                       idx === currentStepIndex
@@ -468,8 +476,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '8px 14px', borderRadius: 10,
-                    background: 'none', border: `1px solid ${isFirstStep ? '#333' : '#2a2a2a'}`,
-                    color: isFirstStep ? '#707070' : '#a0a0a0',
+                    background: 'none', border: `1px solid ${isFirstStep ? gamerDotInactive : gamerBorder}`,
+                    color: isFirstStep ? gamerTextFaint : gamerTextMuted,
                     fontSize: 13, fontWeight: 600, fontFamily: "'Rajdhani', sans-serif",
                     cursor: isFirstStep ? 'not-allowed' : 'pointer',
                     opacity: isFirstStep ? 0.4 : 1,
@@ -527,7 +535,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                   style={{
                     display: 'block', width: '100%', marginTop: 10,
                     background: 'none', border: 'none',
-                    fontSize: 11, color: '#707070', fontFamily: "'Rajdhani', sans-serif",
+                    fontSize: 11, color: gamerTextFaint, fontFamily: "'Rajdhani', sans-serif",
                     cursor: 'pointer', textAlign: 'center',
                   }}
                 >

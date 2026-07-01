@@ -545,7 +545,7 @@ export function GamerSolicitarContent() {
       `}</style>
 
       {/* NAVBAR */}
-      <Navbar theme="gamer" gamerTheme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} />
+      <Navbar theme="gamer" gamerTheme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} promoBannerData={navbarProps?.promoBannerData} />
 
       {/* MAIN */}
       <main style={{ maxWidth: 896, margin: '0 auto', padding: '56px 16px 80px' }}>

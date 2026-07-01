@@ -69,8 +69,8 @@ export function GamerHelpButton({ isDark, T, onOpenChat, onStartTour, hasQuiz, o
                 cursor: 'pointer', textAlign: 'left',
               }}
             >
-              <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,255,213,0.08)', flexShrink: 0 }}>
-                <MessageSquare size={20} style={{ color: '#00ffd5' }} />
+              <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', flexShrink: 0 }}>
+                <MessageSquare size={20} style={{ color: neonCyan }} />
               </div>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: textPrimary, margin: 0 }}>Habla con nosotros</p>
