@@ -41,9 +41,15 @@ export function TuOfertaTab({
           {req ? (
             <OfertaEquipoCard
               variant="pedido"
-              fits={false}
+              // "Entra" si su cuota a 24m/0% no supera la cuota aprobada.
+              fits={
+                req.monthly_price != null && req.monthly_price <= offer.maxMonthlyQuota
+              }
               name={req.name ?? 'Tu equipo'}
               imageUrl={req.image_url}
+              monthly={req.monthly_price}
+              maxQuota={offer.maxMonthlyQuota}
+              termMonths={24}
               href={detailHref(token, req.slug)}
             />
           ) : (

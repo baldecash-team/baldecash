@@ -46,6 +46,9 @@ export interface RequestedProduct {
   name: string | null;
   slug: string | null;
   image_url: string | null;
+  /** Cuota del equipo pedido a 24m/0%; null si no aplica. Sirve para comparar
+   *  contra la cuota aprobada ("supera tu cuota" o "sí entra"). */
+  monthly_price: number | null;
 }
 
 export interface SelectedEquipment {

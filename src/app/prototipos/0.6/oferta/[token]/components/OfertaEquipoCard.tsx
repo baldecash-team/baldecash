@@ -10,7 +10,7 @@
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Eye, ArrowRight, AlertTriangle } from 'lucide-react';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
@@ -22,8 +22,10 @@ export interface OfertaEquipoCardProps {
   name: string;
   /** Imagen principal. */
   imageUrl?: string | null;
-  /** Cuota mensual (solo en "aprobado"; en "pediste" no entra → undefined). */
+  /** Cuota mensual del equipo (aprobado o pedido) a 24m/0%. */
   monthly?: number | null;
+  /** Cuota máxima aprobada del estudiante (para comparar en "pedido"). */
+  maxQuota?: number | null;
   /** Plazo en meses (para el subtexto "en X meses · sin inicial"). */
   termMonths?: number | null;
   /** 'aprobado' = destacado con tag verde + 3 CTAs. 'pedido' = atenuado, solo ver detalle. */
@@ -40,6 +42,7 @@ export function OfertaEquipoCard({
   name,
   imageUrl,
   monthly,
+  maxQuota,
   termMonths,
   variant,
   fits = true,
@@ -131,8 +134,36 @@ export function OfertaEquipoCard({
             </p>
           </div>
         ) : null}
-        {atenuado ? (
-          <p className="mt-3 text-sm text-gray-400">No disponible para tu cuota aprobada.</p>
+        {/* Pedido: comparación de cuota vs cuota aprobada (número concreto). */}
+        {!isAprobado ? (
+          <div className="mt-4">
+            {monthly ? (
+              <>
+                <p className="text-xs text-gray-400">Cuota de este equipo</p>
+                <p
+                  className={`text-2xl font-extrabold ${atenuado ? 'text-gray-400' : 'text-[var(--text-strong,#111827)]'}`}
+                >
+                  S/{Math.round(monthly)}
+                  <span className="text-base font-normal text-gray-400">/mes</span>
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  en {termMonths ?? 24} meses · sin inicial
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400">Cuota no disponible.</p>
+            )}
+
+            {/* Aviso cuando no entra en la cuota aprobada (sin exponer el monto tope). */}
+            {atenuado ? (
+              <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <p className="text-xs text-amber-700">
+                  Supera tu cuota aprobada. Por eso te preparamos las opciones de abajo.
+                </p>
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {/* CTAs */}
@@ -170,8 +201,9 @@ export function OfertaEquipoCard({
               </div>
             </div>
           ) : (
-            // Card "pediste": solo "Ver detalle" (cuando no entra no hay "Aceptar")
-            href ? (
+            // Card "pediste": "Ver detalle" solo si el equipo SÍ entra en la cuota.
+            // Si está atenuado (no entra), no ofrecemos entrar a su detalle.
+            !atenuado && href ? (
               <a
                 href={href}
                 className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
