@@ -90,7 +90,13 @@ export interface OfferCatalogFilters {
   gamas?: string[];
   usages?: string[];
   labels?: string[];
+  conditions?: string[];
   minQuota?: number;
+  maxQuota?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  /** Specs técnicos: {"ram":[8,16],"touch_screen":[true],...} → se envía como JSON. */
+  specs?: Record<string, (string | number | boolean)[]>;
   sortBy?: string;
 }
 
@@ -171,7 +177,14 @@ export async function getCatalog(
   if (filters.gamas?.length) params.set('gamas', filters.gamas.join(','));
   if (filters.usages?.length) params.set('usages', filters.usages.join(','));
   if (filters.labels?.length) params.set('labels', filters.labels.join(','));
+  if (filters.conditions?.length) params.set('conditions', filters.conditions.join(','));
   if (filters.minQuota != null) params.set('min_quota', String(filters.minQuota));
+  if (filters.maxQuota != null) params.set('max_quota', String(filters.maxQuota));
+  if (filters.minPrice != null) params.set('min_price', String(filters.minPrice));
+  if (filters.maxPrice != null) params.set('max_price', String(filters.maxPrice));
+  if (filters.specs && Object.keys(filters.specs).length > 0) {
+    params.set('specs', JSON.stringify(filters.specs));
+  }
   if (filters.sortBy) params.set('sort_by', filters.sortBy);
 
   const qs = params.toString();
