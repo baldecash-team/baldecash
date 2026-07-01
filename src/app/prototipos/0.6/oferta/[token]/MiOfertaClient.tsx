@@ -22,6 +22,7 @@ import {
 } from '../../services/offerApi';
 import { Navbar } from '../../components/hero/Navbar';
 import { OfertaBannerAprobada } from './components/OfertaBannerAprobada';
+import { UpsellPortada } from './components/UpsellPortada';
 import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
@@ -117,6 +118,36 @@ export function MiOfertaClient({ token }: { token: string }) {
     });
   }, []);
 
+  // Caso 5: aceptar la oferta exclusiva → registra la selección directamente
+  // (sin modal; ya es "la" oferta) y muestra la confirmación.
+  const handleSelectExclusive = useCallback(
+    async (variantId: number | null) => {
+      const offer = state.kind === 'ready' ? state.offer : null;
+      const ex = offer?.exclusiveOffer;
+      if (variantId == null || !ex) return;
+      try {
+        await selectEquipment(token, variantId);
+        setSelected({
+          name: ex.name ?? 'Tu equipo',
+          brand: ex.brand ?? undefined,
+          imageUrl: ex.imageUrl ?? undefined,
+          monthly: ex.combinedMonthly,
+          termMonths: ex.termMonths,
+          offerCode: offer?.applicationCode ?? offer?.offerCode,
+          userName: offer?.clientName ?? undefined,
+          previous: offer?.requestedProduct
+            ? { name: offer.requestedProduct.name ?? 'Tu equipo', imageUrl: offer.requestedProduct.image_url ?? undefined }
+            : null,
+        });
+      } catch (err) {
+        const reason = err instanceof OfferApiError ? err.reason : 'unknown';
+        const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
+        setState({ kind: 'error', reason, message });
+      }
+    },
+    [state, token],
+  );
+
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
     const variantId = pending.product.variantId ? Number(pending.product.variantId) : null;
@@ -199,8 +230,17 @@ export function MiOfertaClient({ token }: { token: string }) {
       {/* Banner de felicitaciones (reemplaza al countdown) */}
       <OfertaBannerAprobada clientName={offer.clientName} />
 
-      {/* Sección destacada: el que pediste + aprobado para ti */}
-      <TuOfertaTab token={token} offer={offer} onVerCatalogo={scrollToCatalogo} onSelect={handleSelect} />
+      {/* Sección destacada. Caso 5 (upsell) → portada TU EQUIPO vs OFERTA
+          EXCLUSIVA. Caso 4 (downgrade) → el que pediste + aprobado para ti. */}
+      {offer.offerCase === 'upsell' ? (
+        <UpsellPortada
+          offer={offer}
+          onAceptar={() => offer.exclusiveOffer && handleSelectExclusive(offer.exclusiveOffer.variantId)}
+          onVerCatalogo={scrollToCatalogo}
+        />
+      ) : (
+        <TuOfertaTab token={token} offer={offer} onVerCatalogo={scrollToCatalogo} onSelect={handleSelect} />
+      )}
 
       {/* Catálogo completo (siempre visible debajo) */}
       <div ref={catalogoRef}>

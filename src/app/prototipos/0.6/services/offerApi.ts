@@ -61,6 +61,29 @@ export interface SelectedEquipment {
   termMonths: number | null;
 }
 
+/** Accesorio de la oferta exclusiva (perfil B del upsell). */
+export interface UpsellAccessory {
+  product_id: number;
+  name: string;
+  price: number;
+  monthly: number;
+  terms: number;
+}
+
+/** La oferta exclusiva del Caso 5 (equipo recomendado + accesorio si aplica). */
+export interface ExclusiveOffer {
+  productId: number;
+  variantId: number | null;
+  name: string | null;
+  slug: string | null;
+  brand: string | null;
+  imageUrl: string | null;
+  monthlyPrice: number;
+  combinedMonthly: number;
+  termMonths: number;
+  accessory: UpsellAccessory | null;
+}
+
 export interface OfferView {
   offerCode: string;
   maxMonthlyQuota: number;
@@ -75,6 +98,12 @@ export interface OfferView {
   /** Código de la solicitud y nombre del estudiante (de la BD). */
   applicationCode?: string | null;
   clientName?: string | null;
+  /** Caso 5 (upsell): 'upsell' cuando el token es de esa oferta. */
+  offerCase?: 'downgrade' | 'upsell';
+  /** Perfil de la oferta exclusiva (A/B/C) — solo upsell. */
+  profile?: string | null;
+  /** La oferta exclusiva — solo upsell. */
+  exclusiveOffer?: ExclusiveOffer | null;
 }
 
 export interface OfferCatalog {
@@ -121,6 +150,39 @@ export async function getOffer(token: string): Promise<OfferView> {
   });
   if (!res.ok) throw await parseError(res);
   const data = await res.json();
+
+  // Caso 5 (upsell): el backend devuelve case='upsell' con la oferta exclusiva.
+  if (data.case === 'upsell') {
+    const ex = data.exclusive_offer ?? null;
+    const acc = ex?.accessory ?? null;
+    return {
+      offerCode: data.offer_code,
+      maxMonthlyQuota: data.max_monthly_quota ?? 0,
+      expiresAt: null,
+      landingSlug: data.landing_slug ?? null,
+      requestedProduct: data.current_product ?? null,
+      recommended: null,
+      alternativesCount: 0,
+      applicationCode: data.application_code ?? null,
+      clientName: data.client_name ?? null,
+      offerCase: 'upsell',
+      profile: data.profile ?? null,
+      exclusiveOffer: ex
+        ? {
+            productId: ex.product_id,
+            variantId: ex.variant_id ?? null,
+            name: ex.name ?? null,
+            slug: ex.slug ?? null,
+            brand: ex.brand ?? null,
+            imageUrl: ex.image_url ?? null,
+            monthlyPrice: ex.monthly_price ?? 0,
+            combinedMonthly: ex.combined_monthly ?? ex.monthly_price ?? 0,
+            termMonths: ex.term_months ?? 24,
+            accessory: acc,
+          }
+        : null,
+    };
+  }
 
   // Link ya consumido con selección → el backend devuelve already_selected.
   if (data.already_selected) {
