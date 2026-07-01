@@ -84,13 +84,22 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       try {
         const offer = await getOffer(token); // valida token + da landing_slug
         const landing = offer.landingSlug || 'home';
+        const backHref = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
+
+        // Oferta ya consumida (el estudiante ya eligió su equipo): el detalle no
+        // debe seguir funcionando. Lo devolvemos a la página principal, que muestra
+        // la confirmación del equipo elegido.
+        if (offer.alreadySelected) {
+          window.location.href = backHref;
+          return;
+        }
 
         // El equipo que el estudiante PIDIÓ no se puede elegir desde la oferta
         // (la oferta existe porque no calificaba). Si alguien abre su detalle a
         // mano (URL directa), lo devolvemos a la página principal de la oferta.
         const reqSlug = offer.requestedProduct?.slug;
         if (reqSlug && reqSlug === slug) {
-          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
+          window.location.href = backHref;
           return;
         }
 
