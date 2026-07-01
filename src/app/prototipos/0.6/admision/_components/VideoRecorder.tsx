@@ -6,6 +6,7 @@ import { cameraErrorMessage } from '../_lib/cameraError';
 import { useRecorder } from '../_hooks/useRecorder';
 import { ExampleModal, type VideoExample } from './ExampleModal';
 import { AdvisorButton } from './AdvisorButton';
+import type { AdmissionEvents } from '../_lib/events';
 
 function formatSeconds(s: number): string {
   const mm = String(Math.floor(s / 60)).padStart(2, '0');
@@ -26,6 +27,8 @@ export interface VideoRecorderProps {
   autoStart?: boolean;
   /** Se llama cuando la cámara queda lista (permiso concedido). */
   onCameraReady?: () => void;
+  /** Emisor de eventos de tracking del funnel (opcional). */
+  events?: AdmissionEvents;
 }
 
 export function VideoRecorder({
@@ -37,6 +40,7 @@ export function VideoRecorder({
   example,
   autoStart,
   onCameraReady,
+  events,
 }: VideoRecorderProps) {
   const {
     canRecord,
@@ -63,10 +67,16 @@ export function VideoRecorder({
   async function handleRequestCamera() {
     setPermissionDenied(false);
     onError?.(null); // limpia cualquier error previo (un solo error a la vez)
+    events?.track('video_permission_camera_requested', { question_index: index });
     try {
       await requestCamera();
+      events?.track('video_permission_camera_granted', { question_index: index });
       onCameraReady?.();
     } catch (err) {
+      events?.track('video_permission_camera_denied', {
+        question_index: index,
+        error_type: (err as { name?: string } | null)?.name ?? 'unknown',
+      });
       onError?.(cameraErrorMessage(err), { icon: 'camera' });
       setPermissionDenied(true);
     }
@@ -97,6 +107,26 @@ export function VideoRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoStart]);
 
+  // Dispositivo/navegador sin soporte de grabación → pantalla bloqueante.
+  const unsupportedTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!canRecord && !unsupportedTrackedRef.current) {
+      unsupportedTrackedRef.current = true;
+      events?.track('video_device_unsupported', { question_index: index });
+    }
+  }, [canRecord, events, index]);
+
+  // Preview del clip visible → una emisión por clip grabado.
+  const previewTrackedRef = useRef(false);
+  useEffect(() => {
+    if (previewBlob && !previewTrackedRef.current) {
+      previewTrackedRef.current = true;
+      events?.track('video_clip_preview_shown', { question_index: index });
+    } else if (!previewBlob) {
+      previewTrackedRef.current = false;
+    }
+  }, [previewBlob, events, index]);
+
   function handleUseVideo() {
     if (!previewBlob) return;
     const baseMime = baseContentType(previewBlob.type || 'video/webm');
@@ -106,6 +136,7 @@ export function VideoRecorder({
     }
     const file = getFile(index);
     if (!file) return;
+    events?.track('video_clip_accepted', { question_index: index });
     // Deja el stream abierto: si el flujo vuelve a "capture" para otra pregunta,
     // se reutiliza la cámara sin volver a pedir permiso. El stream se cierra en
     // el cleanup del hook al desmontar (al salir de la etapa de captura).
@@ -149,7 +180,10 @@ export function VideoRecorder({
           <button
             type="button"
             className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors cursor-pointer"
-            onClick={() => setShowExample(true)}
+            onClick={() => {
+              events?.track('video_example_opened', { question_index: index });
+              setShowExample(true);
+            }}
           >
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
@@ -201,7 +235,10 @@ export function VideoRecorder({
                 <button
                   aria-label="Iniciar grabación"
                   className="w-16 h-16 rounded-full bg-[#ef4444] ring-4 ring-[#ef4444]/25 hover:ring-[#ef4444]/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg cursor-pointer"
-                  onClick={startRecording}
+                  onClick={() => {
+                    events?.track('video_recording_started', { question_index: index });
+                    startRecording();
+                  }}
                 >
                   <span className="w-6 h-6 rounded-full bg-white" />
                 </button>
@@ -212,7 +249,10 @@ export function VideoRecorder({
                 <button
                   aria-label="Detener grabación"
                   className="w-16 h-16 rounded-full bg-[#6b7280] ring-4 ring-[#6b7280]/25 hover:ring-[#6b7280]/40 active:scale-95 transition-all flex items-center justify-center shadow-lg cursor-pointer"
-                  onClick={stopRecording}
+                  onClick={() => {
+                    events?.track('video_recording_stopped', { question_index: index, duration_sec: recSeconds });
+                    stopRecording();
+                  }}
                 >
                   <span className="w-6 h-6 rounded-sm bg-white" />
                 </button>
@@ -256,6 +296,7 @@ export function VideoRecorder({
               onClick={async () => {
                 // Reintentos ilimitados sin re-permiso: reutiliza el stream si
                 // sigue abierto; solo re-solicita la cámara si se cerró.
+                events?.track('video_clip_rerecord', { question_index: index });
                 resetForNext();
                 if (!stream) await handleRequestCamera();
               }}

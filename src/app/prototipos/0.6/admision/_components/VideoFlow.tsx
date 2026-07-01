@@ -122,9 +122,27 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
 
   function handleStart(c: { latitude: number; longitude: number; accuracy_m?: number }) {
     setCoords(c);
-    setIndex(resumeIndexRef.current);
+    const idx = resumeIndexRef.current;
+    if (resumedRef.current) events.track('video_session_resumed', { from_index: idx });
+    else events.track('video_session_started');
+    setIndex(idx);
     goStage('capture');
   }
+
+  // Una emisión de `video_question_shown` por cada vez que una pregunta se
+  // muestra en pantalla. Se re-arma al salir de "capture" para volver a emitir
+  // si se regresa (p. ej. tras un error de subida) o al avanzar de pregunta.
+  const questionShownRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (state === 'capture') {
+      if (questionShownRef.current !== index) {
+        questionShownRef.current = index;
+        events.track('video_question_shown', { question_index: index, total_questions: total });
+      }
+    } else {
+      questionShownRef.current = null;
+    }
+  }, [state, index, total, events]);
 
   async function handleCaptured(file: File) {
     const i = index;
@@ -143,6 +161,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
       });
 
       if (!urlResult.ok) {
+        events.track('video_upload_error', { error_type: urlResult.error.reason ?? urlResult.error.code, question_index: i });
         setError({ msg: friendlyError(urlResult.error) });
         goStage('capture');
         return;
@@ -155,6 +174,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
       const confirmResult = await confirmUpload(token, { file_key, document_type_code: code });
 
       if (!confirmResult.ok) {
+        events.track('video_upload_error', { error_type: confirmResult.error.reason ?? confirmResult.error.code, question_index: i });
         setError({ msg: friendlyError(confirmResult.error) });
         goStage('capture');
         return;
@@ -175,16 +195,19 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
           accuracy_m: coords?.accuracy_m,
         });
         if (!completeResult.ok) {
+          events.track('video_completion_error', { error_type: completeResult.error.reason ?? completeResult.error.code });
           setError({ msg: friendlyError(completeResult.error) });
           goStage('capture');
           return;
         }
         clearProgress(token);
         goStage('confirmed');
+        events.track('video_success_shown');
         events.completed();
         onDone?.();
       }
     } catch {
+      events.track('video_upload_error', { error_type: 'exception', question_index: i });
       setError({ msg: 'Ocurrió un error al subir el video. Inténtalo de nuevo.' });
       goStage('capture');
     }
@@ -194,7 +217,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
     <PhoneFrame>
       {/* ── intro ────────────────────────────────────────────────────────── */}
       {state === 'intro' && (
-        <VideoIntro applicantName={applicantName} onStart={handleStart} />
+        <VideoIntro applicantName={applicantName} onStart={handleStart} events={events} />
       )}
 
       {/* ── capture ──────────────────────────────────────────────────────── */}
@@ -218,6 +241,7 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
                 onError={(msg, opts) => setError(msg ? { msg, icon: opts?.icon } : null)}
                 autoStart={cameraGranted}
                 onCameraReady={() => setCameraGranted(true)}
+                events={events}
               />
             );
           })()}

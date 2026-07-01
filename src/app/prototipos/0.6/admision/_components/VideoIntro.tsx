@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import type { AdmissionEvents } from '../_lib/events';
 
 type Coords = { latitude: number; longitude: number; accuracy_m?: number };
 
@@ -9,12 +10,13 @@ const BULLETS = [
   'Lo revisamos y seguimos con tu solicitud.',
 ];
 
-export function VideoIntro({ onStart, applicantName }: { onStart: (c: Coords) => void; applicantName?: string }) {
+export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Coords) => void; applicantName?: string; events?: AdmissionEvents }) {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleStart = () => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
+      events?.track('video_device_unsupported', { reason: 'no_geolocation' });
       setError('Tu navegador no soporta geolocalización. Abre el enlace desde tu celular.');
       return;
     }
@@ -22,6 +24,7 @@ export function VideoIntro({ onStart, applicantName }: { onStart: (c: Coords) =>
     // iOS: invocar getCurrentPosition síncronamente dentro del tap; setState DESPUÉS.
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        events?.track('video_permission_location_granted');
         setLocating(false);
         onStart({
           latitude: pos.coords.latitude,
@@ -30,6 +33,7 @@ export function VideoIntro({ onStart, applicantName }: { onStart: (c: Coords) =>
         });
       },
       (geoError) => {
+        events?.track('video_permission_location_denied', { error_type: String(geoError.code) });
         setLocating(false);
         if (geoError.code === geoError.PERMISSION_DENIED) {
           setError('Necesitamos tu ubicación para empezar. Activa el permiso y vuelve a intentar.');
@@ -43,6 +47,9 @@ export function VideoIntro({ onStart, applicantName }: { onStart: (c: Coords) =>
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
+    // getCurrentPosition ya se invocó de forma síncrona (regla iOS); ahora sí
+    // efectos secundarios: telemetría de "solicitado" y estado de UI.
+    events?.track('video_permission_location_requested');
     setLocating(true);
   };
 
