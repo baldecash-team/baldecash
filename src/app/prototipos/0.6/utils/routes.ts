@@ -62,6 +62,24 @@ export function solicitarConfirmacion(landing: string, code?: string): string {
   return code ? `${base}?code=${code}` : base;
 }
 
+/**
+ * Solicitar verificación de correo (OTP inline): /{landing}/solicitar/verificacion
+ * Lleva `application_id` (obligatorio para enviar/verificar) y opcionalmente el
+ * `code` de la solicitud para navegar al resumen tras confirmar. El DNI viaja
+ * fuera de la URL (sessionStorage) por ser PII.
+ */
+export function solicitarVerificacion(
+  landing: string,
+  params?: { applicationId?: number; code?: string }
+): string {
+  const base = `${BASE_PATH}/${landing}/solicitar/verificacion`;
+  const qs = new URLSearchParams();
+  if (params?.applicationId) qs.set('application_id', String(params.applicationId));
+  if (params?.code) qs.set('code', params.code);
+  const q = qs.toString();
+  return q ? `${base}?${q}` : base;
+}
+
 /** Legal page: /{landing}/legal/{page} */
 export function legal(landing: string, page: string): string {
   return `${BASE_PATH}/${landing}/legal/${page}`;
@@ -134,6 +152,7 @@ export const routes = {
   solicitarStep,
   solicitarComplementos,
   solicitarConfirmacion,
+  solicitarVerificacion,
   legal,
   proximamente,
   preview,

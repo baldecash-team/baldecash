@@ -35,7 +35,6 @@ import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
-import { OtpGate } from '../components/solicitar/otp/OtpGate';
 import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
@@ -141,7 +140,7 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded, otpGate, proceedAfterOtp } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
   });
 
@@ -834,13 +833,6 @@ function StepContent() {
         <GamerWizardWrapper footerData={footerData}>
           {pageContent}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
-          {otpGate && (
-            <OtpGate
-              applicationId={otpGate.applicationId}
-              documentNumber={otpGate.documentNumber}
-              onConfirmed={proceedAfterOtp}
-            />
-          )}
         </GamerWizardWrapper>
       );
     }
@@ -850,14 +842,6 @@ function StepContent() {
         {pageContent}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
-        {/* OTP full-screen gate — tras el submit directo, antes del resumen */}
-        {otpGate && (
-          <OtpGate
-            applicationId={otpGate.applicationId}
-            documentNumber={otpGate.documentNumber}
-            onConfirmed={proceedAfterOtp}
-          />
-        )}
       </>
     );
   }

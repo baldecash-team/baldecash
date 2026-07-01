@@ -18,6 +18,7 @@ import {
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { saveOtpHandoff } from '../utils/otpHandoff';
 
 /**
  * Convert raw term (in payment_frequency units) to calendar months.
@@ -49,19 +50,11 @@ interface SubmitOptions {
   /**
    * Si la landing tiene la sección `otp_verification` habilitada. Cuando es true
    * y el submit crea la solicitud, NO redirigimos directo a la confirmación:
-   * exponemos `otpGate` para que el consumidor muestre la pantalla full-screen
-   * "Valida tu correo" antes del resumen. El flag lo calcula el consumidor con
-   * `useSolicitarFlow` (no se lee aquí para no acoplar el hook a `usePreview`).
+   * navegamos a la ruta dedicada `…/solicitar/verificacion` (OTP inline) antes del
+   * resumen. El flag lo calcula el consumidor con `useSolicitarFlow` (no se lee
+   * aquí para no acoplar el hook a `usePreview`).
    */
   otpEnabled?: boolean;
-}
-
-/** Datos que el consumidor necesita para renderizar el gate de OTP full-screen. */
-export interface OtpGateState {
-  applicationId: number;
-  applicationCode?: string;
-  /** DNI capturado del formulario (best-effort) para prellenar el gate. */
-  documentNumber?: string;
 }
 
 /**
@@ -137,17 +130,6 @@ interface UseSubmitApplicationResult {
    * Whether the submission succeeded (navigating to confirmation)
    */
   submitSucceeded: boolean;
-  /**
-   * Cuando la landing tiene OTP habilitado, tras un submit exitoso este estado
-   * queda seteado para que el consumidor muestre el gate full-screen "Valida tu
-   * correo" antes del resumen. `null` si no aplica.
-   */
-  otpGate: OtpGateState | null;
-  /**
-   * A llamar cuando el gate de OTP se resuelve (verificado u omitido). Navega a
-   * la página de confirmación con el código de la solicitud.
-   */
-  proceedAfterOtp: () => void;
 }
 
 /**
@@ -169,16 +151,7 @@ export function useSubmitApplication(
   const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
   const [error, setError] = useState<string | null>(null);
   const [submitSucceeded, setSubmitSucceeded] = useState(false);
-  const [otpGate, setOtpGate] = useState<OtpGateState | null>(null);
   const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Navega al resumen/confirmación. Se usa directamente cuando no hay OTP y como
-  // callback del gate cuando el correo queda verificado (u omitido).
-  const proceedAfterOtp = useCallback(() => {
-    const code = otpGate?.applicationCode;
-    setOtpGate(null);
-    router.push(routes.solicitarConfirmacion(landing, code));
-  }, [otpGate, router, landing]);
 
   // Bloqueo de navegación durante el envío
   useEffect(() => {
@@ -432,17 +405,24 @@ export function useSubmitApplication(
           succeeded = true;
 
           // Si la landing tiene OTP habilitado y tenemos application_id, NO
-          // redirigimos al resumen todavía: mostramos el gate full-screen
-          // "Valida tu correo". El consumidor lo renderiza y llama
-          // `proceedAfterOtp()` al verificar/omitir.
+          // redirigimos al resumen todavía: navegamos a la ruta dedicada
+          // `…/solicitar/verificacion`. El `application_id` + `code` viajan por la
+          // URL; el DNI (PII) viaja por sessionStorage (handoff) para prellenar el
+          // auto-envío y para el guard de /confirmacion.
           if (otpEnabled && result.application_id) {
-            // Cerrar el overlay de submit; el gate toma el control de la pantalla.
-            setIsSubmitting(false);
-            setOtpGate({
+            saveOtpHandoff(landing, {
               applicationId: result.application_id,
-              applicationCode: result.application_code,
-              documentNumber: capturedDocumentNumber,
+              code: result.application_code,
+              dni: capturedDocumentNumber,
+              verified: false,
             });
+            setIsSubmitting(false);
+            router.push(
+              routes.solicitarVerificacion(landing, {
+                applicationId: result.application_id,
+                code: result.application_code,
+              })
+            );
             return true;
           }
 
@@ -521,7 +501,5 @@ export function useSubmitApplication(
     submitMessage: SUBMIT_STAGE_MESSAGES[submitStage],
     error,
     submitSucceeded,
-    otpGate,
-    proceedAfterOtp,
   };
 }

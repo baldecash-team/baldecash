@@ -21,6 +21,7 @@ import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/them
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { readOtpHandoff } from '../utils/otpHandoff';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
@@ -357,6 +358,25 @@ function ConfirmacionContent() {
 
   // Scroll to top on page load
   useScrollToTop();
+
+  // Guard OTP: si existe un handoff de OTP sin verificar para esta solicitud,
+  // forzar el paso por /verificacion antes de mostrar el estado (cubre refresh o
+  // navegación directa al resumen sin verificar). La sola existencia del handoff
+  // implica que la landing tiene `otp_verification` habilitado — solo se escribe
+  // en ese caso durante el submit —, así que no hace falta re-leer la config aquí
+  // (evita acoplar esta página al PreviewProvider / solicitar-config).
+  useEffect(() => {
+    if (!applicationCode) return;
+    const handoff = readOtpHandoff(landing);
+    if (!handoff || handoff.verified) return;
+    if (handoff.code && handoff.code !== applicationCode) return;
+    router.replace(
+      routes.solicitarVerificacion(landing, {
+        applicationId: handoff.applicationId,
+        code: applicationCode,
+      })
+    );
+  }, [applicationCode, landing, router]);
 
   // Get layout data from context
   const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData } = useLayout();
