@@ -199,6 +199,36 @@ export async function getCatalog(
   };
 }
 
+/** Contadores de filtros calculados sobre el catálogo de la oferta (no la
+ *  landing completa). Uso y specs vienen de la BD real. */
+export interface OfferFilterCounts {
+  typeCounts: Record<string, number>;
+  brandCounts: Record<string, number>; // por NOMBRE de marca
+  conditionCounts: Record<string, number>;
+  labelCounts: Record<string, number>;
+  usageCounts: Record<string, number>;
+  specCounts: Record<string, Record<string, number>>;
+  total: number;
+}
+
+/** GET /public/offer/{token}/filters — contadores coherentes con el catálogo. */
+export async function getOfferFilterCounts(token: string): Promise<OfferFilterCounts> {
+  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/filters`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw await parseError(res);
+  const d = await res.json();
+  return {
+    typeCounts: d.type_counts ?? {},
+    brandCounts: d.brand_counts ?? {},
+    conditionCounts: d.condition_counts ?? {},
+    labelCounts: d.label_counts ?? {},
+    usageCounts: d.usage_counts ?? {},
+    specCounts: d.spec_counts ?? {},
+    total: d.total ?? 0,
+  };
+}
+
 /** POST /public/offer/{token}/select — registra el equipo elegido. */
 export async function selectEquipment(
   token: string,

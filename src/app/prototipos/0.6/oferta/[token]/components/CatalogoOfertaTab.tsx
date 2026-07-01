@@ -23,7 +23,13 @@ import type {
 } from '../../../[landing]/catalogo/types/catalog';
 import { mergeFiltersWithDefaults } from '../../../[landing]/catalogo/utils/queryFilters';
 import { useCatalogFilters } from '../../../[landing]/catalogo/hooks/useCatalogProducts';
-import { getCatalog, type OfferView, type OfferCatalogFilters } from '../../../services/offerApi';
+import {
+  getCatalog,
+  getOfferFilterCounts,
+  type OfferView,
+  type OfferCatalogFilters,
+  type OfferFilterCounts,
+} from '../../../services/offerApi';
 import type { ProductSuggestion } from '../../../services/catalogApi';
 
 // Config de presentación fijo (mismos valores que usa el catálogo v0.6).
@@ -210,22 +216,21 @@ export function CatalogoOfertaTab({
     };
   }, [token, offerFilters]);
 
-  // Universo base para los CONTEOS de filtros: el catálogo acotado por cuota (y
-  // por búsqueda de texto, que sí reduce el universo) pero SIN filtros de marca/
-  // tipo. Así el sidebar mantiene todas las opciones disponibles y el usuario
-  // puede alternar entre marcas/tipos sin que desaparezcan (conteos estables).
-  const [countBase, setCountBase] = useState<CatalogProduct[]>([]);
+  // Contadores de filtros calculados por el BACKEND sobre el catálogo de la
+  // oferta (cuota a 24m/0%, sin el pedido). Incluye Uso y specs con la fuente
+  // real de BD — cosa que no se puede recalcular bien en el frontend (el `usage`
+  // del catálogo es inferido del nombre). Universo estable (sin marca/tipo/etc.)
+  // para poder alternar filtros sin que desaparezcan.
+  const [filterCounts, setFilterCounts] = useState<OfferFilterCounts | null>(null);
   useEffect(() => {
     let active = true;
-    const baseFilters: OfferCatalogFilters = { sortBy: 'price_desc' };
-    if (searchQuery.trim().length >= 2) baseFilters.q = searchQuery.trim();
-    getCatalog(token, baseFilters)
-      .then((res) => active && setCountBase(res.items))
-      .catch(() => active && setCountBase([]));
+    getOfferFilterCounts(token)
+      .then((c) => active && setFilterCounts(c))
+      .catch(() => active && setFilterCounts(null));
     return () => {
       active = false;
     };
-  }, [token, searchQuery]);
+  }, [token]);
 
   // Orden final por CUOTA real (24m/0%) en el cliente, porque el orden por
   // precio de lista del API no coincide con la cuota mostrada. "Recomendados"
@@ -244,41 +249,46 @@ export function CatalogoOfertaTab({
   const visibleItems = items.slice(0, visibleCount);
   const remaining = Math.max(0, items.length - visibleItems.length);
 
-  // Conteos de filtros COHERENTES con el catálogo de oferta: se calculan sobre
-  // los items reales (ya filtrados por cuota a 24m/0% y sin el equipo pedido),
-  // no sobre la landing completa. Reusamos la estructura de `apiFilters` (labels,
-  // logos, specs) pero sobrescribimos cada `count` y ocultamos las opciones en 0.
+  // Conteos de filtros COHERENTES con el catálogo de oferta: vienen del endpoint
+  // /offer/{token}/filters (backend, sobre el mismo universo que el grid). Reusamos
+  // la estructura de `apiFilters` (labels, logos, íconos) pero sobrescribimos cada
+  // `count` con el del backend y ocultamos las opciones en 0. Uso y specs también.
   const offerApiFilters = useMemo(() => {
     if (!apiFilters) return apiFilters;
-    const typeCount = new Map<string, number>();
-    // Marca: el item trae el nombre en minúsculas; lo casamos al id.
-    const brandCountByName = new Map<string, number>();
-    // Destacados (tags→labels por code) y Condición (value ya normalizado).
-    const labelCount = new Map<string, number>();
-    const conditionCount = new Map<string, number>();
-    for (const p of countBase) {
-      if (p.deviceType) typeCount.set(p.deviceType, (typeCount.get(p.deviceType) ?? 0) + 1);
-      const bn = (p.brand || '').trim().toLowerCase();
-      if (bn) brandCountByName.set(bn, (brandCountByName.get(bn) ?? 0) + 1);
-      for (const t of p.tags ?? []) labelCount.set(t, (labelCount.get(t) ?? 0) + 1);
-      if (p.condition) conditionCount.set(p.condition, (conditionCount.get(p.condition) ?? 0) + 1);
-    }
+    if (!filterCounts) return apiFilters; // aún cargando → mostrar como venga
+    const byNameLower = (m: Record<string, number>) => {
+      const out = new Map<string, number>();
+      for (const [k, v] of Object.entries(m)) out.set(k.trim().toLowerCase(), v);
+      return out;
+    };
+    const brandByName = byNameLower(filterCounts.brandCounts);
+
     const types = (apiFilters.types ?? [])
-      .map((t) => ({ ...t, count: typeCount.get(t.value) ?? 0 }))
+      .map((t) => ({ ...t, count: filterCounts.typeCounts[t.value] ?? 0 }))
       .filter((t) => t.count > 0);
     const brands = (apiFilters.brands ?? [])
-      .map((b) => ({ ...b, count: brandCountByName.get((b.name || '').trim().toLowerCase()) ?? 0 }))
+      .map((b) => ({ ...b, count: brandByName.get((b.name || '').trim().toLowerCase()) ?? 0 }))
       .filter((b) => b.count > 0);
     const labels = (apiFilters.labels ?? [])
-      .map((l) => ({ ...l, count: labelCount.get(l.code) ?? 0 }))
+      .map((l) => ({ ...l, count: filterCounts.labelCounts[l.code] ?? 0 }))
       .filter((l) => l.count > 0);
     const conditions = (apiFilters.conditions ?? [])
-      .map((c) => ({ ...c, count: conditionCount.get(c.value) ?? 0 }))
+      .map((c) => ({ ...c, count: filterCounts.conditionCounts[c.value] ?? 0 }))
       .filter((c) => c.count > 0);
-    // specs/usages: dejamos los counts de la landing (recálculo por spec sería
-    // más costoso); el FILTRO sí aplica sobre el catálogo de la oferta.
-    return { ...apiFilters, types, brands, labels, conditions };
-  }, [apiFilters, countBase]);
+    const usages = (apiFilters.usages ?? [])
+      .map((u) => ({ ...u, count: filterCounts.usageCounts[u.value] ?? 0 }))
+      .filter((u) => u.count > 0);
+    // Specs: sobrescribir el count de cada valor con el del backend; ocultar los 0.
+    const specs = { ...(apiFilters.specs ?? {}) };
+    for (const [code, spec] of Object.entries(specs)) {
+      const counts = filterCounts.specCounts[code] ?? {};
+      const values = (spec.values ?? [])
+        .map((v) => ({ ...v, count: counts[String(v.value)] ?? 0 }))
+        .filter((v) => v.count > 0);
+      specs[code] = { ...spec, values };
+    }
+    return { ...apiFilters, types, brands, labels, conditions, usages, specs };
+  }, [apiFilters, filterCounts]);
 
   return (
     <>
