@@ -35,6 +35,7 @@ import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { OtpGate } from '../components/solicitar/otp/OtpGate';
 import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
@@ -131,7 +132,7 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -140,7 +141,7 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded, otpGate, proceedAfterOtp } = useSubmitApplication({
     onToast: showToast,
   });
 
@@ -469,7 +470,7 @@ function StepContent() {
       router.push(routes.solicitarComplementos(landing));
     } else {
       // No more steps and no complementos - submit directly
-      submitApplication({ insuranceId: null });
+      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification') });
     }
   };
 
@@ -556,8 +557,9 @@ function StepContent() {
       router.push(routes.solicitarComplementos(landing));
     } else {
       // No sections after wizard - submit application directly
-      await submitApplication({ insuranceId: null });
+      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification') });
       // The hook handles navigation to confirmation page on success
+      // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
   };
 
@@ -832,6 +834,13 @@ function StepContent() {
         <GamerWizardWrapper footerData={footerData}>
           {pageContent}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          {otpGate && (
+            <OtpGate
+              applicationId={otpGate.applicationId}
+              documentNumber={otpGate.documentNumber}
+              onConfirmed={proceedAfterOtp}
+            />
+          )}
         </GamerWizardWrapper>
       );
     }
@@ -840,6 +849,15 @@ function StepContent() {
       <>
         {pageContent}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        {/* OTP full-screen gate — tras el submit directo, antes del resumen */}
+        {otpGate && (
+          <OtpGate
+            applicationId={otpGate.applicationId}
+            documentNumber={otpGate.documentNumber}
+            onConfirmed={proceedAfterOtp}
+          />
+        )}
       </>
     );
   }

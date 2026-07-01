@@ -12,6 +12,14 @@ import {
 } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
 
+/**
+ * Tipos que NO son secciones inline del flujo /complementos:
+ * - `wizard_steps` lo renderizan las páginas del wizard, no SectionRenderer.
+ * - `otp_verification` es un gate full-screen post-submit (antes del resumen),
+ *   se consume vía `isEnabled('otp_verification')`, no como sección inline.
+ */
+const INLINE_EXCLUDED_SECTIONS: SolicitarSectionType[] = ['wizard_steps', 'otp_verification'];
+
 interface UseSolicitarFlowOptions {
   /**
    * Slug de la landing
@@ -158,7 +166,7 @@ export function useSolicitarFlow({
   const sectionsBeforeWizard = useMemo(
     () =>
       enabledSections
-        .filter(s => s.type !== 'wizard_steps' && s.order < wizardOrder)
+        .filter(s => !INLINE_EXCLUDED_SECTIONS.includes(s.type) && s.order < wizardOrder)
         .sort((a, b) => a.order - b.order),
     [enabledSections, wizardOrder]
   );
@@ -167,7 +175,7 @@ export function useSolicitarFlow({
   const sectionsAfterWizard = useMemo(
     () =>
       enabledSections
-        .filter(s => s.type !== 'wizard_steps' && s.order > wizardOrder)
+        .filter(s => !INLINE_EXCLUDED_SECTIONS.includes(s.type) && s.order > wizardOrder)
         .sort((a, b) => a.order - b.order),
     [enabledSections, wizardOrder]
   );

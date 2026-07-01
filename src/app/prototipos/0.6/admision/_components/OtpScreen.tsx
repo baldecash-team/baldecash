@@ -98,11 +98,15 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     setLoading(true);
     setError(null);
     events?.stageEnter('email_send');
+    // `source: 'link'` distingue el funnel por link del inline (OtpGate).
+    events?.track('otp_screen_shown', { source: 'link' });
     try {
       const result = await sendEmailByToken(token);
       if (result.ok && result.data.status === 'already_verified') {
+        events?.track('otp_verified', { source: 'link', already_verified: true });
         markConfirmed();
       } else if (result.ok && result.data.status === 'sent') {
+        events?.track('otp_code_sent', { source: 'link' });
         setMaskedEmail(result.data.email);
         startCooldown(60);
         goToCode();
@@ -114,6 +118,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           goToCode();
         } else {
           // Falla recuperable: permanece en "sending" mostrando el error + reintento.
+          events?.track('otp_failed', { source: 'link', stage: 'send', reason: result.error.reason ?? result.error.code });
           setError(friendlyError(result.error));
         }
       }
@@ -126,16 +131,20 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     if (code.length < 6 || !token) return;
     setLoading(true);
     setError(null);
+    events?.track('otp_code_submitted', { source: 'link' });
     try {
       const result = await verifyEmailByToken(token, code);
       if (result.ok && result.data.verified) {
+        events?.track('otp_verified', { source: 'link' });
         markConfirmed();
       } else if (result.ok && !result.data.verified) {
         setAttempts((a) => a + 1);
+        events?.track('otp_failed', { source: 'link', stage: 'verify', reason: 'invalid_code' });
         setError('No pudimos verificar el código. Revísalo e inténtalo de nuevo.');
         setCode('');
       } else if (!result.ok) {
         setAttempts((a) => a + 1);
+        events?.track('otp_failed', { source: 'link', stage: 'verify', reason: result.error.reason ?? result.error.code });
         setError(friendlyError(result.error));
         setCode('');
       }
@@ -151,11 +160,13 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     try {
       const result = await sendEmailByToken(token);
       if (result.ok && result.data.status === 'sent') {
+        events?.track('otp_code_resent', { source: 'link' });
         startCooldown(60);
       } else if (!result.ok) {
         if (result.error.reason === 'cooldown') {
           startCooldown(parseCooldownSeconds(result.error.message));
         } else {
+          events?.track('otp_failed', { source: 'link', stage: 'resend', reason: result.error.reason ?? result.error.code });
           setError(friendlyError(result.error));
         }
       }

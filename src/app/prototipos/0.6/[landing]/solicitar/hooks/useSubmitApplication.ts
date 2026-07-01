@@ -46,6 +46,48 @@ interface SubmitOptions {
    * Selected insurance IDs (multi-select support)
    */
   insuranceIds?: string[];
+  /**
+   * Si la landing tiene la sección `otp_verification` habilitada. Cuando es true
+   * y el submit crea la solicitud, NO redirigimos directo a la confirmación:
+   * exponemos `otpGate` para que el consumidor muestre la pantalla full-screen
+   * "Valida tu correo" antes del resumen. El flag lo calcula el consumidor con
+   * `useSolicitarFlow` (no se lee aquí para no acoplar el hook a `usePreview`).
+   */
+  otpEnabled?: boolean;
+}
+
+/** Datos que el consumidor necesita para renderizar el gate de OTP full-screen. */
+export interface OtpGateState {
+  applicationId: number;
+  applicationCode?: string;
+  /** DNI capturado del formulario (best-effort) para prellenar el gate. */
+  documentNumber?: string;
+}
+
+/**
+ * Extrae, best-effort, el número de documento del form ya mapeado para
+ * prellenar el gate de OTP. Busca claves conocidas y, como último recurso, un
+ * valor de 8 dígitos (formato DNI). No es crítico: si no lo encuentra, el gate
+ * pide el DNI manualmente.
+ */
+function extractDocumentNumber(
+  formData: Record<string, string | number | boolean>
+): string | undefined {
+  const preferredKeys = ['document_number', 'numero_documento', 'dni', 'nro_documento'];
+  for (const key of preferredKeys) {
+    const v = formData[key];
+    if (typeof v === 'string' && /^\d{8}$/.test(v)) return v;
+  }
+  for (const [key, v] of Object.entries(formData)) {
+    if (
+      typeof v === 'string' &&
+      /^\d{8}$/.test(v) &&
+      /(document|dni|documento)/i.test(key)
+    ) {
+      return v;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -95,6 +137,17 @@ interface UseSubmitApplicationResult {
    * Whether the submission succeeded (navigating to confirmation)
    */
   submitSucceeded: boolean;
+  /**
+   * Cuando la landing tiene OTP habilitado, tras un submit exitoso este estado
+   * queda seteado para que el consumidor muestre el gate full-screen "Valida tu
+   * correo" antes del resumen. `null` si no aplica.
+   */
+  otpGate: OtpGateState | null;
+  /**
+   * A llamar cuando el gate de OTP se resuelve (verificado u omitido). Navega a
+   * la página de confirmación con el código de la solicitud.
+   */
+  proceedAfterOtp: () => void;
 }
 
 /**
@@ -116,7 +169,16 @@ export function useSubmitApplication(
   const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
   const [error, setError] = useState<string | null>(null);
   const [submitSucceeded, setSubmitSucceeded] = useState(false);
+  const [otpGate, setOtpGate] = useState<OtpGateState | null>(null);
   const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Navega al resumen/confirmación. Se usa directamente cuando no hay OTP y como
+  // callback del gate cuando el correo queda verificado (u omitido).
+  const proceedAfterOtp = useCallback(() => {
+    const code = otpGate?.applicationCode;
+    setOtpGate(null);
+    router.push(routes.solicitarConfirmacion(landing, code));
+  }, [otpGate, router, landing]);
 
   // Bloqueo de navegación durante el envío
   useEffect(() => {
@@ -208,7 +270,7 @@ export function useSubmitApplication(
    */
   const submit = useCallback(
     async (submitOptions: SubmitOptions = {}): Promise<boolean> => {
-      const { insuranceId = null, insuranceIds } = submitOptions;
+      const { insuranceId = null, insuranceIds, otpEnabled = false } = submitOptions;
 
       setError(null);
 
@@ -347,6 +409,9 @@ export function useSubmitApplication(
 
           setSubmitSucceeded(true);
 
+          // Capturar el DNI ANTES de limpiar el form, para prellenar el gate de OTP.
+          const capturedDocumentNumber = extractDocumentNumber(mappedFormData);
+
           // Clear all wizard state (skip if keepData param is set for testing)
           if (!keepData) {
             clearSession();
@@ -364,8 +429,24 @@ export function useSubmitApplication(
           // Show success toast
           onToast?.('Solicitud enviada correctamente', 'success');
 
-          // Redirect to confirmation page with application code
           succeeded = true;
+
+          // Si la landing tiene OTP habilitado y tenemos application_id, NO
+          // redirigimos al resumen todavía: mostramos el gate full-screen
+          // "Valida tu correo". El consumidor lo renderiza y llama
+          // `proceedAfterOtp()` al verificar/omitir.
+          if (otpEnabled && result.application_id) {
+            // Cerrar el overlay de submit; el gate toma el control de la pantalla.
+            setIsSubmitting(false);
+            setOtpGate({
+              applicationId: result.application_id,
+              applicationCode: result.application_code,
+              documentNumber: capturedDocumentNumber,
+            });
+            return true;
+          }
+
+          // Sin OTP: redirect directo a la página de confirmación.
           router.push(
             routes.solicitarConfirmacion(landing, result.application_code)
           );
@@ -440,5 +521,7 @@ export function useSubmitApplication(
     submitMessage: SUBMIT_STAGE_MESSAGES[submitStage],
     error,
     submitSucceeded,
+    otpGate,
+    proceedAfterOtp,
   };
 }
