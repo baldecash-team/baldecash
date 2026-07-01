@@ -7,12 +7,14 @@ import { useRecorder } from '../_hooks/useRecorder';
 import { ExampleModal, type VideoExample } from './ExampleModal';
 import { AdvisorButton } from './AdvisorButton';
 import type { AdmissionEvents } from '../_lib/events';
-
-function formatSeconds(s: number): string {
-  const mm = String(Math.floor(s / 60)).padStart(2, '0');
-  const ss = String(s % 60).padStart(2, '0');
-  return `REC ${mm}:${ss}`;
-}
+import {
+  MIN_RECORDING_SECONDS,
+  RECORDING_LIMITS_HINT,
+  isTooShort,
+  tooShortMessage,
+  remainingSeconds,
+  formatMMSS,
+} from '../_lib/recordingLimits';
 
 export interface VideoRecorderProps {
   question: string;
@@ -55,6 +57,9 @@ export function VideoRecorder({
     startRecording,
     stopRecording,
     resetForNext,
+    switchCamera,
+    facingMode,
+    isMobile,
     getFile,
     setPlaying,
     liveVideoRef,
@@ -129,6 +134,12 @@ export function VideoRecorder({
 
   function handleUseVideo() {
     if (!previewBlob) return;
+    // No permitir enviar clips de menos de 10 segundos.
+    const shortMsg = tooShortMessage(recSeconds);
+    if (shortMsg) {
+      onError?.(shortMsg, { icon: 'alert' });
+      return;
+    }
     const baseMime = baseContentType(previewBlob.type || 'video/webm');
     if (!isAllowedVideoType(baseMime)) {
       onError?.('Formato no permitido. Usa MP4, WebM o MOV.');
@@ -222,9 +233,10 @@ export function VideoRecorder({
           <div className="relative rounded-xl overflow-hidden bg-[#1f2937] aspect-video flex items-center justify-center border border-[#e5e7eb]">
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
             {isRecording && (
-              <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 rounded-full px-2 py-0.5">
+              <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
                 <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" />
-                <span className="text-white text-xs font-mono">{formatSeconds(recSeconds)}</span>
+                <span className="text-white text-xs font-mono">{formatMMSS(remainingSeconds(recSeconds))}</span>
+                <span className="text-white/70 text-[10px]">restante</span>
               </div>
             )}
           </div>
@@ -243,6 +255,21 @@ export function VideoRecorder({
                   <span className="w-6 h-6 rounded-full bg-white" />
                 </button>
                 <span className="text-[#6b7280] text-xs font-medium">Toca el círculo para grabar</span>
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={switchCamera}
+                    aria-label="Cambiar cámara"
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors cursor-pointer"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 4v6h-6" />
+                      <path d="M1 20v-6h6" />
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    </svg>
+                    Cambiar a cámara {facingMode === 'user' ? 'principal' : 'frontal'}
+                  </button>
+                )}
               </>
             ) : (
               <>
@@ -259,6 +286,7 @@ export function VideoRecorder({
                 <span className="text-[#6b7280] text-xs font-medium">Grabando… toca para detener</span>
               </>
             )}
+            <span className="mt-1 text-[11px] text-center text-[#9ca3af]">{RECORDING_LIMITS_HINT}</span>
           </div>
         </>
       )}
@@ -290,6 +318,11 @@ export function VideoRecorder({
             )}
           </div>
 
+          {isTooShort(recSeconds) && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-[#b91c1c]">
+              El video dura {recSeconds}s. Debe durar al menos {MIN_RECORDING_SECONDS} segundos: vuelve a grabar.
+            </p>
+          )}
           <div className="flex gap-3">
             <button
               className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors text-sm cursor-pointer"
@@ -304,7 +337,12 @@ export function VideoRecorder({
               Re-grabar
             </button>
             <button
-              className="flex-1 bg-[#4654CD] text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-opacity cursor-pointer text-sm"
+              disabled={isTooShort(recSeconds)}
+              className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-opacity ${
+                isTooShort(recSeconds)
+                  ? 'bg-[#c7cbe8] text-white cursor-not-allowed'
+                  : 'bg-[#4654CD] text-white hover:opacity-90 cursor-pointer'
+              }`}
               onClick={handleUseVideo}
             >
               Usar este video
