@@ -50,10 +50,9 @@ export function VideoRecorder({
     requestCamera,
     startRecording,
     stopRecording,
-    reRecord,
+    resetForNext,
     getFile,
     setPlaying,
-    stopStream,
     liveVideoRef,
     playbackVideoRef,
   } = useRecorder();
@@ -107,7 +106,10 @@ export function VideoRecorder({
     }
     const file = getFile(index);
     if (!file) return;
-    stopStream();
+    // Deja el stream abierto: si el flujo vuelve a "capture" para otra pregunta,
+    // se reutiliza la cámara sin volver a pedir permiso. El stream se cierra en
+    // el cleanup del hook al desmontar (al salir de la etapa de captura).
+    resetForNext();
     onCaptured(file);
   }
 
@@ -252,8 +254,10 @@ export function VideoRecorder({
             <button
               className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors text-sm cursor-pointer"
               onClick={async () => {
-                reRecord();
-                await handleRequestCamera();
+                // Reintentos ilimitados sin re-permiso: reutiliza el stream si
+                // sigue abierto; solo re-solicita la cámara si se cerró.
+                resetForNext();
+                if (!stream) await handleRequestCamera();
               }}
             >
               Re-grabar

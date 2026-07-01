@@ -36,6 +36,8 @@ export interface RecorderActions {
   startRecording: () => void;
   stopRecording: () => void;
   reRecord: () => void;
+  /** Limpia preview/blob/timer para la siguiente toma pero DEJA el stream abierto. */
+  resetForNext: () => void;
   getFile: (index: number) => File | null;
   setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   stopStream: () => void;
@@ -161,7 +163,12 @@ export function useRecorder(): UseRecorderReturn {
     setIsRecording(false);
   }, []);
 
-  const reRecord = useCallback(() => {
+  /**
+   * Limpia el estado de la toma actual (preview, blob, timer, contador) pero
+   * MANTIENE `stream` abierto. Se usa entre preguntas y en "re-grabar" para
+   * reutilizar la cámara sin volver a pedir permiso ni reabrir el dispositivo.
+   */
+  const resetForNext = useCallback(() => {
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = null;
@@ -170,8 +177,18 @@ export function useRecorder(): UseRecorderReturn {
     setPreviewBlob(null);
     chunksRef.current = [];
     setPlaying(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = undefined;
+    }
+    setIsRecording(false);
+    setRecSeconds(0);
+  }, []);
+
+  const reRecord = useCallback(() => {
+    resetForNext();
     stopStream();
-  }, [stopStream]);
+  }, [resetForNext, stopStream]);
 
   const getFile = useCallback(
     (index: number): File | null => {
@@ -196,6 +213,7 @@ export function useRecorder(): UseRecorderReturn {
     startRecording,
     stopRecording,
     reRecord,
+    resetForNext,
     getFile,
     setPlaying,
     stopStream,
