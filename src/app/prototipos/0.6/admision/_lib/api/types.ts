@@ -3,7 +3,13 @@ export type VerifyEmailResp = { verified: boolean; status: string; verified_at?:
 export type EmailStatusResp = { verified: boolean; email: string; pending: boolean; expires_at?: string; attempts_used: number };
 
 /** Una pregunta del banco horneada en el context del link (snapshot). */
-export type VideoQuestion = { code: string; description: string; example_video_url?: string };
+export type VideoQuestion = {
+  code: string;
+  description: string;
+  example_video_url?: string;
+  /** Indicaciones de cómo responder (banco), mostradas si no hay video de ejemplo. */
+  instructions?: string;
+};
 
 /** Contexto del link. `applicant_name` lo agrega el backend para personalizar. */
 export type LinkContext = {

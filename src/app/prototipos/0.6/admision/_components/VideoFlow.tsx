@@ -68,6 +68,11 @@ export function resolveQuestion(
       text: q.description,
       example: q.example_video_url
         ? { intro: 'Mira este ejemplo:', videoUrl: q.example_video_url }
+        : q.instructions
+        ? {
+            intro: 'Así puedes responder:',
+            tips: q.instructions.split('\n').map((s) => s.trim()).filter(Boolean),
+          }
         : undefined,
     };
   }
