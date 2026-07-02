@@ -36,6 +36,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MultiasistenciaUpsellModal } from '../components/upsell/MultiasistenciaUpsellModal';
+import { shouldOfferMaUpsell } from '../utils/maUpsell';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -221,7 +222,12 @@ function ComplementosContent() {
   const handleSubmit = async (opts?: { skipUpsell?: boolean; extraInsuranceIds?: string[] }) => {
     // Segunda oportunidad: si hay seguro A365 (Multiasistencia) disponible, no
     // está agregado y aún no lo rechazó, mostrar el upsell antes de enviar.
-    if (!opts?.skipUpsell && availableMultiasistencia && !maSelected && !maUpsellDeclined) {
+    if (shouldOfferMaUpsell({
+      availableMultiasistencia,
+      maSelected,
+      declined: maUpsellDeclined,
+      skipUpsell: opts?.skipUpsell,
+    })) {
       setShowMaUpsell(true);
       return;
     }

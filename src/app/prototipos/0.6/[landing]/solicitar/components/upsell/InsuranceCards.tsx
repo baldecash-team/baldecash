@@ -66,7 +66,11 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   const maPlans = plans.filter((p) => p.insuranceType === 'multiasistencia');
   const equipoPlans = plans.filter((p) => p.insuranceType !== 'multiasistencia');
 
-  const gridCols = equipoPlans.length === 1
+  // Insurama (equipo) y A365 (Multiasistencia) comparten la misma grilla de 2
+  // columnas. Total de tarjetas: 1 sola → centrada; 2+ → 2 columnas. Así con 1
+  // seguro Insurama + MA quedan lado a lado, y con 2 Insurama la MA cae debajo.
+  const totalCards = equipoPlans.length + maPlans.length;
+  const gridCols = totalCards === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
     : 'grid-cols-1 sm:grid-cols-2';
 
@@ -220,41 +224,23 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
             </motion.div>
           );
         })}
-      </div>
 
-      {/* Multiasistencia (A365) - sección propia con encabezado, ancho completo */}
-      {maPlans.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center text-xl flex-shrink-0">
-              🩺
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-neutral-800">
-                Protégete tú y tu familia{' '}
-                <span className="text-sm font-normal text-neutral-400">· opcional</span>
-              </h2>
-              <p className="text-sm text-neutral-500">
-                Mientras pagas tu laptop, tú y hasta 3 familiares quedan cubiertos.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {maPlans.map((plan) => (
-              <MultiasistenciaCard
-                key={plan.id}
-                plan={plan}
-                isSelected={selectedPlanIds.includes(plan.id)}
-                onToggle={() => onToggle(plan.id)}
-                onSeeMore={() => {
-                  analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
-                  setDetailPlan(plan);
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        {/* Multiasistencia (A365): MISMA grilla de 2 columnas que los seguros
+            Insurama → 1 columna Insurama + 1 columna A365 lado a lado si hay 1
+            Insurama; si hay 2 Insurama, la MA cae debajo (en desktop). */}
+        {maPlans.map((plan) => (
+          <MultiasistenciaCard
+            key={plan.id}
+            plan={plan}
+            isSelected={selectedPlanIds.includes(plan.id)}
+            onToggle={() => onToggle(plan.id)}
+            onSeeMore={() => {
+              analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+              setDetailPlan(plan);
+            }}
+          />
+        ))}
+      </div>
 
       {/* Social proof */}
       {badgeText && (
