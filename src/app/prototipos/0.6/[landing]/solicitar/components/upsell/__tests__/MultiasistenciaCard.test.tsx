@@ -19,9 +19,14 @@ test('muestra copy del mockup y precio', () => {
   expect(screen.getByText(/Tecnológico/)).toBeInTheDocument();
 });
 
-test('boton agregar/quitar dispara onToggle', () => {
+test('gatea agregar hasta aceptar el condicionado, luego dispara onToggle', () => {
   const onToggle = jest.fn();
   render(<MultiasistenciaCard plan={plan} isSelected={false} onToggle={onToggle} onSeeMore={() => {}} />);
+  // Sin aceptar el condicionado, el boton esta deshabilitado.
+  fireEvent.click(screen.getByText(/Agregar asistencia/));
+  expect(onToggle).not.toHaveBeenCalled();
+  // Al aceptar, se habilita y dispara onToggle.
+  fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.click(screen.getByText(/Agregar asistencia/));
   expect(onToggle).toHaveBeenCalled();
 });
