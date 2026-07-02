@@ -31,7 +31,7 @@ export function TuOfertaTab({
   const req = offer.requestedProduct;
 
   return (
-    <main className="w-full px-3 py-6 sm:px-4 lg:px-6">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
         {/* EL QUE PEDISTE */}
         <section className="flex flex-col">

@@ -9,7 +9,7 @@
  *   - "Catálogo":  CatalogLayoutV4 completo con filtros, alimentado por offerApi.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
@@ -23,7 +23,6 @@ import {
 import { Navbar } from '../../components/hero/Navbar';
 import { OfertaBannerAprobada } from './components/OfertaBannerAprobada';
 import { UpsellPortada } from './components/UpsellPortada';
-import { CatalogoOfertaTab } from './components/CatalogoOfertaTab';
 import { TuOfertaTab } from './components/TuOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
@@ -47,23 +46,23 @@ const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: 
 // WhatsApp de contacto (mismo enlace que usa el flujo regular en ContactInfo).
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
 
-function readInitialQuery(): string {
-  if (typeof window === 'undefined') return '';
-  return new URLSearchParams(window.location.search).get('q') || '';
-}
-
 export function MiOfertaClient({ token }: { token: string }) {
   const [state, setState] = useState<PageState>({ kind: 'loading' });
-  const [searchQuery, setSearchQuery] = useState(readInitialQuery);
 
-  // "Ver otros equipos" hace scroll a la sección del catálogo (todo en una página).
-  const catalogoRef = useRef<HTMLDivElement>(null);
-  const scrollToCatalogo = useCallback(() => {
-    catalogoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+  // "Ver otros equipos" navega a la subruta de catálogo (página separada).
+  const goToCatalogo = useCallback(() => {
+    window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
+  }, [token]);
 
-  // Modal de confirmación de elección desde una card del catálogo.
-  const [pending, setPending] = useState<{ product: CatalogProduct; equipo: EquipoAConfirmar } | null>(null);
+  // Modal de confirmación de elección. Unifica los 3 orígenes (card de catálogo,
+  // oferta exclusiva del Caso 5, "continuar con mi equipo"): cada uno arma el
+  // variantId a seleccionar, el resumen para el modal y el resumen final.
+  const [pending, setPending] = useState<{
+    variantId: number | null;
+    slug?: string | null;
+    equipo: EquipoAConfirmar;
+    summary: ChosenSummary;
+  } | null>(null);
   const [confirming, setConfirming] = useState(false);
   // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
   const [selected, setSelected] = useState<ChosenSummary | null>(null);
@@ -104,78 +103,106 @@ export function MiOfertaClient({ token }: { token: string }) {
     };
   }, [token]);
 
-  // Card "Elegir" → abre el modal de confirmación (no navega ni selecciona aún).
-  const handleSelect = useCallback((product: CatalogProduct) => {
-    setPending({
-      product,
-      equipo: {
-        name: product.displayName || product.name,
-        brand: product.brand,
-        // images[0] es la imagen principal (carga); el thumbnail puede dar 403.
-        imageUrl: product.images?.[0] || product.thumbnail,
-        monthly: product.quotaMonthly,
-      },
-    });
+  // "Equipo anterior" (para el UI "anterior → nuevo" en la confirmación).
+  const previousFrom = useCallback((offer: OfferView | null) => {
+    const req = offer?.requestedProduct;
+    return req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null;
   }, []);
 
-  // Caso 5: aceptar la oferta exclusiva → registra la selección directamente
-  // (sin modal; ya es "la" oferta) y muestra la confirmación.
-  const handleSelectExclusive = useCallback(
-    async (variantId: number | null) => {
+  // Card "Elegir" del catálogo → abre el modal de confirmación.
+  const handleSelect = useCallback(
+    (product: CatalogProduct) => {
       const offer = state.kind === 'ready' ? state.offer : null;
-      const ex = offer?.exclusiveOffer;
-      if (variantId == null || !ex) return;
-      try {
-        await selectEquipment(token, variantId);
-        setSelected({
-          name: ex.name ?? 'Tu equipo',
-          brand: ex.brand ?? undefined,
-          imageUrl: ex.imageUrl ?? undefined,
-          monthly: ex.combinedMonthly,
-          termMonths: ex.termMonths,
-          offerCode: offer?.applicationCode ?? offer?.offerCode,
+      const imageUrl = product.images?.[0] || product.thumbnail;
+      setPending({
+        variantId: product.variantId ? Number(product.variantId) : null,
+        slug: product.slug,
+        equipo: {
+          name: product.displayName || product.name,
+          brand: product.brand,
+          imageUrl,
+          monthly: product.quotaMonthly,
+        },
+        summary: {
+          name: product.displayName || product.name,
+          brand: product.brand,
+          imageUrl,
+          monthly: product.quotaMonthly,
+          finalPrice: product.price,
+          offerCode: offer?.offerCode,
           userName: offer?.clientName ?? undefined,
-          previous: offer?.requestedProduct
-            ? { name: offer.requestedProduct.name ?? 'Tu equipo', imageUrl: offer.requestedProduct.image_url ?? undefined }
-            : null,
-        });
-      } catch (err) {
-        const reason = err instanceof OfferApiError ? err.reason : 'unknown';
-        const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
-        setState({ kind: 'error', reason, message });
-      }
+          previous: previousFrom(offer),
+        },
+      });
     },
-    [state, token],
+    [state, previousFrom],
   );
+
+  // Caso 5: aceptar la oferta exclusiva → modal de confirmación (P3).
+  const handleAceptarExclusiva = useCallback(() => {
+    const offer = state.kind === 'ready' ? state.offer : null;
+    const ex = offer?.exclusiveOffer;
+    if (!ex || ex.variantId == null) return;
+    setPending({
+      variantId: ex.variantId,
+      slug: ex.slug,
+      equipo: {
+        name: ex.name ?? 'Tu equipo',
+        brand: ex.brand ?? undefined,
+        imageUrl: ex.imageUrl ?? undefined,
+        monthly: ex.combinedMonthly,
+      },
+      summary: {
+        name: ex.name ?? 'Tu equipo',
+        brand: ex.brand ?? undefined,
+        imageUrl: ex.imageUrl ?? undefined,
+        monthly: ex.combinedMonthly,
+        termMonths: ex.termMonths,
+        offerCode: offer?.applicationCode ?? offer?.offerCode,
+        userName: offer?.clientName ?? undefined,
+        previous: previousFrom(offer),
+      },
+    });
+  }, [state, previousFrom]);
+
+  // Caso 5: "continuar con mi equipo" → confirma quedarse con el equipo pedido.
+  const handleContinuarMiEquipo = useCallback(() => {
+    const offer = state.kind === 'ready' ? state.offer : null;
+    const req = offer?.requestedProduct;
+    if (!req || req.variant_id == null) return;
+    setPending({
+      variantId: req.variant_id,
+      slug: req.slug,
+      equipo: {
+        name: req.name ?? 'Tu equipo',
+        imageUrl: req.image_url ?? undefined,
+        monthly: req.monthly_price ?? undefined,
+      },
+      summary: {
+        name: req.name ?? 'Tu equipo',
+        imageUrl: req.image_url ?? undefined,
+        monthly: req.monthly_price ?? undefined,
+        offerCode: offer?.applicationCode ?? offer?.offerCode,
+        userName: offer?.clientName ?? undefined,
+        previous: null, // se queda con el mismo → no hay "anterior → nuevo"
+      },
+    });
+  }, [state]);
 
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
-    const variantId = pending.product.variantId ? Number(pending.product.variantId) : null;
-    if (variantId == null) {
+    if (pending.variantId == null) {
       // Sin variante usable → caer al detalle para resolver allí.
-      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${pending.product.slug}`;
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${pending.slug}`;
       return;
     }
     setConfirming(true);
     try {
-      await selectEquipment(token, variantId);
-      // Éxito: mostramos la confirmación EN LA MISMA página (sin redirigir ni
-      // re-validar el token, que ya quedó consumido). Construimos el resumen
-      // completo para el ReceivedScreen reutilizado.
-      const p = pending.product;
-      const offer = state.kind === 'ready' ? state.offer : null;
-      const req = offer?.requestedProduct;
+      await selectEquipment(token, pending.variantId);
+      // Éxito: confirmación EN LA MISMA página (sin re-validar el token consumido).
+      const summary = pending.summary;
       setPending(null);
-      setSelected({
-        name: pending.equipo.name,
-        brand: pending.equipo.brand,
-        imageUrl: pending.equipo.imageUrl,
-        monthly: p.quotaMonthly,
-        finalPrice: p.price,
-        offerCode: offer?.offerCode,
-        userName: offer?.clientName ?? undefined,
-        previous: req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null,
-      });
+      setSelected(summary);
     } catch (err) {
       const reason = err instanceof OfferApiError ? err.reason : 'unknown';
       const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
@@ -184,7 +211,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     } finally {
       setConfirming(false);
     }
-  }, [pending, token, state]);
+  }, [pending, token]);
 
   // Ya eligió un equipo → pantalla de confirmación "¡Listo!".
   if (selected) {
@@ -231,27 +258,18 @@ export function MiOfertaClient({ token }: { token: string }) {
       <OfertaBannerAprobada clientName={offer.clientName} />
 
       {/* Sección destacada. Caso 5 (upsell) → portada TU EQUIPO vs OFERTA
-          EXCLUSIVA. Caso 4 (downgrade) → el que pediste + aprobado para ti. */}
+          EXCLUSIVA. Caso 4 (downgrade) → el que pediste + aprobado para ti.
+          "Ver otros equipos" navega a la subruta /catalogo (ya no scroll inline). */}
       {offer.offerCase === 'upsell' ? (
         <UpsellPortada
           offer={offer}
-          onAceptar={() => offer.exclusiveOffer && handleSelectExclusive(offer.exclusiveOffer.variantId)}
-          onVerCatalogo={scrollToCatalogo}
+          onAceptar={handleAceptarExclusiva}
+          onContinuar={handleContinuarMiEquipo}
+          onVerCatalogo={goToCatalogo}
         />
       ) : (
-        <TuOfertaTab token={token} offer={offer} onVerCatalogo={scrollToCatalogo} onSelect={handleSelect} />
+        <TuOfertaTab token={token} offer={offer} onVerCatalogo={goToCatalogo} onSelect={handleSelect} />
       )}
-
-      {/* Catálogo completo (siempre visible debajo) */}
-      <div ref={catalogoRef}>
-        <CatalogoOfertaTab
-          token={token}
-          offer={offer}
-          onSelect={handleSelect}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-      </div>
 
       <ConfirmarEleccionModal
         isOpen={pending !== null}

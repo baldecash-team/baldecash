@@ -10,7 +10,7 @@
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, ArrowRight, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Eye, ArrowRight } from 'lucide-react';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
@@ -153,16 +153,8 @@ export function OfertaEquipoCard({
             ) : (
               <p className="text-sm text-gray-400">Cuota no disponible.</p>
             )}
-
-            {/* Aviso cuando no entra en la cuota aprobada (sin exponer el monto tope). */}
-            {atenuado ? (
-              <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                <p className="text-xs text-amber-700">
-                  Supera tu cuota aprobada. Por eso te preparamos las opciones de abajo.
-                </p>
-              </div>
-            ) : null}
+            {/* Sin aviso de cuota/tope: no se le muestra el threshold al cliente.
+                El equipo simplemente aparece atenuado/tachado. */}
           </div>
         ) : null}
 
@@ -173,7 +165,7 @@ export function OfertaEquipoCard({
               <button
                 type="button"
                 onClick={onAceptar}
-                className="w-full cursor-pointer rounded-xl py-3 text-sm font-bold text-white transition-all hover:brightness-90"
+                className="w-full cursor-pointer rounded-xl py-2.5 text-sm font-bold text-white transition-all hover:brightness-90"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 Aceptar equipo
