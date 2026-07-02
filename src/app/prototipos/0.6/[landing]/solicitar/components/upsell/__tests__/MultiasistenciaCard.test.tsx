@@ -24,6 +24,15 @@ test('el boton Agregar dispara onToggle directo (sin gate de checkbox)', () => {
   render(<MultiasistenciaCard plan={plan} isSelected={false} onToggle={onToggle} onSeeMore={() => {}} />);
   // Ya no hay checkbox de consentimiento; se comporta como el resto de seguros.
   expect(screen.queryByRole('checkbox')).toBeNull();
-  fireEvent.click(screen.getByText(/Agregar asistencia/));
+  // Mismo formato que Insurama: "Agregar protección" + "Ver términos y condiciones".
+  fireEvent.click(screen.getByText(/Agregar protección/));
   expect(onToggle).toHaveBeenCalled();
+});
+
+test('usa el mismo formato de acciones que Insurama', () => {
+  const onSeeMore = jest.fn();
+  render(<MultiasistenciaCard plan={plan} isSelected={false} onToggle={() => {}} onSeeMore={onSeeMore} />);
+  expect(screen.getByText(/Agregar protección/)).toBeInTheDocument();
+  fireEvent.click(screen.getByText(/Ver términos y condiciones/));
+  expect(onSeeMore).toHaveBeenCalled();
 });
