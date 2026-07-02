@@ -222,20 +222,39 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
         })}
       </div>
 
-      {/* Multiasistencia (A365) - ancho completo, aparte del grid de equipo */}
-      {maPlans.map((plan) => (
-        <div key={plan.id} className="mt-4">
-          <MultiasistenciaCard
-            plan={plan}
-            isSelected={selectedPlanIds.includes(plan.id)}
-            onToggle={() => onToggle(plan.id)}
-            onSeeMore={() => {
-              analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
-              setDetailPlan(plan);
-            }}
-          />
+      {/* Multiasistencia (A365) - sección propia con encabezado, ancho completo */}
+      {maPlans.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center text-xl flex-shrink-0">
+              🩺
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-neutral-800">
+                Protégete tú y tu familia{' '}
+                <span className="text-sm font-normal text-neutral-400">· opcional</span>
+              </h2>
+              <p className="text-sm text-neutral-500">
+                Mientras pagas tu laptop, tú y hasta 3 familiares quedan cubiertos.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {maPlans.map((plan) => (
+              <MultiasistenciaCard
+                key={plan.id}
+                plan={plan}
+                isSelected={selectedPlanIds.includes(plan.id)}
+                onToggle={() => onToggle(plan.id)}
+                onSeeMore={() => {
+                  analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+                  setDetailPlan(plan);
+                }}
+              />
+            ))}
+          </div>
         </div>
-      ))}
+      )}
 
       {/* Social proof */}
       {badgeText && (
