@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HeartPulse, Scale, Laptop, Check, Plus, X } from 'lucide-react';
+import { HeartPulse, Scale, Laptop, Plus, X, FileText } from 'lucide-react';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
@@ -58,20 +58,20 @@ export const MultiasistenciaCard: React.FC<MultiasistenciaCardProps> = ({ plan, 
           ))}
         </div>
 
-        <div className="flex items-center gap-4 flex-wrap">
-          <button onClick={onToggle}
-            className={`px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all ${
-              isSelected
-                ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                : 'bg-[var(--color-primary)] text-white hover:brightness-90'
-            }`}>
-            {isSelected ? (<><X className="w-4 h-4" /> Quitar asistencia</>) : (<><Plus className="w-4 h-4" /> Agregar asistencia</>)}
-          </button>
-          <button onClick={onSeeMore} className="text-sm font-semibold text-[var(--color-primary)] underline cursor-pointer">
-            Ver todo lo que incluye
-          </button>
-          {isSelected && <Check className="w-5 h-5 text-[var(--color-secondary)]" />}
-        </div>
+        {/* Mismo formato de acciones que los seguros de equipo. */}
+        <button onClick={onToggle}
+          className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            isSelected
+              ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              : 'bg-[var(--color-primary)] text-white hover:brightness-90'
+          }`}>
+          {isSelected ? (<><X className="w-4 h-4" /> Quitar protección</>) : (<><Plus className="w-4 h-4" /> Agregar protección</>)}
+        </button>
+        <button onClick={onSeeMore}
+          className="w-full py-1.5 mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer flex items-center justify-center gap-1">
+          <FileText className="w-3 h-3" />
+          Ver términos y condiciones
+        </button>
       </div>
     </motion.div>
   );
