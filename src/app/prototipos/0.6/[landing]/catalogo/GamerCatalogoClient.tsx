@@ -2758,6 +2758,7 @@ export function GamerCatalogoContent() {
         totalSteps={gamerTourSteps.length}
         highlightStyle="pulse"
         theme="gamer"
+        isDark={isDark}
         onNext={handleTourNext}
         onPrev={handleTourPrev}
         onSkip={handleTourSkip}

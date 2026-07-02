@@ -191,7 +191,17 @@ export type EventType =
   | 'video_success_shown'
   | 'video_device_unsupported'
   | 'video_session_resumed'
-  | 'video_session_started';
+  | 'video_session_started'
+  // Phase 16: OTP email verification gate (inline post-submit + link flow)
+  // Every emission carries a `source` property: 'inline' (full-screen gate
+  // shown after submit in the solicitar flow) vs 'link' (admision link flow),
+  // so both funnels can be told apart in analytics.
+  | 'otp_screen_shown'
+  | 'otp_code_sent'
+  | 'otp_code_resent'
+  | 'otp_code_submitted'
+  | 'otp_verified'
+  | 'otp_failed';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([

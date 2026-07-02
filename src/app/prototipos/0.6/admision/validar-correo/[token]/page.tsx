@@ -1,5 +1,5 @@
 /**
- * Validación de correo institucional por link — Server Component Wrapper.
+ * Validación de correo por link — Server Component Wrapper.
  * Ruta: /prototipos/0.6/admision/validar-correo/[token]
  */
 import { ValidarCorreoClient } from './ValidarCorreoClient';

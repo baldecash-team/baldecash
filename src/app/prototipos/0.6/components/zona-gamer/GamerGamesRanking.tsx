@@ -166,7 +166,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   }, []);
 
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
-  const neonPurple = isDark ? '#00ffd5' : '#4f46e5';
+  const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const textMuted = isDark ? '#707070' : '#888';
   const textSecondary = isDark ? '#a0a0a0' : '#555';
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
@@ -445,7 +445,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                       borderColor: border,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(0,255,213,0.2)';
+                      e.currentTarget.style.borderColor = isDark ? 'rgba(0,255,213,0.2)' : 'rgba(0,137,122,0.2)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = border;

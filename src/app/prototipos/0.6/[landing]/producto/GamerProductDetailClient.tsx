@@ -1022,6 +1022,7 @@ function DetailContent() {
         catalogUrl={routes.catalogo(landing)}
         portalButtonText={navbarProps?.portalButtonText}
         customerPortalUrl={navbarProps?.customerPortalUrl}
+        promoBannerData={navbarProps?.promoBannerData}
       />
 
       {/* SIDE NAV - only visible on xl+ */}

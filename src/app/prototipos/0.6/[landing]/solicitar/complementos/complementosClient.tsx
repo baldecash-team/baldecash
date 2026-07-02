@@ -125,6 +125,7 @@ function ComplementosContent() {
   const {
     sectionsAfterWizard,
     isCouponRequired,
+    isEnabled,
     isLoading: isFlowConfigLoading,
   } = useSolicitarFlow({ slug: landing, previewKey });
 
@@ -248,7 +249,12 @@ function ComplementosContent() {
     // el id se pasa explícito y se deduplica.
     const baseIds = selectedInsurances.map(i => i.id);
     const insuranceIds = Array.from(new Set([...baseIds, ...(opts?.extraInsuranceIds ?? [])]));
-    await submitApplication({ insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null, insuranceIds });
+    await submitApplication({
+      insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
+      insuranceIds,
+      // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
+      otpEnabled: isEnabled('otp_verification'),
+    });
   };
 
   // Total monthly is now calculated in ProductContext (includes insurance + accessories)
@@ -780,6 +786,7 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
+          promoBannerData={navbarProps?.promoBannerData}
         />
         <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
           {children}
