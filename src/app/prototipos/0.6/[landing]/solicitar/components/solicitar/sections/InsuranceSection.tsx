@@ -37,7 +37,7 @@ export function InsuranceSection({
   const sessionUuid = session?.sessionUuid ?? null;
 
   const { badgeText } = useWizardConfig();
-  const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts } = useProduct();
+  const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts, setAvailableMultiasistencia } = useProduct();
   const analytics = useAnalytics();
 
   const activeProduct = cartProducts?.[0] || selectedProduct;
@@ -76,16 +76,18 @@ export function InsuranceSection({
           provider: plan.provider,
         }));
         setInsurancePlans(mappedPlans);
+        setAvailableMultiasistencia(mappedPlans.find(p => p.insuranceType === 'multiasistencia') ?? null);
       } catch (error) {
         console.error('Error fetching insurance plans:', error);
         setInsurancePlans([]);
+        setAvailableMultiasistencia(null);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchInsurancePlans();
-  }, [landing, deviceType, productPrice, termMonths, previewKey, sessionUuid]);
+  }, [landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia]);
 
   if (!isLoading && insurancePlans.length === 0) {
     return null;

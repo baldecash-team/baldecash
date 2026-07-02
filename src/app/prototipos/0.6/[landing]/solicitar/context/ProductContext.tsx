@@ -120,6 +120,12 @@ interface ProductContextValue {
   setSelectedInsurance: (insurance: InsurancePlan | null) => void;
   toggleInsurance: (insurance: InsurancePlan) => void;
   clearInsurance: () => void;
+  // Plan Multiasistencia (A365) disponible para el producto/término actual.
+  // Lo setea InsuranceSection al cargar sus planes (fuente de verdad de la
+  // lista); se expone acá para que complementosClient pueda mostrar el modal
+  // de segunda oportunidad sin tener que re-fetchear el listado de seguros.
+  availableMultiasistencia: InsurancePlan | null;
+  setAvailableMultiasistencia: (plan: InsurancePlan | null) => void;
   getTotalPrice: () => number;
   getTotalMonthlyPayment: () => number;
   getDiscountAmount: () => number;
@@ -184,6 +190,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
   const [selectedInsurances, setSelectedInsurancesState] = useState<InsurancePlan[]>([]);
+  const [availableMultiasistencia, setAvailableMultiasistencia] = useState<InsurancePlan | null>(null);
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
@@ -998,6 +1005,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         setSelectedInsurance,
         toggleInsurance,
         clearInsurance,
+        availableMultiasistencia,
+        setAvailableMultiasistencia,
         getTotalPrice,
         getTotalMonthlyPayment,
         getDiscountAmount,
