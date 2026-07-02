@@ -796,7 +796,32 @@
               "product_id": "42",
               "product_name": "MacBook Air M2",
               "brand": "Apple",
-              "slug": "macbook-air-m2"
+              "slug": "macbook-air-m2",
+              "term": 36,
+              "term_months": 36,
+              "payment_frequency": "mensual",
+              "installment": 271,
+              "down_payment": 0,
+              "down_payment_percent": 0
+            }
+          },
+          {
+            "event_type": "product_click",
+            "client_ts": 1776902412000,
+            "page_url": "/catalogo",
+            "element_id": null,
+            "properties": {
+              "landing": "ucv",
+              "product_id": "108",
+              "product_name": "Redmi Note 13",
+              "brand": "Xiaomi",
+              "slug": "redmi-note-13",
+              "term": 48,
+              "term_months": 12,
+              "payment_frequency": "semanal",
+              "installment": 27,
+              "down_payment": 270,
+              "down_payment_percent": 25
             }
           },
           {

@@ -75,6 +75,20 @@ const MODAL_CONFIG: Record<string, {
     legalText: 'Al contratar esta cobertura adicional, no adquieres un seguro a tu nombre. Balde K S.A.C. contrata una póliza contra robo con Insurama, respaldada por Protecta Compañía de Seguros S.A., entidad supervisada por la SBS, a nombre de Balde K. Con esta póliza como respaldo, Balde K se compromete contractualmente a reponer tu equipo en caso de robo, siempre que: estés al día en tus pagos, y presentes los documentos que la aseguradora solicite (por ejemplo, denuncia policial). Importante: La reposición se rige por los términos de la póliza (límites, exclusiones y deducibles aplicables) y puede realizarse con un equipo igual o equivalente.',
     conditionsText: 'Seguro contra Robo para Equipos Móviles o Portátiles, con código SBS N° RG0415900249, comercializado por Insurama Perú S.A.C. Contratación sujeta a evaluación de Insurama y/o La Positiva. Más información en baldecash.com/seguros',
   },
+  multiasistencia: {
+    icon: ShieldCheck,
+    title: 'Multiasistencia BaldeCash',
+    description: 'Asistencia integral para ti y tu familia, durante todo el plazo de tu crédito.',
+    coverageItems: [
+      'Salud: orientación médica ilimitada, telemedicina, ambulancia y orientación psicológica',
+      'Médico a domicilio (pago aparte S/45 por visita)',
+      'Legal: asesoría legal telefónica',
+      'Tecnológico: soporte técnico ilimitado, diagnóstico y configuración',
+      'Técnico a domicilio (pago aparte S/60 por visita)',
+      'Cubre al titular + cónyuge + hijos menores de 18 + padres del mismo domicilio (hasta 4 personas)',
+    ],
+    conditionsText: 'Asistencia provista por A365. El "pago aparte" es un monto fijo reducido que asumes solo al usar ese servicio puntual (médico o técnico a domicilio). El resto de servicios no tiene pago extra.',
+  },
 };
 
 const DEFAULT_MODAL = MODAL_CONFIG.garantia_extendida;
