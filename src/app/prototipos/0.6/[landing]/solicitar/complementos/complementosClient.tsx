@@ -37,6 +37,7 @@ import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MultiasistenciaUpsellModal } from '../components/upsell/MultiasistenciaUpsellModal';
 import { shouldOfferMaUpsell } from '../utils/maUpsell';
+import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -249,12 +250,10 @@ function ComplementosContent() {
       }
     }
 
-    // Pass insurance IDs from context (multi-select). extraInsuranceIds cubre el
-    // caso del upsell aceptado: el toggle de estado es async y el closure de este
-    // handleSubmit leería selectedInsurances sin la MA recién agregada, así que
-    // el id se pasa explícito y se deduplica.
-    const baseIds = selectedInsurances.map(i => i.id);
-    const insuranceIds = Array.from(new Set([...baseIds, ...(opts?.extraInsuranceIds ?? [])]));
+    // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
+    // Multiasistencia por igual) + extras del upsell aceptado (toggle async),
+    // deduplicados. Ver buildSubmitInsuranceIds + tests.
+    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances, opts?.extraInsuranceIds ?? []);
     await submitApplication({
       insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
       insuranceIds,
