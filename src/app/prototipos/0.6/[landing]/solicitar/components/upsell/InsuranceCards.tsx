@@ -6,6 +6,7 @@ import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users } fro
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { InsuranceDetailModal } from './InsuranceDetailModal';
+import { MultiasistenciaCard } from './MultiasistenciaCard';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface InsuranceCardsProps {
@@ -62,7 +63,10 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   const [detailPlan, setDetailPlan] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
-  const gridCols = plans.length === 1
+  const maPlans = plans.filter((p) => p.insuranceType === 'multiasistencia');
+  const equipoPlans = plans.filter((p) => p.insuranceType !== 'multiasistencia');
+
+  const gridCols = equipoPlans.length === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
     : 'grid-cols-1 sm:grid-cols-2';
 
@@ -99,7 +103,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
 
       {/* Cards Grid */}
       <div className={`grid ${gridCols} gap-4`}>
-        {plans.map((plan, index) => {
+        {equipoPlans.map((plan, index) => {
           const Icon = getInsuranceIcon(plan.insuranceType);
           const isSelected = selectedPlanIds.includes(plan.id);
           const benefits = getBenefits(plan.insuranceType);
@@ -217,6 +221,21 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
           );
         })}
       </div>
+
+      {/* Multiasistencia (A365) - ancho completo, aparte del grid de equipo */}
+      {maPlans.map((plan) => (
+        <div key={plan.id} className="mt-4">
+          <MultiasistenciaCard
+            plan={plan}
+            isSelected={selectedPlanIds.includes(plan.id)}
+            onToggle={() => onToggle(plan.id)}
+            onSeeMore={() => {
+              analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+              setDetailPlan(plan);
+            }}
+          />
+        </div>
+      ))}
 
       {/* Social proof */}
       {badgeText && (
