@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { HeartPulse, Scale, Laptop, Check, Plus, X, FileText } from 'lucide-react';
+import { HeartPulse, Scale, Laptop, Check, Plus, X } from 'lucide-react';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
@@ -68,15 +68,40 @@ export const MultiasistenciaCard: React.FC<MultiasistenciaCardProps> = ({ plan, 
         </div>
 
         {/* Legal — ⚠️ copy/URL placeholder pendiente de legal: condicionado/T&C,
-            consentimiento de tratamiento de datos con A365. */}
-        <label className="flex items-start gap-2 text-xs text-neutral-600 mb-3 cursor-pointer">
-          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)}
-            className="mt-0.5 accent-[var(--color-primary)]" />
-          <span>
+            consentimiento de tratamiento de datos con A365.
+            Estilo = checkbox de LeadLeadForm (TyC / promociones). */}
+        <label className="flex items-start gap-2.5 mb-3 cursor-pointer group">
+          <div className="relative flex-shrink-0 mt-0.5">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="sr-only"
+            />
+            <div
+              className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                accepted
+                  ? 'border-transparent bg-[var(--color-primary)]'
+                  : 'border-neutral-300 bg-white group-hover:border-neutral-400'
+              }`}
+            >
+              {accepted && (
+                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2 6l3 3 5-5" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <span className="text-xs text-neutral-600 leading-relaxed">
             He leído y acepto el{' '}
-            <a href={CONDICIONADO_URL} target="_blank" rel="noopener noreferrer"
-              className="text-[var(--color-primary)] underline inline-flex items-center gap-0.5">
-              condicionado y términos y condiciones<FileText className="w-3 h-3" />
+            <a
+              href={CONDICIONADO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="underline font-medium text-[var(--color-primary)] hover:opacity-80"
+            >
+              condicionado y términos y condiciones
             </a>{' '}
             de la Multiasistencia, y autorizo el tratamiento de mis datos y su compartición con A365 para activar el servicio.
           </span>
