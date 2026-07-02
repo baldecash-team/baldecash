@@ -19,14 +19,11 @@ test('muestra copy del mockup y precio', () => {
   expect(screen.getByText(/Tecnológico/)).toBeInTheDocument();
 });
 
-test('gatea agregar hasta aceptar el condicionado, luego dispara onToggle', () => {
+test('el boton Agregar dispara onToggle directo (sin gate de checkbox)', () => {
   const onToggle = jest.fn();
   render(<MultiasistenciaCard plan={plan} isSelected={false} onToggle={onToggle} onSeeMore={() => {}} />);
-  // Sin aceptar el condicionado, el boton esta deshabilitado.
-  fireEvent.click(screen.getByText(/Agregar asistencia/));
-  expect(onToggle).not.toHaveBeenCalled();
-  // Al aceptar, se habilita y dispara onToggle.
-  fireEvent.click(screen.getByRole('checkbox'));
+  // Ya no hay checkbox de consentimiento; se comporta como el resto de seguros.
+  expect(screen.queryByRole('checkbox')).toBeNull();
   fireEvent.click(screen.getByText(/Agregar asistencia/));
   expect(onToggle).toHaveBeenCalled();
 });
