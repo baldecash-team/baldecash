@@ -552,7 +552,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         onSuccessContinue={() => {
           window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
         }}
-        addonsSlot={!succeeded ? addonsResumen : null}
+        addonsSlot={addonsResumen}
       />
 
       {/* Modal de detalle del accesorio (reutilizado del flujo regular) */}

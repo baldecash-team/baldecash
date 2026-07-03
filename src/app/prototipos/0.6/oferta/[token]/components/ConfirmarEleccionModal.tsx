@@ -118,6 +118,10 @@ export function ConfirmarEleccionModal({
                 </div>
               ) : null}
 
+              {/* Desglose de accesorios/seguros elegidos (mismo que en la
+                  confirmación) — para que el cliente vea qué sumó. */}
+              {addonsSlot ? <div className="mt-4 w-full text-left">{addonsSlot}</div> : null}
+
               <div className="mt-4 flex w-full items-start gap-2 rounded-xl bg-emerald-50 p-3 text-left text-xs text-emerald-800">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega.</span>
