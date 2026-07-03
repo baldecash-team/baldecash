@@ -72,8 +72,10 @@ export function VideoRecorder({
     switchCamera,
     facingMode,
     canSwitchCamera,
+    liveActive,
     getFile,
     setPlaying,
+    playLive,
     liveVideoRef,
     playbackVideoRef,
   } = useRecorder();
@@ -248,6 +250,26 @@ export function VideoRecorder({
         <>
           <div className="relative rounded-xl overflow-hidden bg-[#1f2937] aspect-[9/16] sm:aspect-video flex items-center justify-center border border-[#e5e7eb]">
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+            {/* iOS Low Power Mode bloquea el autoplay → el feed queda en plomo. Este
+                overlay lo reactiva con un gesto directo (la grabación sí captura del
+                stream aunque el preview no se vea). */}
+            {!liveActive && (
+              <button
+                type="button"
+                onClick={playLive}
+                aria-label="Activar cámara"
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 text-white cursor-pointer"
+              >
+                <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 7l-7 5 7 5V7z" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span className="text-sm font-semibold">Toca para activar la cámara</span>
+                <span className="px-6 text-center text-xs text-white/70">
+                  Si tienes el modo de bajo consumo activado, tócalo para ver la imagen
+                </span>
+              </button>
+            )}
             {isRecording && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
                 <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" />

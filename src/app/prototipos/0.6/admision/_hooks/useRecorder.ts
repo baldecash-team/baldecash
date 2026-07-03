@@ -53,6 +53,10 @@ export interface RecorderState {
   isMobile: boolean;
   /** true si hay >1 cámara (o es móvil) → se muestra el botón de cambio. */
   canSwitchCamera: boolean;
+  /** true cuando el feed en vivo está efectivamente reproduciéndose. En iOS con
+   *  Low Power Mode el autoplay se bloquea y esto queda false → el UI muestra el
+   *  overlay "toca para activar". */
+  liveActive: boolean;
 }
 
 export interface RecorderActions {
@@ -67,6 +71,8 @@ export interface RecorderActions {
   getFile: (index: number) => File | null;
   setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   stopStream: () => void;
+  /** Fuerza play() del feed en vivo desde un gesto del usuario (fallback iOS LPM). */
+  playLive: () => void;
 }
 
 export interface RecorderRefs {
@@ -89,6 +95,7 @@ export function useRecorder(): UseRecorderReturn {
   const [facingMode, setFacingMode] = useState<FacingMode>('user');
   const [isMobile, setIsMobile] = useState(false);
   const [canSwitchCamera, setCanSwitchCamera] = useState(false);
+  const [liveActive, setLiveActive] = useState(false);
 
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const playbackVideoRef = useRef<HTMLVideoElement>(null);
@@ -115,9 +122,28 @@ export function useRecorder(): UseRecorderReturn {
   // cuando cambia `stream`. Al re-grabar, `stream` se mantiene pero el <video>
   // se desmonta/remonta, así que sin `previewBlob`/`requesting` en las deps el
   // elemento nuevo quedaba sin feed (cuadro sólido negro).
+  //
+  // iOS Safari NO auto-reproduce un MediaStream asignado por `srcObject` de forma
+  // fiable —y con Low Power Mode el autoplay se bloquea del todo, aunque el <video>
+  // tenga autoplay+muted+playsInline—: queda en plomo/negro. Por eso, tras asignar
+  // el stream, forzamos `play()` (y de nuevo en `loadedmetadata`, que en iOS llega
+  // con retraso). `liveActive` se enciende con el evento `playing`; si sigue en
+  // false (LPM), el UI ofrece un overlay "toca para activar" con gesto fresco.
   useEffect(() => {
     const el = liveVideoRef.current;
-    if (el) el.srcObject = stream ?? null;
+    if (!el) return;
+    el.srcObject = stream ?? null;
+    setLiveActive(false);
+    if (!stream) return;
+    const tryPlay = () => { el.play().catch(() => {}); };
+    const onPlaying = () => setLiveActive(true);
+    tryPlay();
+    el.addEventListener('loadedmetadata', tryPlay);
+    el.addEventListener('playing', onPlaying);
+    return () => {
+      el.removeEventListener('loadedmetadata', tryPlay);
+      el.removeEventListener('playing', onPlaying);
+    };
   }, [stream, previewBlob, requesting]);
 
   useEffect(() => {
@@ -136,6 +162,12 @@ export function useRecorder(): UseRecorderReturn {
       streamRef.current = null;
       return null;
     });
+  }, []);
+
+  // Fallback iOS Low Power Mode: reproducir el feed en vivo desde un gesto directo
+  // del usuario (el play() del effect corre fuera del gesto y LPM lo bloquea).
+  const playLive = useCallback(() => {
+    liveVideoRef.current?.play().then(() => setLiveActive(true)).catch(() => {});
   }, []);
 
   const requestCamera = useCallback(
@@ -301,6 +333,7 @@ export function useRecorder(): UseRecorderReturn {
     facingMode,
     isMobile,
     canSwitchCamera,
+    liveActive,
     requestCamera,
     startRecording,
     stopRecording,
@@ -310,6 +343,7 @@ export function useRecorder(): UseRecorderReturn {
     getFile,
     setPlaying,
     stopStream,
+    playLive,
     liveVideoRef,
     playbackVideoRef,
   };
