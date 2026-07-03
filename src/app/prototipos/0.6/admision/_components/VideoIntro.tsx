@@ -5,14 +5,21 @@ import type { AdmissionEvents } from '../_lib/events';
 type Coords = { latitude: number; longitude: number; accuracy_m?: number };
 
 const BULLETS = [
-  'Te mostramos una pregunta a la vez.',
-  'Respondes con un video corto, a tu ritmo.',
-  'Lo revisamos y seguimos con tu solicitud.',
+  'Te mostramos una pregunta a la vez, a tu ritmo.',
+  'Tu video lo revisa una persona de nuestro equipo.',
 ];
 
 export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Coords) => void; applicantName?: string; events?: AdmissionEvents }) {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reminded, setReminded] = useState(false);
+
+  // Salida digna para quien abre el link fuera de su negocio: en vez de perderlo,
+  // agenda el retorno (hoy registra el evento; el recordatorio real se envía aparte).
+  const handleRemindLater = () => {
+    events?.track('video_remind_later');
+    setReminded(true);
+  };
 
   const handleStart = () => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
@@ -58,7 +65,7 @@ export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Co
       <div>
         <h2 className="text-xl font-bold">Hola{applicantName ? `, ${applicantName}` : ''} 👋</h2>
         <p className="mt-2 text-gray-600">
-          Para terminar tu evaluación te haremos unas preguntas cortas y nos respondes en video.
+          Te haremos unas preguntas cortas y las respondes en video, a tu ritmo.
           <strong> Toma menos de 5 minutos.</strong>
         </p>
       </div>
@@ -68,7 +75,7 @@ export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Co
         <p className="flex items-center gap-2 font-bold text-[#4654CD]">📍 Antes de empezar</p>
         <ul className="mt-2 space-y-2 text-sm text-[#1f2937]">
           <li className="flex gap-2"><span>🏢</span><span>Debes estar <strong>en tu lugar de trabajo</strong>.</span></li>
-          <li className="flex gap-2"><span>📡</span><span>Acepta <strong>compartir tu ubicación</strong>: es obligatorio para iniciar.</span></li>
+          <li className="flex gap-2"><span>📡</span><span>Comparte tu <strong>ubicación</strong>: solo para confirmar que estás en tu negocio. No la guardamos ni la compartimos.</span></li>
         </ul>
       </div>
 
@@ -78,14 +85,30 @@ export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Co
 
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      <button
-        type="button"
-        onClick={handleStart}
-        disabled={locating}
-        className="w-full rounded-xl bg-[#4654CD] px-4 py-3 font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
-      >
-        {locating ? 'Obteniendo ubicación…' : 'Permitir ubicación y comenzar'}
-      </button>
+      {reminded ? (
+        <p className="rounded-xl bg-[#E3F4ED] p-4 text-sm font-medium text-[#15805D]">
+          Listo 👍 Te escribiremos para recordarte cuando estés en tu negocio.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={locating}
+            className="w-full rounded-xl bg-[#4654CD] px-4 py-3 font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            {locating ? 'Obteniendo ubicación…' : 'Compartir ubicación y comenzar'}
+          </button>
+          <button
+            type="button"
+            onClick={handleRemindLater}
+            disabled={locating}
+            className="w-full rounded-xl px-4 py-2.5 font-medium text-[#6b7280] hover:text-[#4654CD] hover:bg-[#ECECFB] transition-colors disabled:opacity-60"
+          >
+            Recuérdame más tarde
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,9 +6,10 @@ export const MIN_RECORDING_SECONDS = 10;
 /** Máximo de grabación: 5 minutos (segundos). Se auto-detiene al alcanzarlo. */
 export const MAX_RECORDING_SECONDS = 300;
 
-/** Aviso fijo para el UI con ambos límites. */
+/** Aviso fijo para el UI, en positivo: el mínimo NO se anuncia por adelantado
+ * (solo aparece de forma reactiva vía `tooShortMessage` si el clip es muy corto). */
 export const RECORDING_LIMITS_HINT =
-  'Graba entre 10 segundos y 5 minutos. La grabación se detiene sola a los 5:00.';
+  'Graba con calma: hasta 5 minutos y puedes regrabar las veces que quieras.';
 
 /** true si el clip es demasiado corto para enviarse (< 10 s). */
 export function isTooShort(seconds: number): boolean {
