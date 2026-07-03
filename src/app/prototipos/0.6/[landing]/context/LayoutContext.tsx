@@ -16,7 +16,7 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
-import { OVERLAY_VARIANT_LOGOS } from '@/app/prototipos/0.6/types/landingConfig';
+import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, type DeferredPaymentConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { isDarkLanding, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
 
 interface NavbarProps {
@@ -57,6 +57,8 @@ interface LayoutContextValue {
   newsletterData: { title?: string; subtitle?: string; button_text?: string; placeholder?: string } | null;
   /** Overlay variant from landing config (e.g. 'cade') */
   overlayVariant: string | null;
+  /** Pago diferido de la landing (null si no está habilitado). */
+  deferredPayment: DeferredPaymentConfig | null;
 }
 
 /**
@@ -92,11 +94,13 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [overlayVariant, setOverlayVariant] = useState<string | null>(null);
+  const [deferredPayment, setDeferredPayment] = useState<DeferredPaymentConfig | null>(null);
 
-  // Fetch landing config for overlay variant (logo override)
+  // Fetch landing config for overlay variant (logo override) + pago diferido
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
       setOverlayVariant(cfg.features.overlay_variant || '');
+      setDeferredPayment(getDeferredPayment(cfg));
     });
   }, [landing]);
 
@@ -317,7 +321,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     catalogBanner,
     newsletterData,
     overlayVariant,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant]);
+    deferredPayment,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment]);
 
   return (
     <LayoutContext.Provider value={value}>

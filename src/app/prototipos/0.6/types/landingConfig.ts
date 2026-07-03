@@ -55,6 +55,40 @@ export interface LandingConfig {
   [namespace: string]: Record<string, unknown> | LandingConfigLayout | LandingConfigFeatures;
 }
 
+/**
+ * Pago diferido a nivel landing (namespace `deferred_payment`).
+ * Viene de `landing.extra_data.deferred_payment` y lo expone el endpoint
+ * /public/landing/{slug}/config. Cuando `enabled` es true, el primer pago se
+ * corre `deferred_months` meses hacia adelante.
+ */
+export interface DeferredPaymentConfig {
+  /** Si el pago diferido está activo para esta landing. */
+  enabled: boolean;
+  /** Cantidad de meses que se adelanta/corre el primer pago. */
+  deferred_months: number;
+  /** Etiqueta de campaña (ej. "paga-en-septiembre"). Informativa. */
+  source?: string;
+}
+
+/**
+ * Extrae de forma segura el namespace `deferred_payment` de un LandingConfig
+ * resuelto. Devuelve null cuando está ausente o no está habilitado.
+ */
+export function getDeferredPayment(config: LandingConfig): DeferredPaymentConfig | null {
+  const raw = (config as Record<string, unknown>)['deferred_payment'] as
+    | Partial<DeferredPaymentConfig>
+    | undefined;
+  if (!raw || raw.enabled !== true) return null;
+  return {
+    enabled: true,
+    deferred_months:
+      typeof raw.deferred_months === 'number' && raw.deferred_months > 0
+        ? raw.deferred_months
+        : 0,
+    source: typeof raw.source === 'string' ? raw.source : undefined,
+  };
+}
+
 /** A single ingredient (key-value) linked to the landing. */
 export interface LandingConfigIngredient {
   code: string;

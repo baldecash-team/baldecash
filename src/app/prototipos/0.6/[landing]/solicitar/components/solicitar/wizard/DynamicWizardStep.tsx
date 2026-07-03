@@ -10,24 +10,24 @@ import { CalendarDays } from 'lucide-react';
 import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
 const MONTH_NAMES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
-function getFirstPaymentDate(selectedDay: number): string {
+/**
+ * Primera fecha de pago a mostrar. Base: el mes siguiente. Si la landing es
+ * diferida (`extraMonths` = deferred_payment.deferred_months), se corre esa
+ * cantidad de meses adicionales, con rollover de año.
+ */
+function getFirstPaymentDate(selectedDay: number, extraMonths: number = 0): string {
   const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  let targetMonth = currentMonth + 1;
-  let targetYear = currentYear;
-
-  if (targetMonth > 11) {
-    targetMonth = 0;
-    targetYear += 1;
-  }
+  const monthsAhead = 1 + Math.max(0, extraMonths);
+  const total = today.getMonth() + monthsAhead;
+  const targetMonth = ((total % 12) + 12) % 12;
+  const targetYear = today.getFullYear() + Math.floor(total / 12);
 
   return `${selectedDay} de ${MONTH_NAMES[targetMonth]} del ${targetYear}`;
 }
@@ -79,6 +79,10 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   stepOrder,
 }) => {
   const { getFieldValue, updateField, formData } = useWizard();
+  const { deferredPayment } = useLayout();
+
+  // Meses adicionales a sumar al primer pago cuando la landing es diferida.
+  const deferredMonths = deferredPayment?.enabled ? deferredPayment.deferred_months : 0;
 
   // Initialize fields with default_value from API (only if field has no value yet)
   useEffect(() => {
@@ -205,7 +209,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
                   <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
                   <p className="text-sm text-neutral-700">
-                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue))}</span>
+                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue), deferredMonths)}</span>
                   </p>
                 </div>
               </div>
