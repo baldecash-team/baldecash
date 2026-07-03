@@ -113,6 +113,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [insurances, setInsurances] = useState<InsurancePlan[]>([]);
   const [equipoMonthly, setEquipoMonthly] = useState(0);
+  // Cuota máxima aprobada (tope). equipo + accesorios + seguros no puede superarla.
+  const [maxQuota, setMaxQuota] = useState<number | null>(null);
   const [selectedAcc, setSelectedAcc] = useState<string[]>([]);
   const [selectedIns, setSelectedIns] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
@@ -151,7 +153,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     setEquipoInfo({ name: selection.name, brand: selection.brand, imageUrl: selection.imageUrl });
     (async () => {
       try {
-        await getOffer(token); // valida token
+        const offer = await getOffer(token); // valida token + cuota máxima aprobada
+        if (active && offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
         const res = await getOfferAddonsRich(token, vId, {
           accessoryIds: selectedAcc.map(Number),
           insuranceIds: selectedIns.map(Number),
@@ -221,9 +224,18 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const canGoForward = currentPage < totalPages - 1;
 
   const toggleAcc = (a: Accessory) =>
-    setSelectedAcc((prev) => (prev.includes(a.id) ? prev.filter((x) => x !== a.id) : [...prev, a.id]));
+    setSelectedAcc((prev) => {
+      if (prev.includes(a.id)) return prev.filter((x) => x !== a.id); // quitar siempre
+      if (!accFits(a)) return prev; // agregar solo si cabe en la cuota
+      return [...prev, a.id];
+    });
   const toggleIns = (planId: string) =>
-    setSelectedIns((prev) => (prev.includes(planId) ? prev.filter((x) => x !== planId) : [...prev, planId]));
+    setSelectedIns((prev) => {
+      if (prev.includes(planId)) return prev.filter((x) => x !== planId); // quitar siempre
+      const plan = insurances.find((p) => p.id === planId);
+      if (plan && !insFits(plan)) return prev; // agregar solo si cabe
+      return [...prev, planId];
+    });
 
   // Cuota total = equipo + accesorios + seguros seleccionados.
   const totalMonthly = useMemo(() => {
@@ -231,6 +243,15 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     const ins = insurances.filter((p) => selectedIns.includes(p.id)).reduce((s, p) => s + (p.monthlyPrice || 0), 0);
     return equipoMonthly + acc + ins;
   }, [accessories, insurances, selectedAcc, selectedIns, equipoMonthly]);
+
+  // Cuota restante = tope aprobado − total actual. El equipo + add-ons no puede
+  // superar la cuota máxima aprobada (premisa del Caso 4).
+  const remaining = maxQuota != null ? maxQuota - totalMonthly : Infinity;
+  const overBudget = maxQuota != null && totalMonthly > maxQuota + 0.5;
+  // Un add-on NO seleccionado se puede agregar solo si su cuota cabe en el
+  // restante. Los ya seleccionados siempre se pueden quitar.
+  const accFits = (a: Accessory) => selectedAcc.includes(a.id) || (a.monthlyQuota || 0) <= remaining + 0.5;
+  const insFits = (p: InsurancePlan) => selectedIns.includes(p.id) || (p.monthlyPrice || 0) <= remaining + 0.5;
 
   // Confirmación real (desde el modal). Al terminar, el modal pasa a "¡Listo!";
   // la navegación a la oferta ocurre al presionar "Continuar" (onSuccessContinue),
@@ -444,16 +465,29 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleAccessories.map((a, index) => (
-                  <AccessoryCard
-                    key={a.id}
-                    accessory={a}
-                    isSelected={selectedAcc.includes(a.id)}
-                    onToggle={() => toggleAcc(a)}
-                    onViewDetails={() => setDetailAccessory(a)}
-                    isMoltiTop={a.isMoltiTop && index === 0}
-                  />
-                ))}
+                {visibleAccessories.map((a, index) => {
+                  const fits = accFits(a);
+                  return (
+                    // Si no cabe en la cuota restante: atenuado + no clickeable
+                    // (bloquea el toggle) + hint. Sí se puede quitar si ya está.
+                    <div key={a.id} className="relative">
+                      <div className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
+                        <AccessoryCard
+                          accessory={a}
+                          isSelected={selectedAcc.includes(a.id)}
+                          onToggle={() => toggleAcc(a)}
+                          onViewDetails={() => setDetailAccessory(a)}
+                          isMoltiTop={a.isMoltiTop && index === 0}
+                        />
+                      </div>
+                      {!fits ? (
+                        <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-neutral-800/80 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          No cabe en tu cuota
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -475,14 +509,27 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div>
             <p className="text-xs text-neutral-400">Cuota mensual total</p>
-            <p className="text-2xl font-extrabold" style={{ color: 'var(--color-primary)' }}>
+            <p className="text-2xl font-extrabold" style={{ color: overBudget ? '#dc2626' : 'var(--color-primary)' }}>
               S/{Math.round(totalMonthly)}
               <span className="text-base font-normal text-neutral-400">/mes</span>
             </p>
+            {/* Margen restante o alerta de sobrepaso (respeta el tope aprobado). */}
+            {maxQuota != null ? (
+              overBudget ? (
+                <p className="text-xs font-medium text-red-600">
+                  Supera tu cuota por S/{Math.round(totalMonthly - maxQuota)}. Quita algo para continuar.
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-400">
+                  Te quedan S/{Math.round(remaining)} de tu cuota aprobada
+                </p>
+              )
+            ) : null}
           </div>
           <Button
             onPress={() => setModalOpen(true)}
-            className="cursor-pointer rounded-xl px-8 py-6 text-base font-bold text-white"
+            isDisabled={overBudget}
+            className="cursor-pointer rounded-xl px-8 py-6 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             Confirmar mi elección
