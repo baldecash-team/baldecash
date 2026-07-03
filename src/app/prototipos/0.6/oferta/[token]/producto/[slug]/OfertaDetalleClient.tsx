@@ -135,6 +135,15 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return v != null ? Number(v) : null;
   }, [state]);
 
+  // Combo del que nace la elección (si el equipo es un combo). El BE lo necesita
+  // para sincronizar el accesorio correcto a legacy (un equipo puede estar en
+  // varios combos). Null si es un equipo simple.
+  const comboId = useMemo(() => {
+    if (state.kind !== 'ready') return null;
+    const c = state.data.combo?.id;
+    return c != null ? Number(c) : null;
+  }, [state]);
+
   // La oferta SOLO ofrece 24 meses / inicial 0 (feedback de Marco). Filtramos los
   // payment_plans a esa combinación para que el cliente no pueda cambiar el plazo,
   // y para que la cuota mostrada coincida con la del catálogo.
@@ -174,7 +183,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     if (variantId == null || !chosen) return;
     setSelecting(true);
     try {
-      await selectEquipment(token, variantId);
+      await selectEquipment(token, variantId, comboId);
       // Tras elegir, volvemos a la página principal de la oferta: como el link ya
       // quedó consumido, esa página detecta already_selected y muestra la
       // confirmación (equipo anterior → nuevo). Así el refresh es consistente y

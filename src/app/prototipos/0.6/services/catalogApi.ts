@@ -561,8 +561,11 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   const hook = pricing.hook;
 
   // Combo (cuando aplica): su portada encabeza thumbnail y galería de la card.
-  const combo = apiProduct.combo as { image_url?: string | null; thumbnail_url?: string | null } | null | undefined;
+  const combo = apiProduct.combo as { id?: number; image_url?: string | null; thumbnail_url?: string | null } | null | undefined;
   const comboImage = combo ? (combo.thumbnail_url || combo.image_url || apiProduct.images?.[0] || undefined) : undefined;
+  // Combo del que nace el ítem (para reenviarlo en el submit/select y resolver
+  // el accesorio correcto en legacy). Un equipo puede estar en varios combos.
+  const comboId = combo?.id != null ? Number(combo.id) : undefined;
 
   // Calculate biweekly and weekly from monthly
   const quotaMonthly = hook.monthly_price;
@@ -601,6 +604,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
     thumbnail: comboImage || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
     comboImage,
+    comboId,
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],

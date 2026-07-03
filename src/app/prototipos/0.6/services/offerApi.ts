@@ -298,15 +298,22 @@ export async function getOfferFilterCounts(token: string): Promise<OfferFilterCo
   };
 }
 
-/** POST /public/offer/{token}/select — registra el equipo elegido. */
+/** POST /public/offer/{token}/select — registra el equipo elegido.
+ *  `comboId`: si el equipo viene de un combo, se envía para que el backend
+ *  sincronice el accesorio correcto a legacy (un equipo puede estar en varios
+ *  combos, así que el variant_id solo no basta). */
 export async function selectEquipment(
   token: string,
   variantId: number,
+  comboId?: number | null,
 ): Promise<{ offerId: number; selectedVariantId: number; status: string }> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/select`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ variant_id: variantId }),
+    body: JSON.stringify({
+      variant_id: variantId,
+      ...(comboId != null ? { combo_id: comboId } : {}),
+    }),
   });
   if (!res.ok) throw await parseError(res);
   const data = await res.json();

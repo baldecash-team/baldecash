@@ -51,6 +51,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
   const [searchQuery, setSearchQuery] = useState(readInitialQuery);
   const [pending, setPending] = useState<{
     variantId: number | null;
+    comboId?: number | null;
     slug?: string | null;
     equipo: EquipoAConfirmar;
     summary: ChosenSummary;
@@ -93,6 +94,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
       const imageUrl = product.images?.[0] || product.thumbnail;
       setPending({
         variantId: product.variantId ? Number(product.variantId) : null,
+        comboId: product.comboId ?? null,
         slug: product.slug,
         equipo: {
           name: product.displayName || product.name,
@@ -123,7 +125,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
     }
     setConfirming(true);
     try {
-      await selectEquipment(token, pending.variantId);
+      await selectEquipment(token, pending.variantId, pending.comboId);
       const summary = pending.summary;
       setPending(null);
       setSelected(summary);

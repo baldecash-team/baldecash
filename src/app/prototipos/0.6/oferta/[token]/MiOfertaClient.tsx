@@ -59,6 +59,7 @@ export function MiOfertaClient({ token }: { token: string }) {
   // variantId a seleccionar, el resumen para el modal y el resumen final.
   const [pending, setPending] = useState<{
     variantId: number | null;
+    comboId?: number | null;
     slug?: string | null;
     equipo: EquipoAConfirmar;
     summary: ChosenSummary;
@@ -116,6 +117,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       const imageUrl = product.images?.[0] || product.thumbnail;
       setPending({
         variantId: product.variantId ? Number(product.variantId) : null,
+        comboId: product.comboId ?? null,
         slug: product.slug,
         equipo: {
           name: product.displayName || product.name,
@@ -198,7 +200,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     }
     setConfirming(true);
     try {
-      await selectEquipment(token, pending.variantId);
+      await selectEquipment(token, pending.variantId, pending.comboId);
       // Éxito: confirmación EN LA MISMA página (sin re-validar el token consumido).
       const summary = pending.summary;
       setPending(null);
