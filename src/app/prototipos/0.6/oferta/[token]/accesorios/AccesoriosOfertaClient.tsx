@@ -34,7 +34,7 @@ import { AccessoryDetailModal } from '../../../[landing]/solicitar/components/up
 import { AccessoryIntro } from '../../../[landing]/solicitar/components/upsell/AccessoryIntro';
 import { InsuranceCards } from '../../../[landing]/solicitar/components/upsell/InsuranceCards';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
-import { readStoredEquipo, clearStoredEquipo } from '../offerStorage';
+import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -100,17 +100,14 @@ function usePageSize() {
   return pageSize;
 }
 
-export function AccesoriosOfertaClient({
-  token,
-  variantId,
-  comboId,
-  slug,
-}: {
-  token: string;
-  variantId: number | null;
-  comboId: number | null;
-  slug: string | null;
-}) {
+export function AccesoriosOfertaClient({ token }: { token: string }) {
+  // La selección (variant/combo/slug + equipo) se lee de localStorage → la URL
+  // queda limpia, sin query params. Se resuelve una vez al montar; si no existe
+  // (link directo / storage limpio), se redirige a la portada de la oferta.
+  const [variantId, setVariantId] = useState<number | null>(null);
+  const [comboId, setComboId] = useState<number | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -137,34 +134,25 @@ export function AccesoriosOfertaClient({
     else window.location.href = `${base}/oferta/${token}`;
   }, [token, slug]);
 
-  // Carga inicial: valida token + trae addons del equipo elegido.
+  // Carga inicial: lee la selección de localStorage (variant/combo/slug + equipo),
+  // valida el token y trae los add-ons del equipo elegido. Sin selección
+  // guardada (link directo / storage limpio) → redirige a la portada.
   useEffect(() => {
     let active = true;
-    if (variantId == null) {
-      setError('Primero elige un equipo.');
-      setLoading(false);
+    const selection = readOfferSelection(token);
+    if (!selection) {
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
       return;
     }
+    const vId = selection.variantId;
+    setVariantId(vId);
+    setComboId(selection.comboId);
+    setSlug(selection.slug);
+    setEquipoInfo({ name: selection.name, brand: selection.brand, imageUrl: selection.imageUrl });
     (async () => {
       try {
-        const offer = await getOffer(token); // valida token + datos del equipo
-        // Nombre/imagen del equipo elegido para el modal de confirmación.
-        // Prioridad: localStorage (lo guarda el catálogo/detalle/portada al
-        // elegir → cubre CUALQUIER equipo). Fallback: recomendado / oferta
-        // exclusiva del getOffer (por si el storage se limpió).
-        const storedEquipo = readStoredEquipo(token, variantId);
-        if (storedEquipo) {
-          setEquipoInfo(storedEquipo);
-        } else {
-          const rec = offer.recommended;
-          const ex = offer.exclusiveOffer;
-          if (rec && Number(rec.variantId) === variantId) {
-            setEquipoInfo({ name: rec.displayName || rec.name, brand: rec.brand, imageUrl: rec.images?.[0] || rec.thumbnail });
-          } else if (ex && ex.variantId === variantId) {
-            setEquipoInfo({ name: ex.name ?? 'Tu equipo', brand: ex.brand ?? undefined, imageUrl: ex.imageUrl ?? undefined });
-          }
-        }
-        const res = await getOfferAddonsRich(token, variantId, {
+        await getOffer(token); // valida token
+        const res = await getOfferAddonsRich(token, vId, {
           accessoryIds: selectedAcc.map(Number),
           insuranceIds: selectedIns.map(Number),
         });
@@ -172,9 +160,9 @@ export function AccesoriosOfertaClient({
         setAccessories(res.accessories);
         setInsurances(res.insurances);
         setEquipoMonthly(res.equipoMonthly);
-        // Rehidratar la selección guardada (refresh / ida-vuelta), filtrando
+        // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
-        const stored = readStoredAddons(token, variantId);
+        const stored = readStoredAddons(token, vId);
         if (stored) {
           const accOk = new Set(res.accessories.map((a) => a.id));
           const insOk = new Set(res.insurances.map((p) => p.id));
@@ -191,9 +179,9 @@ export function AccesoriosOfertaClient({
     return () => {
       active = false;
     };
-    // Re-carga solo por mount/variante; el filtrado por selección es cliente.
+    // Solo al montar: la selección se resuelve una vez desde localStorage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, variantId]);
+  }, [token]);
 
   // Persistir la selección en localStorage en cada cambio (para sobrevivir un
   // refresh). No corre durante la carga inicial ni tras confirmar (succeeded).
@@ -257,7 +245,7 @@ export function AccesoriosOfertaClient({
       });
       // Ya quedó en BD → limpiar el borrador local para no restaurarlo luego.
       clearStoredAddons(token, variantId);
-      clearStoredEquipo(token, variantId);
+      clearOfferSelection(token);
       setConfirming(false);
       setSucceeded(true);
     } catch (err) {

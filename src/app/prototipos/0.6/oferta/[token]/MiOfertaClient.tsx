@@ -27,7 +27,7 @@ import { TuOfertaTab } from './components/TuOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
-import { saveStoredEquipo, type StoredEquipo } from './offerStorage';
+import { saveOfferSelection, type StoredEquipo } from './offerStorage';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -116,8 +116,9 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   // Aceptar un equipo → página de accesorios/seguros (mini-checkout, BAL-2064).
   // Unifica los caminos de aceptación (index "Aceptar equipo", card de catálogo,
-  // oferta exclusiva Caso 5): TODOS pasan por accesorios y confirman allí. El
-  // equipo elegido viaja por query (?variant=&combo=&slug=); el combo se propaga
+  // oferta exclusiva Caso 5): TODOS pasan por accesorios y confirman allí. La
+  // selección (variant/combo/slug + datos del equipo) se guarda en localStorage
+  // → la URL de accesorios queda limpia, sin query params. El combo se propaga
   // para sincronizar el accesorio gratis del bundle a legacy.
   const goToAccesorios = useCallback(
     (
@@ -132,13 +133,16 @@ export function MiOfertaClient({ token }: { token: string }) {
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
         return;
       }
-      // Guarda el equipo elegido para el modal de confirmación (sin ensuciar URL).
-      if (equipo) saveStoredEquipo(token, variantId, equipo);
-      const qs = new URLSearchParams();
-      qs.set('variant', String(variantId));
-      if (comboId != null) qs.set('combo', String(comboId));
-      if (slug) qs.set('slug', slug);
-      window.location.href = `${base}?${qs.toString()}`;
+      saveOfferSelection(token, {
+        variantId,
+        comboId: comboId ?? null,
+        slug: slug ?? null,
+        name: equipo?.name || 'Tu equipo',
+        brand: equipo?.brand,
+        imageUrl: equipo?.imageUrl,
+        monthly: equipo?.monthly,
+      });
+      window.location.href = base;
     },
     [token],
   );

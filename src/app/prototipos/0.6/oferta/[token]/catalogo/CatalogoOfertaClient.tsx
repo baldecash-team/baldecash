@@ -21,7 +21,7 @@ import {
 import { Navbar } from '../../../components/hero/Navbar';
 import { CatalogoOfertaTab } from '../components/CatalogoOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from '../components/OfertaEstadoMensaje';
-import { saveStoredEquipo } from '../offerStorage';
+import { saveOfferSelection } from '../offerStorage';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
@@ -77,8 +77,8 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
   }, [token, backToOferta]);
 
   // Elegir un equipo del catálogo → página de accesorios/seguros (mini-checkout,
-  // BAL-2064). El equipo elegido viaja por query (?variant=&combo=&slug=); el
-  // combo se propaga para sincronizar el accesorio gratis del bundle a legacy.
+  // BAL-2064). La selección (variant/combo/slug + datos del equipo) se guarda en
+  // localStorage → la URL de accesorios queda limpia, sin query params.
   const handleSelect = useCallback(
     (product: CatalogProduct) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
@@ -87,18 +87,16 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${product.slug ?? ''}`;
         return;
       }
-      // Guarda el equipo elegido para el modal de confirmación (sin ensuciar URL).
-      saveStoredEquipo(token, variantId, {
+      saveOfferSelection(token, {
+        variantId,
+        comboId: product.comboId != null ? Number(product.comboId) : null,
+        slug: product.slug ?? null,
         name: product.displayName || product.name,
         brand: product.brand,
         imageUrl: product.images?.[0] || product.thumbnail,
         monthly: product.quotaMonthly,
       });
-      const qs = new URLSearchParams();
-      qs.set('variant', String(variantId));
-      if (product.comboId != null) qs.set('combo', String(product.comboId));
-      if (product.slug) qs.set('slug', product.slug);
-      window.location.href = `${base}?${qs.toString()}`;
+      window.location.href = base;
     },
     [token],
   );

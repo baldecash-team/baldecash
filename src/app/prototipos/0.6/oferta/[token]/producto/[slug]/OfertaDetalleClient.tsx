@@ -24,7 +24,7 @@ import {
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
 import { getOffer, getCatalog, OfferApiError } from '../../../../services/offerApi';
-import { saveStoredEquipo } from '../../offerStorage';
+import { saveOfferSelection } from '../../offerStorage';
 import type { ProductSuggestion } from '../../../../services/catalogApi';
 
 type State =
@@ -163,28 +163,26 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return opt && typeof opt.monthlyQuota === 'number' ? opt.monthlyQuota : undefined;
   }, [offerPlans]);
 
-  // "Elegir este equipo" → mini-checkout de accesorios/seguros (BAL-2064). El
-  // equipo elegido viaja por query (?variant=&combo=&slug=). Allí el cliente
-  // suma add-ons y confirma todo junto (el combo se propaga para sincronizar el
-  // accesorio gratis del bundle a legacy). El nombre/imagen del equipo se guarda
-  // en localStorage para que el modal de confirmación lo muestre sin ensuciar la
-  // URL (la página de accesorios no conoce el equipo por sí sola).
+  // "Elegir este equipo" → mini-checkout de accesorios/seguros (BAL-2064). La
+  // selección (variant/combo/slug + datos del equipo) se guarda en localStorage
+  // → la URL de accesorios queda limpia (sin query params) y el modal muestra el
+  // equipo correcto. El combo se propaga para sincronizar el accesorio gratis del
+  // bundle a legacy al confirmar.
   const goToAccesorios = useCallback(() => {
+    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
     if (variantId != null && state.kind === 'ready') {
       const p = state.data.product;
-      saveStoredEquipo(token, variantId, {
+      saveOfferSelection(token, {
+        variantId,
+        comboId,
+        slug: slug ?? null,
         name: p?.displayName || p?.name || 'Tu equipo',
         brand: p?.brand,
         imageUrl: p?.images?.[0]?.url,
         monthly: offerMonthly,
       });
     }
-    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
-    const qs = new URLSearchParams();
-    if (variantId != null) qs.set('variant', String(variantId));
-    if (comboId != null) qs.set('combo', String(comboId));
-    if (slug) qs.set('slug', slug);
-    window.location.href = `${base}?${qs.toString()}`;
+    window.location.href = base;
   }, [token, variantId, comboId, slug, state, offerMonthly]);
 
 

@@ -1,10 +1,10 @@
 /**
  * Mini-checkout de accesorios y seguros: /oferta/{token}/accesorios (BAL-2064).
  *
- * Server Component. El detalle del producto navega aquí tras "Elegir este equipo"
- * (con ?variant=&slug=). El cliente suma accesorios/seguros que caben en su
- * cuota restante y confirma todo junto. Reutiliza la UX del flujo regular
- * (AccessoryCard / InsuranceCards).
+ * Server Component. La URL es limpia (sin query params): la selección del equipo
+ * (variant/combo/slug + datos) se lee de localStorage en el cliente, guardada al
+ * elegir desde catálogo/detalle/portada. Si no hay selección (link directo /
+ * storage limpio), el cliente redirige a la portada de la oferta.
  */
 
 import type { Metadata } from 'next';
@@ -18,19 +18,9 @@ export const metadata: Metadata = {
 
 export default async function OfertaAccesoriosPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ variant?: string; combo?: string; slug?: string }>;
 }) {
   const { token } = await params;
-  const { variant, combo, slug } = await searchParams;
-  return (
-    <AccesoriosOfertaClient
-      token={token}
-      variantId={variant ? Number(variant) : null}
-      comboId={combo ? Number(combo) : null}
-      slug={slug ?? null}
-    />
-  );
+  return <AccesoriosOfertaClient token={token} />;
 }
