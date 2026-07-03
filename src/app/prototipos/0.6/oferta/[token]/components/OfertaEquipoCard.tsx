@@ -10,7 +10,7 @@
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Eye, ArrowRight, Info } from 'lucide-react';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
@@ -158,14 +158,31 @@ export function OfertaEquipoCard({
           </div>
         ) : null}
 
+        {/* Card "pedido": mensaje de contexto justo debajo de la cuota (no
+            anclado al fondo, para no dejar espacio muerto). No menciona cuota
+            ni tope; solo aclara que es el equipo que pidió y guía a la derecha. */}
+        {!isAprobado ? (
+          <div className="mt-4">
+            <div className="flex items-start gap-2.5 rounded-xl bg-[var(--surface-bg,#f8fafc)] px-3.5 py-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+              <p className="text-xs leading-relaxed text-gray-500">
+                Este es el equipo que solicitaste. Revisa a la derecha el equipo que
+                preparamos para ti.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {/* CTAs */}
         <div className="mt-auto pt-5">
           {isAprobado ? (
             <div className="flex flex-col gap-2">
+              {/* CTA principal reducido (feedback acta 1-jul: "aceptar equipo
+                  demasiado grande"): ya no ocupa todo el ancho, se centra. */}
               <button
                 type="button"
                 onClick={onAceptar}
-                className="w-full cursor-pointer rounded-xl py-2.5 text-sm font-bold text-white transition-all hover:brightness-90"
+                className="mx-auto cursor-pointer rounded-xl px-8 py-2.5 text-sm font-bold text-white transition-all hover:brightness-90"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 Aceptar equipo
@@ -193,18 +210,32 @@ export function OfertaEquipoCard({
               </div>
             </div>
           ) : (
-            // Card "pediste": SOLO informativa. No se puede elegir ni abrir su
-            // detalle (la oferta existe porque no calificaba). El botón solo
-            // aparece si se pasa `href`, cosa que la oferta ya no hace.
-            href ? (
-              <a
-                href={href}
-                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
-              >
-                <Eye className="h-4 w-4" />
-                Ver detalle
-              </a>
-            ) : null
+            // Card "pediste": el equipo no se puede elegir (la oferta existe
+            // porque no calificaba), pero sí damos un siguiente paso natural
+            // (feedback acta 1-jul): botón "Ver otros equipos" (protagonista del
+            // lado izquierdo) + link discreto "Ver detalle" del equipo pedido
+            // (solo lectura). Jerarquía: el verde "Aprobado" sigue ganando.
+            <div className="flex flex-col gap-2.5">
+              {onVerOtros ? (
+                <button
+                  type="button"
+                  onClick={onVerOtros}
+                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  Ver otros equipos
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : null}
+              {href ? (
+                <a
+                  href={href}
+                  className="flex cursor-pointer items-center justify-center gap-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-gray-600"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Ver detalle
+                </a>
+              ) : null}
+            </div>
           )}
         </div>
       </div>

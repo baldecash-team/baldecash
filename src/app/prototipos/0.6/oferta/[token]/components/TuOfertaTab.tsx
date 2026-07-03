@@ -32,6 +32,9 @@ export function TuOfertaTab({
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      {/* items-stretch: ambas cards igualan altura (la más alta manda). El card
+          izquierdo distribuye su contenido con mt-auto para pegar los CTAs al
+          fondo, así no queda espacio muerto aunque iguale la altura del derecho. */}
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
         {/* EL QUE PEDISTE */}
         <section className="flex flex-col">
@@ -50,9 +53,12 @@ export function TuOfertaTab({
               monthly={req.monthly_price}
               maxQuota={offer.maxMonthlyQuota}
               termMonths={24}
-              // Sin href: la card "el que pediste" es SOLO informativa. El equipo
-              // que pidió no se puede elegir ni abrir su detalle desde aquí (la
-              // oferta existe porque no calificaba). Solo elige del catálogo/recomendado.
+              // El equipo pedido NO se puede elegir (la oferta existe porque no
+              // calificaba), pero el card sí ofrece un siguiente paso (acta 1-jul):
+              //  - onVerOtros → catálogo aprobado (acción principal del lado izq).
+              //  - href → detalle del pedido en modo solo-lectura (link discreto).
+              href={detailHref(token, req.slug)}
+              onVerOtros={onVerCatalogo}
             />
           ) : (
             <p className="text-sm text-gray-400">—</p>

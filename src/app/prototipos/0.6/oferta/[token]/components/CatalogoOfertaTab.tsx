@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ArrowLeft } from 'lucide-react';
 
 import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/layout/CatalogLayoutV4';
 import { NavbarSearch } from '../../../[landing]/catalogo/components/catalog/NavbarActions';
@@ -78,12 +78,15 @@ export function CatalogoOfertaTab({
   onSelect,
   searchQuery,
   onSearchChange,
+  onBack,
 }: {
   token: string;
   offer: OfferView;
   onSelect: (product: CatalogProduct) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  /** Si se pasa, muestra "Volver a mi oferta" en la fila del buscador (como el detalle). */
+  onBack?: () => void;
 }) {
   const [products, setProducts] = useState<CatalogProduct[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -297,7 +300,17 @@ export function CatalogoOfertaTab({
         .filter((v) => v.count > 0);
       specs[code] = { ...spec, values };
     }
-    return { ...apiFilters, types, brands, labels, conditions, usages, specs };
+    // Rango de cuota REAL de la oferta (backend): topa el slider en el equipo más
+    // caro elegible, no en el max de la landing completa (que dejaría un tramo
+    // vacío por encima del umbral aprobado). Sin dato → conserva el de la landing.
+    const quota_range = filterCounts.quotaRange
+      ? {
+          ...apiFilters.quota_range,
+          min: filterCounts.quotaRange.min,
+          max: filterCounts.quotaRange.max,
+        }
+      : apiFilters.quota_range;
+    return { ...apiFilters, types, brands, labels, conditions, usages, specs, quota_range };
   }, [apiFilters, filterCounts]);
 
   return (
@@ -314,19 +327,35 @@ export function CatalogoOfertaTab({
         </button>
       </div>
 
-      {/* Búsqueda desktop: mismo NavbarSearch del detalle/catálogo normal, pero
-          con el dropdown de sugerencias alimentado por el catálogo de la OFERTA
-          (filtrado por cuota, sin el pedido, cuota a 24m/0%). Al elegir una
-          sugerencia se queda en el flujo de oferta. */}
-      <div className="hidden w-full justify-center px-3 pt-4 sm:px-4 lg:px-6 md:flex">
-        <NavbarSearch
-          value={searchQuery}
-          onChange={onSearchChange}
-          onClear={() => onSearchChange('')}
-          placeholder="Buscar entre tus equipos disponibles…"
-          fetchSuggestions={fetchOfferSuggestions}
-          onSelectSuggestion={goToOfferDetail}
-        />
+      {/* Búsqueda desktop: "Volver a mi oferta" + buscador en la MISMA fila
+          (grilla 3 columnas, igual que el detalle del producto). El dropdown de
+          sugerencias se alimenta del catálogo de la OFERTA. */}
+      <div className="hidden px-3 pt-4 sm:px-4 lg:px-6 md:block">
+        <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-4">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Volver a mi oferta</span>
+            </button>
+          ) : (
+            <span aria-hidden />
+          )}
+          <div className="flex justify-center">
+            <NavbarSearch
+              value={searchQuery}
+              onChange={onSearchChange}
+              onClear={() => onSearchChange('')}
+              placeholder="Buscar entre tus equipos disponibles…"
+              fetchSuggestions={fetchOfferSuggestions}
+              onSelectSuggestion={goToOfferDetail}
+            />
+          </div>
+          <span aria-hidden />
+        </div>
       </div>
 
       <CatalogLayoutV4

@@ -8,12 +8,25 @@
  */
 import { PartyPopper } from 'lucide-react';
 
+/** Capitaliza cada palabra: "tamara grisell" → "Tamara Grisell". El nombre
+ *  viene de BD en minúsculas/mixto; lo normalizamos para mostrarlo bonito. */
+function toTitleCase(s: string): string {
+  return s
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 export function OfertaBannerAprobada({ clientName }: { clientName?: string | null }) {
-  const nombre = (clientName || '').trim();
+  const nombre = toTitleCase((clientName || '').trim());
   const saludo = nombre ? `¡Felicitaciones, ${nombre}!` : '¡Felicitaciones!';
 
+  // Mismo contenedor que el logo y las cards (max-w-5xl centrado en desktop)
+  // para alinear todo verticalmente. Mobile: solo px-4, sin margen grande.
   return (
-    <div className="w-full px-3 pt-4 sm:px-4 lg:px-6">
+    <div className="mx-auto w-full max-w-5xl px-4 pb-4 pt-4 sm:px-6 lg:px-8">
       <div
         className="relative overflow-hidden rounded-2xl px-6 py-6 text-white sm:px-8 sm:py-7"
         style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
@@ -28,10 +41,7 @@ export function OfertaBannerAprobada({ clientName }: { clientName?: string | nul
             </h1>
             <p className="mt-1 text-sm text-white/90 sm:text-base">
               Elige un equipo y tu solicitud quedará aprobada. Lo recibirás en{' '}
-              <span className="font-semibold">48-72 horas*</span>.
-            </p>
-            <p className="mt-2 text-xs text-white/60">
-              *Tiempo de entrega disponible en Lima.
+              <span className="font-semibold">48-72 horas</span>.
             </p>
           </div>
         </div>

@@ -247,9 +247,14 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Header con logo (como el home). El Navbar logoOnly es fixed h-16 y trae
-          su propio contenedor; lo dejamos full-width para alinear con el catálogo. */}
-      <Navbar logoOnly fullWidth logoUrl={BRAND_LOGO_URL} />
+      {/* Header con logo. El contenedor del logo usa el MISMO ancho/márgenes que
+          el banner y las cards (max-w-5xl centrado en desktop) para que todo
+          quede alineado verticalmente. En mobile: solo px-4 (sin margen grande). */}
+      <Navbar
+        logoOnly
+        logoUrl={BRAND_LOGO_URL}
+        logoContainerClassName="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8"
+      />
 
       {/* Offset para el navbar fixed. Sin tabs: todo en un solo scroll. */}
       <div className="pt-16" />

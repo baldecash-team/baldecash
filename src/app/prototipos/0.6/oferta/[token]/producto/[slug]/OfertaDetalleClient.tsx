@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Search, LayoutGrid } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import { Navbar } from '../../../../components/hero/Navbar';
@@ -29,8 +29,11 @@ import type { ProductSuggestion } from '../../../../services/catalogApi';
 import type { ChosenSummary } from '../../components/SeleccionConfirmada';
 
 type State =
+  // readOnly = es el detalle del equipo que el estudiante PIDIÓ. Se puede VER
+  // (link "Ver detalle" del card izquierdo) pero NO elegir: la oferta existe
+  // precisamente porque ese equipo no calificaba. Sin CTA "Elegir este equipo".
   | { kind: 'loading' }
-  | { kind: 'ready'; data: ProductDetailResult; landingSlug: string }
+  | { kind: 'ready'; data: ProductDetailResult; landingSlug: string; readOnly: boolean }
   | { kind: 'error'; message: string };
 
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
@@ -41,8 +44,10 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
 
   const goToCatalog = useCallback(
     (q: string) => {
-      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
-      const qs = q.trim() ? `?tab=catalogo&q=${encodeURIComponent(q.trim())}` : '?tab=catalogo';
+      // Subruta real del catálogo de la oferta (/oferta/{token}/catalogo),
+      // NO el viejo ?tab=catalogo. El término de búsqueda va como query param.
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
+      const qs = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
       window.location.href = `${base}${qs}`;
     },
     [token],
@@ -95,14 +100,11 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           return;
         }
 
-        // El equipo que el estudiante PIDIÓ no se puede elegir desde la oferta
-        // (la oferta existe porque no calificaba). Si alguien abre su detalle a
-        // mano (URL directa), lo devolvemos a la página principal de la oferta.
+        // El equipo que el estudiante PIDIÓ se puede VER (link "Ver detalle" del
+        // card izquierdo) pero NO elegir: la oferta existe porque no calificaba.
+        // Lo marcamos readOnly para ocultar el CTA "Elegir este equipo".
         const reqSlug = offer.requestedProduct?.slug;
-        if (reqSlug && reqSlug === slug) {
-          window.location.href = backHref;
-          return;
-        }
+        const readOnly = !!reqSlug && reqSlug === slug;
 
         const detail = await fetchProductDetail(landing, slug);
         if (!active) return;
@@ -110,7 +112,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           setState({ kind: 'error', message: 'No encontramos este equipo.' });
           return;
         }
-        setState({ kind: 'ready', data: detail, landingSlug: landing });
+        setState({ kind: 'ready', data: detail, landingSlug: landing, readOnly });
       } catch (err) {
         if (!active) return;
         const msg = err instanceof OfferApiError ? err.message : 'No pudimos cargar el detalle.';
@@ -206,7 +208,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     );
   }
 
-  const { data } = state;
+  const { data, readOnly } = state;
   return (
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header con logo (como la página de oferta) */}
@@ -240,7 +242,15 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
             <Search className="h-4 w-4" style={{ color: 'var(--color-primary)' }} />
             Buscar
           </button>
-          <span aria-hidden className="hidden md:block" />
+          {/* Desktop: acceso directo al catálogo completo (sin buscar) */}
+          <button
+            type="button"
+            onClick={() => goToCatalog('')}
+            className="hidden shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-[var(--color-primary)] md:inline-flex"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span>Ver todo el catálogo</span>
+          </button>
         </div>
       </div>
       <main className="mx-auto max-w-7xl px-4 py-6">
@@ -255,19 +265,29 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           defaultInitialPercent={OFFER_INITIAL}
           paymentFrequencies={data.paymentFrequencies}
           isAvailable={data.isAvailable && variantId != null}
-          onClickCTA={() => setConfirmOpen(true)}
+          // Detalle del equipo PEDIDO (readOnly): se puede ver pero no elegir.
+          // Sin CTA de elección; en su lugar, un aviso que guía de vuelta.
+          onClickCTA={readOnly ? undefined : () => setConfirmOpen(true)}
           ctaText="Elegir este equipo"
+          readOnlyNotice={
+            readOnly
+              ? 'Este es el equipo que solicitaste. Para aprobar tu solicitud, elige uno de los equipos disponibles en tu oferta.'
+              : undefined
+          }
           cronogramaVersion={defaultDetalleConfig.cronogramaVersion}
         />
       </main>
 
-      <ConfirmarEleccionModal
-        isOpen={confirmOpen}
-        equipo={chosen}
-        loading={selecting}
-        onConfirm={confirmarEleccion}
-        onClose={() => (selecting ? undefined : setConfirmOpen(false))}
-      />
+      {/* Modal de confirmación: solo aplica cuando el equipo SÍ es elegible. */}
+      {readOnly ? null : (
+        <ConfirmarEleccionModal
+          isOpen={confirmOpen}
+          equipo={chosen}
+          loading={selecting}
+          onConfirm={confirmarEleccion}
+          onClose={() => (selecting ? undefined : setConfirmOpen(false))}
+        />
+      )}
     </div>
   );
 }

@@ -90,6 +90,12 @@ interface ProductDetailProps {
    */
   onClickCTA?: () => void;
   ctaText?: string;
+  /**
+   * Modo solo-lectura (BAL-1785, Caso 4): cuando se pasa un texto, oculta el CTA
+   * de compra/elección y en su lugar muestra este aviso. Sirve para el detalle
+   * del equipo que el estudiante PIDIÓ (se puede ver, pero no elegir).
+   */
+  readOnlyNotice?: string;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -122,6 +128,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   showPlatformCommission = false,
   onClickCTA,
   ctaText,
+  readOnlyNotice,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -621,8 +628,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 onSelectionChange={handlePricingSelectionChange}
                 controlledTerm={pricingSelection?.term}
               />
-              {/* CTA Buttons or Unavailable banner */}
-              {!isAvailable ? (
+              {/* CTA Buttons, aviso solo-lectura, o banner de no disponible */}
+              {readOnlyNotice ? (
+                <div className="rounded-xl border border-gray-200 bg-[var(--surface-bg,#f8fafc)] px-4 py-3 text-center">
+                  <p className="text-sm text-gray-500">{readOnlyNotice}</p>
+                </div>
+              ) : !isAvailable ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center">
                   <p className="text-amber-800 font-medium text-sm">Este producto no se encuentra disponible actualmente</p>
                 </div>

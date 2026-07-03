@@ -270,6 +270,9 @@ export interface OfferFilterCounts {
   labelCounts: Record<string, number>;
   usageCounts: Record<string, number>;
   specCounts: Record<string, Record<string, number>>;
+  /** Rango real de cuota mensual del catálogo de la oferta (para topar el slider
+   *  en el equipo más caro elegible, no en el max de la landing completa). */
+  quotaRange: { min: number; max: number } | null;
   total: number;
 }
 
@@ -287,6 +290,10 @@ export async function getOfferFilterCounts(token: string): Promise<OfferFilterCo
     labelCounts: d.label_counts ?? {},
     usageCounts: d.usage_counts ?? {},
     specCounts: d.spec_counts ?? {},
+    quotaRange:
+      d.quota_range && typeof d.quota_range.min === 'number' && typeof d.quota_range.max === 'number'
+        ? { min: d.quota_range.min, max: d.quota_range.max }
+        : null,
     total: d.total ?? 0,
   };
 }

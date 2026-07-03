@@ -9,7 +9,6 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
@@ -172,26 +171,18 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Navbar logoOnly fullWidth logoUrl={BRAND_LOGO_URL} />
+
       <div className="pt-16" />
 
-      {/* Volver a mi oferta */}
-      <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          onClick={backToOferta}
-          className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-gray-500 transition-colors hover:text-[var(--color-primary)]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a mi oferta
-        </button>
-      </div>
-
+      {/* "Volver a mi oferta" va en la fila del buscador (dentro de CatalogoOfertaTab),
+          a la misma altura, igual que el detalle del producto. */}
       <CatalogoOfertaTab
         token={token}
         offer={offer}
         onSelect={handleSelect}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onBack={backToOferta}
       />
 
       <ConfirmarEleccionModal
