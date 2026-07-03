@@ -20,6 +20,7 @@ import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { OtpScreen } from '@/app/prototipos/0.6/admision/_components/OtpScreen';
 import { getEmailStatus } from '@/app/prototipos/0.6/admision/_lib/api/verification';
+import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import {
   readOtpHandoff,
   markOtpVerified,
@@ -40,6 +41,11 @@ function VerificacionContent() {
   const dni = handoff?.dni;
   const code = codeParam ?? handoff?.code;
 
+  // ¿La landing habilita `otp_verification`? Landings sin esa sección (p. ej. tipo
+  // lead) NO deben mostrar esta vista, aunque se entre por URL directa.
+  const { isEnabled, isLoading: flowLoading } = useSolicitarFlow({ slug: landing });
+  const otpEnabled = isEnabled('otp_verification');
+
   // 'checking' → consulta estado; 'otp' → muestra OtpScreen; 'redirecting' → navega.
   const [phase, setPhase] = useState<'checking' | 'otp' | 'redirecting'>('checking');
 
@@ -59,9 +65,21 @@ function VerificacionContent() {
   // Si ya está verificado (por este flujo o por el link del workflow) → resumen.
   useEffect(() => {
     if (!Number.isFinite(applicationId)) return;
+    if (flowLoading) return; // esperar la config real de la landing antes de decidir
     let cancelled = false;
 
     (async () => {
+      // Gate: si la landing NO habilita `otp_verification` (p. ej. landings tipo
+      // lead), esta pantalla no corresponde → saltar al resumen, igual que hace el
+      // submit cuando OTP está apagado (routes.solicitarConfirmacion).
+      if (!otpEnabled) {
+        if (!cancelled) {
+          setPhase('redirecting');
+          goToConfirmacion();
+        }
+        return;
+      }
+
       // Si el handoff ya quedó marcado como verificado, saltar directo.
       if (handoff?.verified) {
         if (!cancelled) {
@@ -92,7 +110,7 @@ function VerificacionContent() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [applicationId]);
+  }, [applicationId, flowLoading, otpEnabled]);
 
   if (phase !== 'otp') {
     return <LoadingFallback />;
