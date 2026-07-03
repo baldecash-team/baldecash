@@ -210,6 +210,11 @@ export function CatalogoOfertaTab({
     return f;
   }, [filters, sort, searchQuery, brandSlugToId, maxQuota]);
 
+  // Clave estable por CONTENIDO de los filtros (no por referencia). `offerFilters`
+  // es un objeto nuevo en cada render y cambia de referencia cuando llega
+  // `apiFilters` (brandSlugToId), aunque los params efectivos sean idénticos. Sin
+  // esto, el catálogo se re-fetchea 2-3 veces al cargar → doble parpadeo del grid.
+  const offerFiltersKey = JSON.stringify(offerFilters);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -221,7 +226,8 @@ export function CatalogoOfertaTab({
     return () => {
       active = false;
     };
-  }, [token, offerFilters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, offerFiltersKey]);
 
   // Contadores de filtros calculados por el BACKEND sobre el catálogo de la
   // oferta (cuota a 24m/0%, sin el pedido). Incluye Uso y specs con la fuente
