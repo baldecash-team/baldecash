@@ -1435,14 +1435,26 @@ export function getEnabledSections(config: SolicitarFlowConfig): SolicitarSectio
 }
 
 /**
- * Helper para verificar si una sección está habilitada
+ * Helper para verificar si una sección está habilitada.
+ *
+ * Una sección se considera habilitada SOLO si la config la declara
+ * explícitamente con `enabled: true`. Si está ausente de la config (o su
+ * `enabled` no es exactamente true), se considera deshabilitada.
+ *
+ * Esto hace que TODAS las secciones se comporten igual: su visibilidad depende
+ * únicamente de lo que admin2 guarda en la config, sin defaults ocultos por
+ * tipo. En particular, las landings que no incluyen `otp_verification` en su
+ * config (p. ej. las de leads) NO muestran el gate de OTP. Cuando la config
+ * completa no carga, `getSolicitarConfig` ya cae a `DEFAULT_SOLICITAR_FLOW`
+ * (con las secciones núcleo habilitadas), así que esa red de seguridad se
+ * mantiene sin necesitar un default `?? true` aquí.
  */
 export function isSectionEnabled(
   config: SolicitarFlowConfig,
   type: SolicitarSectionType
 ): boolean {
   const section = config.sections.find(s => s.type === type);
-  return section?.enabled ?? true;
+  return section?.enabled === true;
 }
 
 // ============================================

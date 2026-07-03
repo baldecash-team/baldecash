@@ -121,13 +121,51 @@ describe('Solicitar Flow Config - Helper Functions', () => {
       expect(isSectionEnabled(config, 'insurance')).toBe(false);
     });
 
-    it('returns true as default when section not found', () => {
+    it('returns false when section is absent (only explicit enabled:true shows a section)', () => {
       const config: SolicitarFlowConfig = {
         sections: [],
       };
 
-      // Should default to true for safety (show section if config missing)
-      expect(isSectionEnabled(config, 'accessories')).toBe(true);
+      // Una sección ausente de la config se considera deshabilitada. La red de
+      // seguridad para "config no carga" vive en DEFAULT_SOLICITAR_FLOW, no aquí.
+      expect(isSectionEnabled(config, 'accessories')).toBe(false);
+    });
+
+    // otp_verification se comporta igual que el resto: solo se muestra si la
+    // config lo declara explícitamente con enabled:true. Las landings que no lo
+    // incluyen (p. ej. leads) NO deben mostrar el gate de OTP.
+    it('returns false for otp_verification when section is absent', () => {
+      const config: SolicitarFlowConfig = {
+        sections: [
+          { type: 'accessories', enabled: true, order: 1 },
+          { type: 'wizard_steps', enabled: true, order: 2 },
+          { type: 'insurance', enabled: true, order: 3 },
+        ],
+      };
+
+      expect(isSectionEnabled(config, 'otp_verification')).toBe(false);
+    });
+
+    it('returns true for otp_verification only when explicitly enabled', () => {
+      const config: SolicitarFlowConfig = {
+        sections: [
+          { type: 'wizard_steps', enabled: true, order: 1 },
+          { type: 'otp_verification', enabled: true, order: 2 },
+        ],
+      };
+
+      expect(isSectionEnabled(config, 'otp_verification')).toBe(true);
+    });
+
+    it('returns false for otp_verification when explicitly disabled', () => {
+      const config: SolicitarFlowConfig = {
+        sections: [
+          { type: 'wizard_steps', enabled: true, order: 1 },
+          { type: 'otp_verification', enabled: false, order: 2 },
+        ],
+      };
+
+      expect(isSectionEnabled(config, 'otp_verification')).toBe(false);
     });
   });
 
