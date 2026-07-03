@@ -52,6 +52,13 @@ export interface RequestedProduct {
   monthly_price: number | null;
 }
 
+/** Accesorio/seguro elegido en la oferta (para el desglose de confirmación). */
+export interface SelectedAddon {
+  id: string;
+  name: string;
+  monthly: number;
+}
+
 export interface SelectedEquipment {
   variantId: number;
   name: string;
@@ -60,6 +67,9 @@ export interface SelectedEquipment {
   brand: string | null;
   monthlyPayment: number | null;
   termMonths: number | null;
+  /** Accesorios/seguros que el cliente sumó (BAL-2064). */
+  accessories?: SelectedAddon[];
+  insurances?: SelectedAddon[];
 }
 
 /** Accesorio de la oferta exclusiva (perfil B del upsell). */
@@ -211,6 +221,16 @@ export async function getOffer(token: string): Promise<OfferView> {
             brand: eq.brand ?? null,
             monthlyPayment: eq.monthly_payment ?? null,
             termMonths: eq.term_months ?? null,
+            accessories: (data.selected_accessories ?? []).map((a: Record<string, unknown>) => ({
+              id: String(a.id),
+              name: String(a.name ?? 'Accesorio'),
+              monthly: Number(a.monthly ?? 0),
+            })),
+            insurances: (data.selected_insurances ?? []).map((s: Record<string, unknown>) => ({
+              id: String(s.id),
+              name: String(s.name ?? 'Seguro'),
+              monthly: Number(s.monthly ?? 0),
+            })),
           }
         : null,
     };
@@ -377,6 +397,36 @@ export async function getOfferAddons(
   };
 }
 
+/** Nombres legibles por slug de categoría de accesorio (los que usa el catálogo).
+ *  Para slugs no mapeados se capitaliza el propio slug. */
+const ACCESSORY_CATEGORY_NAMES: Record<string, string> = {
+  otro: 'Otro',
+  auriculares: 'Auriculares',
+  hub: 'Hub',
+  mochila: 'Mochilas',
+  mouse: 'Mouse',
+  teclado: 'Teclados',
+  cargador: 'Cargadores',
+  funda: 'Fundas',
+  soporte: 'Soportes',
+  camara: 'Cámaras',
+  impresora: 'Impresoras',
+};
+
+/** Normaliza `category` de /addons (viene como slug string) al shape
+ *  { slug, name } que espera el tipo Accessory y los chips de categoría. */
+function normalizeAccessoryCategory(raw: unknown): Accessory['category'] {
+  if (raw && typeof raw === 'object' && 'slug' in (raw as Record<string, unknown>)) {
+    return raw as Accessory['category'];
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const slug = raw.trim();
+    const name = ACCESSORY_CATEGORY_NAMES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+    return { slug, name };
+  }
+  return { slug: 'otro', name: 'Otro' };
+}
+
 /** Versión "rica" de /addons: devuelve el shape completo que esperan las cards
  *  del flujo regular (Accessory / InsurancePlan). El backend ya lo entrega
  *  (to_public_response + InsuranceListingService); acá solo se re-tipa/normaliza.
@@ -403,7 +453,10 @@ export async function getOfferAddonsRich(
     monthlyQuota: Number(a.monthlyQuota ?? 0),
     image: String(a.image ?? ''),
     thumbnailUrl: (a.thumbnailUrl ?? a.image) as string | undefined,
-    category: (a.category ?? null) as Accessory['category'],
+    // El endpoint /addons devuelve `category` como slug (string). El tipo
+    // Accessory (y AccessoryCard/los chips) esperan { slug, name }. Normalizamos
+    // igual que AccessoriesSection para no romper `key={cat.slug}` ni los labels.
+    category: normalizeAccessoryCategory(a.category),
     term: Number(a.term ?? 24),
     isRecommended: Boolean(a.isRecommended),
     compatibleWith: (a.compatibleWith as string[]) ?? ['all'],

@@ -88,6 +88,9 @@ export function MiOfertaClient({ token }: { token: string }) {
             // Equipo anterior → para el UI "anterior → nuevo" (igual que al elegir
             // desde una card). El backend lo devuelve en already_selected.
             previous: req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null,
+            // Accesorios/seguros sumados → desglose en la confirmación (BAL-2064).
+            accessories: eq.accessories ?? [],
+            insurances: eq.insurances ?? [],
           });
           return;
         }
