@@ -11,6 +11,7 @@
  *
  * Elegir es una acción importante: consume el link y registra la selección.
  */
+import type { ReactNode } from 'react';
 import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, X, CheckCircle2, ArrowRight, Check } from 'lucide-react';
@@ -33,6 +34,7 @@ export function ConfirmarEleccionModal({
   onConfirm,
   onClose,
   onSuccessContinue,
+  addonsSlot,
 }: {
   isOpen: boolean;
   equipo: EquipoAConfirmar | null;
@@ -44,6 +46,9 @@ export function ConfirmarEleccionModal({
   /** Se llama al presionar "Continuar" en el estado de éxito. Si no se pasa,
    *  cae a onClose. Aquí el caller navega / refresca (fuera del spinner). */
   onSuccessContinue?: () => void;
+  /** Selector de accesorios/seguros (BAL-2064). Se renderiza dentro del modal,
+   *  antes del aviso, cuando se pasa. */
+  addonsSlot?: ReactNode;
 }) {
   const dismiss = () => (loading ? undefined : onClose());
 
@@ -52,7 +57,8 @@ export function ConfirmarEleccionModal({
       isOpen={isOpen}
       onClose={dismiss}
       placement="center"
-      size="md"
+      size={addonsSlot ? 'lg' : 'md'}
+      scrollBehavior="inside"
       hideCloseButton
       backdrop="opaque"
       isDismissable={!loading && !succeeded}
@@ -179,6 +185,9 @@ export function ConfirmarEleccionModal({
                     ) : null}
                   </div>
                 ) : null}
+
+                {/* Accesorios/seguros que caben en la cuota (BAL-2064). */}
+                {addonsSlot ? <div className="mt-4">{addonsSlot}</div> : null}
 
                 {/* Aviso (wording de Marco): qué pasa al aceptar */}
                 <div className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">

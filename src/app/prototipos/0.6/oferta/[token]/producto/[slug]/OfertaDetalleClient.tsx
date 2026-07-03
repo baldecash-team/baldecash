@@ -15,6 +15,7 @@ import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { Navbar } from '../../../../components/hero/Navbar';
 import { NavbarSearch } from '../../../../[landing]/catalogo/components/catalog/NavbarActions';
 import { ConfirmarEleccionModal } from '../../components/ConfirmarEleccionModal';
+import { OfertaAddonsSelector } from '../../components/OfertaAddonsSelector';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -45,6 +46,11 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   // window.location de la recarga).
   const [selectSucceeded, setSelectSucceeded] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  // Accesorios/seguros que el cliente agregó a su oferta (BAL-2064).
+  const [addons, setAddons] = useState<{ accessoryIds: number[]; insuranceIds: number[] }>({
+    accessoryIds: [],
+    insuranceIds: [],
+  });
 
   const goToCatalog = useCallback(
     (q: string) => {
@@ -187,7 +193,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     if (variantId == null || !chosen) return;
     setSelecting(true);
     try {
-      await selectEquipment(token, variantId, comboId);
+      await selectEquipment(token, variantId, comboId, addons);
       // Éxito: el modal pasa al estado "¡Listo!" (sin recargar). La navegación
       // a la página principal ocurre al presionar "Continuar" (onSuccessContinue),
       // así el spinner no queda girando durante el window.location.
@@ -303,6 +309,13 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           onSuccessContinue={() => {
             window.location.href = backToOffer;
           }}
+          // Accesorios/seguros dentro del popup de confirmación (BAL-2064).
+          // Solo mientras se confirma (no en el estado de éxito) y con variante.
+          addonsSlot={
+            variantId != null && !selectSucceeded ? (
+              <OfertaAddonsSelector token={token} variantId={variantId} onChange={setAddons} compact />
+            ) : null
+          }
         />
       )}
     </div>

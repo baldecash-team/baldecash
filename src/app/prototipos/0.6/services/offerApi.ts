@@ -309,6 +309,7 @@ export async function selectEquipment(
   token: string,
   variantId: number,
   comboId?: number | null,
+  addons?: { accessoryIds?: number[]; insuranceIds?: number[] },
 ): Promise<{ offerId: number; selectedVariantId: number; status: string }> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/select`, {
     method: 'POST',
@@ -316,6 +317,8 @@ export async function selectEquipment(
     body: JSON.stringify({
       variant_id: variantId,
       ...(comboId != null ? { combo_id: comboId } : {}),
+      ...(addons?.accessoryIds?.length ? { accessory_ids: addons.accessoryIds } : {}),
+      ...(addons?.insuranceIds?.length ? { insurance_ids: addons.insuranceIds } : {}),
     }),
   });
   if (!res.ok) throw await parseError(res);
@@ -324,5 +327,51 @@ export async function selectEquipment(
     offerId: data.offer_id,
     selectedVariantId: data.selected_variant_id,
     status: data.status,
+  };
+}
+
+/** Un accesorio o seguro disponible en la oferta (BAL-2064). */
+export interface OfferAddon {
+  id: number;
+  name: string;
+  imageUrl?: string | null;
+  monthly: number;
+  kind: 'accessory' | 'insurance';
+}
+
+/** GET /public/offer/{token}/addons — accesorios/seguros que caben en el
+ *  threshold restante sobre el equipo elegido. */
+export async function getOfferAddons(
+  token: string,
+  variantId: number,
+  selected?: { accessoryIds?: number[]; insuranceIds?: number[] },
+): Promise<{ remaining: number; accessories: OfferAddon[]; insurances: OfferAddon[] }> {
+  const params = new URLSearchParams({ variant_id: String(variantId) });
+  if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
+  if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
+  const res = await fetch(
+    `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
+    { cache: 'no-store' },
+  );
+  if (!res.ok) throw await parseError(res);
+  const d = await res.json();
+  const mapAcc = (a: Record<string, unknown>): OfferAddon => ({
+    id: Number(a.id),
+    name: String(a.name ?? a.displayName ?? 'Accesorio'),
+    imageUrl: (a.image ?? a.imageUrl ?? a.thumbnail) as string | null | undefined,
+    monthly: Number(a.monthlyQuota ?? a.monthly ?? 0),
+    kind: 'accessory',
+  });
+  const mapIns = (a: Record<string, unknown>): OfferAddon => ({
+    id: Number(a.id),
+    name: String(a.name ?? a.planName ?? 'Seguro'),
+    imageUrl: (a.image ?? a.imageUrl) as string | null | undefined,
+    monthly: Number(a.monthlyPrice ?? a.monthly ?? 0),
+    kind: 'insurance',
+  });
+  return {
+    remaining: Number(d.remaining ?? 0),
+    accessories: (d.accessories ?? []).map(mapAcc),
+    insurances: (d.insurances ?? []).map(mapIns),
   };
 }
