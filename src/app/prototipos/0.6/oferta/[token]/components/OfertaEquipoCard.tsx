@@ -195,7 +195,9 @@ export function OfertaEquipoCard({
                   </span>
                   {ad.monthly > 0 ? (
                     <span className="shrink-0 text-gray-400">+S/{Math.round(ad.monthly)}/mes</span>
-                  ) : null}
+                  ) : (
+                    <span className="shrink-0 text-xs font-semibold text-emerald-600">Gratis</span>
+                  )}
                 </li>
               ))}
             </ul>
