@@ -59,7 +59,12 @@ export function InsuranceSection({
       try {
         const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
         const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
-        const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
+        // A365 (Multiasistencia) SOLO se ofrece en la landing `copia-home`. En
+        // cualquier otra landing se filtra aunque el backend la devuelva.
+        const isCopiaHome = landing === 'copia-home';
+        const mappedPlans: InsurancePlan[] = plans
+          .filter((plan) => isCopiaHome || plan.insuranceType !== 'multiasistencia')
+          .map((plan) => ({
           id: plan.id,
           code: plan.code,
           name: plan.name,

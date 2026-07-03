@@ -23,7 +23,21 @@ export const MultiasistenciaUpsellModal: React.FC<MultiasistenciaUpsellModalProp
 }) => {
   const price = Math.floor(monthlyPrice ?? 0);
   return (
-    <Modal isOpen={isOpen} onClose={onDecline} placement="center" hideCloseButton>
+    <Modal
+      isOpen={isOpen}
+      onClose={onDecline}
+      placement="center"
+      hideCloseButton
+      // Backdrop explícito: NextUI por defecto usa `bg-overlay/50`, cuyo token
+      // `overlay` no está definido en esta app → se renderizaba transparente
+      // ("sin fondo"). Se replica el patrón de InsuranceDetailModal.
+      classNames={{
+        wrapper: 'z-[100]',
+        backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
+        base: 'rounded-2xl overflow-hidden bg-white',
+        body: 'p-0',
+      }}
+    >
       <ModalContent>
         <ModalBody className="p-0 overflow-hidden">
           <div className="bg-gradient-to-br from-[#4b3fd1] to-[#7c3aed] text-white px-6 pt-6 pb-5 text-center">

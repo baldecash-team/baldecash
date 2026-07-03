@@ -35,8 +35,6 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
-import { MultiasistenciaUpsellModal } from '../components/upsell/MultiasistenciaUpsellModal';
-import { shouldOfferMaUpsell } from '../utils/maUpsell';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
 
 function ComplementosContent() {
@@ -53,7 +51,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts, toggleInsurance, availableMultiasistencia } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
 
   // Frecuencia del producto principal (para sufijo de cuotas en resumen)
   const primaryFrequency = getAllProducts()[0]?.paymentFrequency;
@@ -64,14 +62,6 @@ function ComplementosContent() {
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
-
-  // Multiasistencia (A365) — modal de segunda oportunidad al enviar sin agregarla
-  const [showMaUpsell, setShowMaUpsell] = useState(false);
-  const [maUpsellDeclined, setMaUpsellDeclined] = useState(false);
-  const maSelected = useMemo(
-    () => !!availableMultiasistencia && selectedInsurances.some((i) => i.id === availableMultiasistencia.id),
-    [availableMultiasistencia, selectedInsurances],
-  );
 
   // Timer ref for the delayed redirect after showing a validation toast
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -220,19 +210,7 @@ function ComplementosContent() {
     router.push(routes.solicitarStep(landing, lastStepSlug));
   };
 
-  const handleSubmit = async (opts?: { skipUpsell?: boolean; extraInsuranceIds?: string[] }) => {
-    // Segunda oportunidad: si hay seguro A365 (Multiasistencia) disponible, no
-    // está agregado y aún no lo rechazó, mostrar el upsell antes de enviar.
-    if (shouldOfferMaUpsell({
-      availableMultiasistencia,
-      maSelected,
-      declined: maUpsellDeclined,
-      skipUpsell: opts?.skipUpsell,
-    })) {
-      setShowMaUpsell(true);
-      return;
-    }
-
+  const handleSubmit = async () => {
     // Validate ALL wizard steps (regular + summary steps with fields) before submitting
     const stepsToValidate = [...regularSteps, ...validatableSummarySteps];
     for (const s of stepsToValidate) {
@@ -251,9 +229,8 @@ function ComplementosContent() {
     }
 
     // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
-    // Multiasistencia por igual) + extras del upsell aceptado (toggle async),
-    // deduplicados. Ver buildSubmitInsuranceIds + tests.
-    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances, opts?.extraInsuranceIds ?? []);
+    // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
+    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
     await submitApplication({
       insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
       insuranceIds,
@@ -428,23 +405,6 @@ function ComplementosContent() {
         {toast && (
           <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
         )}
-        {availableMultiasistencia && (
-          <MultiasistenciaUpsellModal
-            isOpen={showMaUpsell}
-            monthlyPrice={availableMultiasistencia.monthlyPrice ?? 0}
-            onAccept={() => {
-              toggleInsurance(availableMultiasistencia);
-              setShowMaUpsell(false);
-              setMaUpsellDeclined(true); // ya resuelto, no reaparece
-              handleSubmit({ skipUpsell: true, extraInsuranceIds: [availableMultiasistencia.id] });
-            }}
-            onDecline={() => {
-              setShowMaUpsell(false);
-              setMaUpsellDeclined(true);
-              handleSubmit({ skipUpsell: true });
-            }}
-          />
-        )}
       </GamerComplementosWrapper>
     );
   }
@@ -479,25 +439,6 @@ function ComplementosContent() {
           isVisible={isToastVisible}
           onClose={hideToast}
           duration={4000}
-        />
-      )}
-
-      {/* Multiasistencia (A365) - modal de segunda oportunidad */}
-      {availableMultiasistencia && (
-        <MultiasistenciaUpsellModal
-          isOpen={showMaUpsell}
-          monthlyPrice={availableMultiasistencia.monthlyPrice ?? 0}
-          onAccept={() => {
-            toggleInsurance(availableMultiasistencia);
-            setShowMaUpsell(false);
-            setMaUpsellDeclined(true); // ya resuelto, no reaparece
-            handleSubmit({ skipUpsell: true, extraInsuranceIds: [availableMultiasistencia.id] });
-          }}
-          onDecline={() => {
-            setShowMaUpsell(false);
-            setMaUpsellDeclined(true);
-            handleSubmit({ skipUpsell: true });
-          }}
         />
       )}
     </>
