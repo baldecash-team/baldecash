@@ -68,6 +68,10 @@ export function OfertaEquipoCard({
     ...accessories.map((a) => ({ ...a, kind: 'accessory' as const })),
     ...insurances.map((i) => ({ ...i, kind: 'insurance' as const })),
   ];
+  // Total del pedido = cuota del equipo + cuotas de accesorios/seguros (para el
+  // desglose de la card "el que pediste").
+  const addonsMonthly = addons.reduce((s, ad) => s + (ad.monthly || 0), 0);
+  const pedidoTotal = (monthly ?? 0) + addonsMonthly;
   // En "pedido" no disponible: atenuado + nombre tachado.
   const atenuado = variant === 'pedido' && !fits;
 
@@ -180,9 +184,20 @@ export function OfertaEquipoCard({
         {!isAprobado && addons.length > 0 ? (
           <div className="mt-4 rounded-xl border border-gray-100 bg-white p-3">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-              Tu pedido también incluye
+              Desglose de tu pedido
             </p>
             <ul className="space-y-2">
+              {/* Equipo */}
+              <li className="flex items-center justify-between gap-3 text-sm">
+                <span className={`flex min-w-0 items-center gap-2 ${atenuado ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-gray-400" />
+                  <span className="truncate">{name}</span>
+                </span>
+                {monthly ? (
+                  <span className="shrink-0 text-gray-500">S/{Math.round(monthly)}/mes</span>
+                ) : null}
+              </li>
+              {/* Accesorios / seguros */}
               {addons.map((ad) => (
                 <li key={`${ad.kind}-${ad.id}`} className="flex items-center justify-between gap-3 text-sm">
                   <span className={`flex min-w-0 items-center gap-2 ${atenuado ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -201,6 +216,15 @@ export function OfertaEquipoCard({
                 </li>
               ))}
             </ul>
+            {/* Total */}
+            <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
+              <span className={`text-sm font-semibold ${atenuado ? 'text-gray-400' : 'text-[var(--text-strong,#111827)]'}`}>
+                Total mensual
+              </span>
+              <span className={`text-base font-extrabold ${atenuado ? 'text-gray-400' : 'text-[var(--text-strong,#111827)]'}`}>
+                S/{Math.round(pedidoTotal)}<span className="text-xs font-normal text-gray-400">/mes</span>
+              </span>
+            </div>
           </div>
         ) : null}
 
