@@ -34,6 +34,7 @@ import { AccessoryDetailModal } from '../../../[landing]/solicitar/components/up
 import { AccessoryIntro } from '../../../[landing]/solicitar/components/upsell/AccessoryIntro';
 import { InsuranceCards } from '../../../[landing]/solicitar/components/upsell/InsuranceCards';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
+import { readStoredEquipo, clearStoredEquipo } from '../offerStorage';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -147,15 +148,21 @@ export function AccesoriosOfertaClient({
     (async () => {
       try {
         const offer = await getOffer(token); // valida token + datos del equipo
-        // Nombre/imagen del equipo elegido para el modal de confirmación: se
-        // toma del recomendado o de la oferta exclusiva si coinciden con el
-        // variant; si no, queda genérico ("Tu equipo").
-        const rec = offer.recommended;
-        const ex = offer.exclusiveOffer;
-        if (rec && Number(rec.variantId) === variantId) {
-          setEquipoInfo({ name: rec.displayName || rec.name, brand: rec.brand, imageUrl: rec.images?.[0] || rec.thumbnail });
-        } else if (ex && ex.variantId === variantId) {
-          setEquipoInfo({ name: ex.name ?? 'Tu equipo', brand: ex.brand ?? undefined, imageUrl: ex.imageUrl ?? undefined });
+        // Nombre/imagen del equipo elegido para el modal de confirmación.
+        // Prioridad: localStorage (lo guarda el catálogo/detalle/portada al
+        // elegir → cubre CUALQUIER equipo). Fallback: recomendado / oferta
+        // exclusiva del getOffer (por si el storage se limpió).
+        const storedEquipo = readStoredEquipo(token, variantId);
+        if (storedEquipo) {
+          setEquipoInfo(storedEquipo);
+        } else {
+          const rec = offer.recommended;
+          const ex = offer.exclusiveOffer;
+          if (rec && Number(rec.variantId) === variantId) {
+            setEquipoInfo({ name: rec.displayName || rec.name, brand: rec.brand, imageUrl: rec.images?.[0] || rec.thumbnail });
+          } else if (ex && ex.variantId === variantId) {
+            setEquipoInfo({ name: ex.name ?? 'Tu equipo', brand: ex.brand ?? undefined, imageUrl: ex.imageUrl ?? undefined });
+          }
         }
         const res = await getOfferAddonsRich(token, variantId, {
           accessoryIds: selectedAcc.map(Number),
@@ -250,6 +257,7 @@ export function AccesoriosOfertaClient({
       });
       // Ya quedó en BD → limpiar el borrador local para no restaurarlo luego.
       clearStoredAddons(token, variantId);
+      clearStoredEquipo(token, variantId);
       setConfirming(false);
       setSucceeded(true);
     } catch (err) {

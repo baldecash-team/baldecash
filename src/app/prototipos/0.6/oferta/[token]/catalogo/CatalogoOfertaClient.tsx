@@ -21,6 +21,7 @@ import {
 import { Navbar } from '../../../components/hero/Navbar';
 import { CatalogoOfertaTab } from '../components/CatalogoOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from '../components/OfertaEstadoMensaje';
+import { saveStoredEquipo } from '../offerStorage';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
@@ -86,6 +87,13 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${product.slug ?? ''}`;
         return;
       }
+      // Guarda el equipo elegido para el modal de confirmación (sin ensuciar URL).
+      saveStoredEquipo(token, variantId, {
+        name: product.displayName || product.name,
+        brand: product.brand,
+        imageUrl: product.images?.[0] || product.thumbnail,
+        monthly: product.quotaMonthly,
+      });
       const qs = new URLSearchParams();
       qs.set('variant', String(variantId));
       if (product.comboId != null) qs.set('combo', String(product.comboId));

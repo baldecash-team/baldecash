@@ -24,6 +24,7 @@ import {
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
 import { getOffer, getCatalog, OfferApiError } from '../../../../services/offerApi';
+import { saveStoredEquipo } from '../../offerStorage';
 import type { ProductSuggestion } from '../../../../services/catalogApi';
 
 type State =
@@ -140,19 +141,6 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return c != null ? Number(c) : null;
   }, [state]);
 
-  // "Elegir este equipo" → mini-checkout de accesorios/seguros (BAL-2064). El
-  // equipo elegido viaja por query (?variant=&combo=&slug=). Allí el cliente
-  // suma add-ons y confirma todo junto (el combo se propaga para sincronizar el
-  // accesorio gratis del bundle a legacy).
-  const goToAccesorios = useCallback(() => {
-    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
-    const qs = new URLSearchParams();
-    if (variantId != null) qs.set('variant', String(variantId));
-    if (comboId != null) qs.set('combo', String(comboId));
-    if (slug) qs.set('slug', slug);
-    window.location.href = `${base}?${qs.toString()}`;
-  }, [token, variantId, comboId, slug]);
-
   // La oferta SOLO ofrece 24 meses / inicial 0 (feedback de Marco). Filtramos los
   // payment_plans a esa combinación para que el cliente no pueda cambiar el plazo,
   // y para que la cuota mostrada coincida con la del catálogo.
@@ -174,6 +162,30 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     const opt = offerPlans[0]?.options?.[0];
     return opt && typeof opt.monthlyQuota === 'number' ? opt.monthlyQuota : undefined;
   }, [offerPlans]);
+
+  // "Elegir este equipo" → mini-checkout de accesorios/seguros (BAL-2064). El
+  // equipo elegido viaja por query (?variant=&combo=&slug=). Allí el cliente
+  // suma add-ons y confirma todo junto (el combo se propaga para sincronizar el
+  // accesorio gratis del bundle a legacy). El nombre/imagen del equipo se guarda
+  // en localStorage para que el modal de confirmación lo muestre sin ensuciar la
+  // URL (la página de accesorios no conoce el equipo por sí sola).
+  const goToAccesorios = useCallback(() => {
+    if (variantId != null && state.kind === 'ready') {
+      const p = state.data.product;
+      saveStoredEquipo(token, variantId, {
+        name: p?.displayName || p?.name || 'Tu equipo',
+        brand: p?.brand,
+        imageUrl: p?.images?.[0]?.url,
+        monthly: offerMonthly,
+      });
+    }
+    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+    const qs = new URLSearchParams();
+    if (variantId != null) qs.set('variant', String(variantId));
+    if (comboId != null) qs.set('combo', String(comboId));
+    if (slug) qs.set('slug', slug);
+    window.location.href = `${base}?${qs.toString()}`;
+  }, [token, variantId, comboId, slug, state, offerMonthly]);
 
 
   if (state.kind === 'loading') {

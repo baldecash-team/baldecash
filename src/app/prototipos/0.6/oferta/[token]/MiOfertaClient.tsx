@@ -27,6 +27,7 @@ import { TuOfertaTab } from './components/TuOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
+import { saveStoredEquipo, type StoredEquipo } from './offerStorage';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -119,13 +120,20 @@ export function MiOfertaClient({ token }: { token: string }) {
   // equipo elegido viaja por query (?variant=&combo=&slug=); el combo se propaga
   // para sincronizar el accesorio gratis del bundle a legacy.
   const goToAccesorios = useCallback(
-    (variantId: number | null, comboId: number | null | undefined, slug: string | null | undefined) => {
+    (
+      variantId: number | null,
+      comboId: number | null | undefined,
+      slug: string | null | undefined,
+      equipo?: StoredEquipo,
+    ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
       if (variantId == null) {
         // Sin variante usable → caer al detalle para resolver allí.
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
         return;
       }
+      // Guarda el equipo elegido para el modal de confirmación (sin ensuciar URL).
+      if (equipo) saveStoredEquipo(token, variantId, equipo);
       const qs = new URLSearchParams();
       qs.set('variant', String(variantId));
       if (comboId != null) qs.set('combo', String(comboId));
@@ -142,6 +150,12 @@ export function MiOfertaClient({ token }: { token: string }) {
         product.variantId ? Number(product.variantId) : null,
         product.comboId ?? null,
         product.slug,
+        {
+          name: product.displayName || product.name,
+          brand: product.brand,
+          imageUrl: product.images?.[0] || product.thumbnail,
+          monthly: product.quotaMonthly,
+        },
       );
     },
     [goToAccesorios],
@@ -156,7 +170,12 @@ export function MiOfertaClient({ token }: { token: string }) {
     if (!ex || ex.variantId == null) return;
     // La oferta exclusiva no nace de un combo del catálogo (el accesorio del
     // Perfil B se resuelve aparte en el backend) → sin comboId.
-    goToAccesorios(ex.variantId, null, ex.slug);
+    goToAccesorios(ex.variantId, null, ex.slug, {
+      name: ex.name ?? 'Tu equipo',
+      brand: ex.brand ?? undefined,
+      imageUrl: ex.imageUrl ?? undefined,
+      monthly: ex.combinedMonthly,
+    });
   }, [state, goToAccesorios]);
 
   // Caso 5: "continuar con mi equipo" → confirma quedarse con el equipo pedido.
