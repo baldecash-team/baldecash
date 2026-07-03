@@ -17,7 +17,7 @@
  * (page_url) que el tracker envía en cada evento.
  */
 
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 import { SessionProvider } from '../../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTrackerContext';
@@ -27,22 +27,42 @@ import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTra
  * monta LayoutContext (que en el flujo normal inyecta estos colores por landing),
  * así que sin esto --color-primary/-secondary resuelven a un lab() roto y
  * --color-primary-rgb queda vacío → los fondos rgba(...) y las cards de seguro
- * (color secundario aqua) se pintan mal. Se define una sola vez aquí y todas las
- * páginas de la oferta (portada, catálogo, detalle, accesorios) lo heredan.
+ * (color secundario aqua) se pintan mal.
+ *
+ * Se setean en :root (document.documentElement), NO en un div: los modales y
+ * popovers de NextUI se renderizan en un portal a nivel de <body>, FUERA del
+ * árbol del layout. Si las variables vivieran en un div, esos portales heredarían
+ * el lab() roto del root (el modal de confirmación pintaba el secundario como un
+ * rosado). Setearlas en :root cubre también los portales. Se limpian al salir de
+ * la oferta para no contaminar otras rutas.
  */
-const BRAND_VARS = {
+const BRAND_VARS: Record<string, string> = {
   '--color-primary': '#4654CD',
   '--color-primary-rgb': '70, 84, 205',
   '--color-secondary': '#03DBD0',
   '--color-secondary-rgb': '3, 219, 208',
-} as CSSProperties;
+};
 
 export default function OfertaLayout({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous: Record<string, string> = {};
+    for (const [key, value] of Object.entries(BRAND_VARS)) {
+      previous[key] = root.style.getPropertyValue(key);
+      root.style.setProperty(key, value);
+    }
+    return () => {
+      // Restaurar lo que había (normalmente vacío) al desmontar la oferta.
+      for (const [key, prev] of Object.entries(previous)) {
+        if (prev) root.style.setProperty(key, prev);
+        else root.style.removeProperty(key);
+      }
+    };
+  }, []);
+
   return (
     <SessionProvider landingSlug="home">
-      <EventTrackerProvider>
-        <div style={BRAND_VARS}>{children}</div>
-      </EventTrackerProvider>
+      <EventTrackerProvider>{children}</EventTrackerProvider>
     </SessionProvider>
   );
 }
