@@ -101,6 +101,9 @@ export interface HeroContent {
   mobilePositionY?: number;
   mobileZoom?: number;
   badgeText?: string;
+  hideOverlay?: boolean;
+  imageIsCta?: boolean;
+  hideContent?: boolean;
 }
 
 // ============================================

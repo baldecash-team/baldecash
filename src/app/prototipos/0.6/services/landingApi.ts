@@ -653,6 +653,9 @@ export function transformLandingData(data: LandingHeroResponse): {
       mobilePositionY,
       mobileZoom,
       badgeText: (heroConfig.badge_text as string) || undefined,
+      hideOverlay: heroConfig.hide_overlay === true,
+      imageIsCta: heroConfig.image_is_cta === true,
+      hideContent: heroConfig.hide_content === true,
     };
   }
 
