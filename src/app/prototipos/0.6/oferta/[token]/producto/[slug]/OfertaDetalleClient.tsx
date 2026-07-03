@@ -40,6 +40,10 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [selecting, setSelecting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Éxito de la elección: el modal muestra el estado "¡Listo!" y la navegación
+  // se pospone al botón "Continuar" (así el spinner no queda girando durante el
+  // window.location de la recarga).
+  const [selectSucceeded, setSelectSucceeded] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
   const goToCatalog = useCallback(
@@ -184,11 +188,11 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     setSelecting(true);
     try {
       await selectEquipment(token, variantId, comboId);
-      // Tras elegir, volvemos a la página principal de la oferta: como el link ya
-      // quedó consumido, esa página detecta already_selected y muestra la
-      // confirmación (equipo anterior → nuevo). Así el refresh es consistente y
-      // hay una sola pantalla de confirmación.
-      window.location.href = backToOffer;
+      // Éxito: el modal pasa al estado "¡Listo!" (sin recargar). La navegación
+      // a la página principal ocurre al presionar "Continuar" (onSuccessContinue),
+      // así el spinner no queda girando durante el window.location.
+      setSelecting(false);
+      setSelectSucceeded(true);
     } catch (err) {
       const msg = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
       setConfirmOpen(false);
@@ -293,8 +297,12 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           isOpen={confirmOpen}
           equipo={chosen}
           loading={selecting}
+          succeeded={selectSucceeded}
           onConfirm={confirmarEleccion}
           onClose={() => (selecting ? undefined : setConfirmOpen(false))}
+          onSuccessContinue={() => {
+            window.location.href = backToOffer;
+          }}
         />
       )}
     </div>
