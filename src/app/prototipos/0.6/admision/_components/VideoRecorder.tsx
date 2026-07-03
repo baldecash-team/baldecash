@@ -201,33 +201,48 @@ export function VideoRecorder({
 
       {/* Ayuda / cómo responder — SIEMPRE visible (con video de ejemplo si existe,
           o indicaciones configurables del banco / guía por defecto si no). */}
-      <>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#ECECFB] text-[#4654CD] text-xs font-semibold px-3 py-1.5 hover:bg-[#e1e1f7] transition-colors cursor-pointer"
-          onClick={() => {
-            events?.track('video_example_opened', { question_index: index });
-            setShowExample(true);
-          }}
-        >
-          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <path d="M12 17h.01" />
-          </svg>
-          {example?.videoUrl ? 'Ver ejemplo' : '¿Cómo respondo?'}
-        </button>
-        <ExampleModal
-          open={showExample}
-          onClose={() => setShowExample(false)}
-          title={
-            example?.videoUrl
-              ? `Ejemplo · Pregunta ${index + 1}`
-              : `Cómo responder · Pregunta ${index + 1}`
-          }
-          example={example ?? DEFAULT_HELP}
-        />
-      </>
+      {/* Cómo responder — la PRIMERA línea del ejemplo va SIEMPRE visible (cumple el
+          rol de guía que antes estaba escondido tras un botón). "Ver más" / "Ver
+          ejemplo" abre el detalle completo en el modal. */}
+      {(() => {
+        const help = example ?? DEFAULT_HELP;
+        const isVideo = !!example?.videoUrl;
+        return (
+          <div className="rounded-xl bg-[#F7F7FB] border border-[#ECECFB] px-3.5 py-3">
+            <div className="flex items-start gap-2">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 mt-0.5 shrink-0 text-[#4654CD]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
+              </svg>
+              <p className="text-sm text-[#374151] leading-relaxed">{help.intro}</p>
+            </div>
+            <button
+              type="button"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#4654CD] hover:underline cursor-pointer"
+              onClick={() => {
+                events?.track('video_example_opened', { question_index: index });
+                setShowExample(true);
+              }}
+            >
+              {isVideo ? 'Ver ejemplo' : 'Ver más'}
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        );
+      })()}
+      <ExampleModal
+        open={showExample}
+        onClose={() => setShowExample(false)}
+        title={
+          example?.videoUrl
+            ? `Ejemplo · Pregunta ${index + 1}`
+            : `Cómo responder · Pregunta ${index + 1}`
+        }
+        example={example ?? DEFAULT_HELP}
+      />
 
       {/* ── camera recording path ─────────────────────────────────────────── */}
       {!stream && !previewBlob && !requesting && (
@@ -374,6 +389,13 @@ export function VideoRecorder({
               </span>
             </div>
           )}
+          {/* Desactiva el miedo a regrabar: es la principal duda que frena la 1ª toma. */}
+          <p className="flex items-center justify-center gap-1.5 text-center text-xs text-[#6b7280]">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0 text-[#16a34a]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            Si no te convence, puedes grabar de nuevo. No afecta tu evaluación.
+          </p>
           <div className="flex gap-3">
             <button
               className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors text-sm cursor-pointer"
