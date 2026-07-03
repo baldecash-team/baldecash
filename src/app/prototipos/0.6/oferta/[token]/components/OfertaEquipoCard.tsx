@@ -10,7 +10,7 @@
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, ArrowRight, Info } from 'lucide-react';
+import { CheckCircle2, Eye, ArrowRight, Info, Ban } from 'lucide-react';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
@@ -216,6 +216,18 @@ export function OfertaEquipoCard({
             // lado izquierdo) + link discreto "Ver detalle" del equipo pedido
             // (solo lectura). Jerarquía: el verde "Aprobado" sigue ganando.
             <div className="flex flex-col gap-2.5">
+              {/* Botón gris "No disponible" (feedback acta 3-jul): comunica de
+                  forma explícita que este equipo NO es elegible. Solo cuando no
+                  entra en la cuota (atenuado). Deshabilitado, no accionable. */}
+              {atenuado ? (
+                <div
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-400"
+                  aria-disabled="true"
+                >
+                  <Ban className="h-4 w-4" />
+                  No disponible
+                </div>
+              ) : null}
               {onVerOtros ? (
                 <button
                   type="button"
