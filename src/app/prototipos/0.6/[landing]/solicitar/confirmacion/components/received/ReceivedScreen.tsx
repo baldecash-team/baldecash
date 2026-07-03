@@ -12,14 +12,17 @@ interface ReceivedScreenProps {
   data: ReceivedData;
   onGoToHome?: () => void;
   overlayVariant?: string | null;
+  /** CTA opcional (p. ej. validar correo/OTP), renderizado bajo el encabezado. */
+  otpCta?: React.ReactNode;
 }
 
-export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant }) => {
+export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant, otpCta }) => {
   return (
     <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
         <Illustration overlayVariant={overlayVariant} />
         <ReceivedMessage data={data} overlayVariant={overlayVariant} />
+        {otpCta}
         <ApplicationStatus notificationChannels={data.notificationChannels} />
         <ProductSummary data={data} />
         <ContactInfo onGoToHome={onGoToHome} />

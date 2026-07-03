@@ -10,7 +10,7 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -21,7 +21,7 @@ import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/them
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { readOtpHandoff } from '../utils/otpHandoff';
+import { readOtpHandoff, type OtpHandoff } from '../utils/otpHandoff';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
@@ -245,6 +245,74 @@ function buildReceivedData(
 }
 
 /**
+ * OtpValidationCta — CTA opcional para validar el correo desde la confirmación.
+ *
+ * Se muestra SOLO cuando existe un handoff de OTP sin verificar para esta
+ * solicitud. Como el handoff únicamente se escribe durante el submit cuando la
+ * landing tiene `otp_verification` habilitado, su sola presencia funciona como
+ * condición "OTP activo para esta landing" — sin acoplar esta página a la
+ * config de solicitar / PreviewProvider.
+ *
+ * El handoff se lee en un efecto (sessionStorage es client-only): en SSR y en el
+ * primer render cliente devuelve null, y tras hidratar aparece el CTA si aplica.
+ */
+function OtpValidationCta({
+  landing,
+  applicationCode,
+  onValidate,
+}: {
+  landing: string;
+  applicationCode: string;
+  onValidate: (applicationId: number) => void;
+}) {
+  const [handoff, setHandoff] = useState<OtpHandoff | null>(null);
+
+  useEffect(() => {
+    setHandoff(readOtpHandoff(landing));
+  }, [landing]);
+
+  const show =
+    !!handoff &&
+    !handoff.verified &&
+    (!handoff.code || handoff.code === applicationCode);
+
+  if (!show || !handoff) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="mb-6 sm:mb-8 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5
+                 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+    >
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">
+          <Mail className="w-5 h-5 text-[var(--color-primary)]" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm sm:text-base font-semibold text-neutral-800 break-words">
+            Validar tu correo puede agilizar tu proceso
+          </p>
+          <p className="text-xs sm:text-sm text-neutral-500 break-words">
+            Confirma tu email para avanzar más rápido.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onValidate(handoff.applicationId)}
+        className="w-full sm:w-auto flex-shrink-0 px-4 py-2.5 min-h-[44px] flex items-center justify-center
+                   bg-[var(--color-primary)] text-white rounded-lg font-medium text-sm
+                   hover:opacity-90 transition-opacity"
+      >
+        Validar mi correo
+      </button>
+    </motion.div>
+  );
+}
+
+/**
  * Real Confirmation View - Shown when ?code= is present
  */
 function RealConfirmationContent({
@@ -254,6 +322,7 @@ function RealConfirmationContent({
   searchParams,
   onGoHome,
   overlayVariant,
+  otpCta,
 }: {
   applicationCode: string;
   applicationData: ApplicationStatusData | null;
@@ -261,6 +330,7 @@ function RealConfirmationContent({
   searchParams: URLSearchParams;
   onGoHome: () => void;
   overlayVariant?: string | null;
+  otpCta?: React.ReactNode;
 }) {
   if (isLoading) {
     return <LoadingFallback />;
@@ -268,7 +338,7 @@ function RealConfirmationContent({
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} overlayVariant={overlayVariant} />;
+  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} overlayVariant={overlayVariant} otpCta={otpCta} />;
 }
 
 /**
@@ -359,24 +429,8 @@ function ConfirmacionContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  // Guard OTP: si existe un handoff de OTP sin verificar para esta solicitud,
-  // forzar el paso por /verificacion antes de mostrar el estado (cubre refresh o
-  // navegación directa al resumen sin verificar). La sola existencia del handoff
-  // implica que la landing tiene `otp_verification` habilitado — solo se escribe
-  // en ese caso durante el submit —, así que no hace falta re-leer la config aquí
-  // (evita acoplar esta página al PreviewProvider / solicitar-config).
-  useEffect(() => {
-    if (!applicationCode) return;
-    const handoff = readOtpHandoff(landing);
-    if (!handoff || handoff.verified) return;
-    if (handoff.code && handoff.code !== applicationCode) return;
-    router.replace(
-      routes.solicitarVerificacion(landing, {
-        applicationId: handoff.applicationId,
-        code: applicationCode,
-      })
-    );
-  }, [applicationCode, landing, router]);
+  // OTP ya NO es un gate: la verificación de correo se ofrece como CTA opcional
+  // dentro de la vista de confirmación (ver <OtpValidationCta/>), no se fuerza.
 
   // Get layout data from context
   const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData } = useLayout();
@@ -460,6 +514,36 @@ function ConfirmacionContent() {
     router.push(routes.landingHome(landing));
   };
 
+  // CTA opcional de validación de correo (OTP). Navega a /verificacion llevando
+  // el application_id del handoff + el code de la solicitud actual.
+  const handleValidateEmail = (applicationId: number) => {
+    const sessionId = getStoredSessionUuid(landing);
+    if (sessionId) {
+      sendEventsBatch(sessionId, [
+        {
+          event_type: 'confirmation_cta_click',
+          client_ts: Date.now(),
+          page_url: window.location.pathname,
+          properties: { cta_type: 'validate_email' },
+        },
+      ]);
+    }
+    router.push(
+      routes.solicitarVerificacion(landing, {
+        applicationId,
+        code: applicationCode ?? undefined,
+      })
+    );
+  };
+
+  const otpCta = applicationCode ? (
+    <OtpValidationCta
+      landing={landing}
+      applicationCode={applicationCode}
+      onValidate={handleValidateEmail}
+    />
+  ) : null;
+
   const isGamer = isGamerLanding(params?.landing as string);
 
   // 404 if landing not found — checked before the gamer wrap so the user sees
@@ -487,6 +571,7 @@ function ConfirmacionContent() {
             searchParams={searchParams}
             onGoHome={handleGoHome}
             overlayVariant={overlayVariant}
+            otpCta={otpCta}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
@@ -522,6 +607,7 @@ function ConfirmacionContent() {
             searchParams={searchParams}
             onGoHome={handleGoHome}
             overlayVariant={overlayVariant}
+            otpCta={otpCta}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />

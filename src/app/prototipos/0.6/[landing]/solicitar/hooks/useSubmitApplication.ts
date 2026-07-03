@@ -404,11 +404,12 @@ export function useSubmitApplication(
 
           succeeded = true;
 
-          // Si la landing tiene OTP habilitado y tenemos application_id, NO
-          // redirigimos al resumen todavía: navegamos a la ruta dedicada
-          // `…/solicitar/verificacion`. El `application_id` + `code` viajan por la
-          // URL; el DNI (PII) viaja por sessionStorage (handoff) para prellenar el
-          // auto-envío y para el guard de /confirmacion.
+          // El OTP dejó de ser un gate obligatorio: ya NO redirigimos a
+          // `…/solicitar/verificacion`. Sin embargo, cuando la landing tiene OTP
+          // habilitado y tenemos application_id, seguimos persistiendo el handoff.
+          // Ese handoff es la señal que /confirmacion usa para mostrar el CTA
+          // opcional ("Validar mi correo") y guarda el DNI (PII) que la pantalla
+          // de OTP necesita para prellenar el auto-envío.
           if (otpEnabled && result.application_id) {
             saveOtpHandoff(landing, {
               applicationId: result.application_id,
@@ -416,17 +417,12 @@ export function useSubmitApplication(
               dni: capturedDocumentNumber,
               verified: false,
             });
-            setIsSubmitting(false);
-            router.push(
-              routes.solicitarVerificacion(landing, {
-                applicationId: result.application_id,
-                code: result.application_code,
-              })
-            );
-            return true;
           }
 
-          // Sin OTP: redirect directo a la página de confirmación.
+          setIsSubmitting(false);
+
+          // Siempre vamos directo a la página de confirmación (resumen). El OTP
+          // quedó como CTA opcional dentro de esa vista.
           router.push(
             routes.solicitarConfirmacion(landing, result.application_code)
           );
