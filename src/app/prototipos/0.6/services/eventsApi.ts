@@ -186,7 +186,6 @@ export type EventType =
   | 'video_clip_rerecord'
   | 'video_question_shown'
   | 'video_example_opened'
-  | 'video_remind_later'
   | 'video_upload_error'
   | 'video_completion_error'
   | 'video_success_shown'

@@ -12,14 +12,6 @@ const BULLETS = [
 export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Coords) => void; applicantName?: string; events?: AdmissionEvents }) {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reminded, setReminded] = useState(false);
-
-  // Salida digna para quien abre el link fuera de su negocio: en vez de perderlo,
-  // agenda el retorno (hoy registra el evento; el recordatorio real se envía aparte).
-  const handleRemindLater = () => {
-    events?.track('video_remind_later');
-    setReminded(true);
-  };
 
   const handleStart = () => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
@@ -85,30 +77,14 @@ export function VideoIntro({ onStart, applicantName, events }: { onStart: (c: Co
 
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      {reminded ? (
-        <p className="rounded-xl bg-[#E3F4ED] p-4 text-sm font-medium text-[#15805D]">
-          Listo 👍 Te escribiremos para recordarte cuando estés en tu negocio.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={handleStart}
-            disabled={locating}
-            className="w-full rounded-xl bg-[#4654CD] px-4 py-3 font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
-          >
-            {locating ? 'Obteniendo ubicación…' : 'Compartir ubicación y comenzar'}
-          </button>
-          <button
-            type="button"
-            onClick={handleRemindLater}
-            disabled={locating}
-            className="w-full rounded-xl px-4 py-2.5 font-medium text-[#6b7280] hover:text-[#4654CD] hover:bg-[#ECECFB] transition-colors disabled:opacity-60"
-          >
-            Recuérdame más tarde
-          </button>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={handleStart}
+        disabled={locating}
+        className="w-full rounded-xl bg-[#4654CD] px-4 py-3 font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+      >
+        {locating ? 'Obteniendo ubicación…' : 'Compartir ubicación y comenzar'}
+      </button>
     </div>
   );
 }
