@@ -88,6 +88,8 @@ export function TuOfertaTab({
               href={detailHref(token, rec.slug)}
               onAceptar={() => onSelect(rec)}
               onVerOtros={onVerCatalogo}
+              // Specs clave del equipo aprobado (llenan el espacio de la card).
+              specs={rec.specs}
             />
           ) : (
             <p className="text-sm text-gray-500">No hay un equipo recomendado disponible.</p>

@@ -10,7 +10,8 @@
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, ArrowRight, Info, Ban, Package, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Eye, ArrowRight, Info, Ban, Package, ShieldCheck, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
+import type { ProductSpecs } from '../../../[landing]/catalogo/types/catalog';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
@@ -46,6 +47,8 @@ export interface OfertaEquipoCardProps {
   accessories?: OfertaCardAddon[];
   /** Seguros del pedido original. */
   insurances?: OfertaCardAddon[];
+  /** Specs técnicas del equipo (card "aprobado para ti"): procesador, RAM, etc. */
+  specs?: ProductSpecs;
 }
 
 export function OfertaEquipoCard({
@@ -62,6 +65,7 @@ export function OfertaEquipoCard({
   onVerOtros,
   accessories = [],
   insurances = [],
+  specs,
 }: OfertaEquipoCardProps) {
   const isAprobado = variant === 'aprobado';
   const addons = [
@@ -155,6 +159,38 @@ export function OfertaEquipoCard({
             </p>
           </div>
         ) : null}
+
+        {/* Aprobado: specs clave del equipo (llena el espacio y ayuda a decidir).
+            Mismo estilo que las cards del catálogo. */}
+        {isAprobado && specs ? (
+          <div className="mt-4 space-y-2.5">
+            {specs.processor?.model ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted,#4b5563)]">
+                <Cpu className="h-4 w-4 shrink-0" style={{ color: 'var(--color-primary)' }} />
+                <span className="truncate">{specs.processor.model}</span>
+              </div>
+            ) : null}
+            {specs.ram ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted,#4b5563)]">
+                <MemoryStick className="h-4 w-4 shrink-0" style={{ color: 'var(--color-primary)' }} />
+                <span>{specs.ram.size}GB {specs.ram.type}</span>
+              </div>
+            ) : null}
+            {specs.storage ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted,#4b5563)]">
+                <HardDrive className="h-4 w-4 shrink-0" style={{ color: 'var(--color-primary)' }} />
+                <span>{specs.storage.size}GB {String(specs.storage.type).toUpperCase()}</span>
+              </div>
+            ) : null}
+            {specs.display ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted,#4b5563)]">
+                <Monitor className="h-4 w-4 shrink-0" style={{ color: 'var(--color-primary)' }} />
+                <span>{specs.display.size}&quot; {String(specs.display.resolution).toUpperCase()}</span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Pedido: comparación de cuota vs cuota aprobada (número concreto). */}
         {!isAprobado ? (
           <div className="mt-4">
