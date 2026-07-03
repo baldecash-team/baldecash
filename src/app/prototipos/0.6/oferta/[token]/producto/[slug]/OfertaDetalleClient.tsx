@@ -14,8 +14,6 @@ import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import { Navbar } from '../../../../components/hero/Navbar';
 import { NavbarSearch } from '../../../../[landing]/catalogo/components/catalog/NavbarActions';
-import { ConfirmarEleccionModal } from '../../components/ConfirmarEleccionModal';
-import { OfertaAddonsSelector } from '../../components/OfertaAddonsSelector';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -25,9 +23,8 @@ import {
   fetchProductDetail,
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
-import { getOffer, getCatalog, selectEquipment, OfferApiError } from '../../../../services/offerApi';
+import { getOffer, getCatalog, OfferApiError } from '../../../../services/offerApi';
 import type { ProductSuggestion } from '../../../../services/catalogApi';
-import type { ChosenSummary } from '../../components/SeleccionConfirmada';
 
 type State =
   // readOnly = es el detalle del equipo que el estudiante PIDIÓ. Se puede VER
@@ -39,18 +36,7 @@ type State =
 
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
-  const [selecting, setSelecting] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  // Éxito de la elección: el modal muestra el estado "¡Listo!" y la navegación
-  // se pospone al botón "Continuar" (así el spinner no queda girando durante el
-  // window.location de la recarga).
-  const [selectSucceeded, setSelectSucceeded] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  // Accesorios/seguros que el cliente agregó a su oferta (BAL-2064).
-  const [addons, setAddons] = useState<{ accessoryIds: number[]; insuranceIds: number[] }>({
-    accessoryIds: [],
-    insuranceIds: [],
-  });
 
   const goToCatalog = useCallback(
     (q: string) => {
@@ -154,6 +140,19 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return c != null ? Number(c) : null;
   }, [state]);
 
+  // "Elegir este equipo" → mini-checkout de accesorios/seguros (BAL-2064). El
+  // equipo elegido viaja por query (?variant=&combo=&slug=). Allí el cliente
+  // suma add-ons y confirma todo junto (el combo se propaga para sincronizar el
+  // accesorio gratis del bundle a legacy).
+  const goToAccesorios = useCallback(() => {
+    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+    const qs = new URLSearchParams();
+    if (variantId != null) qs.set('variant', String(variantId));
+    if (comboId != null) qs.set('combo', String(comboId));
+    if (slug) qs.set('slug', slug);
+    window.location.href = `${base}?${qs.toString()}`;
+  }, [token, variantId, comboId, slug]);
+
   // La oferta SOLO ofrece 24 meses / inicial 0 (feedback de Marco). Filtramos los
   // payment_plans a esa combinación para que el cliente no pueda cambiar el plazo,
   // y para que la cuota mostrada coincida con la del catálogo.
@@ -176,36 +175,6 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return opt && typeof opt.monthlyQuota === 'number' ? opt.monthlyQuota : undefined;
   }, [offerPlans]);
 
-  // Resumen del equipo (para el modal de confirmación y la pantalla de éxito).
-  const chosen = useMemo<ChosenSummary | null>(() => {
-    if (state.kind !== 'ready') return null;
-    const p = state.data.product;
-    return {
-      name: p?.displayName || p?.name || 'Tu equipo',
-      brand: p?.brand,
-      imageUrl: p?.images?.[0]?.url,
-      monthly: offerMonthly,
-    };
-  }, [state, offerMonthly]);
-
-  // Confirmación real (llamada desde el modal).
-  async function confirmarEleccion() {
-    if (variantId == null || !chosen) return;
-    setSelecting(true);
-    try {
-      await selectEquipment(token, variantId, comboId, addons);
-      // Éxito: el modal pasa al estado "¡Listo!" (sin recargar). La navegación
-      // a la página principal ocurre al presionar "Continuar" (onSuccessContinue),
-      // así el spinner no queda girando durante el window.location.
-      setSelecting(false);
-      setSelectSucceeded(true);
-    } catch (err) {
-      const msg = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
-      setConfirmOpen(false);
-      setState({ kind: 'error', message: msg });
-      setSelecting(false);
-    }
-  }
 
   if (state.kind === 'loading') {
     // Sin pantalla intermedia "cargando equipo" (como el detalle regular):
@@ -286,7 +255,9 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           isAvailable={data.isAvailable && variantId != null}
           // Detalle del equipo PEDIDO (readOnly): se puede ver pero no elegir.
           // Sin CTA de elección; en su lugar, un aviso que guía de vuelta.
-          onClickCTA={readOnly ? undefined : () => setConfirmOpen(true)}
+          // "Elegir este equipo" → página de accesorios/seguros (mini-checkout,
+          // BAL-2064). Allí el cliente suma add-ons y confirma todo junto.
+          onClickCTA={readOnly ? undefined : goToAccesorios}
           ctaText="Elegir este equipo"
           readOnlyNotice={
             readOnly
@@ -296,28 +267,6 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           cronogramaVersion={defaultDetalleConfig.cronogramaVersion}
         />
       </main>
-
-      {/* Modal de confirmación: solo aplica cuando el equipo SÍ es elegible. */}
-      {readOnly ? null : (
-        <ConfirmarEleccionModal
-          isOpen={confirmOpen}
-          equipo={chosen}
-          loading={selecting}
-          succeeded={selectSucceeded}
-          onConfirm={confirmarEleccion}
-          onClose={() => (selecting ? undefined : setConfirmOpen(false))}
-          onSuccessContinue={() => {
-            window.location.href = backToOffer;
-          }}
-          // Accesorios/seguros dentro del popup de confirmación (BAL-2064).
-          // Solo mientras se confirma (no en el estado de éxito) y con variante.
-          addonsSlot={
-            variantId != null && !selectSucceeded ? (
-              <OfertaAddonsSelector token={token} variantId={variantId} onChange={setAddons} compact />
-            ) : null
-          }
-        />
-      )}
     </div>
   );
 }

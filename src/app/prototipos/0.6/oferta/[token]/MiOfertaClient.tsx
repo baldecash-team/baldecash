@@ -110,62 +110,51 @@ export function MiOfertaClient({ token }: { token: string }) {
     return req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null;
   }, []);
 
-  // Card "Elegir" del catálogo → abre el modal de confirmación.
-  const handleSelect = useCallback(
-    (product: CatalogProduct) => {
-      const offer = state.kind === 'ready' ? state.offer : null;
-      const imageUrl = product.images?.[0] || product.thumbnail;
-      setPending({
-        variantId: product.variantId ? Number(product.variantId) : null,
-        comboId: product.comboId ?? null,
-        slug: product.slug,
-        equipo: {
-          name: product.displayName || product.name,
-          brand: product.brand,
-          imageUrl,
-          monthly: product.quotaMonthly,
-        },
-        summary: {
-          name: product.displayName || product.name,
-          brand: product.brand,
-          imageUrl,
-          monthly: product.quotaMonthly,
-          finalPrice: product.price,
-          offerCode: offer?.offerCode,
-          userName: offer?.clientName ?? undefined,
-          previous: previousFrom(offer),
-        },
-      });
+  // Aceptar un equipo → página de accesorios/seguros (mini-checkout, BAL-2064).
+  // Unifica los caminos de aceptación (index "Aceptar equipo", card de catálogo,
+  // oferta exclusiva Caso 5): TODOS pasan por accesorios y confirman allí. El
+  // equipo elegido viaja por query (?variant=&combo=&slug=); el combo se propaga
+  // para sincronizar el accesorio gratis del bundle a legacy.
+  const goToAccesorios = useCallback(
+    (variantId: number | null, comboId: number | null | undefined, slug: string | null | undefined) => {
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+      if (variantId == null) {
+        // Sin variante usable → caer al detalle para resolver allí.
+        window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
+        return;
+      }
+      const qs = new URLSearchParams();
+      qs.set('variant', String(variantId));
+      if (comboId != null) qs.set('combo', String(comboId));
+      if (slug) qs.set('slug', slug);
+      window.location.href = `${base}?${qs.toString()}`;
     },
-    [state, previousFrom],
+    [token],
   );
 
-  // Caso 5: aceptar la oferta exclusiva → modal de confirmación (P3).
+  // Card "Elegir" del catálogo / "Aceptar equipo" del index → mini-checkout.
+  const handleSelect = useCallback(
+    (product: CatalogProduct) => {
+      goToAccesorios(
+        product.variantId ? Number(product.variantId) : null,
+        product.comboId ?? null,
+        product.slug,
+      );
+    },
+    [goToAccesorios],
+  );
+
+  // Caso 5: aceptar la oferta exclusiva → mini-checkout de accesorios/seguros.
+  // (Perfil B ya trae accesorio incluido y Perfil C es tarifa especial; aun así
+  // el cliente puede sumar más add-ons que quepan en su cuota restante.)
   const handleAceptarExclusiva = useCallback(() => {
     const offer = state.kind === 'ready' ? state.offer : null;
     const ex = offer?.exclusiveOffer;
     if (!ex || ex.variantId == null) return;
-    setPending({
-      variantId: ex.variantId,
-      slug: ex.slug,
-      equipo: {
-        name: ex.name ?? 'Tu equipo',
-        brand: ex.brand ?? undefined,
-        imageUrl: ex.imageUrl ?? undefined,
-        monthly: ex.combinedMonthly,
-      },
-      summary: {
-        name: ex.name ?? 'Tu equipo',
-        brand: ex.brand ?? undefined,
-        imageUrl: ex.imageUrl ?? undefined,
-        monthly: ex.combinedMonthly,
-        termMonths: ex.termMonths,
-        offerCode: offer?.applicationCode ?? offer?.offerCode,
-        userName: offer?.clientName ?? undefined,
-        previous: previousFrom(offer),
-      },
-    });
-  }, [state, previousFrom]);
+    // La oferta exclusiva no nace de un combo del catálogo (el accesorio del
+    // Perfil B se resuelve aparte en el backend) → sin comboId.
+    goToAccesorios(ex.variantId, null, ex.slug);
+  }, [state, goToAccesorios]);
 
   // Caso 5: "continuar con mi equipo" → confirma quedarse con el equipo pedido.
   const handleContinuarMiEquipo = useCallback(() => {

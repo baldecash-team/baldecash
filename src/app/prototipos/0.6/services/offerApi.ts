@@ -12,6 +12,7 @@
  */
 
 import type { CatalogProduct } from '../[landing]/catalogo/types/catalog';
+import type { Accessory, InsurancePlan } from '../[landing]/solicitar/types/upsell';
 import {
   mapApiProductToCatalogProduct,
   type ApiCatalogProduct,
@@ -373,5 +374,62 @@ export async function getOfferAddons(
     remaining: Number(d.remaining ?? 0),
     accessories: (d.accessories ?? []).map(mapAcc),
     insurances: (d.insurances ?? []).map(mapIns),
+  };
+}
+
+/** Versión "rica" de /addons: devuelve el shape completo que esperan las cards
+ *  del flujo regular (Accessory / InsurancePlan). El backend ya lo entrega
+ *  (to_public_response + InsuranceListingService); acá solo se re-tipa/normaliza.
+ *  Se usa en la página de mini-checkout (/oferta/{token}/accesorios). */
+export async function getOfferAddonsRich(
+  token: string,
+  variantId: number,
+  selected?: { accessoryIds?: number[]; insuranceIds?: number[] },
+): Promise<{ remaining: number; equipoMonthly: number; accessories: Accessory[]; insurances: InsurancePlan[] }> {
+  const params = new URLSearchParams({ variant_id: String(variantId) });
+  if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
+  if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
+  const res = await fetch(
+    `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
+    { cache: 'no-store' },
+  );
+  if (!res.ok) throw await parseError(res);
+  const d = await res.json();
+  const accessories: Accessory[] = (d.accessories ?? []).map((a: Record<string, unknown>) => ({
+    id: String(a.id),
+    name: String(a.name ?? 'Accesorio'),
+    description: String(a.description ?? ''),
+    price: Number(a.price ?? 0),
+    monthlyQuota: Number(a.monthlyQuota ?? 0),
+    image: String(a.image ?? ''),
+    thumbnailUrl: (a.thumbnailUrl ?? a.image) as string | undefined,
+    category: (a.category ?? null) as Accessory['category'],
+    term: Number(a.term ?? 24),
+    isRecommended: Boolean(a.isRecommended),
+    compatibleWith: (a.compatibleWith as string[]) ?? ['all'],
+    specs: (a.specs as Accessory['specs']) ?? undefined,
+    brand: (a.brand ?? null) as Accessory['brand'],
+  }));
+  const insurances: InsurancePlan[] = (d.insurances ?? []).map((s: Record<string, unknown>) => ({
+    id: String(s.id),
+    code: String(s.code ?? ''),
+    name: String(s.name ?? 'Seguro'),
+    description: String(s.description ?? ''),
+    monthlyPrice: Number(s.monthlyPrice ?? 0),
+    totalPrice: Number(s.totalPrice ?? 0),
+    paymentMonths: Number(s.paymentMonths ?? 24),
+    insuranceType: String(s.insuranceType ?? ''),
+    coverage: (s.coverage as InsurancePlan['coverage']) ?? [],
+    exclusions: (s.exclusions as string[]) ?? [],
+    isRecommended: Boolean(s.isRecommended),
+    tier: (s.tier as InsurancePlan['tier']) ?? 'basic',
+    durationMonths: Number(s.durationMonths ?? 24),
+    provider: (s.provider ?? null) as InsurancePlan['provider'],
+  }));
+  return {
+    remaining: Number(d.remaining ?? 0),
+    equipoMonthly: Number(d.equipo_monthly ?? 0),
+    accessories,
+    insurances,
   };
 }

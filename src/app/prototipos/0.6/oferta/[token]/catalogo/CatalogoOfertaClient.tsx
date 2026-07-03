@@ -14,7 +14,6 @@ import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
 import {
   getOffer,
-  selectEquipment,
   OfferApiError,
   type OfferView,
   type OfferErrorReason,
@@ -22,8 +21,6 @@ import {
 import { Navbar } from '../../../components/hero/Navbar';
 import { CatalogoOfertaTab } from '../components/CatalogoOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from '../components/OfertaEstadoMensaje';
-import { ConfirmarEleccionModal, type EquipoAConfirmar } from '../components/ConfirmarEleccionModal';
-import { SeleccionConfirmada, type ChosenSummary } from '../components/SeleccionConfirmada';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
@@ -49,15 +46,6 @@ function readInitialQuery(): string {
 export function CatalogoOfertaClient({ token }: { token: string }) {
   const [state, setState] = useState<PageState>({ kind: 'loading' });
   const [searchQuery, setSearchQuery] = useState(readInitialQuery);
-  const [pending, setPending] = useState<{
-    variantId: number | null;
-    comboId?: number | null;
-    slug?: string | null;
-    equipo: EquipoAConfirmar;
-    summary: ChosenSummary;
-  } | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [selected, setSelected] = useState<ChosenSummary | null>(null);
 
   const backToOferta = useCallback(() => {
     window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
@@ -87,66 +75,25 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
     };
   }, [token, backToOferta]);
 
+  // Elegir un equipo del catálogo → página de accesorios/seguros (mini-checkout,
+  // BAL-2064). El equipo elegido viaja por query (?variant=&combo=&slug=); el
+  // combo se propaga para sincronizar el accesorio gratis del bundle a legacy.
   const handleSelect = useCallback(
     (product: CatalogProduct) => {
-      const offer = state.kind === 'ready' ? state.offer : null;
-      const req = offer?.requestedProduct;
-      const imageUrl = product.images?.[0] || product.thumbnail;
-      setPending({
-        variantId: product.variantId ? Number(product.variantId) : null,
-        comboId: product.comboId ?? null,
-        slug: product.slug,
-        equipo: {
-          name: product.displayName || product.name,
-          brand: product.brand,
-          imageUrl,
-          monthly: product.quotaMonthly,
-        },
-        summary: {
-          name: product.displayName || product.name,
-          brand: product.brand,
-          imageUrl,
-          monthly: product.quotaMonthly,
-          finalPrice: product.price,
-          offerCode: offer?.offerCode,
-          userName: offer?.clientName ?? undefined,
-          previous: req ? { name: req.name ?? 'Tu equipo', imageUrl: req.image_url ?? undefined } : null,
-        },
-      });
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+      const variantId = product.variantId ? Number(product.variantId) : null;
+      if (variantId == null) {
+        window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${product.slug ?? ''}`;
+        return;
+      }
+      const qs = new URLSearchParams();
+      qs.set('variant', String(variantId));
+      if (product.comboId != null) qs.set('combo', String(product.comboId));
+      if (product.slug) qs.set('slug', product.slug);
+      window.location.href = `${base}?${qs.toString()}`;
     },
-    [state],
+    [token],
   );
-
-  const confirmSelect = useCallback(async () => {
-    if (!pending) return;
-    if (pending.variantId == null) {
-      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${pending.slug}`;
-      return;
-    }
-    setConfirming(true);
-    try {
-      await selectEquipment(token, pending.variantId, pending.comboId);
-      const summary = pending.summary;
-      setPending(null);
-      setSelected(summary);
-    } catch (err) {
-      const reason = err instanceof OfferApiError ? err.reason : 'unknown';
-      const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
-      setPending(null);
-      setState({ kind: 'error', reason, message });
-    } finally {
-      setConfirming(false);
-    }
-  }, [pending, token]);
-
-  if (selected) {
-    return (
-      <SeleccionConfirmada
-        chosen={selected}
-        backHref={`${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`}
-      />
-    );
-  }
 
   if (state.kind === 'loading') {
     return (
@@ -185,14 +132,6 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onBack={backToOferta}
-      />
-
-      <ConfirmarEleccionModal
-        isOpen={pending !== null}
-        equipo={pending?.equipo ?? null}
-        loading={confirming}
-        onConfirm={confirmSelect}
-        onClose={() => (confirming ? undefined : setPending(null))}
       />
     </div>
   );
