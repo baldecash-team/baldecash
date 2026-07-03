@@ -66,4 +66,52 @@ describe('LeadHeroBanner — flags de hero', () => {
     fireEvent.click(screen.getByTestId('hero-image-cta'));
     expect(onCtaClick).toHaveBeenCalledTimes(1);
   });
+
+  it('muestra el marquee de marcas cuando hay brands y no hay hideContent', async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        json: () =>
+          Promise.resolve({ brands: [{ id: 1, name: 'HP', logo_url: 'https://s3/hp.png' }] }),
+      }),
+    ) as unknown as typeof fetch;
+
+    render(<LeadHeroBanner heroContent={baseHero()} bannerImages={imgs} landing="x" />);
+
+    const marquees = await screen.findAllByText('Marcas disponibles');
+    expect(marquees.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('hideContent oculta el marquee de marcas aunque existan brands', async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        json: () =>
+          Promise.resolve({ brands: [{ id: 1, name: 'HP', logo_url: 'https://s3/hp.png' }] }),
+      }),
+    ) as unknown as typeof fetch;
+
+    render(<LeadHeroBanner heroContent={baseHero({ hideContent: true })} bannerImages={imgs} landing="x" />);
+
+    // Espera a que el fetch de brands resuelva antes de asertar la ausencia.
+    await screen.findByTestId('hero-overlay');
+    expect(screen.queryByText('Marcas disponibles')).not.toBeInTheDocument();
+  });
+
+  it('imageIsCta responde a teclado (Enter y Espacio) disparando onCtaClick', () => {
+    const onCtaClick = jest.fn();
+    render(
+      <LeadHeroBanner
+        heroContent={baseHero({ imageIsCta: true, hideContent: true })}
+        bannerImages={imgs}
+        landing="x"
+        onCtaClick={onCtaClick}
+      />,
+    );
+    const cta = screen.getByTestId('hero-image-cta');
+
+    fireEvent.keyDown(cta, { key: 'Enter' });
+    expect(onCtaClick).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(cta, { key: ' ' });
+    expect(onCtaClick).toHaveBeenCalledTimes(2);
+  });
 });
