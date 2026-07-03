@@ -59,8 +59,7 @@ export function OfertaEstadoMensaje({
           initial="hidden"
           animate="visible"
         >
-          {/* Ícono grande: círculo relleno nítido, sin puntos flotantes ni
-              anillo pulsante (evita artefactos visuales). Solo entrada suave. */}
+          {/* Ícono grande: círculo relleno nítido con entrada suave. */}
           <div className="mb-8 flex justify-center">
             <motion.div
               className="flex h-28 w-28 items-center justify-center rounded-full border md:h-32 md:w-32"
@@ -104,6 +103,26 @@ export function OfertaEstadoMensaje({
               </Button>
             </motion.div>
           ) : null}
+
+          {/* Partículas decorativas flotantes (mismo lenguaje visual que la 404):
+              círculos de marca con opacidad baja que orbitan suavemente. */}
+          <motion.div
+            className="pointer-events-none absolute -left-10 -top-10 h-4 w-4 rounded-full opacity-20"
+            style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
+            animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' as const }}
+          />
+          <motion.div
+            className="pointer-events-none absolute -bottom-5 -right-5 h-6 w-6 rounded-full bg-[#03DBD0] opacity-30"
+            animate={{ y: [0, 15, 0], x: [0, -15, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' as const }}
+          />
+          <motion.div
+            className="pointer-events-none absolute -right-20 top-20 h-3 w-3 rounded-full opacity-15"
+            style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
+            animate={{ y: [0, 25, 0], rotate: [0, 180, 360] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' as const }}
+          />
         </motion.div>
       </div>
     </div>
