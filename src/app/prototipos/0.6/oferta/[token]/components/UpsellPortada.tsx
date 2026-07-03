@@ -137,6 +137,17 @@ export function UpsellPortada({
         <p className="mt-2 text-sm text-gray-500">
           Antes de firmar, mira esta oferta que preparamos para ti:
         </p>
+        {/* Perfil C — tarifa especial: badge destacado */}
+        {offer.isCustomRate ? (
+          <div
+            className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-white"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            <Sparkles className="h-4 w-4" />
+            Tarifa especial para ti
+            <Sparkles className="h-4 w-4" />
+          </div>
+        ) : null}
       </div>
 
       {/* TU EQUIPO vs OFERTA EXCLUSIVA — cada card con su propio CTA */}

@@ -102,6 +102,8 @@ export interface OfferView {
   offerCase?: 'downgrade' | 'upsell';
   /** Perfil de la oferta exclusiva (A/B/C) — solo upsell. */
   profile?: string | null;
+  /** Perfil C: tarifa especial activa → mostrar "Tarifa especial para ti". */
+  isCustomRate?: boolean;
   /** La oferta exclusiva — solo upsell. */
   exclusiveOffer?: ExclusiveOffer | null;
 }
@@ -167,6 +169,7 @@ export async function getOffer(token: string): Promise<OfferView> {
       clientName: data.client_name ?? null,
       offerCase: 'upsell',
       profile: data.profile ?? null,
+      isCustomRate: data.is_custom_rate ?? false,
       exclusiveOffer: ex
         ? {
             productId: ex.product_id,
