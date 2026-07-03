@@ -50,6 +50,10 @@ export interface RequestedProduct {
   /** Cuota del equipo pedido a 24m/0%; null si no aplica. Sirve para comparar
    *  contra la cuota aprobada ("supera tu cuota" o "sí entra"). */
   monthly_price: number | null;
+  /** Accesorios/seguros que el cliente YA tenía en su pedido original
+   *  (composición real, acta 1-jul). Card izquierda "el que pediste". */
+  accessories?: Array<{ id: number | null; name: string; monthly: number }>;
+  insurances?: Array<{ id: number | null; name: string; monthly: number }>;
 }
 
 /** Accesorio/seguro elegido en la oferta (para el desglose de confirmación). */

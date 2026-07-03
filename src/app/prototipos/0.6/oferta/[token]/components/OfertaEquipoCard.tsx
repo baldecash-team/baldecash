@@ -10,10 +10,17 @@
  * - Variante "pediste" (no entra en cuota): atenuada/tachada + solo "Ver detalle".
  */
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, ArrowRight, Info, Ban } from 'lucide-react';
+import { CheckCircle2, Eye, ArrowRight, Info, Ban, Package, ShieldCheck } from 'lucide-react';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
+
+/** Accesorio/seguro del pedido original (composición real, acta 1-jul). */
+export interface OfertaCardAddon {
+  id: number | null;
+  name: string;
+  monthly: number;
+}
 
 export interface OfertaEquipoCardProps {
   /** Marca (ej. "Asus"). */
@@ -35,6 +42,10 @@ export interface OfertaEquipoCardProps {
   href?: string; // Ver detalle
   onAceptar?: () => void;
   onVerOtros?: () => void;
+  /** Accesorios del pedido original (card "el que pediste", composición real). */
+  accessories?: OfertaCardAddon[];
+  /** Seguros del pedido original. */
+  insurances?: OfertaCardAddon[];
 }
 
 export function OfertaEquipoCard({
@@ -49,8 +60,14 @@ export function OfertaEquipoCard({
   href,
   onAceptar,
   onVerOtros,
+  accessories = [],
+  insurances = [],
 }: OfertaEquipoCardProps) {
   const isAprobado = variant === 'aprobado';
+  const addons = [
+    ...accessories.map((a) => ({ ...a, kind: 'accessory' as const })),
+    ...insurances.map((i) => ({ ...i, kind: 'insurance' as const })),
+  ];
   // En "pedido" no disponible: atenuado + nombre tachado.
   const atenuado = variant === 'pedido' && !fits;
 
@@ -155,6 +172,33 @@ export function OfertaEquipoCard({
             )}
             {/* Sin aviso de cuota/tope: no se le muestra el threshold al cliente.
                 El equipo simplemente aparece atenuado/tachado. */}
+          </div>
+        ) : null}
+
+        {/* Composición real del pedido (acta 1-jul): accesorios/seguros que el
+            cliente YA tenía. Solo en la card "el que pediste". */}
+        {!isAprobado && addons.length > 0 ? (
+          <div className="mt-4 rounded-xl border border-gray-100 bg-white p-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              Tu pedido también incluye
+            </p>
+            <ul className="space-y-2">
+              {addons.map((ad) => (
+                <li key={`${ad.kind}-${ad.id}`} className="flex items-center justify-between gap-3 text-sm">
+                  <span className={`flex min-w-0 items-center gap-2 ${atenuado ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {ad.kind === 'insurance' ? (
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-gray-400" />
+                    ) : (
+                      <Package className="h-4 w-4 shrink-0 text-gray-400" />
+                    )}
+                    <span className="truncate">{ad.name}</span>
+                  </span>
+                  {ad.monthly > 0 ? (
+                    <span className="shrink-0 text-gray-400">+S/{Math.round(ad.monthly)}/mes</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
 

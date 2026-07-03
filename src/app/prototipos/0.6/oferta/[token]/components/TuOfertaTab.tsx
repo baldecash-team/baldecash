@@ -59,6 +59,10 @@ export function TuOfertaTab({
               //  - href → detalle del pedido en modo solo-lectura (link discreto).
               href={detailHref(token, req.slug)}
               onVerOtros={onVerCatalogo}
+              // Composición real del pedido (acta 1-jul): accesorios/seguros que
+              // el cliente ya tenía en su solicitud original.
+              accessories={req.accessories ?? []}
+              insurances={req.insurances ?? []}
             />
           ) : (
             <p className="text-sm text-gray-400">—</p>
