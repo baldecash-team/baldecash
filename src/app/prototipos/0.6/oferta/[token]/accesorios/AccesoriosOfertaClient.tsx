@@ -149,6 +149,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       return;
     }
     const vId = selection.variantId;
+    // Plazo elegido en el detalle (BAL-2096) → las cuotas de accesorios/seguros
+    // se calculan a ese mismo plazo. Sin él, el backend usa el plazo máximo.
+    const selTerm = selection.term;
     setVariantId(vId);
     setComboId(selection.comboId);
     setSlug(selection.slug);
@@ -160,6 +163,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         const res = await getOfferAddonsRich(token, vId, {
           accessoryIds: selectedAcc.map(Number),
           insuranceIds: selectedIns.map(Number),
+          term: selTerm,
         });
         if (!active) return;
         setAccessories(res.accessories);

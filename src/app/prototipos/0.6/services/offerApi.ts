@@ -121,6 +121,10 @@ export interface OfferView {
   isCustomRate?: boolean;
   /** La oferta exclusiva — solo upsell. */
   exclusiveOffer?: ExclusiveOffer | null;
+  /** Plazos permitidos por la oferta (BAL-2096). Default [24] si el backend no los trae. */
+  terms: number[];
+  /** Iniciales (%) permitidos por la oferta (BAL-2096). Default [0]. */
+  initials: number[];
 }
 
 export interface OfferCatalog {
@@ -198,6 +202,8 @@ export async function getOffer(token: string): Promise<OfferView> {
             accessory: acc,
           }
         : null,
+      terms: data.terms ?? [24],
+      initials: data.initials ?? [0],
     };
   }
 
@@ -235,6 +241,8 @@ export async function getOffer(token: string): Promise<OfferView> {
             })),
           }
         : null,
+      terms: data.terms ?? [24],
+      initials: data.initials ?? [0],
     };
   }
 
@@ -249,6 +257,8 @@ export async function getOffer(token: string): Promise<OfferView> {
     recommended: data.recommended
       ? mapApiProductToCatalogProduct(data.recommended as ApiCatalogProduct)
       : null,
+    terms: data.terms ?? [24],
+    initials: data.initials ?? [0],
   };
 }
 
@@ -389,11 +399,12 @@ export interface OfferAddon {
 export async function getOfferAddons(
   token: string,
   variantId: number,
-  selected?: { accessoryIds?: number[]; insuranceIds?: number[] },
+  selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number },
 ): Promise<{ remaining: number; accessories: OfferAddon[]; insurances: OfferAddon[] }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
+  if (selected?.term != null) params.set('term', String(selected.term));
   const res = await fetch(
     `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
     { cache: 'no-store' },
@@ -458,11 +469,12 @@ function normalizeAccessoryCategory(raw: unknown): Accessory['category'] {
 export async function getOfferAddonsRich(
   token: string,
   variantId: number,
-  selected?: { accessoryIds?: number[]; insuranceIds?: number[] },
+  selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number },
 ): Promise<{ remaining: number; equipoMonthly: number; accessories: Accessory[]; insurances: InsurancePlan[] }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
+  if (selected?.term != null) params.set('term', String(selected.term));
   const res = await fetch(
     `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
     { cache: 'no-store' },

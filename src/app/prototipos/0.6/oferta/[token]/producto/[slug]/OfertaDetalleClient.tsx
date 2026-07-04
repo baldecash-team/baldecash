@@ -38,6 +38,9 @@ type State =
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [searchValue, setSearchValue] = useState('');
+  // Plazos/iniciales permitidos por la oferta (BAL-2096). Default [24]/[0] = como antes.
+  const [offerTerms, setOfferTerms] = useState<number[]>([24]);
+  const [offerInitials, setOfferInitials] = useState<number[]>([0]);
 
   const goToCatalog = useCallback(
     (q: string) => {
@@ -88,6 +91,10 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         const offer = await getOffer(token); // valida token + da landing_slug
         const landing = offer.landingSlug || 'home';
         const backHref = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
+        if (active) {
+          setOfferTerms(offer.terms?.length ? offer.terms : [24]);
+          setOfferInitials(offer.initials?.length ? offer.initials : [0]);
+        }
 
         // Oferta ya consumida (el estudiante ya eligió su equipo): el detalle no
         // debe seguir funcionando. Lo devolvemos a la página principal, que muestra
@@ -141,27 +148,38 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     return c != null ? Number(c) : null;
   }, [state]);
 
-  // La oferta SOLO ofrece 24 meses / inicial 0 (feedback de Marco). Filtramos los
-  // payment_plans a esa combinación para que el cliente no pueda cambiar el plazo,
-  // y para que la cuota mostrada coincida con la del catálogo.
-  const OFFER_TERM = 24;
-  const OFFER_INITIAL = 0;
+  // La oferta permite los plazos/iniciales configurados en el nodo (BAL-2096).
+  // Filtramos los payment_plans a la INTERSECCIÓN de esos arrays con lo que el
+  // producto realmente soporta. Si el array es un solo valor (ej. [24]/[0]), el
+  // selector queda con una sola opción (bloqueado, como antes).
   const offerPlans = useMemo(() => {
     if (state.kind !== 'ready') return [];
     return (state.data.paymentPlans ?? [])
-      .filter((plan) => plan.term === OFFER_TERM)
+      .filter((plan) => offerTerms.includes(plan.term))
       .map((plan) => ({
         ...plan,
-        options: (plan.options ?? []).filter((o) => o.initialPercent === OFFER_INITIAL),
+        options: (plan.options ?? []).filter((o) => offerInitials.includes(o.initialPercent)),
       }))
       .filter((plan) => plan.options.length > 0);
-  }, [state]);
+  }, [state, offerTerms, offerInitials]);
 
-  // Cuota de la oferta: la de 24m / inicial 0 (la misma del catálogo).
-  const offerMonthly = useMemo(() => {
-    const opt = offerPlans[0]?.options?.[0];
-    return opt && typeof opt.monthlyQuota === 'number' ? opt.monthlyQuota : undefined;
+  // Defaults del selector = celda de menor cuota (plazo más alto + inicial más
+  // bajo), igual que la card izquierda de la oferta.
+  const defaultTerm = useMemo(
+    () => (offerPlans.length ? Math.max(...offerPlans.map((p) => p.term)) : 24),
+    [offerPlans],
+  );
+  const defaultInitial = useMemo(() => {
+    const inits = offerPlans.flatMap((p) => (p.options ?? []).map((o) => o.initialPercent));
+    return inits.length ? Math.min(...inits) : 0;
   }, [offerPlans]);
+
+  // Cuota de la oferta a la celda por defecto (la más baja) — la misma del catálogo.
+  const offerMonthly = useMemo(() => {
+    const plan = offerPlans.find((p) => p.term === defaultTerm);
+    const opt = (plan?.options ?? []).find((o) => o.initialPercent === defaultInitial);
+    return opt && typeof opt.monthlyQuota === 'number' ? opt.monthlyQuota : undefined;
+  }, [offerPlans, defaultTerm, defaultInitial]);
 
   // "Elegir este equipo" → mini-checkout de accesorios/seguros (BAL-2064). La
   // selección (variant/combo/slug + datos del equipo) se guarda en localStorage
@@ -180,10 +198,11 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         brand: p?.brand,
         imageUrl: p?.images?.[0]?.url,
         monthly: offerMonthly,
+        term: defaultTerm,
       });
     }
     window.location.href = base;
-  }, [token, variantId, comboId, slug, state, offerMonthly]);
+  }, [token, variantId, comboId, slug, state, offerMonthly, defaultTerm]);
 
 
   if (state.kind === 'loading') {
@@ -259,8 +278,8 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           similarProducts={[]}
           limitations={data.limitations}
           certifications={data.certifications}
-          defaultTerm={OFFER_TERM}
-          defaultInitialPercent={OFFER_INITIAL}
+          defaultTerm={defaultTerm}
+          defaultInitialPercent={defaultInitial}
           paymentFrequencies={data.paymentFrequencies}
           isAvailable={data.isAvailable && variantId != null}
           // Detalle del equipo PEDIDO (readOnly): se puede ver pero no elegir.
