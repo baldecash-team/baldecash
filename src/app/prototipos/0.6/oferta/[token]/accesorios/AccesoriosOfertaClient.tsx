@@ -345,7 +345,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       await selectEquipment(token, variantId, comboId, {
         accessoryIds: selectedAcc.map(Number),
         insuranceIds: selectedIns.map(Number),
-      });
+      }, { term: curTerm, initial: curInitial });
       // Funnel: elección confirmada (equipo + add-ons). Tras el OK del backend.
       analytics.trackSummarySubmit({
         product_count: 1,
@@ -363,7 +363,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setConfirming(false);
       setModalOpen(false);
     }
-  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics]);
+  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
 
   // Slot de desglose de add-ons para el modal (equipo + accesorios + seguros).
   const addonsResumen = useMemo(() => {

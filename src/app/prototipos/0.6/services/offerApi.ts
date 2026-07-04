@@ -365,6 +365,7 @@ export async function selectEquipment(
   variantId: number,
   comboId?: number | null,
   addons?: { accessoryIds?: number[]; insuranceIds?: number[] },
+  pricing?: { term?: number; initial?: number },
 ): Promise<{ offerId: number; selectedVariantId: number; status: string }> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/select`, {
     method: 'POST',
@@ -374,6 +375,9 @@ export async function selectEquipment(
       ...(comboId != null ? { combo_id: comboId } : {}),
       ...(addons?.accessoryIds?.length ? { accessory_ids: addons.accessoryIds } : {}),
       ...(addons?.insuranceIds?.length ? { insurance_ids: addons.insuranceIds } : {}),
+      // Plazo/inicial elegidos (BAL-2097): el backend valida/registra con esta celda.
+      ...(pricing?.term != null ? { term: pricing.term } : {}),
+      ...(pricing?.initial != null ? { initial: pricing.initial } : {}),
     }),
   });
   if (!res.ok) throw await parseError(res);
