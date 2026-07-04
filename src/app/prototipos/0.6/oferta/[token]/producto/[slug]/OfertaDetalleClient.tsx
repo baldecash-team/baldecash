@@ -41,6 +41,14 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   // Plazos/iniciales permitidos por la oferta (BAL-2096). Default [24]/[0] = como antes.
   const [offerTerms, setOfferTerms] = useState<number[]>([24]);
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
+  // Plazo/inicial que el cliente eligió en el selector (BAL-2097) → se propagan a
+  // la página de accesorios. Null hasta que el selector emita (se usa el default).
+  const [pickedTerm, setPickedTerm] = useState<number | null>(null);
+  const [pickedInitial, setPickedInitial] = useState<number | null>(null);
+  const handleOfferSelection = useCallback((sel: { term: number; initialPercent: number }) => {
+    setPickedTerm(sel.term);
+    setPickedInitial(sel.initialPercent);
+  }, []);
 
   const goToCatalog = useCallback(
     (q: string) => {
@@ -198,11 +206,12 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         brand: p?.brand,
         imageUrl: p?.images?.[0]?.url,
         monthly: offerMonthly,
-        term: defaultTerm,
+        term: pickedTerm ?? defaultTerm,
+        initial: pickedInitial ?? defaultInitial,
       });
     }
     window.location.href = base;
-  }, [token, variantId, comboId, slug, state, offerMonthly, defaultTerm]);
+  }, [token, variantId, comboId, slug, state, offerMonthly, defaultTerm, defaultInitial, pickedTerm, pickedInitial]);
 
 
   if (state.kind === 'loading') {
@@ -280,6 +289,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           certifications={data.certifications}
           defaultTerm={defaultTerm}
           defaultInitialPercent={defaultInitial}
+          onOfferSelectionChange={handleOfferSelection}
           paymentFrequencies={data.paymentFrequencies}
           isAvailable={data.isAvailable && variantId != null}
           // Detalle del equipo PEDIDO (readOnly): se puede ver pero no elegir.

@@ -32,6 +32,7 @@ import type { Accessory, AccessoryCategory, InsurancePlan } from '../../../[land
 import { AccessoryCard } from '../../../[landing]/solicitar/components/upsell/AccessoryCard';
 import { AccessoryDetailModal } from '../../../[landing]/solicitar/components/upsell/AccessoryDetailModal';
 import { AccessoryIntro } from '../../../[landing]/solicitar/components/upsell/AccessoryIntro';
+import { TermSelect } from '../../../[landing]/solicitar/components/solicitar/product/TermSelect';
 import { InsuranceCards } from '../../../[landing]/solicitar/components/upsell/InsuranceCards';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
@@ -125,6 +126,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
+  // Selector de plazo/inicial (BAL-2097): opciones de la oferta + valores actuales.
+  // Al cambiar cualquiera, se recalculan equipo + accesorios + seguros por el límite.
+  const [offerTerms, setOfferTerms] = useState<number[]>([24]);
+  const [offerInitials, setOfferInitials] = useState<number[]>([0]);
+  const [curTerm, setCurTerm] = useState<number>(24);
+  const [curInitial, setCurInitial] = useState<number>(0);
 
   // Filtros + paginación (idéntico a AccessoriesSection).
   const [activeCategory, setActiveCategory] = useState<string>('todos');
@@ -149,9 +156,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       return;
     }
     const vId = selection.variantId;
-    // Plazo elegido en el detalle (BAL-2096) → las cuotas de accesorios/seguros
-    // se calculan a ese mismo plazo. Sin él, el backend usa el plazo máximo.
+    // Plazo/inicial elegidos en el detalle (BAL-2096/2097) → las cuotas de equipo,
+    // accesorios y seguros se calculan a esa combinación. El cliente puede
+    // cambiarlos con el selector de esta página (efecto reactivo más abajo).
     const selTerm = selection.term;
+    const selInitial = selection.initial;
     setVariantId(vId);
     setComboId(selection.comboId);
     setSlug(selection.slug);
@@ -159,11 +168,22 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     (async () => {
       try {
         const offer = await getOffer(token); // valida token + cuota máxima aprobada
-        if (active && offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
+        if (active) {
+          if (offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
+          const terms = offer.terms?.length ? offer.terms : [24];
+          const initials = offer.initials?.length ? offer.initials : [0];
+          setOfferTerms(terms);
+          setOfferInitials(initials);
+          // Valor inicial del selector: lo elegido en el detalle si es válido, si no
+          // el default (plazo más alto + inicial más bajo = celda de menor cuota).
+          setCurTerm(selTerm != null && terms.includes(selTerm) ? selTerm : Math.max(...terms));
+          setCurInitial(selInitial != null && initials.includes(selInitial) ? selInitial : Math.min(...initials));
+        }
         const res = await getOfferAddonsRich(token, vId, {
           accessoryIds: selectedAcc.map(Number),
           insuranceIds: selectedIns.map(Number),
           term: selTerm,
+          initial: selInitial,
         });
         if (!active) return;
         setAccessories(res.accessories);
@@ -198,6 +218,43 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     if (loading || succeeded || variantId == null) return;
     writeStoredAddons(token, variantId, selectedAcc, selectedIns);
   }, [token, variantId, selectedAcc, selectedIns, loading, succeeded]);
+
+  // Recalcula equipo + accesorios + seguros al nuevo plazo/inicial (BAL-2097) y
+  // re-filtra las selecciones actuales contra lo que ahora cabe en el límite.
+  const recalcAddons = useCallback(async (nextTerm: number, nextInitial: number) => {
+    if (variantId == null) return;
+    setLoading(true);
+    try {
+      const res = await getOfferAddonsRich(token, variantId, {
+        accessoryIds: selectedAcc.map(Number),
+        insuranceIds: selectedIns.map(Number),
+        term: nextTerm,
+        initial: nextInitial,
+      });
+      setAccessories(res.accessories);
+      setInsurances(res.insurances);
+      setEquipoMonthly(res.equipoMonthly);
+      // Lo que ya no cabe con el nuevo plazo/inicial se deselecciona.
+      const accOk = new Set(res.accessories.map((a) => a.id));
+      const insOk = new Set(res.insurances.map((p) => p.id));
+      setSelectedAcc((prev) => prev.filter((id) => accOk.has(id)));
+      setSelectedIns((prev) => prev.filter((id) => insOk.has(id)));
+    } catch (err) {
+      setError(err instanceof OfferApiError ? err.message : 'No pudimos recalcular tu cuota.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token, variantId, selectedAcc, selectedIns]);
+
+  const handleTermChange = useCallback((t: number) => {
+    setCurTerm(t);
+    void recalcAddons(t, curInitial);
+  }, [recalcAddons, curInitial]);
+
+  const handleInitialChange = useCallback((i: number) => {
+    setCurInitial(i);
+    void recalcAddons(curTerm, i);
+  }, [recalcAddons, curTerm]);
 
   // Funnel: pantalla de éxito (modal "¡Listo!") visible tras confirmar.
   useEffect(() => {
@@ -397,6 +454,66 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             Agrega accesorios y protección. Solo mostramos lo que entra en tu cuota.
           </p>
         </div>
+
+        {/* Resumen del equipo elegido + selector de plazo/inicial (BAL-2097). Al
+            cambiar el plazo o el inicial, se recalculan equipo + accesorios +
+            seguros y se re-filtran por la cuota restante. */}
+        {equipoInfo && (
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200">
+            <div className="flex flex-wrap items-center gap-4">
+              {equipoInfo.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={equipoInfo.imageUrl} alt={equipoInfo.name} className="h-14 w-14 shrink-0 rounded-lg object-contain" />
+              )}
+              <div className="min-w-0 flex-1">
+                {equipoInfo.brand && (
+                  <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{equipoInfo.brand}</p>
+                )}
+                <p className="truncate text-sm font-semibold text-neutral-800">{equipoInfo.name}</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+                  S/{Math.round(equipoMonthly)}/mes
+                  <span className="ml-1 text-xs font-normal text-neutral-500">
+                    en {curTerm} {curTerm === 1 ? 'mes' : 'meses'}
+                    {curInitial > 0 ? ` · inicial ${curInitial}%` : ' · sin inicial'}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una opción */}
+            {(offerTerms.length > 1 || offerInitials.length > 1) && (
+              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-100 pt-4">
+                {offerTerms.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-neutral-500">Plazo:</span>
+                    <TermSelect value={curTerm} options={offerTerms} onChange={handleTermChange} size="sm" frequency="mensual" />
+                  </div>
+                )}
+                {offerInitials.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-neutral-500">Inicial:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {offerInitials.map((i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleInitialChange(i)}
+                          className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                            curInitial === i
+                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                              : 'border-neutral-300 bg-white text-neutral-600 hover:border-neutral-400'
+                          }`}
+                        >
+                          {i === 0 ? 'Sin inicial' : `${i}%`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Accesorios — layout idéntico a AccessoriesSection. Van PRIMERO. */}
         {accessories.length > 0 ? (

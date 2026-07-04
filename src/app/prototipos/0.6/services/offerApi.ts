@@ -399,12 +399,13 @@ export interface OfferAddon {
 export async function getOfferAddons(
   token: string,
   variantId: number,
-  selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number },
+  selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
 ): Promise<{ remaining: number; accessories: OfferAddon[]; insurances: OfferAddon[] }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
   if (selected?.term != null) params.set('term', String(selected.term));
+  if (selected?.initial != null) params.set('initial', String(selected.initial));
   const res = await fetch(
     `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
     { cache: 'no-store' },
@@ -469,12 +470,13 @@ function normalizeAccessoryCategory(raw: unknown): Accessory['category'] {
 export async function getOfferAddonsRich(
   token: string,
   variantId: number,
-  selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number },
+  selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
 ): Promise<{ remaining: number; equipoMonthly: number; accessories: Accessory[]; insurances: InsurancePlan[] }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
   if (selected?.term != null) params.set('term', String(selected.term));
+  if (selected?.initial != null) params.set('initial', String(selected.initial));
   const res = await fetch(
     `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
     { cache: 'no-store' },

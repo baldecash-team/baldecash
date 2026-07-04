@@ -96,6 +96,12 @@ interface ProductDetailProps {
    * del equipo que el estudiante PIDIÓ (se puede ver, pero no elegir).
    */
   readOnlyNotice?: string;
+  /**
+   * Modo oferta (BAL-2097): notifica el plazo/inicial elegidos en el selector
+   * para que el flujo de oferta los propague a la página de accesorios. Aditivo:
+   * el catálogo general no lo pasa y no cambia su comportamiento.
+   */
+  onOfferSelectionChange?: (sel: { term: number; initialPercent: number }) => void;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -129,6 +135,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   onClickCTA,
   ctaText,
   readOnlyNotice,
+  onOfferSelectionChange,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -300,7 +307,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       params.delete('frecuency');
     }
     router.replace(`?${params.toString()}`, { scroll: false });
-  }, [analytics, product.id, searchParams, router]);
+
+    // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
+    // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
+    onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
+  }, [analytics, product.id, searchParams, router, onOfferSelectionChange]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {

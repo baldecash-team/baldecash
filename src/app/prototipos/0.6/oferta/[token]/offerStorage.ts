@@ -21,6 +21,8 @@ export interface StoredEquipo {
   /** Plazo (meses) elegido en el detalle — el mini-checkout lo usa para calcular
    *  las cuotas de accesorios/seguros al mismo plazo (BAL-2096). */
   term?: number;
+  /** Inicial (%) elegido en el detalle — mismo uso que `term` (BAL-2097). */
+  initial?: number;
 }
 
 export interface OfferSelection extends StoredEquipo {
@@ -62,6 +64,7 @@ export function readOfferSelection(token: string): OfferSelection | null {
       imageUrl: typeof p.imageUrl === 'string' ? p.imageUrl : undefined,
       monthly: typeof p.monthly === 'number' ? p.monthly : undefined,
       term: typeof p.term === 'number' ? p.term : undefined,
+      initial: typeof p.initial === 'number' ? p.initial : undefined,
     };
   } catch {
     return null;
