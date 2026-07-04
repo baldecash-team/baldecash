@@ -399,21 +399,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         }
       >
         <CardBody className="p-0 flex flex-col">
-          {/* Banner "APROBADO" (flujo de oferta): reemplaza al banner de promoción
-              — en la oferta todas las cards llevan el mismo banner verde. */}
+          {/* Banner "Aprobado para ti" (flujo de oferta): reemplaza al banner de
+              promoción — en la oferta todas las cards llevan el mismo banner verde.
+              Mismo lenguaje visual que la card del recomendado del index de oferta
+              (OfertaEquipoCard): texto "Aprobado para ti" + 2 checks que laten. */}
           {approvedTag && (
             <div
               className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
               style={{ background: 'linear-gradient(135deg, #16a34a 0%, #16a34acc 50%, #16a34a 100%)' }}
             >
-              <CheckCircle2 className="w-5 h-5 text-white" />
+              <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </motion.div>
               <span
                 className="text-base font-black tracking-widest uppercase text-center text-white"
                 style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
               >
-                Aprobado
+                Aprobado para ti
               </span>
-              <CheckCircle2 className="w-5 h-5 text-white" />
+              <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </motion.div>
             </div>
           )}
           {/* Spacer for non-promo cards in rows that have promo cards */}
