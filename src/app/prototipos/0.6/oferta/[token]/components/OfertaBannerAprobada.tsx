@@ -8,19 +8,16 @@
  */
 import { PartyPopper } from 'lucide-react';
 
-/** Capitaliza cada palabra: "tamara grisell" → "Tamara Grisell". El nombre
- *  viene de BD en minúsculas/mixto; lo normalizamos para mostrarlo bonito. */
-function toTitleCase(s: string): string {
-  return s
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
-export function OfertaBannerAprobada({ clientName }: { clientName?: string | null }) {
-  const nombre = toTitleCase((clientName || '').trim());
+export function OfertaBannerAprobada({
+  clientName,
+  applicationCode,
+}: {
+  clientName?: string | null;
+  applicationCode?: string | null;
+}) {
+  // El nombre viene ya capitalizado del backend (fuente única de verdad): el
+  // front solo lo pinta, no lo transforma.
+  const nombre = (clientName || '').trim();
   const saludo = nombre ? `¡Felicitaciones, ${nombre}!` : '¡Felicitaciones!';
 
   // Mismo contenedor que el logo y las cards (max-w-5xl centrado en desktop)
@@ -39,6 +36,11 @@ export function OfertaBannerAprobada({ clientName }: { clientName?: string | nul
             <h1 className="font-['Baloo_2',_sans-serif] text-xl font-bold leading-tight sm:text-2xl">
               {saludo} Tu solicitud ha sido aprobada
             </h1>
+            {applicationCode ? (
+              <p className="mt-1 text-xs font-medium text-white/70">
+                Solicitud {applicationCode}
+              </p>
+            ) : null}
             <p className="mt-1 text-sm text-white/90 sm:text-base">
               Elige un equipo y tu solicitud quedará aprobada. Lo recibirás en{' '}
               <span className="font-semibold">48-72 horas</span>.

@@ -288,7 +288,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       <div className="pt-16" />
 
       {/* Banner de felicitaciones (reemplaza al countdown) */}
-      <OfertaBannerAprobada clientName={offer.clientName} />
+      <OfertaBannerAprobada clientName={offer.clientName} applicationCode={offer.applicationCode} />
 
       {/* Sección destacada. Caso 5 (upsell) → portada TU EQUIPO vs OFERTA
           EXCLUSIVA. Caso 4 (downgrade) → el que pediste + aprobado para ti.

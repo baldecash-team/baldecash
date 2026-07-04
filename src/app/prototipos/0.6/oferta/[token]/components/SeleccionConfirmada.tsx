@@ -86,19 +86,10 @@ function EquipoMini({
   );
 }
 
-/** Capitaliza cada palabra: "tamara grisell" → "Tamara Grisell". El nombre
- *  viene de BD en minúsculas/mixto; lo normalizamos para mostrarlo bonito. */
-function toTitleCase(s: string): string {
-  return s
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
 export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHref?: string }) {
-  const nombre = toTitleCase((chosen.userName || '').trim());
+  // El nombre viene ya capitalizado del backend (fuente única de verdad): el
+  // front solo lo pinta.
+  const nombre = (chosen.userName || '').trim();
   const titulo = nombre ? `¡Felicidades, ${nombre}!` : '¡Felicidades!';
   const nuevo: EquipoResumen = { name: chosen.name, imageUrl: chosen.imageUrl, monthly: chosen.monthly };
 
