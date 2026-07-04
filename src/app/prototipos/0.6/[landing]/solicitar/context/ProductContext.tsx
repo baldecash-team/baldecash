@@ -25,6 +25,7 @@ const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selec
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
 const getInsuranceKey = (landing: string) => `baldecash-${landing}-solicitar-selected-insurance`;
+const getMaAvailableKey = (landing: string) => `baldecash-${landing}-solicitar-available-ma`;
 const getCouponKey = (landing: string) => `baldecash-${landing}-solicitar-applied-coupon`;
 
 
@@ -120,6 +121,12 @@ interface ProductContextValue {
   setSelectedInsurance: (insurance: InsurancePlan | null) => void;
   toggleInsurance: (insurance: InsurancePlan) => void;
   clearInsurance: () => void;
+  // Plan Multiasistencia (A365) disponible para el producto/término actual.
+  // Lo setea InsuranceSection al cargar sus planes (fuente de verdad de la
+  // lista); se expone acá para que complementosClient pueda mostrar el modal
+  // de segunda oportunidad sin tener que re-fetchear el listado de seguros.
+  availableMultiasistencia: InsurancePlan | null;
+  setAvailableMultiasistencia: (plan: InsurancePlan | null) => void;
   getTotalPrice: () => number;
   getTotalMonthlyPayment: () => number;
   getDiscountAmount: () => number;
@@ -184,6 +191,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
   const [selectedInsurances, setSelectedInsurancesState] = useState<InsurancePlan[]>([]);
+  const [availableMultiasistencia, setAvailableMultiasistenciaState] = useState<InsurancePlan | null>(null);
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
@@ -197,6 +205,22 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const accessoriesKey = useMemo(() => getAccessoriesKey(landingSlug), [landingSlug]);
   const insuranceKey = useMemo(() => getInsuranceKey(landingSlug), [landingSlug]);
   const couponKey = useMemo(() => getCouponKey(landingSlug), [landingSlug]);
+  const maKey = useMemo(() => getMaAvailableKey(landingSlug), [landingSlug]);
+
+  // Persistimos availableMultiasistencia a localStorage. En algunas landings la
+  // sección de seguros es PRE-wizard (order 1), por lo que InsuranceSection no se
+  // re-renderiza en /complementos (donde ocurre el submit). Sin persistir, el
+  // plan MA disponible se perdería al navegar y el upsell de segunda oportunidad
+  // nunca se dispararía.
+  const setAvailableMultiasistencia = useCallback((plan: InsurancePlan | null) => {
+    setAvailableMultiasistenciaState(plan);
+    try {
+      if (plan) localStorage.setItem(maKey, JSON.stringify(plan));
+      else localStorage.removeItem(maKey);
+    } catch {
+      // localStorage no disponible
+    }
+  }, [maKey]);
 
   // Load from localStorage on mount (client-side only)
   useEffect(() => {
@@ -223,11 +247,15 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       if (storedCoupon) {
         setAppliedCouponState(JSON.parse(storedCoupon));
       }
+      const storedMa = localStorage.getItem(maKey);
+      if (storedMa) {
+        setAvailableMultiasistenciaState(JSON.parse(storedMa));
+      }
     } catch {
       // localStorage not available or invalid JSON
     }
     setIsHydrated(true);
-  }, [storageKey, cartProductsKey, accessoriesKey, insuranceKey, couponKey]);
+  }, [storageKey, cartProductsKey, accessoriesKey, insuranceKey, couponKey, maKey]);
 
   // Save to localStorage when product changes
   const setSelectedProduct = useCallback((product: SelectedProduct | null) => {
@@ -998,6 +1026,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         setSelectedInsurance,
         toggleInsurance,
         clearInsurance,
+        availableMultiasistencia,
+        setAvailableMultiasistencia,
         getTotalPrice,
         getTotalMonthlyPayment,
         getDiscountAmount,

@@ -34,6 +34,7 @@ import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 
 export function BrandButton({ brand, isActive, T, onToggle }: { brand: { id: number; slug: string; name: string; logo_url?: string | null; count: number }; isActive: boolean; T: GamerTheme; onToggle: () => void }) {
   const [imgError, setImgError] = useState(false);
+  const isDarkMode = T.neonCyan === '#00ffd5';
   return (
     <button
       onClick={onToggle}
@@ -41,8 +42,8 @@ export function BrandButton({ brand, isActive, T, onToggle }: { brand: { id: num
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
         padding: '10px 4px', border: `2px solid ${isActive ? T.neonCyan : T.border}`, borderRadius: 10,
         cursor: 'pointer', transition: 'all 0.3s',
-        background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
-        boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none', minHeight: 68,
+        background: isActive ? (isDarkMode ? 'rgba(0,255,213,0.06)' : 'rgba(0,137,122,0.06)') : T.bgCard,
+        boxShadow: isActive ? (isDarkMode ? '0 0 12px rgba(0,255,213,0.2)' : '0 0 12px rgba(0,137,122,0.2)') : 'none', minHeight: 68,
       }}
     >
       {imgError ? (
@@ -247,8 +248,8 @@ export function GamerSidebar({
     borderRadius: 10,
     cursor: 'pointer',
     transition: 'all 0.3s',
-    background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
-    boxShadow: isActive ? '0 0 10px rgba(0,255,213,0.15)' : 'none',
+    background: isActive ? (isDark ? 'rgba(0,255,213,0.06)' : 'rgba(0,137,122,0.06)') : T.bgCard,
+    boxShadow: isActive ? (isDark ? '0 0 10px rgba(0,255,213,0.15)' : '0 0 10px rgba(0,137,122,0.15)') : 'none',
     minHeight: 68,
     color: isActive ? T.neonCyan : T.textMuted,
     fontFamily: "'Rajdhani', sans-serif",
@@ -279,12 +280,12 @@ export function GamerSidebar({
           border: 2px solid ${T.neonCyan};
           border-radius: 50%; cursor: grab;
           pointer-events: auto;
-          box-shadow: 0 0 8px rgba(0,255,213,0.4), inset 0 0 4px rgba(0,255,213,0.2);
+          box-shadow: ${isDark ? '0 0 8px rgba(0,255,213,0.4), inset 0 0 4px rgba(0,255,213,0.2)' : '0 0 8px rgba(0,137,122,0.4), inset 0 0 4px rgba(0,137,122,0.2)'};
           transition: transform 0.2s, box-shadow 0.2s;
         }
         .gamer-range-slider::-webkit-slider-thumb:hover {
           transform: scale(1.15);
-          box-shadow: 0 0 15px rgba(0,255,213,0.6);
+          box-shadow: ${isDark ? '0 0 15px rgba(0,255,213,0.6)' : '0 0 15px rgba(0,137,122,0.6)'};
         }
         .gamer-range-slider::-moz-range-thumb {
           width: 20px; height: 20px;
@@ -292,7 +293,7 @@ export function GamerSidebar({
           border: 2px solid ${T.neonCyan};
           border-radius: 50%; cursor: grab;
           pointer-events: auto;
-          box-shadow: 0 0 8px rgba(0,255,213,0.4);
+          box-shadow: ${isDark ? '0 0 8px rgba(0,255,213,0.4)' : '0 0 8px rgba(0,137,122,0.4)'};
         }
         .gamer-range-slider::-moz-range-track { background: transparent; }
         .gamer-filter-header:hover h3 { color: ${T.neonCyan} !important; }
@@ -521,8 +522,8 @@ export function GamerSidebar({
           <div
             style={{
               flex: 1,
-              background: 'rgba(0,255,213,0.05)',
-              border: '1px solid rgba(0,255,213,0.15)',
+              background: isDark ? 'rgba(0,255,213,0.05)' : 'rgba(0,137,122,0.05)',
+              border: `1px solid ${isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.15)'}`,
               borderRadius: 8,
               padding: 8,
               textAlign: 'center',
@@ -531,7 +532,7 @@ export function GamerSidebar({
             <div style={{ fontSize: 9, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 2, fontFamily: "'Share Tech Mono', monospace" }}>
               DESDE
             </div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: T.neonCyan, fontFamily: "'Barlow Condensed', sans-serif", textShadow: '0 0 8px rgba(0,255,213,0.3)' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: T.neonCyan, fontFamily: "'Barlow Condensed', sans-serif", textShadow: isDark ? '0 0 8px rgba(0,255,213,0.3)' : '0 0 8px rgba(0,137,122,0.3)' }}>
               S/{rangeMin}
             </div>
           </div>
@@ -539,8 +540,8 @@ export function GamerSidebar({
           <div
             style={{
               flex: 1,
-              background: 'rgba(0,255,213,0.05)',
-              border: '1px solid rgba(0,255,213,0.15)',
+              background: isDark ? 'rgba(0,255,213,0.05)' : 'rgba(0,137,122,0.05)',
+              border: `1px solid ${isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.15)'}`,
               borderRadius: 8,
               padding: 8,
               textAlign: 'center',
@@ -549,7 +550,7 @@ export function GamerSidebar({
             <div style={{ fontSize: 9, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 2, fontFamily: "'Share Tech Mono', monospace" }}>
               HASTA
             </div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: T.neonCyan, fontFamily: "'Barlow Condensed', sans-serif", textShadow: '0 0 8px rgba(0,255,213,0.3)' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: T.neonCyan, fontFamily: "'Barlow Condensed', sans-serif", textShadow: isDark ? '0 0 8px rgba(0,255,213,0.3)' : '0 0 8px rgba(0,137,122,0.3)' }}>
               S/{rangeMax}
             </div>
           </div>
@@ -581,7 +582,7 @@ export function GamerSidebar({
                 width: `${fillRight - fillLeft}%`,
                 background: `linear-gradient(90deg, ${T.neonCyan}, ${T.neonPurple})`,
                 borderRadius: 3,
-                boxShadow: '0 0 8px rgba(0,255,213,0.3)',
+                boxShadow: isDark ? '0 0 8px rgba(0,255,213,0.3)' : '0 0 8px rgba(0,137,122,0.3)',
               }}
             />
           </div>

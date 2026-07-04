@@ -18,6 +18,7 @@ import {
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { saveOtpHandoff } from '../utils/otpHandoff';
 
 /**
  * Convert raw term (in payment_frequency units) to calendar months.
@@ -46,6 +47,40 @@ interface SubmitOptions {
    * Selected insurance IDs (multi-select support)
    */
   insuranceIds?: string[];
+  /**
+   * Si la landing tiene la sección `otp_verification` habilitada. Cuando es true
+   * y el submit crea la solicitud, NO redirigimos directo a la confirmación:
+   * navegamos a la ruta dedicada `…/solicitar/verificacion` (OTP inline) antes del
+   * resumen. El flag lo calcula el consumidor con `useSolicitarFlow` (no se lee
+   * aquí para no acoplar el hook a `usePreview`).
+   */
+  otpEnabled?: boolean;
+}
+
+/**
+ * Extrae, best-effort, el número de documento del form ya mapeado para
+ * prellenar el gate de OTP. Busca claves conocidas y, como último recurso, un
+ * valor de 8 dígitos (formato DNI). No es crítico: si no lo encuentra, el gate
+ * pide el DNI manualmente.
+ */
+function extractDocumentNumber(
+  formData: Record<string, string | number | boolean>
+): string | undefined {
+  const preferredKeys = ['document_number', 'numero_documento', 'dni', 'nro_documento'];
+  for (const key of preferredKeys) {
+    const v = formData[key];
+    if (typeof v === 'string' && /^\d{8}$/.test(v)) return v;
+  }
+  for (const [key, v] of Object.entries(formData)) {
+    if (
+      typeof v === 'string' &&
+      /^\d{8}$/.test(v) &&
+      /(document|dni|documento)/i.test(key)
+    ) {
+      return v;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -208,7 +243,7 @@ export function useSubmitApplication(
    */
   const submit = useCallback(
     async (submitOptions: SubmitOptions = {}): Promise<boolean> => {
-      const { insuranceId = null, insuranceIds } = submitOptions;
+      const { insuranceId = null, insuranceIds, otpEnabled = false } = submitOptions;
 
       setError(null);
 
@@ -347,6 +382,9 @@ export function useSubmitApplication(
 
           setSubmitSucceeded(true);
 
+          // Capturar el DNI ANTES de limpiar el form, para prellenar el gate de OTP.
+          const capturedDocumentNumber = extractDocumentNumber(mappedFormData);
+
           // Clear all wizard state (skip if keepData param is set for testing)
           if (!keepData) {
             clearSession();
@@ -364,8 +402,27 @@ export function useSubmitApplication(
           // Show success toast
           onToast?.('Solicitud enviada correctamente', 'success');
 
-          // Redirect to confirmation page with application code
           succeeded = true;
+
+          // El OTP dejó de ser un gate obligatorio: ya NO redirigimos a
+          // `…/solicitar/verificacion`. Sin embargo, cuando la landing tiene OTP
+          // habilitado y tenemos application_id, seguimos persistiendo el handoff.
+          // Ese handoff es la señal que /confirmacion usa para mostrar el CTA
+          // opcional ("Validar mi correo") y guarda el DNI (PII) que la pantalla
+          // de OTP necesita para prellenar el auto-envío.
+          if (otpEnabled && result.application_id) {
+            saveOtpHandoff(landing, {
+              applicationId: result.application_id,
+              code: result.application_code,
+              dni: capturedDocumentNumber,
+              verified: false,
+            });
+          }
+
+          setIsSubmitting(false);
+
+          // Siempre vamos directo a la página de confirmación (resumen). El OTP
+          // quedó como CTA opcional dentro de esa vista.
           router.push(
             routes.solicitarConfirmacion(landing, result.application_code)
           );

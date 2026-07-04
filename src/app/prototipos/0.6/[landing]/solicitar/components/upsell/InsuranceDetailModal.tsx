@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
-import { ShieldCheck, Lock, Check, Plus, X, Users, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Lock, Check, Plus, X, Users, ExternalLink, HeartPulse } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
@@ -74,6 +74,20 @@ const MODAL_CONFIG: Record<string, {
     ],
     legalText: 'Al contratar esta cobertura adicional, no adquieres un seguro a tu nombre. Balde K S.A.C. contrata una póliza contra robo con Insurama, respaldada por Protecta Compañía de Seguros S.A., entidad supervisada por la SBS, a nombre de Balde K. Con esta póliza como respaldo, Balde K se compromete contractualmente a reponer tu equipo en caso de robo, siempre que: estés al día en tus pagos, y presentes los documentos que la aseguradora solicite (por ejemplo, denuncia policial). Importante: La reposición se rige por los términos de la póliza (límites, exclusiones y deducibles aplicables) y puede realizarse con un equipo igual o equivalente.',
     conditionsText: 'Seguro contra Robo para Equipos Móviles o Portátiles, con código SBS N° RG0415900249, comercializado por Insurama Perú S.A.C. Contratación sujeta a evaluación de Insurama y/o La Positiva. Más información en baldecash.com/seguros',
+  },
+  multiasistencia: {
+    icon: HeartPulse,
+    title: 'Multiasistencia BaldeCash',
+    description: 'Cubre a titular, cónyuge, hijos menores de 18 y padres del mismo hogar (hasta 4 personas) · todo el plazo del crédito.',
+    coverageItems: [
+      'Orientación médica y telemedicina 24h',
+      'Ambulancia y orientación psicológica',
+      'Médico a domicilio (pago aparte S/45)',
+      'Asesoría legal telefónica',
+      'Soporte técnico ilimitado, diagnóstico y config.',
+      'Técnico a domicilio (pago aparte S/60)',
+    ],
+    conditionsText: 'Asistencia provista por A365. El "pago aparte" es un monto fijo reducido que asumes solo al usar ese servicio puntual (médico o técnico a domicilio). El resto de servicios no tiene pago extra.',
   },
 };
 
@@ -215,12 +229,14 @@ const ModalContentShared: React.FC<{
           {config.description}
         </p>
 
-        {/* Coverage - compact two-column on desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+        {/* Coverage - chips en dos columnas (desktop) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {config.coverageItems.map((item) => (
-            <div key={item} className="flex items-start gap-2">
-              <Check className="w-3.5 h-3.5 text-[var(--color-secondary)] flex-shrink-0 mt-0.5" />
-              <span className="text-xs text-neutral-600">{item}</span>
+            <div key={item} className="flex items-start gap-2 rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2">
+              <span className="w-4 h-4 rounded-full bg-[rgba(var(--color-secondary-rgb),0.15)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check className="w-2.5 h-2.5 text-[var(--color-secondary)]" strokeWidth={3} />
+              </span>
+              <span className="text-xs text-neutral-700 leading-snug">{item}</span>
             </div>
           ))}
         </div>

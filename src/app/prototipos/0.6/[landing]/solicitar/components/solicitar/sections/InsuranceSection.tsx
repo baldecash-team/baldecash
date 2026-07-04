@@ -37,7 +37,7 @@ export function InsuranceSection({
   const sessionUuid = session?.sessionUuid ?? null;
 
   const { badgeText } = useWizardConfig();
-  const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts } = useProduct();
+  const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts, setAvailableMultiasistencia } = useProduct();
   const analytics = useAnalytics();
 
   const activeProduct = cartProducts?.[0] || selectedProduct;
@@ -59,7 +59,12 @@ export function InsuranceSection({
       try {
         const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
         const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
-        const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
+        // A365 (Multiasistencia) SOLO se ofrece en la landing `copia-home`. En
+        // cualquier otra landing se filtra aunque el backend la devuelva.
+        const isCopiaHome = landing === 'copia-home';
+        const mappedPlans: InsurancePlan[] = plans
+          .filter((plan) => isCopiaHome || plan.insuranceType !== 'multiasistencia')
+          .map((plan) => ({
           id: plan.id,
           code: plan.code,
           name: plan.name,
@@ -76,16 +81,18 @@ export function InsuranceSection({
           provider: plan.provider,
         }));
         setInsurancePlans(mappedPlans);
+        setAvailableMultiasistencia(mappedPlans.find(p => p.insuranceType === 'multiasistencia') ?? null);
       } catch (error) {
         console.error('Error fetching insurance plans:', error);
         setInsurancePlans([]);
+        setAvailableMultiasistencia(null);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchInsurancePlans();
-  }, [landing, deviceType, productPrice, termMonths, previewKey, sessionUuid]);
+  }, [landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia]);
 
   if (!isLoading && insurancePlans.length === 0) {
     return null;

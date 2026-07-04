@@ -25,7 +25,7 @@ export const mock = {
     ({ ok: true, data: { file_key: `mock-key-${body.document_type_code ?? 'x'}`, upload_url: `mock://put`, content_type: body.content_type, expires_in: 3600 } }),
   confirmUpload: (body: { file_key: string; document_type_code?: string }): ApiResult<ConfirmResp> =>
     ({ ok: true, data: { success: true, application_document_id: 999, file_key: body.file_key, view_url: 'mock://view', document_type: { code: body.document_type_code ?? 'x', name: 'Video' }, message: 'Video confirmado correctamente' } }),
-  completeLink: (): ApiResult<CompleteResp> => ({ ok: true, data: { completed: true, application_id: 123, workflow_resumed: true } }),
+  complete: (_token: string, _body?: { latitude: number; longitude: number; accuracy_m?: number }): ApiResult<CompleteResp> => ({ ok: true, data: { completed: true, application_id: 123, workflow_resumed: true } }),
   sendEmailVerification: (): ApiResult<SendEmailResp> => ({ ok: true, data: { status: 'sent', email: 'ju**@uni.pe', channel: 'web', expires_in_minutes: 10 } }),
   verifyEmailCode: (code: string): ApiResult<VerifyEmailResp> =>
     code === '482916'

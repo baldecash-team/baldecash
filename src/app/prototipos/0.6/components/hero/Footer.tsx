@@ -341,7 +341,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                 </>
               )}
             </div>
-            <p className="text-sm text-white mb-4">{tagline}</p>
+            <p className="text-sm mb-4" style={isGamer ? { color: isGamerDark ? 'rgba(240,240,240,0.7)' : '#444' } : { color: 'white' }}>{tagline}</p>
             <div className="flex flex-wrap gap-2.5">
               {socialLinks.map((social) => (
                 <a

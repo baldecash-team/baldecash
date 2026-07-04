@@ -68,13 +68,33 @@ import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { formatDeferredFrom } from '@/app/prototipos/0.6/utils/deferredDelivery';
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
+/**
+ * Snapshot del financiamiento mostrado en la card "en ese momento" (para analítica).
+ * Refleja plazo, inicial y cuota tal como los ve el usuario según la frecuencia activa.
+ */
+export interface ProductCardPricingSnapshot {
+  /** Plazo en meses, tal como lo muestra la card ("en X meses") */
+  termMonths: number;
+  /** Plazo en la frecuencia nativa: nº de cuotas (mensual = meses, quincenal = ×2, semanal = ×4) */
+  term: number;
+  /** Frecuencia de pago activa (mensual/quincenal/semanal) — da la unidad de la cuota */
+  paymentFrequency: string;
+  /** Valor de la cuota (installment) para la frecuencia activa */
+  installment: number;
+  /** Monto de la inicial (down payment) en S/ */
+  downPayment: number;
+  /** Porcentaje de la inicial */
+  downPaymentPercent: number;
+}
+
 interface ProductCardProps {
   product: CatalogProduct;
   /** Callback con CartItem completo incluyendo configuración y color */
   onAddToCart?: (item: CartItem) => void;
   /** Callback con WishlistItem completo incluyendo color seleccionado */
   onFavorite?: (item: WishlistItem) => void;
-  onViewDetail?: (slug?: string) => void;
+  /** Callback al abrir el detalle. Incluye el snapshot de financiamiento visible en la card. */
+  onViewDetail?: (slug?: string, pricing?: ProductCardPricingSnapshot) => void;
   /** Builder opcional del href de detalle — cuando se pasa, el título y el botón "Detalle" se renderizan como <a> para soportar Ctrl/Cmd+click y middle-click */
   getDetailHref?: (slug?: string, frecuency?: string) => string;
   onMouseEnter?: () => void;
@@ -246,6 +266,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
        : selectedTerm);
   const displayInitialPercent = (freqHook?.initialPercent ?? selectedInitial) as InitialPaymentPercent;
   const { initialAmount: displayInitialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, displayInitialPercent);
+
+  // Snapshot del financiamiento visible en la card, para adjuntar a analítica (product_click)
+  // Plazo en la frecuencia nativa: 12 meses → 48 semanas / 24 quincenas (mensual = meses)
+  const nativeTermCount = selectedFrequency === 'semanal' ? displayTermMonths * 4
+    : selectedFrequency === 'quincenal' ? displayTermMonths * 2
+    : displayTermMonths;
+  const pricingSnapshot: ProductCardPricingSnapshot = {
+    // Exactamente lo que muestra la card
+    termMonths: displayTermMonths,                  // "en {displayTermMonths} meses"
+    term: nativeTermCount,                          // nº de cuotas en la frecuencia (48 sem / 24 qcn)
+    paymentFrequency: selectedFrequency,            // /mes · /qcn · /sem
+    installment: Math.floor(displayQuotaForFreq),   // S/{Math.floor(displayQuotaForFreq)}
+    downPayment: Math.floor(displayInitialAmount),  // inicial S/{Math.floor(displayInitialAmount)}
+    downPaymentPercent: displayInitialPercent,
+  };
+  const handleViewDetail = (slug?: string) => onViewDetail?.(slug, pricingSnapshot);
 
   const originalQuota = displayOriginalQuota;
 
@@ -550,7 +586,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     if (promoTemplate) {
                       analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
                     }
-                    onViewDetail?.(selectedColor?.slug);
+                    handleViewDetail(selectedColor?.slug);
                   }}
                   className="block"
                 >
@@ -569,7 +605,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     if (promoTemplate) {
                       analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
                     }
-                    onViewDetail?.(selectedColor?.slug);
+                    handleViewDetail(selectedColor?.slug);
                   }}
                 >
                   {displayName}
@@ -771,7 +807,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                  onPress={() => onViewDetail?.(selectedColor?.slug)}
+                  onPress={() => handleViewDetail(selectedColor?.slug)}
                 >
                   Detalle
                 </Button>
@@ -782,7 +818,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                  onPress={() => onViewDetail?.(selectedColor?.slug)}
+                  onPress={() => handleViewDetail(selectedColor?.slug)}
                 >
                   Detalle
                 </Button>

@@ -1347,7 +1347,7 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
 /**
  * Tipos de sección disponibles en el flujo de solicitud
  */
-export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance';
+export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance' | 'otp_verification';
 
 /**
  * Configuración de una sección del flujo

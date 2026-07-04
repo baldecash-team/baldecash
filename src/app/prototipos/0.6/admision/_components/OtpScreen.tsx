@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { OtpField } from './OtpField';
-import { PhoneFrame } from './PhoneFrame';
 import { ErrorBanner } from './ErrorBanner';
 import { sendEmailByToken, verifyEmailByToken, emailStatusByToken } from '../_lib/api/links';
 import { sendEmailVerification, verifyEmailCode, getEmailStatus } from '../_lib/api/verification';
 import { friendlyError, attemptsCopy } from '../_lib/errors';
 import { admissionEvents } from '../_lib/events';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import type { EventType } from '@/app/prototipos/0.6/services/eventsApi';
 
 function parseCooldownSeconds(message: string, fallback = 60): number {
   const m = /(\d+)\s*s/i.exec(message ?? '');
@@ -20,24 +21,43 @@ type ScreenState = 'dni' | 'sending' | 'code' | 'confirmed';
 interface OtpScreenProps {
   applicationId?: number;
   token?: string;
+  /**
+   * DNI ya capturado del formulario (flujo inline). Cuando está presente y es un
+   * DNI válido en modo `applicationId`, la pantalla se comporta como el modo token:
+   * auto-envía el código al montar y aterriza directo en el campo OTP (sin pedir
+   * el DNI). Si falta o es inválido, se cae al modo DNI (se pide el documento).
+   */
+  documentNumber?: string;
   onConfirmed?: () => void;
   initialVerified?: boolean;
 }
 
+const DNI_RE = /^\d{8}$/;
+function isValidDni(v?: string): v is string {
+  return !!v && DNI_RE.test(v);
+}
+
 /**
- * Pantalla de verificación de correo institucional.
+ * Pantalla de verificación de correo.
  *
  * MODO TOKEN (link): al montar se ENVÍA el código automáticamente y se aterriza
  * directo en el campo OTP (sin paso previo). Mejoras #1/#2.
+ * MODO INLINE AUTO (applicationId + documentNumber válido): idéntico al modo token
+ * pero enviando por `application_id` + `document_number`. Emite eventos con
+ * `source: 'inline'`.
  * MODO DNI (fallback): pide el documento y luego el código.
  */
-export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }: OtpScreenProps) {
+export function OtpScreen({ token, applicationId, documentNumber, onConfirmed, initialVerified }: OtpScreenProps) {
   const isTokenMode = Boolean(token);
+  // Modo inline con auto-envío: hay solicitud + DNI válido y NO es link.
+  const isInlineAuto = !isTokenMode && Boolean(applicationId) && isValidDni(documentNumber);
+  // Cualquier modo que use la API por application_id (auto o pidiendo DNI).
+  const isInline = !isTokenMode && Boolean(applicationId);
 
   const [state, setState] = useState<ScreenState>(
-    isTokenMode ? (initialVerified ? 'confirmed' : 'sending') : 'dni'
+    isTokenMode || isInlineAuto ? (initialVerified ? 'confirmed' : 'sending') : 'dni'
   );
-  const [dni, setDni] = useState('');
+  const [dni, setDni] = useState(documentNumber ?? '');
   const [maskedEmail, setMaskedEmail] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,6 +67,17 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
 
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const events = useMemo(() => (token ? admissionEvents(token) : null), [token]);
+
+  // Analítica del funnel inline (`source: 'inline'`). No-op si no es modo inline
+  // o si no hay EventTrackerProvider montado (p. ej. el flujo por link).
+  const analytics = useAnalytics();
+  const emitInline = useCallback(
+    (type: EventType, props: Record<string, string | number | boolean> = {}) => {
+      if (!isInline || !applicationId) return;
+      analytics.track(type, { source: 'inline', application_id: applicationId, ...props });
+    },
+    [analytics, isInline, applicationId],
+  );
 
   function startCooldown(seconds = 60) {
     setCooldown(seconds);
@@ -93,16 +124,71 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── MODO INLINE (applicationId) ──────────────────────────────────────────────
+
+  // Evento de apertura del gate inline (una sola vez), análogo al link.
+  const inlineShownRef = useRef(false);
+  useEffect(() => {
+    if (!isInline || inlineShownRef.current) return;
+    inlineShownRef.current = true;
+    emitInline('otp_screen_shown');
+  }, [isInline, emitInline]);
+
+  // Auto-envío inline (#1/#2): mismo comportamiento que el link pero por
+  // application_id + document_number. Solo cuando el DNI capturado es válido.
+  const autoSentInlineRef = useRef(false);
+  useEffect(() => {
+    if (!isInlineAuto || initialVerified || autoSentInlineRef.current) return;
+    autoSentInlineRef.current = true;
+    void autoSendInline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function autoSendInline() {
+    if (!applicationId || !isValidDni(documentNumber)) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await sendEmailVerification(applicationId, documentNumber);
+      if (result.ok && result.data.status === 'already_verified') {
+        emitInline('otp_verified', { already_verified: true });
+        setState('confirmed');
+        onConfirmed?.();
+      } else if (result.ok && result.data.status === 'sent') {
+        emitInline('otp_code_sent');
+        setMaskedEmail(result.data.email);
+        startCooldown(60);
+        setState('code');
+      } else if (!result.ok) {
+        if (result.error.reason === 'cooldown') {
+          startCooldown(parseCooldownSeconds(result.error.message));
+          const st = await getEmailStatus(applicationId, documentNumber);
+          if (st.ok) setMaskedEmail(st.data.email);
+          setState('code');
+        } else {
+          emitInline('otp_failed', { stage: 'send', reason: result.error.reason ?? result.error.code });
+          setError(friendlyError(result.error));
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function autoSendByToken() {
     if (!token) return;
     setLoading(true);
     setError(null);
     events?.stageEnter('email_send');
+    // `source: 'link'` distingue el funnel por link del inline (OtpGate).
+    events?.track('otp_screen_shown', { source: 'link' });
     try {
       const result = await sendEmailByToken(token);
       if (result.ok && result.data.status === 'already_verified') {
+        events?.track('otp_verified', { source: 'link', already_verified: true });
         markConfirmed();
       } else if (result.ok && result.data.status === 'sent') {
+        events?.track('otp_code_sent', { source: 'link' });
         setMaskedEmail(result.data.email);
         startCooldown(60);
         goToCode();
@@ -114,6 +200,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           goToCode();
         } else {
           // Falla recuperable: permanece en "sending" mostrando el error + reintento.
+          events?.track('otp_failed', { source: 'link', stage: 'send', reason: result.error.reason ?? result.error.code });
           setError(friendlyError(result.error));
         }
       }
@@ -126,16 +213,20 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     if (code.length < 6 || !token) return;
     setLoading(true);
     setError(null);
+    events?.track('otp_code_submitted', { source: 'link' });
     try {
       const result = await verifyEmailByToken(token, code);
       if (result.ok && result.data.verified) {
+        events?.track('otp_verified', { source: 'link' });
         markConfirmed();
       } else if (result.ok && !result.data.verified) {
         setAttempts((a) => a + 1);
+        events?.track('otp_failed', { source: 'link', stage: 'verify', reason: 'invalid_code' });
         setError('No pudimos verificar el código. Revísalo e inténtalo de nuevo.');
         setCode('');
       } else if (!result.ok) {
         setAttempts((a) => a + 1);
+        events?.track('otp_failed', { source: 'link', stage: 'verify', reason: result.error.reason ?? result.error.code });
         setError(friendlyError(result.error));
         setCode('');
       }
@@ -151,11 +242,13 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     try {
       const result = await sendEmailByToken(token);
       if (result.ok && result.data.status === 'sent') {
+        events?.track('otp_code_resent', { source: 'link' });
         startCooldown(60);
       } else if (!result.ok) {
         if (result.error.reason === 'cooldown') {
           startCooldown(parseCooldownSeconds(result.error.message));
         } else {
+          events?.track('otp_failed', { source: 'link', stage: 'resend', reason: result.error.reason ?? result.error.code });
           setError(friendlyError(result.error));
         }
       }
@@ -173,9 +266,11 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     try {
       const result = await sendEmailVerification(applicationId!, dni.trim());
       if (result.ok && result.data.status === 'already_verified') {
+        emitInline('otp_verified', { already_verified: true });
         setState('confirmed');
         onConfirmed?.();
       } else if (result.ok && result.data.status === 'sent') {
+        emitInline('otp_code_sent');
         setMaskedEmail(result.data.email);
         startCooldown(60);
         setState('code');
@@ -186,6 +281,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           if (st.ok) setMaskedEmail(st.data.email);
           setState('code');
         } else {
+          emitInline('otp_failed', { stage: 'send', reason: result.error.reason ?? result.error.code });
           setError(friendlyError(result.error));
         }
       }
@@ -198,17 +294,21 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     if (code.length < 6) return;
     setLoading(true);
     setError(null);
+    emitInline('otp_code_submitted');
     try {
       const result = await verifyEmailCode(applicationId!, dni, code);
       if (result.ok && result.data.verified) {
+        emitInline('otp_verified');
         setState('confirmed');
         onConfirmed?.();
       } else if (result.ok && !result.data.verified) {
         setAttempts((a) => a + 1);
+        emitInline('otp_failed', { stage: 'verify', reason: 'invalid_code' });
         setError('No pudimos verificar el código. Revísalo e inténtalo de nuevo.');
         setCode('');
       } else if (!result.ok) {
         setAttempts((a) => a + 1);
+        emitInline('otp_failed', { stage: 'verify', reason: result.error.reason ?? result.error.code });
         setError(friendlyError(result.error));
         setCode('');
       }
@@ -224,11 +324,13 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
     try {
       const result = await sendEmailVerification(applicationId!, dni);
       if (result.ok && result.data.status === 'sent') {
+        emitInline('otp_code_resent');
         startCooldown(60);
       } else if (!result.ok) {
         if (result.error.reason === 'cooldown') {
           startCooldown(parseCooldownSeconds(result.error.message));
         } else {
+          emitInline('otp_failed', { stage: 'resend', reason: result.error.reason ?? result.error.code });
           setError(friendlyError(result.error));
         }
       }
@@ -238,22 +340,24 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
   }
 
   return (
-    <PhoneFrame>
-      {/* ── MODO TOKEN: Envío automático del código (#1/#2) ─────────────────── */}
+    // Solo la tarjeta blanca (sin chrome/frame): consistente entre el link y el
+    // gate inline full-screen. El contenedor (ruta) provee el fondo full-screen.
+    <div className="w-full max-w-md mx-auto flex flex-col">
+      {/* ── Envío automático del código (link o inline auto) (#1/#2) ────────── */}
       {state === 'sending' && (
         <div className="flex flex-col items-center gap-5 text-center py-6">
-          <h1 className="text-xl font-bold text-[#1f2937]">Valida tu correo institucional</h1>
+          <h1 className="text-xl font-bold text-[#1f2937]">Valida tu correo</h1>
           {!error ? (
             <>
               <div className="w-12 h-12 rounded-full border-4 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
-              <p className="text-[#6b7280] text-sm">Enviando el código a tu correo institucional…</p>
+              <p className="text-[#6b7280] text-sm">Enviando el código a tu correo…</p>
             </>
           ) : (
             <>
               <ErrorBanner message={error} className="w-full" />
               <button
                 className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
-                onClick={autoSendByToken}
+                onClick={isTokenMode ? autoSendByToken : autoSendInline}
                 disabled={loading}
               >
                 Reintentar enviar código
@@ -268,7 +372,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
         <div className="flex flex-col items-center gap-6 text-center">
           <h1 className="text-2xl font-bold text-[#1f2937]">Verifica tu correo</h1>
           <p className="text-[#6b7280] text-sm">
-            Ingresa tu número de DNI para enviar un código a tu correo institucional
+            Ingresa tu número de DNI para enviar un código a tu correo
             (ej: usuario@universidad.edu.pe).
           </p>
 
@@ -305,7 +409,7 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
         <div className="flex flex-col items-center gap-5 text-center">
           <h1 className="text-xl font-bold text-[#1f2937]">Ingresa tu código</h1>
           <p className="text-[#6b7280] text-sm">
-            Enviamos un código a tu correo institucional{' '}
+            Enviamos un código a tu correo{' '}
             <span className="font-semibold text-[#1f2937]">{maskedEmail}</span>
           </p>
 
@@ -362,10 +466,10 @@ export function OtpScreen({ token, applicationId, onConfirmed, initialVerified }
           </span>
           <p className="text-[#1f2937] font-semibold text-lg">¡Correo confirmado!</p>
           <p className="text-[#6b7280] text-sm">
-            Verificamos tu correo institucional. Seguimos con tu evaluación.
+            Verificamos tu correo. Seguimos con tu evaluación.
           </p>
         </div>
       )}
-    </PhoneFrame>
+    </div>
   );
 }

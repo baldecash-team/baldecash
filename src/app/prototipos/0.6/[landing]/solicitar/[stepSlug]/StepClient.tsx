@@ -131,7 +131,7 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -469,7 +469,7 @@ function StepContent() {
       router.push(routes.solicitarComplementos(landing));
     } else {
       // No more steps and no complementos - submit directly
-      submitApplication({ insuranceId: null });
+      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification') });
     }
   };
 
@@ -556,8 +556,9 @@ function StepContent() {
       router.push(routes.solicitarComplementos(landing));
     } else {
       // No sections after wizard - submit application directly
-      await submitApplication({ insuranceId: null });
+      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification') });
       // The hook handles navigation to confirmation page on success
+      // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
   };
 
@@ -840,6 +841,7 @@ function StepContent() {
       <>
         {pageContent}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       </>
     );
   }

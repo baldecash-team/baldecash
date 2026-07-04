@@ -13,6 +13,9 @@ const defaultSink: EventSink = (sessionId, events) => {
   void sendEventsBatch(sessionId, events);
 };
 
+/** Propiedades permitidas en un evento granular (sin PII ni datos de video). */
+export type EventProps = Record<string, string | number | boolean>;
+
 export interface AdmissionEvents {
   /** Apertura del link. */
   linkOpen: () => void;
@@ -22,6 +25,12 @@ export interface AdmissionEvents {
   stageExit: (stage: string) => void;
   /** Flujo completado. */
   completed: () => void;
+  /**
+   * Emisor genérico y type-safe para eventos granulares del funnel de video
+   * (permisos, grabación, clips, preguntas, modales, errores). Fire-and-forget;
+   * las props pasan por el mismo saneador de PII que el resto de eventos.
+   */
+  track: (type: EventType, props?: EventProps) => void;
 }
 
 /**
@@ -57,5 +66,6 @@ export function admissionEvents(token: string, sink: EventSink = defaultSink): A
       emit('admission_stage_exit', { token, stage, duration_ms });
     },
     completed: () => emit('admission_completed', { token }),
+    track: (type: EventType, props: EventProps = {}) => emit(type, { token, ...props }),
   };
 }

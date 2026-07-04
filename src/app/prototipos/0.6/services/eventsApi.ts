@@ -172,7 +172,37 @@ export type EventType =
   | 'admission_stage_enter'
   | 'admission_stage_exit'
   | 'admission_completed'
-  // Phase 15: Oferta condicional (Caso 4 downgrade / Caso 5 upsell) — funnel
+  // Phase 15: Video de admisión — eventos granulares por acción del funnel
+  | 'video_permission_location_requested'
+  | 'video_permission_location_granted'
+  | 'video_permission_location_denied'
+  | 'video_permission_camera_requested'
+  | 'video_permission_camera_granted'
+  | 'video_permission_camera_denied'
+  | 'video_recording_started'
+  | 'video_recording_stopped'
+  | 'video_clip_preview_shown'
+  | 'video_clip_accepted'
+  | 'video_clip_rerecord'
+  | 'video_question_shown'
+  | 'video_example_opened'
+  | 'video_upload_error'
+  | 'video_completion_error'
+  | 'video_success_shown'
+  | 'video_device_unsupported'
+  | 'video_session_resumed'
+  | 'video_session_started'
+  // Phase 16: OTP email verification gate (inline post-submit + link flow)
+  // Every emission carries a `source` property: 'inline' (full-screen gate
+  // shown after submit in the solicitar flow) vs 'link' (admision link flow),
+  // so both funnels can be told apart in analytics.
+  | 'otp_screen_shown'
+  | 'otp_code_sent'
+  | 'otp_code_resent'
+  | 'otp_code_submitted'
+  | 'otp_verified'
+  | 'otp_failed'
+  // Phase 17: Oferta condicional (Caso 4 downgrade / Caso 5 upsell) — funnel
   | 'offer_viewed'
   | 'offer_recommended_view'
   | 'offer_catalog_open'

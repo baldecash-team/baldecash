@@ -6,6 +6,7 @@ import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users } fro
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { InsuranceDetailModal } from './InsuranceDetailModal';
+import { MultiasistenciaCard } from './MultiasistenciaCard';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface InsuranceCardsProps {
@@ -62,7 +63,14 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   const [detailPlan, setDetailPlan] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
-  const gridCols = plans.length === 1
+  const maPlans = plans.filter((p) => p.insuranceType === 'multiasistencia');
+  const equipoPlans = plans.filter((p) => p.insuranceType !== 'multiasistencia');
+
+  // Insurama (equipo) y A365 (Multiasistencia) comparten la misma grilla de 2
+  // columnas. Total de tarjetas: 1 sola → centrada; 2+ → 2 columnas. Así con 1
+  // seguro Insurama + MA quedan lado a lado, y con 2 Insurama la MA cae debajo.
+  const totalCards = equipoPlans.length + maPlans.length;
+  const gridCols = totalCards === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
     : 'grid-cols-1 sm:grid-cols-2';
 
@@ -99,7 +107,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
 
       {/* Cards Grid */}
       <div className={`grid ${gridCols} gap-4`}>
-        {plans.map((plan, index) => {
+        {equipoPlans.map((plan, index) => {
           const Icon = getInsuranceIcon(plan.insuranceType);
           const isSelected = selectedPlanIds.includes(plan.id);
           const benefits = getBenefits(plan.insuranceType);
@@ -216,6 +224,22 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
             </motion.div>
           );
         })}
+
+        {/* Multiasistencia (A365): MISMA grilla de 2 columnas que los seguros
+            Insurama → 1 columna Insurama + 1 columna A365 lado a lado si hay 1
+            Insurama; si hay 2 Insurama, la MA cae debajo (en desktop). */}
+        {maPlans.map((plan) => (
+          <MultiasistenciaCard
+            key={plan.id}
+            plan={plan}
+            isSelected={selectedPlanIds.includes(plan.id)}
+            onToggle={() => onToggle(plan.id)}
+            onSeeMore={() => {
+              analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+              setDetailPlan(plan);
+            }}
+          />
+        ))}
       </div>
 
       {/* Social proof */}

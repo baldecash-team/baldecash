@@ -35,6 +35,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -116,6 +117,7 @@ function ComplementosContent() {
   const {
     sectionsAfterWizard,
     isCouponRequired,
+    isEnabled,
     isLoading: isFlowConfigLoading,
   } = useSolicitarFlow({ slug: landing, previewKey });
 
@@ -226,9 +228,15 @@ function ComplementosContent() {
       }
     }
 
-    // Pass insurance IDs from context (multi-select)
-    const insuranceIds = selectedInsurances.map(i => i.id);
-    await submitApplication({ insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null, insuranceIds });
+    // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
+    // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
+    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
+    await submitApplication({
+      insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
+      insuranceIds,
+      // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
+      otpEnabled: isEnabled('otp_verification'),
+    });
   };
 
   // Total monthly is now calculated in ProductContext (includes insurance + accessories)
@@ -352,7 +360,7 @@ function ComplementosContent() {
           <Button
             size="lg"
             className="w-full lg:flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90"
-            onPress={handleSubmit}
+            onPress={() => handleSubmit()}
             isLoading={isSubmitting}
             spinner={<Loader2 className="w-5 h-5 animate-spin" />}
           >
@@ -724,6 +732,7 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
+          promoBannerData={navbarProps?.promoBannerData}
         />
         <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
           {children}
