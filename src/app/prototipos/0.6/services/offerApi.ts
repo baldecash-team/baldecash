@@ -107,7 +107,6 @@ export interface OfferView {
   landingSlug: string | null;
   requestedProduct: RequestedProduct | null;
   recommended: CatalogProduct | null;
-  alternativesCount: number;
   /** Si el link ya fue consumido: el equipo que el estudiante eligió. */
   alreadySelected?: boolean;
   selectedEquipment?: SelectedEquipment | null;
@@ -180,7 +179,6 @@ export async function getOffer(token: string): Promise<OfferView> {
       landingSlug: data.landing_slug ?? null,
       requestedProduct: data.current_product ?? null,
       recommended: null,
-      alternativesCount: 0,
       applicationCode: data.application_code ?? null,
       clientName: data.client_name ?? null,
       offerCase: 'upsell',
@@ -213,7 +211,6 @@ export async function getOffer(token: string): Promise<OfferView> {
       landingSlug: data.landing_slug ?? null,
       requestedProduct: data.requested_product ?? null,
       recommended: null,
-      alternativesCount: 0,
       alreadySelected: true,
       applicationCode: data.application_code ?? null,
       clientName: data.client_name ?? null,
@@ -252,7 +249,6 @@ export async function getOffer(token: string): Promise<OfferView> {
     recommended: data.recommended
       ? mapApiProductToCatalogProduct(data.recommended as ApiCatalogProduct)
       : null,
-    alternativesCount: data.alternatives_count ?? 0,
   };
 }
 

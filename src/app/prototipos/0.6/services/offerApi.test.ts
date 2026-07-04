@@ -53,7 +53,6 @@ describe('getOffer', () => {
         landing_slug: 'home',
         requested_product: { id: 9, variant_id: null, name: 'ZBook', slug: 'zbook', image_url: null },
         recommended: apiProduct(11, 3000, 240),
-        alternatives_count: 31,
       }),
     });
 
@@ -63,7 +62,6 @@ describe('getOffer', () => {
     expect(offer.landingSlug).toBe('home');
     expect(offer.requestedProduct?.name).toBe('ZBook');
     expect(offer.recommended?.id).toBe('11');
-    expect(offer.alternativesCount).toBe(31);
   });
 
   it('lanza OfferApiError con el reason del backend (410 expired)', async () => {
