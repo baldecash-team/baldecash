@@ -26,15 +26,14 @@ import type {
   CatalogLayoutConfig,
 } from '../../../[landing]/catalogo/types/catalog';
 import { mergeFiltersWithDefaults } from '../../../[landing]/catalogo/utils/queryFilters';
-import { useCatalogFilters } from '../../../[landing]/catalogo/hooks/useCatalogProducts';
 import { useGridColumns, roundToColumns } from '../../../[landing]/catalogo/hooks/useGridColumns';
 import {
   getCatalog,
-  getOfferFilterCounts,
+  getOfferFilters,
   type OfferView,
   type OfferCatalogFilters,
-  type OfferFilterCounts,
 } from '../../../services/offerApi';
+import type { CatalogFiltersResponse } from '../../../types/filters';
 import type { ProductSuggestion } from '../../../services/catalogApi';
 
 // Config de presentación fijo (mismos valores que usa el catálogo v0.6).
@@ -135,21 +134,32 @@ export function CatalogoOfertaTab({
   );
 
   // Filtros dinámicos (specs, marcas, etc.) — vienen de la landing real de la oferta.
-  // Los usamos SOLO por su estructura (labels, logos, specs); los CONTEOS se
-  // recalculan localmente sobre los items que sí entran en la cuota (abajo).
-  const { apiFilters, isLoading: isApiFiltersLoading } = useCatalogFilters(
-    offer.landingSlug || 'home',
-  );
+  // Filtros UNIFICADOS de la oferta: estructura + contadores JUNTOS, ya topados
+  // por la cuota (endpoint /offer/{token}/filters). UNA sola llamada — sin llamar
+  // al endpoint del catálogo general ni hacer merge en el cliente.
+  const [offerApiFilters, setOfferApiFilters] = useState<CatalogFiltersResponse | null>(null);
+  const [isApiFiltersLoading, setIsApiFiltersLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    setIsApiFiltersLoading(true);
+    getOfferFilters(token)
+      .then((f) => active && setOfferApiFilters(f))
+      .catch(() => active && setOfferApiFilters(null))
+      .finally(() => active && setIsApiFiltersLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   // Mapa slug→id de marca (el sidebar setea filters.brands con el SLUG; el API
-  // espera brand_ids numéricos). Se arma desde apiFilters.brands.
+  // espera brand_ids numéricos). Se arma desde los filtros de la oferta.
   const brandSlugToId = useMemo(() => {
     const m = new Map<string, number>();
-    for (const b of apiFilters?.brands ?? []) {
+    for (const b of offerApiFilters?.brands ?? []) {
       if (b.slug && b.id != null) m.set(b.slug, b.id);
     }
     return m;
-  }, [apiFilters]);
+  }, [offerApiFilters]);
 
   // Cuota máxima aprobada (tope del slider y de cualquier filtro de cuota).
   const maxQuota = offer.maxMonthlyQuota;
@@ -236,22 +246,6 @@ export function CatalogoOfertaTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, offerFiltersKey]);
 
-  // Contadores de filtros calculados por el BACKEND sobre el catálogo de la
-  // oferta (cuota a 24m/0%, sin el pedido). Incluye Uso y specs con la fuente
-  // real de BD — cosa que no se puede recalcular bien en el frontend (el `usage`
-  // del catálogo es inferido del nombre). Universo estable (sin marca/tipo/etc.)
-  // para poder alternar filtros sin que desaparezcan.
-  const [filterCounts, setFilterCounts] = useState<OfferFilterCounts | null>(null);
-  useEffect(() => {
-    let active = true;
-    getOfferFilterCounts(token)
-      .then((c) => active && setFilterCounts(c))
-      .catch(() => active && setFilterCounts(null));
-    return () => {
-      active = false;
-    };
-  }, [token]);
-
   // Orden final por CUOTA real (24m/0%) en el cliente, porque el orden por
   // precio de lista del API no coincide con la cuota mostrada. "Recomendados"
   // respeta el orden del API (display_order); las demás ordenan por cuota.
@@ -275,56 +269,8 @@ export function CatalogoOfertaTab({
   const visibleItems = items.slice(0, shownCount);
   const remaining = Math.max(0, items.length - visibleItems.length);
 
-  // Conteos de filtros COHERENTES con el catálogo de oferta: vienen del endpoint
-  // /offer/{token}/filters (backend, sobre el mismo universo que el grid). Reusamos
-  // la estructura de `apiFilters` (labels, logos, íconos) pero sobrescribimos cada
-  // `count` con el del backend y ocultamos las opciones en 0. Uso y specs también.
-  const offerApiFilters = useMemo(() => {
-    if (!apiFilters) return apiFilters;
-    if (!filterCounts) return apiFilters; // aún cargando → mostrar como venga
-    const byNameLower = (m: Record<string, number>) => {
-      const out = new Map<string, number>();
-      for (const [k, v] of Object.entries(m)) out.set(k.trim().toLowerCase(), v);
-      return out;
-    };
-    const brandByName = byNameLower(filterCounts.brandCounts);
-
-    const types = (apiFilters.types ?? [])
-      .map((t) => ({ ...t, count: filterCounts.typeCounts[t.value] ?? 0 }))
-      .filter((t) => t.count > 0);
-    const brands = (apiFilters.brands ?? [])
-      .map((b) => ({ ...b, count: brandByName.get((b.name || '').trim().toLowerCase()) ?? 0 }))
-      .filter((b) => b.count > 0);
-    const labels = (apiFilters.labels ?? [])
-      .map((l) => ({ ...l, count: filterCounts.labelCounts[l.code] ?? 0 }))
-      .filter((l) => l.count > 0);
-    const conditions = (apiFilters.conditions ?? [])
-      .map((c) => ({ ...c, count: filterCounts.conditionCounts[c.value] ?? 0 }))
-      .filter((c) => c.count > 0);
-    const usages = (apiFilters.usages ?? [])
-      .map((u) => ({ ...u, count: filterCounts.usageCounts[u.value] ?? 0 }))
-      .filter((u) => u.count > 0);
-    // Specs: sobrescribir el count de cada valor con el del backend; ocultar los 0.
-    const specs = { ...(apiFilters.specs ?? {}) };
-    for (const [code, spec] of Object.entries(specs)) {
-      const counts = filterCounts.specCounts[code] ?? {};
-      const values = (spec.values ?? [])
-        .map((v) => ({ ...v, count: counts[String(v.value)] ?? 0 }))
-        .filter((v) => v.count > 0);
-      specs[code] = { ...spec, values };
-    }
-    // Rango de cuota REAL de la oferta (backend): topa el slider en el equipo más
-    // caro elegible, no en el max de la landing completa (que dejaría un tramo
-    // vacío por encima del umbral aprobado). Sin dato → conserva el de la landing.
-    const quota_range = filterCounts.quotaRange
-      ? {
-          ...apiFilters.quota_range,
-          min: filterCounts.quotaRange.min,
-          max: filterCounts.quotaRange.max,
-        }
-      : apiFilters.quota_range;
-    return { ...apiFilters, types, brands, labels, conditions, usages, specs, quota_range };
-  }, [apiFilters, filterCounts]);
+  // (El merge estructura+contadores ya lo hace el backend: offerApiFilters viene
+  //  listo del endpoint unificado /offer/{token}/filters — ver arriba.)
 
   return (
     <>

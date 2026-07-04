@@ -12,6 +12,7 @@
  */
 
 import type { CatalogProduct } from '../[landing]/catalogo/types/catalog';
+import type { CatalogFiltersResponse } from '../types/filters';
 import type { Accessory, InsurancePlan } from '../[landing]/solicitar/types/upsell';
 import {
   mapApiProductToCatalogProduct,
@@ -304,25 +305,31 @@ export interface OfferFilterCounts {
   total: number;
 }
 
-/** GET /public/offer/{token}/filters — contadores coherentes con el catálogo. */
-export async function getOfferFilterCounts(token: string): Promise<OfferFilterCounts> {
+/** GET /public/offer/{token}/filters — filtros UNIFICADOS de la oferta:
+ *  estructura + contadores JUNTOS (mismo shape que el catálogo general), ya
+ *  topados por la cuota. Reemplaza la doble llamada (estructura del general +
+ *  contadores) y el merge en el cliente. El backend oculta opciones en count 0.
+ */
+export async function getOfferFilters(token: string): Promise<CatalogFiltersResponse> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/filters`, {
     cache: 'no-store',
   });
   if (!res.ok) throw await parseError(res);
   const d = await res.json();
+  // El backend ya devuelve el shape del general; solo se rellenan las dimensiones
+  // que la oferta no usa (price_range/gamas/spec_groups) para cumplir el tipo.
   return {
-    typeCounts: d.type_counts ?? {},
-    brandCounts: d.brand_counts ?? {},
-    conditionCounts: d.condition_counts ?? {},
-    labelCounts: d.label_counts ?? {},
-    usageCounts: d.usage_counts ?? {},
-    specCounts: d.spec_counts ?? {},
-    quotaRange:
-      d.quota_range && typeof d.quota_range.min === 'number' && typeof d.quota_range.max === 'number'
-        ? { min: d.quota_range.min, max: d.quota_range.max }
-        : null,
-    total: d.total ?? 0,
+    brands: d.brands ?? [],
+    types: d.types ?? [],
+    conditions: d.conditions ?? [],
+    labels: d.labels ?? [],
+    usages: d.usages ?? [],
+    specs: d.specs ?? {},
+    quota_range: d.quota_range ?? { min: 0, max: 0, term_months: 24, initial_percent: 0, tea: 0, description: '' },
+    price_range: { min: 0, max: 0, currency: 'PEN' },
+    gamas: [],
+    spec_groups: [],
+    sort_options: d.sort_options ?? [],
   };
 }
 
