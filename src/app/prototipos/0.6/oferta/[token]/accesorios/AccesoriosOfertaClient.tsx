@@ -35,6 +35,7 @@ import { AccessoryIntro } from '../../../[landing]/solicitar/components/upsell/A
 import { InsuranceCards } from '../../../[landing]/solicitar/components/upsell/InsuranceCards';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
+import { useAnalytics } from '../../../analytics/useAnalytics';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -101,6 +102,7 @@ function usePageSize() {
 }
 
 export function AccesoriosOfertaClient({ token }: { token: string }) {
+  const analytics = useAnalytics();
   // La selección (variant/combo/slug + equipo) se lee de localStorage → la URL
   // queda limpia, sin query params. Se resuelve una vez al montar; si no existe
   // (link directo / storage limpio), se redirige a la portada de la oferta.
@@ -193,6 +195,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     writeStoredAddons(token, variantId, selectedAcc, selectedIns);
   }, [token, variantId, selectedAcc, selectedIns, loading, succeeded]);
 
+  // Funnel: pantalla de éxito (modal "¡Listo!") visible tras confirmar.
+  useEffect(() => {
+    if (succeeded) analytics.track('offer_success_view', { variant_id: variantId });
+  }, [succeeded, variantId, analytics]);
+
   // Subcategorías disponibles (deduplicadas por slug), igual que el flujo regular.
   const availableCategories = useMemo(() => {
     const map = new Map<string, AccessoryCategory>();
@@ -225,15 +232,29 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
 
   const toggleAcc = (a: Accessory) =>
     setSelectedAcc((prev) => {
-      if (prev.includes(a.id)) return prev.filter((x) => x !== a.id); // quitar siempre
+      if (prev.includes(a.id)) {
+        analytics.trackAccessoryRemove({ accessory_id: a.id }); // quitar siempre
+        return prev.filter((x) => x !== a.id);
+      }
       if (!accFits(a)) return prev; // agregar solo si cabe en la cuota
+      analytics.trackAccessoryAdd({ accessory_id: a.id, accessory_name: a.name, price: a.monthlyQuota });
       return [...prev, a.id];
     });
   const toggleIns = (planId: string) =>
     setSelectedIns((prev) => {
-      if (prev.includes(planId)) return prev.filter((x) => x !== planId); // quitar siempre
       const plan = insurances.find((p) => p.id === planId);
+      if (prev.includes(planId)) {
+        analytics.trackInsuranceToggle({
+          insurance_id: planId, insurance_name: plan?.name ?? '', active: false,
+          monthly_price: plan?.monthlyPrice,
+        });
+        return prev.filter((x) => x !== planId); // quitar siempre
+      }
       if (plan && !insFits(plan)) return prev; // agregar solo si cabe
+      analytics.trackInsuranceToggle({
+        insurance_id: planId, insurance_name: plan?.name ?? '', active: true,
+        monthly_price: plan?.monthlyPrice,
+      });
       return [...prev, planId];
     });
 
@@ -264,6 +285,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         accessoryIds: selectedAcc.map(Number),
         insuranceIds: selectedIns.map(Number),
       });
+      // Funnel: elección confirmada (equipo + add-ons). Tras el OK del backend.
+      analytics.trackSummarySubmit({
+        product_count: 1,
+        accessory_count: selectedAcc.length,
+        insurance_selected: selectedIns.length > 0,
+        total_monthly: totalMonthly,
+      });
       // Ya quedó en BD → limpiar el borrador local para no restaurarlo luego.
       clearStoredAddons(token, variantId);
       clearOfferSelection(token);
@@ -274,7 +302,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setConfirming(false);
       setModalOpen(false);
     }
-  }, [token, variantId, comboId, selectedAcc, selectedIns]);
+  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics]);
 
   // Slot de desglose de add-ons para el modal (equipo + accesorios + seguros).
   const addonsResumen = useMemo(() => {

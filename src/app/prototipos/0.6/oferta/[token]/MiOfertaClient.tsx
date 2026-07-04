@@ -28,6 +28,7 @@ import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaE
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { saveOfferSelection, type StoredEquipo } from './offerStorage';
+import { useAnalytics } from '../../analytics/useAnalytics';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -48,12 +49,14 @@ const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: 
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
 
 export function MiOfertaClient({ token }: { token: string }) {
+  const analytics = useAnalytics();
   const [state, setState] = useState<PageState>({ kind: 'loading' });
 
   // "Ver otros equipos" navega a la subruta de catálogo (página separada).
   const goToCatalogo = useCallback(() => {
+    analytics.track('offer_catalog_open', {}); // funnel: abre catálogo de oferta
     window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
-  }, [token]);
+  }, [token, analytics]);
 
   // Modal de confirmación de elección. Unifica los 3 orígenes (card de catálogo,
   // oferta exclusiva del Caso 5, "continuar con mi equipo"): cada uno arma el
@@ -95,6 +98,9 @@ export function MiOfertaClient({ token }: { token: string }) {
           });
           return;
         }
+        // Funnel: la oferta se cargó y es visible (portada). offerCase distingue
+        // Caso 4 (downgrade) de Caso 5 (upsell).
+        analytics.track('offer_viewed', { offer_case: offer.offerCase });
         setState({ kind: 'ready', offer });
       })
       .catch((err) => {
@@ -106,7 +112,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, analytics]);
 
   // "Equipo anterior" (para el UI "anterior → nuevo" en la confirmación).
   const previousFrom = useCallback((offer: OfferView | null) => {
@@ -150,6 +156,11 @@ export function MiOfertaClient({ token }: { token: string }) {
   // Card "Elegir" del catálogo / "Aceptar equipo" del index → mini-checkout.
   const handleSelect = useCallback(
     (product: CatalogProduct) => {
+      // Funnel: click "elegir" en una card (equipo aprobado o del catálogo).
+      analytics.track('offer_equipment_select_click', {
+        variant_id: product.variantId ? Number(product.variantId) : null,
+        combo_id: product.comboId ?? null,
+      });
       goToAccesorios(
         product.variantId ? Number(product.variantId) : null,
         product.comboId ?? null,
@@ -162,7 +173,7 @@ export function MiOfertaClient({ token }: { token: string }) {
         },
       );
     },
-    [goToAccesorios],
+    [goToAccesorios, analytics],
   );
 
   // Caso 5: aceptar la oferta exclusiva → mini-checkout de accesorios/seguros.

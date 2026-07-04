@@ -7,9 +7,11 @@
  *   - "APROBADO PARA TI": destacado con tag verde "Aprobado" + 3 CTAs.
  */
 
+import { useEffect } from 'react';
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
 import type { OfferView } from '../../../services/offerApi';
 import { OfertaEquipoCard } from './OfertaEquipoCard';
+import { useAnalytics } from '../../../analytics/useAnalytics';
 
 function detailHref(token: string, slug?: string | null): string | undefined {
   if (!slug) return undefined;
@@ -29,6 +31,16 @@ export function TuOfertaTab({
 }) {
   const rec = offer.recommended;
   const req = offer.requestedProduct;
+  const analytics = useAnalytics();
+
+  // Funnel: el estudiante ve el equipo aprobado/recomendado (impresión).
+  useEffect(() => {
+    if (rec) {
+      analytics.track('offer_recommended_view', {
+        variant_id: rec.variantId ? Number(rec.variantId) : null,
+      });
+    }
+  }, [rec, analytics]);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">

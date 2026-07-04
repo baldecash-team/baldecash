@@ -171,7 +171,13 @@ export type EventType =
   | 'admission_link_open'
   | 'admission_stage_enter'
   | 'admission_stage_exit'
-  | 'admission_completed';
+  | 'admission_completed'
+  // Phase 15: Oferta condicional (Caso 4 downgrade / Caso 5 upsell) — funnel
+  | 'offer_viewed'
+  | 'offer_recommended_view'
+  | 'offer_catalog_open'
+  | 'offer_equipment_select_click'
+  | 'offer_success_view';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
