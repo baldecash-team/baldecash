@@ -306,10 +306,27 @@ export interface OfferFilterCounts {
  *  topados por la cuota. Reemplaza la doble llamada (estructura del general +
  *  contadores) y el merge en el cliente. El backend oculta opciones en count 0.
  */
-export async function getOfferFilters(token: string): Promise<CatalogFiltersResponse> {
-  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/filters`, {
-    cache: 'no-store',
-  });
+export async function getOfferFilters(
+  token: string,
+  filters: OfferCatalogFilters = {},
+): Promise<CatalogFiltersResponse> {
+  // Los filtros aplicados hacen los contadores CONTEXTUALES (reactivos), como el
+  // catálogo general. El endpoint de filtros solo consume estas dimensiones (no
+  // q/gamas/price: no aplican al conteo de la oferta).
+  const params = new URLSearchParams();
+  if (filters.brandIds?.length) params.set('brand_ids', filters.brandIds.join(','));
+  if (filters.types?.length) params.set('types', filters.types.join(','));
+  if (filters.usages?.length) params.set('usages', filters.usages.join(','));
+  if (filters.labels?.length) params.set('labels', filters.labels.join(','));
+  if (filters.conditions?.length) params.set('conditions', filters.conditions.join(','));
+  if (filters.minQuota != null) params.set('min_quota', String(filters.minQuota));
+  if (filters.maxQuota != null) params.set('max_quota', String(filters.maxQuota));
+  if (filters.specs && Object.keys(filters.specs).length > 0) {
+    params.set('specs', JSON.stringify(filters.specs));
+  }
+  const qs = params.toString();
+  const url = `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/filters${qs ? `?${qs}` : ''}`;
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw await parseError(res);
   const d = await res.json();
   // El backend ya devuelve el shape del general; solo se rellenan las dimensiones

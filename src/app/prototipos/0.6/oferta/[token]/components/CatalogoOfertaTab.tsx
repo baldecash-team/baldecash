@@ -135,21 +135,11 @@ export function CatalogoOfertaTab({
 
   // Filtros dinámicos (specs, marcas, etc.) — vienen de la landing real de la oferta.
   // Filtros UNIFICADOS de la oferta: estructura + contadores JUNTOS, ya topados
-  // por la cuota (endpoint /offer/{token}/filters). UNA sola llamada — sin llamar
-  // al endpoint del catálogo general ni hacer merge en el cliente.
+  // por la cuota (endpoint /offer/{token}/filters). Los contadores son REACTIVOS:
+  // se re-piden con los filtros aplicados (efecto más abajo, tras `offerFilters`),
+  // igual que el catálogo general → marcar "Samsung" recalcula los conteos.
   const [offerApiFilters, setOfferApiFilters] = useState<CatalogFiltersResponse | null>(null);
   const [isApiFiltersLoading, setIsApiFiltersLoading] = useState(true);
-  useEffect(() => {
-    let active = true;
-    setIsApiFiltersLoading(true);
-    getOfferFilters(token)
-      .then((f) => active && setOfferApiFilters(f))
-      .catch(() => active && setOfferApiFilters(null))
-      .finally(() => active && setIsApiFiltersLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [token]);
 
   // Mapa slug→id de marca (el sidebar setea filters.brands con el SLUG; el API
   // espera brand_ids numéricos). Se arma desde los filtros de la oferta.
@@ -246,6 +236,31 @@ export function CatalogoOfertaTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, offerFiltersKey]);
 
+  // Filtros del sidebar SIN `q`/`sortBy`: la búsqueda y el orden NO afectan los
+  // CONTEOS de los filtros (el catálogo general tampoco los cuenta). Así escribir
+  // en el buscador o cambiar el orden no re-pide contadores innecesariamente.
+  const offerFiltersForCounts = useMemo<OfferCatalogFilters>(() => {
+    const { q: _q, sortBy: _sortBy, ...rest } = offerFilters;
+    return rest;
+  }, [offerFilters]);
+  const offerFiltersForCountsKey = JSON.stringify(offerFiltersForCounts);
+
+  // Contadores REACTIVOS: se re-piden con los filtros aplicados cuando cambian,
+  // igual que el catálogo general (marcar "Samsung" recalcula tipo/uso/specs a
+  // solo Samsung; la lista de marcas sigue completa para poder cambiar).
+  useEffect(() => {
+    let active = true;
+    setIsApiFiltersLoading(true);
+    getOfferFilters(token, offerFiltersForCounts)
+      .then((f) => active && setOfferApiFilters(f))
+      .catch(() => active && setOfferApiFilters(null))
+      .finally(() => active && setIsApiFiltersLoading(false));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, offerFiltersForCountsKey]);
+
   // Orden final por CUOTA real (24m/0%) en el cliente, porque el orden por
   // precio de lista del API no coincide con la cuota mostrada. "Recomendados"
   // respeta el orden del API (display_order); las demás ordenan por cuota.
@@ -274,22 +289,14 @@ export function CatalogoOfertaTab({
 
   return (
     <>
-      {/* Búsqueda mobile: botón que abre el drawer (input completo en desktop). */}
-      <div className="w-full px-3 pt-4 sm:px-4 lg:px-6 md:hidden">
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-400 transition-shadow hover:shadow-sm"
-        >
-          <Search className="h-5 w-5 shrink-0" style={{ color: 'var(--color-primary)' }} />
-          <span className="truncate">{searchQuery || 'Buscar por marca, modelo…'}</span>
-        </button>
-      </div>
-
-      {/* Búsqueda desktop: "Volver a mi oferta" + buscador en la MISMA fila
-          (grilla 3 columnas, igual que el detalle del producto). El dropdown de
-          sugerencias se alimenta del catálogo de la OFERTA. */}
-      <div className="hidden px-3 pt-4 sm:px-4 lg:px-6 md:block">
+      {/* Barra UNIFICADA (mobile + desktop), calcada del detalle de producto en
+          oferta: grilla 3 columnas visible en TODOS los tamaños.
+          - Izq: "Volver a mi oferta" SIEMPRE visible (el texto colapsa en mobile,
+            queda la flecha). Antes solo estaba en desktop → en mobile no había volver.
+          - Centro: buscador (NavbarSearch) solo desktop, topado por cuota.
+          - Der: botón "Buscar" solo mobile → abre el SearchDrawer (también topado
+            por cuota vía fetchOfferSuggestions). */}
+      <div className="sticky top-16 z-30 w-full border-b border-gray-200 bg-white/95 px-3 py-2.5 backdrop-blur sm:px-4 lg:px-6">
         <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-4">
           {onBack ? (
             <button
@@ -298,22 +305,35 @@ export function CatalogoOfertaTab({
               className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Volver a mi oferta</span>
+              <span className="hidden sm:inline">Volver a mi oferta</span>
             </button>
           ) : (
             <span aria-hidden />
           )}
+          {/* Columna central (1fr): en desktop el buscador centrado; en mobile
+              queda vacía pero mantiene el 1fr para empujar el ícono a la derecha. */}
           <div className="flex justify-center">
-            <NavbarSearch
-              value={searchQuery}
-              onChange={onSearchChange}
-              onClear={() => onSearchChange('')}
-              placeholder="Buscar entre tus equipos disponibles…"
-              fetchSuggestions={fetchOfferSuggestions}
-              onSelectSuggestion={goToOfferDetail}
-            />
+            <div className="hidden w-full justify-center md:flex">
+              <NavbarSearch
+                value={searchQuery}
+                onChange={onSearchChange}
+                onClear={() => onSearchChange('')}
+                placeholder="Buscar entre tus equipos disponibles…"
+                fetchSuggestions={fetchOfferSuggestions}
+                onSelectSuggestion={goToOfferDetail}
+              />
+            </div>
           </div>
-          <span aria-hidden />
+          <span aria-hidden className="hidden md:block" />
+          {/* Mobile: botón-ícono (solo lupa) al EXTREMO DERECHO, abre el drawer. */}
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Buscar entre tus equipos"
+            className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 md:hidden"
+          >
+            <Search className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
+          </button>
         </div>
       </div>
 
@@ -379,6 +399,8 @@ export function CatalogoOfertaTab({
         onChange={onSearchChange}
         onClear={() => onSearchChange('')}
         onSubmit={() => setSearchOpen(false)}
+        fetchSuggestions={fetchOfferSuggestions}
+        onSelectSuggestion={goToOfferDetail}
       />
 
       {/* Chat con Blip — igual que el catálogo regular. El botón flotante nativo
