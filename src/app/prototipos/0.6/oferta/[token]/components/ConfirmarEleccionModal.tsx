@@ -194,7 +194,7 @@ export function ConfirmarEleccionModal({
                     {equipo.monthly ? (
                       <div className="mt-4 flex items-center justify-between border-t border-[rgba(var(--color-primary-rgb),0.12)] pt-3">
                         <div>
-                          <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota mensual</span>
+                          <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota {equipo.paymentFrequency === 'semanal' ? 'semanal' : equipo.paymentFrequency === 'quincenal' ? 'quincenal' : 'mensual'}</span>
                           {equipo.term ? (
                             <p className="text-xs text-[var(--text-muted,#4b5563)]">
                               en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}

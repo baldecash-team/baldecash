@@ -123,6 +123,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // Frecuencia real del equipo (mensual|semanal|quincenal). Para celulares define
   // el sufijo de cuota (/sem, /qcn) y la unidad del plazo.
   const [equipoFrequency, setEquipoFrequency] = useState('mensual');
+  // Plazo nativo del equipo (nº de cuotas: 48 semanas, 24 quincenas). Para el
+  // display del plazo del celular, no el curTerm (que es el plazo mensual del snapshot).
+  const [equipoTerm, setEquipoTerm] = useState<number | null>(null);
   // Cuota máxima aprobada (tope). equipo + accesorios + seguros no puede superarla.
   const [maxQuota, setMaxQuota] = useState<number | null>(null);
   const [selectedAcc, setSelectedAcc] = useState<string[]>([]);
@@ -198,6 +201,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setEquipoMonthly(res.equipoMonthly);
         setEquipoInitialAmount(res.equipoInitialAmount);
         setEquipoFrequency(res.equipoFrequency);
+        setEquipoTerm(res.equipoTerm);
         // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
@@ -484,7 +488,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 <p className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
                   S/{Math.round(equipoMonthly)}{cuotaSuffix(equipoFrequency)}
                   <span className="ml-1 text-xs font-normal text-neutral-500">
-                    en {curTerm} {plazoUnit(curTerm, equipoFrequency)}
+                    {(() => {
+                      // Para celular, el plazo mostrado es su nº de cuotas nativas
+                      // (equipoTerm: 48 semanas, 24 quincenas). Para laptop (mensual),
+                      // el plazo elegido en el selector (curTerm).
+                      const plazoN = equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm;
+                      return `en ${plazoN} ${plazoUnit(plazoN, equipoFrequency)}`;
+                    })()}
                     {equipoInitialAmount > 0 ? ` · inicial S/${Math.round(equipoInitialAmount)}` : ' · sin inicial'}
                   </span>
                 </p>
@@ -638,6 +648,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                           onToggle={() => toggleAcc(a)}
                           onViewDetails={() => setDetailAccessory(a)}
                           isMoltiTop={a.isMoltiTop && index === 0}
+                          paymentFrequency={equipoFrequency}
                         />
                       </div>
                       {!fits ? (
@@ -697,8 +708,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         isOpen={modalOpen}
         equipo={
           equipoInfo
-            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
-            : { name: 'Tu equipo', monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
+            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: (equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm), initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
+            : { name: 'Tu equipo', monthly: equipoMonthly, term: (equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm), initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
         }
         loading={confirming}
         succeeded={succeeded}
