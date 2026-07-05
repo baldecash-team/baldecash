@@ -308,7 +308,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           ctaText="Elegir este equipo"
           readOnlyNotice={
             readOnly
-              ? 'Este es el equipo que solicitaste. Para aprobar tu solicitud, elige uno de los equipos disponibles en tu oferta.'
+              ? 'Por ahora no tenemos disponible este equipo. Elige uno de los que preparamos para ti y tu solicitud quedará aprobada.'
               : undefined
           }
           cronogramaVersion={defaultDetalleConfig.cronogramaVersion}

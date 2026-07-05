@@ -252,7 +252,7 @@ export function OfertaEquipoCard({
                   <span className="truncate">{name}</span>
                 </span>
                 {monthly ? (
-                  <span className="shrink-0 text-gray-500">S/{Math.round(monthly)}/mes</span>
+                  <span className="shrink-0 text-gray-500">S/{Math.round(monthly)}{cuotaSuffix}</span>
                 ) : null}
               </li>
               {/* Accesorios / seguros */}
@@ -267,7 +267,7 @@ export function OfertaEquipoCard({
                     <span className="truncate">{ad.name}</span>
                   </span>
                   {ad.monthly > 0 ? (
-                    <span className="shrink-0 text-gray-400">+S/{Math.round(ad.monthly)}/mes</span>
+                    <span className="shrink-0 text-gray-400">+S/{Math.round(ad.monthly)}{cuotaSuffix}</span>
                   ) : (
                     <span className="shrink-0 text-xs font-semibold text-emerald-600">Gratis</span>
                   )}
@@ -277,10 +277,10 @@ export function OfertaEquipoCard({
             {/* Total */}
             <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
               <span className={`text-sm font-semibold ${atenuado ? 'text-gray-400' : 'text-[var(--text-strong,#111827)]'}`}>
-                Total mensual
+                Total {freq === 'semanal' ? 'semanal' : freq === 'quincenal' ? 'quincenal' : 'mensual'}
               </span>
               <span className={`text-base font-extrabold ${atenuado ? 'text-gray-400' : 'text-[var(--text-strong,#111827)]'}`}>
-                S/{Math.round(pedidoTotal)}<span className="text-xs font-normal text-gray-400">/mes</span>
+                S/{Math.round(pedidoTotal)}<span className="text-xs font-normal text-gray-400">{cuotaSuffix}</span>
               </span>
             </div>
           </div>
@@ -294,8 +294,8 @@ export function OfertaEquipoCard({
             <div className="flex items-start gap-2.5 rounded-xl bg-[var(--surface-bg,#f8fafc)] px-3.5 py-3">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
               <p className="text-xs leading-relaxed text-gray-500">
-                Este es el equipo que solicitaste. Revisa a la derecha el equipo que
-                preparamos para ti.
+                Por ahora no tenemos disponible este equipo, pero preparamos otras
+                opciones que se acomodan a ti. Revísalas a la derecha.
               </p>
             </div>
           </div>
