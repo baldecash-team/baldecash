@@ -493,7 +493,7 @@ export async function getOfferAddonsRich(
   token: string,
   variantId: number,
   selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
-): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; accessories: Accessory[]; insurances: InsurancePlan[] }> {
+): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[] }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
@@ -543,6 +543,8 @@ export async function getOfferAddonsRich(
     remaining: Number(d.remaining ?? 0),
     equipoMonthly: Number(d.equipo_monthly ?? 0),
     equipoInitialAmount: Number(d.equipo_initial_amount ?? 0),
+    equipoFrequency: String(d.equipo_frequency ?? 'mensual'),
+    equipoTerm: d.equipo_term != null ? Number(d.equipo_term) : null,
     accessories,
     insurances,
   };

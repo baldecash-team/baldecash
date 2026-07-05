@@ -35,6 +35,7 @@ import { AccessoryIntro } from '../../../[landing]/solicitar/components/upsell/A
 import { TermSelect } from '../../../[landing]/solicitar/components/solicitar/product/TermSelect';
 import { InsuranceCards } from '../../../[landing]/solicitar/components/upsell/InsuranceCards';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
+import { cuotaSuffix, plazoUnit } from '../components/equipoCardFormat';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 
@@ -119,6 +120,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // Monto (S/) de la inicial del equipo a la celda actual — se muestra el monto,
   // no el %. Se recalcula al cambiar plazo/inicial.
   const [equipoInitialAmount, setEquipoInitialAmount] = useState(0);
+  // Frecuencia real del equipo (mensual|semanal|quincenal). Para celulares define
+  // el sufijo de cuota (/sem, /qcn) y la unidad del plazo.
+  const [equipoFrequency, setEquipoFrequency] = useState('mensual');
   // Cuota máxima aprobada (tope). equipo + accesorios + seguros no puede superarla.
   const [maxQuota, setMaxQuota] = useState<number | null>(null);
   const [selectedAcc, setSelectedAcc] = useState<string[]>([]);
@@ -193,6 +197,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setInsurances(res.insurances);
         setEquipoMonthly(res.equipoMonthly);
         setEquipoInitialAmount(res.equipoInitialAmount);
+        setEquipoFrequency(res.equipoFrequency);
         // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
@@ -239,6 +244,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setInsurances(res.insurances);
       setEquipoMonthly(res.equipoMonthly);
       setEquipoInitialAmount(res.equipoInitialAmount);
+      setEquipoFrequency(res.equipoFrequency);
       // Lo que ya no cabe con el nuevo plazo/inicial se deselecciona.
       const accOk = new Set(res.accessories.map((a) => a.id));
       const insOk = new Set(res.insurances.map((p) => p.id));
@@ -389,7 +395,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 <Package className="h-4 w-4 shrink-0 text-neutral-400" />
                 <span className="truncate">{a.name}</span>
               </span>
-              <span className="shrink-0 text-neutral-500">+S/{Math.round(a.monthlyQuota || 0)}/mes</span>
+              <span className="shrink-0 text-neutral-500">+S/{Math.round(a.monthlyQuota || 0)}{cuotaSuffix(equipoFrequency)}</span>
             </li>
           ))}
           {insSel.map((p) => (
@@ -398,14 +404,14 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 <ShieldCheck className="h-4 w-4 shrink-0 text-neutral-400" />
                 <span className="truncate">{p.name}</span>
               </span>
-              <span className="shrink-0 text-neutral-500">+S/{Math.round(p.monthlyPrice || 0)}/mes</span>
+              <span className="shrink-0 text-neutral-500">+S/{Math.round(p.monthlyPrice || 0)}{cuotaSuffix(equipoFrequency)}</span>
             </li>
           ))}
         </ul>
         <div className="mt-2 flex items-center justify-between border-t border-neutral-200 pt-2">
-          <span className="text-sm font-semibold text-neutral-800">Cuota mensual total</span>
+          <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
           <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>
-            S/{Math.round(totalMonthly)}/mes
+            S/{Math.round(totalMonthly)}{cuotaSuffix(equipoFrequency)}
           </span>
         </div>
       </div>
@@ -476,9 +482,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 )}
                 <p className="truncate text-sm font-semibold text-neutral-800">{equipoInfo.name}</p>
                 <p className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
-                  S/{Math.round(equipoMonthly)}/mes
+                  S/{Math.round(equipoMonthly)}{cuotaSuffix(equipoFrequency)}
                   <span className="ml-1 text-xs font-normal text-neutral-500">
-                    en {curTerm} {curTerm === 1 ? 'mes' : 'meses'}
+                    en {curTerm} {plazoUnit(curTerm, equipoFrequency)}
                     {equipoInitialAmount > 0 ? ` · inicial S/${Math.round(equipoInitialAmount)}` : ' · sin inicial'}
                   </span>
                 </p>
@@ -491,7 +497,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 {offerTerms.length > 1 && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-neutral-500">Plazo:</span>
-                    <TermSelect value={curTerm} options={offerTerms} onChange={handleTermChange} size="sm" frequency="mensual" />
+                    <TermSelect value={curTerm} options={offerTerms} onChange={handleTermChange} size="sm" frequency={equipoFrequency} />
                   </div>
                 )}
                 {offerInitials.length > 1 && (
@@ -662,10 +668,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div>
-            <p className="text-xs text-neutral-400">Cuota mensual total</p>
+            <p className="text-xs text-neutral-400">Cuota total</p>
             <p className="text-2xl font-extrabold" style={{ color: overBudget ? '#dc2626' : 'var(--color-primary)' }}>
               S/{Math.round(totalMonthly)}
-              <span className="text-base font-normal text-neutral-400">/mes</span>
+              <span className="text-base font-normal text-neutral-400">{cuotaSuffix(equipoFrequency)}</span>
             </p>
             {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado: al
                 cliente no se le muestra su cuota aprobada ni el margen restante. */}
@@ -691,8 +697,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         isOpen={modalOpen}
         equipo={
           equipoInfo
-            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount }
-            : { name: 'Tu equipo', monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount }
+            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
+            : { name: 'Tu equipo', monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
         }
         loading={confirming}
         succeeded={succeeded}

@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, X, CheckCircle2, ArrowRight, Check } from 'lucide-react';
+import { cuotaSuffix, plazoUnit } from './equipoCardFormat';
 
 const APPROVED_GREEN = '#16a34a';
 
@@ -23,11 +24,13 @@ export interface EquipoAConfirmar {
   brand?: string;
   imageUrl?: string;
   monthly?: number;
-  /** Plazo (meses) e inicial (%) elegidos — para mostrar "en N meses · inicial S/X". */
+  /** Plazo e inicial (%) elegidos — para mostrar "en N meses/semanas · inicial S/X". */
   term?: number;
   initial?: number;
   /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
   initialAmount?: number;
+  /** Frecuencia ('mensual'|'semanal'|'quincenal') → sufijo de cuota y unidad de plazo. */
+  paymentFrequency?: string;
 }
 
 export function ConfirmarEleccionModal({
@@ -115,10 +118,10 @@ export function ConfirmarEleccionModal({
                     <p className="truncate text-sm font-semibold text-[var(--text-strong,#111827)]">{equipo.name}</p>
                     {equipo.monthly ? (
                       <p className="text-xs text-gray-500">
-                        <span className="font-semibold" style={{ color: APPROVED_GREEN }}>S/{Math.round(equipo.monthly)}/mes</span>
+                        <span className="font-semibold" style={{ color: APPROVED_GREEN }}>S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}</span>
                         {equipo.term ? (
                           <span className="text-gray-400">
-                            {' '}· en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
+                            {' '}· en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
                             {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
                           </span>
                         ) : null}
@@ -194,14 +197,14 @@ export function ConfirmarEleccionModal({
                           <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota mensual</span>
                           {equipo.term ? (
                             <p className="text-xs text-[var(--text-muted,#4b5563)]">
-                              en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
+                              en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
                               {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
                             </p>
                           ) : null}
                         </div>
                         <span className="text-xl font-bold text-[var(--color-primary)]">
                           S/{Math.round(equipo.monthly)}
-                          <span className="text-sm font-normal text-[var(--text-muted,#4b5563)]">/mes</span>
+                          <span className="text-sm font-normal text-[var(--text-muted,#4b5563)]">{cuotaSuffix(equipo.paymentFrequency)}</span>
                         </span>
                       </div>
                     ) : null}
