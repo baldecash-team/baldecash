@@ -64,7 +64,10 @@ export function TuOfertaTab({
               imageUrl={req.image_url}
               monthly={req.monthly_price}
               maxQuota={offer.maxMonthlyQuota}
-              termMonths={24}
+              // El pedido no trae plazo propio; se muestra al plazo de la oferta
+              // (plazo más alto = celda de menor cuota, igual que la card).
+              termMonths={Math.max(...(offer.terms?.length ? offer.terms : [24]))}
+              initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
               // El equipo pedido NO se puede elegir (la oferta existe porque no
               // calificaba), pero el card sí ofrece un siguiente paso (acta 1-jul):
               //  - onVerOtros → catálogo aprobado (acción principal del lado izq).
@@ -96,7 +99,9 @@ export function TuOfertaTab({
               name={rec.displayName || rec.name}
               imageUrl={rec.images?.[0] || rec.thumbnail}
               monthly={rec.quotaMonthly}
-              termMonths={24}
+              // Plazo/inicial REALES del hook del recomendado (backend), no 24 fijo.
+              termMonths={rec.hookTermMonths ?? Math.max(...(offer.terms?.length ? offer.terms : [24]))}
+              initialPercent={rec.hookInitialPercent ?? 0}
               href={detailHref(token, rec.slug)}
               onAceptar={() => onSelect(rec)}
               onVerOtros={onVerCatalogo}

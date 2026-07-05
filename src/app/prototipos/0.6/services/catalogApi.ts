@@ -651,6 +651,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
       ? Math.round(hook.monthly_price / (1 - apiProduct.promotion.discount_value / 100))
       : hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
+    // Plazo real del hook (backend). En la oferta acota al array; en el general
+    // coincide con maxTermMonths. La card lo prefiere sobre maxTermMonths.
+    hookTermMonths: hook.term_months,
     paymentFrequency: hook.payment_frequency || undefined,
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
     paymentHooks: pricing.payment_hooks

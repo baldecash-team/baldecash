@@ -76,7 +76,8 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         category: '',
         price: p.price,
         image: p.images?.[0] || p.thumbnail || null,
-        maxTermMonths: 24, // la oferta siempre muestra 24 meses
+        // Plazo del hook (backend) — refleja el array de la oferta, no un 24 fijo.
+        maxTermMonths: p.hookTermMonths ?? p.maxTermMonths ?? 24,
         quotaMonthly: p.quotaMonthly ?? null,
       }));
     },

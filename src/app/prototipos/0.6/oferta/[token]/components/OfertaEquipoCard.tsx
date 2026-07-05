@@ -34,8 +34,10 @@ export interface OfertaEquipoCardProps {
   monthly?: number | null;
   /** Cuota máxima aprobada del estudiante (para comparar en "pedido"). */
   maxQuota?: number | null;
-  /** Plazo en meses (para el subtexto "en X meses · sin inicial"). */
+  /** Plazo en meses (para el subtexto "en X meses · ..."). */
   termMonths?: number | null;
+  /** Inicial (%) del equipo. Si > 0 muestra "· inicial X%", si no "· sin inicial". */
+  initialPercent?: number | null;
   /** 'aprobado' = destacado con tag verde + 3 CTAs. 'pedido' = atenuado, solo ver detalle. */
   variant: 'aprobado' | 'pedido';
   /** Si el equipo entra en la cuota aprobada (para "pedido": decide tachado y CTAs). */
@@ -58,6 +60,7 @@ export function OfertaEquipoCard({
   monthly,
   maxQuota,
   termMonths,
+  initialPercent,
   variant,
   fits = true,
   href,
@@ -152,7 +155,7 @@ export function OfertaEquipoCard({
               <span className="text-base font-normal text-gray-400">/mes</span>
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
-              en {termMonths ?? 24} meses · sin inicial
+              en {termMonths ?? 24} meses{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
             </p>
             <p className="mt-2 text-xs font-medium text-emerald-600">
               Elige este equipo y tu solicitud quedará aprobada.
@@ -204,7 +207,7 @@ export function OfertaEquipoCard({
                   <span className="text-base font-normal text-gray-400">/mes</span>
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  en {termMonths ?? 24} meses · sin inicial
+                  en {termMonths ?? 24} meses{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
                 </p>
               </>
             ) : (

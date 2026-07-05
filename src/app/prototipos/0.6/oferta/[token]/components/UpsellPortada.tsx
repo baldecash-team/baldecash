@@ -30,6 +30,8 @@ function EquipoCard({
   subtitle,
   highlight,
   tone = 'default',
+  termMonths,
+  initialPercent,
 }: {
   label: string;
   brand?: string | null;
@@ -40,6 +42,9 @@ function EquipoCard({
   highlight?: boolean;
   /** 'morado' = card "Tu equipo" en morado tenio; 'default' = neutra. */
   tone?: 'default' | 'morado';
+  /** Plazo/inicial reales de la oferta (BAL-2097). Default 24m/sin inicial. */
+  termMonths?: number | null;
+  initialPercent?: number | null;
 }) {
   const isMorado = !highlight && tone === 'morado';
   return (
@@ -101,7 +106,9 @@ function EquipoCard({
               S/{Math.round(monthly)}
               <span className="text-base font-normal text-gray-400">/mes</span>
             </p>
-            <p className="mt-0.5 text-xs text-gray-400">en 24 meses · sin inicial</p>
+            <p className="mt-0.5 text-xs text-gray-400">
+              en {termMonths ?? 24} meses{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
+            </p>
           </div>
         ) : null}
         {subtitle ? <p className="mt-2 text-xs font-medium text-emerald-600">{subtitle}</p> : null}
@@ -160,6 +167,8 @@ export function UpsellPortada({
             name={current?.name}
             imageUrl={current?.image_url}
             monthly={current?.monthly_price}
+            termMonths={Math.max(...(offer.terms?.length ? offer.terms : [24]))}
+            initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
           />
           <button
             type="button"
@@ -180,6 +189,8 @@ export function UpsellPortada({
             name={ex?.name}
             imageUrl={ex?.imageUrl}
             monthly={ex?.combinedMonthly}
+            termMonths={ex?.termMonths ?? Math.max(...(offer.terms?.length ? offer.terms : [24]))}
+            initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
             subtitle={
               acc
                 ? `Incluye ${acc.name} — ${PROFILE_MESSAGE[profile] ?? ''}`

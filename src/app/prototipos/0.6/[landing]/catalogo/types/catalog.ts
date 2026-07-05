@@ -698,6 +698,11 @@ export interface CatalogProduct {
   quotaWeekly: number;
   originalQuotaMonthly?: number; // Cuota original antes de descuento (del backend)
   maxTermMonths: number;
+  /** Plazo REAL del hook (backend). En la oferta con array acotado (ej. [6,12])
+   *  es el plazo de la celda mostrada (12), no el máximo del producto (36). En el
+   *  catálogo general coincide con maxTermMonths. Fuente de verdad para el plazo
+   *  que pinta la card. */
+  hookTermMonths?: number;
   paymentFrequency?: string; // Frecuencia de la cuota hook: 'mensual' | 'semanal' | 'quincenal'
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, { price: number; termMonths: number | null; initialPercent: number | null }>;
