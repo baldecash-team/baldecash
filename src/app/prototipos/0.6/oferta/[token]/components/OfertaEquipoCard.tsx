@@ -12,6 +12,11 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, Eye, ArrowRight, Info, Ban, Package, ShieldCheck, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
 import type { ProductSpecs } from '../../../[landing]/catalogo/types/catalog';
+import {
+  cuotaSuffix as fmtCuotaSuffix,
+  plazoUnit as fmtPlazoUnit,
+  inicialText as fmtInicialText,
+} from './equipoCardFormat';
 
 // Verde "aprobado" premium (green-600), más intenso que el badge esquina del catálogo.
 const APPROVED_GREEN = '#16a34a';
@@ -82,25 +87,15 @@ export function OfertaEquipoCard({
   specs,
 }: OfertaEquipoCardProps) {
   const isAprobado = variant === 'aprobado';
-  // Sufijo de la cuota y unidad del plazo según la frecuencia real del equipo.
-  // Celulares: semanal/quincenal (no mensual). Laptops/tablets: mensual.
+  // Formato de cuota/plazo/inicial desde el helper compartido (fuente única de
+  // verdad, misma lógica que la portada del Caso 5 — ver equipoCardFormat.ts).
   const freq = paymentFrequency ?? 'mensual';
-  const cuotaSuffix = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+  const cuotaSuffix = fmtCuotaSuffix(freq);
   // Plazo a mostrar: en su unidad nativa cuando no es mensual (nativeTerm), si no
   // el plazo en meses (termMonths).
   const plazoNum = freq === 'mensual' ? termMonths : (nativeTerm ?? termMonths);
-  const plazoUnit =
-    freq === 'semanal' ? (plazoNum === 1 ? 'semana' : 'semanas')
-    : freq === 'quincenal' ? (plazoNum === 1 ? 'quincena' : 'quincenas')
-    : (plazoNum === 1 ? 'mes' : 'meses');
-  // Texto de la inicial: MONTO (S/) si viene, si no cae al % (por si algún
-  // consumidor aún no envía el monto). "sin inicial" si es 0/ausente.
-  const inicialText =
-    initialAmount != null && initialAmount > 0
-      ? ` · inicial S/${Math.round(initialAmount)}`
-      : initialPercent != null && initialPercent > 0
-        ? ` · inicial ${initialPercent}%`
-        : ' · sin inicial';
+  const plazoUnit = fmtPlazoUnit(plazoNum, freq);
+  const inicialText = fmtInicialText(initialAmount, initialPercent);
   const addons = [
     ...accessories.map((a) => ({ ...a, kind: 'accessory' as const })),
     ...insurances.map((i) => ({ ...i, kind: 'insurance' as const })),
