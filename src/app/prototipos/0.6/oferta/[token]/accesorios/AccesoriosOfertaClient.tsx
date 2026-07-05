@@ -667,17 +667,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
               S/{Math.round(totalMonthly)}
               <span className="text-base font-normal text-neutral-400">/mes</span>
             </p>
-            {/* Margen restante o alerta de sobrepaso (respeta el tope aprobado). */}
-            {maxQuota != null ? (
-              overBudget ? (
-                <p className="text-xs font-medium text-red-600">
-                  Supera tu cuota por S/{Math.round(totalMonthly - maxQuota)}. Quita algo para continuar.
-                </p>
-              ) : (
-                <p className="text-xs text-neutral-400">
-                  Te quedan S/{Math.round(remaining)} de tu cuota aprobada
-                </p>
-              )
+            {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado: al
+                cliente no se le muestra su cuota aprobada ni el margen restante. */}
+            {maxQuota != null && overBudget ? (
+              <p className="text-xs font-medium text-red-600">
+                Supera tu cuota aprobada. Quita algo para continuar.
+              </p>
             ) : null}
           </div>
           <Button
