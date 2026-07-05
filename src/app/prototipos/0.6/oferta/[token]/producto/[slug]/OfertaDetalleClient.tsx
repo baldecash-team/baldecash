@@ -161,9 +161,16 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   // Filtramos los payment_plans a la INTERSECCIÓN de esos arrays con lo que el
   // producto realmente soporta. Si el array es un solo valor (ej. [24]/[0]), el
   // selector queda con una sola opción (bloqueado, como antes).
+  //
+  // EXCEPCIÓN (readOnly = equipo PEDIDO): NO se filtra al array de la oferta. El
+  // equipo pedido se muestra tal cual lo pidió el estudiante (puede ser un celular
+  // semanal/quincenal, cuyos plazos están en otra unidad que los meses de la
+  // oferta). Filtrarlo dejaría los planes vacíos → el detalle re-fetchea en loop.
   const offerPlans = useMemo(() => {
     if (state.kind !== 'ready') return [];
-    return (state.data.paymentPlans ?? [])
+    const allPlans = state.data.paymentPlans ?? [];
+    if (state.readOnly) return allPlans; // pedido: sus planes reales, sin acotar
+    return allPlans
       .filter((plan) => offerTerms.includes(plan.term))
       .map((plan) => ({
         ...plan,

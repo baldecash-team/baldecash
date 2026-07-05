@@ -48,9 +48,16 @@ export interface RequestedProduct {
   name: string | null;
   slug: string | null;
   image_url: string | null;
-  /** Cuota del equipo pedido a 24m/0%; null si no aplica. Sirve para comparar
-   *  contra la cuota aprobada ("supera tu cuota" o "sí entra"). */
+  /** Cuota REAL que el estudiante eligió en su solicitud (de la application).
+   *  Para celulares es en su frecuencia (semanal/quincenal). Null si no aplica. */
   monthly_price: number | null;
+  /** Plazo (nº de cuotas nativas) y su equivalente en meses. */
+  term?: number | null;
+  term_months?: number | null;
+  /** Inicial (%) elegido. */
+  initial_percent?: number | null;
+  /** Frecuencia de la cuota: 'mensual' | 'semanal' | 'quincenal'. */
+  payment_frequency?: string | null;
   /** Accesorios/seguros que el cliente YA tenía en su pedido original
    *  (composición real, acta 1-jul). Card izquierda "el que pediste". */
   accessories?: Array<{ id: number | null; name: string; monthly: number }>;

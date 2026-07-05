@@ -64,10 +64,13 @@ export function TuOfertaTab({
               imageUrl={req.image_url}
               monthly={req.monthly_price}
               maxQuota={offer.maxMonthlyQuota}
-              // El pedido no trae plazo propio; se muestra al plazo de la oferta
-              // (plazo más alto = celda de menor cuota, igual que la card).
-              termMonths={Math.max(...(offer.terms?.length ? offer.terms : [24]))}
-              initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
+              // Pricing REAL que el estudiante eligió (de su solicitud): plazo,
+              // inicial y frecuencia reales. Para celulares es semanal/quincenal,
+              // no mensual — no se fuerza al plazo de la oferta.
+              termMonths={req.term_months ?? req.term ?? null}
+              initialPercent={req.initial_percent ?? null}
+              paymentFrequency={req.payment_frequency ?? 'mensual'}
+              nativeTerm={req.term ?? null}
               // El equipo pedido NO se puede elegir (la oferta existe porque no
               // calificaba), pero el card sí ofrece un siguiente paso (acta 1-jul):
               //  - onVerOtros → catálogo aprobado (acción principal del lado izq).

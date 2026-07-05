@@ -14,9 +14,13 @@ export interface EquipoResumen {
   name: string;
   imageUrl?: string;
   monthly?: number;
-  /** Plazo (meses) e inicial (%) — solo se muestran en el equipo nuevo. */
+  /** Plazo e inicial (%) — se muestran en ambos equipos (viejo y nuevo). */
   term?: number;
   initial?: number;
+  /** Frecuencia de la cuota: 'mensual' | 'semanal' | 'quincenal' (para celulares). */
+  paymentFrequency?: string;
+  /** Plazo en unidad nativa (nº de cuotas), para "en N semanas/quincenas". */
+  nativeTerm?: number;
 }
 
 /** Accesorio/seguro sumado a la oferta (para el desglose). */
@@ -83,14 +87,24 @@ function EquipoMini({
       {equipo.monthly ? (
         <>
           <p className={`mt-1 text-sm font-bold ${isNew ? '' : 'text-gray-400'}`} style={isNew ? { color: APPROVED_GREEN } : undefined}>
-            S/{Math.round(equipo.monthly)}/mes
+            S/{Math.round(equipo.monthly)}{(() => {
+              const f = equipo.paymentFrequency ?? 'mensual';
+              return f === 'semanal' ? '/sem' : f === 'quincenal' ? '/qcn' : '/mes';
+            })()}
           </p>
-          {isNew && equipo.term ? (
-            <p className="mt-0.5 text-[11px] text-gray-400">
-              en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
-              {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
-            </p>
-          ) : null}
+          {(equipo.nativeTerm ?? equipo.term) ? (() => {
+            const f = equipo.paymentFrequency ?? 'mensual';
+            const n = f === 'mensual' ? equipo.term : (equipo.nativeTerm ?? equipo.term);
+            const unit = f === 'semanal' ? (n === 1 ? 'semana' : 'semanas')
+              : f === 'quincenal' ? (n === 1 ? 'quincena' : 'quincenas')
+              : (n === 1 ? 'mes' : 'meses');
+            return (
+              <p className="mt-0.5 text-[11px] text-gray-400">
+                en {n} {unit}
+                {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+              </p>
+            );
+          })() : null}
         </>
       ) : (
         <p className="mt-1 text-xs text-gray-400">{isNew ? '' : 'No disponible'}</p>

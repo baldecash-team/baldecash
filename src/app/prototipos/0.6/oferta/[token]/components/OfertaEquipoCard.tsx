@@ -38,6 +38,12 @@ export interface OfertaEquipoCardProps {
   termMonths?: number | null;
   /** Inicial (%) del equipo. Si > 0 muestra "· inicial X%", si no "· sin inicial". */
   initialPercent?: number | null;
+  /** Frecuencia de la cuota: 'mensual' | 'semanal' | 'quincenal'. Define el
+   *  sufijo (/mes, /sem, /qcn) y la unidad del plazo (meses/semanas/quincenas). */
+  paymentFrequency?: string | null;
+  /** Plazo en su unidad NATIVA (nº de cuotas). Se usa con paymentFrequency para
+   *  mostrar "en N semanas/quincenas" cuando no es mensual. */
+  nativeTerm?: number | null;
   /** 'aprobado' = destacado con tag verde + 3 CTAs. 'pedido' = atenuado, solo ver detalle. */
   variant: 'aprobado' | 'pedido';
   /** Si el equipo entra en la cuota aprobada (para "pedido": decide tachado y CTAs). */
@@ -61,6 +67,8 @@ export function OfertaEquipoCard({
   maxQuota,
   termMonths,
   initialPercent,
+  paymentFrequency,
+  nativeTerm,
   variant,
   fits = true,
   href,
@@ -71,6 +79,17 @@ export function OfertaEquipoCard({
   specs,
 }: OfertaEquipoCardProps) {
   const isAprobado = variant === 'aprobado';
+  // Sufijo de la cuota y unidad del plazo según la frecuencia real del equipo.
+  // Celulares: semanal/quincenal (no mensual). Laptops/tablets: mensual.
+  const freq = paymentFrequency ?? 'mensual';
+  const cuotaSuffix = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+  // Plazo a mostrar: en su unidad nativa cuando no es mensual (nativeTerm), si no
+  // el plazo en meses (termMonths).
+  const plazoNum = freq === 'mensual' ? termMonths : (nativeTerm ?? termMonths);
+  const plazoUnit =
+    freq === 'semanal' ? (plazoNum === 1 ? 'semana' : 'semanas')
+    : freq === 'quincenal' ? (plazoNum === 1 ? 'quincena' : 'quincenas')
+    : (plazoNum === 1 ? 'mes' : 'meses');
   const addons = [
     ...accessories.map((a) => ({ ...a, kind: 'accessory' as const })),
     ...insurances.map((i) => ({ ...i, kind: 'insurance' as const })),
@@ -204,10 +223,10 @@ export function OfertaEquipoCard({
                   className={`text-2xl font-extrabold ${atenuado ? 'text-gray-400' : 'text-[var(--text-strong,#111827)]'}`}
                 >
                   S/{Math.round(monthly)}
-                  <span className="text-base font-normal text-gray-400">/mes</span>
+                  <span className="text-base font-normal text-gray-400">{cuotaSuffix}</span>
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  en {termMonths ?? 24} meses{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
+                  {plazoNum ? `en ${plazoNum} ${plazoUnit}` : ''}{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
                 </p>
               </>
             ) : (
