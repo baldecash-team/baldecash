@@ -32,7 +32,22 @@ type State =
   // (link "Ver detalle" del card izquierdo) pero NO elegir: la oferta existe
   // precisamente porque ese equipo no calificaba. Sin CTA "Elegir este equipo".
   | { kind: 'loading' }
-  | { kind: 'ready'; data: ProductDetailResult; landingSlug: string; readOnly: boolean }
+  | {
+      kind: 'ready';
+      data: ProductDetailResult;
+      landingSlug: string;
+      readOnly: boolean;
+      // Frecuencia real del pedido (semanal/quincenal/mensual). Solo se usa en
+      // readOnly: el equipo pedido se muestra en LA frecuencia que el estudiante
+      // eligió (de application), no en la que el catálogo prioriza. Evita que el
+      // PricingCalculator arranque en otra frecuencia y refetchee en loop.
+      reqFrequency: string | null;
+      // Plazo (nº de cuotas) e inicial (%) REALES del pedido. Solo readOnly: el
+      // detalle preselecciona la MISMA celda que pidió el estudiante (ej. 12
+      // quincenas · 25% → S/82), no el default de menor cuota (plazo más largo).
+      reqTerm: number | null;
+      reqInitial: number | null;
+    }
   | { kind: 'error'; message: string };
 
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
@@ -118,14 +133,23 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         // Lo marcamos readOnly para ocultar el CTA "Elegir este equipo".
         const reqSlug = offer.requestedProduct?.slug;
         const readOnly = !!reqSlug && reqSlug === slug;
+        // En readOnly (equipo pedido), la frecuencia real que el estudiante
+        // eligió (de application) — semanal para el celular. Se pasa al fetch
+        // inicial para traer directamente los planes en esa frecuencia, así el
+        // PricingCalculator no refetchea a otra frecuencia (loop de network).
+        const reqFrequency = readOnly ? (offer.requestedProduct?.payment_frequency ?? null) : null;
+        // Plazo (nº cuotas) e inicial reales del pedido → preseleccionar la misma
+        // celda en el detalle (solo readOnly).
+        const reqTerm = readOnly ? (offer.requestedProduct?.term ?? null) : null;
+        const reqInitial = readOnly ? (offer.requestedProduct?.initial_percent ?? null) : null;
 
-        const detail = await fetchProductDetail(landing, slug);
+        const detail = await fetchProductDetail(landing, slug, reqFrequency ?? undefined);
         if (!active) return;
         if (!detail) {
           setState({ kind: 'error', message: 'No encontramos este equipo.' });
           return;
         }
-        setState({ kind: 'ready', data: detail, landingSlug: landing, readOnly });
+        setState({ kind: 'ready', data: detail, landingSlug: landing, readOnly, reqFrequency, reqTerm, reqInitial });
       } catch (err) {
         if (!active) return;
         const msg = err instanceof OfferApiError ? err.message : 'No pudimos cargar el detalle.';
@@ -179,16 +203,25 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       .filter((plan) => plan.options.length > 0);
   }, [state, offerTerms, offerInitials]);
 
-  // Defaults del selector = celda de menor cuota (plazo más alto + inicial más
-  // bajo), igual que la card izquierda de la oferta.
-  const defaultTerm = useMemo(
-    () => (offerPlans.length ? Math.max(...offerPlans.map((p) => p.term)) : 24),
-    [offerPlans],
-  );
+  // Defaults del selector.
+  //  - readOnly (equipo pedido): la MISMA celda que pidió el estudiante (plazo e
+  //    inicial reales de application), para que el detalle muestre su S/82, no el
+  //    default de menor cuota. Solo si esa celda existe en los planes.
+  //  - resto: celda de menor cuota (plazo más alto + inicial más bajo), igual que
+  //    la card de la oferta.
+  const reqTerm = state.kind === 'ready' ? state.reqTerm : null;
+  const reqInitial = state.kind === 'ready' ? state.reqInitial : null;
+  const defaultTerm = useMemo(() => {
+    if (!offerPlans.length) return 24;
+    if (reqTerm != null && offerPlans.some((p) => p.term === reqTerm)) return reqTerm;
+    return Math.max(...offerPlans.map((p) => p.term));
+  }, [offerPlans, reqTerm]);
   const defaultInitial = useMemo(() => {
     const inits = offerPlans.flatMap((p) => (p.options ?? []).map((o) => o.initialPercent));
-    return inits.length ? Math.min(...inits) : 0;
-  }, [offerPlans]);
+    const matchReq = reqInitial != null ? inits.find((i) => i === reqInitial) : undefined;
+    if (matchReq !== undefined) return matchReq;
+    return inits.length ? Math.min(...inits) : inits[0] ?? 0;
+  }, [offerPlans, reqInitial]);
 
   // Cuota de la oferta a la celda por defecto (la más baja) — la misma del catálogo.
   const offerMonthly = useMemo(() => {
@@ -242,7 +275,13 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     );
   }
 
-  const { data, readOnly } = state;
+  const { data, readOnly, reqFrequency } = state;
+  // readOnly (equipo pedido): forzamos LA frecuencia real del pedido y limitamos
+  // el selector a esa única frecuencia. Así el PricingCalculator arranca directo
+  // en ella (semanal para el celular) y no dispara refetch a otra frecuencia.
+  const detailFrequencies =
+    readOnly && reqFrequency ? [reqFrequency] : data.paymentFrequencies;
+  const detailDefaultFrequency = readOnly && reqFrequency ? reqFrequency : undefined;
   return (
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header con logo (como la página de oferta) */}
@@ -298,7 +337,8 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           defaultTerm={defaultTerm}
           defaultInitialPercent={defaultInitial}
           onOfferSelectionChange={handleOfferSelection}
-          paymentFrequencies={data.paymentFrequencies}
+          defaultFrequency={detailDefaultFrequency}
+          paymentFrequencies={detailFrequencies}
           isAvailable={data.isAvailable && variantId != null}
           // Detalle del equipo PEDIDO (readOnly): se puede ver pero no elegir.
           // Sin CTA de elección; en su lugar, un aviso que guía de vuelta.

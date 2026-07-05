@@ -122,6 +122,11 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   // On mount: if default frequency differs from mensual, fetch correct plans
   useEffect(() => {
     if (defaultFrequency === 'mensual' || !landing || !productSlug) return;
+    // Si los planes iniciales YA vienen en la frecuencia deseada (el consumidor
+    // los pidió con esa frecuencia), no hay nada que refetchear. Evita una
+    // llamada redundante al detalle cuando el equipo se carga ya en su
+    // frecuencia real (ej. celular semanal en la oferta).
+    if (initialPaymentPlans.some((p) => p.paymentFrequency === defaultFrequency)) return;
     let cancelled = false;
     setIsLoadingPlans(true);
     fetchProductDetail(landing, productSlug, defaultFrequency)
