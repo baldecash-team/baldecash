@@ -8,6 +8,7 @@
  */
 import { CheckCircle2, Sparkles, ArrowRight } from 'lucide-react';
 import type { OfferView } from '../../../services/offerApi';
+import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
 
 const GREEN = '#16a34a';
 // Morado tenue para la card "Tu equipo" (derivado del primary #4654CD).
@@ -33,6 +34,8 @@ function EquipoCard({
   termMonths,
   initialPercent,
   initialAmount,
+  paymentFrequency,
+  nativeTerm,
 }: {
   label: string;
   brand?: string | null;
@@ -48,6 +51,10 @@ function EquipoCard({
   initialPercent?: number | null;
   /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
   initialAmount?: number | null;
+  /** Frecuencia real ('mensual'|'semanal'|'quincenal') → sufijo /mes /sem /qcn. */
+  paymentFrequency?: string | null;
+  /** Plazo en unidad nativa (nº de cuotas) para "en N semanas/quincenas". */
+  nativeTerm?: number | null;
 }) {
   const isMorado = !highlight && tone === 'morado';
   return (
@@ -103,17 +110,24 @@ function EquipoCard({
         <h3 className="mt-1 text-base font-bold leading-snug text-[var(--text-strong,#111827)]">
           {name ?? 'Tu equipo'}
         </h3>
-        {monthly ? (
-          <div className="mt-3">
-            <p className="text-2xl font-extrabold" style={{ color: highlight ? GREEN : 'var(--color-primary)' }}>
-              S/{Math.round(monthly)}
-              <span className="text-base font-normal text-gray-400">/mes</span>
-            </p>
-            <p className="mt-0.5 text-xs text-gray-400">
-              en {termMonths ?? 24} meses{initialAmount && initialAmount > 0 ? ` · inicial S/${Math.round(initialAmount)}` : initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
-            </p>
-          </div>
-        ) : null}
+        {monthly ? (() => {
+          // Formato compartido con el Caso 4 (equipoCardFormat): sufijo por
+          // frecuencia (/mes /sem /qcn), plazo en su unidad nativa cuando no es
+          // mensual, e inicial en monto S/ (con fallback a %).
+          const freq = paymentFrequency ?? 'mensual';
+          const plazoN = freq === 'mensual' ? termMonths : (nativeTerm ?? termMonths);
+          return (
+            <div className="mt-3">
+              <p className="text-2xl font-extrabold" style={{ color: highlight ? GREEN : 'var(--color-primary)' }}>
+                S/{Math.round(monthly)}
+                <span className="text-base font-normal text-gray-400">{cuotaSuffix(freq)}</span>
+              </p>
+              <p className="mt-0.5 text-xs text-gray-400">
+                en {plazoN ?? 24} {plazoUnit(plazoN ?? 24, freq)}{inicialText(initialAmount, initialPercent)}
+              </p>
+            </div>
+          );
+        })() : null}
         {subtitle ? <p className="mt-2 text-xs font-medium text-emerald-600">{subtitle}</p> : null}
       </div>
     </div>
@@ -170,8 +184,13 @@ export function UpsellPortada({
             name={current?.name}
             imageUrl={current?.image_url}
             monthly={current?.monthly_price}
-            termMonths={Math.max(...(offer.terms?.length ? offer.terms : [24]))}
-            initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
+            // Datos REALES del pedido del cliente (no la config de la oferta):
+            // plazo, inicial y frecuencia como los pidió. Para celulares es
+            // semanal/quincenal. Paridad con la card "el que pediste" del Caso 4.
+            termMonths={current?.term_months ?? current?.term ?? null}
+            nativeTerm={current?.term ?? null}
+            paymentFrequency={current?.payment_frequency ?? 'mensual'}
+            initialPercent={current?.initial_percent ?? null}
             initialAmount={current?.initial_amount ?? null}
           />
           <button
@@ -195,6 +214,7 @@ export function UpsellPortada({
             monthly={ex?.combinedMonthly}
             termMonths={ex?.termMonths ?? Math.max(...(offer.terms?.length ? offer.terms : [24]))}
             initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
+            initialAmount={ex?.initialAmount ?? null}
             subtitle={
               acc
                 ? `Incluye ${acc.name} — ${PROFILE_MESSAGE[profile] ?? ''}`

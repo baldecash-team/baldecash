@@ -110,6 +110,8 @@ export interface ExclusiveOffer {
   monthlyPrice: number;
   combinedMonthly: number;
   termMonths: number;
+  /** Monto (S/) de la inicial del exclusivo. La card muestra el monto, no el %. */
+  initialAmount?: number | null;
   accessory: UpsellAccessory | null;
 }
 
@@ -212,6 +214,7 @@ export async function getOffer(token: string): Promise<OfferView> {
             monthlyPrice: ex.monthly_price ?? 0,
             combinedMonthly: ex.combined_monthly ?? ex.monthly_price ?? 0,
             termMonths: ex.term_months ?? 24,
+            initialAmount: ex.initial_amount ?? null,
             accessory: acc,
           }
         : null,
