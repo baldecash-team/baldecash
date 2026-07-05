@@ -205,35 +205,22 @@ export function MiOfertaClient({ token }: { token: string }) {
     });
   }, [state, goToAccesorios]);
 
-  // Caso 5: "continuar con mi equipo" → confirma quedarse con el equipo pedido.
+  // Caso 5: "continuar con mi equipo" → mini-checkout de accesorios/seguros con
+  // el equipo PEDIDO (igual que "aceptar exclusiva" y que el flujo del Caso 4).
+  // El cliente rechaza el upsell y suma add-ons a su equipo. El backend acepta
+  // el equipo pedido en ofertas upsell (BAL-2100 #1). Antes abría un modal inline
+  // que llamaba /select con el equipo pedido → 404 variant_not_eligible.
   const handleContinuarMiEquipo = useCallback(() => {
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
-    setPending({
-      variantId: req.variant_id,
-      slug: req.slug,
-      equipo: {
-        name: req.name ?? 'Tu equipo',
-        imageUrl: req.image_url ?? undefined,
-        monthly: req.monthly_price ?? undefined,
-        term: req.term_months ?? req.term ?? undefined,
-        initial: req.initial_percent ?? undefined,
-        initialAmount: req.initial_amount ?? undefined,
-      },
-      summary: {
-        name: req.name ?? 'Tu equipo',
-        imageUrl: req.image_url ?? undefined,
-        monthly: req.monthly_price ?? undefined,
-        term: req.term_months ?? req.term ?? undefined,
-        initial: req.initial_percent ?? undefined,
-        initialAmount: req.initial_amount ?? undefined,
-        offerCode: offer?.applicationCode ?? offer?.offerCode,
-        userName: offer?.clientName ?? undefined,
-        previous: null, // se queda con el mismo → no hay "anterior → nuevo"
-      },
+    goToAccesorios(req.variant_id, null, req.slug, {
+      name: req.name ?? 'Tu equipo',
+      brand: undefined,
+      imageUrl: req.image_url ?? undefined,
+      monthly: req.monthly_price ?? undefined,
     });
-  }, [state]);
+  }, [state, goToAccesorios]);
 
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
