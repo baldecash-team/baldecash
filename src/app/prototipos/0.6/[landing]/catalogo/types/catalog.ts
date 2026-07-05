@@ -707,6 +707,7 @@ export interface CatalogProduct {
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, { price: number; termMonths: number | null; initialPercent: number | null }>;
   hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
+  hookInitialAmount?: number; // Monto (S/) de la inicial del hook — la card muestra el monto
   /** Variant ID del producto base (viene del API como `variant.id`). Fallback cuando no hay colores. */
   variantId?: string;
   gama: GamaTier;

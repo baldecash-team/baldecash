@@ -59,6 +59,7 @@ export interface ApiPricingHook {
   original_monthly_price?: number | null; // Cuota original antes de descuento
   term_months: number;
   initial_percent: number;
+  initial_amount?: number; // Monto (S/) de la inicial a la celda del hook
   tea: number;
   payment_frequency?: string; // 'mensual' | 'semanal' | 'quincenal'
 }
@@ -666,6 +667,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
         )
       : undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
+    hookInitialAmount: hook.initial_amount != null && hook.initial_amount > 0 ? hook.initial_amount : undefined,
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),

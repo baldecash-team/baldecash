@@ -32,6 +32,7 @@ function EquipoCard({
   tone = 'default',
   termMonths,
   initialPercent,
+  initialAmount,
 }: {
   label: string;
   brand?: string | null;
@@ -45,6 +46,8 @@ function EquipoCard({
   /** Plazo/inicial reales de la oferta (BAL-2097). Default 24m/sin inicial. */
   termMonths?: number | null;
   initialPercent?: number | null;
+  /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
+  initialAmount?: number | null;
 }) {
   const isMorado = !highlight && tone === 'morado';
   return (
@@ -107,7 +110,7 @@ function EquipoCard({
               <span className="text-base font-normal text-gray-400">/mes</span>
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
-              en {termMonths ?? 24} meses{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
+              en {termMonths ?? 24} meses{initialAmount && initialAmount > 0 ? ` · inicial S/${Math.round(initialAmount)}` : initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
             </p>
           </div>
         ) : null}
@@ -169,6 +172,7 @@ export function UpsellPortada({
             monthly={current?.monthly_price}
             termMonths={Math.max(...(offer.terms?.length ? offer.terms : [24]))}
             initialPercent={Math.min(...(offer.initials?.length ? offer.initials : [0]))}
+            initialAmount={current?.initial_amount ?? null}
           />
           <button
             type="button"

@@ -17,6 +17,8 @@ export interface EquipoResumen {
   /** Plazo e inicial (%) — se muestran en ambos equipos (viejo y nuevo). */
   term?: number;
   initial?: number;
+  /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
+  initialAmount?: number;
   /** Frecuencia de la cuota: 'mensual' | 'semanal' | 'quincenal' (para celulares). */
   paymentFrequency?: string;
   /** Plazo en unidad nativa (nº de cuotas), para "en N semanas/quincenas". */
@@ -39,8 +41,10 @@ export interface ChosenSummary {
   finalPrice?: number;
   term?: number;
   termMonths?: number;
-  /** Inicial (%) elegido — para mostrar "· inicial X%" junto al plazo. */
+  /** Inicial (%) elegido — para mostrar "· inicial S/X" junto al plazo. */
   initial?: number;
+  /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
+  initialAmount?: number;
   paymentFrequency?: string;
   /** Nombre del estudiante. */
   userName?: string;
@@ -101,7 +105,7 @@ function EquipoMini({
             return (
               <p className="mt-0.5 text-[11px] text-gray-400">
                 en {n} {unit}
-                {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+                {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
               </p>
             );
           })() : null}
@@ -177,7 +181,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                     {(chosen.termMonths ?? chosen.term) ? (
                       <span className="block text-xs text-gray-400">
                         en {chosen.termMonths ?? chosen.term} {(chosen.termMonths ?? chosen.term) === 1 ? 'mes' : 'meses'}
-                        {chosen.initial && chosen.initial > 0 ? ` · inicial ${chosen.initial}%` : ' · sin inicial'}
+                        {chosen.initialAmount && chosen.initialAmount > 0 ? ` · inicial S/${Math.round(chosen.initialAmount)}` : chosen.initial && chosen.initial > 0 ? ` · inicial ${chosen.initial}%` : ' · sin inicial'}
                       </span>
                     ) : null}
                   </span>

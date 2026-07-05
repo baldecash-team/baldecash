@@ -69,6 +69,7 @@ export function TuOfertaTab({
               // no mensual — no se fuerza al plazo de la oferta.
               termMonths={req.term_months ?? req.term ?? null}
               initialPercent={req.initial_percent ?? null}
+              initialAmount={req.initial_amount ?? null}
               paymentFrequency={req.payment_frequency ?? 'mensual'}
               nativeTerm={req.term ?? null}
               // El equipo pedido NO se puede elegir (la oferta existe porque no
@@ -105,6 +106,7 @@ export function TuOfertaTab({
               // Plazo/inicial REALES del hook del recomendado (backend), no 24 fijo.
               termMonths={rec.hookTermMonths ?? Math.max(...(offer.terms?.length ? offer.terms : [24]))}
               initialPercent={rec.hookInitialPercent ?? 0}
+              initialAmount={rec.hookInitialAmount ?? null}
               href={detailHref(token, rec.slug)}
               onAceptar={() => onSelect(rec)}
               onVerOtros={onVerCatalogo}

@@ -116,6 +116,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [insurances, setInsurances] = useState<InsurancePlan[]>([]);
   const [equipoMonthly, setEquipoMonthly] = useState(0);
+  // Monto (S/) de la inicial del equipo a la celda actual — se muestra el monto,
+  // no el %. Se recalcula al cambiar plazo/inicial.
+  const [equipoInitialAmount, setEquipoInitialAmount] = useState(0);
   // Cuota máxima aprobada (tope). equipo + accesorios + seguros no puede superarla.
   const [maxQuota, setMaxQuota] = useState<number | null>(null);
   const [selectedAcc, setSelectedAcc] = useState<string[]>([]);
@@ -189,6 +192,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setAccessories(res.accessories);
         setInsurances(res.insurances);
         setEquipoMonthly(res.equipoMonthly);
+        setEquipoInitialAmount(res.equipoInitialAmount);
         // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
@@ -234,6 +238,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setAccessories(res.accessories);
       setInsurances(res.insurances);
       setEquipoMonthly(res.equipoMonthly);
+      setEquipoInitialAmount(res.equipoInitialAmount);
       // Lo que ya no cabe con el nuevo plazo/inicial se deselecciona.
       const accOk = new Set(res.accessories.map((a) => a.id));
       const insOk = new Set(res.insurances.map((p) => p.id));
@@ -474,7 +479,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   S/{Math.round(equipoMonthly)}/mes
                   <span className="ml-1 text-xs font-normal text-neutral-500">
                     en {curTerm} {curTerm === 1 ? 'mes' : 'meses'}
-                    {curInitial > 0 ? ` · inicial ${curInitial}%` : ' · sin inicial'}
+                    {equipoInitialAmount > 0 ? ` · inicial S/${Math.round(equipoInitialAmount)}` : ' · sin inicial'}
                   </span>
                 </p>
               </div>
@@ -691,8 +696,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         isOpen={modalOpen}
         equipo={
           equipoInfo
-            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: curTerm, initial: curInitial }
-            : { name: 'Tu equipo', monthly: equipoMonthly, term: curTerm, initial: curInitial }
+            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount }
+            : { name: 'Tu equipo', monthly: equipoMonthly, term: curTerm, initial: curInitial, initialAmount: equipoInitialAmount }
         }
         loading={confirming}
         succeeded={succeeded}

@@ -56,6 +56,8 @@ export interface RequestedProduct {
   term_months?: number | null;
   /** Inicial (%) elegido. */
   initial_percent?: number | null;
+  /** Monto (S/) de la inicial que pagó el estudiante. La card muestra el monto. */
+  initial_amount?: number | null;
   /** Frecuencia de la cuota: 'mensual' | 'semanal' | 'quincenal'. */
   payment_frequency?: string | null;
   /** Accesorios/seguros que el cliente YA tenía en su pedido original
@@ -81,6 +83,8 @@ export interface SelectedEquipment {
   termMonths: number | null;
   /** Inicial (%) elegido — para el desglose de confirmación (BAL-2097). */
   initialPercent?: number | null;
+  /** Monto (S/) de la inicial elegida. La card muestra el monto, no el %. */
+  initialAmount?: number | null;
   /** Accesorios/seguros que el cliente sumó (BAL-2064). */
   accessories?: SelectedAddon[];
   insurances?: SelectedAddon[];
@@ -239,6 +243,7 @@ export async function getOffer(token: string): Promise<OfferView> {
             monthlyPayment: eq.monthly_payment ?? null,
             termMonths: eq.term_months ?? null,
             initialPercent: eq.initial_percent ?? null,
+            initialAmount: eq.initial_amount ?? null,
             accessories: (data.selected_accessories ?? []).map((a: Record<string, unknown>) => ({
               id: String(a.id),
               name: String(a.name ?? 'Accesorio'),
@@ -485,7 +490,7 @@ export async function getOfferAddonsRich(
   token: string,
   variantId: number,
   selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
-): Promise<{ remaining: number; equipoMonthly: number; accessories: Accessory[]; insurances: InsurancePlan[] }> {
+): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; accessories: Accessory[]; insurances: InsurancePlan[] }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
@@ -534,6 +539,7 @@ export async function getOfferAddonsRich(
   return {
     remaining: Number(d.remaining ?? 0),
     equipoMonthly: Number(d.equipo_monthly ?? 0),
+    equipoInitialAmount: Number(d.equipo_initial_amount ?? 0),
     accessories,
     insurances,
   };

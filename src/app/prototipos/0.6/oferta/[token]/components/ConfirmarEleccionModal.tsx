@@ -23,9 +23,11 @@ export interface EquipoAConfirmar {
   brand?: string;
   imageUrl?: string;
   monthly?: number;
-  /** Plazo (meses) e inicial (%) elegidos — para mostrar "en N meses · inicial X%". */
+  /** Plazo (meses) e inicial (%) elegidos — para mostrar "en N meses · inicial S/X". */
   term?: number;
   initial?: number;
+  /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
+  initialAmount?: number;
 }
 
 export function ConfirmarEleccionModal({
@@ -117,7 +119,7 @@ export function ConfirmarEleccionModal({
                         {equipo.term ? (
                           <span className="text-gray-400">
                             {' '}· en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
-                            {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+                            {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
                           </span>
                         ) : null}
                       </p>
@@ -193,7 +195,7 @@ export function ConfirmarEleccionModal({
                           {equipo.term ? (
                             <p className="text-xs text-[var(--text-muted,#4b5563)]">
                               en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
-                              {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+                              {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
                             </p>
                           ) : null}
                         </div>

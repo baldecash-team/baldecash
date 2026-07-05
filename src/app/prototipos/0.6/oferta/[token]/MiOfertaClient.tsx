@@ -88,6 +88,7 @@ export function MiOfertaClient({ token }: { token: string }) {
             monthly: eq.monthlyPayment ?? undefined,
             termMonths: eq.termMonths ?? undefined,
             initial: eq.initialPercent ?? undefined,
+            initialAmount: eq.initialAmount ?? undefined,
             offerCode: offer.applicationCode ?? offer.offerCode,
             userName: offer.clientName ?? undefined,
             // Equipo anterior → para el UI "anterior → nuevo". Con su pricing REAL
@@ -100,6 +101,7 @@ export function MiOfertaClient({ token }: { token: string }) {
               term: req.term_months ?? undefined,
               nativeTerm: req.term ?? undefined,
               initial: req.initial_percent ?? undefined,
+              initialAmount: req.initial_amount ?? undefined,
               paymentFrequency: req.payment_frequency ?? undefined,
             } : null,
             // Accesorios/seguros sumados → desglose en la confirmación (BAL-2064).
@@ -215,11 +217,17 @@ export function MiOfertaClient({ token }: { token: string }) {
         name: req.name ?? 'Tu equipo',
         imageUrl: req.image_url ?? undefined,
         monthly: req.monthly_price ?? undefined,
+        term: req.term_months ?? req.term ?? undefined,
+        initial: req.initial_percent ?? undefined,
+        initialAmount: req.initial_amount ?? undefined,
       },
       summary: {
         name: req.name ?? 'Tu equipo',
         imageUrl: req.image_url ?? undefined,
         monthly: req.monthly_price ?? undefined,
+        term: req.term_months ?? req.term ?? undefined,
+        initial: req.initial_percent ?? undefined,
+        initialAmount: req.initial_amount ?? undefined,
         offerCode: offer?.applicationCode ?? offer?.offerCode,
         userName: offer?.clientName ?? undefined,
         previous: null, // se queda con el mismo → no hay "anterior → nuevo"

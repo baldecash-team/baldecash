@@ -36,8 +36,10 @@ export interface OfertaEquipoCardProps {
   maxQuota?: number | null;
   /** Plazo en meses (para el subtexto "en X meses · ..."). */
   termMonths?: number | null;
-  /** Inicial (%) del equipo. Si > 0 muestra "· inicial X%", si no "· sin inicial". */
+  /** Inicial (%) del equipo. Si > 0 muestra "· inicial S/X", si no "· sin inicial". */
   initialPercent?: number | null;
+  /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
+  initialAmount?: number | null;
   /** Frecuencia de la cuota: 'mensual' | 'semanal' | 'quincenal'. Define el
    *  sufijo (/mes, /sem, /qcn) y la unidad del plazo (meses/semanas/quincenas). */
   paymentFrequency?: string | null;
@@ -67,6 +69,7 @@ export function OfertaEquipoCard({
   maxQuota,
   termMonths,
   initialPercent,
+  initialAmount,
   paymentFrequency,
   nativeTerm,
   variant,
@@ -90,6 +93,14 @@ export function OfertaEquipoCard({
     freq === 'semanal' ? (plazoNum === 1 ? 'semana' : 'semanas')
     : freq === 'quincenal' ? (plazoNum === 1 ? 'quincena' : 'quincenas')
     : (plazoNum === 1 ? 'mes' : 'meses');
+  // Texto de la inicial: MONTO (S/) si viene, si no cae al % (por si algún
+  // consumidor aún no envía el monto). "sin inicial" si es 0/ausente.
+  const inicialText =
+    initialAmount != null && initialAmount > 0
+      ? ` · inicial S/${Math.round(initialAmount)}`
+      : initialPercent != null && initialPercent > 0
+        ? ` · inicial ${initialPercent}%`
+        : ' · sin inicial';
   const addons = [
     ...accessories.map((a) => ({ ...a, kind: 'accessory' as const })),
     ...insurances.map((i) => ({ ...i, kind: 'insurance' as const })),
@@ -174,7 +185,7 @@ export function OfertaEquipoCard({
               <span className="text-base font-normal text-gray-400">/mes</span>
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
-              en {termMonths ?? 24} meses{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
+              en {termMonths ?? 24} meses{inicialText}
             </p>
             <p className="mt-2 text-xs font-medium text-emerald-600">
               Elige este equipo y tu solicitud quedará aprobada.
@@ -226,7 +237,7 @@ export function OfertaEquipoCard({
                   <span className="text-base font-normal text-gray-400">{cuotaSuffix}</span>
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  {plazoNum ? `en ${plazoNum} ${plazoUnit}` : ''}{initialPercent && initialPercent > 0 ? ` · inicial ${initialPercent}%` : ' · sin inicial'}
+                  {plazoNum ? `en ${plazoNum} ${plazoUnit}` : ''}{inicialText}
                 </p>
               </>
             ) : (
