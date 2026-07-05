@@ -23,7 +23,9 @@ export interface EquipoAConfirmar {
   brand?: string;
   imageUrl?: string;
   monthly?: number;
+  /** Plazo (meses) e inicial (%) elegidos — para mostrar "en N meses · inicial X%". */
   term?: number;
+  initial?: number;
 }
 
 export function ConfirmarEleccionModal({
@@ -111,7 +113,13 @@ export function ConfirmarEleccionModal({
                     <p className="truncate text-sm font-semibold text-[var(--text-strong,#111827)]">{equipo.name}</p>
                     {equipo.monthly ? (
                       <p className="text-xs text-gray-500">
-                        Desde <span className="font-semibold" style={{ color: APPROVED_GREEN }}>S/{Math.round(equipo.monthly)}/mes</span>
+                        <span className="font-semibold" style={{ color: APPROVED_GREEN }}>S/{Math.round(equipo.monthly)}/mes</span>
+                        {equipo.term ? (
+                          <span className="text-gray-400">
+                            {' '}· en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
+                            {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+                          </span>
+                        ) : null}
                       </p>
                     ) : null}
                   </div>
@@ -180,9 +188,17 @@ export function ConfirmarEleccionModal({
 
                     {equipo.monthly ? (
                       <div className="mt-4 flex items-center justify-between border-t border-[rgba(var(--color-primary-rgb),0.12)] pt-3">
-                        <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota mensual</span>
+                        <div>
+                          <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota mensual</span>
+                          {equipo.term ? (
+                            <p className="text-xs text-[var(--text-muted,#4b5563)]">
+                              en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
+                              {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+                            </p>
+                          ) : null}
+                        </div>
                         <span className="text-xl font-bold text-[var(--color-primary)]">
-                          Desde S/{Math.round(equipo.monthly)}
+                          S/{Math.round(equipo.monthly)}
                           <span className="text-sm font-normal text-[var(--text-muted,#4b5563)]">/mes</span>
                         </span>
                       </div>

@@ -14,6 +14,9 @@ export interface EquipoResumen {
   name: string;
   imageUrl?: string;
   monthly?: number;
+  /** Plazo (meses) e inicial (%) — solo se muestran en el equipo nuevo. */
+  term?: number;
+  initial?: number;
 }
 
 /** Accesorio/seguro sumado a la oferta (para el desglose). */
@@ -32,6 +35,8 @@ export interface ChosenSummary {
   finalPrice?: number;
   term?: number;
   termMonths?: number;
+  /** Inicial (%) elegido — para mostrar "· inicial X%" junto al plazo. */
+  initial?: number;
   paymentFrequency?: string;
   /** Nombre del estudiante. */
   userName?: string;
@@ -76,9 +81,17 @@ function EquipoMini({
         {equipo.name}
       </p>
       {equipo.monthly ? (
-        <p className={`mt-1 text-sm font-bold ${isNew ? '' : 'text-gray-400'}`} style={isNew ? { color: APPROVED_GREEN } : undefined}>
-          S/{Math.round(equipo.monthly)}/mes
-        </p>
+        <>
+          <p className={`mt-1 text-sm font-bold ${isNew ? '' : 'text-gray-400'}`} style={isNew ? { color: APPROVED_GREEN } : undefined}>
+            S/{Math.round(equipo.monthly)}/mes
+          </p>
+          {isNew && equipo.term ? (
+            <p className="mt-0.5 text-[11px] text-gray-400">
+              en {equipo.term} {equipo.term === 1 ? 'mes' : 'meses'}
+              {equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+            </p>
+          ) : null}
+        </>
       ) : (
         <p className="mt-1 text-xs text-gray-400">{isNew ? '' : 'No disponible'}</p>
       )}
@@ -91,7 +104,10 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
   // front solo lo pinta.
   const nombre = (chosen.userName || '').trim();
   const titulo = nombre ? `¡Felicidades, ${nombre}!` : '¡Felicidades!';
-  const nuevo: EquipoResumen = { name: chosen.name, imageUrl: chosen.imageUrl, monthly: chosen.monthly };
+  const nuevo: EquipoResumen = {
+    name: chosen.name, imageUrl: chosen.imageUrl, monthly: chosen.monthly,
+    term: chosen.termMonths ?? chosen.term, initial: chosen.initial,
+  };
 
   const accesorios = chosen.accessories ?? [];
   const seguros = chosen.insurances ?? [];
@@ -142,7 +158,15 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
               <li className="flex items-center justify-between gap-3 text-sm">
                 <span className="flex min-w-0 items-center gap-2 text-[var(--foreground)]">
                   <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: APPROVED_GREEN }} />
-                  <span className="truncate font-medium">{chosen.name}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{chosen.name}</span>
+                    {(chosen.termMonths ?? chosen.term) ? (
+                      <span className="block text-xs text-gray-400">
+                        en {chosen.termMonths ?? chosen.term} {(chosen.termMonths ?? chosen.term) === 1 ? 'mes' : 'meses'}
+                        {chosen.initial && chosen.initial > 0 ? ` · inicial ${chosen.initial}%` : ' · sin inicial'}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 {chosen.monthly ? (
                   <span className="shrink-0 font-semibold text-gray-600">S/{Math.round(chosen.monthly)}/mes</span>

@@ -87,6 +87,7 @@ export function MiOfertaClient({ token }: { token: string }) {
             imageUrl: eq.imageUrl ?? undefined,
             monthly: eq.monthlyPayment ?? undefined,
             termMonths: eq.termMonths ?? undefined,
+            initial: eq.initialPercent ?? undefined,
             offerCode: offer.applicationCode ?? offer.offerCode,
             userName: offer.clientName ?? undefined,
             // Equipo anterior → para el UI "anterior → nuevo" (igual que al elegir

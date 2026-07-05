@@ -72,6 +72,8 @@ export interface SelectedEquipment {
   brand: string | null;
   monthlyPayment: number | null;
   termMonths: number | null;
+  /** Inicial (%) elegido — para el desglose de confirmación (BAL-2097). */
+  initialPercent?: number | null;
   /** Accesorios/seguros que el cliente sumó (BAL-2064). */
   accessories?: SelectedAddon[];
   insurances?: SelectedAddon[];
@@ -229,6 +231,7 @@ export async function getOffer(token: string): Promise<OfferView> {
             brand: eq.brand ?? null,
             monthlyPayment: eq.monthly_payment ?? null,
             termMonths: eq.term_months ?? null,
+            initialPercent: eq.initial_percent ?? null,
             accessories: (data.selected_accessories ?? []).map((a: Record<string, unknown>) => ({
               id: String(a.id),
               name: String(a.name ?? 'Accesorio'),

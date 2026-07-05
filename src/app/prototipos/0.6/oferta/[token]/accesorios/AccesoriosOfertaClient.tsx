@@ -691,8 +691,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         isOpen={modalOpen}
         equipo={
           equipoInfo
-            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly }
-            : { name: 'Tu equipo', monthly: equipoMonthly }
+            ? { name: equipoInfo.name, brand: equipoInfo.brand, imageUrl: equipoInfo.imageUrl, monthly: equipoMonthly, term: curTerm, initial: curInitial }
+            : { name: 'Tu equipo', monthly: equipoMonthly, term: curTerm, initial: curInitial }
         }
         loading={confirming}
         succeeded={succeeded}
