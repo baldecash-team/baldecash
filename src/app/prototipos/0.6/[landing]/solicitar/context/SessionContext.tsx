@@ -25,6 +25,41 @@ import React, {
 // Dynamic storage key based on landing slug
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
 
+/**
+ * Safe localStorage helpers.
+ *
+ * Accessing `localStorage` throws in some sandboxed WebKit contexts (Apple Mail
+ * link previews, private mode, storage disabled) even when `window` is defined,
+ * producing "ReferenceError: Can't find variable: localStorage". These wrappers
+ * swallow that so tracking degrades gracefully instead of crashing the app.
+ */
+function safeGetItem(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage unavailable — ignore.
+  }
+}
+
+function safeRemoveItem(key: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Storage unavailable — ignore.
+  }
+}
+
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
@@ -298,16 +333,13 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
       try {
         // Get UUID from localStorage or generate new one
-        const existingUuid =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(sessionKey)
-            : null;
+        const existingUuid = safeGetItem(sessionKey);
 
         const uuid = existingUuid || generateUUID();
 
         // Persist UUID immediately so it survives page redirects (e.g. vip_auto)
-        if (!existingUuid && typeof window !== 'undefined') {
-          localStorage.setItem(sessionKey, uuid);
+        if (!existingUuid) {
+          safeSetItem(sessionKey, uuid);
         }
 
         // ALWAYS call API (creates new or recovers existing session)
@@ -315,9 +347,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
         if (result) {
           // Save to localStorage
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(sessionKey, result.uuid);
-          }
+          safeSetItem(sessionKey, result.uuid);
           setSessionUuid(result.uuid);
           setSessionId(result.id);
           setIsInitialized(true);
@@ -329,9 +359,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         // accept them or they'll simply be lost, but the client-side tracking
         // (scroll, page_enter, etc.) will still fire.
         console.warn('[Session] API unavailable — using local UUID for tracking');
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(sessionKey, uuid);
-        }
+        safeSetItem(sessionKey, uuid);
         setSessionUuid(uuid);
         setIsInitialized(true);
         return uuid;
@@ -349,9 +377,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     setSessionUuid(null);
     setSessionId(null);
     setIsInitialized(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(sessionKey);
-    }
+    safeRemoveItem(sessionKey);
   }, [sessionKey]);
 
   // Auto-initialize session on mount for the current landing so tracking
