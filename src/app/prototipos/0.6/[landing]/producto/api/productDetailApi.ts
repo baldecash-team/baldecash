@@ -226,6 +226,13 @@ interface ApiComboAccessory {
   image_url?: string;
 }
 
+interface ApiComboInsurance {
+  plan_id: number;
+  name: string;
+  code?: string;
+  price: number;
+}
+
 interface ApiCombo {
   id: number;
   code: string;
@@ -236,6 +243,7 @@ interface ApiCombo {
   thumbnail_url?: string;
   micro_url?: string;
   accessories: ApiComboAccessory[];
+  insurance?: ApiComboInsurance | null;
 }
 
 interface ApiProductDetailResponse {
@@ -448,6 +456,16 @@ function transformCombo(apiCombo: ApiCombo): ComboInfo {
       isIncludedFree: acc.is_included_free,
       imageUrl: acc.image_url,
     })),
+    // Seguro incluido: el BE lo envía como objeto (snake_case) o null. Sin este
+    // mapeo, los combos insurance-only (accessories: []) no renderizaban nada
+    // encima del precio porque combo.insurance quedaba undefined.
+    insurance: apiCombo.insurance
+      ? {
+          planId: apiCombo.insurance.plan_id,
+          name: apiCombo.insurance.name,
+          price: apiCombo.insurance.price,
+        }
+      : undefined,
   };
 }
 
