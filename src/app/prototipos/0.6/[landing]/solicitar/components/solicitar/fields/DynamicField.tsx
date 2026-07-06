@@ -8,6 +8,7 @@
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
+import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
@@ -30,6 +31,7 @@ interface DynamicFieldProps {
 
 export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+  const { agreementData } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
 
   // Get current value and error
@@ -72,6 +74,17 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   }, [forcedValue, value, field.code, updateField, formData]);
 
   const isLockedByMinor = forcedValue != null;
+
+  // For convenio landings: auto-populate and lock the institution field
+  const isConvenioInstitution = field.code === 'institution' && !!agreementData?.study_center_id;
+  useEffect(() => {
+    if (!isConvenioInstitution) return;
+    const studyCenterId = String(agreementData!.study_center_id);
+    const label = agreementData!.institution_short_name || agreementData!.institution_name || agreementData!.name || '';
+    if (getFieldValue('institution') !== studyCenterId) {
+      updateField('institution', studyCenterId, label);
+    }
+  }, [isConvenioInstitution, agreementData, getFieldValue, updateField]);
 
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
@@ -125,7 +138,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly || isLockedByMinor,
+    disabled: field.readonly || isLockedByMinor || isConvenioInstitution,
     tooltip,
     helpText: undefined as string | undefined,
   };
