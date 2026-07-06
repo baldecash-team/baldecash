@@ -59,6 +59,7 @@ export interface ApiPricingHook {
   original_monthly_price?: number | null; // Cuota original antes de descuento
   term_months: number;
   initial_percent: number;
+  initial_amount?: number; // Monto (S/) de la inicial a la celda del hook
   tea: number;
   payment_frequency?: string; // 'mensual' | 'semanal' | 'quincenal'
 }
@@ -561,8 +562,11 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   const hook = pricing.hook;
 
   // Combo (cuando aplica): su portada encabeza thumbnail y galería de la card.
-  const combo = apiProduct.combo as { image_url?: string | null; thumbnail_url?: string | null } | null | undefined;
+  const combo = apiProduct.combo as { id?: number; image_url?: string | null; thumbnail_url?: string | null } | null | undefined;
   const comboImage = combo ? (combo.thumbnail_url || combo.image_url || apiProduct.images?.[0] || undefined) : undefined;
+  // Combo del que nace el ítem (para reenviarlo en el submit/select y resolver
+  // el accesorio correcto en legacy). Un equipo puede estar en varios combos.
+  const comboId = combo?.id != null ? Number(combo.id) : undefined;
 
   // Calculate biweekly and weekly from monthly
   const quotaMonthly = hook.monthly_price;
@@ -601,6 +605,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
     thumbnail: comboImage || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
     comboImage,
+    comboId,
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
@@ -647,6 +652,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
       ? Math.round(hook.monthly_price / (1 - apiProduct.promotion.discount_value / 100))
       : hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
+    // Plazo real del hook (backend). En la oferta acota al array; en el general
+    // coincide con maxTermMonths. La card lo prefiere sobre maxTermMonths.
+    hookTermMonths: hook.term_months,
     paymentFrequency: hook.payment_frequency || undefined,
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
     paymentHooks: pricing.payment_hooks
@@ -659,6 +667,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
         )
       : undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
+    hookInitialAmount: hook.initial_amount != null && hook.initial_amount > 0 ? hook.initial_amount : undefined,
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),

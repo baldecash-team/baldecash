@@ -685,6 +685,9 @@ export interface CatalogProduct {
   images: string[];
   /** Portada del combo (cuando el producto es un combo). Encabeza la galería de la card. */
   comboImage?: string;
+  /** Id del combo del que nace el ítem (para reenviarlo en submit/select y
+   *  resolver el accesorio correcto en legacy). Un equipo puede estar en varios combos. */
+  comboId?: number;
   colors?: ProductColor[]; // NUEVO v0.6: colores disponibles
   deviceType?: CatalogDeviceType; // NUEVO v0.6: tipo de dispositivo para link al detalle
   price: number;
@@ -695,10 +698,16 @@ export interface CatalogProduct {
   quotaWeekly: number;
   originalQuotaMonthly?: number; // Cuota original antes de descuento (del backend)
   maxTermMonths: number;
+  /** Plazo REAL del hook (backend). En la oferta con array acotado (ej. [6,12])
+   *  es el plazo de la celda mostrada (12), no el máximo del producto (36). En el
+   *  catálogo general coincide con maxTermMonths. Fuente de verdad para el plazo
+   *  que pinta la card. */
+  hookTermMonths?: number;
   paymentFrequency?: string; // Frecuencia de la cuota hook: 'mensual' | 'semanal' | 'quincenal'
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, { price: number; termMonths: number | null; initialPercent: number | null }>;
   hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
+  hookInitialAmount?: number; // Monto (S/) de la inicial del hook — la card muestra el monto
   /** Variant ID del producto base (viene del API como `variant.id`). Fallback cuando no hay colores. */
   variantId?: string;
   gama: GamaTier;

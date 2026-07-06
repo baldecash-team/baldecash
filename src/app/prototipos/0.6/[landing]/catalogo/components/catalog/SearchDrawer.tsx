@@ -27,6 +27,13 @@ interface SearchDrawerProps {
   onChange: (value: string) => void;
   onClear: () => void;
   onSubmit?: () => void;
+  /** Fuente de sugerencias inyectable. Si se pasa, se usa en vez del buscador de
+   *  la landing (searchProductSuggestions). La oferta le pasa su buscador topado
+   *  por cuota; el catálogo general NO la pasa → fallback al comportamiento actual. */
+  fetchSuggestions?: (query: string) => Promise<ProductSuggestion[]>;
+  /** Navegación al elegir una sugerencia. Si se pasa, reemplaza el router.push a
+   *  la landing (la oferta navega a su propio detalle por token). */
+  onSelectSuggestion?: (suggestion: ProductSuggestion) => void;
 }
 
 export const SearchDrawer: React.FC<SearchDrawerProps> = ({
@@ -36,6 +43,8 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   onChange,
   onClear,
   onSubmit,
+  fetchSuggestions,
+  onSelectSuggestion,
 }) => {
   const dragControls = useDragControls();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,14 +68,17 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     }
     setIsLoadingSuggestions(true);
     try {
-      const results = await searchProductSuggestions(landing, query, 6, previewKey);
+      // Fuente inyectada (oferta: topada por cuota) o fallback a la landing (general).
+      const results = fetchSuggestions
+        ? await fetchSuggestions(query)
+        : await searchProductSuggestions(landing, query, 6, previewKey);
       setSuggestions(results);
     } catch {
       setSuggestions([]);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [landing, previewKey]);
+  }, [landing, previewKey, fetchSuggestions]);
 
   const handleInputChange = (newValue: string) => {
     onChange(newValue);
@@ -77,7 +89,12 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
     onClose();
     setSuggestions([]);
-    router.push(routes.producto(landing, suggestion.slug));
+    // Navegación inyectada (oferta: detalle por token) o fallback a la landing.
+    if (onSelectSuggestion) {
+      onSelectSuggestion(suggestion);
+    } else {
+      router.push(routes.producto(landing, suggestion.slug));
+    }
   };
 
   // Clear suggestions when drawer closes

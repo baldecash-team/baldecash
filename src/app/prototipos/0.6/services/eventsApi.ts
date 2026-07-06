@@ -201,7 +201,13 @@ export type EventType =
   | 'otp_code_resent'
   | 'otp_code_submitted'
   | 'otp_verified'
-  | 'otp_failed';
+  | 'otp_failed'
+  // Phase 17: Oferta condicional (Caso 4 downgrade / Caso 5 upsell) — funnel
+  | 'offer_viewed'
+  | 'offer_recommended_view'
+  | 'offer_catalog_open'
+  | 'offer_equipment_select_click'
+  | 'offer_success_view';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([

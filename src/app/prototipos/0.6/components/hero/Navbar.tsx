@@ -114,6 +114,9 @@ interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
   logoClassName?: string;
+  /** Sobrescribe el contenedor del logo en modo logoOnly (para alinear el logo
+   *  con el contenido de la página, ej. las cards de la oferta). */
+  logoContainerClassName?: string;
   customerPortalUrl?: string;
   portalButtonText?: string;
   navbarItems?: NavbarItemData[];
@@ -171,7 +174,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
@@ -313,7 +316,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         className="fixed left-0 right-0 z-50 bg-[var(--surface,#fff)] shadow-sm"
         style={{ top: previewBannerOffset }}
       >
-        <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
+        <div className={logoContainerClassName ?? (fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8")}>
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3" aria-label="BaldeCash">
               {logoUrl && (

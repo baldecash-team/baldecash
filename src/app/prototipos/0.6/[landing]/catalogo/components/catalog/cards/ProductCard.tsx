@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, Truck, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, Truck, CheckCircle2, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -122,6 +122,20 @@ interface ProductCardProps {
   campaignCoupon?: AppliedCoupon | null;
   /** Catálogo de condiciones del facet — estilo (label/icon/color) del badge de condición */
   conditions?: ConditionFilter[] | null;
+  /**
+   * Modo oferta (BAL-1785): cuando se pasa `onCtaClick`, el botón principal
+   * muestra `ctaLabel` (ej. "Elegir este equipo") y llama a `onCtaClick` en vez
+   * de agregar al carrito / ir a solicitar. Aditivo: sin estos props, el
+   * comportamiento es el de siempre ("Lo quiero").
+   */
+  ctaLabel?: string;
+  onCtaClick?: () => void;
+  /** Oculta el botón de favoritos (no aplica en el flujo de oferta). */
+  hideFavorite?: boolean;
+  /** Muestra un tag verde "Aprobado" (solo en el catálogo de oferta, BAL-1785). */
+  approvedTag?: boolean;
+  /** Fuerza el plazo mostrado (ej. 24 en la oferta) en vez de max(available_terms). */
+  forcedTerm?: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -139,6 +153,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   compareDisabled = false,
   isInCart = false,
   isInCartCheck,
+  ctaLabel,
+  onCtaClick,
+  hideFavorite = false,
+  approvedTag = false,
+  forcedTerm,
   isFavoriteCheck,
   favoriteButtonId,
   compareButtonId,
@@ -226,8 +245,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Financiamiento: plazo más alto del producto, inicial según hook del producto
-  const selectedTerm = product.maxTermMonths as TermMonths;
+  // Financiamiento: plazo del HOOK (backend) — en la oferta refleja el array
+  // acotado (ej. 12), en el general coincide con maxTermMonths. Inicial del hook.
+  const selectedTerm = (forcedTerm ?? product.hookTermMonths ?? product.maxTermMonths) as TermMonths;
   const selectedInitial = (product.hookInitialPercent ?? 0) as InitialPaymentPercent;
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
@@ -368,18 +388,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <Card
         className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-[var(--surface,#fff)]"
-        style={promoTemplate ? {
-          border: `3px solid ${promoBorderColor}`,
-          boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
-        } : undefined}
+        style={
+          approvedTag
+            ? { border: '2px solid #16a34a', boxShadow: '0 0 16px 3px #16a34a33, 0 4px 12px #16a34a26' }
+            : promoTemplate
+            ? {
+                border: `3px solid ${promoBorderColor}`,
+                boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
+              }
+            : undefined
+        }
       >
         <CardBody className="p-0 flex flex-col">
+          {/* Banner "Aprobado para ti" (flujo de oferta): reemplaza al banner de
+              promoción — en la oferta todas las cards llevan el mismo banner verde.
+              Mismo lenguaje visual que la card del recomendado del index de oferta
+              (OfertaEquipoCard): texto "Aprobado para ti" + 2 checks que laten. */}
+          {approvedTag && (
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
+              style={{ background: 'linear-gradient(135deg, #16a34a 0%, #16a34acc 50%, #16a34a 100%)' }}
+            >
+              <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </motion.div>
+              <span
+                className="text-base font-black tracking-widest uppercase text-center text-white"
+                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+              >
+                Aprobado para ti
+              </span>
+              <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </motion.div>
+            </div>
+          )}
           {/* Spacer for non-promo cards in rows that have promo cards */}
-          {needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
+          {!approvedTag && needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
             <div className="h-[44px] shrink-0" />
           )}
-          {/* Promotion Banner */}
-          {promoTemplate && isTopBarBanner && (
+          {/* Promotion Banner (oculto en oferta: lo reemplaza el banner Aprobado) */}
+          {!approvedTag && promoTemplate && isTopBarBanner && (
             <div
               className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
               style={{
@@ -411,7 +460,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
           )}
-          {promoTemplate && !isTopBarBanner && (
+          {!approvedTag && promoTemplate && !isTopBarBanner && (
             <div className="absolute top-0 left-0 z-20">
               <div
                 className="px-4 py-1.5 text-sm font-black rounded-br-xl"
@@ -445,22 +494,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Action buttons - top right (p-3 = 44px touch target WCAG 2.5.5) */}
             <div className="absolute top-3 right-3 flex flex-col gap-1.5">
               {/* Favorite */}
-              <button
-                id={favoriteButtonId}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite?.(createWishlistItem());
-                }}
-                className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
-              >
-                <Heart
-                  className={`w-5 h-5 transition-colors ${
-                    resolvedIsFavorite
-                      ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
-                  }`}
-                />
-              </button>
+              {!hideFavorite && (
+                <button
+                  id={favoriteButtonId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite?.(createWishlistItem());
+                  }}
+                  className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
+                >
+                  <Heart
+                    className={`w-5 h-5 transition-colors ${
+                      resolvedIsFavorite
+                        ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
+                        : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
+                    }`}
+                  />
+                </button>
+              )}
               {/* Compare */}
               {onCompare && (
                 <button
@@ -797,10 +848,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       }
                     : undefined
                 }
-                onPress={!resolvedIsInCart ? handleQuieroClick : undefined}
-                isDisabled={resolvedIsInCart}
+                onPress={
+                  onCtaClick
+                    ? onCtaClick
+                    : !resolvedIsInCart
+                      ? handleQuieroClick
+                      : undefined
+                }
+                isDisabled={onCtaClick ? false : resolvedIsInCart}
               >
-                {resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
+                {onCtaClick ? (ctaLabel ?? 'Elegir este equipo') : resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>
             </div>
           </div>

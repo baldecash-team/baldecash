@@ -83,6 +83,25 @@ interface ProductDetailProps {
   paymentFrequencies?: string[];
   // Landing config flags
   showPlatformCommission?: boolean;
+  /**
+   * Modo oferta (BAL-1785): cuando se pasa `onClickCTA`, el botón principal
+   * muestra `ctaText` (ej. "Elegir este equipo") y llama a `onClickCTA` en vez
+   * de navegar a /solicitar. Aditivo: sin estos props, comportamiento de siempre.
+   */
+  onClickCTA?: () => void;
+  ctaText?: string;
+  /**
+   * Modo solo-lectura (BAL-1785, Caso 4): cuando se pasa un texto, oculta el CTA
+   * de compra/elección y en su lugar muestra este aviso. Sirve para el detalle
+   * del equipo que el estudiante PIDIÓ (se puede ver, pero no elegir).
+   */
+  readOnlyNotice?: string;
+  /**
+   * Modo oferta (BAL-2097): notifica el plazo/inicial elegidos en el selector
+   * para que el flujo de oferta los propague a la página de accesorios. Aditivo:
+   * el catálogo general no lo pasa y no cambia su comportamiento.
+   */
+  onOfferSelectionChange?: (sel: { term: number; initialPercent: number }) => void;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -113,6 +132,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   defaultFrequency,
   paymentFrequencies,
   showPlatformCommission = false,
+  onClickCTA,
+  ctaText,
+  readOnlyNotice,
+  onOfferSelectionChange,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -283,8 +306,19 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     } else {
       params.delete('frecuency');
     }
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [analytics, product.id, searchParams, router]);
+    // Solo reescribir la URL si los params REALMENTE cambiaron. Sin esta guarda,
+    // router.replace produce un nuevo searchParams → recrea este callback →
+    // re-dispara el effect de PricingCalculator que lo llamó → replace de nuevo
+    // = loop infinito de prefetch RSC (_rsc). Comparamos contra la URL actual.
+    const next = params.toString();
+    if (next !== searchParams.toString()) {
+      router.replace(next ? `?${next}` : '?', { scroll: false });
+    }
+
+    // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
+    // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
+    onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
+  }, [analytics, product.id, searchParams, router, onOfferSelectionChange]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
@@ -612,8 +646,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 onSelectionChange={handlePricingSelectionChange}
                 controlledTerm={pricingSelection?.term}
               />
-              {/* CTA Buttons or Unavailable banner */}
-              {!isAvailable ? (
+              {/* CTA Buttons, aviso solo-lectura, o banner de no disponible */}
+              {readOnlyNotice ? (
+                <div className="rounded-xl border border-gray-200 bg-[var(--surface-bg,#f8fafc)] px-4 py-3 text-center">
+                  <p className="text-sm text-gray-500">{readOnlyNotice}</p>
+                </div>
+              ) : !isAvailable ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center">
                   <p className="text-amber-800 font-medium text-sm">Este producto no se encuentra disponible actualmente</p>
                 </div>
@@ -626,12 +664,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
               >
                 <button
-                  onClick={handleSolicitar}
+                  onClick={onClickCTA ?? handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
-                  ¡Lo quiero!
+                  {onClickCTA ? (ctaText ?? 'Elegir este equipo') : '¡Lo quiero!'}
                 </button>
-                {onAddToCart && (() => {
+                {!onClickCTA && onAddToCart && (() => {
                   // Determine cart button state
                   const configChanged = isInCart && cartItem && pricingSelection && (
                     cartItem.months !== (selectedTermMonths ?? pricingSelection.term) ||
