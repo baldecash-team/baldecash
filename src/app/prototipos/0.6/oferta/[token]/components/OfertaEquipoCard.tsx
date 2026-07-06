@@ -262,8 +262,8 @@ export function OfertaEquipoCard({
                 ) : null}
               </li>
               {/* Accesorios / seguros */}
-              {addons.map((ad) => (
-                <li key={`${ad.kind}-${ad.id}`} className="flex items-center justify-between gap-3 text-sm">
+              {addons.map((ad, idx) => (
+                <li key={`${ad.kind}-${ad.id}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
                   <span className={`flex min-w-0 items-center gap-2 ${atenuado ? 'text-gray-400' : 'text-gray-600'}`}>
                     {ad.kind === 'insurance' ? (
                       <ShieldCheck className="h-4 w-4 shrink-0 text-gray-400" />
