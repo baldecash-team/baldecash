@@ -134,6 +134,9 @@ export interface OfferView {
   profile?: string | null;
   /** Perfil C: tarifa especial activa → mostrar "Tarifa especial para ti". */
   isCustomRate?: boolean;
+  /** Upsell: el pedido del cliente tenía accesorios de combo que se perderán al
+   * cambiar de equipo. El FE muestra un aviso de transparencia. */
+  hasComboAccessories?: boolean;
   /** La oferta exclusiva — solo upsell. */
   exclusiveOffer?: ExclusiveOffer | null;
   /** Plazos permitidos por la oferta (BAL-2096). Default [24] si el backend no los trae. */
@@ -203,6 +206,7 @@ export async function getOffer(token: string): Promise<OfferView> {
       offerCase: 'upsell',
       profile: data.profile ?? null,
       isCustomRate: data.is_custom_rate ?? false,
+      hasComboAccessories: data.has_combo_accessories ?? false,
       exclusiveOffer: ex
         ? {
             productId: ex.product_id,

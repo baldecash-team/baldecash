@@ -6,7 +6,7 @@
  * el mensaje según el perfil A/B/C. El cliente puede aceptar la oferta, quedarse
  * con su equipo, o ver el catálogo completo.
  */
-import { CheckCircle2, Sparkles, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Sparkles, ArrowRight, Info } from 'lucide-react';
 import type { OfferView } from '../../../services/offerApi';
 import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
 
@@ -230,6 +230,12 @@ export function UpsellPortada({
             <CheckCircle2 className="h-4 w-4" />
             Aceptar oferta exclusiva
           </button>
+          {offer.hasComboAccessories ? (
+            <p className="mt-2 flex items-start gap-1.5 text-xs text-gray-500">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+              Al cambiar de equipo, ya no se incluyen los accesorios de tu pedido anterior.
+            </p>
+          ) : null}
         </div>
       </div>
 
