@@ -360,6 +360,7 @@ export interface LandingLayoutResponse {
     institution_short_name?: string;
     institution_logo?: string;
     study_center_id?: number;
+    institution_type?: string;
   } | null;
   settings?: Record<string, string> | null;
 }
