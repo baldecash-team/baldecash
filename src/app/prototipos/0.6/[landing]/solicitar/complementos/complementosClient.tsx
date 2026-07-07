@@ -123,31 +123,31 @@ function ComplementosContent() {
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
-    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, submitSucceeded, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
-    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
+    if (cartProducts.length > 1 && !hasUnifiedTerms() && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+  }, [cartProducts.length, hasUnifiedTerms, submitSucceeded, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
-    if (isOverQuotaLimit) {
+    if (isOverQuotaLimit && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [isOverQuotaLimit, landing, router]);
+  }, [isOverQuotaLimit, submitSucceeded, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
-    if (unavailableProductIds.length > 0) {
+    if (unavailableProductIds.length > 0 && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [unavailableProductIds, landing, router]);
+  }, [unavailableProductIds, submitSucceeded, landing, router]);
 
   // Build form values for cross-step validation
   const formValues = useMemo(() => {
