@@ -240,7 +240,14 @@ function CatalogoContent() {
     captureLandingParams(landing);
   }, [landing]);
 
-  const campaignCoupon = appliedCoupon?.lockedFromUrl ? appliedCoupon : null;
+  // El tratamiento de diseño de "cupón de campaña" (banner + vitrina de 1.ª
+  // cuota en las cards) es EXCLUSIVO de cupones de referido, sin importar el
+  // descuento. Para cupones genéricos/no-referidos el cupón sigue aplicado
+  // (appliedCoupon) y su descuento se cobra en el checkout, pero NO se muestra
+  // ningún diseño de campaña. Por eso `campaignCoupon` solo se setea cuando el
+  // cupón bloqueado por URL trae `referrerName`.
+  const campaignCoupon =
+    appliedCoupon?.lockedFromUrl && appliedCoupon.referrerName ? appliedCoupon : null;
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
 

@@ -266,7 +266,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const originalQuota = displayOriginalQuota;
 
-  const couponQuotaDisplay = campaignCoupon
+  // La vitrina "solo 1.ª cuota" (cuota lista tachada + primera cuota con
+  // descuento) es narrativa de cupón de REFERIDO: solo se calcula/muestra
+  // cuando el cupón trae referidor. Cupones genéricos aplican su descuento
+  // en el checkout, sin este tratamiento especial en la card.
+  const couponQuotaDisplay = campaignCoupon?.referrerName
     ? getCouponQuotaDisplay(displayQuotaForFreq, campaignCoupon, originalQuota)
     : null;
   const showCampaignFirstQuota = couponQuotaDisplay?.hasFirstQuotaOffer ?? false;
