@@ -483,8 +483,17 @@ export interface LeadFormFieldOptionsFilter {
   ids?: number[];
 }
 
+export type LeadFormFieldGroup = 'student' | 'guardian';
+
+export interface LeadFormFieldOption {
+  value: string;
+  label: string;
+}
+
 export interface LeadFormFieldConfig {
   code: string;
+  /** Agrupa el campo bajo "Datos del estudiante" / "Datos del apoderado" en el form de lead */
+  group?: LeadFormFieldGroup;
   label: string;
   field_type: string;
   placeholder?: string;
@@ -498,6 +507,8 @@ export interface LeadFormFieldConfig {
   mask?: string;
   options_source?: string;
   options_filter?: LeadFormFieldOptionsFilter | null;
+  /** Opciones fijas para field_type='select' */
+  options_static?: LeadFormFieldOption[];
   min_search_length?: number;
 }
 
