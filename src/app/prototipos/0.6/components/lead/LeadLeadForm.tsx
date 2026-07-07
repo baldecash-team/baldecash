@@ -80,6 +80,12 @@ function errorKeyFor(field: LeadFormFieldConfig): string {
   return resolveCoreKey(field) ?? field.code;
 }
 
+/** El checkbox de consentimiento legal (grupo guardian, p.ej. code='consent_14') se mapea a
+ * `accepts_terms`/`consent_text` top-level en el payload de captura — no va dentro de `fields`. */
+function isConsentField(field: LeadFormFieldConfig): boolean {
+  return field.field_type === 'checkbox' && field.code.toLowerCase().includes('consent');
+}
+
 export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   config,
   landingId,
@@ -304,6 +310,69 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
   };
 
+  // Construye el body de POST /public/leads/capture según el contrato `LeadCaptureRequest`
+  // de ws2: un set fijo de codes mapea a columnas top-level (first_name, last_name, phone,
+  // study_center_id, document_number) + accepts_terms/consent_text; TODO lo demás (grupo
+  // student/guardian, u otros codes no-core) va anidado en `fields{}` (→ captured_data).
+  // Sin campos extra/guardian (fallback legacy de 5 campos) esto produce el mismo body de
+  // siempre, con `fields` ausente.
+  const buildCapturePayload = (): Record<string, unknown> => {
+    const fields: Record<string, unknown> = {};
+    let phone = form.phone.trim();
+    let documentNumber: string | undefined;
+    let consentField: LeadFormFieldConfig | undefined;
+
+    for (const field of activeFields) {
+      const coreKey = resolveCoreKey(field);
+      if (coreKey === 'first_name' || coreKey === 'last_name' || coreKey === 'phone' || coreKey === 'study_center_id') {
+        continue; // ya cubiertos por `form` más abajo
+      }
+      if (coreKey === 'document_number') {
+        documentNumber = form.document_number.trim();
+        continue;
+      }
+      if (isConsentField(field)) {
+        consentField = field;
+        continue; // se mapea a accepts_terms/consent_text, no va en `fields`
+      }
+
+      const raw = extra[field.code];
+      if (raw === undefined || raw === '') continue;
+
+      // Celular del apoderado bajo un code distinto ('guardian_phone') — gana sobre el
+      // celular del estudiante (code 'phone', ya cubierto arriba por `form.phone`).
+      if (field.code === 'guardian_phone') {
+        const trimmed = String(raw).trim();
+        if (trimmed) phone = trimmed;
+        continue;
+      }
+
+      if (field.field_type === 'autocomplete') {
+        fields[`${field.code}_id`] = raw;
+        const label = remoteOptions[field.code]?.find((o) => o.value === raw)?.label;
+        if (label) fields[`${field.code}_label`] = label;
+        continue;
+      }
+
+      fields[field.code] = typeof raw === 'string' ? raw.trim() : raw;
+    }
+
+    const payload: Record<string, unknown> = {
+      landing_id: landingId,
+      session_id: session?.sessionId,
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      phone,
+      accepts_terms: consentField ? getFieldValue(consentField) === true : form.accepts_terms,
+      accepts_marketing: form.accepts_marketing,
+    };
+    if (form.study_center_id) payload.study_center_id = parseInt(form.study_center_id, 10);
+    if (documentNumber) payload.document_number = documentNumber;
+    if (consentField) payload.consent_text = consentField.label;
+    if (Object.keys(fields).length > 0) payload.fields = fields;
+    return payload;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmittingRef.current) return;
@@ -313,32 +382,10 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     setIsLoading(true);
     setErrors({});
     try {
-      // Campos fuera del set core (grupo student/guardian, u otros no-legacy) — se envían
-      // best-effort bajo su propio field.code. El backend actual (LeadCaptureRequest) los
-      // ignora si aún no los declara explícitamente (Pydantic extra='ignore' por default).
-      const extraPayload: Record<string, string | boolean> = {};
-      for (const field of activeFields) {
-        if (resolveCoreKey(field)) continue;
-        const value = extra[field.code];
-        if (value === undefined) continue;
-        extraPayload[field.code] = typeof value === 'string' ? value.trim() : value;
-      }
-
       const res = await fetch(`${API_BASE_URL}/public/leads/capture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          landing_id: landingId,
-          session_id: session?.sessionId,
-          document_number: form.document_number.trim(),
-          first_name: form.first_name.trim(),
-          last_name: form.last_name.trim(),
-          phone: form.phone.trim(),
-          study_center_id: parseInt(form.study_center_id),
-          accepts_terms: form.accepts_terms,
-          accepts_marketing: form.accepts_marketing,
-          ...extraPayload,
-        }),
+        body: JSON.stringify(buildCapturePayload()),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
