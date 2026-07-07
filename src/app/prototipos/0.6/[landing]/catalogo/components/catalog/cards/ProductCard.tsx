@@ -136,6 +136,8 @@ interface ProductCardProps {
   approvedTag?: boolean;
   /** Fuerza el plazo mostrado (ej. 24 en la oferta) en vez de max(available_terms). */
   forcedTerm?: number;
+  /** Deshabilita el botón "Lo quiero" (ej. mientras el contexto se hidrata o un modal está abierto). */
+  addToCartDisabled?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -167,6 +169,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   needsPromoSpacer = false,
   campaignCoupon = null,
   conditions = null,
+  addToCartDisabled = false,
 }) => {
   const analytics = useAnalytics();
 
@@ -859,7 +862,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       ? handleQuieroClick
                       : undefined
                 }
-                isDisabled={onCtaClick ? false : resolvedIsInCart}
+                isDisabled={onCtaClick ? false : resolvedIsInCart || addToCartDisabled}
               >
                 {onCtaClick ? (ctaLabel ?? 'Elegir este equipo') : resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>

@@ -3,12 +3,15 @@
  * Centralized so every consumer references the same parsed value.
  */
 
-/** Default when layout settings are not yet available */
-const DEFAULT_ALLOW_MULTI_PRODUCT = true;
+/** Default when layout settings are not yet available.
+ * false = single-product (navega directo a /solicitar/). Es el caso seguro:
+ * mientras settings carga (primeros renders vacíos), "Lo quiero" no debe abrir
+ * el modal de carrito por error. Cuando el BD tiene el valor real, este se usa. */
+const DEFAULT_ALLOW_MULTI_PRODUCT = false;
 
 /**
  * Resolve allow_multi_product from layout settings (BD).
- * Falls back to default (true) when settings are not available.
+ * Falls back to default (false) when settings are not available.
  * @param settings - Record from LayoutContext.settings
  */
 export function getAllowMultiProduct(settings?: Record<string, string>): boolean {

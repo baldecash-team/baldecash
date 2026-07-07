@@ -6,7 +6,7 @@
  * Persists to localStorage for refresh survival
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import type { Accessory, InsurancePlan } from '../types/upsell';
 import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
@@ -187,25 +187,67 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const { settings, landingId } = useLayout();
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
-  const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
-  const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
-  const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
-  const [selectedInsurances, setSelectedInsurancesState] = useState<InsurancePlan[]>([]);
-  const [availableMultiasistencia, setAvailableMultiasistenciaState] = useState<InsurancePlan | null>(null);
-  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
+  // Storage keys must be computed before useState lazy initializers
+  const storageKey = getStorageKey(landingSlug);
+  const cartProductsKey = getCartProductsKey(landingSlug);
+  const accessoriesKey = getAccessoriesKey(landingSlug);
+  const insuranceKey = getInsuranceKey(landingSlug);
+  const couponKey = getCouponKey(landingSlug);
+  const maKey = getMaAvailableKey(landingSlug);
+
+  // Read localStorage synchronously on first client render so isHydrated starts true.
+  // Lazy initializers only run on the client (typeof window check guards SSR).
+  const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const s = localStorage.getItem(storageKey);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem(cartProductsKey);
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem(accessoriesKey);
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [selectedInsurances, setSelectedInsurancesState] = useState<InsurancePlan[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem(insuranceKey);
+      if (!s) return [];
+      const parsed = JSON.parse(s);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch { return []; }
+  });
+  const [availableMultiasistencia, setAvailableMultiasistenciaState] = useState<InsurancePlan | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const s = localStorage.getItem(maKey);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const s = localStorage.getItem(couponKey);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  // isHydrated: true from the start on the client (lazy init ran synchronously).
+  // Stays false during SSR so downstream guards don't run server-side.
+  const [isHydrated, setIsHydrated] = useState(() => typeof window !== 'undefined');
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
   const [isSyncingPaymentPlans, setIsSyncingPaymentPlans] = useState(false);
   const [unavailableProductIds, setUnavailableProductIds] = useState<string[]>([]);
   const [isValidatingAvailability, setIsValidatingAvailability] = useState(true);
-
-  // Memoize storage keys based on landing
-  const storageKey = useMemo(() => getStorageKey(landingSlug), [landingSlug]);
-  const cartProductsKey = useMemo(() => getCartProductsKey(landingSlug), [landingSlug]);
-  const accessoriesKey = useMemo(() => getAccessoriesKey(landingSlug), [landingSlug]);
-  const insuranceKey = useMemo(() => getInsuranceKey(landingSlug), [landingSlug]);
-  const couponKey = useMemo(() => getCouponKey(landingSlug), [landingSlug]);
-  const maKey = useMemo(() => getMaAvailableKey(landingSlug), [landingSlug]);
 
   // Persistimos availableMultiasistencia a localStorage. En algunas landings la
   // sección de seguros es PRE-wizard (order 1), por lo que InsuranceSection no se
@@ -222,40 +264,11 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     }
   }, [maKey]);
 
-  // Load from localStorage on mount (client-side only)
+  // Mark hydrated on client if SSR rendered false (safety net — normally the lazy
+  // initializer already set it to true, but this covers any edge case).
   useEffect(() => {
-    try {
-      const storedProduct = localStorage.getItem(storageKey);
-      if (storedProduct) {
-        setSelectedProductState(JSON.parse(storedProduct));
-      }
-      const storedCartProducts = localStorage.getItem(cartProductsKey);
-      if (storedCartProducts) {
-        setCartProductsState(JSON.parse(storedCartProducts));
-      }
-      const storedAccessories = localStorage.getItem(accessoriesKey);
-      if (storedAccessories) {
-        setSelectedAccessoriesState(JSON.parse(storedAccessories));
-      }
-      const storedInsurance = localStorage.getItem(insuranceKey);
-      if (storedInsurance) {
-        const parsed = JSON.parse(storedInsurance);
-        // Support both old (single) and new (array) format
-        setSelectedInsurancesState(Array.isArray(parsed) ? parsed : [parsed]);
-      }
-      const storedCoupon = localStorage.getItem(couponKey);
-      if (storedCoupon) {
-        setAppliedCouponState(JSON.parse(storedCoupon));
-      }
-      const storedMa = localStorage.getItem(maKey);
-      if (storedMa) {
-        setAvailableMultiasistenciaState(JSON.parse(storedMa));
-      }
-    } catch {
-      // localStorage not available or invalid JSON
-    }
     setIsHydrated(true);
-  }, [storageKey, cartProductsKey, accessoriesKey, insuranceKey, couponKey, maKey]);
+  }, []);
 
   // Save to localStorage when product changes
   const setSelectedProduct = useCallback((product: SelectedProduct | null) => {

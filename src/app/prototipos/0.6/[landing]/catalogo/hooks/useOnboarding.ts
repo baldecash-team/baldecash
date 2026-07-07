@@ -6,7 +6,7 @@
  * Soporta hidratación segura (SSR-safe)
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   OnboardingConfig,
   OnboardingStep,
@@ -69,33 +69,32 @@ export function useOnboarding(
   landingSlug: string = 'home',
   allowMultiProduct: boolean = false
 ): UseOnboardingReturn {
-  const [state, setState] = useState<OnboardingState>(defaultState);
+  // Storage key — stable across re-renders (landingSlug doesn't change within a mounted instance)
+  const storageKey = getOnboardingKey(landingSlug);
+
+  // Read localStorage synchronously on first client render to avoid a flash where
+  // shouldShowWelcome is briefly false then true (or vice-versa).
+  const [state, setState] = useState<OnboardingState>(() => {
+    if (typeof window === 'undefined') return defaultState;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? (JSON.parse(saved) as OnboardingState) : defaultState;
+    } catch { return defaultState; }
+  });
   const [config, setConfigState] = useState<OnboardingConfig>(initialConfig);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(() => typeof window !== 'undefined');
   const [isTourActive, setIsTourActive] = useState(false);
   const [isHelpOnlyMode, setIsHelpOnlyMode] = useState(false);
-
-  // Memoize storage key based on landing
-  const storageKey = useMemo(() => getOnboardingKey(landingSlug), [landingSlug]);
 
   // Get steps based on config
   const steps = config.stepCount === 'complete'
     ? getOnboardingStepsComplete(questionCount, hasQuiz, allowMultiProduct)
     : getOnboardingStepsMinimal(questionCount, hasQuiz, allowMultiProduct);
 
-  // Load from localStorage on mount
+  // Safety net: mark hydrated if SSR rendered false.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as OnboardingState;
-        setState(parsed);
-      }
-    } catch (e) {
-      console.error('Error loading onboarding state:', e);
-    }
     setIsHydrated(true);
-  }, [storageKey]);
+  }, []);
 
   // Persist to localStorage when state changes (after hydration)
   useEffect(() => {

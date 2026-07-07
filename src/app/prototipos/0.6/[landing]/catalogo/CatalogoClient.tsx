@@ -196,7 +196,7 @@ export function CatalogoClient() {
 
   if (isGamerLanding(landing)) {
     return (
-      <ProductProvider landingSlug={landing}>
+      <ProductProvider key={landing} landingSlug={landing}>
         <Suspense fallback={<LoadingFallback />}>
           <GamerCatalogoContent />
         </Suspense>
@@ -205,7 +205,7 @@ export function CatalogoClient() {
   }
 
   return (
-    <ProductProvider landingSlug={landing}>
+    <ProductProvider key={landing} landingSlug={landing}>
       <Suspense fallback={<LoadingFallback />}>
         <CatalogoContent />
       </Suspense>
@@ -1477,7 +1477,7 @@ function CatalogoContent() {
     setSelectedVariantForCart(cartItem);
     const target = findProductOrSibling(cartItem.productId) || product;
     handleOpenCartModal(target);
-  }, [filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
@@ -1800,6 +1800,7 @@ function CatalogoContent() {
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
                 conditions={apiFilters?.conditions}
+                addToCartDisabled={!isProductContextHydrated || onboarding.shouldShowWelcome}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar
                   if (isRefurbishedCondition(product.conditionCode || product.condition)) {
