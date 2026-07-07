@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, useScrollToTop, Toast, useToast, useIsMobile } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
@@ -18,8 +18,9 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding } from '@/app/prototipos/0.6/utils/theme';
 import { GamerProductDetailClient } from '../GamerProductDetailClient';
+import { CopiaHomeMobileDetail } from '../copia-home/CopiaHomeMobileDetail';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Secondary Navbar with search, wishlist, cart
@@ -64,6 +65,7 @@ function ProductDetailContent() {
 
   // Lead guard — DEBE ir antes de otros hooks (no puede haber return antes de hooks)
   const hasLeadAccess = useLeadGuard(landing);
+  const isMobile = useIsMobile();
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
@@ -386,6 +388,15 @@ function ProductDetailContent() {
           paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
       >
+        {isCopiaHomeLanding(landing) && isMobile ? (
+          <CopiaHomeMobileDetail
+            apiData={apiData}
+            landing={landing}
+            isAvailable={isAvailable}
+            defaultTerm={defaultTerm ?? apiData.defaultTerm}
+            defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+          />
+        ) : (
         <ProductDetail
           product={apiData.product}
           combo={apiData.combo}
@@ -434,6 +445,7 @@ function ProductDetailContent() {
           } : undefined}
           cartItems={ALLOW_MULTI_PRODUCT ? catalogState.cartIds : []}
         />
+        )}
       </main>
 
       {/* Footer from Hero */}

@@ -25,6 +25,16 @@ export function isGamerLanding(slug: string): boolean {
   return slug === 'zona-gamer';
 }
 
+/**
+ * La landing copia-home usa una variante mobile dedicada del catálogo y del
+ * detalle (mockup seminuevos): finder compacto, cards con imagen a la izquierda,
+ * FAB de filtros, detalle con grados y recojo en oficina. Solo aplica en mobile;
+ * en desktop se renderiza el catálogo estándar.
+ */
+export function isCopiaHomeLanding(slug: string): boolean {
+  return slug === 'copia-home';
+}
+
 /** Colores de marca para landings oscuras (paleta oficial NVIDIA). */
 export const NVIDIA_GREEN = '#76B900';
 export const NVIDIA_TURQUOISE = '#00D9CB';
