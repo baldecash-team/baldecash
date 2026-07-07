@@ -37,6 +37,8 @@ interface CascadingSelectFieldProps {
   showError?: boolean;
   /** Whether to enable search in dropdown */
   searchable?: boolean;
+  /** External disabled override (e.g. auto-locked convenio fields) */
+  disabled?: boolean;
 }
 
 export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
@@ -44,6 +46,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   staticOptions,
   showError = false,
   searchable = false,
+  disabled = false,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
   const { agreementData } = useLayout();
@@ -350,7 +353,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // - readonly from field config
   // - cascading field without parent value
   // - field with options_source still loading initial options
-  const isDisabled = field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
+  const isDisabled = disabled || field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
 
   return (
     <SelectInput

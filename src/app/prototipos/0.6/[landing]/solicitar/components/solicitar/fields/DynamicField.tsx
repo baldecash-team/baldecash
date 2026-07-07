@@ -306,6 +306,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
             staticOptions={selectOptions}
             showError={showError}
             searchable={true}
+            disabled={commonProps.disabled}
           />
         );
       }
@@ -355,6 +356,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           staticOptions={autocompleteOptions}
           showError={showError}
           searchable={true}
+          disabled={commonProps.disabled}
         />
       );
 

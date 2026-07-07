@@ -359,6 +359,7 @@ export interface LandingLayoutResponse {
     institution_name?: string;
     institution_short_name?: string;
     institution_logo?: string;
+    study_center_id?: number;
   } | null;
   settings?: Record<string, string> | null;
 }
