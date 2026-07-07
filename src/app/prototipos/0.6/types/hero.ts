@@ -461,6 +461,9 @@ export interface AgreementData {
   institution_short_name?: string;
   institution_logo?: string;
   study_center_id?: number;
+  /** Tipo de institución del study_center (university/institute/school/...).
+   *  El wizard de convenio auto-setea y bloquea el campo 'institution_type' con este valor. */
+  institution_type?: string;
 }
 
 // ============================================

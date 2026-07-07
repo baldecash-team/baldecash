@@ -86,6 +86,20 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     }
   }, [isConvenioInstitution, agreementData, getFieldValue, updateField]);
 
+  // For convenio landings: auto-populate and lock the institution_type field.
+  // The value (university/institute/school) comes from the study_center's
+  // institution_type and matches the field option values 1:1.
+  const isConvenioInstitutionType = field.code === 'institution_type' && !!agreementData?.institution_type;
+  useEffect(() => {
+    if (!isConvenioInstitutionType) return;
+    const typeValue = agreementData!.institution_type!;
+    // Label from the field's own options (fallback to the raw value).
+    const typeLabel = field.options?.find((o) => String(o.value) === typeValue)?.label ?? typeValue;
+    if (getFieldValue('institution_type') !== typeValue) {
+      updateField('institution_type', typeValue, typeLabel);
+    }
+  }, [isConvenioInstitutionType, agreementData, getFieldValue, updateField, field.options]);
+
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
     let options = filterFieldOptions(field, formValues);
@@ -138,7 +152,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly || isLockedByMinor || isConvenioInstitution,
+    disabled: field.readonly || isLockedByMinor || isConvenioInstitution || isConvenioInstitutionType,
     tooltip,
     helpText: undefined as string | undefined,
   };
