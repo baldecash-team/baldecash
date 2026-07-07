@@ -49,7 +49,7 @@ export function captureLandingParams(landingSlug: string): void {
     try { localStorage.setItem(categoriaKey(landingSlug), categoria); } catch {}
   }
 
-  const coupon = params.get('coupon');
+  const coupon = params.get('coupon') ?? params.get('cupon');
   if (coupon && coupon.trim()) {
     try { localStorage.setItem(couponKey(landingSlug), coupon.trim().toUpperCase()); } catch {}
   }

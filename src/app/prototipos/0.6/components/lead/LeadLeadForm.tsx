@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { CheckCircle2 } from 'lucide-react';
 import type { LeadFormConfig, LeadFormFieldConfig, LeadFormFieldOptionsFilter, StudyCenter } from '../../types/hero';
 import { useSessionOptional } from '../../[landing]/solicitar/context/SessionContext';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
@@ -36,7 +37,11 @@ interface FormErrors {
   study_center_id?: string;
   accepts_terms?: string;
   general?: string;
+  /** Campos dinámicos (grupo student/guardian, u otros no-core) se indexan por field.code */
+  [code: string]: string | undefined;
 }
+
+type TextFormField = 'document_number' | 'first_name' | 'last_name' | 'phone' | 'study_center_id';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 const APP_BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
@@ -50,11 +55,35 @@ const DEFAULT_FIELDS: LeadFormFieldConfig[] = [
   { code: 'institution',     label: 'Lugar de estudio', field_type: 'autocomplete', placeholder: '¿Dónde estudias?', is_required: true, is_visible: true, display_order: 4, options_source: 'study-centers', min_search_length: 3 },
 ];
 
-function buildSearchUrl(search: string, filter?: LeadFormFieldOptionsFilter | null): string {
+function buildOptionsSearchUrl(source: string, search: string, filter?: LeadFormFieldOptionsFilter | null): string {
   const params = new URLSearchParams({ search });
   if (filter?.type?.length) params.set('type', filter.type.join(','));
   if (filter?.ids?.length) params.set('ids', filter.ids.join(','));
-  return `${API_BASE_URL}/public/options/study-centers?${params.toString()}`;
+  return `${API_BASE_URL}/public/options/${source}?${params.toString()}`;
+}
+
+function buildSearchUrl(search: string, filter?: LeadFormFieldOptionsFilter | null): string {
+  return buildOptionsSearchUrl('study-centers', search, filter);
+}
+
+/** Codes con un slot fijo en FormState (comportamiento legacy, sin cambios). */
+const CORE_FIELD_CODES = new Set(['document_number', 'first_name', 'last_name', 'phone']);
+
+function resolveCoreKey(field: LeadFormFieldConfig): TextFormField | null {
+  if (field.options_source === 'study-centers' || field.code === 'institution') return 'study_center_id';
+  if (CORE_FIELD_CODES.has(field.code)) return field.code as TextFormField;
+  return null;
+}
+
+/** Key usada para indexar `errors` — coincide con el core key cuando aplica, si no el field.code. */
+function errorKeyFor(field: LeadFormFieldConfig): string {
+  return resolveCoreKey(field) ?? field.code;
+}
+
+/** El checkbox de consentimiento legal (grupo guardian, p.ej. code='consent_14') se mapea a
+ * `accepts_terms`/`consent_text` top-level en el payload de captura — no va dentro de `fields`. */
+function isConsentField(field: LeadFormFieldConfig): boolean {
+  return field.field_type === 'checkbox' && field.code.toLowerCase().includes('consent');
 }
 
 export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
@@ -117,6 +146,31 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Valores de campos que no tienen slot fijo en FormState (grupo student/guardian, u otros
+  // codes fuera del set legacy). Se indexan por field.code.
+  const [extra, setExtra] = useState<Record<string, string | boolean>>({});
+  // Opciones remotas para autocompletes genéricos (options_source distinto de 'study-centers'),
+  // indexadas por field.code — el flujo de institution sigue usando studyCenterOptions.
+  const [remoteOptions, setRemoteOptions] = useState<Record<string, { value: string; label: string }[]>>({});
+
+  const getFieldValue = useCallback((field: LeadFormFieldConfig): string | boolean => {
+    const key = resolveCoreKey(field);
+    if (key) return form[key];
+    const raw = extra[field.code];
+    if (field.field_type === 'checkbox') return raw === true;
+    return (raw as string) ?? '';
+  }, [form, extra]);
+
+  const setFieldValue = useCallback((field: LeadFormFieldConfig, value: string | boolean) => {
+    const key = resolveCoreKey(field);
+    if (key) {
+      setForm((prev) => ({ ...prev, [key]: value }));
+      return;
+    }
+    setExtra((prev) => ({ ...prev, [field.code]: value }));
+  }, []);
 
   const showToast = (msg: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -142,22 +196,45 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     } catch { /* ignore */ }
   }, [studyCenterField?.options_filter]);
 
+  // Búsqueda remota genérica para autocompletes con options_source distinto de 'study-centers'
+  // (p.ej. 'careers', 'geo-units/districts'). Reusa el mismo endpoint /public/options/{source}.
+  const handleGenericAutocompleteSearch = useCallback(async (field: LeadFormFieldConfig, search: string) => {
+    if (!field.options_source) return;
+    try {
+      const url = buildOptionsSearchUrl(field.options_source, search, field.options_filter);
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      setRemoteOptions((prev) => ({
+        ...prev,
+        [field.code]: (data.options || []).map((o: { value: number | string; label: string }) => ({
+          value: String(o.value),
+          label: o.label,
+        })),
+      }));
+    } catch { /* ignore */ }
+  }, []);
+
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     for (const field of activeFields) {
       if (!field.is_required) continue;
-      const key = field.code === 'institution' ? 'study_center_id' : field.code as keyof FormState;
-      const rawValue = form[key as keyof FormState];
+      const key = errorKeyFor(field);
+      if (field.field_type === 'checkbox') {
+        if (!getFieldValue(field)) newErrors[key] = `Debes aceptar ${field.label.toLowerCase()}`;
+        continue;
+      }
+      const rawValue = getFieldValue(field);
       const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
       if (!value) {
         if (field.code === 'document_number') newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
-        else if (field.code === 'phone') newErrors.phone = 'Ingresa un celular válido (9 dígitos)';
-        else if (field.code === 'institution') newErrors.study_center_id = `Selecciona ${field.label.toLowerCase()}`;
-        else newErrors[key as keyof FormErrors] = `Ingresa tu ${field.label.toLowerCase()}`;
+        else if (field.code === 'phone' || field.field_type === 'phone') newErrors[key] = 'Ingresa un celular válido (9 dígitos)';
+        else if (field.code === 'institution' || field.options_source === 'study-centers') newErrors.study_center_id = `Selecciona ${field.label.toLowerCase()}`;
+        else newErrors[key] = `Ingresa tu ${field.label.toLowerCase()}`;
       } else if (field.pattern && typeof value === 'string' && !new RegExp(field.pattern).test(value)) {
         if (field.code === 'document_number') newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
-        else if (field.code === 'phone') newErrors.phone = 'Ingresa un celular válido (9 dígitos)';
-        else newErrors[key as keyof FormErrors] = `${field.label} inválido`;
+        else if (field.code === 'phone' || field.field_type === 'phone') newErrors[key] = 'Ingresa un celular válido (9 dígitos)';
+        else newErrors[key] = `${field.label} inválido`;
       }
     }
     if (!form.accepts_terms) newErrors.accepts_terms = 'Debes aceptar los términos para continuar';
@@ -174,11 +251,9 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     }
   };
 
-  const handleFieldComplete = (field: keyof FormState, value: string) => {
+  const handleFieldComplete = (field: string, value: string) => {
     if (value.trim()) tracker?.track('lead_form_field_complete', { landing, field });
   };
-
-  type TextFormField = 'document_number' | 'first_name' | 'last_name' | 'phone' | 'study_center_id';
 
   const sendPartialCapture = async (patch: Partial<Pick<FormState, TextFormField>>) => {
     if (!session?.sessionId) return;
@@ -212,6 +287,92 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     sendPartialCapture({ [field]: value });
   };
 
+  // Versiones genéricas de handleChange/handleBlur para cualquier field.code (grupo
+  // student/guardian u otros fuera del set legacy). Para los 5 campos core delegan en
+  // el mismo slot de FormState que handleChange/handleBlur; para el resto usan `extra`
+  // y no disparan capture-partial (el endpoint hoy solo acepta los campos core).
+  const handleFieldChange = (field: LeadFormFieldConfig, rawValue: string) => {
+    trackStart(field.code);
+    setFieldValue(field, rawValue);
+    const key = errorKeyFor(field);
+    if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
+  };
+
+  const handleFieldBlur = (field: LeadFormFieldConfig, value: string) => {
+    handleFieldComplete(field.code, value);
+    const key = resolveCoreKey(field);
+    if (key) sendPartialCapture({ [key]: value } as Partial<Pick<FormState, TextFormField>>);
+  };
+
+  const handleCheckboxToggle = (field: LeadFormFieldConfig, checked: boolean) => {
+    setFieldValue(field, checked);
+    const key = errorKeyFor(field);
+    if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
+  };
+
+  // Construye el body de POST /public/leads/capture según el contrato `LeadCaptureRequest`
+  // de ws2: un set fijo de codes mapea a columnas top-level (first_name, last_name, phone,
+  // study_center_id, document_number) + accepts_terms/consent_text; TODO lo demás (grupo
+  // student/guardian, u otros codes no-core) va anidado en `fields{}` (→ captured_data).
+  // Sin campos extra/guardian (fallback legacy de 5 campos) esto produce el mismo body de
+  // siempre, con `fields` ausente.
+  const buildCapturePayload = (): Record<string, unknown> => {
+    const fields: Record<string, unknown> = {};
+    let phone = form.phone.trim();
+    let documentNumber: string | undefined;
+    let consentField: LeadFormFieldConfig | undefined;
+
+    for (const field of activeFields) {
+      const coreKey = resolveCoreKey(field);
+      if (coreKey === 'first_name' || coreKey === 'last_name' || coreKey === 'phone' || coreKey === 'study_center_id') {
+        continue; // ya cubiertos por `form` más abajo
+      }
+      if (coreKey === 'document_number') {
+        documentNumber = form.document_number.trim();
+        continue;
+      }
+      if (isConsentField(field)) {
+        consentField = field;
+        continue; // se mapea a accepts_terms/consent_text, no va en `fields`
+      }
+
+      const raw = extra[field.code];
+      if (raw === undefined || raw === '') continue;
+
+      // Celular del apoderado bajo un code distinto ('guardian_phone') — gana sobre el
+      // celular del estudiante (code 'phone', ya cubierto arriba por `form.phone`).
+      if (field.code === 'guardian_phone') {
+        const trimmed = String(raw).trim();
+        if (trimmed) phone = trimmed;
+        continue;
+      }
+
+      if (field.field_type === 'autocomplete') {
+        fields[`${field.code}_id`] = raw;
+        const label = remoteOptions[field.code]?.find((o) => o.value === raw)?.label;
+        if (label) fields[`${field.code}_label`] = label;
+        continue;
+      }
+
+      fields[field.code] = typeof raw === 'string' ? raw.trim() : raw;
+    }
+
+    const payload: Record<string, unknown> = {
+      landing_id: landingId,
+      session_id: session?.sessionId,
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      phone,
+      accepts_terms: consentField ? getFieldValue(consentField) === true : form.accepts_terms,
+      accepts_marketing: form.accepts_marketing,
+    };
+    if (form.study_center_id) payload.study_center_id = parseInt(form.study_center_id, 10);
+    if (documentNumber) payload.document_number = documentNumber;
+    if (consentField) payload.consent_text = consentField.label;
+    if (Object.keys(fields).length > 0) payload.fields = fields;
+    return payload;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmittingRef.current) return;
@@ -224,17 +385,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       const res = await fetch(`${API_BASE_URL}/public/leads/capture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          landing_id: landingId,
-          session_id: session?.sessionId,
-          document_number: form.document_number.trim(),
-          first_name: form.first_name.trim(),
-          last_name: form.last_name.trim(),
-          phone: form.phone.trim(),
-          study_center_id: parseInt(form.study_center_id),
-          accepts_terms: form.accepts_terms,
-          accepts_marketing: form.accepts_marketing,
-        }),
+        body: JSON.stringify(buildCapturePayload()),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -255,8 +406,15 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           first_name: form.first_name.trim(),
         });
       }
-      router.push(data.redirect_url);
-      // No apagar el loading — el spinner se mantiene hasta que el redirect completa
+      if (data.redirect_url) {
+        router.push(data.redirect_url);
+        // No apagar el loading — el spinner se mantiene hasta que el redirect completa
+      } else {
+        // Sin redirect_url: no navegar ni mostrar catálogo, solo la pantalla de éxito.
+        isSubmittingRef.current = false;
+        setIsLoading(false);
+        setSuccess(data.success_message || '¡Gracias! Te contactaremos pronto.');
+      }
     } catch {
       tracker?.track('lead_form_error', { landing, error_code: 0, detail: 'network_error' });
       showToast('Error de conexión. Intenta de nuevo.');
@@ -265,6 +423,167 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     }
   };
 
+
+  const renderCheckboxField = (field: LeadFormFieldConfig) => {
+    const checked = getFieldValue(field) === true;
+    const key = errorKeyFor(field);
+    const err = errors[key];
+    return (
+      <label key={field.code} className="flex items-start gap-2.5 cursor-pointer group">
+        <div className="relative flex-shrink-0 mt-0.5">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => handleCheckboxToggle(field, e.target.checked)}
+            className="sr-only"
+          />
+          <div
+            className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+              checked
+                ? 'border-transparent'
+                : err
+                ? 'border-[#ef4444] bg-white'
+                : 'border-neutral-300 bg-white group-hover:border-neutral-400'
+            }`}
+            style={checked ? { backgroundColor: primaryColor } : {}}
+          >
+            {checked && (
+              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2 6l3 3 5-5" />
+              </svg>
+            )}
+          </div>
+        </div>
+        <span className="text-xs text-neutral-600 leading-relaxed">{field.label}</span>
+      </label>
+    );
+  };
+
+  const renderField = (field: LeadFormFieldConfig) => {
+    const isStudyCenter = field.options_source === 'study-centers' || field.code === 'institution';
+
+    if (isStudyCenter) {
+      const label = config.study_center_label ?? field.label;
+      const placeholder = config.study_center_placeholder ?? field.placeholder ?? '¿Dónde estudias?';
+      return (
+        <SelectInput
+          key={field.code}
+          id="lead-estudio"
+          label={label}
+          placeholder={placeholder}
+          value={form.study_center_id}
+          options={studyCenterOptions}
+          error={errors.study_center_id}
+          small
+          hideErrorText={isDesktop}
+          onChange={(v) => {
+            handleChange('study_center_id', v);
+            handleBlur('study_center_id', v);
+          }}
+          searchable
+          onSearch={handleStudyCenterSearch}
+        />
+      );
+    }
+
+    if (field.field_type === 'checkbox') {
+      return renderCheckboxField(field);
+    }
+
+    if (field.field_type === 'select') {
+      const value = (getFieldValue(field) as string) ?? '';
+      const key = errorKeyFor(field);
+      return (
+        <SelectInput
+          key={field.code}
+          id={`lead-${field.code}`}
+          label={field.label}
+          placeholder={field.placeholder ?? 'Selecciona una opción'}
+          value={value}
+          options={field.options_static ?? []}
+          error={errors[key]}
+          small
+          hideErrorText={isDesktop}
+          searchable={false}
+          onChange={(v) => handleFieldChange(field, v)}
+        />
+      );
+    }
+
+    if (field.field_type === 'autocomplete') {
+      const value = (getFieldValue(field) as string) ?? '';
+      const key = errorKeyFor(field);
+      return (
+        <SelectInput
+          key={field.code}
+          id={`lead-${field.code}`}
+          label={field.label}
+          placeholder={field.placeholder ?? 'Escribe para buscar'}
+          value={value}
+          options={remoteOptions[field.code] ?? []}
+          error={errors[key]}
+          small
+          hideErrorText={isDesktop}
+          searchable
+          minSearchLength={field.min_search_length ?? 0}
+          onSearch={(search) => handleGenericAutocompleteSearch(field, search)}
+          onChange={(v) => handleFieldChange(field, v)}
+        />
+      );
+    }
+
+    // text / number / phone / email / document_number → TextInput
+    const value = (getFieldValue(field) as string) ?? '';
+    const key = errorKeyFor(field);
+    const isNumericInput = field.code === 'document_number' || field.code === 'phone' || field.field_type === 'document_number' || field.field_type === 'phone';
+    const inputType: 'text' | 'email' | 'tel' | 'number' =
+      field.field_type === 'email' ? 'email'
+      : field.field_type === 'phone' ? 'tel'
+      : field.field_type === 'number' ? 'number'
+      : 'text';
+    return (
+      <TextInput
+        key={field.code}
+        id={`lead-${field.code}`}
+        label={field.label}
+        placeholder={field.placeholder ?? ''}
+        type={inputType}
+        value={value}
+        inputMode={field.input_mode as React.HTMLAttributes<HTMLInputElement>['inputMode'] | undefined}
+        maxLength={field.max_length ?? undefined}
+        showCounter={false}
+        compact
+        small
+        hideErrorText={isDesktop}
+        error={errors[key]}
+        onChange={(v) => handleFieldChange(field, isNumericInput ? v.replace(/\D/g, '') : v)}
+        onBlur={() => handleFieldBlur(field, value)}
+      />
+    );
+  };
+
+  // Agrupación student/guardian — si no hay campos de grupo guardian, se mantiene el
+  // render plano de siempre (fallback, sin regresión de comportamiento).
+  const studentFields = activeFields.filter((f) => f.group === 'student');
+  const guardianFields = activeFields.filter((f) => f.group === 'guardian');
+  const ungroupedFields = activeFields.filter((f) => !f.group);
+  const hasGuardianGroup = guardianFields.length > 0;
+
+  // Pantalla de éxito cuando el backend no envía redirect_url — reemplaza el form
+  // completo, sin navegar ni mostrar el catálogo.
+  if (success) {
+    return (
+      <div className="w-full flex flex-col items-center text-center gap-3 py-8">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: `${primaryColor}1A` }}
+        >
+          <CheckCircle2 className="w-8 h-8" style={{ color: primaryColor }} />
+        </div>
+        <p className="text-neutral-700 text-sm leading-relaxed max-w-xs">{success}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full relative">
@@ -295,56 +614,26 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
             ))}
           </>
         ) : null}
-        {!fieldsLoading && activeFields.map((field) => {
-          const isStudyCenter = field.options_source === 'study-centers' || field.code === 'institution';
-          const isNumericInput = field.code === 'document_number' || field.code === 'phone';
-
-          if (isStudyCenter) {
-            const label = config.study_center_label ?? field.label;
-            const placeholder = config.study_center_placeholder ?? field.placeholder ?? '¿Dónde estudias?';
-            return (
-              <SelectInput
-                key={field.code}
-                id="lead-estudio"
-                label={label}
-                placeholder={placeholder}
-                value={form.study_center_id}
-                options={studyCenterOptions}
-                error={errors.study_center_id}
-                small
-                hideErrorText={isDesktop}
-                onChange={(v) => {
-                  handleChange('study_center_id', v);
-                  handleBlur('study_center_id', v);
-                }}
-                searchable
-                onSearch={handleStudyCenterSearch}
-              />
-            );
-          }
-
-          const formKey = field.code as TextFormField;
-          const formValue = (form[formKey as keyof FormState] as string) ?? '';
-          const errorValue = errors[formKey as keyof FormErrors];
-          return (
-            <TextInput
-              key={field.code}
-              id={`lead-${field.code}`}
-              label={field.label}
-              placeholder={field.placeholder ?? ''}
-              value={formValue}
-              inputMode={field.input_mode as React.HTMLAttributes<HTMLInputElement>['inputMode'] | undefined}
-              maxLength={field.max_length ?? undefined}
-              showCounter={false}
-              compact
-              small
-              hideErrorText={isDesktop}
-              error={errorValue}
-              onChange={(v) => handleChange(formKey, isNumericInput ? v.replace(/\D/g, '') : v)}
-              onBlur={() => handleBlur(formKey, formValue)}
-            />
-          );
-        })}
+        {!fieldsLoading && (
+          hasGuardianGroup ? (
+            <>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                  Datos del estudiante
+                </p>
+                {[...studentFields, ...ungroupedFields].map(renderField)}
+              </div>
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                  Datos del apoderado
+                </p>
+                {guardianFields.map(renderField)}
+              </div>
+            </>
+          ) : (
+            activeFields.map(renderField)
+          )
+        )}
 
         {/* Checkbox 1: TyC + Privacidad (obligatorio) */}
         <div className="pt-1">

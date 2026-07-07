@@ -44,7 +44,6 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/untumbes': 'https://beneficios.baldecash.com/untumbes',
   '/unap': 'https://beneficios.baldecash.com/unap',
   '/utec': 'https://beneficios.baldecash.com/utec',
-  '/cibertec': 'https://beneficios.baldecash.com/cibertec',
   '/sorteo-senati-cuotas': '/sorteo-senati-becas',
   '/jhalebet': 'https://beneficios.baldecash.com/jhalebet',
   '/iesrp': 'https://beneficios.baldecash.com/instituto-ricardo-palma',
