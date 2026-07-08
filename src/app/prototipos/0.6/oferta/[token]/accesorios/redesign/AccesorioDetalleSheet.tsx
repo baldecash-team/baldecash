@@ -51,7 +51,7 @@ export function AccesorioDetalleSheet({ accesorio, agregado, onAgregar, onVolver
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[788px] flex-col rounded-t-[26px] bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[788px] flex-col rounded-t-2xl bg-white"
         style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Header */}
@@ -79,7 +79,7 @@ export function AccesorioDetalleSheet({ accesorio, agregado, onAgregar, onVolver
         <div className="flex-1 overflow-y-auto px-5 pb-28">
           {/* Foto grande */}
           <div
-            className="flex h-[200px] w-full items-center justify-center rounded-[20px] border"
+            className="flex h-[200px] w-full items-center justify-center rounded-xl border"
             style={{
               borderColor: OFERTA_COLORS.border,
               background: accesorio.image
@@ -89,7 +89,7 @@ export function AccesorioDetalleSheet({ accesorio, agregado, onAgregar, onVolver
           >
             {accesorio.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={accesorio.image} alt={accesorio.name} className="h-full w-full rounded-[20px] object-contain" />
+              <img src={accesorio.image} alt={accesorio.name} className="h-full w-full rounded-xl object-contain" />
             ) : (
               <Package className="h-10 w-10" style={{ color: OFERTA_COLORS.textSoft }} />
             )}
@@ -127,7 +127,7 @@ export function AccesorioDetalleSheet({ accesorio, agregado, onAgregar, onVolver
           <button
             type="button"
             onClick={onAgregar}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[15px] py-4 font-['Baloo_2',_sans-serif] text-[16px] font-bold text-white transition-transform hover:brightness-95"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-4 font-['Baloo_2',_sans-serif] text-[16px] font-bold text-white transition-transform hover:brightness-95"
             style={{ backgroundColor: OFERTA_COLORS.primary }}
           >
             {agregado ? (

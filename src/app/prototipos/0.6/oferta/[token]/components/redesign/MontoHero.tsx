@@ -21,7 +21,7 @@ export function MontoHero({ monto }: MontoHeroProps) {
 
   return (
     <div
-      className="rounded-[22px] px-6 py-[22px]"
+      className="rounded-xl px-6 py-[22px]"
       style={{ backgroundColor: OFERTA_COLORS.lilac }}
     >
       <div

@@ -19,7 +19,7 @@ export interface AvisoDowngradeProps {
 export function AvisoDowngrade({ equipoPedido }: AvisoDowngradeProps) {
   return (
     <div
-      className="flex items-start gap-2.5 rounded-[14px] border px-[13px] py-[11px]"
+      className="flex items-start gap-2.5 rounded-lg border px-[13px] py-[11px]"
       style={{ backgroundColor: OFERTA_COLORS.amberBg, borderColor: OFERTA_COLORS.amberBorder }}
     >
       <svg

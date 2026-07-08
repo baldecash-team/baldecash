@@ -42,7 +42,7 @@ export function CuotaStickyBar({ total, onContinuar, label, ctaText }: CuotaStic
       <button
         type="button"
         onClick={onContinuar}
-        className="cursor-pointer rounded-[14px] px-[30px] py-[14px] font-['Baloo_2',_sans-serif] text-[15px] font-bold text-white transition-transform hover:brightness-95"
+        className="cursor-pointer rounded-lg px-[30px] py-[14px] font-['Baloo_2',_sans-serif] text-[15px] font-bold text-white transition-transform hover:brightness-95"
         style={{ backgroundColor: OFERTA_COLORS.primary, boxShadow: '0 6px 14px rgba(79,70,229,.35)' }}
       >
         {ctaText ?? 'Continuar'}

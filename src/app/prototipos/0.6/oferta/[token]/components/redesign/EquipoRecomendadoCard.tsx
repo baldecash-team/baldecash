@@ -94,7 +94,7 @@ export function EquipoRecomendadoCard({
 
   return (
     <div
-      className="overflow-hidden rounded-[20px] border-[1.5px]"
+      className="overflow-hidden rounded-xl border-[1.5px]"
       style={{ borderColor: t.border, boxShadow: `0 10px 24px ${t.shadow}` }}
     >
       {/* Badge superior */}
@@ -162,7 +162,7 @@ export function EquipoRecomendadoCard({
             {equipo.specs.map((spec) => (
               <span
                 key={spec}
-                className="rounded-[7px] px-2.5 py-1 text-[11px]"
+                className="rounded-md px-2.5 py-1 text-[11px]"
                 style={{ backgroundColor: OFERTA_COLORS.lilac, color: '#4B5563' }}
               >
                 {spec}
@@ -195,7 +195,7 @@ export function EquipoRecomendadoCard({
           <button
             type="button"
             onClick={onElegir}
-            className="cursor-pointer rounded-[13px] px-5 py-3 font-['Baloo_2',_sans-serif] text-[14px] font-bold text-white transition-transform hover:brightness-95"
+            className="cursor-pointer rounded-lg px-5 py-3 font-['Baloo_2',_sans-serif] text-[14px] font-bold text-white transition-transform hover:brightness-95"
             style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
           >
             {ctaText}

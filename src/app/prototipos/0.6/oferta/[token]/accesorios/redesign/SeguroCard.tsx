@@ -30,7 +30,7 @@ export function SeguroCard({ seguro, seleccionado, onToggle }: SeguroCardProps) 
     <button
       type="button"
       onClick={onToggle}
-      className="w-full cursor-pointer rounded-2xl border-[1.5px] p-3.5 text-left"
+      className="w-full cursor-pointer rounded-xl border-[1.5px] p-3.5 text-left"
       style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
     >
       <div className="flex items-center gap-3">

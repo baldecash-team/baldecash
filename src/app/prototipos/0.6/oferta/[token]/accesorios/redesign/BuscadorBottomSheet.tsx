@@ -111,7 +111,7 @@ export function BuscadorBottomSheet({
         onDragEnd={(_, info) => {
           if (info.offset.y > 100) onCerrar();
         }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[788px] flex-col rounded-t-[26px] bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[788px] flex-col rounded-t-2xl bg-white"
         style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Drag handle */}
@@ -147,7 +147,7 @@ export function BuscadorBottomSheet({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Busca accesorios o seguros"
-              className="w-full rounded-[13px] border py-3 pl-10 pr-3.5 text-sm outline-none"
+              className="w-full rounded-lg border py-3 pl-10 pr-3.5 text-sm outline-none"
               style={{ borderColor: OFERTA_COLORS.border, backgroundColor: OFERTA_COLORS.grayBg, color: OFERTA_COLORS.textStrong }}
             />
           </div>

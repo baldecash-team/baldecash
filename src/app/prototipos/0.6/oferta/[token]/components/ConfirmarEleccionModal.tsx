@@ -47,7 +47,7 @@ export interface EquipoAConfirmar {
 function PedidoBox({ children }: { children: ReactNode }) {
   return (
     <div
-      className="mt-4 rounded-2xl border p-3.5"
+      className="mt-4 rounded-xl border p-3.5"
       style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
     >
       {children}
@@ -94,7 +94,7 @@ export function ConfirmarEleccionModal({
       classNames={{
         wrapper: 'z-[101]',
         backdrop: 'z-[100] bg-black/50',
-        base: 'bg-white rounded-[26px] overflow-hidden',
+        base: 'bg-white rounded-2xl overflow-hidden',
         body: 'bg-white p-0',
         footer: 'bg-white',
       }}
@@ -130,7 +130,7 @@ export function ConfirmarEleccionModal({
 
               {equipo ? (
                 <div
-                  className="mt-5 flex w-full items-center gap-3 rounded-2xl border p-3 text-left"
+                  className="mt-5 flex w-full items-center gap-3 rounded-xl border p-3 text-left"
                   style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
                 >
                   {equipo.imageUrl ? (
@@ -172,7 +172,7 @@ export function ConfirmarEleccionModal({
               {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
 
               <div
-                className="mt-4 flex w-full items-start gap-2 rounded-[13px] p-3 text-left text-xs font-medium"
+                className="mt-4 flex w-full items-start gap-2 rounded-lg p-3 text-left text-xs font-medium"
                 style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
               >
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />

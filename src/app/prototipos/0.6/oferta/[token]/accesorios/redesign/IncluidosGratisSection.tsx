@@ -31,7 +31,7 @@ export function IncluidosGratisSection({ accesorios, seguros }: IncluidosGratisS
         {accesorios.map((a) => (
           <div
             key={`gratis-acc-${a.id}`}
-            className="flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+            className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
             style={{ borderColor: OFERTA_COLORS.border }}
           >
             <div
@@ -51,7 +51,7 @@ export function IncluidosGratisSection({ accesorios, seguros }: IncluidosGratisS
         {seguros.map((s) => (
           <div
             key={`gratis-ins-${s.id}`}
-            className="flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+            className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
             style={{ borderColor: OFERTA_COLORS.border }}
           >
             <div

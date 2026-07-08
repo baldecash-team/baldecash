@@ -498,7 +498,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             funcionalidad de recalcular equipo + accesorios + seguros por
             plazo/inicial se mantiene. */}
         {(offerTerms.length > 1 || offerInitials.length > 1) && (
-          <div className="rounded-2xl border p-3.5" style={{ borderColor: OFERTA_COLORS.border }}>
+          <div className="rounded-xl border p-3.5" style={{ borderColor: OFERTA_COLORS.border }}>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               {offerTerms.length > 1 && (
                 <div className="flex items-center gap-2">
@@ -556,7 +556,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         <button
           type="button"
           onClick={() => setShowBuscador(true)}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
           <Package className="h-4 w-4" strokeWidth={2.4} />

@@ -20,7 +20,7 @@ export function TuEquipoCard({ nombre, cuota }: TuEquipoCardProps) {
 
   return (
     <div
-      className="flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+      className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
       style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
     >
       <div

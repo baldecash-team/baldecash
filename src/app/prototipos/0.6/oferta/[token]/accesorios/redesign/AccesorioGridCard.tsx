@@ -27,7 +27,7 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle 
 
   return (
     <div
-      className="rounded-2xl border-[1.5px] p-[9px]"
+      className="rounded-xl border-[1.5px] p-[9px]"
       style={{ borderColor: agregado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
     >
       <div className="relative">

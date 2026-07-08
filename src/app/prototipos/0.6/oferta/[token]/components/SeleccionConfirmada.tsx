@@ -77,7 +77,7 @@ function EquipoMini({
 
   return (
     <div
-      className="flex w-full flex-1 flex-col items-center rounded-2xl p-3.5 text-center"
+      className="flex w-full flex-1 flex-col items-center rounded-xl p-3.5 text-center"
       style={
         isNew
           ? { border: `1.5px solid ${OFERTA_COLORS.green}`, backgroundColor: '#fff', boxShadow: '0 4px 14px rgba(34,197,94,0.12)' }
@@ -159,7 +159,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
 
       <div className="flex flex-1 flex-col items-center px-4 py-8">
         <div
-          className="w-full max-w-md rounded-3xl p-5 text-center shadow-sm sm:p-6"
+          className="w-full max-w-md rounded-xl p-5 text-center shadow-sm sm:p-6"
           style={{ border: `1px solid ${OFERTA_COLORS.border}` }}
         >
           {/* Check de éxito */}
@@ -198,7 +198,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
           {/* Desglose de accesorios/seguros sumados (BAL-2064) */}
           {tieneAddons ? (
             <div
-              className="mt-5 rounded-[18px] p-4 text-left"
+              className="mt-5 rounded-xl p-4 text-left"
               style={{ backgroundColor: OFERTA_COLORS.grayBg, border: `1px solid ${OFERTA_COLORS.border}` }}
             >
               <p
@@ -267,7 +267,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
 
           {/* Aviso del contrato por WhatsApp */}
           <div
-            className="mt-5 flex items-start gap-3 rounded-2xl p-4 text-left"
+            className="mt-5 flex items-start gap-3 rounded-xl p-4 text-left"
             style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
           >
             <MessageCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />

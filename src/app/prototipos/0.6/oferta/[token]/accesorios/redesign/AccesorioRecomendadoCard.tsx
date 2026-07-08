@@ -37,7 +37,7 @@ export function AccesorioRecomendadoCard({ accesorio, seleccionado, onToggle }: 
     <button
       type="button"
       onClick={onToggle}
-      className="w-full cursor-pointer overflow-hidden rounded-[20px] border-[1.5px] p-[15px] text-left transition-shadow"
+      className="w-full cursor-pointer overflow-hidden rounded-xl border-[1.5px] p-[15px] text-left transition-shadow"
       style={{
         borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border,
         boxShadow: seleccionado ? '0 10px 24px rgba(79,70,229,.16)' : '0 4px 14px rgba(31,35,51,.05)',
@@ -53,7 +53,7 @@ export function AccesorioRecomendadoCard({ accesorio, seleccionado, onToggle }: 
 
       <div className="flex items-start gap-3">
         <div
-          className="flex h-[70px] w-[86px] flex-none items-center justify-center rounded-2xl border"
+          className="flex h-[70px] w-[86px] flex-none items-center justify-center rounded-xl border"
           style={{
             borderColor: OFERTA_COLORS.border,
             background: accesorio.image
@@ -63,7 +63,7 @@ export function AccesorioRecomendadoCard({ accesorio, seleccionado, onToggle }: 
         >
           {accesorio.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={accesorio.image} alt={accesorio.name} className="h-full w-full rounded-2xl object-contain" />
+            <img src={accesorio.image} alt={accesorio.name} className="h-full w-full rounded-xl object-contain" />
           ) : (
             <span className="font-mono text-[8px]" style={{ color: OFERTA_COLORS.textSoft }}>
               foto

@@ -42,7 +42,7 @@ export function TusExtras({ items, onQuitar }: TusExtrasProps) {
           return (
             <div
               key={`${item.kind}-${item.id}`}
-              className="flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+              className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
               style={{ borderColor: OFERTA_COLORS.border }}
             >
               {item.kind === 'ins' ? (

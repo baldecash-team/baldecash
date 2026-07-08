@@ -35,7 +35,7 @@ export function MontoAprobadoBar({ aprobado, usado }: MontoAprobadoBarProps) {
   const barColor = excede ? RED : OFERTA_COLORS.primary;
 
   return (
-    <div className="rounded-[22px] px-6 py-[22px]" style={{ backgroundColor: OFERTA_COLORS.lilac }}>
+    <div className="rounded-xl px-6 py-[22px]" style={{ backgroundColor: OFERTA_COLORS.lilac }}>
       <div
         className="text-[11.5px] font-bold tracking-[.11em]"
         style={{ color: OFERTA_COLORS.tealBrand }}
