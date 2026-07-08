@@ -10,14 +10,21 @@
  *      el spinner nunca queda girando durante un window.location).
  *
  * Elegir es una acción importante: consume el link y registra la selección.
+ *
+ * Rediseño visual (BAL-2186): mismo API de props y misma lógica; solo cambia
+ * la presentación para calzar con el mock de Claude Design
+ * (docs/superpowers/design-refs/mock-confirmacion.html, frames 1 y 2).
  */
 import type { ReactNode } from 'react';
 import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, X, CheckCircle2, ArrowRight, Check } from 'lucide-react';
-import { cuotaSuffix, plazoUnit } from './equipoCardFormat';
+import { ShoppingBag, X, CheckCircle2, ArrowRight, Check, Gift } from 'lucide-react';
+import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
+import { OFERTA_COLORS } from './redesign/ofertaTheme';
 
-const APPROVED_GREEN = '#16a34a';
+/** Header índigo del modal (frames 1/2 del mock) — un tono propio, distinto
+ *  del índigo primario de CTAs, para dar jerarquía visual al encabezado. */
+const HEADER_INDIGO = '#5850EC';
 
 export interface EquipoAConfirmar {
   name: string;
@@ -31,6 +38,30 @@ export interface EquipoAConfirmar {
   initialAmount?: number;
   /** Frecuencia ('mensual'|'semanal'|'quincenal') → sufijo de cuota y unidad de plazo. */
   paymentFrequency?: string;
+}
+
+/** Caja verde "Regalo por tu combo": envoltorio visual reusado en ambos
+ *  estados (confirmación/éxito) para el `addonsSlot` que pasa el caller. El
+ *  contenido interno del slot es opaco (viene de AccesoriosOfertaClient) —
+ *  aquí solo lo enmarcamos acorde al mock, sin tocar su lógica. */
+function RegaloComboBox({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="mt-4 rounded-2xl p-3.5"
+      style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+    >
+      <div className="mb-2 flex items-center gap-1.5">
+        <Gift className="h-3.5 w-3.5" style={{ color: OFERTA_COLORS.greenDark }} />
+        <p
+          className="text-[10px] font-bold uppercase tracking-wide"
+          style={{ color: OFERTA_COLORS.greenDark }}
+        >
+          Regalo por tu combo
+        </p>
+      </div>
+      {children}
+    </div>
+  );
 }
 
 export function ConfirmarEleccionModal({
@@ -72,9 +103,9 @@ export function ConfirmarEleccionModal({
       classNames={{
         wrapper: 'z-[101]',
         backdrop: 'z-[100] bg-black/50',
-        base: 'bg-[var(--surface,#fff)] rounded-2xl overflow-hidden',
-        body: 'bg-[var(--surface,#fff)] p-0',
-        footer: 'bg-[var(--surface,#fff)]',
+        base: 'bg-white rounded-[26px] overflow-hidden',
+        body: 'bg-white p-0',
+        footer: 'bg-white',
       }}
     >
       <ModalContent>
@@ -87,27 +118,30 @@ export function ConfirmarEleccionModal({
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                className="flex h-16 w-16 items-center justify-center rounded-full"
-                style={{ backgroundColor: `${APPROVED_GREEN}1a` }}
+                className="flex h-[66px] w-[66px] items-center justify-center rounded-full"
+                style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
               >
                 <motion.div
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.12, type: 'spring', stiffness: 300, damping: 16 }}
                 >
-                  <Check className="h-8 w-8" strokeWidth={3} style={{ color: APPROVED_GREEN }} />
+                  <Check className="h-[34px] w-[34px]" strokeWidth={3} style={{ color: OFERTA_COLORS.green }} />
                 </motion.div>
               </motion.div>
 
-              <h2 className="mt-4 font-['Baloo_2',_sans-serif] text-xl font-bold text-[var(--text-strong,#111827)]">
+              <h2 className="mt-4 font-['Baloo_2',_sans-serif] text-2xl font-extrabold" style={{ color: OFERTA_COLORS.textStrong }}>
                 ¡Listo!
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
                 Cambiamos tu equipo y tu solicitud quedó aprobada.
               </p>
 
               {equipo ? (
-                <div className="mt-5 flex w-full items-center gap-3 rounded-xl border border-[rgba(var(--color-primary-rgb),0.12)] bg-[rgba(var(--color-primary-rgb),0.04)] p-3 text-left">
+                <div
+                  className="mt-5 flex w-full items-center gap-3 rounded-2xl border p-3 text-left"
+                  style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
+                >
                   {equipo.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={equipo.imageUrl} alt={equipo.name} className="h-12 w-12 shrink-0 object-contain" />
@@ -115,14 +149,18 @@ export function ConfirmarEleccionModal({
                     <div className="h-12 w-12 shrink-0 rounded-lg bg-gray-200" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--text-strong,#111827)]">{equipo.name}</p>
+                    <p className="truncate font-['Baloo_2',_sans-serif] text-[13px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                      {equipo.name}
+                    </p>
                     {equipo.monthly ? (
-                      <p className="text-xs text-gray-500">
-                        <span className="font-semibold" style={{ color: APPROVED_GREEN }}>S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}</span>
+                      <p className="text-xs">
+                        <span className="font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+                          S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}
+                        </span>
                         {equipo.term ? (
-                          <span className="text-gray-400">
+                          <span style={{ color: OFERTA_COLORS.textSoft }}>
                             {' '}· en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
-                            {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
+                            {inicialText(equipo.initialAmount, equipo.initial)}
                           </span>
                         ) : null}
                       </p>
@@ -133,18 +171,22 @@ export function ConfirmarEleccionModal({
 
               {/* Desglose de accesorios/seguros elegidos (mismo que en la
                   confirmación) — para que el cliente vea qué sumó. */}
-              {addonsSlot ? <div className="mt-4 w-full text-left">{addonsSlot}</div> : null}
+              {addonsSlot ? <RegaloComboBox>{addonsSlot}</RegaloComboBox> : null}
 
-              <div className="mt-4 flex w-full items-start gap-2 rounded-xl bg-emerald-50 p-3 text-left text-xs text-emerald-800">
+              <div
+                className="mt-4 flex w-full items-start gap-2 rounded-[13px] p-3 text-left text-xs font-medium"
+                style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
+              >
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega.</span>
               </div>
 
               <Button
                 onPress={onSuccessContinue ?? onClose}
-                className="mt-5 w-full cursor-pointer font-bold text-white"
+                className="mt-5 w-full cursor-pointer font-['Baloo_2',_sans-serif] text-base font-bold text-white"
+                radius="lg"
                 endContent={<ArrowRight className="h-4 w-4" />}
-                style={{ backgroundColor: APPROVED_GREEN }}
+                style={{ backgroundColor: OFERTA_COLORS.green }}
               >
                 Continuar
               </Button>
@@ -153,69 +195,77 @@ export function ConfirmarEleccionModal({
         ) : (
           /* ------------------------- CONFIRMACIÓN ------------------------ */
           <>
-            {/* Header con fondo de marca (estilo "Detalle del Financiamiento") */}
-            <div className="flex items-center gap-3 bg-[var(--color-primary)] px-5 py-4">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/20">
-                <ShoppingBag className="h-4 w-4 text-white" />
+            {/* Header índigo (frame 1 del mock) */}
+            <div className="flex items-center gap-3 px-5 py-[22px]" style={{ backgroundColor: HEADER_INDIGO }}>
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.16]">
+                <ShoppingBag className="h-5 w-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-bold text-white">¿Confirmas tu elección?</h2>
-                <p className="text-xs text-white/60">Estás a un paso de elegir tu equipo</p>
+                <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold text-white">¿Confirmas tu elección?</h2>
+                <p className="text-[12.5px] text-white/85">Estás a un paso de elegir tu equipo</p>
               </div>
               <button
                 onClick={onClose}
                 disabled={loading}
-                className="flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/[0.18] transition-colors hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <X className="h-4 w-4 text-white" />
               </button>
             </div>
 
             <ModalBody>
-              <div className="px-5 py-4">
+              <div className="px-4 py-4">
                 {/* Resumen del equipo */}
                 {equipo ? (
-                  <div className="rounded-xl bg-[rgba(var(--color-primary-rgb),0.05)] p-4">
-                    <div className="flex items-center gap-4">
-                      {equipo.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={equipo.imageUrl} alt={equipo.name} className="h-16 w-16 shrink-0 object-contain" />
-                      ) : (
-                        <div className="h-16 w-16 shrink-0 rounded-lg bg-gray-200" />
-                      )}
-                      <div className="min-w-0">
-                        {equipo.brand ? (
-                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{equipo.brand}</p>
-                        ) : null}
-                        <p className="text-sm font-semibold text-[var(--text-strong,#111827)]">{equipo.name}</p>
-                      </div>
+                  <div className="flex items-center gap-4">
+                    {equipo.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={equipo.imageUrl} alt={equipo.name} className="h-[50px] w-[50px] shrink-0 object-contain" />
+                    ) : (
+                      <div className="h-[50px] w-[50px] shrink-0 rounded-lg bg-gray-200" />
+                    )}
+                    <div className="min-w-0">
+                      {equipo.brand ? (
+                        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
+                          {equipo.brand}
+                        </p>
+                      ) : null}
+                      <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                        {equipo.name}
+                      </p>
                     </div>
-
-                    {equipo.monthly ? (
-                      <div className="mt-4 flex items-center justify-between border-t border-[rgba(var(--color-primary-rgb),0.12)] pt-3">
-                        <div>
-                          <span className="text-sm text-[var(--text-muted,#4b5563)]">Cuota {equipo.paymentFrequency === 'semanal' ? 'semanal' : equipo.paymentFrequency === 'quincenal' ? 'quincenal' : 'mensual'}</span>
-                          {equipo.term ? (
-                            <p className="text-xs text-[var(--text-muted,#4b5563)]">
-                              en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
-                              {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
-                            </p>
-                          ) : null}
-                        </div>
-                        <span className="text-xl font-bold text-[var(--color-primary)]">
-                          S/{Math.round(equipo.monthly)}
-                          <span className="text-sm font-normal text-[var(--text-muted,#4b5563)]">{cuotaSuffix(equipo.paymentFrequency)}</span>
-                        </span>
-                      </div>
-                    ) : null}
                   </div>
                 ) : null}
 
-                {/* Accesorios/seguros que caben en la cuota (BAL-2064). */}
-                {addonsSlot ? <div className="mt-4">{addonsSlot}</div> : null}
+                {equipo?.monthly ? (
+                  <div className="mt-3.5 flex items-center justify-between border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
+                    <div>
+                      <span className="text-sm font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                        Cuota {equipo.paymentFrequency === 'semanal' ? 'semanal' : equipo.paymentFrequency === 'quincenal' ? 'quincenal' : 'mensual'}
+                      </span>
+                      {equipo.term ? (
+                        <p className="text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
+                          en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
+                          {inicialText(equipo.initialAmount, equipo.initial)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="font-['Baloo_2',_sans-serif] text-[25px] font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
+                      S/{Math.round(equipo.monthly)}
+                      <span className="text-sm font-normal" style={{ color: OFERTA_COLORS.textMid }}>{cuotaSuffix(equipo.paymentFrequency)}</span>
+                    </span>
+                  </div>
+                ) : null}
+
+                {/* Accesorios/seguros que caben en la cuota (BAL-2064), enmarcados
+                    como caja verde "Regalo por tu combo" acorde al mock. */}
+                {addonsSlot ? <RegaloComboBox>{addonsSlot}</RegaloComboBox> : null}
 
                 {/* Aviso (wording de Marco): qué pasa al aceptar */}
-                <div className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">
+                <div
+                  className="mt-4 flex items-start gap-2 rounded-xl p-3 text-sm font-medium"
+                  style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
+                >
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada.</span>
                 </div>
@@ -223,14 +273,21 @@ export function ConfirmarEleccionModal({
             </ModalBody>
 
             <ModalFooter>
-              <Button variant="bordered" onPress={onClose} isDisabled={loading} className="cursor-pointer">
+              <Button
+                variant="light"
+                onPress={onClose}
+                isDisabled={loading}
+                className="cursor-pointer font-['Baloo_2',_sans-serif] font-bold"
+                style={{ color: OFERTA_COLORS.textMid }}
+              >
                 Cancelar
               </Button>
               <Button
                 onPress={onConfirm}
                 isLoading={loading}
-                className="cursor-pointer font-bold text-white"
-                style={{ backgroundColor: 'var(--color-primary)' }}
+                radius="lg"
+                className="cursor-pointer font-['Baloo_2',_sans-serif] text-sm font-bold text-white"
+                style={{ backgroundColor: OFERTA_COLORS.primary }}
               >
                 {loading ? 'Procesando tu cambio…' : 'Sí, elegir este equipo'}
               </Button>
