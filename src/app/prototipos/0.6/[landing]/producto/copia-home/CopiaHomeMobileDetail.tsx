@@ -115,7 +115,12 @@ export function CopiaHomeMobileDetail({
   const product = apiData.product;
   const paymentPlans = apiData.paymentPlans ?? [];
 
-  const isRefurbished = isRefurbishedCondition(product.condition);
+  // El endpoint de detalle no siempre devuelve `condition`, pero el nombre de
+  // los seminuevos sí trae "Semi Nuevo". Detectamos por condición o por nombre
+  // para pintar las secciones de grados y condición.
+  const isRefurbished =
+    isRefurbishedCondition(product.condition) ||
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(`${product.name ?? ''} ${product.displayName ?? ''}`);
 
   // ---- Colores / galería ----
   const hasSiblings = !!(product.colorSiblings && product.colorSiblings.length > 1);
