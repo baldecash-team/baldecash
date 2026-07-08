@@ -46,6 +46,8 @@ const MODAL_CONFIG: Record<string, {
   coverageItems: string[];
   legalText?: string;
   conditionsText?: string;
+  moreInfoUrl?: string;
+  moreInfoLabel?: string;
 }> = {
   garantia_extendida: {
     icon: ShieldCheck,
@@ -60,6 +62,8 @@ const MODAL_CONFIG: Record<string, {
       'Gestión 100% digital sin papeleos',
     ],
     legalText: 'Baldecash podrá compartir los datos personales de sus clientes con Insurama Perú S.A.C. para fines de comercialización de productos de seguro.',
+    moreInfoUrl: 'https://baldecash.com/seguros',
+    moreInfoLabel: 'baldecash.com/seguros',
   },
   seguro_robo: {
     icon: Lock,
@@ -88,6 +92,8 @@ const MODAL_CONFIG: Record<string, {
       'Técnico a domicilio (pago aparte S/60)',
     ],
     conditionsText: 'Asistencia provista por A365. El "pago aparte" es un monto fijo reducido que asumes solo al usar ese servicio puntual (médico o técnico a domicilio). El resto de servicios no tiene pago extra.',
+    moreInfoUrl: 'https://baldecash.com/multiasistencia',
+    moreInfoLabel: 'baldecash.com/multiasistencia',
   },
 };
 
@@ -262,15 +268,15 @@ const ModalContentShared: React.FC<{
           </details>
         )}
 
-        {plan.insuranceType === 'garantia_extendida' && (
+        {config.moreInfoUrl && (
           <a
-            href="https://baldecash.com/seguros"
+            href={config.moreInfoUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
           >
             <ExternalLink className="w-3 h-3" />
-            baldecash.com/seguros
+            {config.moreInfoLabel ?? config.moreInfoUrl}
           </a>
         )}
       </div>
