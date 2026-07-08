@@ -283,7 +283,7 @@
 .srValBlue { color: var(--azul); }
 
 /* ---- CTA sticky ---- */
-.detalleCta { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--borde); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin: 16px -16px 0; }
+.detalleCta { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--borde); padding: 24px 16px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin: 16px -16px 0; }
 .detalleCta .price { flex: none; margin-top: 0; text-align: center; }
 .detalleCta .btnSolid {
   width: 100%;
