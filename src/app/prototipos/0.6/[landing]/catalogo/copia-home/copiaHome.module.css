@@ -30,7 +30,7 @@
 .root *{ box-sizing: border-box; }
 
 .scroll { padding: 16px 16px 96px; }
-.scrollDetalle { padding: 16px; }
+.scrollDetalle { padding: 16px 16px 120px; }
 
 .card {
   background: var(--card);

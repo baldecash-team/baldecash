@@ -395,6 +395,9 @@ function ProductDetailContent() {
             isAvailable={isAvailable}
             defaultTerm={defaultTerm ?? apiData.defaultTerm}
             defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+            defaultFrequency={defaultFrequency}
+            onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
+            isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
           />
         ) : (
         <ProductDetail
