@@ -116,6 +116,7 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/prototipos') ||
       pathname.startsWith('/sentry-example-page') ||
       pathname.startsWith('/seguros') ||
+      pathname.startsWith('/multiasistencia') ||
       pathname === '/robots.txt' ||
       pathname === '/sitemap.xml' ||
       pathname === '/favicon.ico'
