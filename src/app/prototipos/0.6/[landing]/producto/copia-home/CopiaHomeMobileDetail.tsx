@@ -223,6 +223,8 @@ export function CopiaHomeMobileDetail({
 
   // ---- "Lo quiero" canónico ----
   const proceedToSolicitar = useCallback(() => {
+    // Blindaje: Grado B/C (o equipo no disponible) NUNCA puede continuar.
+    if (!canBuy) return;
     const thumbnail = apiData.combo?.thumbnailUrl || galleryImages[0]?.url || product.images[0]?.url || '';
     const selected: SelectedProduct = {
       id: product.id,
@@ -256,7 +258,7 @@ export function CopiaHomeMobileDetail({
     } catch { /* localStorage no disponible */ }
     router.push(routes.solicitar(landing));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
+  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
 
   function getSpec(category: string, label: string): string | undefined {
     const cat = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
@@ -265,6 +267,8 @@ export function CopiaHomeMobileDetail({
   }
 
   const onLoQuiero = () => {
+    // Grado B/C o no disponible: sin compra (el CTA no se renderiza, pero por si acaso).
+    if (!canBuy) return;
     if (isRefurbished) { setShowRefurb(true); return; }
     proceedToSolicitar();
   };
