@@ -343,14 +343,18 @@ export function CopiaHomeMobileDetail({
               {initialPercents.length > 0 && (
                 <>
                   <div className={styles.calcLbl}>Cuota inicial (opcional)</div>
-                  <div className={styles.inicialPills}>
+                  <div className={styles.plazoGrid}>
                     {initialPercents.map((ip) => {
                       const opt = optionFor(term, ip);
-                      const label = ip === 0 ? 'Sin inicial' : `S/${Math.floor(opt?.initialAmount ?? 0)}`;
+                      const amount = Math.floor(opt?.initialAmount ?? 0);
+                      const on = ip === initialPercent;
                       return (
-                        <button key={ip} type="button" className={`${styles.pill} ${ip === initialPercent ? styles.pillOn : ''}`} onClick={() => setInitialPercent(ip)}>
-                          {label}
-                        </button>
+                        <div key={ip} className={`${styles.plazoCard} ${on ? styles.plazoCardOn : ''}`} onClick={() => setInitialPercent(ip)}>
+                          <div className={styles.plazoCheck}><Check size={12} strokeWidth={3} /></div>
+                          <div className={styles.pcMes}>{ip}%</div>
+                          <div className={styles.pcNum}>S/{amount}</div>
+                          <div className={styles.pcAl}>inicial</div>
+                        </div>
                       );
                     })}
                   </div>
