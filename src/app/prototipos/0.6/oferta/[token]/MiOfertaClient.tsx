@@ -329,7 +329,7 @@ export function MiOfertaClient({ token }: { token: string }) {
   const req = offer.requestedProduct;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#EDEEF3' }}>
+    <div className="min-h-screen bg-white">
       <OfertaHeader />
 
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-[18px] px-4 py-6 sm:px-6 lg:px-8">
