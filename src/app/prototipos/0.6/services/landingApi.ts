@@ -725,9 +725,9 @@ export function transformLandingData(data: LandingHeroResponse): {
     };
   }
 
-  // Extraer datos de how_it_works (null si el componente no existe)
+  // Extraer datos de how_it_works (null si el componente no existe o está oculto a nivel sección)
   let howItWorksData: HowItWorksData | null = null;
-  if (howItWorksComponent) {
+  if (howItWorksComponent && howItWorksComponent.is_visible !== false) {
     const howConfig = (howItWorksComponent.content_config || {}) as Record<string, unknown>;
 
     // Extraer título y subtítulo desde content_config
@@ -992,12 +992,17 @@ export function transformLandingData(data: LandingHeroResponse): {
     redirect_url: (rawLeadForm.redirect_url as string) || undefined,
     study_center_label: (rawLeadForm.study_center_label as string) || undefined,
     study_center_placeholder: (rawLeadForm.study_center_placeholder as string) || undefined,
+    two_columns: (rawLeadForm.two_columns as boolean) || false,
+    split_version: (rawLeadForm.split_version as boolean) || false,
+    split: (rawLeadForm.split as LeadFormConfig['split']) || undefined,
   } : null;
 
   // Extract lead products config from lead_products component (for lead landings)
   const leadProductsComponent = components.find(c => c.component_code === 'lead_products');
   const rawLeadProducts = (leadProductsComponent?.content_config || {}) as Record<string, unknown>;
-  const leadProductsConfig: LeadProductsConfig | null = leadProductsComponent ? {
+  // null si no existe el componente O si está oculto a nivel sección (is_visible=false).
+  // La landing lead sin componente lead_products no muestra el bloque "Próximamente".
+  const leadProductsConfig: LeadProductsConfig | null = (leadProductsComponent && leadProductsComponent.is_visible !== false) ? {
     title: (rawLeadProducts.title as string) ?? '',
     subtitle: (rawLeadProducts.subtitle as string) ?? '',
     product_ids: ((rawLeadProducts.product_ids as number[]) || []),

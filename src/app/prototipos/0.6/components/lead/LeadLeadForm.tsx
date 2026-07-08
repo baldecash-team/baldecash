@@ -16,6 +16,9 @@ interface LeadLeadFormProps {
   landing: string;
   studyCenters: StudyCenter[];
   primaryColor?: string;
+  secondaryColor?: string;
+  /** 'split' aplica el estilo de la versión simplificada (fieldsets/legends, consent en caja) */
+  variant?: 'default' | 'split';
   submittingRef?: React.MutableRefObject<boolean>;
 }
 
@@ -80,11 +83,16 @@ function errorKeyFor(field: LeadFormFieldConfig): string {
   return resolveCoreKey(field) ?? field.code;
 }
 
-/** El checkbox de consentimiento legal (grupo guardian, p.ej. code='consent_14') se mapea a
- * `accepts_terms`/`consent_text` top-level en el payload de captura — no va dentro de `fields`. */
+/** Consentimiento dinámico del form-config (p.ej. code='consent_14', declaración de edad/
+ * apoderado). Es ADICIONAL y distinto del TyC+Privacidad fijo: su valor y texto se guardan en
+ * `fields` (→ captured_data), mientras que `accepts_terms`/`consent_text` los aporta el TyC. */
 function isConsentField(field: LeadFormFieldConfig): boolean {
   return field.field_type === 'checkbox' && field.code.toLowerCase().includes('consent');
 }
+
+/** Texto legal del checkbox fijo de TyC + Privacidad; se registra como `consent_text`. */
+const TYC_CONSENT_TEXT =
+  'He leído y acepto los Términos y Condiciones y la Política de Privacidad';
 
 export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   config,
@@ -92,6 +100,8 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   landing,
   studyCenters,
   primaryColor = '#4654CD',
+  secondaryColor = '#03DBD0',
+  variant = 'default',
   submittingRef,
 }) => {
   const router = useRouter();
@@ -312,15 +322,15 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
 
   // Construye el body de POST /public/leads/capture según el contrato `LeadCaptureRequest`
   // de ws2: un set fijo de codes mapea a columnas top-level (first_name, last_name, phone,
-  // study_center_id, document_number) + accepts_terms/consent_text; TODO lo demás (grupo
-  // student/guardian, u otros codes no-core) va anidado en `fields{}` (→ captured_data).
+  // study_center_id, document_number); `accepts_terms`/`consent_text` provienen del checkbox
+  // fijo de TyC+Privacidad. TODO lo demás (grupo student/guardian, consentimientos dinámicos
+  // adicionales, u otros codes no-core) va anidado en `fields{}` (→ captured_data).
   // Sin campos extra/guardian (fallback legacy de 5 campos) esto produce el mismo body de
   // siempre, con `fields` ausente.
   const buildCapturePayload = (): Record<string, unknown> => {
     const fields: Record<string, unknown> = {};
     let phone = form.phone.trim();
     let documentNumber: string | undefined;
-    let consentField: LeadFormFieldConfig | undefined;
 
     for (const field of activeFields) {
       const coreKey = resolveCoreKey(field);
@@ -332,8 +342,10 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         continue;
       }
       if (isConsentField(field)) {
-        consentField = field;
-        continue; // se mapea a accepts_terms/consent_text, no va en `fields`
+        // Consentimiento ADICIONAL (distinto del TyC): su valor y texto van a captured_data.
+        fields[field.code] = getFieldValue(field) === true;
+        fields[`${field.code}_text`] = field.label;
+        continue;
       }
 
       const raw = extra[field.code];
@@ -363,12 +375,12 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       phone,
-      accepts_terms: consentField ? getFieldValue(consentField) === true : form.accepts_terms,
+      accepts_terms: form.accepts_terms,
+      consent_text: TYC_CONSENT_TEXT,
       accepts_marketing: form.accepts_marketing,
     };
     if (form.study_center_id) payload.study_center_id = parseInt(form.study_center_id, 10);
     if (documentNumber) payload.document_number = documentNumber;
-    if (consentField) payload.consent_text = consentField.label;
     if (Object.keys(fields).length > 0) payload.fields = fields;
     return payload;
   };
@@ -429,7 +441,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     const key = errorKeyFor(field);
     const err = errors[key];
     return (
-      <label key={field.code} className="flex items-start gap-2.5 cursor-pointer group">
+      <label key={field.code} className={`flex items-start gap-2.5 cursor-pointer group ${config.two_columns ? 'lg:col-span-2' : ''}`}>
         <div className="relative flex-shrink-0 mt-0.5">
           <input
             type="checkbox"
@@ -459,8 +471,62 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     );
   };
 
+  // TyC + Privacidad (obligatorio) y marketing (opcional) — mismo check SVG-box del form normal.
+  const renderTycConsent = () => (
+    <label className="flex items-start gap-2.5 cursor-pointer group">
+      <div className="relative flex-shrink-0 mt-0.5">
+        <input
+          type="checkbox"
+          checked={form.accepts_terms}
+          onChange={(e) => {
+            setForm((p) => ({ ...p, accepts_terms: e.target.checked }));
+            if (errors.accepts_terms) setErrors((p) => { const er = { ...p }; delete er.accepts_terms; return er; });
+          }}
+          className="sr-only"
+        />
+        <div
+          className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${form.accepts_terms ? 'border-transparent' : errors.accepts_terms ? 'border-[#ef4444] bg-white' : 'border-neutral-300 bg-white group-hover:border-neutral-400'}`}
+          style={form.accepts_terms ? { backgroundColor: primaryColor } : {}}
+        >
+          {form.accepts_terms && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M2 6l3 3 5-5" /></svg>
+          )}
+        </div>
+      </div>
+      <span className="text-xs text-neutral-600 leading-relaxed">
+        He leído y acepto los{' '}
+        <a href={`${APP_BASE_PATH}/${landing}/legal/terminos-y-condiciones`} target="_blank" rel="noopener noreferrer" className="underline font-medium hover:opacity-80" style={{ color: primaryColor }} onClick={(e) => e.stopPropagation()}>Términos y Condiciones</a>{' '}y la{' '}
+        <a href={`${APP_BASE_PATH}/${landing}/legal/politica-de-privacidad`} target="_blank" rel="noopener noreferrer" className="underline font-medium hover:opacity-80" style={{ color: primaryColor }} onClick={(e) => e.stopPropagation()}>Política de Privacidad</a>
+      </span>
+    </label>
+  );
+
+  const renderMarketingConsent = () => (
+    <label className="flex items-start gap-2.5 cursor-pointer group">
+      <div className="relative flex-shrink-0 mt-0.5">
+        <input
+          type="checkbox"
+          checked={form.accepts_marketing}
+          onChange={(e) => setForm((p) => ({ ...p, accepts_marketing: e.target.checked }))}
+          className="sr-only"
+        />
+        <div
+          className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${form.accepts_marketing ? 'border-transparent' : 'border-neutral-300 bg-white group-hover:border-neutral-400'}`}
+          style={form.accepts_marketing ? { backgroundColor: primaryColor } : {}}
+        >
+          {form.accepts_marketing && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M2 6l3 3 5-5" /></svg>
+          )}
+        </div>
+      </div>
+      <span className="text-xs text-neutral-500 leading-relaxed">Quiero recibir ofertas y promociones de BaldeCash</span>
+    </label>
+  );
+
   const renderField = (field: LeadFormFieldConfig) => {
     const isStudyCenter = field.options_source === 'study-centers' || field.code === 'institution';
+    // En modo split los inputs usan el estilo completo del wizard (no small/compact, con error visible).
+    const isSplit = variant === 'split';
 
     if (isStudyCenter) {
       const label = config.study_center_label ?? field.label;
@@ -474,8 +540,9 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           value={form.study_center_id}
           options={studyCenterOptions}
           error={errors.study_center_id}
-          small
-          hideErrorText={isDesktop}
+          small={!isSplit}
+          compact={!isSplit}
+          hideErrorText={isSplit ? false : isDesktop}
           onChange={(v) => {
             handleChange('study_center_id', v);
             handleBlur('study_center_id', v);
@@ -502,8 +569,9 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           value={value}
           options={field.options_static ?? []}
           error={errors[key]}
-          small
-          hideErrorText={isDesktop}
+          small={!isSplit}
+          compact={!isSplit}
+          hideErrorText={isSplit ? false : isDesktop}
           searchable={false}
           onChange={(v) => handleFieldChange(field, v)}
         />
@@ -522,8 +590,9 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           value={value}
           options={remoteOptions[field.code] ?? []}
           error={errors[key]}
-          small
-          hideErrorText={isDesktop}
+          small={!isSplit}
+          compact={!isSplit}
+          hideErrorText={isSplit ? false : isDesktop}
           searchable
           minSearchLength={field.min_search_length ?? 0}
           onSearch={(search) => handleGenericAutocompleteSearch(field, search)}
@@ -551,10 +620,10 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         value={value}
         inputMode={field.input_mode as React.HTMLAttributes<HTMLInputElement>['inputMode'] | undefined}
         maxLength={field.max_length ?? undefined}
-        showCounter={false}
-        compact
-        small
-        hideErrorText={isDesktop}
+        showCounter={isSplit && !!field.max_length}
+        compact={!isSplit}
+        small={!isSplit}
+        hideErrorText={isSplit ? false : isDesktop}
         error={errors[key]}
         onChange={(v) => handleFieldChange(field, isNumericInput ? v.replace(/\D/g, '') : v)}
         onBlur={() => handleFieldBlur(field, value)}
@@ -569,18 +638,106 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   const ungroupedFields = activeFields.filter((f) => !f.group);
   const hasGuardianGroup = guardianFields.length > 0;
 
+  // 2 columnas en pantallas no-mobile (lg+) cuando la landing lo configura (config.two_columns).
+  const twoCol = !!config.two_columns;
+  const groupGridCls = twoCol
+    ? 'grid grid-cols-1 lg:grid-cols-2 gap-x-3 gap-y-2'
+    : 'space-y-2';
+  const headerSpanCls = twoCol ? 'lg:col-span-2' : '';
+
   // Pantalla de éxito cuando el backend no envía redirect_url — reemplaza el form
   // completo, sin navegar ni mostrar el catálogo.
   if (success) {
+    const big = variant === 'split';
     return (
-      <div className="w-full flex flex-col items-center text-center gap-3 py-8">
+      <div className={`w-full flex flex-col items-center text-center ${big ? 'gap-6 py-20' : 'gap-3 py-8'}`}>
         <div
-          className="w-14 h-14 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: `${primaryColor}1A` }}
+          className={`rounded-full flex items-center justify-center ${big ? 'w-24 h-24' : 'w-14 h-14'}`}
+          style={{ backgroundColor: `${primaryColor}14` }}
         >
-          <CheckCircle2 className="w-8 h-8" style={{ color: primaryColor }} />
+          <CheckCircle2 className={big ? 'w-14 h-14' : 'w-8 h-8'} style={{ color: primaryColor }} strokeWidth={1.75} />
         </div>
-        <p className="text-neutral-700 text-sm leading-relaxed max-w-xs">{success}</p>
+        <p className={`font-['Asap',sans-serif] font-semibold text-[#131b2e] leading-relaxed ${big ? 'text-xl max-w-md' : 'text-sm text-neutral-700 max-w-xs'}`}>
+          {success}
+        </p>
+      </div>
+    );
+  }
+
+  // ── Versión simplificada "split": fieldsets con legend + consents al final ──
+  // Reutiliza handlers/estado/renderField del form; solo cambia el markup.
+  if (variant === 'split') {
+    const consentFields = activeFields.filter(isConsentField);
+    const studentNonConsent = [...studentFields, ...ungroupedFields.filter((f) => !isConsentField(f))];
+    const steps = config.split?.steps ?? [];
+    const legendCls = "font-['Asap',sans-serif] text-[13px] font-bold uppercase tracking-[0.09em] text-neutral-500 mb-5 pb-2 border-b border-neutral-100 w-full";
+    const rowGridCls = 'grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1';
+    return (
+      <div className="w-full relative">
+        {toast && (
+          <div className="fixed top-4 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+            <div className="bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+              <svg className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              {toast}
+            </div>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} noValidate className="w-full">
+          {fieldsLoading && (
+            <div className="space-y-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-11 rounded-lg bg-neutral-100 animate-pulse" />
+              ))}
+            </div>
+          )}
+          {!fieldsLoading && (
+            <>
+              <fieldset className="border-0 p-0 mb-9">
+                <legend className={legendCls}>
+                  {steps[0]?.title || 'Tus datos'}
+                </legend>
+                <div className={rowGridCls}>{studentNonConsent.map(renderField)}</div>
+              </fieldset>
+
+              {hasGuardianGroup && (
+                <fieldset className="border-0 p-0 mb-9">
+                  <legend className={legendCls}>
+                    {steps[1]?.title || 'Tu apoderado'}
+                  </legend>
+                  <div className={rowGridCls}>{guardianFields.map(renderField)}</div>
+                </fieldset>
+              )}
+
+              <fieldset className="border-0 p-0">
+                <legend className={legendCls}>
+                  {steps[2]?.title || 'Confirmación'}
+                </legend>
+
+                <div className="space-y-3">
+                  {consentFields.map(renderCheckboxField)}
+                  {renderTycConsent()}
+                  {renderMarketingConsent()}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  style={{ backgroundColor: primaryColor }}
+                  className="w-full h-12 mt-6 rounded-lg text-white font-semibold text-base flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (config.cta_text || 'Enviar registro')}
+                </button>
+              </fieldset>
+            </>
+          )}
+        </form>
       </div>
     );
   }
@@ -617,19 +774,21 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         {!fieldsLoading && (
           hasGuardianGroup ? (
             <>
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+              <div className={groupGridCls}>
+                <p className={`text-xs font-semibold text-neutral-500 uppercase tracking-wide ${headerSpanCls}`}>
                   Datos del estudiante
                 </p>
                 {[...studentFields, ...ungroupedFields].map(renderField)}
               </div>
-              <div className="space-y-2 pt-2">
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+              <div className={`${groupGridCls} pt-2`}>
+                <p className={`text-xs font-semibold text-neutral-500 uppercase tracking-wide ${headerSpanCls}`}>
                   Datos del apoderado
                 </p>
                 {guardianFields.map(renderField)}
               </div>
             </>
+          ) : twoCol ? (
+            <div className={groupGridCls}>{activeFields.map(renderField)}</div>
           ) : (
             activeFields.map(renderField)
           )
