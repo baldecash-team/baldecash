@@ -256,7 +256,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
               {/* Cuota total */}
               <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
                 <span className="font-['Baloo_2',_sans-serif] text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                  Cuota mensual total
+                  Cuota total
                 </span>
                 <span className="font-['Baloo_2',_sans-serif] text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
                   S/{Math.round(cuotaTotal)}<span className="text-sm font-normal" style={{ color: OFERTA_COLORS.textSoft }}>{cuotaSuffix(chosen.paymentFrequency)}</span>
