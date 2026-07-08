@@ -129,8 +129,11 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
     term: chosen.termMonths ?? chosen.term, initial: chosen.initial,
   };
 
-  const accesorios = chosen.accessories ?? [];
-  const seguros = chosen.insurances ?? [];
+  // Gratis primero, luego los de costo (orden estable dentro de cada grupo).
+  const gratisPrimero = <T extends { includedFree?: boolean }>(arr: T[]): T[] =>
+    [...arr].sort((a, b) => Number(b.includedFree ?? false) - Number(a.includedFree ?? false));
+  const accesorios = gratisPrimero(chosen.accessories ?? []);
+  const seguros = gratisPrimero(chosen.insurances ?? []);
   const tieneAddons = accesorios.length > 0 || seguros.length > 0;
   // Cuota total = equipo + accesorios + seguros (solo si hay add-ons).
   const cuotaTotal =
