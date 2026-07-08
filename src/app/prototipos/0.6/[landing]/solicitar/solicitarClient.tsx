@@ -59,16 +59,27 @@ interface CheckboxProps {
   id: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
-  label: string;
-  description: string;
+  label: React.ReactNode;
+  description: React.ReactNode;
   error?: string | null;
 }
 
+// Nota: se usa <div role="checkbox"> en vez de <button> porque el label puede
+// contener enlaces (<a>) a las páginas legales, y anidar <a> dentro de <button>
+// es HTML inválido. Los enlaces usan stopPropagation para no togglear el check.
 const Checkbox: React.FC<CheckboxProps> = ({ checked, onChange, label, description, error }) => (
   <div>
-    <button
-      type="button"
+    <div
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={0}
       onClick={() => onChange(!checked)}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
       className="flex items-start gap-3 w-full text-left cursor-pointer"
     >
       <div
@@ -89,7 +100,7 @@ const Checkbox: React.FC<CheckboxProps> = ({ checked, onChange, label, descripti
         <p className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-800'}`}>{label}</p>
         <p className="text-[11px] sm:text-xs text-neutral-500 mt-0.5 break-words">{description}</p>
       </div>
-    </button>
+    </div>
     {error && (
       <p className="text-xs text-red-500 mt-2 ml-9">{error}</p>
     )}
@@ -705,7 +716,20 @@ function WizardPreviewContent() {
                 setAcceptTerms(checked);
                 if (checked) setTermsError(null);
               }}
-              label="Acepto los términos y condiciones"
+              label={
+                <>
+                  Acepto los{' '}
+                  <a
+                    href={routes.legal(landing, 'terminos-y-condiciones')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="underline text-[var(--color-primary)] hover:opacity-80"
+                  >
+                    términos y condiciones
+                  </a>
+                </>
+              }
               description="He leído y acepto los términos de uso del servicio"
               error={termsError}
             />
@@ -716,7 +740,20 @@ function WizardPreviewContent() {
                 setAcceptPrivacy(checked);
                 if (checked) setPrivacyError(null);
               }}
-              label="Acepto la política de privacidad"
+              label={
+                <>
+                  Acepto la{' '}
+                  <a
+                    href={routes.legal(landing, 'politica-de-privacidad')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="underline text-[var(--color-primary)] hover:opacity-80"
+                  >
+                    política de privacidad
+                  </a>
+                </>
+              }
               description="He leído y acepto cómo se usan y protegen mis datos personales"
               error={privacyError}
             />

@@ -997,30 +997,30 @@ export function GamerSolicitarContent() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Términos - obligatorio */}
             <div>
-              <button type="button" onClick={() => { setAcceptTerms(!acceptTerms); if (!acceptTerms) setTermsError(false); }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+              <div role="checkbox" aria-checked={acceptTerms} tabIndex={0} onClick={() => { setAcceptTerms(!acceptTerms); if (!acceptTerms) setTermsError(false); }} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setAcceptTerms(!acceptTerms); if (!acceptTerms) setTermsError(false); } }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
                 <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${termsError && !acceptTerms ? T.neonCyan : (acceptTerms ? T.neonCyan : (isDark ? T.border : '#d1d5db'))}`, background: acceptTerms ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s', boxShadow: termsError && !acceptTerms ? `0 0 0 2px ${cyanAlpha(0.3)}` : 'none' }}>
                   {acceptTerms && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
                 </div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: termsError && !acceptTerms ? T.neonCyan : T.textPrimary }}>Acepto los términos y condiciones</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: termsError && !acceptTerms ? T.neonCyan : T.textPrimary }}>Acepto los <a href={routes.legal(landing, 'terminos-y-condiciones')} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: T.neonCyan, textDecoration: 'underline' }}>términos y condiciones</a></p>
                   <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto los términos de uso del servicio</p>
                 </div>
-              </button>
+              </div>
               {termsError && !acceptTerms && (
                 <p style={{ fontSize: 12, color: T.neonCyan, marginTop: 8, marginLeft: 36 }}>Debes aceptar los términos y condiciones para continuar</p>
               )}
             </div>
             {/* Privacidad - obligatorio */}
             <div>
-              <button type="button" onClick={() => { setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+              <div role="checkbox" aria-checked={acceptPrivacy} tabIndex={0} onClick={() => { setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); }} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); } }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
                 <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${privacyError && !acceptPrivacy ? T.neonCyan : (acceptPrivacy ? T.neonCyan : (isDark ? T.border : '#d1d5db'))}`, background: acceptPrivacy ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s', boxShadow: privacyError && !acceptPrivacy ? `0 0 0 2px ${cyanAlpha(0.3)}` : 'none' }}>
                   {acceptPrivacy && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
                 </div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: privacyError && !acceptPrivacy ? T.neonCyan : T.textPrimary }}>Acepto la política de privacidad</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: privacyError && !acceptPrivacy ? T.neonCyan : T.textPrimary }}>Acepto la <a href={routes.legal(landing, 'politica-de-privacidad')} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: T.neonCyan, textDecoration: 'underline' }}>política de privacidad</a></p>
                   <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto cómo se usan y protegen mis datos personales</p>
                 </div>
-              </button>
+              </div>
               {privacyError && !acceptPrivacy && (
                 <p style={{ fontSize: 12, color: T.neonCyan, marginTop: 8, marginLeft: 36 }}>Debes aceptar la política de privacidad para continuar</p>
               )}

@@ -10,6 +10,8 @@ const isProduction = APP_BASE_PATH === '';
  * Clave: pathname sin trailing slash. Valor: URL destino.
  */
 const LEGACY_REDIRECTS: Record<string, string> = {
+  '/terminos-y-condiciones': '/home/legal/terminos-y-condiciones',
+  '/politica-de-privacidad': '/home/legal/politica-de-privacidad',
   '/isat': 'https://beneficios.baldecash.com/isat',
   '/colegios': 'https://baldecash-colegios-financiamientos.lovable.app/',
   '/coar': 'https://baldecash-coar.lovable.app/',
@@ -116,6 +118,7 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/prototipos') ||
       pathname.startsWith('/sentry-example-page') ||
       pathname.startsWith('/seguros') ||
+      pathname.startsWith('/multiasistencia') ||
       pathname === '/robots.txt' ||
       pathname === '/sitemap.xml' ||
       pathname === '/favicon.ico'
