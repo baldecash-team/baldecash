@@ -52,10 +52,10 @@ const MOCK_OFFICES: PickupOffice[] = [
   {
     code: 'miraflores',
     name: 'BaldeCash Miraflores',
-    address: 'Av. Alfredo Benavides 1238, Miraflores 15047',
+    address: 'Avenida Alfredo Benavides 1238, Miraflores',
     district: 'Miraflores',
     maps_url:
-      'https://maps.google.com/?q=Av.+Alfredo+Benavides+1238,+Miraflores',
+      'https://maps.google.com/?q=Avenida+Alfredo+Benavides+1238,+Miraflores',
     note: 'Atención con previa cita. No disponible de 1:00 a 2:00 pm.',
     hours: (['mon', 'tue', 'wed', 'thu', 'fri'] as PickupDayCode[]).flatMap(
       (day) => [
