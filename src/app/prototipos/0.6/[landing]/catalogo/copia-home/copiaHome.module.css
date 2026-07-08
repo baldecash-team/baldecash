@@ -285,6 +285,27 @@
 .srVal { font-weight: 700; color: var(--navy); text-align: right; }
 .srValBlue { color: var(--azul); }
 
+/* ---- Especificaciones (grupos por categoría) ---- */
+.specGroup { margin-bottom: 16px; }
+.specGroup:last-child { margin-bottom: 0; }
+
+/* ---- Cronograma embebido: neutraliza el card propio del componente estándar
+   para que no se vea "card dentro de card" dentro del acordeón ---- */
+.cronoWrap > div { border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; background: transparent !important; }
+
+/* ---- Equipos reacondicionados (mini cards) ---- */
+.simList { display: flex; flex-direction: column; gap: 10px; }
+.simCard { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--borde); border-radius: 12px; padding: 10px; cursor: pointer; transition: 0.15s; }
+.simCard:active { transform: scale(0.99); background: var(--lavanda); }
+.simImg { width: 62px; height: 62px; flex: none; border-radius: 10px; background: #fff; border: 1px solid var(--borde); display: grid; place-items: center; overflow: hidden; }
+.simImg img { width: 100%; height: 100%; object-fit: contain; }
+.simBody { flex: 1; min-width: 0; }
+.simMarca { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
+.simName { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 14px; color: var(--navy); line-height: 1.2; margin: 2px 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.simQuota { font-size: 13px; font-weight: 800; color: var(--azul); }
+.simQuota span { font-size: 10px; font-weight: 600; color: var(--tenue); }
+.simChev { color: #c5c5d0; flex: none; transform: rotate(-90deg); }
+
 /* ---- CTA sticky ---- */
 .detalleCta { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--borde); padding: 24px 16px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin: 16px -16px 0; }
 .detalleCta .price { flex: none; margin-top: 0; text-align: center; }

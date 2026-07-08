@@ -16,7 +16,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ShieldCheck, BadgeCheck, Package,
-  Check, Battery, Monitor, Star, RefreshCw, Heart,
+  Check, Battery, Monitor, Star, RefreshCw, Heart, Cpu, Calendar,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -24,6 +24,8 @@ import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/c
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
+import { Cronograma } from '../components/detail/cronograma/Cronograma';
+import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
@@ -134,6 +136,12 @@ export function CopiaHomeMobileDetail({
   const initialPercent = pricingSel?.initialPercent ?? (defaultInitialPercent ?? 0);
   const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
   const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
+  const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
+
+  // Specs reales del equipo y otros seminuevos (para las nuevas secciones colapsables).
+  const specCategories = product.specs ?? [];
+  const hasSpecs = specCategories.some((c) => c.specs && c.specs.length > 0);
+  const similares = apiData.similarProducts ?? [];
 
   // ---- Acordeones ----
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -340,6 +348,25 @@ export function CopiaHomeMobileDetail({
           </Acc>
         )}
 
+        {/* Especificaciones (colapsable, minimizado por defecto) */}
+        {hasSpecs && (
+          <Acc title="Especificaciones" sub="Ficha técnica completa del equipo" icon={<Cpu size={20} />} isOpen={!!open.specs} onToggle={() => toggle('specs')}>
+            {specCategories.filter((c) => c.specs && c.specs.length > 0).map((cat) => (
+              <div key={cat.category} className={styles.specGroup}>
+                <div className={styles.rcSublbl}>{cat.category}</div>
+                <div className={styles.specRows}>
+                  {cat.specs.map((s, i) => (
+                    <div key={i} className={styles.specRow}>
+                      <span className={styles.srLbl}>{s.label}</span>
+                      <span className={styles.srVal}>{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Acc>
+        )}
+
         {canBuy ? (
           <>
             {/* Qué incluye */}
@@ -367,6 +394,25 @@ export function CopiaHomeMobileDetail({
                 onSelectionChange={setPricingSel}
               />
             </div>
+
+            {/* Cronograma de pagos (colapsable, minimizado por defecto) */}
+            {paymentPlans.length > 0 && (
+              <Acc title="Cronograma de pagos" sub="Detalle de tus cuotas según el plan elegido" icon={<Calendar size={20} />} isOpen={!!open.cronograma} onToggle={() => toggle('cronograma')}>
+                <div className={styles.cronoWrap}>
+                  <Cronograma
+                    paymentPlans={paymentPlans}
+                    selectedTerm={term}
+                    selectedInitialPercent={initialPercent as 0 | 10 | 20 | 30}
+                    paymentFrequency={paymentFrequency}
+                    productId={product.id}
+                    productName={product.displayName}
+                    productBrand={product.brand}
+                    productPrice={product.price}
+                    version={1}
+                  />
+                </div>
+              </Acc>
+            )}
 
             {/* Condición (solo reacondicionado) */}
             {isRefurbished && (
@@ -423,6 +469,30 @@ export function CopiaHomeMobileDetail({
                 : 'Este equipo no está disponible por el momento.'}
             </div>
           </div>
+        )}
+
+        {/* Equipos reacondicionados (colapsable, minimizado por defecto) */}
+        {similares.length > 0 && (
+          <Acc title="Equipos reacondicionados" sub="Otros seminuevos que podrían interesarte" icon={<RefreshCw size={20} />} isOpen={!!open.similares} onToggle={() => toggle('similares')}>
+            <div className={styles.simList}>
+              {similares.map((sp) => (
+                <div key={sp.id} className={styles.simCard} onClick={() => router.push(routes.producto(landing, sp.slug))}>
+                  <div className={styles.simImg}>
+                    {(sp.images?.[0]?.url || sp.thumbnail) && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={sp.images?.[0]?.url || sp.thumbnail} alt={sp.displayName} />
+                    )}
+                  </div>
+                  <div className={styles.simBody}>
+                    <div className={styles.simMarca}>{sp.brand}</div>
+                    <div className={styles.simName}>{sp.displayName}</div>
+                    <div className={styles.simQuota}>Desde S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}<span> /mes</span></div>
+                  </div>
+                  <ChevronDown className={styles.simChev} size={18} />
+                </div>
+              ))}
+            </div>
+          </Acc>
         )}
       </div>
 
