@@ -14,6 +14,7 @@ import { FaqSection } from '../hero/FaqSection';
 import { Footer } from '../hero/Footer';
 import { LeadHeroBanner } from './LeadHeroBanner';
 import { LeadLeadForm } from './LeadLeadForm';
+import { LeadLandingSplit } from './LeadLandingSplit';
 import { LeadProductsSection } from './LeadProductsSection';
 import { markLeadLanding, getLeadId } from '../../hooks/useLeadGuard';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -166,6 +167,23 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
     return () => observer.disconnect();
   }, [tracker]);
 
+  // Versión simplificada "split": reemplaza toda la landing por el layout enfocado.
+  // Default (sin split_version) → render normal intacto abajo.
+  if (leadFormConfig?.split_version) {
+    return (
+      <LeadLandingSplit
+        landingId={landingId}
+        landing={landing}
+        config={leadFormConfig}
+        studyCenters={studyCenters}
+        logoUrl={logoUrl}
+        primaryColor={primaryColor}
+        secondaryColor={secondaryColor}
+        submittingRef={sharedSubmittingRef}
+      />
+    );
+  }
+
   if (isRegistered === null) return (
     <div className="min-h-screen flex flex-col">
       <Navbar
@@ -218,14 +236,16 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
                 contained
               />
             </section>
-            <LeadProductsSection
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-              config={leadProductsConfig}
-              landing={landing}
-              onCtaClick={handleProductCta}
-              contained
-            />
+            {leadProductsConfig && (
+              <LeadProductsSection
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                config={leadProductsConfig}
+                landing={landing}
+                onCtaClick={handleProductCta}
+                contained
+              />
+            )}
             {howItWorksData && (
               <section id="como-funciona" data-section="como-funciona" className="scroll-mt-24">
                 <HowItWorks data={howItWorksData} underlineStyle={UNDERLINE_STYLE} />
@@ -240,8 +260,8 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
         ) : (
           /* Sin registrar: layout 70/30 con formulario sticky */
           <div className="hidden lg:flex flex-row">
-            {/* Columna izquierda 70% */}
-            <div className="w-[70%] min-w-0 flex flex-col">
+            {/* Columna izquierda — se angosta a 50% si el form va en 2 columnas */}
+            <div className={`${formConfig?.two_columns ? 'w-1/2' : 'w-[70%]'} min-w-0 flex flex-col`}>
               <section id="hero" className="relative w-full" style={{ height: 'calc(100svh - var(--header-total-height, 6.5rem))' }}>
                 <div className="absolute inset-0" style={{ width: '100vw' }}>
                   <LeadHeroBanner
@@ -253,18 +273,20 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
                   />
                 </div>
               </section>
-              <div className="relative" style={{ height: '100svh' }}>
-                <div className="absolute inset-0" style={{ width: '100vw', backgroundColor: primaryColor || '#4247d2' }} />
-                <div className="relative z-10 h-full">
-                  <LeadProductsSection
-                    primaryColor={primaryColor}
-                    secondaryColor={secondaryColor}
-                    config={leadProductsConfig}
-                    landing={landing}
-                    onCtaClick={handleProductCta}
-                  />
+              {leadProductsConfig && (
+                <div className="relative" style={{ height: '100svh' }}>
+                  <div className="absolute inset-0" style={{ width: '100vw', backgroundColor: primaryColor || '#4247d2' }} />
+                  <div className="relative z-10 h-full">
+                    <LeadProductsSection
+                      primaryColor={primaryColor}
+                      secondaryColor={secondaryColor}
+                      config={leadProductsConfig}
+                      landing={landing}
+                      onCtaClick={handleProductCta}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
               {howItWorksData && (
                 <section id="como-funciona" data-section="como-funciona" className="scroll-mt-24">
                   <HowItWorks data={howItWorksData} underlineStyle={UNDERLINE_STYLE} />
@@ -276,8 +298,8 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
                 </section>
               )}
             </div>
-            {/* Columna derecha 30% — formulario sticky */}
-            <div className="w-[30%] flex-shrink-0 relative z-10">
+            {/* Columna derecha — formulario sticky; 50% si el form va en 2 columnas */}
+            <div className={`${formConfig?.two_columns ? 'w-1/2' : 'w-[30%]'} flex-shrink-0 relative z-10`}>
               <div
                 className="sticky flex flex-col justify-center px-6 xl:px-10 py-8"
                 style={{ top: `calc(var(--header-total-height, 6.5rem) + ${previewBannerOffset}px)` }}
@@ -348,16 +370,18 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
             </div>
           )}
 
-          <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column' }}>
-            <LeadProductsSection
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-              config={leadProductsConfig}
-              landing={landing}
-              sectionId="productos-mobile"
-              onCtaClick={handleProductCta}
-            />
-          </div>
+          {leadProductsConfig && (
+            <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column' }}>
+              <LeadProductsSection
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                config={leadProductsConfig}
+                landing={landing}
+                sectionId="productos-mobile"
+                onCtaClick={handleProductCta}
+              />
+            </div>
+          )}
 
           {howItWorksData && (
             <section id="como-funciona-mobile" data-section="como-funciona" className="scroll-mt-24">

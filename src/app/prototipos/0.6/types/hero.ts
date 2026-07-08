@@ -525,6 +525,17 @@ export interface LeadFormConfig {
   study_center_label?: string;
   study_center_placeholder?: string;
   fields?: LeadFormFieldConfig[];
+  /** Renderiza el form en 2 columnas en pantallas no-mobile (lg+) */
+  two_columns?: boolean;
+  /** Versión simplificada "split" (panel lateral + form). Default false → landing normal. */
+  split_version?: boolean;
+  /** Config del panel lateral del split (solo se usa si split_version=true) */
+  split?: {
+    headline?: string;
+    description?: string;
+    steps?: { title: string; subtitle: string }[];
+    foot_text?: string;
+  };
 }
 
 export interface LeadProductsConfig {
