@@ -252,8 +252,10 @@ export function CopiaHomeMobileDetail({
       <div className={styles.scrollDetalle}>
         {/* Galería */}
         <div className={styles.card}>
-          {isRefurbished && <span className={styles.detalleMarca} style={{ background: '#03DBD0', color: '#04413e' }}>Seminuevo</span>}
-          <span className={styles.detalleMarca}>{product.brand}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+            <span className={styles.detalleMarca} style={{ marginBottom: 0 }}>{product.brand}</span>
+            {isRefurbished && <span className={styles.detalleMarca} style={{ marginBottom: 0, background: '#03DBD0', color: '#04413e' }}>Seminuevo</span>}
+          </div>
           <div className={styles.detalleTitulo}>{product.displayName}</div>
           {displayColors.length > 0 && (
             <>
