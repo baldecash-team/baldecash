@@ -303,9 +303,11 @@ export function CopiaHomeMobileCatalog() {
                 <div className={styles.prodH}>
                   <div className={styles.prodLeft}>
                     <div className={styles.prodImg} onClick={() => goDetalle(p)}>
-                      {(p.thumbnail || p.images?.[0]) ? (
+                      {(p.images?.[0] || p.thumbnail) ? (
+                        // Preferir images[0] (galería, como desktop): los thumbnail_url
+                        // (_thumb.webp) devuelven 403 en varios equipos.
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.thumbnail || p.images[0]} alt={p.displayName} />
+                        <img src={p.images?.[0] || p.thumbnail} alt={p.displayName} />
                       ) : null}
                     </div>
                     <div className={styles.price}>
@@ -318,11 +320,14 @@ export function CopiaHomeMobileCatalog() {
                     <div className={styles.prodMarca}>{p.brand}</div>
                     <div className={styles.prodTitulo} onClick={() => goDetalle(p)}>{p.displayName}</div>
                     {p.colors && p.colors.length > 0 && (
-                      <div className={styles.swatches}>
-                        {p.colors.slice(0, 5).map((c, i) => (
-                          <span key={i} className={styles.swatch} style={{ background: c.hex }} />
-                        ))}
-                      </div>
+                      <>
+                        <div className={styles.coloresLbl}>Colores disponibles:</div>
+                        <div className={styles.swatches}>
+                          {p.colors.slice(0, 5).map((c, i) => (
+                            <span key={i} className={styles.swatch} style={{ background: c.hex }} />
+                          ))}
+                        </div>
+                      </>
                     )}
                     <div className={styles.specs}>
                       {specs.map((s, i) => (
