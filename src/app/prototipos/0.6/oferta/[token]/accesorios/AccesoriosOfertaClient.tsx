@@ -40,6 +40,8 @@ import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+/** Verde de "incluido gratis" (BAL-2159), mismo tono que SeleccionConfirmada. */
+const APPROVED_GREEN = '#16a34a';
 
 /** localStorage: persiste la selección de add-ons por token + variante, para
  *  sobrevivir un refresh o ida/vuelta sin perder lo elegido. Se limpia al
@@ -130,6 +132,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [maxQuota, setMaxQuota] = useState<number | null>(null);
   const [selectedAcc, setSelectedAcc] = useState<string[]>([]);
   const [selectedIns, setSelectedIns] = useState<string[]>([]);
+  // Regalos del combo elegido (BAL-2159): accesorios/seguros incluidos gratis,
+  // no cuentan en la cuota ni se pueden deseleccionar. Se pintan aparte, con
+  // etiqueta "Incluido gratis".
+  const [comboFree, setComboFree] = useState<{ accessories: { id: string; name: string }[]; insurances: { id: string; name: string }[] }>({ accessories: [], insurances: [] });
   const [confirming, setConfirming] = useState(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   // Modal de confirmación (siempre, con desglose de add-ons).
@@ -194,7 +200,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           insuranceIds: selectedIns.map(Number),
           term: selTerm,
           initial: selInitial,
-        });
+        }, selection.comboId);
         if (!active) return;
         setAccessories(res.accessories);
         setInsurances(res.insurances);
@@ -202,6 +208,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setEquipoInitialAmount(res.equipoInitialAmount);
         setEquipoFrequency(res.equipoFrequency);
         setEquipoTerm(res.equipoTerm);
+        setComboFree(res.comboFreeAddons ?? { accessories: [], insurances: [] });
         // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
@@ -243,12 +250,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         insuranceIds: selectedIns.map(Number),
         term: nextTerm,
         initial: nextInitial,
-      });
+      }, comboId);
       setAccessories(res.accessories);
       setInsurances(res.insurances);
       setEquipoMonthly(res.equipoMonthly);
       setEquipoInitialAmount(res.equipoInitialAmount);
       setEquipoFrequency(res.equipoFrequency);
+      setComboFree(res.comboFreeAddons ?? { accessories: [], insurances: [] });
       // Lo que ya no cabe con el nuevo plazo/inicial se deselecciona.
       const accOk = new Set(res.accessories.map((a) => a.id));
       const insOk = new Set(res.insurances.map((p) => p.id));
@@ -384,43 +392,75 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const addonsResumen = useMemo(() => {
     const accSel = accessories.filter((a) => selectedAcc.includes(a.id));
     const insSel = insurances.filter((p) => selectedIns.includes(p.id));
-    if (accSel.length === 0 && insSel.length === 0) {
+    const hayRegalos = comboFree.accessories.length > 0 || comboFree.insurances.length > 0;
+    if (accSel.length === 0 && insSel.length === 0 && !hayRegalos) {
       return (
         <p className="text-center text-sm text-neutral-400">Sin accesorios ni seguros adicionales.</p>
       );
     }
     return (
-      <div className="rounded-xl border border-neutral-200 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Sumas a tu equipo</p>
-        <ul className="space-y-2">
-          {accSel.map((a) => (
-            <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
-              <span className="flex min-w-0 items-center gap-2 text-neutral-600">
-                <Package className="h-4 w-4 shrink-0 text-neutral-400" />
-                <span className="truncate">{a.name}</span>
-              </span>
-              <span className="shrink-0 text-neutral-500">+S/{Math.round(a.monthlyQuota || 0)}{cuotaSuffix(equipoFrequency)}</span>
-            </li>
-          ))}
-          {insSel.map((p) => (
-            <li key={`i-${p.id}`} className="flex items-center justify-between gap-3 text-sm">
-              <span className="flex min-w-0 items-center gap-2 text-neutral-600">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-neutral-400" />
-                <span className="truncate">{p.name}</span>
-              </span>
-              <span className="shrink-0 text-neutral-500">+S/{Math.round(p.monthlyPrice || 0)}{cuotaSuffix(equipoFrequency)}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-2 flex items-center justify-between border-t border-neutral-200 pt-2">
-          <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
-          <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>
-            S/{Math.round(totalMonthly)}{cuotaSuffix(equipoFrequency)}
-          </span>
+      <div className="space-y-3">
+        {hayRegalos ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">Regalo por tu combo</p>
+            <ul className="space-y-2">
+              {comboFree.accessories.map((a) => (
+                <li key={`cf-a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-neutral-700">
+                    <Package className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span className="truncate">{a.name}</span>
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
+                </li>
+              ))}
+              {comboFree.insurances.map((s) => (
+                <li key={`cf-i-${s.id}`} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-neutral-700">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span className="truncate">{s.name}</span>
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {accSel.length > 0 || insSel.length > 0 ? (
+          <div className="rounded-xl border border-neutral-200 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Sumas a tu equipo</p>
+            <ul className="space-y-2">
+              {accSel.map((a) => (
+                <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-neutral-600">
+                    <Package className="h-4 w-4 shrink-0 text-neutral-400" />
+                    <span className="truncate">{a.name}</span>
+                  </span>
+                  <span className="shrink-0 text-neutral-500">+S/{Math.round(a.monthlyQuota || 0)}{cuotaSuffix(equipoFrequency)}</span>
+                </li>
+              ))}
+              {insSel.map((p) => (
+                <li key={`i-${p.id}`} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-neutral-600">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-neutral-400" />
+                    <span className="truncate">{p.name}</span>
+                  </span>
+                  <span className="shrink-0 text-neutral-500">+S/{Math.round(p.monthlyPrice || 0)}{cuotaSuffix(equipoFrequency)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <div className="rounded-xl border border-neutral-200 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
+            <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>
+              S/{Math.round(totalMonthly)}{cuotaSuffix(equipoFrequency)}
+            </span>
+          </div>
         </div>
       </div>
     );
-  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly]);
+  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency]);
 
   if (loading) {
     return (

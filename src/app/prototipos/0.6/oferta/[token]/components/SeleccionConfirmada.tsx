@@ -30,6 +30,8 @@ export interface AddonResumen {
   id: string;
   name: string;
   monthly: number;
+  /** Regalo incluido gratis por el combo elegido (BAL-2159). */
+  includedFree?: boolean;
 }
 
 export interface ChosenSummary {
@@ -197,7 +199,11 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                     <Package className="h-4 w-4 shrink-0 text-gray-400" />
                     <span className="truncate">{a.name}</span>
                   </span>
-                  <span className="shrink-0 text-gray-500">+S/{Math.round(a.monthly)}/mes</span>
+                  {a.includedFree ? (
+                    <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
+                  ) : (
+                    <span className="shrink-0 text-gray-500">+S/{Math.round(a.monthly)}/mes</span>
+                  )}
                 </li>
               ))}
               {/* Seguros */}
@@ -207,7 +213,11 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                     <ShieldCheck className="h-4 w-4 shrink-0 text-gray-400" />
                     <span className="truncate">{i.name}</span>
                   </span>
-                  <span className="shrink-0 text-gray-500">+S/{Math.round(i.monthly)}/mes</span>
+                  {i.includedFree ? (
+                    <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
+                  ) : (
+                    <span className="shrink-0 text-gray-500">+S/{Math.round(i.monthly)}/mes</span>
+                  )}
                 </li>
               ))}
             </ul>
