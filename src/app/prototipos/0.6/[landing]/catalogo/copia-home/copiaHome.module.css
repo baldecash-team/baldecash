@@ -105,7 +105,7 @@
 }
 .prodImg img { width: 100%; height: 100%; object-fit: contain; }
 .prodLeft .price { margin-top: auto; }
-.prodRight { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-top: 4px; }
+.prodRight { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-top: 12px; }
 .prodMarca { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
 .prodTitulo {
   font-family: 'Baloo 2', var(--font-baloo), sans-serif;
@@ -118,13 +118,14 @@
 .spec { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #5b5c6b; min-width: 0; }
 .spec svg { color: var(--azul); flex: none; }
 .spec span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.price { background: var(--lavanda); border-radius: 12px; padding: 10px 12px; margin-top: 10px; text-align: center; }
+.price { background: var(--lavanda); border-radius: 12px; padding: 9px 8px 10px; margin-top: 10px; text-align: center; }
+.priceLbl { font-size: 8.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--azul); opacity: 0.7; margin-bottom: 3px; }
 .priceNum {
   font-family: 'Baloo 2', var(--font-baloo), sans-serif;
-  font-weight: 800; font-size: 20px; color: var(--azul); line-height: 1; white-space: nowrap;
+  font-weight: 800; font-size: 21px; color: var(--azul); line-height: 1; white-space: nowrap;
 }
-.priceNum span { font-size: 12px; font-weight: 600; }
-.priceSub { font-size: 9.5px; color: var(--tenue); margin-top: 4px; line-height: 1.3; }
+.priceNum span { font-size: 11px; font-weight: 600; }
+.priceSub { font-size: 9.5px; color: var(--tenue); margin-top: 5px; line-height: 1.3; }
 .btns { display: flex; gap: 8px; margin-top: auto; }
 .btn {
   border-radius: 11px; font-weight: 600; font-size: 14.5px; cursor: pointer;
@@ -191,23 +192,29 @@
 .ciVal { font-size: 12px; color: var(--tenue); margin-top: 1px; }
 
 /* ---- Calc cuota ---- */
-.calcLbl { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
+.calcLbl { font-size: 12.5px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
 .inicialPills { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-.pill { border: none; border-radius: 22px; padding: 10px 18px; font-weight: 600; font-size: 13.5px; cursor: pointer; background: #efeff3; color: #5b5c6b; }
-.pillOn { background: var(--azul); color: #fff; }
+.pill { border: 1.5px solid var(--borde); border-radius: 22px; padding: 9px 16px; font-weight: 600; font-size: 13px; cursor: pointer; background: var(--card); color: #5b5c6b; transition: 0.15s; }
+.pill:active { transform: scale(0.97); }
+.pillOn { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 3px 10px rgba(70, 84, 205, 0.22); }
 .plazoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.plazoCard { border: 1.5px solid var(--borde); border-radius: 14px; padding: 16px 10px; text-align: center; cursor: pointer; position: relative; background: var(--card); }
+.plazoCard { border: 1.5px solid var(--borde); border-radius: 14px; padding: 14px 10px; text-align: center; cursor: pointer; position: relative; background: var(--card); transition: 0.15s; }
+.plazoCard:active { transform: scale(0.98); }
 .pcMes { font-size: 12.5px; color: var(--tenue); line-height: 1.25; }
 .pcNum { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 800; font-size: 22px; color: var(--azul); margin: 8px 0 2px; }
 .pcAl { font-size: 11px; color: var(--tenue); }
-.plazoCardOn { background: var(--azul); border-color: var(--azul); }
+.plazoCardOn { background: var(--azul); border-color: var(--azul); box-shadow: 0 6px 16px rgba(70, 84, 205, 0.25); }
 .plazoCardOn .pcMes, .plazoCardOn .pcNum, .plazoCardOn .pcAl { color: #fff; }
 .plazoCheck { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; background: var(--verde); border-radius: 50%; display: none; place-items: center; color: #fff; border: 2px solid #fff; }
 .plazoCardOn .plazoCheck { display: grid; }
-.calcSummary { background: var(--lavanda); border-radius: 14px; padding: 20px; text-align: center; }
-.csLbl { font-size: 13px; color: var(--tenue); }
-.csNum { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 800; font-size: 34px; color: var(--azul); line-height: 1.1; margin: 4px 0; }
-.csDur { font-size: 13px; color: var(--tenue); }
+.calcSummary { background: var(--lavanda); border-radius: 14px; padding: 18px 16px; text-align: center; }
+.csLbl { font-size: 11px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
+.csNum { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 800; font-size: 34px; color: var(--azul); line-height: 1.1; margin: 4px 0 0; }
+.csNum span { font-size: 16px; font-weight: 700; }
+.csBreak { display: flex; gap: 8px; margin-top: 14px; }
+.csItem { flex: 1; background: var(--card); border-radius: 10px; padding: 9px 6px; }
+.csItemLbl { font-size: 9.5px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.3px; font-weight: 700; }
+.csItemVal { font-size: 13px; font-weight: 700; color: var(--navy); margin-top: 3px; }
 
 /* ---- Entrega / recojo ---- */
 .entregaOpt { display: flex; gap: 12px; align-items: flex-start; border: 1.5px solid var(--borde); border-radius: 12px; padding: 15px; cursor: pointer; margin-bottom: 10px; }
@@ -278,7 +285,7 @@
 /* ---- CTA sticky ---- */
 .detalleCta { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--borde); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin: 16px -16px 0; }
 .detalleCta .price { flex: none; margin-top: 0; text-align: center; }
-.detalleCta .btnSolid { height: 48px; font-size: 15px; width: 100%; }
+.detalleCta .btnSolid { height: 56px; font-size: 16px; width: 100%; }
 .noDisp { background: #f7f7fa; border: 1.5px dashed #d3d3dd; border-radius: 14px; padding: 22px; text-align: center; margin-bottom: 16px; }
 .ndT { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 17px; color: #9a9aa8; }
 .ndS { font-size: 12.5px; color: var(--tenue); margin-top: 6px; }

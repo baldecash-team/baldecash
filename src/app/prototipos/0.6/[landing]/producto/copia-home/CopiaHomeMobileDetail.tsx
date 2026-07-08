@@ -18,7 +18,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ShieldCheck, BadgeCheck, Package, Truck, Store, Calendar, Clock,
-  Check, Battery, Monitor, Star, RefreshCw, Cpu, Sunrise, Sunset, CalendarCheck,
+  Check, Battery, Monitor, Star, RefreshCw, Cpu, CalendarCheck,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -418,8 +418,21 @@ export function CopiaHomeMobileDetail({
               </div>
               <div className={styles.calcSummary}>
                 <div className={styles.csLbl}>Tu cuota mensual</div>
-                <div className={styles.csNum}>S/{monthlyQuota}/mes</div>
-                <div className={styles.csDur}>durante {term} meses{initialAmount ? ` · inicial S/${initialAmount}` : ''}</div>
+                <div className={styles.csNum}>S/{monthlyQuota}<span>/mes</span></div>
+                <div className={styles.csBreak}>
+                  <div className={styles.csItem}>
+                    <div className={styles.csItemLbl}>Precio</div>
+                    <div className={styles.csItemVal}>S/{Math.floor(product.price)}</div>
+                  </div>
+                  <div className={styles.csItem}>
+                    <div className={styles.csItemLbl}>Inicial</div>
+                    <div className={styles.csItemVal}>{initialAmount ? `S/${initialAmount}` : 'Sin inicial'}</div>
+                  </div>
+                  <div className={styles.csItem}>
+                    <div className={styles.csItemLbl}>Plazo</div>
+                    <div className={styles.csItemVal}>{term} meses</div>
+                  </div>
+                </div>
               </div>
             </Acc>
 
@@ -465,11 +478,11 @@ export function CopiaHomeMobileDetail({
                   </div>
                   <div className={styles.rcSublbl}>Horario</div>
                   {[
-                    { label: 'Mañana', icon: <Sunrise size={14} />, items: morningSlots },
-                    { label: 'Tarde', icon: <Sunset size={14} />, items: afternoonSlots },
+                    { label: 'Mañana', items: morningSlots },
+                    { label: 'Tarde', items: afternoonSlots },
                   ].filter((g) => g.items.length > 0).map((g) => (
                     <div key={g.label} className={styles.horaGroup}>
-                      <div className={styles.horaGroupHead}>{g.icon}{g.label}</div>
+                      <div className={styles.horaGroupHead}>{g.label}</div>
                       <div className={styles.horaGrid}>
                         {g.items.map((h) => (
                           <button key={h} type="button" className={`${styles.hora} ${h === pickupSlot ? styles.horaOn : ''}`} onClick={() => setPickupSlot(h)}>
