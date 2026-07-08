@@ -10,25 +10,20 @@
  * Reglas de negocio:
  *  - Grados A/B/C SOLO para reacondicionados. Solo el Grado A es comprable;
  *    B y C se muestran pero renderizan "No disponible" (sin CTA "Lo quiero").
- *  - Recojo en oficina: selector inline de día + horario, alimentado por
- *    services/pickupApi (endpoint público con fallback mock).
+ *  - Método de entrega: bloque informativo (texto), sin agendado de recojo.
  */
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
-  ChevronDown, ShieldCheck, BadgeCheck, Package, Truck, Store, Calendar, Clock,
-  Check, Battery, Monitor, Star, RefreshCw, Cpu, Sunrise, Sunset, CalendarCheck,
+  ChevronDown, ShieldCheck, BadgeCheck, Package, Truck,
+  Check, Battery, Monitor, Star, RefreshCw, Cpu,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ProductDetailResult } from '../api/productDetailApi';
-import {
-  fetchPickupOffices, availableDays, hourlySlotsForDay, formatSlotLabel,
-  PICKUP_DAY_LABEL, type PickupOffice, type PickupDayCode,
-} from '@/app/prototipos/0.6/services/pickupApi';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -46,30 +41,6 @@ const GRADES: Record<GradeKey, GradeInfo> = {
   B: { bateria: '85-90%', aspecto: '7/10', condicion: '9/10', reemplazo: 'Componentes menores', disponible: false },
   C: { bateria: '80-85%', aspecto: '6/10', condicion: '8/10', reemplazo: 'Batería / pantalla', disponible: false },
 };
-
-// Nombre largo del día para la confirmación de la cita de recojo.
-const DAY_LONG: Record<PickupDayCode, string> = {
-  mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves',
-  fri: 'Viernes', sat: 'Sábado', sun: 'Domingo',
-};
-
-const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const DAY_OFFSET: Record<PickupDayCode, number> = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
-
-/**
- * Fecha concreta para cada día de la semana en curso. Si hoy es sábado o
- * domingo, se corre a la siguiente semana (no hay recojo el fin de semana).
- */
-function computeWeekDates(base: Date): Record<PickupDayCode, Date> {
-  const dow = base.getDay(); // 0=Dom … 6=Sáb
-  const toMonday = dow === 0 ? 1 : dow === 6 ? 2 : 1 - dow;
-  const monday = new Date(base.getFullYear(), base.getMonth(), base.getDate() + toMonday);
-  const out = {} as Record<PickupDayCode, Date>;
-  (Object.keys(DAY_OFFSET) as PickupDayCode[]).forEach((d) => {
-    out[d] = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + DAY_OFFSET[d]);
-  });
-  return out;
-}
 
 /** Acordeón (top-level para no remontar en cada render del detalle). */
 function Acc({
@@ -115,7 +86,12 @@ export function CopiaHomeMobileDetail({
   const product = apiData.product;
   const paymentPlans = apiData.paymentPlans ?? [];
 
-  const isRefurbished = isRefurbishedCondition(product.condition);
+  // El endpoint de detalle no siempre devuelve `condition`, pero el nombre de
+  // los seminuevos sí trae "Semi Nuevo". Detectamos por condición o por nombre
+  // para pintar las secciones de grados y condición.
+  const isRefurbished =
+    isRefurbishedCondition(product.condition) ||
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(`${product.name ?? ''} ${product.displayName ?? ''}`);
 
   // ---- Colores / galería ----
   const hasSiblings = !!(product.colorSiblings && product.colorSiblings.length > 1);
@@ -170,32 +146,6 @@ export function CopiaHomeMobileDetail({
   const monthlyQuota = Math.floor(selectedOption?.monthlyQuota ?? product.lowestQuota ?? 0);
   const initialAmount = Math.floor(selectedOption?.initialAmount ?? 0);
 
-  // ---- Entrega / recojo ----
-  const [entrega, setEntrega] = useState<'domicilio' | 'oficina'>('domicilio');
-  const [offices, setOffices] = useState<PickupOffice[]>([]);
-  const office = offices[0] ?? null;
-  const days = office ? availableDays(office) : [];
-  const [pickupDay, setPickupDay] = useState<PickupDayCode>('mon');
-  const slots = office ? hourlySlotsForDay(office, pickupDay) : [];
-  const morningSlots = slots.filter((h) => parseInt(h, 10) < 13);
-  const afternoonSlots = slots.filter((h) => parseInt(h, 10) >= 13);
-  // Fecha real de cada día (semana en curso; fin de semana → siguiente semana).
-  const dayDates = useMemo(() => computeWeekDates(new Date()), []);
-  const [pickupSlot, setPickupSlot] = useState<string>('10:00');
-
-  useEffect(() => {
-    let alive = true;
-    fetchPickupOffices().then((data) => {
-      if (!alive) return;
-      setOffices(data);
-      const d = data[0] ? availableDays(data[0]) : [];
-      if (d.length) setPickupDay(d[0]);
-      const s = data[0] ? hourlySlotsForDay(data[0], d[0]) : [];
-      if (s.length) setPickupSlot(s[0]);
-    });
-    return () => { alive = false; };
-  }, []);
-
   // ---- Acordeones ----
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -218,6 +168,8 @@ export function CopiaHomeMobileDetail({
 
   // ---- "Lo quiero" canónico ----
   const proceedToSolicitar = useCallback(() => {
+    // Blindaje: Grado B/C (o equipo no disponible) NUNCA puede continuar.
+    if (!canBuy) return;
     const thumbnail = apiData.combo?.thumbnailUrl || galleryImages[0]?.url || product.images[0]?.url || '';
     const selected: SelectedProduct = {
       id: product.id,
@@ -251,7 +203,7 @@ export function CopiaHomeMobileDetail({
     } catch { /* localStorage no disponible */ }
     router.push(routes.solicitar(landing));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
+  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
 
   function getSpec(category: string, label: string): string | undefined {
     const cat = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
@@ -260,6 +212,8 @@ export function CopiaHomeMobileDetail({
   }
 
   const onLoQuiero = () => {
+    // Grado B/C o no disponible: sin compra (el CTA no se renderiza, pero por si acaso).
+    if (!canBuy) return;
     if (isRefurbished) { setShowRefurb(true); return; }
     proceedToSolicitar();
   };
@@ -418,82 +372,37 @@ export function CopiaHomeMobileDetail({
               </div>
               <div className={styles.calcSummary}>
                 <div className={styles.csLbl}>Tu cuota mensual</div>
-                <div className={styles.csNum}>S/{monthlyQuota}/mes</div>
-                <div className={styles.csDur}>durante {term} meses{initialAmount ? ` · inicial S/${initialAmount}` : ''}</div>
+                <div className={styles.csNum}>S/{monthlyQuota}<span>/mes</span></div>
+                <div className={styles.csBreak}>
+                  <div className={styles.csItem}>
+                    <div className={styles.csItemLbl}>Precio</div>
+                    <div className={styles.csItemVal}>S/{Math.floor(product.price)}</div>
+                  </div>
+                  <div className={styles.csItem}>
+                    <div className={styles.csItemLbl}>Inicial</div>
+                    <div className={styles.csItemVal}>{initialAmount ? `S/${initialAmount}` : 'Sin inicial'}</div>
+                  </div>
+                  <div className={styles.csItem}>
+                    <div className={styles.csItemLbl}>Plazo</div>
+                    <div className={styles.csItemVal}>{term} meses</div>
+                  </div>
+                </div>
               </div>
             </Acc>
 
-            {/* Método de entrega + recojo inline */}
-            <Acc title="Método de entrega" sub="Elige cómo quieres recibir tu equipo" icon={<Truck size={20} />} isOpen={!!open.entrega} onToggle={() => toggle('entrega')}>
-              <div className={`${styles.entregaOpt} ${entrega === 'domicilio' ? styles.entregaOptOn : ''}`} onClick={() => setEntrega('domicilio')}>
-                <span className={styles.entregaRadio} />
-                <span className={styles.entregaIco}><Truck size={22} /></span>
+            {/* Método de entrega (informativo) */}
+            <div className={styles.card}>
+              <div className={styles.condHead}>
+                <span className={styles.accIco}><Truck size={20} /></span>
                 <div>
-                  <div className={styles.entregaTitle}>Envío a domicilio</div>
-                  <div className={styles.entregaDesc}>Lima: 3 - 5 días hábiles. Provincia: 5 - 9 días hábiles.</div>
+                  <div className={styles.secTitle} style={{ margin: 0 }}>Método de entrega</div>
+                  <div className={styles.accSub}>Cómo recibes tu equipo</div>
                 </div>
               </div>
-              <div className={`${styles.entregaOpt} ${entrega === 'oficina' ? styles.entregaOptOn : ''}`} onClick={() => setEntrega('oficina')}>
-                <span className={styles.entregaRadio} />
-                <span className={styles.entregaIco}><Store size={22} /></span>
-                <div>
-                  <div className={styles.entregaTitle}>{office?.name ?? 'Recojo en oficina BaldeCash'}</div>
-                  <div className={styles.entregaDesc}>{office?.address ?? ''}{office?.note ? ` · ${office.note}` : ''}</div>
-                </div>
-              </div>
-
-              {entrega === 'oficina' && office && (
-                <div className={styles.recojoCita}>
-                  <div className={styles.rcHead}><Calendar size={18} />Elige el día y horario para tu recojo</div>
-                  <div className={styles.rcSublbl}>Día</div>
-                  <div className={styles.dias}>
-                    {days.map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        className={`${styles.dia} ${d === pickupDay ? styles.diaOn : ''}`}
-                        onClick={() => {
-                          setPickupDay(d);
-                          const s = hourlySlotsForDay(office, d);
-                          if (s.length && !s.includes(pickupSlot)) setPickupSlot(s[0]);
-                        }}
-                      >
-                        <span className={styles.diaLbl}>{PICKUP_DAY_LABEL[d]}</span>
-                        <span className={styles.diaNum}>{dayDates[d].getDate()}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.rcSublbl}>Horario</div>
-                  {[
-                    { label: 'Mañana', icon: <Sunrise size={14} />, items: morningSlots },
-                    { label: 'Tarde', icon: <Sunset size={14} />, items: afternoonSlots },
-                  ].filter((g) => g.items.length > 0).map((g) => (
-                    <div key={g.label} className={styles.horaGroup}>
-                      <div className={styles.horaGroupHead}>{g.icon}{g.label}</div>
-                      <div className={styles.horaGrid}>
-                        {g.items.map((h) => (
-                          <button key={h} type="button" className={`${styles.hora} ${h === pickupSlot ? styles.horaOn : ''}`} onClick={() => setPickupSlot(h)}>
-                            {formatSlotLabel(h)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <div className={styles.rcConfirm}>
-                    <span className={styles.rcConfirmIco}><CalendarCheck size={20} /></span>
-                    <div>
-                      <div className={styles.rcConfirmLbl}>Tu cita de recojo</div>
-                      <div className={styles.rcConfirmVal}>
-                        {DAY_LONG[pickupDay]} {dayDates[pickupDay].getDate()} {MONTH_SHORT[dayDates[pickupDay].getMonth()]} · {formatSlotLabel(pickupSlot)}
-                      </div>
-                    </div>
-                  </div>
-                  {office.note && (
-                    <div className={styles.rcNote}><Clock size={13} />{office.note}</div>
-                  )}
-                </div>
-              )}
-            </Acc>
+              <p className={styles.descText} style={{ marginTop: 0 }}>
+                Envío a domicilio a todo el Perú (Lima: 3 - 5 días hábiles; provincia: 5 - 9 días hábiles) o recojo en nuestra oficina de <b>Avenida Alfredo Benavides 1238, Miraflores</b>. Coordinamos la fecha y hora de entrega contigo luego de tu solicitud.
+              </p>
+            </div>
 
             {/* Condición (solo reacondicionado) */}
             {isRefurbished && (

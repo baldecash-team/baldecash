@@ -309,6 +309,7 @@ export function CopiaHomeMobileCatalog() {
                       ) : null}
                     </div>
                     <div className={styles.price}>
+                      <div className={styles.priceLbl}>Cuota mensual</div>
                       <div className={styles.priceNum}>S/{Math.round(p.quotaMonthly)} <span>/mes</span></div>
                       <div className={styles.priceSub}>{p.maxTermMonths} meses · sin inicial</div>
                     </div>
