@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Package, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Package, ShieldCheck, Gift, CheckCircle2 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -42,9 +42,6 @@ import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
 import { CuotaStickyBar } from './redesign/CuotaStickyBar';
 import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
 import { AccesorioDetalleSheet } from './redesign/AccesorioDetalleSheet';
-
-/** Verde de "incluido gratis" (BAL-2159), mismo tono que SeleccionConfirmada. */
-const APPROVED_GREEN = '#16a34a';
 
 /** localStorage: persiste la selección de add-ons por token + variante, para
  *  sobrevivir un refresh o ida/vuelta sin perder lo elegido. Se limpia al
@@ -336,79 +333,88 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     }
   }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
 
-  // Slot de desglose de add-ons para el modal (equipo + accesorios + seguros).
+  // Slot de desglose para el modal: "Tu pedido incluye" = equipo + regalos del
+  // combo (gratis) + accesorios/seguros elegidos (+S/) + UNA cuota total.
+  // Feedback Emilio: (1) sin doble "cuota mensual/total" — solo la total aquí;
+  // (2) "regalo por tu combo" solo aplica a lo incluido gratis; lo elegido se
+  // muestra con su costo (+S/). El equipo va como primera línea del desglose.
   const addonsResumen = useMemo(() => {
     const accSel = accessories.filter((a) => selectedAcc.includes(a.id));
     const insSel = insurances.filter((p) => selectedIns.includes(p.id));
     const hayRegalos = comboFree.accessories.length > 0 || comboFree.insurances.length > 0;
-    if (accSel.length === 0 && insSel.length === 0 && !hayRegalos) {
-      return (
-        <p className="text-center text-sm text-neutral-400">Sin accesorios ni seguros adicionales.</p>
-      );
-    }
+    const suf = cuotaSuffix(equipoFrequency);
     return (
-      <div className="space-y-3">
-        {hayRegalos ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">Regalo por tu combo</p>
-            <ul className="space-y-2">
-              {comboFree.accessories.map((a) => (
-                <li key={`cf-a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                    <Package className="h-4 w-4 shrink-0 text-emerald-500" />
-                    <span className="truncate">{a.name}</span>
-                  </span>
-                  <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
-                </li>
-              ))}
-              {comboFree.insurances.map((s) => (
-                <li key={`cf-i-${s.id}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2 text-neutral-700">
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
-                    <span className="truncate">{s.name}</span>
-                  </span>
-                  <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {accSel.length > 0 || insSel.length > 0 ? (
-          <div className="rounded-xl border border-neutral-200 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Sumas a tu equipo</p>
-            <ul className="space-y-2">
-              {accSel.map((a) => (
-                <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2 text-neutral-600">
-                    <Package className="h-4 w-4 shrink-0 text-neutral-400" />
-                    <span className="truncate">{a.name}</span>
-                  </span>
-                  <span className="shrink-0 text-neutral-500">+S/{Math.round(a.monthlyQuota || 0)}{cuotaSuffix(equipoFrequency)}</span>
-                </li>
-              ))}
-              {insSel.map((p) => (
-                <li key={`i-${p.id}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2 text-neutral-600">
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-neutral-400" />
-                    <span className="truncate">{p.name}</span>
-                  </span>
-                  <span className="shrink-0 text-neutral-500">+S/{Math.round(p.monthlyPrice || 0)}{cuotaSuffix(equipoFrequency)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        <div className="rounded-xl border border-neutral-200 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
-            <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>
-              S/{Math.round(totalMonthly)}{cuotaSuffix(equipoFrequency)}
+      <div>
+        <p className="mb-2.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: OFERTA_COLORS.tealBrand }}>
+          Tu pedido incluye
+        </p>
+        <ul className="space-y-2.5">
+          {/* Equipo (primera línea del desglose) */}
+          <li className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textStrong }}>
+              <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+              <span className="min-w-0 truncate font-medium">{equipoInfo?.name ?? 'Tu equipo'}</span>
             </span>
-          </div>
+            <span className="shrink-0 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+              S/{Math.round(equipoMonthly)}{suf}
+            </span>
+          </li>
+          {/* Regalos del combo (incluido gratis) */}
+          {comboFree.accessories.map((a) => (
+            <li key={`cf-a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                <Gift className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+                <span className="truncate">{a.name}</span>
+              </span>
+              <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
+            </li>
+          ))}
+          {comboFree.insurances.map((s) => (
+            <li key={`cf-i-${s.id}`} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                <Gift className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+                <span className="truncate">{s.name}</span>
+              </span>
+              <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
+            </li>
+          ))}
+          {/* Accesorios/seguros elegidos (con su costo) */}
+          {accSel.map((a) => (
+            <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.textSoft }} />
+                <span className="truncate">{a.name}</span>
+              </span>
+              <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(a.monthlyQuota || 0)}{suf}</span>
+            </li>
+          ))}
+          {insSel.map((p) => (
+            <li key={`i-${p.id}`} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.textSoft }} />
+                <span className="truncate">{p.name}</span>
+              </span>
+              <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(p.monthlyPrice || 0)}{suf}</span>
+            </li>
+          ))}
+        </ul>
+        {/* Cuota total (única cuota del modal) */}
+        <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
+          <span className="font-['Baloo_2',_sans-serif] text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+            Cuota total
+          </span>
+          <span className="font-['Baloo_2',_sans-serif] text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
+            S/{Math.round(totalMonthly)}{suf}
+          </span>
         </div>
+        {!hayRegalos && accSel.length === 0 && insSel.length === 0 ? (
+          <p className="mt-2 text-center text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
+            Puedes sumar accesorios o seguros antes de confirmar.
+          </p>
+        ) : null}
       </div>
     );
-  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency]);
+  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency, equipoInfo, equipoMonthly]);
 
   // Accesorio recomendado (destacado arriba, BAL-2185): el primero del listado.
   const recomendado = accessories.length > 0 ? accessories[0] : null;

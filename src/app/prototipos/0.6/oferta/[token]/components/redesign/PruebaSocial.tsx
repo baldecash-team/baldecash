@@ -17,7 +17,7 @@ interface PruebaSocialProps {
 }
 
 export function PruebaSocial({
-  texto = '+5,000 estudiantes ya recibieron su equipo',
+  texto = '+15,000 estudiantes ya recibieron su equipo',
 }: PruebaSocialProps) {
   return (
     <div

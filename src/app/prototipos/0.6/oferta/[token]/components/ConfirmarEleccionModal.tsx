@@ -18,7 +18,7 @@
 import type { ReactNode } from 'react';
 import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, X, CheckCircle2, ArrowRight, Check, Gift } from 'lucide-react';
+import { ShoppingBag, X, CheckCircle2, ArrowRight, Check } from 'lucide-react';
 import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 
@@ -40,25 +40,16 @@ export interface EquipoAConfirmar {
   paymentFrequency?: string;
 }
 
-/** Caja verde "Regalo por tu combo": envoltorio visual reusado en ambos
- *  estados (confirmación/éxito) para el `addonsSlot` que pasa el caller. El
- *  contenido interno del slot es opaco (viene de AccesoriosOfertaClient) —
- *  aquí solo lo enmarcamos acorde al mock, sin tocar su lógica. */
-function RegaloComboBox({ children }: { children: ReactNode }) {
+/** Caja "Tu pedido incluye": envoltorio neutro reusado en ambos estados
+ *  (confirmación/éxito) para el `addonsSlot` que pasa el caller. El contenido
+ *  ya distingue regalos del combo (gratis) de lo elegido (+S/) y trae su propia
+ *  cuota total — aquí solo lo enmarcamos, sin duplicar montos ni etiquetas. */
+function PedidoBox({ children }: { children: ReactNode }) {
   return (
     <div
-      className="mt-4 rounded-2xl p-3.5"
-      style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+      className="mt-4 rounded-2xl border p-3.5"
+      style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
     >
-      <div className="mb-2 flex items-center gap-1.5">
-        <Gift className="h-3.5 w-3.5" style={{ color: OFERTA_COLORS.greenDark }} />
-        <p
-          className="text-[10px] font-bold uppercase tracking-wide"
-          style={{ color: OFERTA_COLORS.greenDark }}
-        >
-          Regalo por tu combo
-        </p>
-      </div>
       {children}
     </div>
   );
@@ -152,7 +143,9 @@ export function ConfirmarEleccionModal({
                     <p className="truncate font-['Baloo_2',_sans-serif] text-[13px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                       {equipo.name}
                     </p>
-                    {equipo.monthly ? (
+                    {/* Cuota del equipo: solo cuando NO hay desglose de pedido
+                        (ese ya trae la cuota total y duplicarla es redundante). */}
+                    {equipo.monthly && !addonsSlot ? (
                       <p className="text-xs">
                         <span className="font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
                           S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}
@@ -164,14 +157,19 @@ export function ConfirmarEleccionModal({
                           </span>
                         ) : null}
                       </p>
+                    ) : equipo.term ? (
+                      <p className="text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
+                        en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
+                        {inicialText(equipo.initialAmount, equipo.initial)}
+                      </p>
                     ) : null}
                   </div>
                 </div>
               ) : null}
 
-              {/* Desglose de accesorios/seguros elegidos (mismo que en la
-                  confirmación) — para que el cliente vea qué sumó. */}
-              {addonsSlot ? <RegaloComboBox>{addonsSlot}</RegaloComboBox> : null}
+              {/* Desglose "Tu pedido incluye" (equipo + regalos + elegidos +
+                  cuota total). Trae su propia cuota — no duplicar arriba. */}
+              {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
 
               <div
                 className="mt-4 flex w-full items-start gap-2 rounded-[13px] p-3 text-left text-xs font-medium"
@@ -237,7 +235,10 @@ export function ConfirmarEleccionModal({
                   </div>
                 ) : null}
 
-                {equipo?.monthly ? (
+                {/* Fila de cuota del equipo: solo cuando NO hay desglose de
+                    pedido. Con addonsSlot, la cuota total va DENTRO del desglose
+                    y mostrar aquí "cuota mensual" además sería redundante. */}
+                {equipo?.monthly && !addonsSlot ? (
                   <div className="mt-3.5 flex items-center justify-between border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
                     <div>
                       <span className="text-sm font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
@@ -257,9 +258,9 @@ export function ConfirmarEleccionModal({
                   </div>
                 ) : null}
 
-                {/* Accesorios/seguros que caben en la cuota (BAL-2064), enmarcados
-                    como caja verde "Regalo por tu combo" acorde al mock. */}
-                {addonsSlot ? <RegaloComboBox>{addonsSlot}</RegaloComboBox> : null}
+                {/* Desglose "Tu pedido incluye": equipo + regalos del combo
+                    (gratis) + elegidos (+S/) + UNA cuota total. */}
+                {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
 
                 {/* Aviso (wording de Marco): qué pasa al aceptar */}
                 <div

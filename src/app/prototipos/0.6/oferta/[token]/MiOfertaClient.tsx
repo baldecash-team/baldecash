@@ -29,11 +29,12 @@ import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionC
 import { saveOfferSelection, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
 import { OfertaHeader } from './components/redesign/OfertaHeader';
-import { MontoHero } from './components/redesign/MontoHero';
+import { MontoAprobadoBar } from './components/redesign/MontoAprobadoBar';
 import { BadgeAprobada } from './components/redesign/BadgeAprobada';
 import { PruebaSocial } from './components/redesign/PruebaSocial';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/redesign/EquipoRecomendadoCard';
 import { OpcionBarra } from './components/redesign/OpcionBarra';
+import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { AvisoDowngrade } from './components/redesign/AvisoDowngrade';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 
@@ -346,7 +347,10 @@ export function MiOfertaClient({ token }: { token: string }) {
           <BadgeAprobada />
         </div>
 
-        <MontoHero monto={offer.maxMonthlyQuota} />
+        <MontoAprobadoBar
+          aprobado={offer.maxMonthlyQuota}
+          usado={req?.monthly_price ?? null}
+        />
 
         <div className="font-['Baloo_2',_sans-serif] text-[17px] font-bold">
           ¡Estás aprobado! Elige cómo continuar
@@ -356,36 +360,34 @@ export function MiOfertaClient({ token }: { token: string }) {
 
         {offer.offerCase === 'upsell' ? (
           <>
-            {exclusivaInfo ? (
-              <EquipoRecomendadoCard
-                equipo={exclusivaInfo}
-                tone="indigo"
-                badgeText="Aprovecha tu monto"
-                ctaText="Lo quiero"
-                onElegir={handleAceptarExclusiva}
-              />
-            ) : null}
-
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
-              <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
-                ¿prefieres otra cosa?
-              </span>
-              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
-            </div>
-
+            {/* Orden por prioridad (feedback Emilio):
+                1. Añadir accesorios (recomendado) → acepta el mejor equipo + va a accesorios.
+                2. Cambiar de equipo → catálogo aprobado.
+                3. Mantener mi equipo → sigue con el que pidió + accesorios. */}
             <OpcionBarra
-              icono={<Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
-              titulo="Continuar con mi equipo"
-              subtitulo={req?.name ?? undefined}
-              cuota={req?.monthly_price != null ? `S/${Math.round(req.monthly_price)}/mes` : undefined}
-              onClick={handleContinuarMiEquipo}
+              destacada
+              icono={<IconoAccesorios size={50} />}
+              titulo="Añadir accesorios"
+              subtitulo={
+                exclusivaInfo?.name
+                  ? `Suma extras a tu ${exclusivaInfo.name}`
+                  : 'Suma extras a tu equipo aprobado'
+              }
+              cuota={exclusivaInfo?.monthly != null ? `S/${Math.round(exclusivaInfo.monthly)}/mes` : undefined}
+              onClick={handleAceptarExclusiva}
             />
             <OpcionBarra
               icono={<LayoutGrid className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
-              titulo="Ver catálogo"
+              titulo="Cambiar de equipo"
               subtitulo="Explora el catálogo aprobado"
               onClick={goToCatalogo}
+            />
+            <OpcionBarra
+              icono={<Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              titulo="Mantener mi equipo"
+              subtitulo={req?.name ?? undefined}
+              cuota={req?.monthly_price != null ? `S/${Math.round(req.monthly_price)}/mes` : undefined}
+              onClick={handleContinuarMiEquipo}
             />
           </>
         ) : (

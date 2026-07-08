@@ -15,7 +15,6 @@ import { ProductCard } from '../../../[landing]/catalogo/components/catalog/card
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../../../[landing]/catalogo/components/catalog/LoadMoreButton';
 import { SearchDrawer } from '../../../[landing]/catalogo/components/catalog/SearchDrawer';
-import { BlipChat } from '../../../components/BlipChat';
 import type {
   CatalogProduct,
   FilterState,
@@ -396,11 +395,6 @@ export function CatalogoOfertaTab({
         fetchSuggestions={fetchOfferSuggestions}
         onSelectSuggestion={goToOfferDetail}
       />
-
-      {/* Chat con Blip — igual que el catálogo regular. Botón flotante nativo
-          visible (ya no hay popover de ayuda propio de la oferta que lo abra).
-          Emite webchat_open/close (EventTracker ya montado en el layout). */}
-      <BlipChat buttonColor="#4654CD" />
     </>
   );
 }
