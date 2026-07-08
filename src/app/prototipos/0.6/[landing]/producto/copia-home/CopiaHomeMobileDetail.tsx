@@ -18,7 +18,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ShieldCheck, BadgeCheck, Package, Truck, Store, Calendar, Clock,
-  Check, Battery, Monitor, Star, RefreshCw, Cpu,
+  Check, Battery, Monitor, Star, RefreshCw, Cpu, Sunrise, Sunset, CalendarCheck,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -45,6 +45,12 @@ const GRADES: Record<GradeKey, GradeInfo> = {
   A: { bateria: '80-90%', aspecto: '9/10', condicion: '10/10', reemplazo: 'Ninguno', disponible: true },
   B: { bateria: '85-90%', aspecto: '7/10', condicion: '9/10', reemplazo: 'Componentes menores', disponible: false },
   C: { bateria: '80-85%', aspecto: '6/10', condicion: '8/10', reemplazo: 'Batería / pantalla', disponible: false },
+};
+
+// Nombre largo del día para la confirmación de la cita de recojo.
+const DAY_LONG: Record<PickupDayCode, string> = {
+  mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves',
+  fri: 'Viernes', sat: 'Sábado', sun: 'Domingo',
 };
 
 /** Acordeón (top-level para no remontar en cada render del detalle). */
@@ -153,6 +159,8 @@ export function CopiaHomeMobileDetail({
   const days = office ? availableDays(office) : [];
   const [pickupDay, setPickupDay] = useState<PickupDayCode>('mon');
   const slots = office ? hourlySlotsForDay(office, pickupDay) : [];
+  const morningSlots = slots.filter((h) => parseInt(h, 10) < 13);
+  const afternoonSlots = slots.filter((h) => parseInt(h, 10) >= 13);
   const [pickupSlot, setPickupSlot] = useState<string>('10:00');
 
   useEffect(() => {
@@ -435,17 +443,31 @@ export function CopiaHomeMobileDetail({
                     ))}
                   </div>
                   <div className={styles.rcSublbl}>Horario</div>
-                  <div className={styles.horas}>
-                    {slots.map((h) => (
-                      <button key={h} type="button" className={`${styles.hora} ${h === pickupSlot ? styles.horaOn : ''}`} onClick={() => setPickupSlot(h)}>
-                        {formatSlotLabel(h)}
-                      </button>
-                    ))}
+                  {[
+                    { label: 'Mañana', icon: <Sunrise size={14} />, items: morningSlots },
+                    { label: 'Tarde', icon: <Sunset size={14} />, items: afternoonSlots },
+                  ].filter((g) => g.items.length > 0).map((g) => (
+                    <div key={g.label} className={styles.horaGroup}>
+                      <div className={styles.horaGroupHead}>{g.icon}{g.label}</div>
+                      <div className={styles.horaGrid}>
+                        {g.items.map((h) => (
+                          <button key={h} type="button" className={`${styles.hora} ${h === pickupSlot ? styles.horaOn : ''}`} onClick={() => setPickupSlot(h)}>
+                            {formatSlotLabel(h)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className={styles.rcConfirm}>
+                    <span className={styles.rcConfirmIco}><CalendarCheck size={20} /></span>
+                    <div>
+                      <div className={styles.rcConfirmLbl}>Tu cita de recojo</div>
+                      <div className={styles.rcConfirmVal}>{DAY_LONG[pickupDay]} · {formatSlotLabel(pickupSlot)}</div>
+                    </div>
                   </div>
-                  <div className={styles.rcHora}>
-                    <Clock size={16} />
-                    Recojo el <b>{PICKUP_DAY_LABEL[pickupDay]}</b> a las <b>{formatSlotLabel(pickupSlot)}</b>{office.note ? ` · ${office.note}` : ''}
-                  </div>
+                  {office.note && (
+                    <div className={styles.rcNote}><Clock size={13} />{office.note}</div>
+                  )}
                 </div>
               )}
             </Acc>
