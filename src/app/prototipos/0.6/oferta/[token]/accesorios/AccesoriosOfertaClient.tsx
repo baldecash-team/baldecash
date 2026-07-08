@@ -6,40 +6,43 @@
  * El cliente ya eligió un equipo (variant); aquí suma accesorios y seguros que
  * caben en su cuota restante y confirma todo junto.
  *
- * UX idéntica al flujo regular: la sección de accesorios replica EXACTAMENTE
- * `AccessoriesSection` (AccessoryIntro + card contenedora + chips con conteo
- * "Todos (N)" + buscador + contador + grid 3-col + paginación por flechas +
- * AccessoryCard + AccessoryDetailModal). Seguros usa `InsuranceCards` con su
- * propia intro (showIntro), igual que `InsuranceSection`. No se reutilizan
- * AccessoriesSection/InsuranceSection directamente porque dependen de
- * ProductContext, que el flujo de oferta no monta — así que se replica su JSX
- * con estado local.
+ * Presentación rediseñada (BAL-2185, Task 9) siguiendo
+ * docs/superpowers/design-refs/mock-accesorios.html: TuEquipoCard +
+ * IncluidosGratisSection + AccesorioRecomendadoCard + TusExtras +
+ * CuotaStickyBar, con BuscadorBottomSheet y AccesorioDetalleSheet como
+ * bottom sheets para agregar más accesorios/seguros o ver el detalle de uno.
+ * La LÓGICA de negocio (fetch, toggleAcc/toggleIns, totalMonthly, remaining,
+ * accFits/insFits, selectEquipment, plazo/inicial BAL-2097) no cambió —
+ * solo se reemplazó el render.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, ArrowLeft, Package, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@nextui-org/react';
+import { ArrowLeft, Package, ShieldCheck } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
-import { Navbar } from '../../../components/hero/Navbar';
 import {
   getOffer,
   getOfferAddonsRich,
   selectEquipment,
   OfferApiError,
 } from '../../../services/offerApi';
-import type { Accessory, AccessoryCategory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
-import { AccessoryCard } from '../../../[landing]/solicitar/components/upsell/AccessoryCard';
-import { AccessoryDetailModal } from '../../../[landing]/solicitar/components/upsell/AccessoryDetailModal';
-import { AccessoryIntro } from '../../../[landing]/solicitar/components/upsell/AccessoryIntro';
-import { TermSelect } from '../../../[landing]/solicitar/components/solicitar/product/TermSelect';
-import { InsuranceCards } from '../../../[landing]/solicitar/components/upsell/InsuranceCards';
+import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
-import { cuotaSuffix, plazoUnit } from '../components/equipoCardFormat';
+import { TermSelect } from '../../../[landing]/solicitar/components/solicitar/product/TermSelect';
+import { cuotaSuffix } from '../components/equipoCardFormat';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
+import { OfertaHeader } from '../components/redesign/OfertaHeader';
+import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
+import { TuEquipoCard } from './redesign/TuEquipoCard';
+import { IncluidosGratisSection } from './redesign/IncluidosGratisSection';
+import { AccesorioRecomendadoCard } from './redesign/AccesorioRecomendadoCard';
+import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
+import { CuotaStickyBar } from './redesign/CuotaStickyBar';
+import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
+import { AccesorioDetalleSheet } from './redesign/AccesorioDetalleSheet';
 
-const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 /** Verde de "incluido gratis" (BAL-2159), mismo tono que SeleccionConfirmada. */
 const APPROVED_GREEN = '#16a34a';
 
@@ -83,28 +86,6 @@ function clearStoredAddons(token: string, variantId: number): void {
   }
 }
 
-/** Page size responsive, igual que AccessoriesSection: 2 móvil, 4 tablet, 6 desktop. */
-function usePageSize() {
-  const [pageSize, setPageSize] = useState(6);
-  useEffect(() => {
-    const update = () => {
-      if (window.matchMedia('(min-width: 1024px)').matches) setPageSize(6);
-      else if (window.matchMedia('(min-width: 640px)').matches) setPageSize(4);
-      else setPageSize(2);
-    };
-    update();
-    const lg = window.matchMedia('(min-width: 1024px)');
-    const sm = window.matchMedia('(min-width: 640px)');
-    lg.addEventListener('change', update);
-    sm.addEventListener('change', update);
-    return () => {
-      lg.removeEventListener('change', update);
-      sm.removeEventListener('change', update);
-    };
-  }, []);
-  return pageSize;
-}
-
 export function AccesoriosOfertaClient({ token }: { token: string }) {
   const analytics = useAnalytics();
   // La selección (variant/combo/slug + equipo) se lee de localStorage → la URL
@@ -138,6 +119,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [comboFree, setComboFree] = useState<{ accessories: { id: string; name: string }[]; insurances: { id: string; name: string }[] }>({ accessories: [], insurances: [] });
   const [confirming, setConfirming] = useState(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
+  // Bottom sheet "Añadir al pedido" (rediseño BAL-2185) — solo UI, no reemplaza
+  // el fetch/estado real de accesorios y seguros.
+  const [showBuscador, setShowBuscador] = useState(false);
   // Modal de confirmación (siempre, con desglose de add-ons).
   const [modalOpen, setModalOpen] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
@@ -148,12 +132,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
   const [curTerm, setCurTerm] = useState<number>(24);
   const [curInitial, setCurInitial] = useState<number>(0);
-
-  // Filtros + paginación (idéntico a AccessoriesSection).
-  const [activeCategory, setActiveCategory] = useState<string>('todos');
-  const [searchQuery, setSearchQuery] = useState('');
-  const pageSize = usePageSize();
-  const [currentPage, setCurrentPage] = useState(0);
 
   const backToDetail = useCallback(() => {
     const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
@@ -283,36 +261,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   useEffect(() => {
     if (succeeded) analytics.track('offer_success_view', { variant_id: variantId });
   }, [succeeded, variantId, analytics]);
-
-  // Subcategorías disponibles (deduplicadas por slug), igual que el flujo regular.
-  const availableCategories = useMemo(() => {
-    const map = new Map<string, AccessoryCategory>();
-    accessories.forEach((a) => {
-      if (a.category && !map.has(a.category.slug)) map.set(a.category.slug, a.category);
-    });
-    return Array.from(map.values());
-  }, [accessories]);
-
-  // Accesorios filtrados por categoría (slug) + búsqueda.
-  const filteredAccessories = useMemo(() => {
-    let filtered = accessories;
-    if (activeCategory !== 'todos') filtered = filtered.filter((a) => a.category?.slug === activeCategory);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((a) => a.name.toLowerCase().includes(q));
-    }
-    return filtered;
-  }, [accessories, activeCategory, searchQuery]);
-
-  // Reset de página al cambiar filtros o tamaño (igual que el flujo regular).
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [activeCategory, searchQuery, pageSize]);
-
-  const totalPages = Math.ceil(filteredAccessories.length / pageSize);
-  const visibleAccessories = filteredAccessories.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const canGoBack = currentPage > 0;
-  const canGoForward = currentPage < totalPages - 1;
 
   const toggleAcc = (a: Accessory) =>
     setSelectedAcc((prev) => {
@@ -462,6 +410,31 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     );
   }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency]);
 
+  // Accesorio recomendado (destacado arriba, BAL-2185): el primero del listado.
+  const recomendado = accessories.length > 0 ? accessories[0] : null;
+
+  // "Tus extras" (rediseño): accesorios y seguros ya seleccionados, sin repetir
+  // el recomendado (que ya se muestra arriba en su propia card).
+  const extrasItems: TusExtrasItem[] = useMemo(() => {
+    const accItems: TusExtrasItem[] = accessories
+      .filter((a) => selectedAcc.includes(a.id) && a.id !== recomendado?.id)
+      .map((a) => ({ id: a.id, name: a.name, monthly: a.monthlyQuota || 0, kind: 'acc', imageUrl: a.image }));
+    const insItems: TusExtrasItem[] = insurances
+      .filter((p) => selectedIns.includes(p.id))
+      .map((p) => ({ id: p.id, name: p.name, monthly: p.monthlyPrice || 0, kind: 'ins', subtitle: 'Insurama' }));
+    return [...accItems, ...insItems];
+  }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id]);
+
+  const handleQuitarExtra = useCallback((id: string, kind: 'acc' | 'ins') => {
+    if (kind === 'acc') {
+      const acc = accessories.find((a) => a.id === id);
+      if (acc) toggleAcc(acc);
+    } else {
+      toggleIns(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessories, insurances, selectedAcc, selectedIns]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--surface-bg,#fafafa)]">
@@ -472,11 +445,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
 
   if (error && accessories.length === 0 && insurances.length === 0) {
     return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <Navbar logoOnly logoUrl={BRAND_LOGO_URL} logoContainerClassName="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8" />
+      <div className="min-h-screen bg-white">
+        <OfertaHeader />
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
-          <p className="text-lg font-semibold text-neutral-800">{error}</p>
-          <button onClick={backToDetail} className="mt-4 cursor-pointer text-sm font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+          <p className="text-lg font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>{error}</p>
+          <button onClick={backToDetail} className="mt-4 cursor-pointer text-sm font-medium hover:underline" style={{ color: OFERTA_COLORS.primary }}>
             Volver
           </button>
         </div>
@@ -485,265 +458,160 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pb-40">
-      <Navbar logoOnly logoUrl={BRAND_LOGO_URL} logoContainerClassName="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8" />
-      <div className="pt-16" />
+    <div className="min-h-screen bg-white pb-32">
+      <OfertaHeader />
 
       {/* Barra: volver */}
-      <div className="sticky top-16 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
-          <button onClick={backToDetail} className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Volver al equipo</span>
-          </button>
-        </div>
+      <div className="mx-auto w-full max-w-md px-4 pt-4">
+        <button
+          onClick={backToDetail}
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium transition-colors"
+          style={{ color: OFERTA_COLORS.textMid }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver al equipo
+        </button>
       </div>
 
-      <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-md space-y-5 px-4 py-4">
         {/* Encabezado */}
         <div>
-          <h1 className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-neutral-800">
-            Suma más a tu equipo
+          <h1 className="font-['Baloo_2',_sans-serif] text-[22px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+            Accesorios y seguros
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Agrega accesorios y protección. Solo mostramos lo que entra en tu cuota.
+          <p className="mt-1 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+            Solo mostramos lo que entra en tu cuota.
           </p>
         </div>
 
-        {/* Resumen del equipo elegido + selector de plazo/inicial (BAL-2097). Al
-            cambiar el plazo o el inicial, se recalculan equipo + accesorios +
-            seguros y se re-filtran por la cuota restante. */}
-        {equipoInfo && (
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200">
-            <div className="flex flex-wrap items-center gap-4">
-              {equipoInfo.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={equipoInfo.imageUrl} alt={equipoInfo.name} className="h-14 w-14 shrink-0 rounded-lg object-contain" />
-              )}
-              <div className="min-w-0 flex-1">
-                {equipoInfo.brand && (
-                  <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{equipoInfo.brand}</p>
-                )}
-                <p className="truncate text-sm font-semibold text-neutral-800">{equipoInfo.name}</p>
-                <p className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
-                  S/{Math.round(equipoMonthly)}{cuotaSuffix(equipoFrequency)}
-                  <span className="ml-1 text-xs font-normal text-neutral-500">
-                    {(() => {
-                      // Para celular, el plazo mostrado es su nº de cuotas nativas
-                      // (equipoTerm: 48 semanas, 24 quincenas). Para laptop (mensual),
-                      // el plazo elegido en el selector (curTerm).
-                      const plazoN = equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm;
-                      return `en ${plazoN} ${plazoUnit(plazoN, equipoFrequency)}`;
-                    })()}
-                    {equipoInitialAmount > 0 ? ` · inicial S/${Math.round(equipoInitialAmount)}` : ' · sin inicial'}
-                  </span>
-                </p>
-              </div>
-            </div>
+        {/* Tu equipo */}
+        {equipoInfo && <TuEquipoCard nombre={equipoInfo.name} cuota={equipoMonthly} />}
 
-            {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una opción */}
-            {(offerTerms.length > 1 || offerInitials.length > 1) && (
-              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-100 pt-4">
-                {offerTerms.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-neutral-500">Plazo:</span>
-                    <TermSelect value={curTerm} options={offerTerms} onChange={handleTermChange} size="sm" frequency={equipoFrequency} />
+        {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una
+            opción (BAL-2097). No forma parte del mock visual, pero la
+            funcionalidad de recalcular equipo + accesorios + seguros por
+            plazo/inicial se mantiene. */}
+        {(offerTerms.length > 1 || offerInitials.length > 1) && (
+          <div className="rounded-2xl border p-3.5" style={{ borderColor: OFERTA_COLORS.border }}>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {offerTerms.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium" style={{ color: OFERTA_COLORS.textMid }}>Plazo:</span>
+                  <TermSelect value={curTerm} options={offerTerms} onChange={handleTermChange} size="sm" frequency={equipoFrequency} />
+                </div>
+              )}
+              {offerInitials.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium" style={{ color: OFERTA_COLORS.textMid }}>Inicial:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {offerInitials.map((i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleInitialChange(i)}
+                        className="cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
+                        style={
+                          curInitial === i
+                            ? { borderColor: OFERTA_COLORS.primary, backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
+                            : { borderColor: OFERTA_COLORS.border, backgroundColor: '#fff', color: OFERTA_COLORS.textMid }
+                        }
+                      >
+                        {i === 0 ? 'Sin inicial' : `${i}%`}
+                      </button>
+                    ))}
                   </div>
-                )}
-                {offerInitials.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-neutral-500">Inicial:</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {offerInitials.map((i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => handleInitialChange(i)}
-                          className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
-                            curInitial === i
-                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-                              : 'border-neutral-300 bg-white text-neutral-600 hover:border-neutral-400'
-                          }`}
-                        >
-                          {i === 0 ? 'Sin inicial' : `${i}%`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Accesorios — layout idéntico a AccessoriesSection. Van PRIMERO. */}
-        {accessories.length > 0 ? (
-          <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200">
-            <AccessoryIntro />
+        {/* Incluidos gratis (regalos del combo, BAL-2159) */}
+        <IncluidosGratisSection accesorios={comboFree.accessories} seguros={comboFree.insurances} />
 
-            {/* Toolbar: chips de categoría + búsqueda + contadores + paginación */}
-            <div className="mb-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  <button
-                    onClick={() => setActiveCategory('todos')}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                      activeCategory === 'todos'
-                        ? 'bg-[var(--color-primary)] text-white'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                    }`}
-                  >
-                    Todos ({accessories.length})
-                  </button>
-                  {availableCategories.map((cat) => {
-                    const count = accessories.filter((a) => a.category?.slug === cat.slug).length;
-                    return (
-                      <button
-                        key={cat.slug}
-                        onClick={() => setActiveCategory(cat.slug)}
-                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                          activeCategory === cat.slug
-                            ? 'bg-[var(--color-primary)] text-white'
-                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                        }`}
-                      >
-                        {cat.name} ({count})
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-                <div className="relative flex-1 sm:max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar accesorio..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0 sm:ml-auto">
-                  {selectedAcc.length > 0 && (
-                    <span className="px-3 py-1.5 bg-[#22c55e]/10 text-[#22c55e] text-xs font-semibold rounded-full">
-                      {selectedAcc.length} seleccionado{selectedAcc.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                  <span className="text-xs text-neutral-400 ml-auto sm:ml-0">
-                    {filteredAccessories.length} accesorio{filteredAccessories.length !== 1 ? 's' : ''}
-                  </span>
-                  {totalPages > 1 && (
-                    <>
-                      <button
-                        onClick={() => setCurrentPage((p) => p - 1)}
-                        disabled={!canGoBack}
-                        aria-label="Página anterior"
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                          canGoBack
-                            ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                            : 'bg-neutral-100 text-neutral-300 cursor-default'
-                        }`}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage((p) => p + 1)}
-                        disabled={!canGoForward}
-                        aria-label="Página siguiente"
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                          canGoForward
-                            ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
-                            : 'bg-neutral-100 text-neutral-300 cursor-default'
-                        }`}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Grid 3-col + AccessoryCard (idéntico al flujo regular) */}
-            {filteredAccessories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-neutral-400">
-                <Package className="w-10 h-10 mb-2" />
-                <p className="text-sm">No se encontraron accesorios</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleAccessories.map((a, index) => {
-                  const fits = accFits(a);
-                  return (
-                    // Si no cabe en la cuota restante: atenuado + no clickeable
-                    // (bloquea el toggle) + hint. Sí se puede quitar si ya está.
-                    <div key={a.id} className="relative">
-                      <div className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
-                        <AccessoryCard
-                          accessory={a}
-                          isSelected={selectedAcc.includes(a.id)}
-                          onToggle={() => toggleAcc(a)}
-                          onViewDetails={() => setDetailAccessory(a)}
-                          isMoltiTop={a.isMoltiTop && index === 0}
-                          paymentFrequency={equipoFrequency}
-                        />
-                      </div>
-                      {!fits ? (
-                        <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-neutral-800/80 px-2 py-0.5 text-[10px] font-semibold text-white">
-                          No cabe en tu cuota
-                        </span>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* Recomendado para ti */}
+        {recomendado ? (
+          <div>
+            <h2 className="mb-2.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+              Recomendado para ti
+            </h2>
+            <AccesorioRecomendadoCard
+              accesorio={recomendado}
+              seleccionado={selectedAcc.includes(recomendado.id)}
+              onToggle={() => toggleAcc(recomendado)}
+            />
           </div>
         ) : null}
 
-        {/* Seguros — InsuranceCards con su propia intro. Van DESPUÉS de accesorios. */}
-        {insurances.length > 0 ? (
-          <InsuranceCards
-            plans={insurances}
-            selectedPlanIds={selectedIns}
-            onToggle={toggleIns}
-            showIntro
-          />
+        {/* Tus extras */}
+        <TusExtras items={extrasItems} onQuitar={handleQuitarExtra} />
+
+        {/* Añadir uno más */}
+        <button
+          type="button"
+          onClick={() => setShowBuscador(true)}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[18px] border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
+          style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
+        >
+          <Package className="h-4 w-4" strokeWidth={2.4} />
+          Añadir uno más
+        </button>
+
+        {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado. */}
+        {maxQuota != null && overBudget ? (
+          <p className="text-xs font-medium text-red-600">
+            Supera tu cuota aprobada. Quita algo para continuar.
+          </p>
         ) : null}
       </main>
 
       {/* Barra fija inferior: cuota total + confirmar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-xs text-neutral-400">Cuota total</p>
-            <p className="text-2xl font-extrabold" style={{ color: overBudget ? '#dc2626' : 'var(--color-primary)' }}>
-              S/{Math.round(totalMonthly)}
-              <span className="text-base font-normal text-neutral-400">{cuotaSuffix(equipoFrequency)}</span>
-            </p>
-            {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado: al
-                cliente no se le muestra su cuota aprobada ni el margen restante. */}
-            {maxQuota != null && overBudget ? (
-              <p className="text-xs font-medium text-red-600">
-                Supera tu cuota aprobada. Quita algo para continuar.
-              </p>
-            ) : null}
-          </div>
-          <Button
-            onPress={() => setModalOpen(true)}
-            isDisabled={overBudget}
-            className="cursor-pointer rounded-xl px-8 py-6 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: 'var(--color-primary)' }}
-          >
-            Confirmar mi elección
-          </Button>
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 z-30">
+        <CuotaStickyBar
+          total={totalMonthly}
+          onContinuar={() => {
+            if (overBudget) return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
+            setModalOpen(true);
+          }}
+          ctaText={overBudget ? 'Supera tu cuota' : 'Continuar'}
+        />
       </div>
 
-      {/* Modal de confirmación (siempre) con desglose de equipo + add-ons. */}
+      {/* Bottom sheet buscador (BAL-2185) */}
+      <AnimatePresence>
+        {showBuscador ? (
+          <BuscadorBottomSheet
+            accesorios={accessories}
+            seguros={insurances}
+            seleccionadosAcc={selectedAcc}
+            seleccionadosIns={selectedIns}
+            onToggleAcc={toggleAcc}
+            onToggleIns={toggleIns}
+            onVerDetalle={(a) => setDetailAccessory(a)}
+            total={totalMonthly}
+            onCerrar={() => setShowBuscador(false)}
+            onListo={() => setShowBuscador(false)}
+            accFits={accFits}
+            insFits={insFits}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      {/* Bottom sheet detalle de accesorio (BAL-2185) */}
+      <AnimatePresence>
+        {detailAccessory ? (
+          <AccesorioDetalleSheet
+            accesorio={detailAccessory}
+            agregado={selectedAcc.includes(detailAccessory.id)}
+            onAgregar={() => toggleAcc(detailAccessory)}
+            onVolver={() => setDetailAccessory(null)}
+            onCerrar={() => setDetailAccessory(null)}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      {/* Modal de confirmación (siempre) con desglose de equipo + add-ons.
+          Fase 3 lo rediseña; se mantiene tal cual por ahora. */}
       <ConfirmarEleccionModal
         isOpen={modalOpen}
         equipo={
@@ -759,15 +627,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
         }}
         addonsSlot={addonsResumen}
-      />
-
-      {/* Modal de detalle del accesorio (reutilizado del flujo regular) */}
-      <AccessoryDetailModal
-        accessory={detailAccessory}
-        isOpen={detailAccessory !== null}
-        onClose={() => setDetailAccessory(null)}
-        isSelected={detailAccessory ? selectedAcc.includes(detailAccessory.id) : false}
-        onToggle={() => detailAccessory && toggleAcc(detailAccessory)}
       />
     </div>
   );
