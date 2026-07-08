@@ -223,13 +223,24 @@
 .dias { display: flex; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
 .dia { flex: 1; min-width: 48px; height: 40px; border: 1.5px solid #d6d9f0; border-radius: 10px; background: var(--card); font-weight: 700; font-size: 13px; color: #5b5c6b; cursor: pointer; }
 .diaOn { background: var(--azul); border-color: var(--azul); color: #fff; }
-.rcHora { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #5b5c6b; }
-.rcHora svg { color: var(--azul); flex: none; }
-.rcHora b { color: var(--navy); font-weight: 700; }
 .rcSublbl { font-size: 12px; font-weight: 700; color: var(--navy); margin: 4px 0 8px; }
-.horas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 12px; }
-.hora { height: 38px; border: 1.5px solid #d6d9f0; border-radius: 10px; background: var(--card); font-weight: 600; font-size: 12.5px; color: #5b5c6b; cursor: pointer; }
-.horaOn { background: var(--azul); border-color: var(--azul); color: #fff; }
+
+/* Horarios agrupados (mañana / tarde) — el corte de almuerzo queda implícito */
+.horaGroup { margin-bottom: 12px; }
+.horaGroupHead { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--tenue); margin-bottom: 8px; }
+.horaGroupHead svg { color: var(--azul); }
+.horaGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hora { height: 42px; border: 1.5px solid #d6d9f0; border-radius: 11px; background: var(--card); font-weight: 600; font-size: 13px; color: #5b5c6b; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
+.hora:active { transform: scale(0.97); }
+.horaOn { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 4px 12px rgba(70, 84, 205, 0.25); }
+
+/* Confirmación de la cita + nota de atención (previa cita) */
+.rcConfirm { display: flex; align-items: center; gap: 11px; background: var(--card); border: 1.5px solid var(--azul); border-radius: 12px; padding: 12px 14px; margin-top: 4px; }
+.rcConfirmIco { width: 38px; height: 38px; border-radius: 10px; background: var(--azul); color: #fff; display: grid; place-items: center; flex: none; }
+.rcConfirmLbl { font-size: 11.5px; color: var(--tenue); line-height: 1.35; }
+.rcConfirmVal { font-size: 14px; color: var(--navy); font-weight: 700; margin-top: 1px; }
+.rcNote { display: flex; align-items: flex-start; gap: 7px; font-size: 11.5px; color: var(--tenue); line-height: 1.4; margin-top: 10px; }
+.rcNote svg { color: var(--azul); flex: none; margin-top: 1px; }
 
 /* ---- Acordeón ---- */
 .acc { padding: 0; overflow: hidden; }
@@ -261,9 +272,9 @@
 .srValBlue { color: var(--azul); }
 
 /* ---- CTA sticky ---- */
-.detalleCta { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--borde); padding: 14px 16px; display: flex; gap: 12px; align-items: center; margin: 16px -16px 0; }
-.detalleCta .price { flex: none; margin-top: 0; text-align: left; }
-.detalleCta .btnSolid { height: 48px; font-size: 15px; }
+.detalleCta { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--borde); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin: 16px -16px 0; }
+.detalleCta .price { flex: none; margin-top: 0; text-align: center; }
+.detalleCta .btnSolid { height: 48px; font-size: 15px; width: 100%; }
 .noDisp { background: #f7f7fa; border: 1.5px dashed #d3d3dd; border-radius: 14px; padding: 22px; text-align: center; margin-bottom: 16px; }
 .ndT { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 17px; color: #9a9aa8; }
 .ndS { font-size: 12.5px; color: var(--tenue); margin-top: 6px; }
