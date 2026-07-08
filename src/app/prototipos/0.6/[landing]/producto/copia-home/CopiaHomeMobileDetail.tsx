@@ -53,6 +53,24 @@ const DAY_LONG: Record<PickupDayCode, string> = {
   fri: 'Viernes', sat: 'Sábado', sun: 'Domingo',
 };
 
+const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const DAY_OFFSET: Record<PickupDayCode, number> = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
+
+/**
+ * Fecha concreta para cada día de la semana en curso. Si hoy es sábado o
+ * domingo, se corre a la siguiente semana (no hay recojo el fin de semana).
+ */
+function computeWeekDates(base: Date): Record<PickupDayCode, Date> {
+  const dow = base.getDay(); // 0=Dom … 6=Sáb
+  const toMonday = dow === 0 ? 1 : dow === 6 ? 2 : 1 - dow;
+  const monday = new Date(base.getFullYear(), base.getMonth(), base.getDate() + toMonday);
+  const out = {} as Record<PickupDayCode, Date>;
+  (Object.keys(DAY_OFFSET) as PickupDayCode[]).forEach((d) => {
+    out[d] = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + DAY_OFFSET[d]);
+  });
+  return out;
+}
+
 /** Acordeón (top-level para no remontar en cada render del detalle). */
 function Acc({
   title, sub, icon, isOpen, onToggle, children,
@@ -161,6 +179,8 @@ export function CopiaHomeMobileDetail({
   const slots = office ? hourlySlotsForDay(office, pickupDay) : [];
   const morningSlots = slots.filter((h) => parseInt(h, 10) < 13);
   const afternoonSlots = slots.filter((h) => parseInt(h, 10) >= 13);
+  // Fecha real de cada día (semana en curso; fin de semana → siguiente semana).
+  const dayDates = useMemo(() => computeWeekDates(new Date()), []);
   const [pickupSlot, setPickupSlot] = useState<string>('10:00');
 
   useEffect(() => {
@@ -438,7 +458,8 @@ export function CopiaHomeMobileDetail({
                           if (s.length && !s.includes(pickupSlot)) setPickupSlot(s[0]);
                         }}
                       >
-                        {PICKUP_DAY_LABEL[d]}
+                        <span className={styles.diaLbl}>{PICKUP_DAY_LABEL[d]}</span>
+                        <span className={styles.diaNum}>{dayDates[d].getDate()}</span>
                       </button>
                     ))}
                   </div>
@@ -462,7 +483,9 @@ export function CopiaHomeMobileDetail({
                     <span className={styles.rcConfirmIco}><CalendarCheck size={20} /></span>
                     <div>
                       <div className={styles.rcConfirmLbl}>Tu cita de recojo</div>
-                      <div className={styles.rcConfirmVal}>{DAY_LONG[pickupDay]} · {formatSlotLabel(pickupSlot)}</div>
+                      <div className={styles.rcConfirmVal}>
+                        {DAY_LONG[pickupDay]} {dayDates[pickupDay].getDate()} {MONTH_SHORT[dayDates[pickupDay].getMonth()]} · {formatSlotLabel(pickupSlot)}
+                      </div>
                     </div>
                   </div>
                   {office.note && (
