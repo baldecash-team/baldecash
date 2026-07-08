@@ -17,13 +17,15 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ShieldCheck, BadgeCheck, Package, Truck,
-  Check, Battery, Monitor, Star, RefreshCw, Cpu,
+  Check, Battery, Monitor, Star, RefreshCw, Heart,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ProductDetailResult } from '../api/productDetailApi';
+import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
+import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -72,6 +74,9 @@ interface Props {
   isAvailable?: boolean;
   defaultTerm?: number;
   defaultInitialPercent?: number;
+  defaultFrequency?: string;
+  onToggleWishlist?: (item: WishlistItem) => void;
+  isInWishlist?: boolean;
 }
 
 export function CopiaHomeMobileDetail({
@@ -80,6 +85,9 @@ export function CopiaHomeMobileDetail({
   isAvailable = true,
   defaultTerm,
   defaultInitialPercent,
+  defaultFrequency,
+  onToggleWishlist,
+  isInWishlist = false,
 }: Props) {
   const router = useRouter();
   const { setSelectedProduct } = useProduct();
@@ -116,35 +124,17 @@ export function CopiaHomeMobileDetail({
   const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
   const canBuy = isAvailable && gradeAvailable;
 
-  // ---- Calculadora sobre planes reales ----
-  const terms = useMemo(() => paymentPlans.map((p) => p.term).sort((a, b) => a - b), [paymentPlans]);
-  const initialPercents = useMemo(() => {
-    const first = paymentPlans[0];
-    if (!first) return [0];
-    return Array.from(new Set(first.options.map((o) => o.initialPercent))).sort((a, b) => a - b);
-  }, [paymentPlans]);
-
-  const [term, setTerm] = useState<number>(() => {
-    if (defaultTerm && terms.includes(defaultTerm)) return defaultTerm;
-    return terms.length ? terms[terms.length - 1] : 24;
-  });
-  const [initialPercent, setInitialPercent] = useState<number>(() => {
-    if (defaultInitialPercent != null && initialPercents.includes(defaultInitialPercent)) return defaultInitialPercent;
-    return initialPercents[0] ?? 0;
-  });
-
-  const optionFor = useCallback(
-    (t: number, ip: number) => {
-      const plan = paymentPlans.find((p) => p.term === t);
-      if (!plan) return null;
-      return plan.options.find((o) => o.initialPercent === ip) ?? plan.options[0] ?? null;
-    },
-    [paymentPlans],
-  );
-
-  const selectedOption = optionFor(term, initialPercent);
-  const monthlyQuota = Math.floor(selectedOption?.monthlyQuota ?? product.lowestQuota ?? 0);
-  const initialAmount = Math.floor(selectedOption?.initialAmount ?? 0);
+  // ---- Calculadora: componente estándar (PricingCalculator) ----
+  const initialTerm = useMemo(() => {
+    const ts = paymentPlans.map((p) => p.term);
+    if (defaultTerm && ts.includes(defaultTerm)) return defaultTerm;
+    return ts.length ? Math.max(...ts) : 24;
+  }, [paymentPlans, defaultTerm]);
+  const [pricingSel, setPricingSel] = useState<PricingSelection | null>(null);
+  const term = pricingSel?.term ?? initialTerm;
+  const initialPercent = pricingSel?.initialPercent ?? (defaultInitialPercent ?? 0);
+  const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
+  const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
 
   // ---- Acordeones ----
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -216,6 +206,30 @@ export function CopiaHomeMobileDetail({
     if (!canBuy) return;
     if (isRefurbished) { setShowRefurb(true); return; }
     proceedToSolicitar();
+  };
+
+  const handleToggleWishlist = () => {
+    if (!onToggleWishlist) return;
+    const thumbnail = apiData.combo?.thumbnailUrl || galleryImages[0]?.url || product.images[0]?.url || '';
+    onToggleWishlist({
+      productId: product.id,
+      slug: product.slug,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: thumbnail,
+      lowestQuota: monthlyQuota,
+      type: product.deviceType as WishlistItem['type'],
+      months: term as TermMonths,
+      initialPercent: initialPercent as InitialPaymentPercent,
+      initialAmount,
+      monthlyPayment: monthlyQuota,
+      variantId: product.variantId != null ? String(product.variantId) : (colorId || undefined),
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
+      addedAt: Date.now(),
+    });
   };
 
   // ---- Accesorios "qué incluye" ----
@@ -338,61 +352,20 @@ export function CopiaHomeMobileDetail({
               ))}
             </Acc>
 
-            {/* Calcula tu cuota */}
-            <Acc title="Calcula tu cuota" sub="Selecciona el plazo que mejor se ajuste a tu presupuesto" icon={<Cpu size={20} />} isOpen={!!open.cuota} onToggle={() => toggle('cuota')}>
-              {initialPercents.length > 0 && (
-                <>
-                  <div className={styles.calcLbl}>Cuota inicial (opcional)</div>
-                  <div className={styles.plazoGrid}>
-                    {initialPercents.map((ip) => {
-                      const opt = optionFor(term, ip);
-                      const amount = Math.floor(opt?.initialAmount ?? 0);
-                      const on = ip === initialPercent;
-                      return (
-                        <div key={ip} className={`${styles.plazoCard} ${on ? styles.plazoCardOn : ''}`} onClick={() => setInitialPercent(ip)}>
-                          <div className={styles.plazoCheck}><Check size={12} strokeWidth={3} /></div>
-                          <div className={styles.pcMes}>{ip}%</div>
-                          <div className={styles.pcNum}>S/{amount}</div>
-                          <div className={styles.pcAl}>inicial</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-              <div className={styles.plazoGrid}>
-                {terms.map((t) => {
-                  const opt = optionFor(t, initialPercent);
-                  const q = Math.floor(opt?.monthlyQuota ?? 0);
-                  return (
-                    <div key={t} className={`${styles.plazoCard} ${t === term ? styles.plazoCardOn : ''}`} onClick={() => setTerm(t)}>
-                      <div className={styles.plazoCheck}><Check size={12} strokeWidth={3} /></div>
-                      <div className={styles.pcMes}>{t}<br />meses</div>
-                      <div className={styles.pcNum}>S/{q}</div>
-                      <div className={styles.pcAl}>al mes</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className={styles.calcSummary}>
-                <div className={styles.csLbl}>Tu cuota mensual</div>
-                <div className={styles.csNum}>S/{monthlyQuota}<span>/mes</span></div>
-                <div className={styles.csBreak}>
-                  <div className={styles.csItem}>
-                    <div className={styles.csItemLbl}>Precio</div>
-                    <div className={styles.csItemVal}>S/{Math.floor(product.price)}</div>
-                  </div>
-                  <div className={styles.csItem}>
-                    <div className={styles.csItemLbl}>Inicial</div>
-                    <div className={styles.csItemVal}>{initialAmount ? `S/${initialAmount}` : 'Sin inicial'}</div>
-                  </div>
-                  <div className={styles.csItem}>
-                    <div className={styles.csItemLbl}>Plazo</div>
-                    <div className={styles.csItemVal}>{term} meses</div>
-                  </div>
-                </div>
-              </div>
-            </Acc>
+            {/* Calcula tu cuota — componente del flujo normal (PricingCalculator) */}
+            <div style={{ marginBottom: 16 }}>
+              <PricingCalculator
+                paymentPlans={paymentPlans}
+                defaultTerm={defaultTerm ?? initialTerm}
+                defaultInitialPercent={defaultInitialPercent ?? 0}
+                defaultFrequency={defaultFrequency}
+                productPrice={product.price}
+                paymentFrequencies={apiData.paymentFrequencies}
+                landing={landing}
+                productSlug={product.slug}
+                onSelectionChange={setPricingSel}
+              />
+            </div>
 
             {/* Método de entrega (informativo) */}
             <div className={styles.card}>
@@ -429,13 +402,29 @@ export function CopiaHomeMobileDetail({
               </div>
             )}
 
-            {/* CTA sticky */}
-            <div className={styles.detalleCta}>
-              <div className={styles.price}>
-                <div className={styles.priceNum}>S/{monthlyQuota}<span>/mes</span></div>
-                <div className={styles.priceSub}>en {term} meses{initialAmount ? ` · inicial S/${initialAmount}` : ' sin inicial'}</div>
-              </div>
-              <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={onLoQuiero}>Lo quiero</button>
+            {/* CTA fijo mobile estándar de baldecash (¡Lo quiero! + wishlist) */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none">
+              <button
+                type="button"
+                onClick={onLoQuiero}
+                className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
+              >
+                ¡Lo quiero!
+              </button>
+              {onToggleWishlist && (
+                <button
+                  type="button"
+                  onClick={handleToggleWishlist}
+                  className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-semibold transition-colors cursor-pointer border flex-shrink-0 ${
+                    isInWishlist
+                      ? 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-red-50 hover:text-red-500 hover:border-red-200'
+                      : 'text-[var(--text-muted,#6b7280)] bg-[var(--surface-bg,#fafafa)] border-[var(--border-soft,#e5e7eb)] hover:text-[var(--color-primary)] hover:border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.05)]'
+                  }`}
+                  aria-label="Guardar en favoritos"
+                >
+                  <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                </button>
+              )}
             </div>
           </>
         ) : (
