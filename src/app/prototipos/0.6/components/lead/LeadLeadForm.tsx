@@ -8,6 +8,7 @@ import { useSessionOptional } from '../../[landing]/solicitar/context/SessionCon
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 import { TextInput } from '../../[landing]/solicitar/components/solicitar/fields/TextInput';
 import { SelectInput } from '../../[landing]/solicitar/components/solicitar/fields/SelectInput';
+import { GeoCascadeField } from './GeoCascadeField';
 import { saveLeadId, saveLeadPrefill } from '../../hooks/useLeadGuard';
 
 interface LeadLeadFormProps {
@@ -555,6 +556,23 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
 
     if (field.field_type === 'checkbox') {
       return renderCheckboxField(field);
+    }
+
+    // Distrito -> cascada Departamento / Provincia / Distrito (geo-units)
+    if (field.options_source === 'geo-units/districts' || field.code === 'district') {
+      const key = errorKeyFor(field);
+      return (
+        <GeoCascadeField
+          key={field.code}
+          value={(getFieldValue(field) as string) ?? ''}
+          districtLabelText={field.label}
+          error={errors[key]}
+          small={!isSplit}
+          compact={!isSplit}
+          hideErrorText={isSplit ? false : isDesktop}
+          onChange={(v) => handleFieldChange(field, v)}
+        />
+      );
     }
 
     if (field.field_type === 'select') {
