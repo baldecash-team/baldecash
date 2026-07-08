@@ -71,6 +71,8 @@ export interface SelectedAddon {
   id: string;
   name: string;
   monthly: number;
+  /** Regalo incluido gratis por el combo elegido (BAL-2159): monthly viene en 0. */
+  includedFree?: boolean;
 }
 
 export interface SelectedEquipment {
@@ -255,11 +257,13 @@ export async function getOffer(token: string): Promise<OfferView> {
               id: String(a.id),
               name: String(a.name ?? 'Accesorio'),
               monthly: Number(a.monthly ?? 0),
+              includedFree: Boolean(a.included_free),
             })),
             insurances: (data.selected_insurances ?? []).map((s: Record<string, unknown>) => ({
               id: String(s.id),
               name: String(s.name ?? 'Seguro'),
               monthly: Number(s.monthly ?? 0),
+              includedFree: Boolean(s.included_free),
             })),
           }
         : null,
@@ -497,12 +501,14 @@ export async function getOfferAddonsRich(
   token: string,
   variantId: number,
   selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
-): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[] }> {
+  comboId?: number | null,
+): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string }[]; insurances: { id: string; name: string }[] } }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
   if (selected?.term != null) params.set('term', String(selected.term));
   if (selected?.initial != null) params.set('initial', String(selected.initial));
+  if (comboId != null) params.set('combo_id', String(comboId));
   const res = await fetch(
     `${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/addons?${params.toString()}`,
     { cache: 'no-store' },
@@ -543,6 +549,16 @@ export async function getOfferAddonsRich(
     durationMonths: Number(s.durationMonths ?? 24),
     provider: (s.provider ?? null) as InsurancePlan['provider'],
   }));
+  const comboFreeAddons = {
+    accessories: ((d.combo_free_addons?.accessories) ?? []).map((a: Record<string, unknown>) => ({
+      id: String(a.id),
+      name: String(a.name ?? 'Accesorio'),
+    })),
+    insurances: ((d.combo_free_addons?.insurances) ?? []).map((s: Record<string, unknown>) => ({
+      id: String(s.id),
+      name: String(s.name ?? 'Seguro'),
+    })),
+  };
   return {
     remaining: Number(d.remaining ?? 0),
     equipoMonthly: Number(d.equipo_monthly ?? 0),
@@ -551,5 +567,6 @@ export async function getOfferAddonsRich(
     equipoTerm: d.equipo_term != null ? Number(d.equipo_term) : null,
     accessories,
     insurances,
+    comboFreeAddons,
   };
 }
