@@ -10,13 +10,12 @@
  * Reglas de negocio:
  *  - Grados A/B/C SOLO para reacondicionados. Solo el Grado A es comprable;
  *    B y C se muestran pero renderizan "No disponible" (sin CTA "Lo quiero").
- *  - Método de entrega: bloque informativo (texto), sin agendado de recojo.
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
-  ChevronDown, ShieldCheck, BadgeCheck, Package, Truck,
+  ChevronDown, ShieldCheck, BadgeCheck, Package,
   Check, Battery, Monitor, Star, RefreshCw, Heart,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -365,20 +364,6 @@ export function CopiaHomeMobileDetail({
                 productSlug={product.slug}
                 onSelectionChange={setPricingSel}
               />
-            </div>
-
-            {/* Método de entrega (informativo) */}
-            <div className={styles.card}>
-              <div className={styles.condHead}>
-                <span className={styles.accIco}><Truck size={20} /></span>
-                <div>
-                  <div className={styles.secTitle} style={{ margin: 0 }}>Método de entrega</div>
-                  <div className={styles.accSub}>Cómo recibes tu equipo</div>
-                </div>
-              </div>
-              <p className={styles.descText} style={{ marginTop: 0 }}>
-                Envío a domicilio a todo el Perú (Lima: 3 - 5 días hábiles; provincia: 5 - 9 días hábiles) o recojo en nuestra oficina de <b>Avenida Alfredo Benavides 1238, Miraflores</b>. Coordinamos la fecha y hora de entrega contigo luego de tu solicitud.
-              </p>
             </div>
 
             {/* Condición (solo reacondicionado) */}
