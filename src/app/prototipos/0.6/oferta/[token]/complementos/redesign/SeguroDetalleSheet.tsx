@@ -50,7 +50,7 @@ export function SeguroDetalleSheet({ seguro, agregado, onAgregar, onVolver, onCe
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[788px] flex-col rounded-t-2xl bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[85dvh] flex-col rounded-t-2xl bg-white"
         style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Header */}

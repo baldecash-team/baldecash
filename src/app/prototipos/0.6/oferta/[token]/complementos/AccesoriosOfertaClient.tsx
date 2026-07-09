@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Package, ShieldCheck, Gift, CheckCircle2 } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, Sparkles } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -125,6 +125,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
+  // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
+  // arriba de la pantalla de complementos.
+  const [clientName, setClientName] = useState<string | null>(null);
   // Selector de plazo/inicial (BAL-2097): opciones de la oferta + valores actuales.
   // Al cambiar cualquiera, se recalculan equipo + accesorios + seguros por el límite.
   const [offerTerms, setOfferTerms] = useState<number[]>([24]);
@@ -137,6 +140,18 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     if (slug) window.location.href = `${base}/oferta/${token}/producto/${slug}`;
     else window.location.href = `${base}/oferta/${token}`;
   }, [token, slug]);
+
+  // Navegación del breadcrumb (feedback Marco): desde complementos el estudiante
+  // puede volver al index de la oferta o al catálogo, no solo al detalle del
+  // equipo. La selección vive en localStorage, así que navegar no la pierde.
+  const goToIndex = useCallback(() => {
+    const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
+    window.location.href = `${base}/oferta/${token}`;
+  }, [token]);
+  const goToCatalogo = useCallback(() => {
+    const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
+    window.location.href = `${base}/oferta/${token}/catalogo`;
+  }, [token]);
 
   // Carga inicial: lee la selección de localStorage (variant/combo/slug + equipo),
   // valida el token y trae los add-ons del equipo elegido. Sin selección
@@ -163,6 +178,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         const offer = await getOffer(token); // valida token + cuota máxima aprobada
         if (active) {
           if (offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
+          if (offer.clientName) setClientName(offer.clientName);
           const terms = offer.terms?.length ? offer.terms : [24];
           const initials = offer.initials?.length ? offer.initials : [0];
           setOfferTerms(terms);
@@ -433,6 +449,19 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     return [...accItems, ...insItems];
   }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id]);
 
+  // Desglose para TuEquipoCard (feedback Marco): equipo + accesorios + seguros
+  // elegidos, con la cuota total. Solo se pasa cuando hay algo seleccionado
+  // (TuEquipoCard cae a su vista simple si `extras` no viene).
+  const equipoExtras = useMemo(() => {
+    const accSel = accessories
+      .filter((a) => selectedAcc.includes(a.id))
+      .map((a) => ({ label: a.name, monthly: a.monthlyQuota || 0 }));
+    const insSel = insurances
+      .filter((p) => selectedIns.includes(p.id))
+      .map((p) => ({ label: p.name, monthly: p.monthlyPrice || 0 }));
+    return [...accSel, ...insSel];
+  }, [accessories, insurances, selectedAcc, selectedIns]);
+
   const handleQuitarExtra = useCallback((id: string, kind: 'acc' | 'ins') => {
     if (kind === 'acc') {
       const acc = accessories.find((a) => a.id === id);
@@ -442,6 +471,47 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessories, insurances, selectedAcc, selectedIns]);
+
+  // "Asegura tu inversión" dentro del modal de confirmación (A11, feedback
+  // Marco): seguros disponibles que aún NO se eligieron, con botón "Añadir"
+  // (reusa toggleIns — no hay endpoint nuevo). Condicional a que exista al
+  // menos un seguro sin seleccionar que además quepa en la cuota.
+  const insuranceUpsellSlot = useMemo(() => {
+    const noSeleccionados = insurances.filter((p) => !selectedIns.includes(p.id) && insFits(p));
+    if (noSeleccionados.length === 0) return null;
+    const suf = cuotaSuffix(equipoFrequency);
+    return (
+      <div
+        className="mt-4 rounded-xl border p-3.5"
+        style={{ backgroundColor: OFERTA_COLORS.greenSoft, borderColor: OFERTA_COLORS.greenDark + '33' }}
+      >
+        <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+          Asegura tu inversión
+        </p>
+        <div className="mt-2 space-y-2">
+          {noSeleccionados.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+              <span className="min-w-0 text-[12.5px]" style={{ color: OFERTA_COLORS.textStrong }}>
+                <span className="block truncate font-medium">{p.name}</span>
+                <span style={{ color: OFERTA_COLORS.textMid }}>
+                  Añade garantía extendida por +S/{Math.round(p.monthlyPrice || 0)}{suf} antes de confirmar
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => toggleIns(p.id)}
+                className="shrink-0 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-white"
+                style={{ backgroundColor: OFERTA_COLORS.greenDark }}
+              >
+                Añadir
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insurances, selectedIns, remaining, equipoFrequency]);
 
   if (loading) {
     return (
@@ -469,31 +539,107 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     <div className="min-h-screen bg-white pb-32">
       <OfertaHeader />
 
-      {/* Barra: volver */}
-      <div className="mx-auto w-full max-w-md px-4 pt-4">
-        <button
-          onClick={backToDetail}
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium transition-colors"
-          style={{ color: OFERTA_COLORS.textMid }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver al equipo
-        </button>
-      </div>
+      {/* Breadcrumb navegable (feedback Marco): reemplaza "Volver al equipo".
+          Cada segmento navega — Mi oferta (index) › Catálogo › Complementos
+          (actual). Da salida al index y al catálogo sin perder la selección
+          (vive en localStorage). El detalle del equipo sigue accesible desde
+          el catálogo / la card. */}
+      <nav aria-label="Ruta" className="mx-auto w-full max-w-md px-4 pt-4">
+        <ol className="flex flex-wrap items-center gap-1 text-[13px]">
+          <li>
+            <button
+              onClick={goToIndex}
+              className="cursor-pointer font-medium transition-colors hover:underline"
+              style={{ color: OFERTA_COLORS.textMid }}
+            >
+              Mi oferta
+            </button>
+          </li>
+          <li aria-hidden="true" style={{ color: OFERTA_COLORS.textSoft }}>›</li>
+          <li>
+            <button
+              onClick={goToCatalogo}
+              className="cursor-pointer font-medium transition-colors hover:underline"
+              style={{ color: OFERTA_COLORS.textMid }}
+            >
+              Catálogo
+            </button>
+          </li>
+          <li aria-hidden="true" style={{ color: OFERTA_COLORS.textSoft }}>›</li>
+          <li aria-current="page" className="font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+            Complementos
+          </li>
+        </ol>
+      </nav>
 
       <main className="mx-auto w-full max-w-md space-y-5 px-4 py-4">
         {/* Encabezado */}
         <div>
-          <h1 className="font-['Baloo_2',_sans-serif] text-[22px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-            Complementos
+          <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
+            {clientName ? `¡Felicitaciones, ${clientName}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
+            <span style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
           </h1>
-          <p className="mt-1 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+          <p className="mt-1.5 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
             Solo mostramos lo que entra en tu cuota.
           </p>
         </div>
 
-        {/* Tu equipo */}
-        {equipoInfo && <TuEquipoCard nombre={equipoInfo.name} cuota={equipoMonthly} imageUrl={equipoInfo.imageUrl} />}
+        {/* Tu equipo (con desglose de extras si hay accesorios/seguros elegidos) */}
+        {equipoInfo && (
+          <TuEquipoCard
+            nombre={equipoInfo.name}
+            cuota={equipoMonthly}
+            imageUrl={equipoInfo.imageUrl}
+            extras={equipoExtras}
+            total={totalMonthly}
+          />
+        )}
+
+        {/* ¡Asegura tu inversión! (feedback Marco): shortcut visual a los
+            seguros disponibles sin entrar al buscador. Condicional a que haya
+            seguros disponibles para este equipo. */}
+        {insurances.length > 0 ? (
+          <div
+            className="rounded-xl border p-3.5"
+            style={{ backgroundColor: OFERTA_COLORS.greenSoft, borderColor: OFERTA_COLORS.greenDark + '33' }}
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+              <p className="font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+                ¡Asegura tu inversión!
+              </p>
+            </div>
+            <p className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+              Protege tu equipo con estas opciones:
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              {insurances.map((p) => {
+                const seleccionado = selectedIns.includes(p.id);
+                const fits = insFits(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleIns(p.id)}
+                    disabled={!fits}
+                    className="flex flex-col items-start gap-1 rounded-lg border bg-white px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
+                  >
+                    <span className="flex w-full items-center justify-between gap-1.5">
+                      <span className="min-w-0 truncate text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                        {p.name}
+                      </span>
+                      {seleccionado ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" style={{ color: OFERTA_COLORS.primary }} /> : null}
+                    </span>
+                    <span className="text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+                      +S/{Math.round(p.monthlyPrice || 0)}/mes
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una
             opción (BAL-2097). No forma parte del mock visual, pero la
@@ -561,7 +707,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
-          <Package className="h-4 w-4" strokeWidth={2.4} />
+          <Plus className="h-4 w-4" strokeWidth={2.4} />
           Añadir uno más
         </button>
 
@@ -581,7 +727,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             if (overBudget) return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
             setModalOpen(true);
           }}
-          ctaText={overBudget ? 'Supera tu cuota' : 'Continuar'}
+          ctaText={overBudget ? 'Supera tu cuota' : 'Añadir accesorios y seguros'}
         />
       </div>
 
@@ -653,6 +799,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
         }}
         addonsSlot={addonsResumen}
+        insuranceUpsellSlot={succeeded ? null : insuranceUpsellSlot}
       />
     </div>
   );

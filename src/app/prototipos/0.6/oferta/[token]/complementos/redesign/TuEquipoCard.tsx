@@ -6,60 +6,111 @@
  * `grayBg`, borde `border`, radius 16px. Foto placeholder + label teal +
  * nombre + cuota a la derecha.
  *
+ * Desglose de extras (feedback Marco, frame 3 de
+ * docs/superpowers/design-refs/mock-feedback-reunion.html): cuando se pasan
+ * `extras`, debajo de la fila principal se lista "Equipo S/X/mes" + cada
+ * accesorio/seguro "+S/Y/mes" + "Total S/N/mes". Sin `extras`, se comporta
+ * igual que antes (solo nombre + cuota).
+ *
  * Puramente presentacional: props → UI, sin fetch ni lógica.
  */
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
+
+export interface TuEquipoExtraItem {
+  label: string;
+  monthly: number;
+}
 
 export interface TuEquipoCardProps {
   nombre: string;
   cuota: number;
   /** URL de la imagen del equipo. Si no viene, se muestra un placeholder. */
   imageUrl?: string | null;
+  /** Desglose opcional: equipo + accesorios + seguros elegidos. Si no viene,
+   *  la card se ve igual que antes (sin desglose). */
+  extras?: TuEquipoExtraItem[];
+  /** Cuota total (equipo + extras). Solo se usa si `extras` viene. */
+  total?: number;
 }
 
-export function TuEquipoCard({ nombre, cuota, imageUrl }: TuEquipoCardProps) {
+export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquipoCardProps) {
   const cuotaFormateada = Math.round(cuota).toLocaleString('es-PE');
+  const mostrarDesglose = Boolean(extras && extras.length > 0);
+  const totalFormateado = Math.round(total ?? cuota).toLocaleString('es-PE');
 
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
+      className="rounded-xl border px-3.5 py-3"
       style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
     >
-      <div
-        className="flex h-[50px] w-[60px] flex-none items-center justify-center overflow-hidden rounded-xl border"
-        style={{
-          borderColor: OFERTA_COLORS.border,
-          background: imageUrl
-            ? '#fff'
-            : 'repeating-linear-gradient(135deg, #F1F2F7 0 7px, #E9EBF2 7px 14px)',
-        }}
-      >
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={nombre} className="h-full w-full object-contain" />
-        ) : (
-          <span className="font-mono text-[8px]" style={{ color: OFERTA_COLORS.textSoft }}>
-            equipo
-          </span>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-3">
         <div
-          className="text-[9.5px] font-bold tracking-[.1em]"
-          style={{ color: OFERTA_COLORS.tealBrand }}
+          className="flex h-[50px] w-[60px] flex-none items-center justify-center overflow-hidden rounded-xl border"
+          style={{
+            borderColor: OFERTA_COLORS.border,
+            background: imageUrl
+              ? '#fff'
+              : 'repeating-linear-gradient(135deg, #F1F2F7 0 7px, #E9EBF2 7px 14px)',
+          }}
         >
-          TU EQUIPO
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt={nombre} className="h-full w-full object-contain" />
+          ) : (
+            <span className="font-mono text-[8px]" style={{ color: OFERTA_COLORS.textSoft }}>
+              equipo
+            </span>
+          )}
         </div>
-        <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.2]" style={{ color: OFERTA_COLORS.textStrong }}>
-          {nombre}
+        <div className="min-w-0 flex-1">
+          <div
+            className="text-[9.5px] font-bold tracking-[.1em]"
+            style={{ color: OFERTA_COLORS.tealBrand }}
+          >
+            TU EQUIPO
+          </div>
+          <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.2]" style={{ color: OFERTA_COLORS.textStrong }}>
+            {nombre}
+          </div>
         </div>
+        {!mostrarDesglose ? (
+          <div
+            className="flex-none font-['Baloo_2',_sans-serif] text-[15px] font-bold"
+            style={{ color: OFERTA_COLORS.textStrong }}
+          >
+            S/{cuotaFormateada}/mes
+          </div>
+        ) : null}
       </div>
-      <div
-        className="flex-none font-['Baloo_2',_sans-serif] text-[15px] font-bold"
-        style={{ color: OFERTA_COLORS.textStrong }}
-      >
-        S/{cuotaFormateada}/mes
-      </div>
+
+      {mostrarDesglose ? (
+        <div className="mt-3 border-t pt-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
+          <ul className="space-y-1.5">
+            <li className="flex items-center justify-between text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+              <span className="truncate">Equipo</span>
+              <span className="shrink-0 font-medium" style={{ color: OFERTA_COLORS.textStrong }}>
+                S/{cuotaFormateada}/mes
+              </span>
+            </li>
+            {extras!.map((item, idx) => (
+              <li key={`${item.label}-${idx}`} className="flex items-center justify-between text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+                <span className="min-w-0 truncate">{item.label}</span>
+                <span className="shrink-0 font-medium" style={{ color: OFERTA_COLORS.textStrong }}>
+                  +S/{Math.round(item.monthly).toLocaleString('es-PE')}/mes
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2.5 flex items-center justify-between border-t pt-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
+            <span className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+              Total
+            </span>
+            <span className="font-['Baloo_2',_sans-serif] text-[16px] font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
+              S/{totalFormateado}/mes
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
