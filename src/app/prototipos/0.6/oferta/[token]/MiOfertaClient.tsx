@@ -347,16 +347,25 @@ export function MiOfertaClient({ token }: { token: string }) {
           <BadgeAprobada />
         </div>
 
-        <MontoAprobadoBar
-          aprobado={offer.maxMonthlyQuota}
-          // Cuota del equipo destacado (recomendado en Caso 4, exclusiva en
-          // Caso 5) → la barra muestra cuánto usa y cuánto queda para accesorios.
-          usadoEquipo={
-            offer.offerCase === 'upsell'
-              ? exclusivaInfo?.monthly ?? null
-              : recomendadoInfo?.monthly ?? null
-          }
-        />
+        {offer.offerCase === 'upsell' ? (
+          // Caso 5 (upsell): la barra muestra el equipo destacado (exclusiva),
+          // que SÍ entra → "usa S/X · te quedan S/Y para accesorios".
+          <MontoAprobadoBar
+            aprobado={offer.maxMonthlyQuota}
+            mode="recomendado"
+            usado={exclusivaInfo?.monthly ?? null}
+          />
+        ) : (
+          // Caso 4 (downgrade): la barra muestra el equipo que el estudiante
+          // PIDIÓ (el que conoce). Como no entra, sale en rojo con el aviso
+          // "<tu equipo> cuesta S/X — se pasa de tu monto".
+          <MontoAprobadoBar
+            aprobado={offer.maxMonthlyQuota}
+            mode="pedido"
+            usado={req?.monthly_price ?? null}
+            equipoNombre={req?.name ?? undefined}
+          />
+        )}
 
         {/* Título redundante en mobile (el badge "Aprobada" + el monto ya lo
             comunican) → oculto en mobile para caber en 100vh, visible en sm+. */}
