@@ -236,7 +236,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   // equipo correcto. El combo se propaga para sincronizar el accesorio gratis del
   // bundle a legacy al confirmar.
   const goToAccesorios = useCallback(() => {
-    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+    const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
     if (variantId != null && state.kind === 'ready') {
       const p = state.data.product;
       saveOfferSelection(token, {

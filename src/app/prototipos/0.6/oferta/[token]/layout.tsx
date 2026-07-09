@@ -15,6 +15,19 @@
  * catálogo de la oferta). No hay dependencia de application_id: el UUID se
  * auto-genera. El origen "oferta" se distingue por la ruta de la página
  * (page_url) que el tracker envía en cada evento.
+ *
+ * Tipografías del rediseño visual (BAL-2183/2184): Asap (texto general) y
+ * Baloo 2 (títulos/monto/acentos) YA se cargan una sola vez a nivel global en
+ * `src/app/layout.tsx` vía `next/font/google` (Asap + Baloo_2), expuestas como
+ * variables CSS `--font-asap` / `--font-baloo-2` en el `<body>` raíz. Este
+ * layout anidado las hereda automáticamente — NO se vuelven a instanciar aquí
+ * (duplicar `next/font/google` en un layout hijo crearía una segunda
+ * descarga/variable en vez de reusar la ya cargada). `--font-sans` (Tailwind)
+ * ya resuelve a `--font-asap` (ver globals.css), así que el texto por defecto
+ * del flujo de oferta ya usa Asap. Para Baloo 2 en un elemento puntual, seguir
+ * el patrón existente en el proyecto: className con arbitrary value
+ * `font-['Baloo_2',_sans-serif]` (ver OfertaBannerAprobada.tsx) o
+ * `style={{ fontFamily: 'var(--font-baloo-2)' }}`.
  */
 
 import { useEffect, type ReactNode } from 'react';

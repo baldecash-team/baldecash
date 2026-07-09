@@ -7,8 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, ArrowLeft, HelpCircle, GraduationCap, MessageCircle } from 'lucide-react';
-import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
+import { Search, ArrowLeft } from 'lucide-react';
 
 import { CatalogLayoutV4 } from '../../../[landing]/catalogo/components/catalog/layout/CatalogLayoutV4';
 import { NavbarSearch } from '../../../[landing]/catalogo/components/catalog/NavbarActions';
@@ -16,9 +15,6 @@ import { ProductCard } from '../../../[landing]/catalogo/components/catalog/card
 import { ProductCardSkeleton } from '../../../[landing]/catalogo/components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../../../[landing]/catalogo/components/catalog/LoadMoreButton';
 import { SearchDrawer } from '../../../[landing]/catalogo/components/catalog/SearchDrawer';
-import { BlipChat, useBlipChat } from '../../../components/BlipChat';
-import { OnboardingTour, OnboardingWelcomeModal } from '../../../[landing]/catalogo/components/onboarding';
-import { useOfferTour } from './useOfferTour';
 import type {
   CatalogProduct,
   FilterState,
@@ -94,9 +90,6 @@ export function CatalogoOfertaTab({
   const [products, setProducts] = useState<CatalogProduct[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults({}));
-  const tour = useOfferTour(token);  // tour guiado propio de la oferta
-  const blipChat = useBlipChat();    // abrir el chat desde el popover de ayuda
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [sort, setSort] = useState<SortOption>('recommended');
   const [searchOpen, setSearchOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -402,91 +395,6 @@ export function CatalogoOfertaTab({
         fetchSuggestions={fetchOfferSuggestions}
         onSelectSuggestion={goToOfferDetail}
       />
-
-      {/* Chat con Blip — igual que el catálogo regular. El botón flotante nativo
-          se oculta (hideFloatingButton): el chat se abre desde el popover de
-          ayuda. Emite webchat_open/close (EventTracker ya montado en el layout). */}
-      <BlipChat buttonColor="#4654CD" hideFloatingButton />
-
-      {/* Tour guiado propio de la oferta (pasos reducidos: quick-cards, filtros,
-          orden — IDs que CatalogLayoutV4 sí renderiza). Reusa el visual del
-          catálogo regular; emite eventos tour_* automáticamente. */}
-      <OnboardingWelcomeModal
-        isOpen={tour.shouldShowWelcome}
-        onStartTour={tour.startTour}
-        onDismiss={tour.dismissWelcome}
-      />
-      <OnboardingTour
-        isActive={tour.shouldShowTour}
-        currentStep={tour.currentStepData}
-        currentStepIndex={tour.currentStep}
-        totalSteps={tour.totalSteps}
-        highlightStyle="pulse"
-        onNext={tour.nextStep}
-        onPrev={tour.prevStep}
-        onSkip={tour.skipTour}
-      />
-
-      {/* Botón sticky "¿Necesitas ayuda?" abajo-izquierda con popover (mismo
-          patrón que el catálogo regular). 2 opciones: ver tour + hablar por Blip.
-          Sin la opción de quiz (la oferta no tiene quiz). */}
-      <div className="fixed bottom-6 left-6 z-[100]">
-        <Popover
-          placement="top"
-          showArrow
-          isOpen={isHelpOpen}
-          onOpenChange={setIsHelpOpen}
-          classNames={{
-            base: 'z-[100]',
-            content: 'p-0 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-xl rounded-xl overflow-hidden',
-          }}
-        >
-          <PopoverTrigger>
-            <Button
-              id="onboarding-oferta-help"
-              size="sm"
-              className="bg-[var(--color-primary)] text-white shadow-lg cursor-pointer hover:brightness-90 transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
-            >
-              <HelpCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">¿Necesitas ayuda?</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <div className="w-64">
-              <button
-                onClick={() => {
-                  setIsHelpOpen(false);
-                  tour.restartTour();
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-bg,#fafafa)] transition-colors cursor-pointer text-left border-b border-[var(--border-soft,#f3f4f6)]"
-              >
-                <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-secondary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-                  <GraduationCap className="w-5 h-5 text-[var(--color-secondary)]" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Ver tour guiado</p>
-                  <p className="text-xs text-[var(--text-muted,#6b7280)]">Aprende a usar el catálogo</p>
-                </div>
-              </button>
-              <button
-                onClick={() => {
-                  setIsHelpOpen(false);
-                  blipChat.openChat();
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-bg,#fafafa)] transition-colors cursor-pointer text-left"
-              >
-                <div className="w-9 h-9 rounded-lg bg-[#22C55E]/10 flex items-center justify-center flex-shrink-0">
-                  <MessageCircle className="w-5 h-5 text-[#22C55E]" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-strong,#1f2937)]">Habla con nosotros</p>
-                  <p className="text-xs text-[var(--text-muted,#6b7280)]">Te ayudamos al instante</p>
-                </div>
-              </button>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
     </>
   );
 }

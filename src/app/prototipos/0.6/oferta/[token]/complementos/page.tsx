@@ -1,5 +1,5 @@
 /**
- * Mini-checkout de accesorios y seguros: /oferta/{token}/accesorios (BAL-2064).
+ * Mini-checkout de accesorios y seguros: /oferta/{token}/complementos (BAL-2064).
  *
  * Server Component. La URL es limpia (sin query params): la selección del equipo
  * (variant/combo/slug + datos) se lee de localStorage en el cliente, guardada al
@@ -11,8 +11,8 @@ import type { Metadata } from 'next';
 import { AccesoriosOfertaClient } from './AccesoriosOfertaClient';
 
 export const metadata: Metadata = {
-  title: 'Accesorios y seguros | Mi oferta | BaldeCash',
-  description: 'Suma accesorios y protección a tu equipo.',
+  title: 'Complementos | Mi oferta | BaldeCash',
+  description: 'Suma complementos y protección a tu equipo.',
   robots: { index: false, follow: false },
 };
 

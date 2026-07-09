@@ -1,18 +1,21 @@
 'use client';
 
 /**
- * MiOfertaClient — orquestador de la página "Mi Oferta" (Caso 4 · BAL-1785).
+ * MiOfertaClient — orquestador de la página "Mi Oferta" (Caso 4/5 · BAL-1785).
  *
  * Carga la oferta por token y maneja estados (cargando / válido / expirado /
- * usado / inválido). Dos tabs que usan el LAYOUT REAL del catálogo:
- *   - "Tu oferta": recomendado + el que pediste (sin filtros).
- *   - "Catálogo":  CatalogLayoutV4 completo con filtros, alimentado por offerApi.
+ * usado / inválido). Pantalla única scrolleable (rediseño BAL-2184, sin tabs):
+ * saludo + monto aprobado + copy + prueba social + según offerCase la card
+ * destacada (recomendado en 'downgrade', oferta exclusiva en 'upsell') más las
+ * opciones secundarias (continuar con el equipo pedido / ver catálogo). "Ver
+ * catálogo" navega a la subruta /catalogo (CatalogLayoutV4 completo).
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { Laptop2, LayoutGrid, ShoppingBag } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
-import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
+import type { CatalogProduct, ProductSpecs } from '../../[landing]/catalogo/types/catalog';
 import {
   getOffer,
   selectEquipment,
@@ -20,17 +23,31 @@ import {
   type OfferView,
   type OfferErrorReason,
 } from '../../services/offerApi';
-import { Navbar } from '../../components/hero/Navbar';
-import { OfertaBannerAprobada } from './components/OfertaBannerAprobada';
-import { UpsellPortada } from './components/UpsellPortada';
-import { TuOfertaTab } from './components/TuOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { saveOfferSelection, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
+import { OfertaHeader } from './components/redesign/OfertaHeader';
+import { MontoAprobadoBar } from './components/redesign/MontoAprobadoBar';
+import { BadgeAprobada } from './components/redesign/BadgeAprobada';
+import { PruebaSocial } from './components/redesign/PruebaSocial';
+import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/redesign/EquipoRecomendadoCard';
+import { OpcionBarra } from './components/redesign/OpcionBarra';
+import { IconoAccesorios } from './components/redesign/IconoAccesorios';
+import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
+import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 
-const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+/** Chips de specs clave (procesador/RAM/almacenamiento) — mismo criterio que
+ *  OfertaEquipoCard, para reusar el mismo lenguaje visual en la card nueva. */
+function specsToChips(specs?: ProductSpecs | null): string[] {
+  if (!specs) return [];
+  const chips: string[] = [];
+  if (specs.processor?.model) chips.push(specs.processor.model);
+  if (specs.ram?.size) chips.push(`${specs.ram.size}GB`);
+  if (specs.storage?.size) chips.push(`${specs.storage.size}GB ${String(specs.storage.type ?? '').toUpperCase()}`.trim());
+  return chips;
+}
 
 type PageState =
   | { kind: 'loading' }
@@ -145,7 +162,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       slug: string | null | undefined,
       equipo?: StoredEquipo,
     ) => {
-      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       if (variantId == null) {
         // Sin variante usable → caer al detalle para resolver allí.
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
@@ -278,36 +295,166 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   const { offer } = state;
 
+  // Mapeo de los datos del offer a EquipoRecomendadoInfo (props opcionales →
+  // se omite lo que no venga del backend). Caso 4: recommended (CatalogProduct).
+  const recomendadoInfo: EquipoRecomendadoInfo | null = offer.recommended
+    ? {
+        name: offer.recommended.displayName || offer.recommended.name,
+        brand: offer.recommended.brand,
+        imageUrl: offer.recommended.images?.[0] || offer.recommended.thumbnail,
+        monthly: offer.recommended.quotaMonthly,
+        term: offer.recommended.hookTermMonths ?? offer.recommended.maxTermMonths,
+        initial:
+          offer.recommended.hookInitialAmount != null && offer.recommended.hookInitialAmount > 0
+            ? `inicial S/${Math.round(offer.recommended.hookInitialAmount)}`
+            : undefined,
+        specs: specsToChips(offer.recommended.specs),
+      }
+    : null;
+
+  // Caso 5: exclusiveOffer (ExclusiveOffer).
+  const exclusivaInfo: EquipoRecomendadoInfo | null = offer.exclusiveOffer
+    ? {
+        name: offer.exclusiveOffer.name ?? 'Tu oferta exclusiva',
+        brand: offer.exclusiveOffer.brand,
+        imageUrl: offer.exclusiveOffer.imageUrl,
+        monthly: offer.exclusiveOffer.combinedMonthly,
+        term: offer.exclusiveOffer.termMonths,
+        initial:
+          offer.exclusiveOffer.initialAmount != null && offer.exclusiveOffer.initialAmount > 0
+            ? `inicial S/${Math.round(offer.exclusiveOffer.initialAmount)}`
+            : undefined,
+      }
+    : null;
+
+  const req = offer.requestedProduct;
+
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      {/* Header con logo. El contenedor del logo usa el MISMO ancho/márgenes que
-          el banner y las cards (max-w-5xl centrado en desktop) para que todo
-          quede alineado verticalmente. En mobile: solo px-4 (sin margen grande). */}
-      <Navbar
-        logoOnly
-        logoUrl={BRAND_LOGO_URL}
-        logoContainerClassName="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8"
-      />
+    <div className="min-h-screen bg-white">
+      <OfertaHeader />
 
-      {/* Offset para el navbar fixed. Sin tabs: todo en un solo scroll. */}
-      <div className="pt-16" />
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
+        {/* Saludo + badge aprobada */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[13px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>
+              Hola,
+            </div>
+            <div className="font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-[1.1]">
+              {offer.clientName || ''}
+            </div>
+          </div>
+          <BadgeAprobada />
+        </div>
 
-      {/* Banner de felicitaciones (reemplaza al countdown) */}
-      <OfertaBannerAprobada clientName={offer.clientName} applicationCode={offer.applicationCode} />
-
-      {/* Sección destacada. Caso 5 (upsell) → portada TU EQUIPO vs OFERTA
-          EXCLUSIVA. Caso 4 (downgrade) → el que pediste + aprobado para ti.
-          "Ver otros equipos" navega a la subruta /catalogo (ya no scroll inline). */}
-      {offer.offerCase === 'upsell' ? (
-        <UpsellPortada
-          offer={offer}
-          onAceptar={handleAceptarExclusiva}
-          onContinuar={handleContinuarMiEquipo}
-          onVerCatalogo={goToCatalogo}
+        <MontoAprobadoBar
+          aprobado={offer.maxMonthlyQuota}
+          // Cuota del equipo destacado (recomendado en Caso 4, exclusiva en
+          // Caso 5) → la barra muestra cuánto usa y cuánto queda para accesorios.
+          usadoEquipo={
+            offer.offerCase === 'upsell'
+              ? exclusivaInfo?.monthly ?? null
+              : recomendadoInfo?.monthly ?? null
+          }
         />
-      ) : (
-        <TuOfertaTab token={token} offer={offer} onVerCatalogo={goToCatalogo} onSelect={handleSelect} />
-      )}
+
+        {/* Título redundante en mobile (el badge "Aprobada" + el monto ya lo
+            comunican) → oculto en mobile para caber en 100vh, visible en sm+. */}
+        <div className="hidden font-['Baloo_2',_sans-serif] text-[17px] font-bold sm:block">
+          ¡Estás aprobado! Elige cómo continuar
+        </div>
+
+        <PruebaSocial />
+
+        {offer.offerCase === 'upsell' ? (
+          <>
+            {/* Orden por prioridad (feedback Emilio):
+                1. Añadir accesorios (recomendado) → acepta el mejor equipo + va a accesorios.
+                2. Cambiar de equipo → catálogo aprobado.
+                3. Mantener mi equipo → sigue con el que pidió + accesorios. */}
+            <OpcionBarra
+              destacada
+              icono={<IconoAccesorios size={50} />}
+              titulo="Añadir accesorios"
+              subtitulo={
+                exclusivaInfo?.name
+                  ? `Suma extras a tu ${exclusivaInfo.name}`
+                  : 'Suma extras a tu equipo aprobado'
+              }
+              cuota={exclusivaInfo?.monthly != null ? `S/${Math.round(exclusivaInfo.monthly)}/mes` : undefined}
+              onClick={handleAceptarExclusiva}
+            />
+            <OpcionBarra
+              icono={<LayoutGrid className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              titulo="Cambiar de equipo"
+              subtitulo="Explora el catálogo aprobado"
+              onClick={goToCatalogo}
+            />
+            <OpcionBarra
+              icono={<Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              titulo="Mantener mi equipo"
+              subtitulo={req?.name ?? undefined}
+              cuota={req?.monthly_price != null ? `S/${Math.round(req.monthly_price)}/mes` : undefined}
+              onClick={handleContinuarMiEquipo}
+            />
+          </>
+        ) : (
+          <>
+            {/* Card GRIS del equipo pedido (read-only) — diseño NUEVO del
+                rediseño, solo reusa la DATA (imagen/accesorios de req). Ya trae
+                el badge "No disponible", así que no repetimos el aviso naranja
+                separado (ahorra alto en mobile). En mobile los accesorios se
+                colapsan tras "ver detalle" para que entre en 100vh. */}
+            {req ? (
+              <EquipoPedidoCard
+                nombre={req.name ?? 'Tu equipo'}
+                imageUrl={req.image_url}
+                monthly={req.monthly_price}
+                termMonths={req.term_months ?? req.term ?? null}
+                initialAmount={req.initial_amount ?? null}
+                initialPercent={req.initial_percent ?? null}
+                paymentFrequency={req.payment_frequency ?? 'mensual'}
+                accessories={req.accessories ?? []}
+                insurances={req.insurances ?? []}
+              />
+            ) : null}
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+              <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                pero te aprobamos esto
+              </span>
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+            </div>
+
+            {recomendadoInfo ? (
+              <EquipoRecomendadoCard
+                equipo={recomendadoInfo}
+                tone="verde"
+                badgeText="Aprobado para ti"
+                ctaText="Aceptar equipo"
+                subtext="Tu solicitud queda aprobada al elegirlo"
+                onElegir={() => handleSelect(offer.recommended as CatalogProduct)}
+              />
+            ) : null}
+
+            <div className="hidden items-center gap-3 sm:flex">
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+              <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                ¿no te convence?
+              </span>
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+            </div>
+
+            <OpcionBarra
+              icono={<ShoppingBag className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              titulo="Ver otros equipos"
+              subtitulo="Explora el catálogo aprobado"
+              onClick={goToCatalogo}
+            />
+          </>
+        )}
+      </main>
 
       <ConfirmarEleccionModal
         isOpen={pending !== null}
