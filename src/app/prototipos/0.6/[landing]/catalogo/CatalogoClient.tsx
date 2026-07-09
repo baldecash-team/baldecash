@@ -61,6 +61,7 @@ import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nv
 import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding } from '@/app/prototipos/0.6/utils/theme';
 import { GamerCatalogoContent } from './GamerCatalogoClient';
 import { CopiaHomeMobileCatalog } from './copia-home/CopiaHomeMobileCatalog';
+import { CopiaHomeDesktopCatalog } from './copia-home/CopiaHomeDesktopCatalog';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -206,13 +207,13 @@ export function CatalogoClient() {
     );
   }
 
-  // copia-home: variante mobile del catálogo (mockup seminuevos). En desktop
-  // cae al catálogo estándar de abajo.
-  if (isCopiaHomeLanding(landing) && isMobile) {
+  // copia-home: variante dedicada del catálogo (mockup seminuevos), mobile y
+  // desktop. El resto de landings cae al catálogo estándar de abajo.
+  if (isCopiaHomeLanding(landing)) {
     return (
       <ProductProvider landingSlug={landing}>
         <Suspense fallback={<LoadingFallback />}>
-          <CopiaHomeMobileCatalog />
+          {isMobile ? <CopiaHomeMobileCatalog /> : <CopiaHomeDesktopCatalog />}
         </Suspense>
       </ProductProvider>
     );

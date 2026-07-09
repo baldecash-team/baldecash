@@ -336,6 +336,28 @@
 .sheetActions { display: flex; gap: 12px; margin-top: 8px; }
 .sheetActions .btn { height: 48px; font-size: 15px; }
 
+/* ---- PDF de políticas descargable ---- */
+.pdfLink { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 13px 14px; border: 1.5px solid var(--borde); border-radius: 12px; text-decoration: none; }
+.pdfIco { width: 38px; height: 38px; border-radius: 10px; background: #fdeaea; display: grid; place-items: center; color: #e5484d; flex: none; }
+.pdfT { font-size: 14px; font-weight: 700; color: var(--navy); }
+.pdfS { font-size: 12px; color: var(--tenue); margin-top: 1px; }
+.pdfDl { color: var(--azul); flex: none; }
+
+/* ---- CTA "volver al Grado A" en no disponible (grado B/C) ---- */
+.ndCta {
+  margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; background: var(--azul);
+  color: #fff; border: none; border-radius: 11px; height: 46px; padding: 0 20px;
+  font-family: 'Asap', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+
+/* ---- Nota de envío diferido (iPhone seminuevo / iPad) ---- */
+.shipNote {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px;
+  background: var(--lavanda); color: var(--navy); font-size: 13px; margin-bottom: 16px;
+}
+.shipNote svg { color: var(--azul); flex: none; }
+.shipNote b { font-weight: 700; }
+
 /* ---- Modal "Producto seminuevo" ya lo aporta RefurbishedWarningModal ---- */
 
 /* ---- Loading / skeleton ---- */

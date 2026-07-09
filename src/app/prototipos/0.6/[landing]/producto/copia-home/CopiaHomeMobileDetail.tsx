@@ -17,6 +17,7 @@ import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ShieldCheck, BadgeCheck, Package,
   Check, Battery, Monitor, Star, RefreshCw, Heart, Cpu, Calendar,
+  FileText, Download, Truck, ArrowRight,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -26,6 +27,8 @@ import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
 import { Cronograma } from '../components/detail/cronograma/Cronograma';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
+import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from './politicasPdf';
+import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
@@ -98,9 +101,16 @@ export function CopiaHomeMobileDetail({
   // El endpoint de detalle no siempre devuelve `condition`, pero el nombre de
   // los seminuevos sí trae "Semi Nuevo". Detectamos por condición o por nombre
   // para pintar las secciones de grados y condición.
+  const fullName = `${product.name ?? ''} ${product.displayName ?? ''}`;
   const isRefurbished =
     isRefurbishedCondition(product.condition) ||
-    /semi\s*nuevo|seminuevo|reacondicion/i.test(`${product.name ?? ''} ${product.displayName ?? ''}`);
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(fullName);
+
+  // Garantía de fábrica por modelo (item 3) y envío diferido 14/07 (iPhone semi / iPad).
+  const warranty = factoryWarranty(fullName, product.warranty);
+  const deferredShipping = hasDeferredShipping({
+    name: fullName, condition: product.condition, deviceType: product.deviceType, brand: product.brand,
+  });
 
   // ---- Colores / galería ----
   const hasSiblings = !!(product.colorSiblings && product.colorSiblings.length > 1);
@@ -239,13 +249,8 @@ export function CopiaHomeMobileDetail({
     });
   };
 
-  // ---- Accesorios "qué incluye" ----
-  const accesorios = useMemo(() => {
-    if (apiData.combo?.accessories?.length) {
-      return apiData.combo.accessories.map((a) => a.productName);
-    }
-    return ['Mica protectora', 'Case protector', 'Cable cargador'];
-  }, [apiData.combo]);
+  // ---- Accesorios "qué incluye" (item 8: solo mica protectora + cable cargador) ----
+  const accesorios = ['Mica protectora', 'Cable cargador'];
 
   const condRows = [
     { l: 'Condición de batería', v: '80 - 99%', blue: true },
@@ -302,22 +307,61 @@ export function CopiaHomeMobileDetail({
           )}
         </div>
 
+        {/* Condición — primero (item 7). Solo grado comprable (A). */}
+        {canBuy && isRefurbished && (
+          <div className={styles.card}>
+            <div className={styles.condHead}>
+              <span className={styles.accIco}><BadgeCheck size={20} /></span>
+              <div>
+                <div className={styles.secTitle} style={{ margin: 0 }}>Condición</div>
+                <div className={styles.accSub}>Resultado de la revisión técnica del equipo</div>
+              </div>
+            </div>
+            <div className={styles.specRows}>
+              {condRows.map((r, i) => (
+                <div key={i} className={styles.specRow}>
+                  <span className={styles.srLbl}>{r.l}</span>
+                  <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Envío diferido (iPhone seminuevo / iPad) */}
+        {deferredShipping && (
+          <div className={styles.shipNote}>
+            <Truck size={18} />
+            <span>El envío o recojo será <b>a partir del martes 14/07</b>.</span>
+          </div>
+        )}
+
         {/* Descripción */}
         <Acc title="Descripción" sub="Detalles y beneficios de tu equipo" icon={<Package size={20} />} isOpen={!!open.desc} onToggle={() => toggle('desc')}>
           <p className={styles.descText} style={{ marginTop: 0 }}>{product.description || product.shortDescription}</p>
           <div className={styles.descFeatures}>
             <div className={styles.descFeature}>
               <span className={styles.dfIco}><ShieldCheck size={18} /></span>
-              <div><div className={styles.dfLbl}>Garantía</div><div className={styles.dfVal}>{product.warranty || '1 año'}</div></div>
+              <div><div className={styles.dfLbl}>Garantía de fábrica</div><div className={styles.dfVal}>{warranty}</div></div>
             </div>
             <div className={styles.descFeature}>
               <span className={styles.dfIco}>{isRefurbished ? <BadgeCheck size={18} /> : <Package size={18} />}</span>
               <div>
-                <div className={styles.dfLbl}>{isRefurbished ? 'Revisión' : 'Producto'}</div>
-                <div className={styles.dfVal}>{isRefurbished ? 'Certificado' : 'Nuevo sellado'}</div>
+                <div className={styles.dfLbl}>Producto</div>
+                <div className={styles.dfVal}>{isRefurbished ? 'Seminuevo' : 'Nuevo sellado'}</div>
               </div>
             </div>
           </div>
+          {isRefurbished && (
+            <a className={styles.pdfLink} href={POLITICAS_PDF_DATA_URI} download={POLITICAS_PDF_FILENAME}>
+              <span className={styles.pdfIco}><FileText size={20} /></span>
+              <div style={{ flex: 1 }}>
+                <div className={styles.pdfT}>Políticas y condiciones del producto</div>
+                <div className={styles.pdfS}>PDF · descargar</div>
+              </div>
+              <span className={styles.pdfDl}><Download size={20} /></span>
+            </a>
+          )}
         </Acc>
 
         {/* Elige el grado (solo reacondicionado) */}
@@ -330,21 +374,24 @@ export function CopiaHomeMobileDetail({
                 </button>
               ))}
             </div>
-            <div className={styles.gradoBody}>
-              <div className={styles.grado360}>
-                {galleryImages[0]?.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={galleryImages[0].url} alt={product.displayName} />
-                )}
+            {/* item 6: en grado B/C no se muestran características/specs, solo el aviso + CTA (abajo). */}
+            {gradeAvailable && (
+              <div className={styles.gradoBody}>
+                <div className={styles.grado360}>
+                  {galleryImages[0]?.url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={galleryImages[0].url} alt={product.displayName} />
+                  )}
+                </div>
+                <div className={styles.carac}>
+                  <h4>Características</h4>
+                  <div className={styles.caracItem}><span className={styles.ciIco}><Battery size={24} /></span><div><div className={styles.ciLbl}>Nivel de batería</div><div className={styles.ciVal}>{gradeInfo.bateria}</div></div></div>
+                  <div className={styles.caracItem}><span className={styles.ciIco}><Monitor size={24} /></span><div><div className={styles.ciLbl}>Aspecto visual</div><div className={styles.ciVal}>{gradeInfo.aspecto}</div></div></div>
+                  <div className={styles.caracItem}><span className={styles.ciIco}><Star size={24} /></span><div><div className={styles.ciLbl}>Condición técnica</div><div className={styles.ciVal}>{gradeInfo.condicion}</div></div></div>
+                  <div className={styles.caracItem}><span className={styles.ciIco}><RefreshCw size={24} /></span><div><div className={styles.ciLbl}>Reemplazo de piezas</div><div className={styles.ciVal}>{gradeInfo.reemplazo}</div></div></div>
+                </div>
               </div>
-              <div className={styles.carac}>
-                <h4>Características</h4>
-                <div className={styles.caracItem}><span className={styles.ciIco}><Battery size={24} /></span><div><div className={styles.ciLbl}>Nivel de batería</div><div className={styles.ciVal}>{gradeInfo.bateria}</div></div></div>
-                <div className={styles.caracItem}><span className={styles.ciIco}><Monitor size={24} /></span><div><div className={styles.ciLbl}>Aspecto visual</div><div className={styles.ciVal}>{gradeInfo.aspecto}</div></div></div>
-                <div className={styles.caracItem}><span className={styles.ciIco}><Star size={24} /></span><div><div className={styles.ciLbl}>Condición técnica</div><div className={styles.ciVal}>{gradeInfo.condicion}</div></div></div>
-                <div className={styles.caracItem}><span className={styles.ciIco}><RefreshCw size={24} /></span><div><div className={styles.ciLbl}>Reemplazo de piezas</div><div className={styles.ciVal}>{gradeInfo.reemplazo}</div></div></div>
-              </div>
-            </div>
+            )}
           </Acc>
         )}
 
@@ -414,27 +461,6 @@ export function CopiaHomeMobileDetail({
               </Acc>
             )}
 
-            {/* Condición (solo reacondicionado) */}
-            {isRefurbished && (
-              <div className={styles.card}>
-                <div className={styles.condHead}>
-                  <span className={styles.accIco}><BadgeCheck size={20} /></span>
-                  <div>
-                    <div className={styles.secTitle} style={{ margin: 0 }}>Condición</div>
-                    <div className={styles.accSub}>Resultado de la revisión técnica del equipo</div>
-                  </div>
-                </div>
-                <div className={styles.specRows}>
-                  {condRows.map((r, i) => (
-                    <div key={i} className={styles.specRow}>
-                      <span className={styles.srLbl}>{r.l}</span>
-                      <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* CTA fijo mobile estándar de baldecash (¡Lo quiero! + wishlist) */}
             <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none">
               <button
@@ -465,9 +491,14 @@ export function CopiaHomeMobileDetail({
             <div className={styles.ndT}>No disponible</div>
             <div className={styles.ndS}>
               {isRefurbished
-                ? `Este equipo no está disponible en Grado ${grade}. Elige el Grado A para continuar.`
+                ? `Este equipo no está disponible en Grado ${grade}.`
                 : 'Este equipo no está disponible por el momento.'}
             </div>
+            {isRefurbished && (
+              <button type="button" className={styles.ndCta} onClick={() => setGrade('A')}>
+                Ver equipo disponible (Grado A) <ArrowRight size={18} />
+              </button>
+            )}
           </div>
         )}
 
@@ -501,6 +532,9 @@ export function CopiaHomeMobileDetail({
         onClose={() => setShowRefurb(false)}
         onConfirm={() => { setShowRefurb(false); proceedToSolicitar(); }}
         productName={product.displayName}
+        policyHref={POLITICAS_PDF_DATA_URI}
+        policyFilename={POLITICAS_PDF_FILENAME}
+        shippingNote={deferredShipping ? DEFERRED_SHIPPING_NOTE : undefined}
       />
     </div>
   );

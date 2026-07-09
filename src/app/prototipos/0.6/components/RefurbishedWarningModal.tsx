@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
-import { Recycle, ShieldCheck, Tag, Sparkles } from 'lucide-react';
+import { Recycle, ShieldCheck, Tag, Sparkles, Truck, Download } from 'lucide-react';
 
 // Re-export por compatibilidad: el helper vive ahora en utils/condition.
 export { isRefurbishedCondition } from '@/app/prototipos/0.6/utils/condition';
@@ -23,9 +23,21 @@ interface RefurbishedWarningModalProps {
   onConfirm: () => void;
   /** Nombre del producto (para personalizar el mensaje). */
   productName?: string;
+  /**
+   * Si se pasa, el punto de garantía muestra "Incluye garantía para daños de
+   * fábrica." con un enlace "Ver política." descargable (data URI o URL).
+   */
+  policyHref?: string;
+  /** Nombre de archivo para la descarga de la política. */
+  policyFilename?: string;
+  /**
+   * Nota extra (último punto). Ej. envío diferido de iPhone seminuevos / iPads:
+   * "El envío o recojo será a partir del martes 14/07".
+   */
+  shippingNote?: string;
 }
 
-const POINTS: { icon: React.ReactNode; text: string }[] = [
+const BASE_POINTS: { icon: React.ReactNode; text: string }[] = [
   { icon: <Sparkles className="w-4 h-4" />, text: 'Revisado, probado y reparado por técnicos certificados.' },
   { icon: <ShieldCheck className="w-4 h-4" />, text: 'Incluye garantía, igual que un equipo nuevo.' },
   { icon: <Tag className="w-4 h-4" />, text: 'Precio menor: ahorra sin sacrificar calidad.' },
@@ -37,7 +49,35 @@ export const RefurbishedWarningModal: React.FC<RefurbishedWarningModalProps> = (
   onClose,
   onConfirm,
   productName,
+  policyHref,
+  policyFilename,
+  shippingNote,
 }) => {
+  // Puntos base + ajustes opcionales (garantía de fábrica con política, envío diferido).
+  const points: { icon: React.ReactNode; text: React.ReactNode }[] = BASE_POINTS.map((p, i) => {
+    if (i === 1 && policyHref) {
+      return {
+        icon: p.icon,
+        text: (
+          <>
+            Incluye garantía para daños de fábrica.{' '}
+            <a
+              href={policyHref}
+              download={policyFilename}
+              className="text-[var(--color-primary)] font-semibold underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              Ver política <Download className="w-3.5 h-3.5" />
+            </a>
+          </>
+        ),
+      };
+    }
+    return p;
+  });
+  if (shippingNote) {
+    points.push({ icon: <Truck className="w-4 h-4" />, text: shippingNote });
+  }
+
   return (
     <Modal
       isOpen={isOpen}
@@ -78,7 +118,7 @@ export const RefurbishedWarningModal: React.FC<RefurbishedWarningModalProps> = (
 
           {/* Points */}
           <ul className="space-y-2.5 mb-6">
-            {POINTS.map((p, i) => (
+            {points.map((p, i) => (
               <li key={i} className="flex items-start gap-2.5">
                 <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
                   {p.icon}

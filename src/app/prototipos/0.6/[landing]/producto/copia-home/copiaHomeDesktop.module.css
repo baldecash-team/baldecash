@@ -1,0 +1,244 @@
+/*
+ * Variante DESKTOP "copia-home" (mockup seminuevos) — solo detalle de producto.
+ * Portado de baldecash-seminuevos-desktop.html a CSS Modules (scoped).
+ * Se aplica únicamente a productos reacondicionados en desktop; el catálogo y
+ * los equipos nuevos siguen usando el detalle estándar. El chrome del sitio
+ * (Navbar / Footer / secondary navbar) lo aporta ProductDetailClient; aquí solo
+ * vive el contenido del detalle.
+ */
+
+.root {
+  --azul: #4654cd;
+  --azul-oscuro: #3a46b0;
+  --aqua: #03dbd0;
+  --navy: #151744;
+  --lavanda: #eef0fc;
+  --bg: #eef0f4;
+  --card: #ffffff;
+  --borde: #e8e8ee;
+  --texto: #2b2c3a;
+  --tenue: #8a8a99;
+  --verde: #22c55e;
+  --radio: 16px;
+  --sombra: 0 4px 18px rgba(21, 23, 68, 0.06);
+
+  background: var(--bg);
+  color: var(--texto);
+  font-family: 'Asap', system-ui, sans-serif;
+}
+.root * { box-sizing: border-box; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px; }
+
+/* ---- Volver ---- */
+.volver {
+  background: none; border: none; color: var(--azul); font-weight: 600; font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: 18px;
+}
+.volver:hover { text-decoration: underline; }
+
+/* ---- Layout general ---- */
+.detTop { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 32px; align-items: start; }
+.detGal {
+  position: sticky;
+  top: calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 20px);
+}
+.detFull { margin-top: 20px; }
+
+@media (max-width: 900px) {
+  .detTop { grid-template-columns: 1fr; }
+  .detGal { position: static; }
+}
+
+.panel {
+  background: var(--card); border-radius: var(--radio); box-shadow: var(--sombra);
+  padding: 22px; margin-bottom: 20px; position: relative;
+}
+.panel:last-child { margin-bottom: 0; }
+
+/* ---- Badge seminuevo ---- */
+.prodBadge {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  background: var(--aqua); color: #04413e;
+  font-weight: 600; font-size: 11.5px; padding: 5px 12px; border-radius: 20px;
+}
+
+/* ---- Galería ---- */
+.gal { position: relative; }
+.heroImg {
+  background: linear-gradient(160deg, #f7f7fb, #ececf4); border-radius: 14px; height: 400px;
+  position: relative; display: grid; place-items: center; margin-bottom: 14px; overflow: hidden;
+}
+.heroImg img { width: 100%; height: 100%; object-fit: contain; }
+.heroTag {
+  position: absolute; bottom: 12px; left: 12px; background: rgba(30, 31, 45, 0.75); color: #fff;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px; padding: 6px 11px; border-radius: 7px;
+}
+.heroCount {
+  position: absolute; bottom: 12px; right: 12px; background: rgba(30, 31, 45, 0.75); color: #fff;
+  font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 7px;
+}
+.thumbs { display: flex; gap: 12px; flex-wrap: wrap; }
+.thumb {
+  width: 84px; height: 84px; border-radius: 12px; border: 1.5px solid var(--borde);
+  background: linear-gradient(160deg, #f7f7fb, #ececf4); display: grid; place-items: center;
+  cursor: pointer; overflow: hidden;
+}
+.thumb img { width: 100%; height: 100%; object-fit: contain; }
+.thumbOn { border-color: var(--azul); border-width: 2px; }
+
+/* ---- Banner de seguridad / recojo ---- */
+.recojoBanner {
+  position: relative;
+  background: linear-gradient(135deg, #4654cd 0%, #5a63d6 48%, #03dbd0 135%);
+  border-radius: 14px; padding: 22px; color: #fff; overflow: hidden;
+}
+.recojoBanner::after {
+  content: ''; position: absolute; right: -44px; top: -44px; width: 150px; height: 150px;
+  background: rgba(255, 255, 255, 0.1); border-radius: 50%;
+}
+.rbRow { position: relative; display: flex; gap: 16px; align-items: center; }
+.rbIco {
+  width: 58px; height: 58px; border-radius: 15px; background: rgba(255, 255, 255, 0.2);
+  display: grid; place-items: center; color: #fff; flex: none;
+}
+.rbText { font-size: 14.5px; line-height: 1.5; font-weight: 500; }
+.rbLink {
+  position: relative; margin-top: 16px; display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255, 255, 255, 0.92); color: var(--azul); border: none;
+  font-family: 'Asap', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 16px;
+  border-radius: 20px; cursor: pointer;
+}
+.rbLink:hover { background: #fff; }
+
+/* ---- Encabezados de sección ---- */
+.secTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 19px; color: var(--navy); }
+.secSub { font-size: 14px; color: var(--tenue); margin-top: 3px; margin-bottom: 16px; }
+.secHeadIco { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.secIco { width: 40px; height: 40px; border-radius: 10px; background: var(--lavanda); display: grid; place-items: center; color: var(--azul); flex: none; }
+
+/* ---- Descripción ---- */
+.descText { font-size: 15.5px; color: #5b5c6b; line-height: 1.6; }
+.descFeatures { display: flex; gap: 16px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--borde); }
+.descFeature { display: flex; gap: 11px; align-items: center; flex: 1; }
+.dfIco { width: 42px; height: 42px; border-radius: 10px; background: var(--lavanda); display: grid; place-items: center; color: var(--azul); flex: none; }
+.dfLbl { font-size: 12px; color: var(--tenue); }
+.dfVal { font-size: 15px; font-weight: 700; color: var(--navy); }
+
+/* ---- Especificaciones / condición (filas etiqueta / valor) ---- */
+.specGroup { margin-bottom: 16px; }
+.specGroup:last-child { margin-bottom: 0; }
+.specGroupTitle { font-size: 12px; font-weight: 700; color: var(--navy); margin: 4px 0 8px; }
+.specRows { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; border: 1px solid var(--borde); }
+.specRow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; font-size: 15px; }
+.specRow:nth-child(odd) { background: var(--lavanda); }
+.srLbl { color: #5b5c6b; }
+.srVal { font-weight: 700; color: var(--navy); text-align: right; }
+.srValBlue { color: var(--azul); }
+
+/* ---- Qué incluye ---- */
+.incluyeGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 660px; }
+.incTile { display: flex; align-items: center; gap: 12px; border: 1px solid var(--borde); border-radius: 12px; padding: 15px; }
+.incIco { width: 36px; height: 36px; border-radius: 9px; background: var(--lavanda); display: grid; place-items: center; color: var(--azul); flex: none; }
+.incTxt { flex: 1; font-size: 15px; font-weight: 600; color: var(--navy); }
+.incChk { color: var(--verde); flex: none; }
+
+/* ---- Cronograma embebido: neutraliza el card propio del componente estándar ---- */
+.cronoWrap > div { border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; background: transparent !important; }
+
+/* ---- Buy box (columna derecha) ---- */
+.buyMarca { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
+.buyTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 28px; color: var(--navy); line-height: 1.15; margin: 4px 0 14px; }
+.detalleSwatches { display: flex; gap: 10px; margin-bottom: 7px; flex-wrap: wrap; }
+.dSwatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: grid; place-items: center; }
+.dSwatchOn { border-color: var(--azul); }
+.dSwatch .tick { opacity: 0; color: #fff; }
+.dSwatchOn .tick { opacity: 1; }
+.colorLabel { font-size: 14px; color: var(--tenue); margin-bottom: 20px; }
+
+.block { margin-bottom: 22px; }
+.block:last-child { margin-bottom: 0; }
+.block + .block { border-top: 1px solid var(--borde); padding-top: 22px; }
+.blockT { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+
+/* ---- Grados ---- */
+.grados { display: flex; gap: 10px; }
+.grado {
+  flex: 1; border: 1.5px solid var(--borde); border-radius: 11px; height: 46px; background: var(--card);
+  font-weight: 600; font-size: 15px; color: #5b5c6b; cursor: pointer; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.gradoOn { border-color: var(--azul); background: var(--lavanda); color: var(--azul); }
+.gTick { opacity: 0; position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; background: var(--azul); border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.gradoOn .gTick { opacity: 1; }
+.gradoBody { display: flex; gap: 16px; margin-top: 16px; }
+.grado360 { width: 148px; flex: none; border-radius: 12px; background: linear-gradient(160deg, #f2f2f7, #e4e4ee); display: grid; place-items: center; position: relative; min-height: 200px; overflow: hidden; }
+.grado360 img { width: 100%; height: 100%; object-fit: contain; }
+.carac { flex: 1; }
+.carac h4 { font-size: 13px; font-weight: 700; color: var(--navy); border-bottom: 1px solid var(--borde); padding-bottom: 8px; margin-bottom: 14px; }
+.caracItem { display: flex; gap: 10px; margin-bottom: 14px; }
+.caracItem:last-child { margin-bottom: 0; }
+.ciIco { width: 24px; height: 24px; flex: none; color: var(--azul); }
+.ciLbl { font-size: 13.5px; font-weight: 700; color: var(--navy); }
+.ciVal { font-size: 13.5px; color: var(--tenue); margin-top: 1px; }
+
+/* ---- CTA ---- */
+.cta { display: flex; align-items: center; gap: 16px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--borde); }
+.ctaPrice { flex: 1; }
+.ctaNum { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 800; font-size: 28px; color: var(--azul); line-height: 1; }
+.ctaNum span { font-size: 15px; font-weight: 600; }
+.ctaSub { font-size: 12.5px; color: var(--tenue); margin-top: 3px; }
+.btn {
+  border-radius: 11px; font-weight: 600; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px; border: none; height: 52px;
+}
+.btnSolid { background: var(--azul); color: #fff; padding: 0 26px; }
+.btnSolid:hover { background: var(--azul-oscuro); }
+.btnHeart {
+  width: 52px; flex: none; background: var(--card); border: 1.5px solid var(--borde); color: var(--tenue);
+}
+.btnHeart:hover { border-color: var(--azul); color: var(--azul); background: var(--lavanda); }
+.btnHeartOn { border-color: var(--azul); color: var(--azul); background: var(--lavanda); }
+
+.noDisp { background: #f7f7fa; border: 1.5px dashed #d3d3dd; border-radius: 14px; padding: 24px; text-align: center; margin-top: 20px; }
+.ndT { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 18px; color: #9a9aa8; }
+.ndS { font-size: 13px; color: var(--tenue); margin-top: 6px; }
+
+/* ---- Modal "¿Cómo agendar?" ---- */
+.modalOverlay { position: fixed; inset: 0; background: rgba(21, 23, 68, 0.45); z-index: 70; opacity: 0; pointer-events: none; transition: 0.2s; }
+.modalOverlayOn { opacity: 1; pointer-events: auto; }
+.modal {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -46%) scale(0.96); width: 460px;
+  max-width: calc(100vw - 40px); z-index: 71; background: var(--card); border-radius: 20px; padding: 30px;
+  opacity: 0; pointer-events: none; transition: 0.24s; text-align: center;
+}
+.modalOn { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+.modalIco { width: 56px; height: 56px; border-radius: 50%; background: var(--lavanda); display: grid; place-items: center; color: var(--azul); margin: 0 auto 16px; }
+.modal h3 { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 20px; color: var(--navy); margin-bottom: 10px; }
+.modal p { font-size: 14px; color: #5b5c6b; line-height: 1.55; margin-bottom: 22px; text-align: left; }
+.modalBtn { width: 100%; height: 48px; border-radius: 11px; background: var(--azul); color: #fff; border: none; font-weight: 700; font-size: 15px; cursor: pointer; font-family: 'Asap', sans-serif; }
+.modalBtn:hover { background: var(--azul-oscuro); }
+
+/* ---- PDF de políticas descargable ---- */
+.pdfLink { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 15px 16px; border: 1.5px solid var(--borde); border-radius: 12px; text-decoration: none; }
+.pdfLink:hover { background: var(--lavanda); }
+.pdfIco { width: 42px; height: 42px; border-radius: 10px; background: #fdeaea; display: grid; place-items: center; color: #e5484d; flex: none; }
+.pdfT { font-size: 15px; font-weight: 700; color: var(--navy); }
+.pdfS { font-size: 12.5px; color: var(--tenue); margin-top: 1px; }
+.pdfDl { color: var(--azul); flex: none; }
+
+/* ---- CTA "volver al Grado A" en no disponible (grado B/C) ---- */
+.ndCta {
+  margin-top: 16px; display: inline-flex; align-items: center; gap: 8px; background: var(--azul);
+  color: #fff; border: none; border-radius: 11px; height: 48px; padding: 0 22px;
+  font-family: 'Asap', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
+}
+.ndCta:hover { background: var(--azul-oscuro); }
+
+/* ---- Nota de envío diferido (iPhone seminuevo / iPad) ---- */
+.shipNote {
+  display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 13px 15px;
+  border-radius: 12px; background: var(--lavanda); color: var(--navy); font-size: 14px;
+}
+.shipNote svg { color: var(--azul); flex: none; }
+.shipNote b { font-weight: 700; }

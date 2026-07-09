@@ -1,0 +1,593 @@
+'use client';
+
+/**
+ * CopiaHomeDesktopDetail — variante DESKTOP del detalle de producto para la
+ * landing `copia-home` (mockup seminuevos). Se monta SOLO en desktop y SOLO
+ * para equipos reacondicionados; los equipos nuevos y el resto de landings
+ * siguen usando el detalle estándar (ProductDetail).
+ *
+ * Reutiliza los datos reales del detalle (ProductDetailResult), la calculadora
+ * estándar (PricingCalculator) sobre los planes reales, el cronograma, el flujo
+ * canónico de "Lo quiero" (aviso reacondicionado → setSelectedProduct →
+ * /solicitar) y el aviso RefurbishedWarningModal. Es el equivalente desktop de
+ * CopiaHomeMobileDetail, con el layout de dos columnas + ancho completo del
+ * mockup de escritorio.
+ *
+ * Reglas de negocio (idénticas a la variante mobile):
+ *  - Grados A/B/C SOLO para reacondicionados (constructo FE-only, el backend no
+ *    modela grados). Solo el Grado A es comprable; B y C se muestran pero
+ *    renderizan "No disponible" (sin CTA "Lo quiero").
+ */
+
+import React, { useMemo, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  ChevronLeft, ShieldCheck, BadgeCheck, Package, Check, Battery, Monitor,
+  Star, RefreshCw, Heart, Cpu, Calendar, Store, CalendarDays, Rotate3d,
+  FileText, Download, Truck, ArrowRight,
+} from 'lucide-react';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
+import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import type { ProductDetailResult } from '../api/productDetailApi';
+import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
+import { Cronograma } from '../components/detail/cronograma/Cronograma';
+import { formatMoneyNoDecimals } from '../utils/formatMoney';
+import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from './politicasPdf';
+import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
+import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import styles from './copiaHomeDesktop.module.css';
+
+const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
+
+type GradeKey = 'A' | 'B' | 'C';
+
+interface GradeInfo {
+  bateria: string; aspecto: string; condicion: string; reemplazo: string; disponible: boolean;
+}
+
+// Grados FE-only (el backend no modela grados). Solo A disponible; B y C no.
+// Mismos valores que CopiaHomeMobileDetail para consistencia entre modos.
+const GRADES: Record<GradeKey, GradeInfo> = {
+  A: { bateria: '80-90%', aspecto: '9/10', condicion: '10/10', reemplazo: 'Ninguno', disponible: true },
+  B: { bateria: '85-90%', aspecto: '7/10', condicion: '9/10', reemplazo: 'Componentes menores', disponible: false },
+  C: { bateria: '80-85%', aspecto: '6/10', condicion: '8/10', reemplazo: 'Batería / pantalla', disponible: false },
+};
+
+interface Props {
+  apiData: ProductDetailResult;
+  landing: string;
+  isAvailable?: boolean;
+  defaultTerm?: number;
+  defaultInitialPercent?: number;
+  defaultFrequency?: string;
+  onToggleWishlist?: (item: WishlistItem) => void;
+  isInWishlist?: boolean;
+}
+
+export function CopiaHomeDesktopDetail({
+  apiData,
+  landing,
+  isAvailable = true,
+  defaultTerm,
+  defaultInitialPercent,
+  defaultFrequency,
+  onToggleWishlist,
+  isInWishlist = false,
+}: Props) {
+  const router = useRouter();
+  const product = apiData.product;
+  const paymentPlans = apiData.paymentPlans ?? [];
+
+  // El endpoint de detalle no siempre devuelve `condition`, pero el nombre de
+  // los seminuevos sí trae "Semi Nuevo". Detectamos por condición o por nombre.
+  const fullName = `${product.name ?? ''} ${product.displayName ?? ''}`;
+  const isRefurbished =
+    isRefurbishedCondition(product.condition) ||
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(fullName);
+
+  // Envío diferido (14/07): iPhone seminuevos e iPads.
+  const deferredShipping = hasDeferredShipping({
+    name: fullName, condition: product.condition, deviceType: product.deviceType, brand: product.brand,
+  });
+
+  // Garantía de fábrica según modelo (item 3).
+  const warranty = factoryWarranty(fullName, product.warranty);
+
+  // ---- Colores / galería ----
+  const hasSiblings = !!(product.colorSiblings && product.colorSiblings.length > 1);
+  const displayColors = hasSiblings
+    ? product.colorSiblings.map((s) => ({ id: String(s.productId), name: s.color, hex: s.colorHex, slug: s.slug }))
+    : (product.colors ?? []).map((c) => ({ id: c.id, name: c.name, hex: c.hex, slug: product.slug }));
+  const initialColorId = hasSiblings
+    ? String(product.colorSiblings.find((s) => s.slug === product.slug)?.productId ?? product.colorSiblings[0].productId)
+    : (displayColors[0]?.id ?? '');
+  const [colorId, setColorId] = useState(initialColorId);
+  const selectedColor = displayColors.find((c) => c.id === colorId);
+
+  const galleryImages = useMemo(() => {
+    const imgs = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
+    return imgs.length > 0 ? imgs : product.images;
+  }, [product.images]);
+  const [imgSel, setImgSel] = useState(0);
+
+  // ---- Grado ----
+  const [grade, setGrade] = useState<GradeKey>('A');
+  const gradeInfo = isRefurbished ? GRADES[grade] : null;
+  const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
+  const canBuy = isAvailable && gradeAvailable;
+
+  // ---- Calculadora: componente estándar (PricingCalculator) ----
+  const initialTerm = useMemo(() => {
+    const ts = paymentPlans.map((p) => p.term);
+    if (defaultTerm && ts.includes(defaultTerm)) return defaultTerm;
+    return ts.length ? Math.max(...ts) : 24;
+  }, [paymentPlans, defaultTerm]);
+  const [pricingSel, setPricingSel] = useState<PricingSelection | null>(null);
+  const term = pricingSel?.term ?? initialTerm;
+  const initialPercent = pricingSel?.initialPercent ?? (defaultInitialPercent ?? 0);
+  const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
+  const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
+  const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
+
+  // Specs reales del equipo y otros seminuevos.
+  const specCategories = product.specs ?? [];
+  const hasSpecs = specCategories.some((c) => c.specs && c.specs.length > 0);
+  const similares = apiData.similarProducts ?? [];
+
+  // ---- Modales ----
+  const [showRefurb, setShowRefurb] = useState(false);
+  const [showAgenda, setShowAgenda] = useState(false);
+
+  // ---- Navegación color (siblings) ----
+  const onColor = (id: string) => {
+    if (hasSiblings) {
+      const sib = product.colorSiblings.find((s) => String(s.productId) === id);
+      if (sib && sib.slug !== product.slug) {
+        router.push(routes.producto(landing, sib.slug));
+        return;
+      }
+    }
+    setColorId(id);
+    setImgSel(0);
+  };
+
+  function getSpec(category: string, label: string): string | undefined {
+    const cat = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
+    if (!cat) return undefined;
+    return cat.specs.find((s) => s.label.toLowerCase().includes(label.toLowerCase()))?.value;
+  }
+
+  // ---- "Lo quiero" canónico ----
+  const proceedToSolicitar = useCallback(() => {
+    // Blindaje: Grado B/C (o equipo no disponible) NUNCA puede continuar.
+    if (!canBuy) return;
+    const thumbnail = apiData.combo?.thumbnailUrl || galleryImages[0]?.url || product.images[0]?.url || '';
+    const selected: SelectedProduct = {
+      id: product.id,
+      slug: product.slug,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: Math.floor(product.price),
+      monthlyPayment: monthlyQuota,
+      months: term,
+      term,
+      initialPercent,
+      initialAmount,
+      image: thumbnail,
+      type: product.deviceType as SelectedProduct['type'],
+      condition: product.condition,
+      variantId: product.variantId != null ? String(product.variantId) : (colorId || undefined),
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
+      specs: {
+        processor: getSpec('procesador', 'modelo') || getSpec('processor', 'model') || '',
+        ram: getSpec('memoria', 'capacidad') || getSpec('ram', 'size') || '',
+        storage: getSpec('almacenamiento', 'capacidad') || getSpec('storage', 'size') || '',
+      },
+      paymentPlans: undefined,
+      comboId: apiData.combo?.id,
+    };
+    try {
+      localStorage.setItem(getStorageKey(landing), JSON.stringify(selected));
+      localStorage.removeItem(getCartProductsKey(landing));
+    } catch { /* localStorage no disponible */ }
+    router.push(routes.solicitar(landing));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
+
+  const onLoQuiero = () => {
+    if (!canBuy) return;
+    if (isRefurbished) { setShowRefurb(true); return; }
+    proceedToSolicitar();
+  };
+
+  const handleToggleWishlist = () => {
+    if (!onToggleWishlist) return;
+    const thumbnail = apiData.combo?.thumbnailUrl || galleryImages[0]?.url || product.images[0]?.url || '';
+    onToggleWishlist({
+      productId: product.id,
+      slug: product.slug,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: thumbnail,
+      lowestQuota: monthlyQuota,
+      type: product.deviceType as WishlistItem['type'],
+      months: term as TermMonths,
+      initialPercent: initialPercent as InitialPaymentPercent,
+      initialAmount,
+      monthlyPayment: monthlyQuota,
+      variantId: product.variantId != null ? String(product.variantId) : (colorId || undefined),
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
+      addedAt: Date.now(),
+    });
+  };
+
+  // ---- Accesorios "qué incluye" (item 8: solo mica protectora + cable cargador) ----
+  const accesorios = ['Mica protectora', 'Cable cargador'];
+
+  const condRows = [
+    { l: 'Condición de batería', v: '80 - 99%', blue: true },
+    { l: 'Pantalla táctil', v: 'Bueno' },
+    { l: 'Cámara', v: 'Bueno' },
+    { l: 'IMEI', v: 'Registrado' },
+    { l: 'Puertos USB', v: 'Bueno' },
+  ];
+
+  const heroImg = galleryImages[imgSel]?.url;
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.wrap}>
+        <button type="button" className={styles.volver} onClick={() => router.push(routes.catalogo(landing))}>
+          <ChevronLeft size={18} /> Volver al catálogo
+        </button>
+
+        <div className={styles.detTop}>
+          {/* ===== Columna izquierda: galería + seguridad ===== */}
+          <div className={styles.detGal}>
+            <div className={`${styles.panel} ${styles.gal}`}>
+              {isRefurbished && <span className={styles.prodBadge}>Seminuevo</span>}
+              <div className={styles.heroImg}>
+                {heroImg && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={heroImg} alt={product.displayName} />
+                )}
+                <span className={styles.heroTag}>IMAGEN REFERENCIAL</span>
+                <span className={styles.heroCount}>{imgSel + 1} / {galleryImages.length}</span>
+              </div>
+              {galleryImages.length > 1 && (
+                <div className={styles.thumbs}>
+                  {galleryImages.slice(0, 5).map((im, i) => (
+                    <div key={i} className={`${styles.thumb} ${i === imgSel ? styles.thumbOn : ''}`} onClick={() => setImgSel(i)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={im.url} alt={`${product.displayName} ${i + 1}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {canBuy && (
+              <div className={styles.panel}>
+                <div className={styles.secTitle} style={{ marginBottom: 14 }}>Seguridad del equipo</div>
+                <div className={styles.recojoBanner}>
+                  <div className={styles.rbRow}>
+                    <div className={styles.rbIco}><Store size={30} strokeWidth={1.8} /></div>
+                    <p className={styles.rbText}>
+                      <b>¡Sabemos que ver el producto hace la diferencia!</b> Financia hoy y agenda una cita
+                      en nuestras oficinas para el recojo de tu equipo, en caso lo prefieras.
+                    </p>
+                  </div>
+                  <button type="button" className={styles.rbLink} onClick={() => setShowAgenda(true)}>
+                    <CalendarDays size={15} /> ¿Cómo agendar?
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ===== Columna derecha: caja de compra ===== */}
+          <div>
+            <div className={styles.panel}>
+              <div className={styles.buyMarca}>{product.brand}</div>
+              <div className={styles.buyTitle}>{product.displayName}</div>
+
+              {displayColors.length > 0 && (
+                <>
+                  <div className={styles.detalleSwatches}>
+                    {displayColors.map((c) => (
+                      <div
+                        key={c.id}
+                        className={`${styles.dSwatch} ${c.id === colorId ? styles.dSwatchOn : ''}`}
+                        style={{ background: c.hex }}
+                        onClick={() => onColor(c.id)}
+                      >
+                        <span className={styles.tick}><Check size={13} strokeWidth={3.5} /></span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.colorLabel}>Color: {selectedColor?.name ?? '—'}</div>
+                </>
+              )}
+
+              {/* Elige el grado (solo reacondicionado) */}
+              {isRefurbished && gradeInfo && (
+                <div className={styles.block}>
+                  <div className={styles.blockT}>Elige el grado</div>
+                  <div className={styles.grados}>
+                    {(['A', 'B', 'C'] as GradeKey[]).map((g) => (
+                      <button key={g} type="button" className={`${styles.grado} ${g === grade ? styles.gradoOn : ''}`} onClick={() => setGrade(g)}>
+                        Grado {g}<span className={styles.gTick}><Check size={12} strokeWidth={3.5} /></span>
+                      </button>
+                    ))}
+                  </div>
+                  {/* item 6: en grado B/C no se muestran características/specs, solo el aviso + CTA (abajo). */}
+                  {gradeAvailable && (
+                    <div className={styles.gradoBody}>
+                      <div className={styles.grado360}>
+                        {galleryImages[0]?.url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={galleryImages[0].url} alt={product.displayName} />
+                        ) : (
+                          <Rotate3d size={40} color="#7a7a88" />
+                        )}
+                      </div>
+                      <div className={styles.carac}>
+                        <h4>Características</h4>
+                        <div className={styles.caracItem}><span className={styles.ciIco}><Battery size={24} /></span><div><div className={styles.ciLbl}>Nivel de batería</div><div className={styles.ciVal}>{gradeInfo.bateria}</div></div></div>
+                        <div className={styles.caracItem}><span className={styles.ciIco}><Monitor size={24} /></span><div><div className={styles.ciLbl}>Aspecto visual</div><div className={styles.ciVal}>{gradeInfo.aspecto}</div></div></div>
+                        <div className={styles.caracItem}><span className={styles.ciIco}><Star size={24} /></span><div><div className={styles.ciLbl}>Condición técnica</div><div className={styles.ciVal}>{gradeInfo.condicion}</div></div></div>
+                        <div className={styles.caracItem}><span className={styles.ciIco}><RefreshCw size={24} /></span><div><div className={styles.ciLbl}>Reemplazo de piezas</div><div className={styles.ciVal}>{gradeInfo.reemplazo}</div></div></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {canBuy ? (
+                <>
+                  <div className={styles.block}>
+                    <div className={styles.blockT}>Calcula tu cuota</div>
+                    <PricingCalculator
+                      paymentPlans={paymentPlans}
+                      defaultTerm={defaultTerm ?? initialTerm}
+                      defaultInitialPercent={defaultInitialPercent ?? 0}
+                      defaultFrequency={defaultFrequency}
+                      productPrice={product.price}
+                      paymentFrequencies={apiData.paymentFrequencies}
+                      landing={landing}
+                      productSlug={product.slug}
+                      onSelectionChange={setPricingSel}
+                    />
+                  </div>
+
+                  <div className={styles.cta}>
+                    <div className={styles.ctaPrice}>
+                      <div className={styles.ctaNum}>S/{formatMoneyNoDecimals(monthlyQuota)}<span>/mes</span></div>
+                      <div className={styles.ctaSub}>
+                        en {term} {paymentFrequency === 'mensual' ? 'meses' : 'cuotas'}
+                        {initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(initialAmount)}` : ' · sin inicial'}
+                      </div>
+                    </div>
+                    {onToggleWishlist && (
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.btnHeart} ${isInWishlist ? styles.btnHeartOn : ''}`}
+                        onClick={handleToggleWishlist}
+                        aria-label="Guardar en favoritos"
+                      >
+                        <Heart size={20} fill={isInWishlist ? 'currentColor' : 'none'} />
+                      </button>
+                    )}
+                    <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={onLoQuiero}>
+                      Lo quiero
+                    </button>
+                  </div>
+
+                  {deferredShipping && (
+                    <div className={styles.shipNote}>
+                      <Truck size={18} />
+                      <span>El envío o recojo será <b>a partir del martes 14/07</b>.</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={styles.noDisp}>
+                  <div className={styles.ndT}>No disponible</div>
+                  <div className={styles.ndS}>
+                    {isRefurbished
+                      ? `Este equipo no está disponible en Grado ${grade}.`
+                      : 'Este equipo no está disponible por el momento.'}
+                  </div>
+                  {isRefurbished && (
+                    <button type="button" className={styles.ndCta} onClick={() => setGrade('A')}>
+                      Ver equipo disponible (Grado A) <ArrowRight size={18} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ===== Secciones a todo el ancho ===== */}
+        <div className={styles.detFull}>
+          {/* Condición — primero (item 7). Solo grado comprable (A). */}
+          {canBuy && isRefurbished && (
+            <div className={styles.panel}>
+              <div className={styles.secHeadIco}>
+                <span className={styles.secIco}><BadgeCheck size={22} /></span>
+                <div>
+                  <div className={styles.secTitle}>Condición</div>
+                  <div className={styles.secSub} style={{ marginBottom: 0 }}>Resultado de la revisión técnica del equipo</div>
+                </div>
+              </div>
+              <div className={styles.specRows}>
+                {condRows.map((r, i) => (
+                  <div key={i} className={styles.specRow}>
+                    <span className={styles.srLbl}>{r.l}</span>
+                    <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Descripción */}
+          <div className={styles.panel}>
+            <div className={styles.secTitle}>Descripción</div>
+            <div className={styles.secSub}>Detalles y beneficios de tu equipo</div>
+            <p className={styles.descText}>{product.description || product.shortDescription}</p>
+            <div className={styles.descFeatures}>
+              <div className={styles.descFeature}>
+                <span className={styles.dfIco}><ShieldCheck size={20} /></span>
+                <div><div className={styles.dfLbl}>Garantía de fábrica</div><div className={styles.dfVal}>{warranty}</div></div>
+              </div>
+              <div className={styles.descFeature}>
+                <span className={styles.dfIco}><BadgeCheck size={20} /></span>
+                <div>
+                  <div className={styles.dfLbl}>Producto</div>
+                  <div className={styles.dfVal}>Seminuevo</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Políticas y condiciones descargables (item 5) */}
+            <a className={styles.pdfLink} href={POLITICAS_PDF_DATA_URI} download={POLITICAS_PDF_FILENAME}>
+              <span className={styles.pdfIco}><FileText size={22} /></span>
+              <div style={{ flex: 1 }}>
+                <div className={styles.pdfT}>Políticas y condiciones del producto</div>
+                <div className={styles.pdfS}>PDF · descargar</div>
+              </div>
+              <span className={styles.pdfDl}><Download size={22} /></span>
+            </a>
+          </div>
+
+          {canBuy && (
+            <>
+              {/* Qué incluye */}
+              <div className={styles.panel}>
+                <div className={styles.secTitle}>¿Qué incluye tu equipo?</div>
+                <div className={styles.secSub}>Accesorios incluidos con tu compra</div>
+                <div className={styles.incluyeGrid}>
+                  {accesorios.map((txt, i) => (
+                    <div key={i} className={styles.incTile}>
+                      <span className={styles.incIco}><Package size={18} /></span>
+                      <span className={styles.incTxt}>{txt}</span>
+                      <span className={styles.incChk}><Check size={16} strokeWidth={3} /></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Especificaciones reales */}
+              {hasSpecs && (
+                <div className={styles.panel}>
+                  <div className={styles.secHeadIco}>
+                    <span className={styles.secIco}><Cpu size={22} /></span>
+                    <div>
+                      <div className={styles.secTitle}>Especificaciones</div>
+                      <div className={styles.secSub} style={{ marginBottom: 0 }}>Ficha técnica completa del equipo</div>
+                    </div>
+                  </div>
+                  {specCategories.filter((c) => c.specs && c.specs.length > 0).map((cat) => (
+                    <div key={cat.category} className={styles.specGroup}>
+                      <div className={styles.specGroupTitle}>{cat.category}</div>
+                      <div className={styles.specRows}>
+                        {cat.specs.map((s, i) => (
+                          <div key={i} className={styles.specRow}>
+                            <span className={styles.srLbl}>{s.label}</span>
+                            <span className={styles.srVal}>{s.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Cronograma de pagos */}
+              {paymentPlans.length > 0 && (
+                <div className={styles.panel}>
+                  <div className={styles.secHeadIco}>
+                    <span className={styles.secIco}><Calendar size={22} /></span>
+                    <div>
+                      <div className={styles.secTitle}>Cronograma de pagos</div>
+                      <div className={styles.secSub} style={{ marginBottom: 0 }}>Detalle de tus cuotas según el plan elegido</div>
+                    </div>
+                  </div>
+                  <div className={styles.cronoWrap}>
+                    <Cronograma
+                      paymentPlans={paymentPlans}
+                      selectedTerm={term}
+                      selectedInitialPercent={initialPercent as 0 | 10 | 20 | 30}
+                      paymentFrequency={paymentFrequency}
+                      productId={product.id}
+                      productName={product.displayName}
+                      productBrand={product.brand}
+                      productPrice={product.price}
+                      version={1}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Equipos reacondicionados */}
+          {similares.length > 0 && (
+            <div className={styles.panel}>
+              <div className={styles.secTitle}>Equipos reacondicionados</div>
+              <div className={styles.secSub}>Otros seminuevos que podrían interesarte</div>
+              <div className={styles.incluyeGrid}>
+                {similares.slice(0, 4).map((sp) => (
+                  <div key={sp.id} className={styles.incTile} style={{ cursor: 'pointer' }} onClick={() => router.push(routes.producto(landing, sp.slug))}>
+                    <span className={styles.incIco}><RefreshCw size={18} /></span>
+                    <span className={styles.incTxt}>
+                      {sp.displayName}
+                      <span style={{ display: 'block', fontWeight: 700, color: 'var(--azul)', fontSize: 13, marginTop: 2 }}>
+                        Desde S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}/mes
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal "¿Cómo agendar?" */}
+      <div className={`${styles.modalOverlay} ${showAgenda ? styles.modalOverlayOn : ''}`} onClick={() => setShowAgenda(false)} />
+      <div className={`${styles.modal} ${showAgenda ? styles.modalOn : ''}`} role="dialog" aria-modal="true">
+        <div className={styles.modalIco}><CalendarDays size={30} strokeWidth={1.9} /></div>
+        <h3>¿Cómo agendar tu cita?</h3>
+        <p>
+          El agendamiento de citas se habilitará después de la aprobación del financiamiento y firma
+          del contrato. Te pediremos crear tu usuario en <b>Zona Estudiantes</b> y aparecerá la opción
+          del agendamiento.
+        </p>
+        <button type="button" className={styles.modalBtn} onClick={() => setShowAgenda(false)}>Entendido</button>
+      </div>
+
+      {/* Aviso "Producto seminuevo" (reacondicionado) */}
+      <RefurbishedWarningModal
+        isOpen={showRefurb}
+        onClose={() => setShowRefurb(false)}
+        onConfirm={() => { setShowRefurb(false); proceedToSolicitar(); }}
+        productName={product.displayName}
+        policyHref={POLITICAS_PDF_DATA_URI}
+        policyFilename={POLITICAS_PDF_FILENAME}
+        shippingNote={deferredShipping ? DEFERRED_SHIPPING_NOTE : undefined}
+      />
+    </div>
+  );
+}
+
+export default CopiaHomeDesktopDetail;
