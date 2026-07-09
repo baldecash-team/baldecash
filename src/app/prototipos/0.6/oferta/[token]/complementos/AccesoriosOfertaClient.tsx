@@ -612,7 +612,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <p className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
               Protege tu equipo con estas opciones:
             </p>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
+            <div className="mt-3 grid grid-cols-1 gap-2.5">
               {insurances.map((p) => {
                 const seleccionado = selectedIns.includes(p.id);
                 const fits = insFits(p);
@@ -622,16 +622,16 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     type="button"
                     onClick={() => toggleIns(p.id)}
                     disabled={!fits}
-                    className="flex flex-col items-start gap-1 rounded-lg border bg-white px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
                   >
-                    <span className="flex w-full items-center justify-between gap-1.5">
+                    <span className="flex min-w-0 items-center gap-1.5">
                       <span className="min-w-0 truncate text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
                         {p.name}
                       </span>
                       {seleccionado ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" style={{ color: OFERTA_COLORS.primary }} /> : null}
                     </span>
-                    <span className="text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+                    <span className="shrink-0 text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
                       +S/{Math.round(p.monthlyPrice || 0)}/mes
                     </span>
                   </button>
