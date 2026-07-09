@@ -64,6 +64,7 @@ export function ConfirmarEleccionModal({
   onClose,
   onSuccessContinue,
   addonsSlot,
+  insuranceUpsellSlot,
 }: {
   isOpen: boolean;
   equipo: EquipoAConfirmar | null;
@@ -78,6 +79,10 @@ export function ConfirmarEleccionModal({
   /** Selector de accesorios/seguros (BAL-2064). Se renderiza dentro del modal,
    *  antes del aviso, cuando se pasa. */
   addonsSlot?: ReactNode;
+  /** "Asegura tu inversión" (feedback Marco): card verde con seguros
+   *  disponibles NO seleccionados + botón "Añadir", antes del aviso final.
+   *  Solo se pasa cuando el caller tiene seguros disponibles sin elegir. */
+  insuranceUpsellSlot?: ReactNode;
 }) {
   const dismiss = () => (loading ? undefined : onClose());
 
@@ -262,6 +267,10 @@ export function ConfirmarEleccionModal({
                     (gratis) + elegidos (+S/) + UNA cuota total. */}
                 {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
 
+                {/* "Asegura tu inversión" (feedback Marco): seguros
+                    disponibles sin elegir, antes de confirmar. */}
+                {insuranceUpsellSlot}
+
                 {/* Aviso (wording de Marco): qué pasa al aceptar */}
                 <div
                   className="mt-4 flex items-start gap-2 rounded-xl p-3 text-sm font-medium"
@@ -290,7 +299,7 @@ export function ConfirmarEleccionModal({
                 className="cursor-pointer font-['Baloo_2',_sans-serif] text-sm font-bold text-white"
                 style={{ backgroundColor: OFERTA_COLORS.primary }}
               >
-                {loading ? 'Procesando tu cambio…' : 'Sí, elegir este equipo'}
+                {loading ? 'Procesando tu cambio…' : 'Confirmar'}
               </Button>
             </ModalFooter>
           </>

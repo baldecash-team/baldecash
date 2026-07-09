@@ -10,11 +10,17 @@
  * scrollables, grid 2-col de <AccesorioGridCard>, sección "Seguros" con
  * badge Insurama y <SeguroCard>, cuota sticky con CTA "Listo".
  *
+ * Filtro segmentado "Accesorios | Seguros" (feedback Marco, frame 4 de
+ * docs/superpowers/design-refs/mock-feedback-reunion.html): en vez de
+ * mostrar seguros como sección aparte al final, dos pestañas arriba
+ * cambian qué contenido se ve. Es solo presentación — el estado de la
+ * pestaña activa es local y no toca la lógica de selección/fetch.
+ *
  * Puramente presentacional + filtrado local (texto/categoría): la selección
  * real (toggle) y el fetch de datos viven en AccesoriosOfertaClient (Task 9).
  */
 import { useMemo, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ShieldCheck } from 'lucide-react';
 import { motion, useDragControls } from 'framer-motion';
 
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
@@ -58,6 +64,8 @@ export function BuscadorBottomSheet({
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('todos');
   const sheetScrollRef = useRef<HTMLDivElement>(null);
+  // Pestaña activa del filtro segmentado (feedback Marco): "acc" | "ins".
+  const [activeTab, setActiveTab] = useState<'acc' | 'ins'>('acc');
 
   // Categorías únicas derivadas de los accesorios disponibles (dedupe por slug).
   const categories = useMemo(() => {
@@ -154,67 +162,100 @@ export function BuscadorBottomSheet({
             />
           </div>
 
-          {/* Chips de categoría */}
+          {/* Filtro segmentado Accesorios | Seguros (feedback Marco) */}
           <div
-            className="mt-3.5 flex gap-2 overflow-x-auto"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="mt-3.5 grid grid-cols-2 gap-1 rounded-xl p-1"
+            style={{ backgroundColor: OFERTA_COLORS.grayBg, border: `1px solid ${OFERTA_COLORS.border}` }}
           >
             <button
               type="button"
-              onClick={() => setActiveCategory('todos')}
-              className="flex-shrink-0 cursor-pointer rounded-full px-3.5 py-[7px] text-[12.5px] font-medium transition-colors"
+              onClick={() => setActiveTab('acc')}
+              className="cursor-pointer rounded-lg py-2 text-[13px] font-bold transition-colors"
               style={
-                activeCategory === 'todos'
-                  ? { backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
-                  : { backgroundColor: '#F1F2F7', color: OFERTA_COLORS.textMid }
+                activeTab === 'acc'
+                  ? { backgroundColor: '#fff', color: OFERTA_COLORS.primary, boxShadow: '0 1px 4px rgba(31,35,51,.08)' }
+                  : { backgroundColor: 'transparent', color: OFERTA_COLORS.textMid }
               }
             >
-              Todos
+              Accesorios
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.slug}
-                type="button"
-                onClick={() => setActiveCategory(cat.slug)}
-                className="flex-shrink-0 cursor-pointer rounded-full px-3.5 py-[7px] text-[12.5px] font-medium transition-colors"
-                style={
-                  activeCategory === cat.slug
-                    ? { backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
-                    : { backgroundColor: '#F1F2F7', color: OFERTA_COLORS.textMid }
-                }
-              >
-                {cat.name}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setActiveTab('ins')}
+              className="cursor-pointer rounded-lg py-2 text-[13px] font-bold transition-colors"
+              style={
+                activeTab === 'ins'
+                  ? { backgroundColor: '#fff', color: OFERTA_COLORS.primary, boxShadow: '0 1px 4px rgba(31,35,51,.08)' }
+                  : { backgroundColor: 'transparent', color: OFERTA_COLORS.textMid }
+              }
+            >
+              Seguros
+            </button>
           </div>
 
-          {/* Grid de accesorios */}
-          {filteredAccesorios.length > 0 ? (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {filteredAccesorios.map((a) => {
-                const fits = accFits ? accFits(a) : true;
-                return (
-                  <div key={a.id} className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
-                    <AccesorioGridCard
-                      accesorio={a}
-                      agregado={seleccionadosAcc.includes(a.id)}
-                      onToggle={() => onToggleAcc(a)}
-                      onVerDetalle={() => onVerDetalle(a)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-6 text-center text-sm" style={{ color: OFERTA_COLORS.textSoft }}>
-              No se encontraron accesorios.
-            </p>
-          )}
+          {activeTab === 'acc' ? (
+            <>
+              {/* Chips de categoría */}
+              <div
+                className="mt-3.5 flex gap-2 overflow-x-auto"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveCategory('todos')}
+                  className="flex-shrink-0 cursor-pointer rounded-full px-3.5 py-[7px] text-[12.5px] font-medium transition-colors"
+                  style={
+                    activeCategory === 'todos'
+                      ? { backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
+                      : { backgroundColor: '#F1F2F7', color: OFERTA_COLORS.textMid }
+                  }
+                >
+                  Todos
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.slug}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.slug)}
+                    className="flex-shrink-0 cursor-pointer rounded-full px-3.5 py-[7px] text-[12.5px] font-medium transition-colors"
+                    style={
+                      activeCategory === cat.slug
+                        ? { backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
+                        : { backgroundColor: '#F1F2F7', color: OFERTA_COLORS.textMid }
+                    }
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
 
-          {/* Seguros */}
-          {filteredSeguros.length > 0 ? (
-            <div className="mt-6">
+              {/* Grid de accesorios */}
+              {filteredAccesorios.length > 0 ? (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {filteredAccesorios.map((a) => {
+                    const fits = accFits ? accFits(a) : true;
+                    return (
+                      <div key={a.id} className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
+                        <AccesorioGridCard
+                          accesorio={a}
+                          agregado={seleccionadosAcc.includes(a.id)}
+                          onToggle={() => onToggleAcc(a)}
+                          onVerDetalle={() => onVerDetalle(a)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-6 text-center text-sm" style={{ color: OFERTA_COLORS.textSoft }}>
+                  No se encontraron accesorios.
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="mt-4">
               <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" style={{ color: OFERTA_COLORS.primary }} />
                 <h3 className="font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                   Seguros
                 </h3>
@@ -225,23 +266,32 @@ export function BuscadorBottomSheet({
                   Insurama
                 </span>
               </div>
-              <div className="mt-2.5 space-y-2.5">
-                {filteredSeguros.map((p) => {
-                  const fits = insFits ? insFits(p) : true;
-                  return (
-                    <div key={p.id} className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
-                      <SeguroCard
-                        seguro={p}
-                        seleccionado={seleccionadosIns.includes(p.id)}
-                        onToggle={() => onToggleIns(p.id)}
-                        onVerDetalle={() => onVerDetalleSeguro(p)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+              <p className="mt-1.5 text-[12px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                Solo mostramos seguros compatibles con tu equipo.
+              </p>
+              {filteredSeguros.length > 0 ? (
+                <div className="mt-3 space-y-2.5">
+                  {filteredSeguros.map((p) => {
+                    const fits = insFits ? insFits(p) : true;
+                    return (
+                      <div key={p.id} className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
+                        <SeguroCard
+                          seguro={p}
+                          seleccionado={seleccionadosIns.includes(p.id)}
+                          onToggle={() => onToggleIns(p.id)}
+                          onVerDetalle={() => onVerDetalleSeguro(p)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-6 text-center text-sm" style={{ color: OFERTA_COLORS.textSoft }}>
+                  No se encontraron seguros.
+                </p>
+              )}
             </div>
-          ) : null}
+          )}
         </div>
 
         <div className="relative flex-none">
