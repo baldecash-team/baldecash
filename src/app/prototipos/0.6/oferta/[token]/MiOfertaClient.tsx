@@ -349,7 +349,13 @@ export function MiOfertaClient({ token }: { token: string }) {
 
         <MontoAprobadoBar
           aprobado={offer.maxMonthlyQuota}
-          usado={req?.monthly_price ?? null}
+          // Cuota del equipo destacado (recomendado en Caso 4, exclusiva en
+          // Caso 5) → la barra muestra cuánto usa y cuánto queda para accesorios.
+          usadoEquipo={
+            offer.offerCase === 'upsell'
+              ? exclusivaInfo?.monthly ?? null
+              : recomendadoInfo?.monthly ?? null
+          }
         />
 
         {/* Título redundante en mobile (el badge "Aprobada" + el monto ya lo
