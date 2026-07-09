@@ -12,12 +12,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Laptop2, LayoutGrid, ShoppingBag } from 'lucide-react';
+import { Laptop2, ShoppingBag } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct, ProductSpecs } from '../../[landing]/catalogo/types/catalog';
 import {
   getOffer,
+  getCatalog,
   selectEquipment,
   OfferApiError,
   type OfferView,
@@ -30,10 +31,10 @@ import { saveOfferSelection, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
 import { OfertaHeader } from './components/redesign/OfertaHeader';
 import { MontoAprobadoBar } from './components/redesign/MontoAprobadoBar';
-import { BadgeAprobada } from './components/redesign/BadgeAprobada';
 import { PruebaSocial } from './components/redesign/PruebaSocial';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/redesign/EquipoRecomendadoCard';
 import { OpcionBarra } from './components/redesign/OpcionBarra';
+import { CardCambiarEquipo } from './components/redesign/CardCambiarEquipo';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
@@ -88,6 +89,9 @@ export function MiOfertaClient({ token }: { token: string }) {
   const [confirming, setConfirming] = useState(false);
   // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
   const [selected, setSelected] = useState<ChosenSummary | null>(null);
+  // Nº de equipos del catálogo de la oferta (copy "Elige entre XX equipos" de
+  // la card "Cambiar equipo" del upsell). Se carga async; null hasta tenerlo.
+  const [catalogCount, setCatalogCount] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +146,18 @@ export function MiOfertaClient({ token }: { token: string }) {
       active = false;
     };
   }, [token, analytics]);
+
+  // Cuenta los equipos del catálogo de la oferta para el copy de la card
+  // "Cambiar equipo" (solo upsell). Best-effort: si falla, el copy cae a la
+  // versión sin número.
+  useEffect(() => {
+    if (state.kind !== 'ready' || state.offer.offerCase !== 'upsell') return;
+    let active = true;
+    getCatalog(token, {})
+      .then((cat) => { if (active) setCatalogCount(cat.count ?? null); })
+      .catch(() => { /* sin count: el copy usa la versión sin número */ });
+    return () => { active = false; };
+  }, [state, token]);
 
   // "Equipo anterior" (para el UI "anterior → nuevo" en la confirmación).
   const previousFrom = useCallback((offer: OfferView | null) => {
@@ -334,17 +350,12 @@ export function MiOfertaClient({ token }: { token: string }) {
       <OfertaHeader />
 
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
-        {/* Saludo + badge aprobada */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-[13px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>
-              Hola,
-            </div>
-            <div className="font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-[1.1]">
-              {offer.clientName || ''}
-            </div>
-          </div>
-          <BadgeAprobada />
+        {/* Saludo en una línea (feedback Marco): "Hola {nombre}, tu solicitud
+            ha sido aprobada" con "aprobada" en verde bold. Sin tag lateral. */}
+        <div className="font-['Baloo_2',_sans-serif] text-[18px] font-semibold leading-[1.25]">
+          {offer.clientName ? `Hola ${offer.clientName.trim().split(' ')[0]}, ` : 'Hola, '}
+          tu solicitud ha sido{' '}
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>
         </div>
 
         {offer.offerCase === 'upsell' ? (
@@ -377,10 +388,9 @@ export function MiOfertaClient({ token }: { token: string }) {
 
         {offer.offerCase === 'upsell' ? (
           <>
-            {/* Orden por prioridad (feedback Emilio):
-                1. Añadir accesorios (recomendado) → acepta el mejor equipo + va a accesorios.
-                2. Cambiar de equipo → catálogo aprobado.
-                3. Mantener mi equipo → sigue con el que pidió + accesorios. */}
+            {/* Upsell (mock frame 2): Añadir accesorios (recomendado) →
+                Card "Cambiar equipo" enriquecida (collage + ver catálogo) →
+                "Mantener mi equipo" con imagen real. */}
             <OpcionBarra
               destacada
               icono={<IconoAccesorios size={50} />}
@@ -393,14 +403,21 @@ export function MiOfertaClient({ token }: { token: string }) {
               cuota={exclusivaInfo?.monthly != null ? `S/${Math.round(exclusivaInfo.monthly)}/mes` : undefined}
               onClick={handleAceptarExclusiva}
             />
-            <OpcionBarra
-              icono={<LayoutGrid className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
-              titulo="Cambiar de equipo"
-              subtitulo="Explora el catálogo aprobado"
-              onClick={goToCatalogo}
+            <CardCambiarEquipo
+              montoAprobado={offer.maxMonthlyQuota}
+              equiposCount={catalogCount}
+              imagenes={exclusivaInfo?.imageUrl ? [exclusivaInfo.imageUrl] : []}
+              onVerCatalogo={goToCatalogo}
             />
             <OpcionBarra
-              icono={<Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              icono={
+                req?.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={req.image_url} alt={req?.name ?? 'Tu equipo'} className="h-full w-full object-contain" />
+                ) : (
+                  <Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />
+                )
+              }
               titulo="Mantener mi equipo"
               subtitulo={req?.name ?? undefined}
               cuota={req?.monthly_price != null ? `S/${Math.round(req.monthly_price)}/mes` : undefined}
