@@ -113,7 +113,7 @@ export function BuscadorBottomSheet({
         onDragEnd={(_, info) => {
           if (info.offset.y > 100) onCerrar();
         }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[788px] flex-col rounded-t-2xl bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[85dvh] flex-col rounded-t-2xl bg-white"
         style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Drag handle */}

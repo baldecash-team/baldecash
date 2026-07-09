@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Package, ShieldCheck, Gift, CheckCircle2 } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -137,6 +137,18 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     if (slug) window.location.href = `${base}/oferta/${token}/producto/${slug}`;
     else window.location.href = `${base}/oferta/${token}`;
   }, [token, slug]);
+
+  // Navegación del breadcrumb (feedback Marco): desde complementos el estudiante
+  // puede volver al index de la oferta o al catálogo, no solo al detalle del
+  // equipo. La selección vive en localStorage, así que navegar no la pierde.
+  const goToIndex = useCallback(() => {
+    const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
+    window.location.href = `${base}/oferta/${token}`;
+  }, [token]);
+  const goToCatalogo = useCallback(() => {
+    const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
+    window.location.href = `${base}/oferta/${token}/catalogo`;
+  }, [token]);
 
   // Carga inicial: lee la selección de localStorage (variant/combo/slug + equipo),
   // valida el token y trae los add-ons del equipo elegido. Sin selección
@@ -469,17 +481,38 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     <div className="min-h-screen bg-white pb-32">
       <OfertaHeader />
 
-      {/* Barra: volver */}
-      <div className="mx-auto w-full max-w-md px-4 pt-4">
-        <button
-          onClick={backToDetail}
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium transition-colors"
-          style={{ color: OFERTA_COLORS.textMid }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver al equipo
-        </button>
-      </div>
+      {/* Breadcrumb navegable (feedback Marco): reemplaza "Volver al equipo".
+          Cada segmento navega — Mi oferta (index) › Catálogo › Complementos
+          (actual). Da salida al index y al catálogo sin perder la selección
+          (vive en localStorage). El detalle del equipo sigue accesible desde
+          el catálogo / la card. */}
+      <nav aria-label="Ruta" className="mx-auto w-full max-w-md px-4 pt-4">
+        <ol className="flex flex-wrap items-center gap-1 text-[13px]">
+          <li>
+            <button
+              onClick={goToIndex}
+              className="cursor-pointer font-medium transition-colors hover:underline"
+              style={{ color: OFERTA_COLORS.textMid }}
+            >
+              Mi oferta
+            </button>
+          </li>
+          <li aria-hidden="true" style={{ color: OFERTA_COLORS.textSoft }}>›</li>
+          <li>
+            <button
+              onClick={goToCatalogo}
+              className="cursor-pointer font-medium transition-colors hover:underline"
+              style={{ color: OFERTA_COLORS.textMid }}
+            >
+              Catálogo
+            </button>
+          </li>
+          <li aria-hidden="true" style={{ color: OFERTA_COLORS.textSoft }}>›</li>
+          <li aria-current="page" className="font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+            Complementos
+          </li>
+        </ol>
+      </nav>
 
       <main className="mx-auto w-full max-w-md space-y-5 px-4 py-4">
         {/* Encabezado */}
