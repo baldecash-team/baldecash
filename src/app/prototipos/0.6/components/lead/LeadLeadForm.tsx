@@ -674,24 +674,40 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     const successBody = parts.slice(1).join(' ').trim();
     return (
       <div className={`w-full flex flex-col items-center text-center ${big ? 'gap-5 py-16 sm:py-20' : 'gap-4 py-10'}`}>
-        {/* Check con anillo que se expande al aparecer */}
+        {/* Check con anillo aqua de acento + ripple que se expande al aparecer */}
         <div className={`relative flex items-center justify-center ${big ? 'w-24 h-24' : 'w-16 h-16'}`}>
+          {/* Anillo estático en aqua: aporta el acento de marca sin recargar */}
+          <span
+            className="absolute inset-0 rounded-full border-2"
+            style={{ borderColor: `${secondaryColor}55` }}
+            aria-hidden
+          />
+          {/* Ripple animado en color primario */}
           <span
             className="lead-success-ring absolute inset-0 rounded-full"
             style={{ backgroundColor: `${primaryColor}22` }}
             aria-hidden
           />
           <span
-            className="lead-success-icon relative flex items-center justify-center w-full h-full rounded-full"
-            style={{ backgroundColor: `${primaryColor}14` }}
+            className="lead-success-icon relative flex items-center justify-center rounded-full"
+            style={{ backgroundColor: `${primaryColor}14`, width: '84%', height: '84%' }}
           >
-            <CheckCircle2 className={big ? 'w-12 h-12' : 'w-9 h-9'} style={{ color: primaryColor }} strokeWidth={2} />
+            <CheckCircle2 className={big ? 'w-11 h-11' : 'w-8 h-8'} style={{ color: primaryColor }} strokeWidth={2} />
           </span>
         </div>
 
-        <div className="flex flex-col items-center gap-2">
+        {/* Chip de estado: lectura inmediata de "recibido" */}
+        <span
+          className="lead-success-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-['Asap',sans-serif] text-[11px] font-semibold uppercase tracking-[0.08em]"
+          style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: secondaryColor }} aria-hidden />
+          Solicitud recibida
+        </span>
+
+        <div className="flex flex-col items-center gap-1.5">
           <h3
-            className={`lead-success-title font-['Baloo_2',_sans-serif] font-bold text-[#131b2e] leading-tight ${big ? 'text-2xl sm:text-3xl' : 'text-xl'}`}
+            className={`lead-success-title font-['Baloo_2',_sans-serif] font-bold text-[#131b2e] leading-tight tracking-[-0.01em] ${big ? 'text-2xl sm:text-3xl' : 'text-xl'}`}
           >
             {successTitle}
           </h3>

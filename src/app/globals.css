@@ -371,15 +371,19 @@ select:focus-visible {
 .lead-success-ring {
   animation: lead-success-ring 0.9s ease-out 0.15s both;
 }
+.lead-success-chip {
+  animation: lead-success-rise 0.45s ease-out 0.1s both;
+}
 .lead-success-title {
-  animation: lead-success-rise 0.45s ease-out 0.12s both;
+  animation: lead-success-rise 0.45s ease-out 0.18s both;
 }
 .lead-success-body {
-  animation: lead-success-rise 0.45s ease-out 0.22s both;
+  animation: lead-success-rise 0.45s ease-out 0.26s both;
 }
 @media (prefers-reduced-motion: reduce) {
   .lead-success-icon,
   .lead-success-ring,
+  .lead-success-chip,
   .lead-success-title,
   .lead-success-body {
     animation: none;
