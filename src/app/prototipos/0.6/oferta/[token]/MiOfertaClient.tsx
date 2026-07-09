@@ -424,7 +424,7 @@ export function MiOfertaClient({ token }: { token: string }) {
             <CardCambiarEquipo
               montoAprobado={offer.maxMonthlyQuota}
               equiposCount={catalogCount}
-              imagenes={exclusivaInfo?.imageUrl ? [exclusivaInfo.imageUrl] : []}
+              imagen={exclusivaInfo?.imageUrl ?? null}
               onVerCatalogo={goToCatalogo}
             />
             <OpcionBarra

@@ -1,12 +1,13 @@
 /**
  * CardCambiarEquipo — card protagonista del upsell "Cambiar equipo" (feedback
- * reunión Marco, mock frame 2). Collage de equipos + tag "Mejora tu equipo" +
- * "Accesorios incluidos", copy "Elige entre XX equipos... ¡Ya estás aprobado!",
- * monto "Hasta S/X/mes" y botón "Ver catálogo".
+ * reunión Marco, mock frame 2). Imagen del equipo RECOMENDADO (solo hay 1
+ * destacado, el del nodo) + tag "Mejora tu equipo" + "Accesorios incluidos",
+ * copy "Elige entre XX equipos... ¡Ya estás aprobado!", monto "Hasta S/X/mes"
+ * y botón "Ver catálogo".
  *
- * El collage usa placeholders con degradado hasta tener las imágenes reales
- * (BAL-2198, Haru→Antonio). El conteo de equipos es opcional: si no viene, el
- * copy cae a una versión sin número.
+ * Si no llega la imagen del recomendado, usa un fondo con degradado de
+ * placeholder. El conteo de equipos es opcional: si no viene, el copy cae a
+ * una versión sin número.
  *
  * Puramente presentacional.
  */
@@ -19,18 +20,15 @@ export interface CardCambiarEquipoProps {
   montoAprobado: number;
   /** Nº de equipos elegibles en el catálogo. Opcional (dato dinámico). */
   equiposCount?: number | null;
-  /** Imágenes de equipos para el collage (0-3). Si faltan, usa placeholders. */
-  imagenes?: (string | null | undefined)[];
+  /** Imagen del equipo recomendado (el destacado del nodo). Si falta, usa un
+   *  fondo con degradado de placeholder. */
+  imagen?: string | null;
   onVerCatalogo: () => void;
 }
 
-const COLLAGE_BG = [
-  'repeating-linear-gradient(135deg,#EEF1FF 0 8px,#E4E9FF 8px 16px)',
-  'repeating-linear-gradient(135deg,#F1F2F7 0 8px,#E9EBF2 8px 16px)',
-  'repeating-linear-gradient(135deg,#E7FBF8 0 8px,#D5F5F0 8px 16px)',
-];
+const PLACEHOLDER_BG = 'repeating-linear-gradient(135deg,#EEF1FF 0 8px,#E4E9FF 8px 16px)';
 
-export function CardCambiarEquipo({ montoAprobado, equiposCount, imagenes = [], onVerCatalogo }: CardCambiarEquipoProps) {
+export function CardCambiarEquipo({ montoAprobado, equiposCount, imagen, onVerCatalogo }: CardCambiarEquipoProps) {
   const fmt = (n: number) => Math.round(n).toLocaleString('es-PE');
   const copy = equiposCount && equiposCount > 0
     ? `Elige entre ${equiposCount} equipos en nuestro catálogo. ¡Ya estás aprobado para cualquiera de ellos!`
@@ -43,20 +41,15 @@ export function CardCambiarEquipo({ montoAprobado, equiposCount, imagenes = [], 
       className="w-full cursor-pointer overflow-hidden rounded-xl border-[1.5px] text-left transition-shadow hover:shadow-lg"
       style={{ borderColor: OFERTA_COLORS.primary, boxShadow: '0 10px 24px rgba(79,70,229,.14)' }}
     >
-      {/* Collage de 3 equipos + tags */}
-      <div className="relative grid h-[112px] grid-cols-3 gap-0.5" style={{ backgroundColor: OFERTA_COLORS.border }}>
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="flex items-center justify-center overflow-hidden bg-white"
-            style={{ background: imagenes[i] ? '#fff' : COLLAGE_BG[i] }}
-          >
-            {imagenes[i] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imagenes[i] as string} alt="" className="h-full w-full object-contain" />
-            ) : null}
-          </div>
-        ))}
+      {/* Imagen del equipo recomendado (solo hay 1 destacado) + tags */}
+      <div
+        className="relative flex h-[112px] items-center justify-center overflow-hidden"
+        style={{ background: imagen ? '#fff' : PLACEHOLDER_BG }}
+      >
+        {imagen ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imagen} alt="" className="h-full w-full object-contain p-2" />
+        ) : null}
         <span
           className="absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 font-['Baloo_2',_sans-serif] text-[10px] font-bold tracking-[.04em] text-white"
           style={{ backgroundColor: OFERTA_COLORS.primary }}
