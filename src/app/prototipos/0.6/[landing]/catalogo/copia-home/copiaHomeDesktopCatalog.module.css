@@ -43,9 +43,16 @@
 .search svg { color: var(--tenue); flex: none; }
 .search input { border: none; outline: none; background: transparent; font-size: 15.5px; width: 100%; color: var(--texto); font-family: 'Asap', sans-serif; }
 .search input::placeholder { color: var(--tenue); }
-.favBtn { width: 50px; height: 50px; background: var(--card); border: 1.5px solid var(--borde); border-radius: 12px; display: grid; place-items: center; cursor: pointer; transition: 0.15s; }
-.favBtn:hover { border-color: #d3d3dd; }
-.favBtnOn { background: #fde8e8; border-color: #f6caca; }
+/* Buscador dentro del navbar (junto al logo, desktop). */
+.navSearch {
+  flex: 1; height: 40px; background: #f4f4f7; border: 1.5px solid var(--borde); border-radius: 10px;
+  display: flex; align-items: center; gap: 9px; padding: 0 14px; color: var(--tenue); cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.navSearch:focus-within { border-color: var(--azul); background: var(--card); box-shadow: 0 0 0 3px rgba(70, 84, 205, 0.12); }
+.navSearch svg { flex: none; }
+.navSearch input { border: none; outline: none; background: transparent; font-size: 14.5px; width: 100%; color: var(--texto); font-family: 'Asap', sans-serif; }
+.navSearch input::placeholder { color: var(--tenue); }
 
 .catTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 30px; color: var(--navy); margin-bottom: 6px; }
 .catDesc { font-size: 16px; color: var(--tenue); margin-bottom: 24px; }
@@ -81,8 +88,14 @@
 .gridHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .gridCount { font-size: 15px; color: var(--tenue); }
 .gridCount b { color: var(--navy); font-weight: 700; }
-.sort { position: relative; height: 46px; border: 1px solid var(--borde); border-radius: 11px; background: var(--card); padding: 0 16px; display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--navy); font-weight: 600; cursor: pointer; }
-.sort select { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.sort { position: relative; height: 48px; border: 1.5px solid var(--borde); border-radius: 12px; background: var(--card); padding: 0 16px; display: flex; align-items: center; gap: 9px; font-size: 14.5px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.sort:hover { border-color: #d3d3dd; }
+.sort:focus-within { border-color: var(--azul); box-shadow: 0 0 0 3px rgba(70, 84, 205, 0.12); }
+.sortIco { color: var(--azul); flex: none; }
+.sortLbl { color: var(--tenue); font-weight: 500; }
+.sortVal { color: var(--navy); font-weight: 700; }
+.sortChev { color: var(--tenue); flex: none; margin-left: 2px; }
+.sort select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; }
 
 /* ---- Grilla ---- */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
@@ -114,11 +127,12 @@
 .spec { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #5b5c6b; min-width: 0; }
 .spec svg { color: var(--azul); flex: none; }
 .spec span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dcardPrice { background: var(--lavanda); border-radius: 12px; padding: 12px 14px; text-align: center; margin-bottom: 13px; }
+/* margin-top:auto empuja el precio (y los botones) SIEMPRE al fondo del card. */
+.dcardPrice { background: var(--lavanda); border-radius: 12px; padding: 12px 14px; text-align: center; margin-top: auto; margin-bottom: 13px; }
 .dcardPrice .num { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 800; font-size: 24px; color: var(--azul); line-height: 1; }
 .dcardPrice .num span { font-size: 14px; font-weight: 600; }
 .dcardPrice .sub { font-size: 11px; color: var(--tenue); margin-top: 5px; }
-.dcardBtns { display: flex; gap: 10px; margin-top: auto; }
+.dcardBtns { display: flex; gap: 10px; }
 .btn { border-radius: 11px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; border: none; height: 48px; font-family: 'Asap', sans-serif; }
 .btnOutline { background: var(--card); border: 1.5px solid var(--azul); color: var(--azul); }
 .btnSolid { background: var(--azul); color: #fff; }

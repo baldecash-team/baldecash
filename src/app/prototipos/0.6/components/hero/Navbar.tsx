@@ -110,6 +110,9 @@ interface NavbarProps {
   logoOnly?: boolean;
   rightContent?: React.ReactNode;
   mobileRightContent?: React.ReactNode;
+  /** Buscador opcional junto al logo (solo desktop). Usado por copia-home; si no
+   *  se pasa, el navbar se renderiza igual que siempre. */
+  searchSlot?: React.ReactNode;
   activeSections?: string[];
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
@@ -174,7 +177,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
@@ -432,6 +435,13 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                 </>
               )}
             </a>
+
+            {/* Buscador junto al logo (solo desktop) — opcional (copia-home) */}
+            {searchSlot && (
+              <div className="hidden lg:flex items-center flex-1 max-w-md ml-8">
+                {searchSlot}
+              </div>
+            )}
 
             {/* Desktop Navigation */}
             {!minimal && (

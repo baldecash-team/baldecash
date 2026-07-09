@@ -16,7 +16,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Search, ArrowUpDown, ChevronDown, Eye, Check,
-  Cpu, HardDrive, Monitor, Heart, Laptop, Tablet, Smartphone,
+  Cpu, HardDrive, Monitor, Laptop, Tablet, Smartphone,
 } from 'lucide-react';
 import { useIsMobile, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -32,7 +32,6 @@ import { DEFERRED_SHIPPING_NOTE, hasDeferredShipping } from '@/app/prototipos/0.
 import type { CatalogProduct, TermMonths } from '../types/catalog';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../../services/catalogApi';
 import { useCatalogProducts, useCatalogFilters } from '../hooks/useCatalogProducts';
-import { useCatalogSharedState } from '../hooks/useCatalogSharedState';
 import { useCampaignCoupon } from '../hooks/useCampaignCoupon';
 import styles from './copiaHomeDesktopCatalog.module.css';
 
@@ -49,6 +48,11 @@ const SORT_API: Record<SortKey, ApiSortBy> = {
   price_asc: 'price_asc',
   price_desc: 'price_desc',
 };
+
+// copia-home: el buscador vive en el navbar (junto al logo, desktop), como el
+// mockup. Por ahora es un flag fijo; a futuro se leerá de la config de la landing
+// (admin2 → ws2). Con `false` el buscador vuelve a la toolbar del cuerpo.
+const NAVBAR_SEARCH_ENABLED = true;
 
 const DEVICE_ICON: Record<string, React.ReactNode> = {
   laptop: <Laptop size={20} strokeWidth={1.7} />,
@@ -102,7 +106,6 @@ export function CopiaHomeDesktopCatalog() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
   const { couponCode } = useCampaignCoupon(landing);
-  const shared = useCatalogSharedState(landing, previewKey);
 
   // ---- Estado de filtros ----
   const [deviceType, setDeviceType] = useState<string | null>(null);
@@ -111,7 +114,6 @@ export function CopiaHomeDesktopCatalog() {
   const [grades, setGrades] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortKey>('recommended');
   const [query, setQuery] = useState('');
-  const [favOnly, setFavOnly] = useState(false);
 
   // ---- Aviso de reacondicionado antes de "Lo quiero" ----
   const [pendingRefurb, setPendingRefurb] = useState<CatalogProduct | null>(null);
@@ -143,10 +145,7 @@ export function CopiaHomeDesktopCatalog() {
     couponCode,
   });
 
-  const displayed = useMemo(() => {
-    if (!favOnly) return products;
-    return products.filter((p) => shared.isInWishlist(p.id));
-  }, [products, favOnly, shared]);
+  const displayed = products;
 
   // Si algún equipo de la vitrina tiene promoción, reservamos el mismo alto de
   // banner en las cards SIN promo para que todas queden alineadas (mismo alto),
@@ -244,29 +243,33 @@ export function CopiaHomeDesktopCatalog() {
         institutionLogo={navbarProps?.institutionLogo}
         institutionName={navbarProps?.institutionName}
         previewBannerOffset={previewBannerOffset}
+        searchSlot={NAVBAR_SEARCH_ENABLED ? (
+          <label className={styles.navSearch}>
+            <Search size={18} color="#8A8A99" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar equipo…"
+            />
+          </label>
+        ) : undefined}
       />
 
       <div className={styles.root} style={{ paddingTop: 'var(--header-total-height, 6.5rem)' }}>
         <div className={styles.wrap}>
-          {/* Toolbar: búsqueda + favoritos */}
-          <div className={styles.toolbar}>
-            <label className={styles.search}>
-              <Search size={20} color="#8A8A99" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar equipo…"
-              />
-            </label>
-            <button
-              type="button"
-              aria-label="Favoritos"
-              onClick={() => setFavOnly((v) => !v)}
-              className={`${styles.favBtn} ${favOnly ? styles.favBtnOn : ''}`}
-            >
-              <Heart size={24} color={favOnly ? '#e5484d' : '#151744'} fill={favOnly ? '#e5484d' : 'none'} />
-            </button>
-          </div>
+          {/* Buscador en el cuerpo solo si NO está en el navbar */}
+          {!NAVBAR_SEARCH_ENABLED && (
+            <div className={styles.toolbar}>
+              <label className={styles.search}>
+                <Search size={20} color="#8A8A99" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar equipo…"
+                />
+              </label>
+            </div>
+          )}
 
           <div className={styles.catTitle}>Selecciona el tipo de equipo que buscas</div>
           <div className={styles.catDesc}>Financia laptops, tablets y celulares nuevos y seminuevos en cuotas, sin inicial.</div>
@@ -350,16 +353,17 @@ export function CopiaHomeDesktopCatalog() {
             <div>
               <div className={styles.gridHead}>
                 <div className={styles.gridCount}><b>{total ?? displayed.length}</b> equipos</div>
-                <div className={styles.sort}>
-                  <ArrowUpDown size={16} />
-                  <span>{SORT_LABEL[sort]}</span>
-                  <ChevronDown size={15} />
-                  <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+                <label className={styles.sort}>
+                  <ArrowUpDown size={16} className={styles.sortIco} />
+                  <span className={styles.sortLbl}>Ordenar:</span>
+                  <span className={styles.sortVal}>{SORT_LABEL[sort]}</span>
+                  <ChevronDown size={16} className={styles.sortChev} />
+                  <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Ordenar equipos">
                     <option value="recommended">Recomendados</option>
                     <option value="price_asc">Menor precio</option>
                     <option value="price_desc">Mayor precio</option>
                   </select>
-                </div>
+                </label>
               </div>
 
               {isLoading ? (
