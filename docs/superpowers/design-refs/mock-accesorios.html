@@ -1,0 +1,41 @@
+<!-- Mock de referencia: BaldeCash Accesorios y Seguros (Claude Design d8552890). 4 frames móvil 390px. -->
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{font-family:'Asap',system-ui,sans-serif;background:#EDEEF3}</style></head><body>
+
+<!-- ===== FRAME 1 · Estado inicial ===== -->
+<!-- Top bar (h56): "← Volver al equipo" (#6B7280) izq + logo bicolor der (Balde #312E81 + Cash #12B3A6, Baloo2 800 17px, con ícono laptop teal). -->
+<!-- Título "Accesorios y seguros" (Baloo2 700 22px) + subtítulo "Solo mostramos lo que entra en tu cuota." (#6B7280 13px). -->
+<!-- Card "TU EQUIPO": bg #F7F8FB, borde #E7E9F0, radius 16px, padding 12px 14px. Foto 60x50 placeholder + label "TU EQUIPO" (teal #12B3A6 9.5px letter-spacing) + nombre (Baloo2 700 14.5px) + cuota der (S/300/mes, Baloo2 700 15px). -->
+<!-- Título "Recomendado para ti" (Baloo2 700 15px). -->
+<!-- Card recomendado NO seleccionado: borde 1.5px #E7E9F0, radius 20px, padding 15px, shadow. Label "RECOMENDADO PARA TI" teal. Foto 86x70 + nombre (Baloo2 700 17px) + descr (#6B7280 12px) + cuota "+S/50/mes" (#4F46E5). Círculo radio vacío 28px (borde #D9DCE6). -->
+<!-- Botón dashed "Añadir uno más": borde 1.5px dashed #C7CBD6, radius 18px, texto #4F46E5 Baloo2 700, ícono +. -->
+<!-- BOTTOM BAR sticky (absolute bottom): bg #fff, borde-top #EEF0F4, shadow. "Cuota mensual total" (#9CA3AF 11px) + "S/300/mes" (Baloo2 800 22px #4F46E5) izq; botón "Continuar" (#4F46E5, radius 14px, Baloo2 700 15px, padding 14px 30px) der. -->
+
+<!-- ===== FRAME 2 · Con 2 agregados ===== -->
+<!-- Igual pero: sección se llama "Tus extras" (Baloo2 700 14px). -->
+<!-- Recomendado SELECCIONADO: borde 1.5px #4F46E5, shadow índigo. Label "RECOMENDADO" teal. Círculo check RELLENO #4F46E5 con check blanco. -->
+<!-- Item agregado (seguro robo): borde #E7E9F0 radius 16px. Ícono escudo #4F46E5 en cuadro #EEF1FF 44px. Nombre "Seguro contra robo" (Baloo2 700 14px) + "Insurama · +S/16/mes". Botón QUITAR (X) redondo 32px borde #E7E9F0. -->
+<!-- Item agregado (mochila): igual, foto placeholder, "+S/20/mes", botón X. -->
+<!-- Bottom bar: S/386/mes (300+50+16+20). -->
+
+<!-- ===== FRAME 3 · Pop-up buscador (BOTTOM SHEET) ===== -->
+<!-- Backdrop rgba(24,26,42,.42). Hoja inferior h788 radius 26px top, drag-handle 40x4 gris. -->
+<!-- Header sheet: "Añadir al pedido" (Baloo2 700 18px) + botón X redondo #F1F2F7. -->
+<!-- Buscador: input "Busca accesorios o seguros" con ícono lupa, bg #F7F8FB borde #E7E9F0 radius 13px. -->
+<!-- CHIPS categoría scrollables (overflow-x, .scrollx sin scrollbar): "Todos" (activo: bg #4F46E5 blanco) + Auriculares, Teclados, Mouse, Cargadores, Protector, Seguros (inactivo: bg #F1F2F7 #6B7280). radius 999px, padding 7px 14px, 12.5px. -->
+<!-- GRID 2 columnas (gap 12): cada card borde #E7E9F0 radius 16px padding 9px. Foto 74px placeholder con botón + (redondo #4F46E5 top-right) o check si agregado (card con borde 1.5px #4F46E5). Nombre (Baloo2 700 12.5px) + cuota "+S/X/mes" (#4F46E5) + "Ver detalle" (#12B3A6 11px 600). Items: Mouse +S/15, Mochila +S/20 (agregada), Teclado +S/25, Impresora +S/45. -->
+<!-- Sección "Seguros" (Baloo2 700 15px) + badge "Insurama" (#12B3A6, bg #E7FBF8, pill). -->
+<!-- Card seguro seleccionado: borde 1.5px #4F46E5. Ícono escudo-check en cuadro #EEF1FF 40px. Nombre "Seguro Contra Robo Laptop 24M" (Baloo2 700 13.5px) + "+S/16/mes". Check relleno #4F46E5. COBERTURAS (viñetas): check verde #16A34A + texto #4B5563 11.5px: "Cobertura por robo y hurto", "Reposición sin deducible", "Reclamo 100% digital". -->
+<!-- Card seguro NO sel (Garantía Extendida Laptop 24M, +S/20): borde #E7E9F0, botón + (no check). Coberturas: "3 años de cobertura", "Sin deducibles", "100% digital". -->
+<!-- Bottom sticky: S/386/mes + botón "Listo". -->
+
+<!-- ===== FRAME 4 · Detalle de accesorio (BOTTOM SHEET) ===== -->
+<!-- Backdrop + hoja h788. Header: "← Volver a la lista" izq + X der. -->
+<!-- Foto grande 200px placeholder radius 20px. -->
+<!-- Marca "LOGITECH" (#9CA3AF 10px caps letter-spacing) + nombre "Teclado Bluetooth" (Baloo2 700 23px). -->
+<!-- Descripción larga (#6B7280 13.5px line-height 1.5). -->
+<!-- Precio grande "+S/25/mes" (Baloo2 800 30px #4F46E5) + "en 24 meses" (#9CA3AF), separado por border-top. -->
+<!-- Bottom sticky: botón full-width "Agregar al pedido" (#4F46E5, radius 15px, ícono +, Baloo2 700 16px). -->
+
+<!-- COLORES (usar OFERTA_COLORS de ofertaTheme.ts): primary #4F46E5, teal #12B3A6, green #16A34A, gray #F7F8FB, lilac #EEF1FF, border #E7E9F0, textStrong #1F2333, textMid #6B7280, textSoft #9CA3AF. -->
+</body></html>

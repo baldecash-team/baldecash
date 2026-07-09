@@ -1,0 +1,37 @@
+<!-- Mock de referencia: BaldeCash Confirmación (Claude Design d8552890). 3 frames móvil 390px. -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Asap',system-ui,sans-serif}</style></head><body>
+
+<!-- ===== FRAME 1 · MODAL PRECONFIRMACIÓN "¿Confirmas tu elección?" (bottom sheet centrado) ===== -->
+<!-- Backdrop rgba(24,26,42,.5). Card blanca w346 radius 26px overflow hidden. -->
+<!-- HEADER índigo #5850EC padding 20-22px, texto blanco: botón X redondo (rgba white .18) top-right; ícono bolsa 44px en cuadro rgba(white,.16); "¿Confirmas tu elección?" (Baloo2 700 20px) + "Estás a un paso de elegir tu equipo" (rgba white .85 12.5px). -->
+<!-- BODY padding 16-18px, gap 13px:
+     - Equipo: foto 50x44 placeholder + marca caps (#9CA3AF) + nombre (Baloo2 700 13.5px, ej "HP Victus 15 + Impresora HP ST 580 + Mochila").
+     - Fila cuota (border-top #F1F2F7): "Cuota mensual" (#1F2333 600) + "en 24 meses · sin inicial" (#9CA3AF) izq; "S/313/mes" (Baloo2 800 25px #4F46E5) der.
+     - CAJA VERDE "REGALO POR TU COMBO": bg #E8F8EF radius 16px. Label "REGALO POR TU COMBO" (#16A34A 9.5px caps). Cada regalo: ícono regalo verde + nombre (#1F2333 12.5px) + "Incluido gratis" (#16A34A 12px 700). Ej: "Impresora multifunción HP 580", "Mochila Nova Grey/Brown".
+     - Fila "Cuota total" (Baloo2 700 14.5px) + "S/313/mes" (Baloo2 700 16px #4F46E5).
+     - Aviso verde: bg #E8F8EF radius 13px, ícono check-círculo verde + "Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada." (#16A34A 12px 500).
+     - Botones: "Cancelar" (ghost #6B7280 Baloo2 700) + "Sí, elegir este equipo" (flex1, #4F46E5, radius 14px, Baloo2 700 14px). -->
+
+<!-- ===== FRAME 2 · MODAL ÉXITO "¡Listo!" (bottom sheet centrado) ===== -->
+<!-- Backdrop rgba(24,26,42,.5). Card w346 radius 26px padding 26-20px, centrado, gap 14px. -->
+<!-- Check verde grande: círculo 66px bg #E8F8EF con check #22C55E 34px. -->
+<!-- "¡Listo!" (Baloo2 800 24px) + "Cambiamos tu equipo y tu solicitud quedó aprobada." (#6B7280 13px) centrado. -->
+<!-- Card equipo (bg #F7F8FB borde #E7E9F0 radius 16px): foto + nombre (Baloo2 700 13px) + "S/313/mes" (verde #16A34A 700) + "en 24 meses · sin inicial" (#9CA3AF). -->
+<!-- CAJA VERDE "REGALO POR TU COMBO" (igual que frame 1): items incluidos gratis. -->
+<!-- Fila "Cuota total" (border-top) + "S/313/mes" (#4F46E5). -->
+<!-- Aviso verde: "Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega." (check-círculo verde). -->
+<!-- Botón full-width "Continuar →" (#22C55E VERDE, radius 15px, Baloo2 700 16px, flecha). -->
+
+<!-- ===== FRAME 3 · PÁGINA DE ESTADO (al refrescar, already_selected) ===== -->
+<!-- Header (h56 bg #fff): logo BaldeCash bicolor centrado (Balde #312E81 + Cash #12B3A6). -->
+<!-- Card blanca borde #E7E9F0 radius 24px shadow padding 20-16px, gap 16px:
+     - Header centrado: círculo 60px bg #E8F8EF check #22C55E; "¡Felicidades, Maria Roxana!" (Baloo2 800 21px) + "Has realizado el cambio de equipo correctamente." (#6B7280 12.5px).
+     - COMPARACIÓN anterior→nuevo (flex, 2 cols + flecha centro):
+       * IZQ "EQUIPO ANTERIOR" (#9CA3AF caps 8.5px), opacity .75, bg #F7F8FB: foto 52px + nombre (Baloo2 700 12px) + cuota TACHADA "S/703/mes" (line-through #6B7280) + "en 6 meses · inicial S/880" (#9CA3AF 10px).
+       * FLECHA centro: círculo 26px #EEF1FF con flecha #4F46E5.
+       * DER "TU NUEVO EQUIPO" (#16A34A caps), borde 1.5px #22C55E, shadow verde: foto + nombre + "S/313/mes" (Baloo2 800 15px verde #16A34A) + "en 24 meses · sin inicial".
+     - CAJA "TU PEDIDO INCLUYE" (bg #F7F8FB borde #E7E9F0 radius 18px): label teal #12B3A6. Filas: equipo (check verde + nombre Baloo2 600 + cuota "S/313/mes"), luego cada accesorio/seguro con ícono regalo verde + nombre + "Incluido gratis" (verde 700) para los del combo. Separador. "Cuota mensual total" (Baloo2 700 14px) + "S/313/mes" (Baloo2 800 18px verde #16A34A).
+     - Aviso verde (bg #E8F8EF radius 14px): ícono WhatsApp + "Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega de tu equipo." -->
+
+<!-- COLORES (usar OFERTA_COLORS): primary #4F46E5, headerIndigo #5850EC, green #22C55E, greenDark #16A34A, greenSoft #E8F8EF, teal #12B3A6, indigoBrand #312E81, grayBg #F7F8FB, border #E7E9F0, textStrong #1F2333, textMid #6B7280, textSoft #9CA3AF. Fuentes Baloo 2 (títulos/montos) + Asap (texto). -->
+</body></html>

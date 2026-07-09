@@ -81,7 +81,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
   // localStorage → la URL de accesorios queda limpia, sin query params.
   const handleSelect = useCallback(
     (product: CatalogProduct) => {
-      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       const variantId = product.variantId ? Number(product.variantId) : null;
       if (variantId == null) {
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${product.slug ?? ''}`;

@@ -5,7 +5,7 @@
  * variant/combo/slug y sus datos de display (nombre/marca/imagen/cuota). Se
  * escribe al hacer clic en "Elegir"/"Aceptar" desde catálogo/detalle/portada; la
  * página de accesorios (mini-checkout) la lee para saber qué equipo cargar SIN
- * query params en la URL (`/oferta/{token}/accesorios` limpia) y para mostrar el
+ * query params en la URL (`/oferta/{token}/complementos` limpia) y para mostrar el
  * equipo correcto en el modal de confirmación.
  *
  * Es una entrada única por token (no por variante): elegir otro equipo la

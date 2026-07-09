@@ -5,10 +5,15 @@
  * cambio de equipo — equipo anterior (gris) → equipo nuevo (verde) con flecha,
  * cada uno con nombre y cuota. Abajo, el aviso del contrato por WhatsApp.
  * NO reutiliza el ReceivedScreen (sin timeline, sin tiempos de evaluación).
+ *
+ * Rediseño visual (BAL-2186): mismo API de props y misma lógica; solo cambia
+ * la presentación para calzar con el mock de Claude Design
+ * (docs/superpowers/design-refs/mock-confirmacion.html, frame 3).
  */
 import { CheckCircle2, ArrowRight, MessageCircle, Package, ShieldCheck } from 'lucide-react';
-
-const APPROVED_GREEN = '#16a34a';
+import { OFERTA_COLORS } from './redesign/ofertaTheme';
+import { OfertaHeader } from './redesign/OfertaHeader';
+import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
 
 export interface EquipoResumen {
   name: string;
@@ -67,14 +72,22 @@ function EquipoMini({
   tone: 'old' | 'new';
 }) {
   const isNew = tone === 'new';
+  const f = equipo.paymentFrequency ?? 'mensual';
+  const n = f === 'mensual' ? equipo.term : (equipo.nativeTerm ?? equipo.term);
+
   return (
     <div
-      className={`flex w-full max-w-[220px] flex-col items-center rounded-2xl border p-4 text-center ${
-        isNew ? 'border-2 bg-emerald-50' : 'border-gray-200 bg-gray-50'
-      }`}
-      style={isNew ? { borderColor: APPROVED_GREEN } : undefined}
+      className="flex w-full flex-1 flex-col items-center rounded-xl p-3.5 text-center"
+      style={
+        isNew
+          ? { border: `1.5px solid ${OFERTA_COLORS.green}`, backgroundColor: '#fff', boxShadow: '0 4px 14px rgba(34,197,94,0.12)' }
+          : { border: `1px solid ${OFERTA_COLORS.border}`, backgroundColor: OFERTA_COLORS.grayBg, opacity: 0.75 }
+      }
     >
-      <p className={`mb-2 text-[11px] font-semibold uppercase tracking-wide ${isNew ? 'text-emerald-600' : 'text-gray-400'}`}>
+      <p
+        className="mb-2 text-[8.5px] font-bold uppercase tracking-wide"
+        style={{ color: isNew ? OFERTA_COLORS.greenDark : OFERTA_COLORS.textSoft }}
+      >
         {isNew ? 'Tu nuevo equipo' : 'Equipo anterior'}
       </p>
       {equipo.imageUrl ? (
@@ -82,38 +95,36 @@ function EquipoMini({
         <img
           src={equipo.imageUrl}
           alt={equipo.name}
-          className={`mb-3 h-24 w-auto object-contain ${isNew ? '' : 'grayscale opacity-70'}`}
+          className={`mb-2 h-[52px] w-auto object-contain ${isNew ? '' : 'grayscale'}`}
         />
       ) : (
-        <div className="mb-3 flex h-24 w-full items-center justify-center text-gray-300">Sin imagen</div>
+        <div className="mb-2 flex h-[52px] w-full items-center justify-center text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
+          Sin imagen
+        </div>
       )}
-      <p className={`text-sm font-semibold ${isNew ? 'text-[var(--foreground)]' : 'text-gray-500'}`}>
+      <p
+        className="font-['Baloo_2',_sans-serif] text-xs font-bold"
+        style={{ color: isNew ? OFERTA_COLORS.textStrong : OFERTA_COLORS.textMid }}
+      >
         {equipo.name}
       </p>
       {equipo.monthly ? (
         <>
-          <p className={`mt-1 text-sm font-bold ${isNew ? '' : 'text-gray-400'}`} style={isNew ? { color: APPROVED_GREEN } : undefined}>
-            S/{Math.round(equipo.monthly)}{(() => {
-              const f = equipo.paymentFrequency ?? 'mensual';
-              return f === 'semanal' ? '/sem' : f === 'quincenal' ? '/qcn' : '/mes';
-            })()}
+          <p
+            className={`mt-1 font-['Baloo_2',_sans-serif] text-[15px] font-extrabold ${isNew ? '' : 'line-through'}`}
+            style={{ color: isNew ? OFERTA_COLORS.greenDark : OFERTA_COLORS.textMid }}
+          >
+            S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}
           </p>
-          {(equipo.nativeTerm ?? equipo.term) ? (() => {
-            const f = equipo.paymentFrequency ?? 'mensual';
-            const n = f === 'mensual' ? equipo.term : (equipo.nativeTerm ?? equipo.term);
-            const unit = f === 'semanal' ? (n === 1 ? 'semana' : 'semanas')
-              : f === 'quincenal' ? (n === 1 ? 'quincena' : 'quincenas')
-              : (n === 1 ? 'mes' : 'meses');
-            return (
-              <p className="mt-0.5 text-[11px] text-gray-400">
-                en {n} {unit}
-                {equipo.initialAmount && equipo.initialAmount > 0 ? ` · inicial S/${Math.round(equipo.initialAmount)}` : equipo.initial && equipo.initial > 0 ? ` · inicial ${equipo.initial}%` : ' · sin inicial'}
-              </p>
-            );
-          })() : null}
+          {n ? (
+            <p className="mt-0.5 text-[10px]" style={{ color: OFERTA_COLORS.textSoft }}>
+              en {n} {plazoUnit(n, equipo.paymentFrequency)}
+              {inicialText(equipo.initialAmount, equipo.initial)}
+            </p>
+          ) : null}
         </>
       ) : (
-        <p className="mt-1 text-xs text-gray-400">{isNew ? '' : 'No disponible'}</p>
+        <p className="mt-1 text-xs" style={{ color: OFERTA_COLORS.textSoft }}>{isNew ? '' : 'No disponible'}</p>
       )}
     </div>
   );
@@ -127,6 +138,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
   const nuevo: EquipoResumen = {
     name: chosen.name, imageUrl: chosen.imageUrl, monthly: chosen.monthly,
     term: chosen.termMonths ?? chosen.term, initial: chosen.initial,
+    initialAmount: chosen.initialAmount, paymentFrequency: chosen.paymentFrequency,
   };
 
   // Gratis primero, luego los de costo (orden estable dentro de cada grupo).
@@ -142,104 +154,127 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
     seguros.reduce((s, i) => s + (i.monthly || 0), 0);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 py-12">
-      <div className="w-full max-w-2xl rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-xl sm:p-10">
-        {/* Check de éxito */}
+    <div className="flex min-h-screen flex-col bg-white">
+      <OfertaHeader />
+
+      <div className="flex flex-1 flex-col items-center px-4 py-8">
         <div
-          className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full"
-          style={{ backgroundColor: `${APPROVED_GREEN}1a` }}
+          className="w-full max-w-md rounded-xl p-5 text-center shadow-sm sm:p-6"
+          style={{ border: `1px solid ${OFERTA_COLORS.border}` }}
         >
-          <CheckCircle2 className="h-9 w-9" style={{ color: APPROVED_GREEN }} />
-        </div>
-
-        <h1 className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--foreground)]">
-          {titulo}
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          Has realizado el cambio de equipo correctamente.
-        </p>
-
-        {/* Equipo anterior → equipo nuevo */}
-        <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          {chosen.previous ? (
-            <>
-              <EquipoMini equipo={chosen.previous} tone="old" />
-              <ArrowRight className="h-6 w-6 shrink-0 rotate-90 text-gray-300 sm:rotate-0" />
-            </>
-          ) : null}
-          <EquipoMini equipo={nuevo} tone="new" />
-        </div>
-
-        {/* Desglose de accesorios/seguros sumados (BAL-2064) */}
-        {tieneAddons ? (
-          <div className="mt-8 rounded-2xl border border-gray-200 p-4 text-left sm:p-5">
-            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Tu pedido incluye
-            </p>
-            <ul className="space-y-2.5">
-              {/* Equipo */}
-              <li className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex min-w-0 items-center gap-2 text-[var(--foreground)]">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: APPROVED_GREEN }} />
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{chosen.name}</span>
-                    {(chosen.termMonths ?? chosen.term) ? (
-                      <span className="block text-xs text-gray-400">
-                        en {chosen.termMonths ?? chosen.term} {(chosen.termMonths ?? chosen.term) === 1 ? 'mes' : 'meses'}
-                        {chosen.initialAmount && chosen.initialAmount > 0 ? ` · inicial S/${Math.round(chosen.initialAmount)}` : chosen.initial && chosen.initial > 0 ? ` · inicial ${chosen.initial}%` : ' · sin inicial'}
-                      </span>
-                    ) : null}
-                  </span>
-                </span>
-                {chosen.monthly ? (
-                  <span className="shrink-0 font-semibold text-gray-600">S/{Math.round(chosen.monthly)}/mes</span>
-                ) : null}
-              </li>
-              {/* Accesorios */}
-              {accesorios.map((a) => (
-                <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2 text-gray-600">
-                    <Package className="h-4 w-4 shrink-0 text-gray-400" />
-                    <span className="truncate">{a.name}</span>
-                  </span>
-                  {a.includedFree ? (
-                    <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
-                  ) : (
-                    <span className="shrink-0 text-gray-500">+S/{Math.round(a.monthly)}/mes</span>
-                  )}
-                </li>
-              ))}
-              {/* Seguros */}
-              {seguros.map((i) => (
-                <li key={`i-${i.id}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2 text-gray-600">
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-gray-400" />
-                    <span className="truncate">{i.name}</span>
-                  </span>
-                  {i.includedFree ? (
-                    <span className="shrink-0 text-xs font-semibold" style={{ color: APPROVED_GREEN }}>Incluido gratis</span>
-                  ) : (
-                    <span className="shrink-0 text-gray-500">+S/{Math.round(i.monthly)}/mes</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {/* Cuota total */}
-            <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-3">
-              <span className="text-sm font-semibold text-[var(--foreground)]">Cuota mensual total</span>
-              <span className="text-lg font-extrabold" style={{ color: APPROVED_GREEN }}>
-                S/{Math.round(cuotaTotal)}<span className="text-sm font-normal text-gray-400">/mes</span>
-              </span>
-            </div>
+          {/* Check de éxito */}
+          <div
+            className="mx-auto mb-3 flex h-[60px] w-[60px] items-center justify-center rounded-full"
+            style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+          >
+            <CheckCircle2 className="h-8 w-8" style={{ color: OFERTA_COLORS.green }} />
           </div>
-        ) : null}
 
-        {/* Aviso del contrato por WhatsApp */}
-        <div className="mt-8 flex items-start gap-3 rounded-2xl bg-emerald-50 p-4 text-left">
-          <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-          <p className="text-sm text-emerald-800">
-            Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega de tu equipo.
+          <h1 className="font-['Baloo_2',_sans-serif] text-[21px] font-extrabold" style={{ color: OFERTA_COLORS.textStrong }}>
+            {titulo}
+          </h1>
+          <p className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+            Has realizado el cambio de equipo correctamente.
           </p>
+
+          {/* Equipo anterior → equipo nuevo */}
+          <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            {chosen.previous ? (
+              <>
+                <EquipoMini equipo={chosen.previous} tone="old" />
+                <div className="flex justify-center sm:shrink-0">
+                  <div
+                    className="flex h-[26px] w-[26px] items-center justify-center rounded-full"
+                    style={{ backgroundColor: OFERTA_COLORS.lilac }}
+                  >
+                    <ArrowRight className="h-4 w-4 rotate-90 sm:rotate-0" style={{ color: OFERTA_COLORS.primary }} />
+                  </div>
+                </div>
+              </>
+            ) : null}
+            <EquipoMini equipo={nuevo} tone="new" />
+          </div>
+
+          {/* Desglose de accesorios/seguros sumados (BAL-2064) */}
+          {tieneAddons ? (
+            <div
+              className="mt-5 rounded-xl p-4 text-left"
+              style={{ backgroundColor: OFERTA_COLORS.grayBg, border: `1px solid ${OFERTA_COLORS.border}` }}
+            >
+              <p
+                className="mb-3 text-[10px] font-bold uppercase tracking-wide"
+                style={{ color: OFERTA_COLORS.tealBrand }}
+              >
+                Tu pedido incluye
+              </p>
+              <ul className="space-y-2.5">
+                {/* Equipo */}
+                <li className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
+                    <span className="min-w-0">
+                      <span className="block truncate font-['Baloo_2',_sans-serif] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                        {chosen.name}
+                      </span>
+                    </span>
+                  </span>
+                  {chosen.monthly ? (
+                    <span className="shrink-0 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+                      S/{Math.round(chosen.monthly)}{cuotaSuffix(chosen.paymentFrequency)}
+                    </span>
+                  ) : null}
+                </li>
+                {/* Accesorios */}
+                {accesorios.map((a) => (
+                  <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                      <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
+                      <span className="truncate">{a.name}</span>
+                    </span>
+                    {a.includedFree ? (
+                      <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
+                    ) : (
+                      <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(a.monthly)}{cuotaSuffix(chosen.paymentFrequency)}</span>
+                    )}
+                  </li>
+                ))}
+                {/* Seguros */}
+                {seguros.map((i) => (
+                  <li key={`i-${i.id}`} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                      <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
+                      <span className="truncate">{i.name}</span>
+                    </span>
+                    {i.includedFree ? (
+                      <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
+                    ) : (
+                      <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(i.monthly)}{cuotaSuffix(chosen.paymentFrequency)}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {/* Cuota total */}
+              <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
+                <span className="font-['Baloo_2',_sans-serif] text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                  Cuota total
+                </span>
+                <span className="font-['Baloo_2',_sans-serif] text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
+                  S/{Math.round(cuotaTotal)}<span className="text-sm font-normal" style={{ color: OFERTA_COLORS.textSoft }}>{cuotaSuffix(chosen.paymentFrequency)}</span>
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Aviso del contrato por WhatsApp */}
+          <div
+            className="mt-5 flex items-start gap-3 rounded-xl p-4 text-left"
+            style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+          >
+            <MessageCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+            <p className="text-sm" style={{ color: OFERTA_COLORS.greenDark }}>
+              Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega de tu equipo.
+            </p>
+          </div>
         </div>
       </div>
     </div>
