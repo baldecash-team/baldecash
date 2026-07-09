@@ -354,6 +354,15 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   const req = offer.requestedProduct;
 
+  // Cuota total del pedido para la barra (Caso 4): equipo + accesorios + seguros
+  // que el estudiante ya tenía. La barra debe reflejar lo que realmente ocupa
+  // de su monto aprobado, no solo el equipo.
+  const reqExtrasMonthly =
+    (req?.accessories ?? []).reduce((s, a) => s + (a.monthly ?? 0), 0) +
+    (req?.insurances ?? []).reduce((s, i) => s + (i.monthly ?? 0), 0);
+  const reqTotalMonthly =
+    req?.monthly_price != null ? req.monthly_price + reqExtrasMonthly : null;
+
   return (
     <div className="min-h-screen bg-white">
       <OfertaHeader />
@@ -382,7 +391,7 @@ export function MiOfertaClient({ token }: { token: string }) {
           <MontoAprobadoBar
             aprobado={offer.maxMonthlyQuota}
             mode="pedido"
-            usado={req?.monthly_price ?? null}
+            usado={reqTotalMonthly}
             equipoNombre={req?.name ?? undefined}
           />
         )}
