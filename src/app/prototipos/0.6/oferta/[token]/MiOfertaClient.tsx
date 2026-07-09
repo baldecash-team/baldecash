@@ -359,12 +359,12 @@ export function MiOfertaClient({ token }: { token: string }) {
       <OfertaHeader />
 
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
-        {/* Saludo en una línea (feedback Marco): "Hola {nombre}, tu solicitud
-            ha sido aprobada" con "aprobada" en verde bold. Sin tag lateral. */}
+        {/* Saludo (feedback Marco): "¡Felicitaciones, {nombre}, tu solicitud ha
+            sido aprobada!" con nombre completo y "aprobada" en verde bold.
+            Idéntico al de la página de complementos. */}
         <div className="font-['Baloo_2',_sans-serif] text-[18px] font-semibold leading-[1.25]">
-          {offer.clientName ? `Hola ${offer.clientName.trim().split(' ')[0]}, ` : 'Hola, '}
-          tu solicitud ha sido{' '}
-          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>
+          {offer.clientName ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
         </div>
 
         {offer.offerCase === 'upsell' ? (
