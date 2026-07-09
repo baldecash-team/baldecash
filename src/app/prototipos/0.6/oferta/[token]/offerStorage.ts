@@ -33,6 +33,9 @@ export interface OfferSelection extends StoredEquipo {
   comboId: number | null;
   /** Slug del producto — destino del botón "Volver al equipo". */
   slug: string | null;
+  /** Accesorios que deben venir YA seleccionados en el mini-checkout (Perfil B:
+   *  el accesorio de regalo). El mini-checkout los preselecciona al cargar. */
+  preselectedAccessoryIds?: number[];
 }
 
 function selectionKey(token: string): string {
@@ -65,6 +68,9 @@ export function readOfferSelection(token: string): OfferSelection | null {
       monthly: typeof p.monthly === 'number' ? p.monthly : undefined,
       term: typeof p.term === 'number' ? p.term : undefined,
       initial: typeof p.initial === 'number' ? p.initial : undefined,
+      preselectedAccessoryIds: Array.isArray(p.preselectedAccessoryIds)
+        ? p.preselectedAccessoryIds.filter((n: unknown): n is number => typeof n === 'number')
+        : undefined,
     };
   } catch {
     return null;

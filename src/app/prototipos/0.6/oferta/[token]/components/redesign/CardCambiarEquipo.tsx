@@ -23,12 +23,15 @@ export interface CardCambiarEquipoProps {
   /** Imagen del equipo recomendado (el destacado del nodo). Si falta, usa un
    *  fondo con degradado de placeholder. */
   imagen?: string | null;
+  /** Accesorio de regalo del Perfil B (foto, nombre, monto). Solo Perfil B lo
+   *  trae; en A/C es null y no se muestra la fila del accesorio. */
+  accesorio?: { name: string; imageUrl?: string | null; monthly: number } | null;
   onVerCatalogo: () => void;
 }
 
 const PLACEHOLDER_BG = 'repeating-linear-gradient(135deg,#EEF1FF 0 8px,#E4E9FF 8px 16px)';
 
-export function CardCambiarEquipo({ montoAprobado, equiposCount, imagen, onVerCatalogo }: CardCambiarEquipoProps) {
+export function CardCambiarEquipo({ montoAprobado, equiposCount, imagen, accesorio, onVerCatalogo }: CardCambiarEquipoProps) {
   const fmt = (n: number) => Math.round(n).toLocaleString('es-PE');
   const copy = equiposCount && equiposCount > 0
     ? `Elige entre ${equiposCount} equipos en nuestro catálogo. ¡Ya estás aprobado para cualquiera de ellos!`
@@ -72,6 +75,37 @@ export function CardCambiarEquipo({ montoAprobado, equiposCount, imagen, onVerCa
         <div className="mt-1.5 text-[12.5px] leading-[1.45]" style={{ color: OFERTA_COLORS.textMid }}>
           {copy}
         </div>
+
+        {/* Accesorio de regalo (Perfil B): foto + nombre + "gratis" + su monto. */}
+        {accesorio ? (
+          <div
+            className="mt-3 flex items-center gap-2.5 rounded-lg p-2"
+            style={{ backgroundColor: OFERTA_COLORS.greenSoft, border: `1px solid ${OFERTA_COLORS.greenDark}33` }}
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
+              {accesorio.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={accesorio.imageUrl} alt="" className="h-full w-full object-contain p-0.5" />
+              ) : (
+                <Check className="h-4 w-4" strokeWidth={2.5} style={{ color: OFERTA_COLORS.greenDark }} />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-[.03em]" style={{ color: OFERTA_COLORS.greenDark }}>
+                  Incluye gratis
+                </span>
+              </div>
+              <div className="truncate text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                {accesorio.name}
+              </div>
+            </div>
+            <span className="shrink-0 text-[11.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+              +S/{fmt(accesorio.monthly)}/mes
+            </span>
+          </div>
+        ) : null}
+
         <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
           <div>
             <div className="text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>tu monto aprobado</div>

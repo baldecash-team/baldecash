@@ -99,6 +99,8 @@ export interface UpsellAccessory {
   price: number;
   monthly: number;
   terms: number;
+  /** Imagen del accesorio de regalo (para la card de la oferta). */
+  image_url?: string | null;
 }
 
 /** La oferta exclusiva del Caso 5 (equipo recomendado + accesorio si aplica). */

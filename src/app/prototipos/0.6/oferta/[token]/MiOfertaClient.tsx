@@ -180,6 +180,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       comboId: number | null | undefined,
       slug: string | null | undefined,
       equipo?: StoredEquipo,
+      preselectedAccessoryIds?: number[],
     ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       if (variantId == null) {
@@ -195,6 +196,8 @@ export function MiOfertaClient({ token }: { token: string }) {
         brand: equipo?.brand,
         imageUrl: equipo?.imageUrl,
         monthly: equipo?.monthly,
+        preselectedAccessoryIds:
+          preselectedAccessoryIds && preselectedAccessoryIds.length ? preselectedAccessoryIds : undefined,
       });
       window.location.href = base;
     },
@@ -232,13 +235,21 @@ export function MiOfertaClient({ token }: { token: string }) {
     const ex = offer?.exclusiveOffer;
     if (!ex || ex.variantId == null) return;
     // La oferta exclusiva no nace de un combo del catálogo (el accesorio del
-    // Perfil B se resuelve aparte en el backend) → sin comboId.
-    goToAccesorios(ex.variantId, null, ex.slug, {
-      name: ex.name ?? 'Tu equipo',
-      brand: ex.brand ?? undefined,
-      imageUrl: ex.imageUrl ?? undefined,
-      monthly: ex.combinedMonthly,
-    });
+    // Perfil B se resuelve aparte en el backend) → sin comboId. El accesorio de
+    // regalo (Perfil B) se pasa preseleccionado al mini-checkout.
+    const regaloId = ex.accessory?.product_id;
+    goToAccesorios(
+      ex.variantId,
+      null,
+      ex.slug,
+      {
+        name: ex.name ?? 'Tu equipo',
+        brand: ex.brand ?? undefined,
+        imageUrl: ex.imageUrl ?? undefined,
+        monthly: ex.combinedMonthly,
+      },
+      regaloId ? [regaloId] : undefined,
+    );
   }, [state, goToAccesorios]);
 
   // Caso 5: "continuar con mi equipo" → mini-checkout de accesorios/seguros con
@@ -425,6 +436,15 @@ export function MiOfertaClient({ token }: { token: string }) {
               montoAprobado={offer.maxMonthlyQuota}
               equiposCount={catalogCount}
               imagen={exclusivaInfo?.imageUrl ?? null}
+              accesorio={
+                offer.exclusiveOffer?.accessory
+                  ? {
+                      name: offer.exclusiveOffer.accessory.name,
+                      imageUrl: offer.exclusiveOffer.accessory.image_url ?? null,
+                      monthly: offer.exclusiveOffer.accessory.monthly,
+                    }
+                  : null
+              }
               onVerCatalogo={goToCatalogo}
             />
             <OpcionBarra

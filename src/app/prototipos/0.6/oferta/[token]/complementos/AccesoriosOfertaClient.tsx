@@ -205,11 +205,18 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
+        const accOk = new Set(res.accessories.map((a) => a.id));
         if (stored) {
-          const accOk = new Set(res.accessories.map((a) => a.id));
           const insOk = new Set(res.insurances.map((p) => p.id));
           setSelectedAcc(stored.acc.filter((id) => accOk.has(id)));
           setSelectedIns(stored.ins.filter((id) => insOk.has(id)));
+        } else if (selection.preselectedAccessoryIds?.length) {
+          // Primera vez (sin add-ons guardados): preseleccionar el accesorio de
+          // regalo del Perfil B que venía en la selección, si está disponible.
+          const pre = selection.preselectedAccessoryIds
+            .map(String)
+            .filter((id) => accOk.has(id));
+          if (pre.length) setSelectedAcc(pre);
         }
       } catch (err) {
         if (!active) return;
