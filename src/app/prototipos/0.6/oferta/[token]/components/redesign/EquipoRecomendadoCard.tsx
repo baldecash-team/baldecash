@@ -106,7 +106,7 @@ export function EquipoRecomendadoCard({
         {badgeText.toUpperCase()}
       </div>
 
-      <div className="px-4 py-3">
+      <div className="px-4 py-2.5 sm:py-3">
         {/* Foto + marca/nombre */}
         <div className="flex items-start gap-3">
           <div

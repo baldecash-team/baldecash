@@ -1,13 +1,18 @@
+'use client';
+
 /**
  * EquipoPedidoCard — card del equipo que el estudiante PIDIÓ, en el index del
  * Caso 4 (downgrade). Read-only, atenuada (gris) con aviso "no disponible".
  * Muestra imagen + cuota + accesorios/seguros que había pedido (gratis o no).
  *
  * Diseño NUEVO del rediseño (OFERTA_COLORS), NO el componente viejo. Solo reusa
- * la DATA del requested_product (imagen, cuota, accesorios). Puramente
- * presentacional.
+ * la DATA del requested_product (imagen, cuota, accesorios).
+ *
+ * Mobile: para caber en 100vh, los accesorios se COLAPSAN tras un toggle
+ * "Ver lo que pediste (N)". En sm+ se muestran siempre.
  */
-import { Ban, Package, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Ban, Package, ShieldCheck, ChevronDown } from 'lucide-react';
 
 import { OFERTA_COLORS } from './ofertaTheme';
 import { cuotaSuffix, plazoUnit, inicialText } from '../equipoCardFormat';
@@ -45,6 +50,10 @@ export function EquipoPedidoCard({
   insurances = [],
 }: EquipoPedidoCardProps) {
   const hayAddons = accessories.length > 0 || insurances.length > 0;
+  const totalAddons = accessories.length + insurances.length;
+  // Colapsado en mobile por defecto (ahorra alto para 100vh). El toggle solo
+  // aparece/actúa en mobile; en sm+ la lista se muestra siempre vía CSS.
+  const [abierto, setAbierto] = useState(false);
 
   return (
     <div
@@ -114,9 +123,30 @@ export function EquipoPedidoCard({
         </div>
       </div>
 
-      {/* Accesorios / seguros que había pedido (read-only) */}
+      {/* Toggle "ver lo que pediste" — solo mobile (sm:hidden). En sm+ la lista
+          está siempre visible, así que el botón no aparece. */}
       {hayAddons ? (
-        <ul className="mt-3 space-y-1.5 border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          className="mt-2.5 flex w-full items-center justify-between border-t pt-2.5 text-[12px] font-semibold sm:hidden"
+          style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
+        >
+          <span>Ver lo que pediste ({totalAddons})</span>
+          <ChevronDown
+            className="h-4 w-4 transition-transform"
+            style={{ transform: abierto ? 'rotate(180deg)' : 'none' }}
+          />
+        </button>
+      ) : null}
+
+      {/* Accesorios / seguros que había pedido (read-only). En mobile respeta el
+          toggle (`abierto`); en sm+ siempre visible. */}
+      {hayAddons ? (
+        <ul
+          className={`space-y-1.5 border-t pt-3 sm:mt-3 sm:block ${abierto ? 'mt-2.5 block' : 'hidden'}`}
+          style={{ borderColor: OFERTA_COLORS.border }}
+        >
           {accessories.map((a) => (
             <li key={`ped-a-${a.id}`} className="flex items-center justify-between gap-2 text-[12.5px]">
               <span className="flex min-w-0 items-center gap-1.5" style={{ color: OFERTA_COLORS.textSoft }}>

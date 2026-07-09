@@ -35,7 +35,6 @@ import { PruebaSocial } from './components/redesign/PruebaSocial';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/redesign/EquipoRecomendadoCard';
 import { OpcionBarra } from './components/redesign/OpcionBarra';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
-import { AvisoDowngrade } from './components/redesign/AvisoDowngrade';
 import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 
@@ -334,7 +333,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     <div className="min-h-screen bg-white">
       <OfertaHeader />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-[18px] px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
         {/* Saludo + badge aprobada */}
         <div className="flex items-center justify-between">
           <div>
@@ -353,7 +352,9 @@ export function MiOfertaClient({ token }: { token: string }) {
           usado={req?.monthly_price ?? null}
         />
 
-        <div className="font-['Baloo_2',_sans-serif] text-[17px] font-bold">
+        {/* Título redundante en mobile (el badge "Aprobada" + el monto ya lo
+            comunican) → oculto en mobile para caber en 100vh, visible en sm+. */}
+        <div className="hidden font-['Baloo_2',_sans-serif] text-[17px] font-bold sm:block">
           ¡Estás aprobado! Elige cómo continuar
         </div>
 
@@ -393,10 +394,11 @@ export function MiOfertaClient({ token }: { token: string }) {
           </>
         ) : (
           <>
-            <AvisoDowngrade equipoPedido={req?.name ?? 'tu equipo'} />
-
             {/* Card GRIS del equipo pedido (read-only) — diseño NUEVO del
-                rediseño, solo reusa la DATA (imagen/specs/accesorios de req). */}
+                rediseño, solo reusa la DATA (imagen/accesorios de req). Ya trae
+                el badge "No disponible", así que no repetimos el aviso naranja
+                separado (ahorra alto en mobile). En mobile los accesorios se
+                colapsan tras "ver detalle" para que entre en 100vh. */}
             {req ? (
               <EquipoPedidoCard
                 nombre={req.name ?? 'Tu equipo'}
@@ -430,7 +432,7 @@ export function MiOfertaClient({ token }: { token: string }) {
               />
             ) : null}
 
-            <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-3 sm:flex">
               <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
               <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
                 ¿no te convence?

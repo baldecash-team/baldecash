@@ -35,7 +35,7 @@ export function MontoAprobadoBar({ aprobado, usado }: MontoAprobadoBarProps) {
   const barColor = excede ? RED : OFERTA_COLORS.primary;
 
   return (
-    <div className="rounded-xl px-6 py-[22px]" style={{ backgroundColor: OFERTA_COLORS.lilac }}>
+    <div className="rounded-xl px-5 py-3.5 sm:px-6 sm:py-[22px]" style={{ backgroundColor: OFERTA_COLORS.lilac }}>
       <div
         className="text-[11.5px] font-bold tracking-[.11em]"
         style={{ color: OFERTA_COLORS.tealBrand }}
@@ -43,18 +43,18 @@ export function MontoAprobadoBar({ aprobado, usado }: MontoAprobadoBarProps) {
         TU MONTO APROBADO
       </div>
       <div
-        className="mt-1.5 font-['Baloo_2',_sans-serif] text-[46px] font-extrabold leading-none"
+        className="mt-1 font-['Baloo_2',_sans-serif] text-[34px] font-extrabold leading-none sm:mt-1.5 sm:text-[46px]"
         style={{ color: OFERTA_COLORS.primary }}
       >
         S/{fmt(aprobado)}
-        <span className="text-[22px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+        <span className="text-[18px] font-semibold sm:text-[22px]" style={{ color: OFERTA_COLORS.textMid }}>
           /mes
         </span>
       </div>
 
       {/* Barra de progreso */}
       <div
-        className="mt-4 h-2.5 w-full overflow-hidden rounded-full"
+        className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full sm:mt-4"
         style={{ backgroundColor: '#fff' }}
       >
         <div

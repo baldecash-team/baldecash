@@ -29,7 +29,7 @@ export function OpcionBarra({ icono, titulo, subtitulo, cuota, onClick, destacad
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[92px] w-full cursor-pointer items-center gap-[15px] rounded-xl border bg-white px-[17px] py-[15px] text-left transition-shadow hover:shadow-md"
+      className="flex min-h-[72px] w-full cursor-pointer items-center gap-[15px] rounded-xl border bg-white px-[17px] py-3 text-left transition-shadow hover:shadow-md sm:min-h-[92px] sm:py-[15px]"
       style={{
         borderColor: destacada ? OFERTA_COLORS.primary : OFERTA_COLORS.border,
         borderWidth: destacada ? 1.5 : 1,
