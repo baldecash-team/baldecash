@@ -23,6 +23,7 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { CopiaHomePromoBanner } from '@/app/prototipos/0.6/components/CopiaHomePromoBanner';
 import type { CatalogProduct, TermMonths } from '../types/catalog';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../../services/catalogApi';
 import { useCatalogProducts, useCatalogFilters } from '../hooks/useCatalogProducts';
@@ -299,7 +300,8 @@ export function CopiaHomeMobileCatalog() {
             const specs = cardSpecs(p);
             return (
               <div key={p.id} className={`${styles.card} ${styles.prod}`}>
-                {refurbished && <span className={styles.prodBadge}>Seminuevo</span>}
+                <CopiaHomePromoBanner promotion={p.promotion} style={{ margin: '-18px -18px 14px' }} />
+                {refurbished && !p.promotion?.template && <span className={styles.prodBadge}>Seminuevo</span>}
                 <div className={styles.prodH}>
                   <div className={styles.prodLeft}>
                     <div className={styles.prodImg} onClick={() => goDetalle(p)}>
@@ -396,8 +398,8 @@ export function CopiaHomeMobileCatalog() {
             {filtersLoading && brandOptions.length === 0 ? (
               <span style={{ fontSize: 13, color: '#8A8A99' }}>Cargando marcas…</span>
             ) : (
-              brandOptions.map((b: any) => {
-                const id = b.id ?? b.value;
+              brandOptions.map((b: { id?: number; value?: number; name?: string; label?: string }) => {
+                const id = (b.id ?? b.value) as number;
                 const label = b.name ?? b.label ?? String(id);
                 return (
                   <div

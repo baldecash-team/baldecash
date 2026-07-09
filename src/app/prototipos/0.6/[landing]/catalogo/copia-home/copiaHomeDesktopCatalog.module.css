@@ -1,0 +1,121 @@
+/*
+ * Variante DESKTOP "copia-home" (mockup seminuevos) — catálogo.
+ * Portado de baldecash-seminuevos-desktop.html (sección CATÁLOGO) a CSS Modules.
+ * Cards y tipografía agrandadas respecto al mockup base (pedido: "agrandar el
+ * cuadro de productos y todas las letras"). El chrome del sitio (Navbar/Footer)
+ * lo aporta CopiaHomeDesktopCatalog; aquí solo vive el contenido del catálogo.
+ */
+
+.root {
+  --azul: #4654cd;
+  --azul-oscuro: #3a46b0;
+  --aqua: #03dbd0;
+  --navy: #151744;
+  --lavanda: #eef0fc;
+  --bg: #eef0f4;
+  --card: #ffffff;
+  --borde: #e8e8ee;
+  --texto: #2b2c3a;
+  --tenue: #8a8a99;
+  --radio: 16px;
+  --sombra: 0 4px 18px rgba(21, 23, 68, 0.06);
+
+  background: var(--bg);
+  color: var(--texto);
+  font-family: 'Asap', system-ui, sans-serif;
+  min-height: 100vh;
+}
+.root * { box-sizing: border-box; }
+
+.wrap { max-width: 1220px; margin: 0 auto; padding: 28px; }
+
+/* ---- Toolbar (búsqueda + favoritos) ---- */
+.toolbar { display: flex; gap: 14px; margin-bottom: 22px; }
+.search {
+  flex: 1; max-width: 520px; height: 50px; background: #efeff3; border-radius: 12px;
+  display: flex; align-items: center; gap: 10px; padding: 0 18px; color: var(--tenue);
+}
+.search input { border: none; outline: none; background: transparent; font-size: 16px; width: 100%; color: var(--texto); font-family: 'Asap', sans-serif; }
+.favBtn { width: 50px; height: 50px; background: #efeff3; border: none; border-radius: 12px; display: grid; place-items: center; cursor: pointer; }
+.favBtnOn { background: #fde8e8; }
+
+.catTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 30px; color: var(--navy); margin-bottom: 6px; }
+.catDesc { font-size: 16px; color: var(--tenue); margin-bottom: 24px; }
+.catLayout { display: grid; grid-template-columns: 268px 1fr; gap: 28px; align-items: start; }
+
+@media (max-width: 980px) {
+  .catLayout { grid-template-columns: 1fr; }
+  .side { position: static; }
+}
+
+/* ---- Sidebar de filtros ---- */
+.side {
+  background: var(--card); border-radius: var(--radio); box-shadow: var(--sombra); padding: 22px;
+  position: sticky; top: calc(var(--header-total-height, 6.5rem) + 20px);
+}
+.side h3 { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 18px; color: var(--navy); margin-bottom: 18px; }
+.fgroup { margin-bottom: 22px; }
+.fgroup:last-of-type { margin-bottom: 0; }
+.fgT { font-size: 13px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--tenue); margin-bottom: 11px; }
+.tipoOpt { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; cursor: pointer; font-size: 15px; color: #5b5c6b; font-weight: 500; }
+.tipoOpt .ti { color: #9a9aa8; display: grid; place-items: center; }
+.tipoOptOn { background: var(--lavanda); color: var(--azul); font-weight: 700; }
+.tipoOptOn .ti { color: var(--azul); }
+.checkOpt { display: flex; align-items: center; gap: 11px; padding: 8px 0; cursor: pointer; font-size: 15px; color: #5b5c6b; }
+.box { width: 21px; height: 21px; border-radius: 6px; border: 1.8px solid #cfcfda; display: grid; place-items: center; color: #fff; flex: none; }
+.checkOptOn .box { background: var(--azul); border-color: var(--azul); }
+.checkOpt .box svg { opacity: 0; }
+.checkOptOn .box svg { opacity: 1; }
+.sideClear { margin-top: 8px; width: 100%; height: 44px; border: 1.5px solid var(--borde); background: var(--card); border-radius: 10px; color: var(--azul); font-weight: 600; font-size: 14.5px; cursor: pointer; font-family: 'Asap', sans-serif; }
+.sideClear:hover { background: var(--lavanda); }
+
+/* ---- Encabezado de la grilla ---- */
+.gridHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.gridCount { font-size: 15px; color: var(--tenue); }
+.gridCount b { color: var(--navy); font-weight: 700; }
+.sort { position: relative; height: 46px; border: 1px solid var(--borde); border-radius: 11px; background: var(--card); padding: 0 16px; display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--navy); font-weight: 600; cursor: pointer; }
+.sort select { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* ---- Grilla ---- */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+@media (max-width: 1200px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 980px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+
+.dcard {
+  background: var(--card); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden;
+  position: relative; display: flex; flex-direction: column;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.dcard:hover { box-shadow: 0 12px 30px rgba(21, 23, 68, 0.12); transform: translateY(-2px); }
+.prodBadge {
+  position: absolute; top: 13px; right: 13px; z-index: 2; background: var(--aqua); color: #04413e;
+  font-weight: 600; font-size: 12px; padding: 6px 13px; border-radius: 20px;
+}
+.dcardImg { height: 200px; background: linear-gradient(160deg, #f6f6fa, #ececf3); display: grid; place-items: center; cursor: pointer; overflow: hidden; }
+.dcardImg img { width: 100%; height: 100%; object-fit: contain; }
+.dcardBody { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+.prodMarca { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
+.dcardTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 18px; color: var(--navy); line-height: 1.2; margin: 4px 0 10px; cursor: pointer; min-height: 44px; }
+.swatches { display: flex; gap: 7px; margin-bottom: 12px; }
+.swatch { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgba(0, 0, 0, 0.12); }
+.dcardSpecs { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; margin-bottom: 15px; }
+.spec { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #5b5c6b; min-width: 0; }
+.spec svg { color: var(--azul); flex: none; }
+.spec span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dcardPrice { background: var(--lavanda); border-radius: 12px; padding: 12px 14px; text-align: center; margin-bottom: 13px; }
+.dcardPrice .num { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 800; font-size: 24px; color: var(--azul); line-height: 1; }
+.dcardPrice .num span { font-size: 14px; font-weight: 600; }
+.dcardPrice .sub { font-size: 11px; color: var(--tenue); margin-top: 5px; }
+.dcardBtns { display: flex; gap: 10px; margin-top: auto; }
+.btn { border-radius: 11px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; border: none; height: 48px; font-family: 'Asap', sans-serif; }
+.btnOutline { background: var(--card); border: 1.5px solid var(--azul); color: var(--azul); }
+.btnSolid { background: var(--azul); color: #fff; }
+.btnSolid:hover { background: var(--azul-oscuro); }
+.btnOutline:hover { background: var(--lavanda); }
+
+.empty { grid-column: 1 / -1; text-align: center; color: var(--tenue); padding: 48px 18px; background: var(--card); border-radius: var(--radio); box-shadow: var(--sombra); }
+.loadingWrap { display: flex; justify-content: center; padding: 64px 0; }
+.loadMore { width: 100%; margin-top: 22px; height: 50px; border-radius: 12px; border: 1.5px solid var(--azul); background: var(--card); color: var(--azul); font-weight: 600; font-size: 15px; cursor: pointer; font-family: 'Asap', sans-serif; }
+.loadMore:hover { background: var(--lavanda); }
+.loadMore:disabled { opacity: 0.55; cursor: not-allowed; }

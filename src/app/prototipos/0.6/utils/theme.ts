@@ -26,10 +26,15 @@ export function isGamerLanding(slug: string): boolean {
 }
 
 /**
- * La landing copia-home usa una variante mobile dedicada del catálogo y del
- * detalle (mockup seminuevos): finder compacto, cards con imagen a la izquierda,
- * FAB de filtros, detalle con grados y recojo en oficina. Solo aplica en mobile;
- * en desktop se renderiza el catálogo estándar.
+ * La landing copia-home usa variantes dedicadas del catálogo y del detalle
+ * (mockup seminuevos):
+ *  - Mobile: catálogo (finder compacto, cards con imagen a la izquierda, FAB de
+ *    filtros) y detalle (grados + recojo en oficina) para todos los equipos.
+ *  - Desktop: SOLO el detalle de equipos reacondicionados usa la variante
+ *    (layout de dos columnas + grados + banner de agendamiento). El catálogo y
+ *    los equipos nuevos en desktop siguen con el detalle/catálogo estándar.
+ * El dispatch de detalle vive en ProductDetailClient; el de catálogo en
+ * CatalogoClient.
  */
 export function isCopiaHomeLanding(slug: string): boolean {
   return slug === 'copia-home';

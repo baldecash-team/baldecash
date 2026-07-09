@@ -21,6 +21,8 @@ import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nv
 import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding } from '@/app/prototipos/0.6/utils/theme';
 import { GamerProductDetailClient } from '../GamerProductDetailClient';
 import { CopiaHomeMobileDetail } from '../copia-home/CopiaHomeMobileDetail';
+import { CopiaHomeDesktopDetail } from '../copia-home/CopiaHomeDesktopDetail';
+import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Secondary Navbar with search, wishlist, cart
@@ -317,6 +319,15 @@ function ProductDetailContent() {
 
   const isAvailable = apiData.isAvailable;
 
+  // Detección de reacondicionado (misma lógica que las variantes copia-home):
+  // por condición o por el nombre ("Semi Nuevo"). Solo los seminuevos de
+  // copia-home reciben el detalle rediseñado en desktop; los nuevos siguen en
+  // el detalle estándar.
+  const productIsRefurbished =
+    isRefurbishedCondition(apiData.product.condition) ||
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(`${apiData.product.name ?? ''} ${apiData.product.displayName ?? ''}`);
+  const useCopiaHomeDesktopDetail = isCopiaHomeLanding(landing) && !isMobile && productIsRefurbished;
+
   return (
     <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-hidden">
       {/* Navbar — nvidia usa su header propio en todas sus rutas */}
@@ -390,6 +401,17 @@ function ProductDetailContent() {
       >
         {isCopiaHomeLanding(landing) && isMobile ? (
           <CopiaHomeMobileDetail
+            apiData={apiData}
+            landing={landing}
+            isAvailable={isAvailable}
+            defaultTerm={defaultTerm ?? apiData.defaultTerm}
+            defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+            defaultFrequency={defaultFrequency}
+            onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
+            isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+          />
+        ) : useCopiaHomeDesktopDetail ? (
+          <CopiaHomeDesktopDetail
             apiData={apiData}
             landing={landing}
             isAvailable={isAvailable}
