@@ -26,6 +26,7 @@ import {
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
+import { StandardOfertaAccion } from './components/StandardOfertaAccion';
 import { saveOfferSelection, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
 import { OfertaHeader } from './components/redesign/OfertaHeader';
@@ -56,7 +57,9 @@ type PageState =
 
 const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: string }> = {
   expired: { icon: 'clock', title: 'Esta oferta venció', body: 'El tiempo para elegir tu equipo ya terminó. Escríbenos y con gusto te ayudamos a reactivarla.' },
-  consumed: { icon: 'alert', title: 'Ya elegiste tu equipo', body: 'Esta oferta ya fue utilizada. Si necesitas ayuda, contáctanos.' },
+  // Cubre 3 flujos: Caso 4/5 (ya elegiste equipo) y oferta estándar F-6B (ya
+  // aceptaste/rechazaste) — copy genérico a propósito, no distingue cuál.
+  consumed: { icon: 'alert', title: 'Esta oferta ya fue respondida', body: 'Esta oferta ya fue utilizada. Si necesitas ayuda, contáctanos.' },
   revoked: { icon: 'ban', title: 'Oferta no disponible', body: 'Este enlace fue desactivado. Escríbenos para más información.' },
   invalid: { icon: 'search', title: 'Enlace no válido', body: 'No pudimos encontrar tu oferta. Verifica el enlace que recibiste o escríbenos.' },
   default: { icon: 'alert', title: 'No pudimos cargar tu oferta', body: 'Ocurrió un problema. Intenta nuevamente más tarde.' },
@@ -294,6 +297,12 @@ export function MiOfertaClient({ token }: { token: string }) {
   }
 
   const { offer } = state;
+
+  // Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
+  // decide aceptar/rechazar — vista simple con countdown, sin catálogo.
+  if (offer.offerCase === 'standard') {
+    return <StandardOfertaAccion token={token} offer={offer} />;
+  }
 
   // Mapeo de los datos del offer a EquipoRecomendadoInfo (props opcionales →
   // se omite lo que no venga del backend). Caso 4: recommended (CatalogProduct).

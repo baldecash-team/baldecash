@@ -117,6 +117,25 @@ export interface ExclusiveOffer {
   accessory: UpsellAccessory | null;
 }
 
+/** Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
+ *  decide aceptar o rechazar (no hay catálogo/selección de equipo). */
+export interface StandardOfferInfo {
+  /** Estado de la oferta (sent/viewed/accepted/rejected/expired). */
+  status: string | null;
+  productName: string | null;
+  totalPrice: number | null;
+  initialPayment: number | null;
+  initialPaymentPercent: number | null;
+  termMonths: number | null;
+  monthlyPayment: number | null;
+  tea: number | null;
+  tcea: number | null;
+  totalAmount: number | null;
+  /** Horas restantes de vigencia calculadas por el backend (informativo; el
+   *  countdown real se deriva de `expiresAt` con useCountdown). */
+  hoursRemaining: number | null;
+}
+
 export interface OfferView {
   offerCode: string;
   maxMonthlyQuota: number;
@@ -130,8 +149,9 @@ export interface OfferView {
   /** Código de la solicitud y nombre del estudiante (de la BD). */
   applicationCode?: string | null;
   clientName?: string | null;
-  /** Caso 5 (upsell): 'upsell' cuando el token es de esa oferta. */
-  offerCase?: 'downgrade' | 'upsell';
+  /** Caso 5 (upsell): 'upsell' cuando el token es de esa oferta. 'standard'
+   *  (F-6B): oferta única armada por el analista, aceptar/rechazar. */
+  offerCase?: 'downgrade' | 'upsell' | 'standard';
   /** Perfil de la oferta exclusiva (A/B/C) — solo upsell. */
   profile?: string | null;
   /** Perfil C: tarifa especial activa → mostrar "Tarifa especial para ti". */
@@ -145,6 +165,8 @@ export interface OfferView {
   terms: number[];
   /** Iniciales (%) permitidos por la oferta (BAL-2096). Default [0]. */
   initials: number[];
+  /** Datos de la oferta estándar — solo cuando offerCase === 'standard'. */
+  standardOffer?: StandardOfferInfo | null;
 }
 
 export interface OfferCatalog {
@@ -226,6 +248,39 @@ export async function getOffer(token: string): Promise<OfferView> {
         : null,
       terms: data.terms ?? [24],
       initials: data.initials ?? [0],
+    };
+  }
+
+  // Oferta ESTÁNDAR (F-6B): el backend devuelve case='standard' con la oferta
+  // ya armada por el analista (producto/cuota/tea/plazo/inicial/total) + la
+  // vigencia del link (expires_at) para el countdown en StandardOfertaAccion.
+  if (data.case === 'standard') {
+    return {
+      offerCode: data.offer_code,
+      // No aplica a la oferta estándar (no hay catálogo topado por cuota).
+      maxMonthlyQuota: 0,
+      expiresAt: data.expires_at ?? null,
+      landingSlug: null,
+      requestedProduct: null,
+      recommended: null,
+      applicationCode: data.application_code ?? null,
+      clientName: data.client_name ?? null,
+      offerCase: 'standard',
+      terms: [],
+      initials: [],
+      standardOffer: {
+        status: data.status ?? null,
+        productName: data.product_name ?? null,
+        totalPrice: data.total_price ?? null,
+        initialPayment: data.initial_payment ?? null,
+        initialPaymentPercent: data.initial_payment_percent ?? null,
+        termMonths: data.term_months ?? null,
+        monthlyPayment: data.monthly_payment ?? null,
+        tea: data.tea ?? null,
+        tcea: data.tcea ?? null,
+        totalAmount: data.total_amount ?? null,
+        hoursRemaining: data.hours_remaining ?? null,
+      },
     };
   }
 
@@ -412,6 +467,53 @@ export async function selectEquipment(
     offerId: data.offer_id,
     selectedVariantId: data.selected_variant_id,
     status: data.status,
+  };
+}
+
+/** Resultado de aceptar/rechazar la oferta estándar por token (F-6B). */
+export interface OfferDecisionResult {
+  offerCode: string;
+  status: string;
+  acceptedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+}
+
+/** POST /public/offer/{token}/accept — acepta la oferta ESTÁNDAR vinculada al
+ *  token (única vía de aceptación, F-6B: ya no se acepta desde el admin).
+ *  Idempotente: una segunda llamada devuelve el estado final sin reaplicar. */
+export async function acceptOffer(token: string): Promise<OfferDecisionResult> {
+  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw await parseError(res);
+  const data = await res.json();
+  return {
+    offerCode: data.offer_code,
+    status: data.status,
+    acceptedAt: data.accepted_at ?? null,
+    rejectedAt: data.rejected_at ?? null,
+    rejectionReason: data.rejection_reason ?? null,
+  };
+}
+
+/** POST /public/offer/{token}/reject — rechaza la oferta ESTÁNDAR vinculada al
+ *  token. `motivo` es opcional. Idempotente igual que `acceptOffer`. */
+export async function rejectOffer(token: string, motivo?: string): Promise<OfferDecisionResult> {
+  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(motivo != null ? { motivo } : {}),
+  });
+  if (!res.ok) throw await parseError(res);
+  const data = await res.json();
+  return {
+    offerCode: data.offer_code,
+    status: data.status,
+    acceptedAt: data.accepted_at ?? null,
+    rejectedAt: data.rejected_at ?? null,
+    rejectionReason: data.rejection_reason ?? null,
   };
 }
 
