@@ -67,10 +67,10 @@
 .gal { position: relative; }
 .heroImg {
   background: linear-gradient(160deg, #f7f7fb, #ececf4); border-radius: 14px; height: 400px;
-  position: relative; display: grid; place-items: center; margin-bottom: 14px; overflow: hidden;
-  padding: 36px;
+  position: relative; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px; overflow: hidden; padding: 36px;
 }
-/* Imagen contenida y más pequeña, con aire arriba y abajo. */
+/* Imagen contenida (sin recortar) y más pequeña, con aire arriba y abajo. */
 .heroImg img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .heroTag {
   position: absolute; bottom: 12px; left: 12px; background: rgba(30, 31, 45, 0.75); color: #fff;
@@ -83,10 +83,10 @@
 .thumbs { display: flex; gap: 12px; flex-wrap: wrap; }
 .thumb {
   width: 84px; height: 84px; border-radius: 12px; border: 1.5px solid var(--borde);
-  background: linear-gradient(160deg, #f7f7fb, #ececf4); display: grid; place-items: center;
-  cursor: pointer; overflow: hidden;
+  background: linear-gradient(160deg, #f7f7fb, #ececf4); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden; padding: 8px;
 }
-.thumb img { width: 100%; height: 100%; object-fit: contain; }
+.thumb img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .thumbOn { border-color: var(--azul); border-width: 2px; }
 
 /* ---- Banner de seguridad / recojo ---- */
@@ -174,8 +174,8 @@
 .gTick { opacity: 0; position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; background: var(--azul); border-radius: 50%; display: grid; place-items: center; color: #fff; }
 .gradoOn .gTick { opacity: 1; }
 .gradoBody { display: flex; gap: 16px; margin-top: 16px; }
-.grado360 { width: 148px; flex: none; border-radius: 12px; background: linear-gradient(160deg, #f2f2f7, #e4e4ee); display: grid; place-items: center; position: relative; min-height: 200px; overflow: hidden; }
-.grado360 img { width: 100%; height: 100%; object-fit: contain; }
+.grado360 { width: 148px; flex: none; border-radius: 12px; background: linear-gradient(160deg, #f2f2f7, #e4e4ee); display: flex; align-items: center; justify-content: center; position: relative; min-height: 200px; overflow: hidden; padding: 12px; }
+.grado360 img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .carac { flex: 1; }
 .carac h4 { font-size: 13px; font-weight: 700; color: var(--navy); border-bottom: 1px solid var(--borde); padding-bottom: 8px; margin-bottom: 14px; }
 .caracItem { display: flex; gap: 10px; margin-bottom: 14px; }
