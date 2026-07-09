@@ -13,9 +13,11 @@ import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
 export interface TuEquipoCardProps {
   nombre: string;
   cuota: number;
+  /** URL de la imagen del equipo. Si no viene, se muestra un placeholder. */
+  imageUrl?: string | null;
 }
 
-export function TuEquipoCard({ nombre, cuota }: TuEquipoCardProps) {
+export function TuEquipoCard({ nombre, cuota, imageUrl }: TuEquipoCardProps) {
   const cuotaFormateada = Math.round(cuota).toLocaleString('es-PE');
 
   return (
@@ -24,15 +26,22 @@ export function TuEquipoCard({ nombre, cuota }: TuEquipoCardProps) {
       style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
     >
       <div
-        className="flex h-[50px] w-[60px] flex-none items-center justify-center rounded-xl border"
+        className="flex h-[50px] w-[60px] flex-none items-center justify-center overflow-hidden rounded-xl border"
         style={{
           borderColor: OFERTA_COLORS.border,
-          background: 'repeating-linear-gradient(135deg, #F1F2F7 0 7px, #E9EBF2 7px 14px)',
+          background: imageUrl
+            ? '#fff'
+            : 'repeating-linear-gradient(135deg, #F1F2F7 0 7px, #E9EBF2 7px 14px)',
         }}
       >
-        <span className="font-mono text-[8px]" style={{ color: OFERTA_COLORS.textSoft }}>
-          equipo
-        </span>
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt={nombre} className="h-full w-full object-contain" />
+        ) : (
+          <span className="font-mono text-[8px]" style={{ color: OFERTA_COLORS.textSoft }}>
+            equipo
+          </span>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div

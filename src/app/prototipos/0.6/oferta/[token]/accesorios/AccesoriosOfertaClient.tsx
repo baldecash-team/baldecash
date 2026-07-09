@@ -42,6 +42,7 @@ import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
 import { CuotaStickyBar } from './redesign/CuotaStickyBar';
 import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
 import { AccesorioDetalleSheet } from './redesign/AccesorioDetalleSheet';
+import { SeguroDetalleSheet } from './redesign/SeguroDetalleSheet';
 
 /** localStorage: persiste la selección de add-ons por token + variante, para
  *  sobrevivir un refresh o ida/vuelta sin perder lo elegido. Se limpia al
@@ -113,9 +114,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // Regalos del combo elegido (BAL-2159): accesorios/seguros incluidos gratis,
   // no cuentan en la cuota ni se pueden deseleccionar. Se pintan aparte, con
   // etiqueta "Incluido gratis".
-  const [comboFree, setComboFree] = useState<{ accessories: { id: string; name: string }[]; insurances: { id: string; name: string }[] }>({ accessories: [], insurances: [] });
+  const [comboFree, setComboFree] = useState<{ accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] }>({ accessories: [], insurances: [] });
   const [confirming, setConfirming] = useState(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
+  const [detailInsurance, setDetailInsurance] = useState<InsurancePlan | null>(null);
   // Bottom sheet "Añadir al pedido" (rediseño BAL-2185) — solo UI, no reemplaza
   // el fetch/estado real de accesorios y seguros.
   const [showBuscador, setShowBuscador] = useState(false);
@@ -483,7 +485,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Encabezado */}
         <div>
           <h1 className="font-['Baloo_2',_sans-serif] text-[22px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-            Accesorios y seguros
+            Complementos
           </h1>
           <p className="mt-1 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
             Solo mostramos lo que entra en tu cuota.
@@ -491,7 +493,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         </div>
 
         {/* Tu equipo */}
-        {equipoInfo && <TuEquipoCard nombre={equipoInfo.name} cuota={equipoMonthly} />}
+        {equipoInfo && <TuEquipoCard nombre={equipoInfo.name} cuota={equipoMonthly} imageUrl={equipoInfo.imageUrl} />}
 
         {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una
             opción (BAL-2097). No forma parte del mock visual, pero la
@@ -583,9 +585,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         />
       </div>
 
-      {/* Bottom sheet buscador (BAL-2185) */}
+      {/* Bottom sheet buscador (BAL-2185). Se OCULTA mientras hay un detalle
+          abierto (accesorio o seguro): los drawers son exclusivos, no se apilan.
+          Al cerrar el detalle con "Volver a la lista" se reabre el buscador. */}
       <AnimatePresence>
-        {showBuscador ? (
+        {showBuscador && !detailAccessory && !detailInsurance ? (
           <BuscadorBottomSheet
             accesorios={accessories}
             seguros={insurances}
@@ -594,6 +598,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             onToggleAcc={toggleAcc}
             onToggleIns={toggleIns}
             onVerDetalle={(a) => setDetailAccessory(a)}
+            onVerDetalleSeguro={(s) => setDetailInsurance(s)}
             total={totalMonthly}
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
@@ -603,15 +608,30 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         ) : null}
       </AnimatePresence>
 
-      {/* Bottom sheet detalle de accesorio (BAL-2185) */}
+      {/* Bottom sheet detalle de accesorio (BAL-2185). "Volver a la lista"
+          (onVolver) reabre el buscador; la X (onCerrar) cierra todo. */}
       <AnimatePresence>
         {detailAccessory ? (
           <AccesorioDetalleSheet
             accesorio={detailAccessory}
             agregado={selectedAcc.includes(detailAccessory.id)}
             onAgregar={() => toggleAcc(detailAccessory)}
-            onVolver={() => setDetailAccessory(null)}
-            onCerrar={() => setDetailAccessory(null)}
+            onVolver={() => { setDetailAccessory(null); setShowBuscador(true); }}
+            onCerrar={() => { setDetailAccessory(null); setShowBuscador(false); }}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      {/* Bottom sheet detalle de SEGURO (feedback Emilio: los seguros también
+          tienen más info). Mismo patrón de drawers exclusivos que el accesorio. */}
+      <AnimatePresence>
+        {detailInsurance ? (
+          <SeguroDetalleSheet
+            seguro={detailInsurance}
+            agregado={selectedIns.includes(detailInsurance.id)}
+            onAgregar={() => toggleIns(detailInsurance.id)}
+            onVolver={() => { setDetailInsurance(null); setShowBuscador(true); }}
+            onCerrar={() => { setDetailInsurance(null); setShowBuscador(false); }}
           />
         ) : null}
       </AnimatePresence>

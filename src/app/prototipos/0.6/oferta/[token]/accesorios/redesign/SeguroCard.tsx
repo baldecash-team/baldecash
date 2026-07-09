@@ -21,19 +21,20 @@ export interface SeguroCardProps {
   seguro: InsurancePlan;
   seleccionado: boolean;
   onToggle: () => void;
+  /** Abre el detalle del seguro (bottom sheet con coberturas + exclusiones). */
+  onVerDetalle?: () => void;
 }
 
-export function SeguroCard({ seguro, seleccionado, onToggle }: SeguroCardProps) {
+export function SeguroCard({ seguro, seleccionado, onToggle, onVerDetalle }: SeguroCardProps) {
   const cuotaFormateada = Math.round(seguro.monthlyPrice).toLocaleString('es-PE');
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="w-full cursor-pointer rounded-xl border-[1.5px] p-3.5 text-left"
+    <div
+      className="rounded-xl border-[1.5px] p-3.5 text-left"
       style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
     >
-      <div className="flex items-center gap-3">
+      {/* Fila principal: toca para agregar/quitar */}
+      <button type="button" onClick={onToggle} className="flex w-full cursor-pointer items-center gap-3 text-left">
         <div
           className="flex h-10 w-10 flex-none items-center justify-center rounded-xl"
           style={{ backgroundColor: OFERTA_COLORS.lilac }}
@@ -62,7 +63,7 @@ export function SeguroCard({ seguro, seleccionado, onToggle }: SeguroCardProps) 
             <Plus className="h-4 w-4" strokeWidth={2.6} style={{ color: OFERTA_COLORS.primary }} />
           )}
         </div>
-      </div>
+      </button>
 
       {seguro.coverage && seguro.coverage.length > 0 ? (
         <ul className="mt-2.5 space-y-1.5 border-t pt-2.5" style={{ borderColor: '#F1F2F7' }}>
@@ -74,6 +75,17 @@ export function SeguroCard({ seguro, seleccionado, onToggle }: SeguroCardProps) 
           ))}
         </ul>
       ) : null}
-    </button>
+
+      {onVerDetalle ? (
+        <button
+          type="button"
+          onClick={onVerDetalle}
+          className="mt-2 cursor-pointer text-[11px] font-semibold"
+          style={{ color: OFERTA_COLORS.tealBrand }}
+        >
+          Ver detalle
+        </button>
+      ) : null}
+    </div>
   );
 }

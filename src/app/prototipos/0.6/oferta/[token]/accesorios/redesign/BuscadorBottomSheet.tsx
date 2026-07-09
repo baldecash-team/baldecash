@@ -31,6 +31,7 @@ export interface BuscadorBottomSheetProps {
   onToggleAcc: (a: Accessory) => void;
   onToggleIns: (planId: string) => void;
   onVerDetalle: (a: Accessory) => void;
+  onVerDetalleSeguro: (p: InsurancePlan) => void;
   total: number;
   onCerrar: () => void;
   onListo: () => void;
@@ -46,6 +47,7 @@ export function BuscadorBottomSheet({
   onToggleAcc,
   onToggleIns,
   onVerDetalle,
+  onVerDetalleSeguro,
   total,
   onCerrar,
   onListo,
@@ -232,6 +234,7 @@ export function BuscadorBottomSheet({
                         seguro={p}
                         seleccionado={seleccionadosIns.includes(p.id)}
                         onToggle={() => onToggleIns(p.id)}
+                        onVerDetalle={() => onVerDetalleSeguro(p)}
                       />
                     </div>
                   );

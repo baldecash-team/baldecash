@@ -11,8 +11,8 @@ import type { Metadata } from 'next';
 import { AccesoriosOfertaClient } from './AccesoriosOfertaClient';
 
 export const metadata: Metadata = {
-  title: 'Accesorios y seguros | Mi oferta | BaldeCash',
-  description: 'Suma accesorios y protección a tu equipo.',
+  title: 'Complementos | Mi oferta | BaldeCash',
+  description: 'Suma complementos y protección a tu equipo.',
   robots: { index: false, follow: false },
 };
 

@@ -15,7 +15,7 @@ import { Gift } from 'lucide-react';
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
 
 export interface IncluidosGratisSectionProps {
-  accesorios: { id: string; name: string }[];
+  accesorios: { id: string; name: string; image?: string | null }[];
   seguros: { id: string; name: string }[];
 }
 
@@ -34,12 +34,22 @@ export function IncluidosGratisSection({ accesorios, seguros }: IncluidosGratisS
             className="flex items-center gap-3 rounded-xl border px-3.5 py-3"
             style={{ borderColor: OFERTA_COLORS.border }}
           >
-            <div
-              className="flex h-9 w-9 flex-none items-center justify-center rounded-full"
-              style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
-            >
-              <Gift className="h-[18px] w-[18px]" strokeWidth={2.2} style={{ color: OFERTA_COLORS.greenDark }} />
-            </div>
+            {a.image ? (
+              <div
+                className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white"
+                style={{ borderColor: OFERTA_COLORS.border }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={a.image} alt={a.name} className="h-full w-full object-contain" />
+              </div>
+            ) : (
+              <div
+                className="flex h-9 w-9 flex-none items-center justify-center rounded-full"
+                style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+              >
+                <Gift className="h-[18px] w-[18px]" strokeWidth={2.2} style={{ color: OFERTA_COLORS.greenDark }} />
+              </div>
+            )}
             <div className="min-w-0 flex-1 truncate font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               {a.name}
             </div>

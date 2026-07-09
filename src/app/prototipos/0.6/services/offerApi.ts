@@ -502,7 +502,7 @@ export async function getOfferAddonsRich(
   variantId: number,
   selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
   comboId?: number | null,
-): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string }[]; insurances: { id: string; name: string }[] } }> {
+): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] } }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
@@ -553,6 +553,7 @@ export async function getOfferAddonsRich(
     accessories: ((d.combo_free_addons?.accessories) ?? []).map((a: Record<string, unknown>) => ({
       id: String(a.id),
       name: String(a.name ?? 'Accesorio'),
+      image: (a.image as string | null | undefined) ?? null,
     })),
     insurances: ((d.combo_free_addons?.insurances) ?? []).map((s: Record<string, unknown>) => ({
       id: String(s.id),
