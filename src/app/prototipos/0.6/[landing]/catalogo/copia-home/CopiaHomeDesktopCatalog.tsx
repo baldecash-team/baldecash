@@ -26,7 +26,7 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
-import { CopiaHomePromoBanner } from '@/app/prototipos/0.6/components/CopiaHomePromoBanner';
+import { CopiaHomePromoBanner, PROMO_BANNER_HEIGHT } from '@/app/prototipos/0.6/components/CopiaHomePromoBanner';
 import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from '@/app/prototipos/0.6/[landing]/producto/copia-home/politicasPdf';
 import { DEFERRED_SHIPPING_NOTE, hasDeferredShipping } from '@/app/prototipos/0.6/[landing]/producto/copia-home/seminuevoHelpers';
 import type { CatalogProduct, TermMonths } from '../types/catalog';
@@ -147,6 +147,11 @@ export function CopiaHomeDesktopCatalog() {
     if (!favOnly) return products;
     return products.filter((p) => shared.isInWishlist(p.id));
   }, [products, favOnly, shared]);
+
+  // Si algún equipo de la vitrina tiene promoción, reservamos el mismo alto de
+  // banner en las cards SIN promo para que todas queden alineadas (mismo alto),
+  // independientemente de la columna/fila donde caigan.
+  const anyPromo = useMemo(() => displayed.some((p) => !!p.promotion?.template), [displayed]);
 
   const goDetalle = useCallback(
     (p: CatalogProduct) => router.push(routes.producto(landing, p.slug)),
@@ -369,7 +374,11 @@ export function CopiaHomeDesktopCatalog() {
                     const img = p.images?.[0] || p.thumbnail;
                     return (
                       <div key={p.id} className={styles.dcard}>
-                        <CopiaHomePromoBanner promotion={p.promotion} />
+                        {p.promotion?.template ? (
+                          <CopiaHomePromoBanner promotion={p.promotion} />
+                        ) : anyPromo ? (
+                          <div style={{ height: PROMO_BANNER_HEIGHT, flex: 'none' }} />
+                        ) : null}
                         {refurbished && !p.promotion?.template && <span className={styles.prodBadge}>Seminuevo</span>}
                         <div className={styles.dcardImg} onClick={() => goDetalle(p)}>
                           {img ? (

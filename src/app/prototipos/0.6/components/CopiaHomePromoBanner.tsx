@@ -31,6 +31,9 @@ interface PromoTemplateLike {
   bannerIcon?: string | null;
 }
 
+/** Alto fijo del banner (para reservar el mismo espacio en cards sin promo). */
+export const PROMO_BANNER_HEIGHT = 42;
+
 interface Props {
   promotion?: { template?: PromoTemplateLike | null } | null;
   /** Redondea las esquinas superiores (para que calce con el radio de la card). */
@@ -51,7 +54,8 @@ export function CopiaHomePromoBanner({ promotion, radiusTop = true, style }: Pro
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        padding: '10px 12px',
+        height: PROMO_BANNER_HEIGHT,
+        padding: '0 12px',
         fontWeight: 800,
         fontSize: 13,
         letterSpacing: '0.5px',

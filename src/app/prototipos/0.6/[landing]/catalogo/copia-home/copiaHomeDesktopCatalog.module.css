@@ -101,9 +101,9 @@
   font-weight: 600; font-size: 12px; padding: 6px 13px; border-radius: 20px;
 }
 /* Alto fijo: el precio y los botones (Detalle/Lo quiero) quedan siempre abajo.
-   Flex (no grid) para que max-height:100% de la imagen resuelva y NO se recorte. */
-.dcardImg { height: 210px; background: linear-gradient(160deg, #f6f6fa, #ececf3); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; padding: 18px; }
-/* La foto se muestra completa (sin recortar) y contenida, con aire alrededor. */
+   Flex (no grid) para que max-height:100% de la imagen resuelva y NO se recorte.
+   Fondo blanco y sin margen: la foto se muestra completa, más grande. */
+.dcardImg { height: 210px; background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; padding: 0; }
 .dcardImg img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .dcardBody { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
 .prodMarca { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
