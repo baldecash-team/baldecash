@@ -622,7 +622,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     type="button"
                     onClick={() => toggleIns(p.id)}
                     disabled={!fits}
-                    className="flex w-full items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5 text-left transition-all hover:border-[#4F46E5] hover:bg-[#EEF1FF] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[color:inherit] disabled:hover:bg-white disabled:hover:shadow-none"
                     style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
                   >
                     <span className="flex min-w-0 items-center gap-1.5">
