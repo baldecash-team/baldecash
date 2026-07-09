@@ -667,17 +667,58 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   // completo, sin navegar ni mostrar el catálogo.
   if (success) {
     const big = variant === 'split';
+    // Divide el mensaje en título (primera frase) + cuerpo (resto), para dar
+    // jerarquía. Si el backend manda una sola frase, el cuerpo queda vacío.
+    const parts = success.trim().split(/(?<=[!.?])\s+/);
+    const successTitle = parts[0] ?? success;
+    const successBody = parts.slice(1).join(' ').trim();
     return (
-      <div className={`w-full flex flex-col items-center text-center ${big ? 'gap-6 py-20' : 'gap-3 py-8'}`}>
-        <div
-          className={`rounded-full flex items-center justify-center ${big ? 'w-24 h-24' : 'w-14 h-14'}`}
-          style={{ backgroundColor: `${primaryColor}14` }}
-        >
-          <CheckCircle2 className={big ? 'w-14 h-14' : 'w-8 h-8'} style={{ color: primaryColor }} strokeWidth={1.75} />
+      <div className={`w-full flex flex-col items-center text-center ${big ? 'gap-5 py-16 sm:py-20' : 'gap-4 py-10'}`}>
+        {/* Check con anillo aqua de acento + ripple que se expande al aparecer */}
+        <div className={`relative flex items-center justify-center ${big ? 'w-24 h-24' : 'w-16 h-16'}`}>
+          {/* Anillo estático en aqua: aporta el acento de marca sin recargar */}
+          <span
+            className="absolute inset-0 rounded-full border-2"
+            style={{ borderColor: `${secondaryColor}55` }}
+            aria-hidden
+          />
+          {/* Ripple animado en color primario */}
+          <span
+            className="lead-success-ring absolute inset-0 rounded-full"
+            style={{ backgroundColor: `${primaryColor}22` }}
+            aria-hidden
+          />
+          <span
+            className="lead-success-icon relative flex items-center justify-center rounded-full"
+            style={{ backgroundColor: `${primaryColor}14`, width: '84%', height: '84%' }}
+          >
+            <CheckCircle2 className={big ? 'w-11 h-11' : 'w-8 h-8'} style={{ color: primaryColor }} strokeWidth={2} />
+          </span>
         </div>
-        <p className={`font-['Asap',sans-serif] font-semibold text-[#131b2e] leading-relaxed ${big ? 'text-xl max-w-md' : 'text-sm text-neutral-700 max-w-xs'}`}>
-          {success}
-        </p>
+
+        {/* Chip de estado: lectura inmediata de "recibido" */}
+        <span
+          className="lead-success-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-['Asap',sans-serif] text-[11px] font-semibold uppercase tracking-[0.08em]"
+          style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: secondaryColor }} aria-hidden />
+          Solicitud recibida
+        </span>
+
+        <div className="flex flex-col items-center gap-1.5">
+          <h3
+            className={`lead-success-title font-['Baloo_2',_sans-serif] font-bold text-[#131b2e] leading-tight tracking-[-0.01em] ${big ? 'text-2xl sm:text-3xl' : 'text-xl'}`}
+          >
+            {successTitle}
+          </h3>
+          {successBody && (
+            <p
+              className={`lead-success-body font-['Asap',sans-serif] text-neutral-500 leading-relaxed ${big ? 'text-base max-w-sm' : 'text-sm max-w-xs'}`}
+            >
+              {successBody}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
