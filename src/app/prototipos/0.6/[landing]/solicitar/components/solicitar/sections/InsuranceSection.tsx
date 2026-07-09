@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { InsuranceCards } from '../../upsell';
 import { useProduct } from '../../../context/ProductContext';
+import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSessionOptional } from '../../../context/SessionContext';
@@ -37,7 +38,7 @@ export function InsuranceSection({
   const sessionUuid = session?.sessionUuid ?? null;
 
   const { badgeText } = useWizardConfig();
-  const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts, setAvailableMultiasistencia } = useProduct();
+  const { selectedInsurances, toggleInsurance, clearInsurance, selectedProduct, cartProducts, setAvailableMultiasistencia } = useProduct();
   const analytics = useAnalytics();
 
   const activeProduct = cartProducts?.[0] || selectedProduct;
@@ -45,10 +46,30 @@ export function InsuranceSection({
   const productPrice = activeProduct?.price || 0;
   const termMonths = activeProduct?.months;
 
+  // Regla de negocio (todas las landings): a los equipos SEMINUEVOS no se les
+  // ofrece seguro. Detectamos por condición o por el nombre ("Semi Nuevo").
+  const isRefurbished =
+    isRefurbishedCondition(activeProduct?.condition) ||
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(`${activeProduct?.shortName ?? ''} ${activeProduct?.name ?? ''}`);
+
+  // Si el producto activo es seminuevo, limpiamos cualquier seguro que hubiera
+  // quedado seleccionado (ej. al cambiar de un equipo nuevo a uno seminuevo).
+  useEffect(() => {
+    if (isRefurbished) clearInsurance();
+  }, [isRefurbished, clearInsurance]);
+
   const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Seminuevos: no se ofrecen seguros en ninguna landing.
+    if (isRefurbished) {
+      setInsurancePlans([]);
+      setAvailableMultiasistencia(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (!productPrice) {
       setIsLoading(false);
       return;
@@ -92,7 +113,7 @@ export function InsuranceSection({
     }
 
     fetchInsurancePlans();
-  }, [landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia]);
+  }, [isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia]);
 
   if (!isLoading && insurancePlans.length === 0) {
     return null;

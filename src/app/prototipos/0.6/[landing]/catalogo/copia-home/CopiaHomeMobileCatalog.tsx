@@ -229,7 +229,7 @@ export function CopiaHomeMobileCatalog() {
       {/* Toolbar: búsqueda + favoritos */}
       <div style={{ padding: '12px 16px 0' }}>
         <div style={{ display: 'flex', gap: 12 }}>
-          <label className={styles.search ?? ''} style={{ flex: 1, height: 44, background: '#EFEFF3', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px' }}>
+          <label className={styles.search ?? ''} style={{ flex: 1, height: 46, background: '#fff', border: '1.5px solid #e8e8ee', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', cursor: 'text' }}>
             <Search size={18} color="#8A8A99" />
             <input
               value={query}
@@ -242,7 +242,7 @@ export function CopiaHomeMobileCatalog() {
             type="button"
             aria-label="Favoritos"
             onClick={() => setFavOnly((v) => !v)}
-            style={{ width: 44, height: 44, background: favOnly ? '#fde8e8' : '#EFEFF3', border: 'none', borderRadius: 12, display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+            style={{ width: 46, height: 46, background: favOnly ? '#fde8e8' : '#fff', border: `1.5px solid ${favOnly ? '#f6caca' : '#e8e8ee'}`, borderRadius: 12, display: 'grid', placeItems: 'center', cursor: 'pointer' }}
           >
             <Heart size={22} color={favOnly ? '#e5484d' : '#151744'} fill={favOnly ? '#e5484d' : 'none'} />
           </button>

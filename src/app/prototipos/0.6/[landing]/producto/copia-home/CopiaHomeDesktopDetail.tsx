@@ -35,6 +35,7 @@ import { Cronograma } from '../components/detail/cronograma/Cronograma';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
+import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from './copiaHomeDesktop.module.css';
 
@@ -94,6 +95,7 @@ export function CopiaHomeDesktopDetail({
 
   // Garantía de fábrica según modelo (item 3).
   const warranty = factoryWarranty(fullName, product.warranty);
+  const isIphone = isIphoneName(fullName);
 
   // ---- Colores / galería ----
   const hasSiblings = !!(product.colorSiblings && product.colorSiblings.length > 1);
@@ -106,17 +108,25 @@ export function CopiaHomeDesktopDetail({
   const [colorId, setColorId] = useState(initialColorId);
   const selectedColor = displayColors.find((c) => c.id === colorId);
 
-  const galleryImages = useMemo(() => {
-    const imgs = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
-    return imgs.length > 0 ? imgs : product.images;
-  }, [product.images]);
-  const [imgSel, setImgSel] = useState(0);
-
   // ---- Grado ----
   const [grade, setGrade] = useState<GradeKey>('A');
   const gradeInfo = isRefurbished ? GRADES[grade] : null;
   const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
   const canBuy = isAvailable && gradeAvailable;
+
+  // Galería. iPhone seminuevo → imágenes referenciales por grado (S3, a modo de
+  // galería + imagen referencial). Resto → imágenes reales del API.
+  const iphoneGradeGallery = isIphone && isRefurbished;
+  const galleryImages = useMemo<{ url: string }[]>(() => {
+    if (iphoneGradeGallery) return IPHONE_GRADE_IMAGES[grade].map((url) => ({ url }));
+    const imgs = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
+    const list = imgs.length > 0 ? imgs : product.images;
+    return list.map((i) => ({ url: i.url }));
+  }, [product.images, iphoneGradeGallery, grade]);
+  const [imgSel, setImgSel] = useState(0);
+
+  // Al cambiar de grado reseteamos la miniatura activa (cada grado tiene su set).
+  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); };
 
   // ---- Calculadora: componente estándar (PricingCalculator) ----
   const initialTerm = useMemo(() => {
@@ -322,7 +332,7 @@ export function CopiaHomeDesktopDetail({
                   <div className={styles.blockT}>Elige el grado</div>
                   <div className={styles.grados}>
                     {(['A', 'B', 'C'] as GradeKey[]).map((g) => (
-                      <button key={g} type="button" className={`${styles.grado} ${g === grade ? styles.gradoOn : ''}`} onClick={() => setGrade(g)}>
+                      <button key={g} type="button" className={`${styles.grado} ${g === grade ? styles.gradoOn : ''}`} onClick={() => selectGrade(g)}>
                         Grado {g}<span className={styles.gTick}><Check size={12} strokeWidth={3.5} /></span>
                       </button>
                     ))}
@@ -406,7 +416,7 @@ export function CopiaHomeDesktopDetail({
                       : 'Este equipo no está disponible por el momento.'}
                   </div>
                   {isRefurbished && (
-                    <button type="button" className={styles.ndCta} onClick={() => setGrade('A')}>
+                    <button type="button" className={styles.ndCta} onClick={() => selectGrade('A')}>
                       Ver equipo disponible (Grado A) <ArrowRight size={18} />
                     </button>
                   )}
