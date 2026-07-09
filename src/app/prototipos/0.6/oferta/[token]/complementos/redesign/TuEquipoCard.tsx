@@ -50,7 +50,7 @@ export function TuEquipoCard({ nombre, cuota, imageUrl }: TuEquipoCardProps) {
         >
           TU EQUIPO
         </div>
-        <div className="mt-0.5 truncate font-['Baloo_2',_sans-serif] text-[14.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+        <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.2]" style={{ color: OFERTA_COLORS.textStrong }}>
           {nombre}
         </div>
       </div>

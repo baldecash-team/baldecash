@@ -1,5 +1,5 @@
 /**
- * Mini-checkout de accesorios y seguros: /oferta/{token}/accesorios (BAL-2064).
+ * Mini-checkout de accesorios y seguros: /oferta/{token}/complementos (BAL-2064).
  *
  * Server Component. La URL es limpia (sin query params): la selección del equipo
  * (variant/combo/slug + datos) se lee de localStorage en el cliente, guardada al

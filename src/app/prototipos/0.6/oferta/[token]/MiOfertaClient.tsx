@@ -36,6 +36,7 @@ import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/
 import { OpcionBarra } from './components/redesign/OpcionBarra';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { AvisoDowngrade } from './components/redesign/AvisoDowngrade';
+import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 
 /** Chips de specs clave (procesador/RAM/almacenamiento) — mismo criterio que
@@ -162,7 +163,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       slug: string | null | undefined,
       equipo?: StoredEquipo,
     ) => {
-      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/accesorios`;
+      const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       if (variantId == null) {
         // Sin variante usable → caer al detalle para resolver allí.
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
@@ -393,6 +394,30 @@ export function MiOfertaClient({ token }: { token: string }) {
         ) : (
           <>
             <AvisoDowngrade equipoPedido={req?.name ?? 'tu equipo'} />
+
+            {/* Card GRIS del equipo pedido (read-only) — diseño NUEVO del
+                rediseño, solo reusa la DATA (imagen/specs/accesorios de req). */}
+            {req ? (
+              <EquipoPedidoCard
+                nombre={req.name ?? 'Tu equipo'}
+                imageUrl={req.image_url}
+                monthly={req.monthly_price}
+                termMonths={req.term_months ?? req.term ?? null}
+                initialAmount={req.initial_amount ?? null}
+                initialPercent={req.initial_percent ?? null}
+                paymentFrequency={req.payment_frequency ?? 'mensual'}
+                accessories={req.accessories ?? []}
+                insurances={req.insurances ?? []}
+              />
+            ) : null}
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+              <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                pero te aprobamos esto
+              </span>
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+            </div>
 
             {recomendadoInfo ? (
               <EquipoRecomendadoCard
