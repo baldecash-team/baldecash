@@ -207,7 +207,13 @@ export type EventType =
   | 'offer_recommended_view'
   | 'offer_catalog_open'
   | 'offer_equipment_select_click'
-  | 'offer_success_view';
+  | 'offer_success_view'
+  // Phase 18: Oferta ESTÁNDAR (F-6B) — aceptar/rechazar por URL del cliente
+  | 'offer_standard_accept_click'
+  | 'offer_standard_accepted'
+  | 'offer_standard_reject_click'
+  | 'offer_standard_rejected'
+  | 'offer_standard_decision_error';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
