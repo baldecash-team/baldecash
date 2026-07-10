@@ -9,6 +9,7 @@ import { useEventTrackerOptional } from '../../[landing]/solicitar/context/Event
 import { TextInput } from '../../[landing]/solicitar/components/solicitar/fields/TextInput';
 import { SelectInput } from '../../[landing]/solicitar/components/solicitar/fields/SelectInput';
 import { GeoCascadeField } from './GeoCascadeField';
+import { LeadCouponField } from './LeadCouponField';
 import { saveLeadId, saveLeadPrefill } from '../../hooks/useLeadGuard';
 
 interface LeadLeadFormProps {
@@ -556,6 +557,30 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
 
     if (field.field_type === 'checkbox') {
       return renderCheckboxField(field);
+    }
+
+    // Cupón (opcional) -> input con validación en vivo contra /public/coupons/validate.
+    // Solo se acepta si el cupón está activo; el código validado se guarda en
+    // extra['coupon_code'] y viaja como fields.coupon_code → captured_data.
+    if (field.code === 'coupon_code') {
+      const key = errorKeyFor(field);
+      return (
+        <LeadCouponField
+          key={field.code}
+          field={field}
+          landingId={landingId}
+          landing={landing}
+          primaryColor={primaryColor}
+          value={(getFieldValue(field) as string) || ''}
+          error={errors[key]}
+          variant={variant}
+          onApply={(code) => {
+            setFieldValue(field, code);
+            if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
+          }}
+          onRemove={() => setFieldValue(field, '')}
+        />
+      );
     }
 
     // Distrito -> cascada Departamento / Provincia / Distrito (geo-units)

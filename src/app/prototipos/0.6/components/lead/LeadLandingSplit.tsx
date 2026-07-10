@@ -59,11 +59,16 @@ export const LeadLandingSplit: React.FC<LeadLandingSplitProps> = ({
         )}
 
         {steps.length > 0 && (
-          <ol className="mt-10 lg:mt-12 flex flex-col">
+          // Mobile: pasos en fila (uno al lado del otro). Desktop (lg): columna vertical con línea conectora.
+          <ol className="mt-8 lg:mt-12 flex flex-row flex-wrap gap-x-4 gap-y-3 lg:flex-col lg:gap-0">
             {steps.map((step, i) => (
-              <li key={i} className="relative flex gap-3.5 items-start pb-8 last:pb-0">
+              <li
+                key={i}
+                className="relative flex items-center gap-2.5 lg:items-start lg:gap-3.5 lg:pb-8 lg:last:pb-0"
+              >
+                {/* Conectora solo en desktop (vertical); en mobile los pasos van sueltos en fila */}
                 {i < steps.length - 1 && (
-                  <span className="absolute left-[13px] top-[30px] bottom-1 w-0.5 bg-white/15" aria-hidden />
+                  <span className="hidden lg:block absolute left-[13px] top-[30px] bottom-1 w-0.5 bg-white/15" aria-hidden />
                 )}
                 <span
                   className="w-7 h-7 min-w-[28px] rounded-full grid place-items-center text-[13px] font-semibold font-['Space_Grotesk','Baloo_2',sans-serif]"
@@ -71,9 +76,10 @@ export const LeadLandingSplit: React.FC<LeadLandingSplitProps> = ({
                 >
                   {i + 1}
                 </span>
-                <span className="pt-0.5">
-                  <strong className="block text-[14.5px] font-semibold">{step.title}</strong>
-                  {step.subtitle && <span className="text-[13px] text-white/60">{step.subtitle}</span>}
+                <span className="lg:pt-0.5">
+                  <strong className="block text-[13px] lg:text-[14.5px] font-semibold leading-tight">{step.title}</strong>
+                  {/* Subtítulo oculto en mobile para que la fila quede compacta */}
+                  {step.subtitle && <span className="hidden lg:block text-[13px] text-white/60">{step.subtitle}</span>}
                 </span>
               </li>
             ))}
