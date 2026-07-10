@@ -22,9 +22,17 @@ export interface OpcionBarraProps {
   onClick: () => void;
   /** Resalta la barra como opción recomendada: borde índigo + badge. */
   destacada?: boolean;
+  /**
+   * URL de una imagen (ej. collage de equipos, BAL-2215) que reemplaza al
+   * `icono` y llena el cuadro. Si viene, se ignora `icono` y se quita el
+   * fondo lila (la imagen ya trae su propio fondo).
+   */
+  imagen?: string;
+  /** Alt de la imagen (solo si `imagen`). */
+  imagenAlt?: string;
 }
 
-export function OpcionBarra({ icono, titulo, subtitulo, cuota, onClick, destacada }: OpcionBarraProps) {
+export function OpcionBarra({ icono, titulo, subtitulo, cuota, onClick, destacada, imagen, imagenAlt }: OpcionBarraProps) {
   return (
     <button
       type="button"
@@ -39,10 +47,15 @@ export function OpcionBarra({ icono, titulo, subtitulo, cuota, onClick, destacad
       }}
     >
       <div
-        className="flex h-[60px] w-[74px] flex-none items-center justify-center rounded-lg"
-        style={{ backgroundColor: OFERTA_COLORS.lilac }}
+        className="flex h-[60px] w-[74px] flex-none items-center justify-center overflow-hidden rounded-lg"
+        style={{ backgroundColor: imagen ? '#fff' : OFERTA_COLORS.lilac }}
       >
-        {icono}
+        {imagen ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imagen} alt={imagenAlt ?? ''} className="h-full w-full object-cover" />
+        ) : (
+          icono
+        )}
       </div>
       <div className="min-w-0 flex-1">
         {destacada ? (

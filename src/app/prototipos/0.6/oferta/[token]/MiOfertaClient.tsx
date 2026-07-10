@@ -40,6 +40,13 @@ import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 
+/** Collage de equipos (BAL-2215): ícono de las barras "Ver otros equipos"
+ *  (Caso 4) y "Mejora tu equipo" (Caso 5) — comunica la variedad del catálogo. */
+const COLLAGE_EQUIPOS_URL = 'https://baldecash.s3.amazonaws.com/images/oferta/collage-equipos.png';
+/** Collage de accesorios (BAL-2215): ícono de la barra "Añadir accesorios y
+ *  seguros" (Caso 5) — comunica la variedad de accesorios. */
+const COLLAGE_ACCESORIOS_URL = 'https://baldecash.s3.amazonaws.com/images/oferta/collage-accesorios.png';
+
 /** Chips de specs clave (procesador/RAM/almacenamiento) — mismo criterio que
  *  OfertaEquipoCard, para reusar el mismo lenguaje visual en la card nueva. */
 // Chips de specs para la card recomendada. Mismo conjunto/formato que la card
@@ -490,6 +497,8 @@ export function MiOfertaClient({ token }: { token: string }) {
                 "Mantener mi equipo" con imagen real. */}
             <OpcionBarra
               destacada
+              imagen={COLLAGE_ACCESORIOS_URL}
+              imagenAlt="Accesorios disponibles"
               icono={<IconoAccesorios size={50} />}
               titulo="Añadir accesorios y seguros"
               subtitulo="Suma accesorios y seguros a tu equipo aprobado"
@@ -519,6 +528,8 @@ export function MiOfertaClient({ token }: { token: string }) {
                 (OpcionBarra) — antes usaba CardCambiarEquipo, un layout aparte.
                 Se conserva el texto del upsell + el conteo dinámico de equipos. */}
             <OpcionBarra
+              imagen={COLLAGE_EQUIPOS_URL}
+              imagenAlt="Equipos disponibles"
               icono={<ShoppingBag className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
               titulo="Mejora tu equipo"
               subtitulo={
@@ -606,6 +617,8 @@ export function MiOfertaClient({ token }: { token: string }) {
             </div>
 
             <OpcionBarra
+              imagen={COLLAGE_EQUIPOS_URL}
+              imagenAlt="Equipos disponibles"
               icono={<ShoppingBag className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
               titulo="Ver otros equipos"
               subtitulo="Explora el catálogo aprobado"
