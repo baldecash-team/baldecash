@@ -14,7 +14,7 @@
  */
 import { ArrowLeft, Package, Plus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Modal, ModalContent } from '@nextui-org/react';
+import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
@@ -156,7 +156,9 @@ export function AccesorioDetalleSheet(props: AccesorioDetalleSheetProps) {
         }}
       >
         <ModalContent>
-          <AccesorioDetalleContenido {...props} bodyClassName="px-5 pb-5" />
+          <ModalBody>
+            <AccesorioDetalleContenido {...props} bodyClassName="px-5 pb-5" />
+          </ModalBody>
         </ModalContent>
       </Modal>
     );
