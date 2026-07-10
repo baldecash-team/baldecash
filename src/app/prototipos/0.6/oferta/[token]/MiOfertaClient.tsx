@@ -402,12 +402,14 @@ export function MiOfertaClient({ token }: { token: string }) {
         </div>
 
         {offer.offerCase === 'upsell' ? (
-          // Caso 5 (upsell): la barra muestra el equipo destacado (exclusiva),
-          // que SÍ entra → "usa S/X · te quedan S/Y para accesorios".
+          // Caso 5 (upsell): la barra muestra el equipo que el estudiante PIDIÓ
+          // (current_product → requestedProduct), igual que el Caso 4 — NO el
+          // equipo exclusivo recomendado. "usa S/X · te quedan S/Y para accesorios".
           <MontoAprobadoBar
             aprobado={offer.maxMonthlyQuota}
             mode="recomendado"
-            usado={exclusivaInfo?.monthly ?? null}
+            usado={reqTotalMonthly}
+            equipoNombre={req?.name ?? undefined}
           />
         ) : (
           // Caso 4 (downgrade): la barra muestra el equipo que el estudiante
