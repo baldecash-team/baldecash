@@ -522,6 +522,16 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 <span style={{ color: OFERTA_COLORS.textMid }}>
                   Añade garantía extendida por +S/{Math.round(p.monthlyPrice || 0)}{suf} antes de confirmar
                 </span>
+                {/* "Ver detalle" — igual que los accesorios; abre el drawer de
+                    detalle del seguro (por encima del modal). */}
+                <button
+                  type="button"
+                  onClick={() => setDetailInsurance(p)}
+                  className="mt-0.5 block cursor-pointer text-[11px] font-semibold"
+                  style={{ color: OFERTA_COLORS.tealBrand }}
+                >
+                  Ver detalle
+                </button>
               </span>
               <button
                 type="button"
@@ -766,8 +776,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             seguro={detailInsurance}
             agregado={selectedIns.includes(detailInsurance.id)}
             onAgregar={() => toggleIns(detailInsurance.id)}
-            onVolver={() => { setDetailInsurance(null); setShowBuscador(true); }}
-            onCerrar={() => { setDetailInsurance(null); setShowBuscador(false); }}
+            onVolver={() => {
+              setDetailInsurance(null);
+              // Si el detalle se abrió desde el modal de confirmación, "Volver"
+              // regresa al modal (sigue abierto detrás), no al buscador.
+              if (!modalOpen) setShowBuscador(true);
+            }}
+            onCerrar={() => { setDetailInsurance(null); if (!modalOpen) setShowBuscador(false); }}
           />
         ) : null}
       </AnimatePresence>
