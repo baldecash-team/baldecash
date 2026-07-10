@@ -403,7 +403,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           <li className="flex items-center justify-between gap-3 text-sm">
             <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textStrong }}>
               <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-              <span className="min-w-0 truncate font-medium">{equipoInfo?.name ?? 'Tu equipo'}</span>
+              <span className="min-w-0 font-medium">{equipoInfo?.name ?? 'Tu equipo'}</span>
             </span>
             <span className="shrink-0 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
               S/{Math.round(equipoMonthly)}{suf}
@@ -414,7 +414,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`cf-a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <Gift className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-                <span className="truncate">{a.name}</span>
+                <span className="min-w-0">{a.name}</span>
               </span>
               <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
             </li>
@@ -423,7 +423,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`cf-i-${s.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <Gift className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-                <span className="truncate">{s.name}</span>
+                <span className="min-w-0">{s.name}</span>
               </span>
               <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
             </li>
@@ -433,7 +433,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.textSoft }} />
-                <span className="truncate">{a.name}</span>
+                <span className="min-w-0">{a.name}</span>
               </span>
               <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(a.monthlyQuota || 0)}{suf}</span>
             </li>
@@ -442,7 +442,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`i-${p.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.textSoft }} />
-                <span className="truncate">{p.name}</span>
+                <span className="min-w-0">{p.name}</span>
               </span>
               <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(p.monthlyPrice || 0)}{suf}</span>
             </li>
@@ -521,7 +521,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           {noSeleccionados.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
               <span className="min-w-0 text-[12.5px]" style={{ color: OFERTA_COLORS.textStrong }}>
-                <span className="block truncate font-medium">{p.name}</span>
+                <span className="block font-medium">{p.name}</span>
                 <span style={{ color: OFERTA_COLORS.textMid }}>
                   Añade garantía extendida por +S/{Math.round(p.monthlyPrice || 0)}{suf} antes de confirmar
                 </span>
