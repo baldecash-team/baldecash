@@ -16,9 +16,10 @@
  * (docs/superpowers/design-refs/mock-confirmacion.html, frames 1 y 2).
  */
 import type { ReactNode } from 'react';
-import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
-import { motion } from 'framer-motion';
-import { ShoppingBag, X, CheckCircle2, ArrowRight, Check } from 'lucide-react';
+import { Modal, ModalContent, Button } from '@nextui-org/react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { ShoppingBag, X, CheckCircle2 } from 'lucide-react';
+import { useIsMobile } from '@/app/prototipos/_shared';
 import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 
@@ -55,27 +56,152 @@ function PedidoBox({ children }: { children: ReactNode }) {
   );
 }
 
+/** Contenido del paso "¿Confirmas tu elección?" — compartido entre la
+ *  presentación modal (desktop) y drawer (mobile). Header índigo + resumen del
+ *  equipo + desglose (addonsSlot) + upsell seguros + aviso + footer con
+ *  "Cancelar"/"Confirmar". Sin envoltorio propio: el caller (Modal o sheet) lo
+ *  monta. `scrollClassName` permite al drawer poner el scroll en el body. */
+function ConfirmarEleccionContenido({
+  equipo,
+  loading,
+  onConfirm,
+  onClose,
+  addonsSlot,
+  insuranceUpsellSlot,
+  scrollClassName,
+}: {
+  equipo: EquipoAConfirmar | null;
+  loading?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+  addonsSlot?: ReactNode;
+  insuranceUpsellSlot?: ReactNode;
+  /** Clase del contenedor del body (el drawer necesita flex-1 + overflow). */
+  scrollClassName: string;
+}) {
+  return (
+    <>
+      {/* Header índigo */}
+      <div className="flex flex-none items-center gap-3 px-5 py-[22px]" style={{ backgroundColor: HEADER_INDIGO }}>
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.16]">
+          <ShoppingBag className="h-5 w-5 text-white" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold text-white">¿Confirmas tu elección?</h2>
+          <p className="text-[12.5px] text-white/85">Estás a un paso de elegir tu equipo</p>
+        </div>
+        <button
+          onClick={onClose}
+          disabled={loading}
+          className="flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/[0.18] transition-colors hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <X className="h-4 w-4 text-white" />
+        </button>
+      </div>
+
+      {/* Body (scroll dentro del contenedor) */}
+      <div className={scrollClassName}>
+        <div className="px-4 py-4">
+          {/* Resumen del equipo */}
+          {equipo ? (
+            <div className="flex items-center gap-4">
+              {equipo.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={equipo.imageUrl} alt={equipo.name} className="h-[50px] w-[50px] shrink-0 object-contain" />
+              ) : (
+                <div className="h-[50px] w-[50px] shrink-0 rounded-lg bg-gray-200" />
+              )}
+              <div className="min-w-0">
+                {equipo.brand ? (
+                  <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
+                    {equipo.brand}
+                  </p>
+                ) : null}
+                <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                  {equipo.name}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Fila de cuota del equipo: solo cuando NO hay desglose de pedido. */}
+          {equipo?.monthly && !addonsSlot ? (
+            <div className="mt-3.5 flex items-center justify-between border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
+              <div>
+                <span className="text-sm font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                  Cuota {equipo.paymentFrequency === 'semanal' ? 'semanal' : equipo.paymentFrequency === 'quincenal' ? 'quincenal' : 'mensual'}
+                </span>
+                {equipo.term ? (
+                  <p className="text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
+                    en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
+                    {inicialText(equipo.initialAmount, equipo.initial)}
+                  </p>
+                ) : null}
+              </div>
+              <span className="font-['Baloo_2',_sans-serif] text-[25px] font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
+                S/{Math.round(equipo.monthly)}
+                <span className="text-sm font-normal" style={{ color: OFERTA_COLORS.textMid }}>{cuotaSuffix(equipo.paymentFrequency)}</span>
+              </span>
+            </div>
+          ) : null}
+
+          {/* Desglose "Tu pedido incluye" */}
+          {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
+
+          {/* Upsell de seguros (si el caller lo pasa) */}
+          {insuranceUpsellSlot}
+
+          {/* Aviso verde */}
+          <div
+            className="mt-4 flex items-start gap-2 rounded-xl p-3 text-sm font-medium"
+            style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
+          >
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer con botones */}
+      <div className="flex flex-none items-center justify-end gap-2 px-4 py-3">
+        <Button
+          variant="light"
+          onPress={onClose}
+          isDisabled={loading}
+          className="cursor-pointer font-['Baloo_2',_sans-serif] font-bold"
+          style={{ color: OFERTA_COLORS.textMid }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onPress={onConfirm}
+          isLoading={loading}
+          isDisabled={loading}
+          radius="lg"
+          className="cursor-pointer font-['Baloo_2',_sans-serif] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
+          style={{ backgroundColor: OFERTA_COLORS.primary }}
+        >
+          {loading ? 'Procesando tu cambio…' : 'Confirmar'}
+        </Button>
+      </div>
+    </>
+  );
+}
+
 export function ConfirmarEleccionModal({
   isOpen,
   equipo,
   loading,
-  succeeded = false,
   onConfirm,
   onClose,
-  onSuccessContinue,
   addonsSlot,
   insuranceUpsellSlot,
 }: {
   isOpen: boolean;
   equipo: EquipoAConfirmar | null;
   loading?: boolean;
-  /** Cuando true, el modal pasa al estado de éxito (check animado + Continuar). */
-  succeeded?: boolean;
   onConfirm: () => void;
   onClose: () => void;
-  /** Se llama al presionar "Continuar" en el estado de éxito. Si no se pasa,
-   *  cae a onClose. Aquí el caller navega / refresca (fuera del spinner). */
-  onSuccessContinue?: () => void;
   /** Selector de accesorios/seguros (BAL-2064). Se renderiza dentro del modal,
    *  antes del aviso, cuando se pasa. */
   addonsSlot?: ReactNode;
@@ -84,8 +210,70 @@ export function ConfirmarEleccionModal({
    *  Solo se pasa cuando el caller tiene seguros disponibles sin elegir. */
   insuranceUpsellSlot?: ReactNode;
 }) {
+  const isMobile = useIsMobile();
+  const dragControls = useDragControls();
   const dismiss = () => (loading ? undefined : onClose());
 
+  // --- MOBILE: bottom sheet (mismo patrón que BuscadorBottomSheet/SeguroDetalleSheet) ---
+  if (isMobile) {
+    return (
+      <AnimatePresence>
+        {isOpen ? (
+          <>
+            {/* Backdrop: cierra solo si !loading */}
+            <motion.div
+              key="confirmar-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={dismiss}
+              className="fixed inset-0 z-[100]"
+              style={{ backgroundColor: 'rgba(24,26,42,.42)', touchAction: 'none' }}
+            />
+            {/* Sheet */}
+            <motion.div
+              key="confirmar-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              drag={loading ? false : 'y'}
+              dragControls={dragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                if (!loading && info.offset.y > 100) onClose();
+              }}
+              className="fixed bottom-0 left-0 right-0 z-[101] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-white"
+              style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+              {/* Drag handle (deshabilitado mientras carga) */}
+              <div
+                onPointerDown={(e) => { if (!loading) dragControls.start(e); }}
+                className="flex flex-none justify-center pt-3 pb-1"
+                style={{ cursor: loading ? 'default' : 'grab' }}
+              >
+                <div className="h-1 w-10 rounded-full bg-neutral-300" />
+              </div>
+              <ConfirmarEleccionContenido
+                equipo={equipo}
+                loading={loading}
+                onConfirm={onConfirm}
+                onClose={onClose}
+                addonsSlot={addonsSlot}
+                insuranceUpsellSlot={insuranceUpsellSlot}
+                scrollClassName="flex-1 overflow-y-auto"
+              />
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+    );
+  }
+
+  // --- DESKTOP: modal centrado (como hoy) ---
   return (
     <Modal
       isOpen={isOpen}
@@ -95,7 +283,7 @@ export function ConfirmarEleccionModal({
       scrollBehavior="inside"
       hideCloseButton
       backdrop="opaque"
-      isDismissable={!loading && !succeeded}
+      isDismissable={!loading}
       classNames={{
         wrapper: 'z-[101]',
         backdrop: 'z-[100] bg-black/50',
@@ -105,205 +293,15 @@ export function ConfirmarEleccionModal({
       }}
     >
       <ModalContent>
-        {succeeded ? (
-          /* ---------------------------- ÉXITO ---------------------------- */
-          <ModalBody>
-            <div className="flex flex-col items-center px-6 pb-6 pt-8 text-center">
-              {/* Check animado: círculo que aparece con un pop + tick */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                className="flex h-[66px] w-[66px] items-center justify-center rounded-full"
-                style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
-              >
-                <motion.div
-                  initial={{ scale: 0, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.12, type: 'spring', stiffness: 300, damping: 16 }}
-                >
-                  <Check className="h-[34px] w-[34px]" strokeWidth={3} style={{ color: OFERTA_COLORS.green }} />
-                </motion.div>
-              </motion.div>
-
-              <h2 className="mt-4 font-['Baloo_2',_sans-serif] text-2xl font-extrabold" style={{ color: OFERTA_COLORS.textStrong }}>
-                ¡Listo!
-              </h2>
-              <p className="mt-1 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-                Cambiamos tu equipo y tu solicitud quedó aprobada.
-              </p>
-
-              {equipo ? (
-                <div
-                  className="mt-5 flex w-full items-center gap-3 rounded-xl border p-3 text-left"
-                  style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
-                >
-                  {equipo.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={equipo.imageUrl} alt={equipo.name} className="h-12 w-12 shrink-0 object-contain" />
-                  ) : (
-                    <div className="h-12 w-12 shrink-0 rounded-lg bg-gray-200" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-['Baloo_2',_sans-serif] text-[13px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                      {equipo.name}
-                    </p>
-                    {/* Cuota del equipo: solo cuando NO hay desglose de pedido
-                        (ese ya trae la cuota total y duplicarla es redundante). */}
-                    {equipo.monthly && !addonsSlot ? (
-                      <p className="text-xs">
-                        <span className="font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
-                          S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}
-                        </span>
-                        {equipo.term ? (
-                          <span style={{ color: OFERTA_COLORS.textSoft }}>
-                            {' '}· en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
-                            {inicialText(equipo.initialAmount, equipo.initial)}
-                          </span>
-                        ) : null}
-                      </p>
-                    ) : equipo.term ? (
-                      <p className="text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
-                        en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
-                        {inicialText(equipo.initialAmount, equipo.initial)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Desglose "Tu pedido incluye" (equipo + regalos + elegidos +
-                  cuota total). Trae su propia cuota — no duplicar arriba. */}
-              {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
-
-              <div
-                className="mt-4 flex w-full items-start gap-2 rounded-lg p-3 text-left text-xs font-medium"
-                style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
-              >
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega.</span>
-              </div>
-
-              <Button
-                onPress={onSuccessContinue ?? onClose}
-                className="mt-5 w-full cursor-pointer font-['Baloo_2',_sans-serif] text-base font-bold text-white"
-                radius="lg"
-                endContent={<ArrowRight className="h-4 w-4" />}
-                style={{ backgroundColor: OFERTA_COLORS.green }}
-              >
-                Continuar
-              </Button>
-            </div>
-          </ModalBody>
-        ) : (
-          /* ------------------------- CONFIRMACIÓN ------------------------ */
-          <>
-            {/* Header índigo (frame 1 del mock) */}
-            <div className="flex items-center gap-3 px-5 py-[22px]" style={{ backgroundColor: HEADER_INDIGO }}>
-              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.16]">
-                <ShoppingBag className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold text-white">¿Confirmas tu elección?</h2>
-                <p className="text-[12.5px] text-white/85">Estás a un paso de elegir tu equipo</p>
-              </div>
-              <button
-                onClick={onClose}
-                disabled={loading}
-                className="flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/[0.18] transition-colors hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <X className="h-4 w-4 text-white" />
-              </button>
-            </div>
-
-            <ModalBody>
-              <div className="px-4 py-4">
-                {/* Resumen del equipo */}
-                {equipo ? (
-                  <div className="flex items-center gap-4">
-                    {equipo.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={equipo.imageUrl} alt={equipo.name} className="h-[50px] w-[50px] shrink-0 object-contain" />
-                    ) : (
-                      <div className="h-[50px] w-[50px] shrink-0 rounded-lg bg-gray-200" />
-                    )}
-                    <div className="min-w-0">
-                      {equipo.brand ? (
-                        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
-                          {equipo.brand}
-                        </p>
-                      ) : null}
-                      <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                        {equipo.name}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Fila de cuota del equipo: solo cuando NO hay desglose de
-                    pedido. Con addonsSlot, la cuota total va DENTRO del desglose
-                    y mostrar aquí "cuota mensual" además sería redundante. */}
-                {equipo?.monthly && !addonsSlot ? (
-                  <div className="mt-3.5 flex items-center justify-between border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
-                    <div>
-                      <span className="text-sm font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
-                        Cuota {equipo.paymentFrequency === 'semanal' ? 'semanal' : equipo.paymentFrequency === 'quincenal' ? 'quincenal' : 'mensual'}
-                      </span>
-                      {equipo.term ? (
-                        <p className="text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
-                          en {equipo.term} {plazoUnit(equipo.term, equipo.paymentFrequency)}
-                          {inicialText(equipo.initialAmount, equipo.initial)}
-                        </p>
-                      ) : null}
-                    </div>
-                    <span className="font-['Baloo_2',_sans-serif] text-[25px] font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
-                      S/{Math.round(equipo.monthly)}
-                      <span className="text-sm font-normal" style={{ color: OFERTA_COLORS.textMid }}>{cuotaSuffix(equipo.paymentFrequency)}</span>
-                    </span>
-                  </div>
-                ) : null}
-
-                {/* Desglose "Tu pedido incluye": equipo + regalos del combo
-                    (gratis) + elegidos (+S/) + UNA cuota total. */}
-                {addonsSlot ? <PedidoBox>{addonsSlot}</PedidoBox> : null}
-
-                {/* "Asegura tu inversión" (feedback Marco): seguros
-                    disponibles sin elegir, antes de confirmar. */}
-                {insuranceUpsellSlot}
-
-                {/* Aviso (wording de Marco): qué pasa al aceptar */}
-                <div
-                  className="mt-4 flex items-start gap-2 rounded-xl p-3 text-sm font-medium"
-                  style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
-                >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada.</span>
-                </div>
-              </div>
-            </ModalBody>
-
-            <ModalFooter>
-              <Button
-                variant="light"
-                onPress={onClose}
-                isDisabled={loading}
-                className="cursor-pointer font-['Baloo_2',_sans-serif] font-bold"
-                style={{ color: OFERTA_COLORS.textMid }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onPress={onConfirm}
-                isLoading={loading}
-                radius="lg"
-                className="cursor-pointer font-['Baloo_2',_sans-serif] text-sm font-bold text-white"
-                style={{ backgroundColor: OFERTA_COLORS.primary }}
-              >
-                {loading ? 'Procesando tu cambio…' : 'Confirmar'}
-              </Button>
-            </ModalFooter>
-          </>
-        )}
+        <ConfirmarEleccionContenido
+          equipo={equipo}
+          loading={loading}
+          onConfirm={onConfirm}
+          onClose={onClose}
+          addonsSlot={addonsSlot}
+          insuranceUpsellSlot={insuranceUpsellSlot}
+          scrollClassName=""
+        />
       </ModalContent>
     </Modal>
   );
