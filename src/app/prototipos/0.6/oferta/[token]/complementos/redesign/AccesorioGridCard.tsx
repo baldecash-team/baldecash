@@ -20,9 +20,11 @@ export interface AccesorioGridCardProps {
   agregado: boolean;
   onToggle: () => void;
   onVerDetalle: () => void;
+  /** Etiqueta destacada (pill) sobre la foto, ej. "Recomendado". Opcional. */
+  badge?: string;
 }
 
-export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle }: AccesorioGridCardProps) {
+export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle, badge }: AccesorioGridCardProps) {
   const cuotaFormateada = Math.round(accesorio.monthlyQuota).toLocaleString('es-PE');
 
   return (
@@ -31,6 +33,14 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle 
       style={{ borderColor: agregado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
     >
       <div className="relative">
+        {badge ? (
+          <span
+            className="absolute left-1.5 top-1.5 z-10 rounded-full px-2 py-0.5 text-[9.5px] font-bold text-white"
+            style={{ backgroundColor: OFERTA_COLORS.primary }}
+          >
+            {badge}
+          </span>
+        ) : null}
         <div
           className="flex h-[74px] w-full items-center justify-center rounded-xl border"
           style={{
@@ -64,7 +74,14 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle 
         </button>
       </div>
 
-      <div className="mt-2 font-['Baloo_2',_sans-serif] text-[12.5px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
+      {/* Título: máx 2 líneas con "…"; reserva SIEMPRE el alto de 2 líneas
+          (min-h) para que todas las cards del grid mantengan la misma altura
+          aunque un nombre sea de 1 línea (queda arriba, con el espacio de la 2ª
+          reservado). line-clamp-2 corta y agrega la elipsis. */}
+      <div
+        className="mt-2 line-clamp-2 min-h-[2.3em] font-['Baloo_2',_sans-serif] text-[12.5px] font-bold leading-[1.15]"
+        style={{ color: OFERTA_COLORS.textStrong }}
+      >
         {accesorio.name}
       </div>
       <div className="mt-1 text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>

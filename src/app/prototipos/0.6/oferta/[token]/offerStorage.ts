@@ -42,9 +42,40 @@ function selectionKey(token: string): string {
   return `oferta:seleccion:${token}`;
 }
 
+/** Prefijo de las keys de add-ons por equipo (`oferta:addons:{token}:{variantId}`),
+ *  que persiste el mini-checkout de complementos. */
+function addonsKeyPrefix(token: string): string {
+  return `oferta:addons:${token}:`;
+}
+
+/** Borra los add-ons guardados de TODOS los equipos de este token. Se usa al
+ *  cambiar de equipo: el estudiante empieza limpio con el nuevo equipo (no
+ *  hereda ni recuerda accesorios/seguros de otro). El refresh del MISMO equipo
+ *  no llama saveOfferSelection, así que no dispara esta limpieza. */
+function clearAllAddons(token: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const prefix = addonsKeyPrefix(token);
+    const toRemove: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(prefix)) toRemove.push(k);
+    }
+    toRemove.forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    /* ignorar */
+  }
+}
+
 export function saveOfferSelection(token: string, selection: OfferSelection): void {
   if (typeof window === 'undefined') return;
   try {
+    // Si cambia el equipo (variantId distinto al guardado), limpiar los add-ons
+    // de cualquier equipo previo → el nuevo equipo empieza sin accesorios/seguros.
+    const previa = readOfferSelection(token);
+    if (previa && previa.variantId !== selection.variantId) {
+      clearAllAddons(token);
+    }
     window.localStorage.setItem(selectionKey(token), JSON.stringify(selection));
   } catch {
     /* cuota llena / modo privado: ignorar, no rompe el flujo */

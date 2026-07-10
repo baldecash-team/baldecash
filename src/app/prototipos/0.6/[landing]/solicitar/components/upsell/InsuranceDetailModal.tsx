@@ -112,7 +112,8 @@ const ModalContentShared: React.FC<{
   badgeText?: string | null;
   isGamer?: boolean;
   isDark?: boolean;
-}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true }) => {
+  hideHeader?: boolean;
+}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false }) => {
   const config = getModalConfig(plan.insuranceType);
   const Icon = config.icon;
   const CYAN = isDark ? '#00ffd5' : '#00897a';
@@ -217,16 +218,19 @@ const ModalContentShared: React.FC<{
 
   return (
     <div className="flex flex-col">
-      {/* Header */}
-      <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3">
-        <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
-          <Icon className="w-4.5 h-4.5 text-white" />
+      {/* Header (se oculta en el drawer mobile, que trae su propio header morado
+          fijo con la X). */}
+      {!hideHeader && (
+        <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3">
+          <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+            <Icon className="w-4.5 h-4.5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-bold text-white">{config.title}</h2>
+            <p className="text-xs text-white/60 truncate">{plan.name}</p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-bold text-white">{config.title}</h2>
-          <p className="text-xs text-white/60 truncate">{plan.name}</p>
-        </div>
-      </div>
+      )}
 
       {/* Body */}
       <div className="px-5 py-4 space-y-4">
@@ -414,20 +418,48 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
             onDragEnd={(_, info) => {
               if (info.offset.y > 100) onClose();
             }}
-            className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[9999] flex flex-col max-h-[80vh]"
+            className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[9999] flex flex-col max-h-[80vh] overflow-hidden"
             style={{ overscrollBehavior: 'contain', background: isGamer ? (isDark ? '#141414' : '#f0f0f0') : '#ffffff' }}
           >
+            {/* Franja del drag-handle: morada (no gamer) para que se una con el
+                header morado y la parte superior no quede blanca. flex-none →
+                no se encoge (queda fija arriba). */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
-              className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+              className="flex flex-none justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+              style={{ background: isGamer ? (isDark ? '#0e0e0e' : '#f0f0f0') : 'var(--color-primary, #4654CD)' }}
             >
-              <div className="w-10 h-1.5 rounded-full" style={{ background: isGamer ? 'rgba(0,255,213,0.3)' : '#d4d4d4' }} />
+              <div className="w-10 h-1.5 rounded-full" style={{ background: isGamer ? 'rgba(0,255,213,0.3)' : 'rgba(255,255,255,0.4)' }} />
             </div>
+            {/* Header morado FIJO con la X (mismo patrón que el drawer del
+                accesorio): el título/ícono van aquí y la X queda alineada a la
+                derecha, no pegada al handle. flex-none → sticky arriba. En gamer
+                se usa el header propio de ModalContentShared. */}
+            {!isGamer && (
+              <div className="flex flex-none items-center justify-between px-5 pb-[22px] pt-4" style={{ background: 'var(--color-primary, #4654CD)' }}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    {(() => { const Icon = getModalConfig(plan.insuranceType).icon; return <Icon className="w-4.5 h-4.5 text-white" />; })()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base font-bold text-white">{getModalConfig(plan.insuranceType).title}</h2>
+                    <p className="text-xs text-white/60 truncate">{plan.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  aria-label="Cerrar"
+                  className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            )}
             <div
               className="flex-1 overflow-y-auto"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} />
+              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideHeader={!isGamer} />
             </div>
           </motion.div>
         </>

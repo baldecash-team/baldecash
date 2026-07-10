@@ -11,8 +11,8 @@
  * Mobile: para caber en 100vh, los accesorios se COLAPSAN tras un toggle
  * "Ver lo que pediste (N)". En sm+ se muestran siempre.
  */
-import { useState } from 'react';
-import { Ban, Package, ShieldCheck, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TriangleAlert, Package, ShieldCheck, ChevronDown } from 'lucide-react';
 
 import { OFERTA_COLORS } from './ofertaTheme';
 import { cuotaSuffix, plazoUnit, inicialText } from '../equipoCardFormat';
@@ -51,9 +51,22 @@ export function EquipoPedidoCard({
 }: EquipoPedidoCardProps) {
   const hayAddons = accessories.length > 0 || insurances.length > 0;
   const totalAddons = accessories.length + insurances.length;
-  // Colapsado en mobile por defecto (ahorra alto para 100vh). El toggle solo
-  // aparece/actúa en mobile; en sm+ la lista se muestra siempre vía CSS.
+  // Monto principal = total del pedido: equipo + accesorios + seguros. La card
+  // muestra este total tachado; el desglose lo descompone (equipo + cada add-on).
+  const extrasMonthly =
+    accessories.reduce((s, a) => s + (a.monthly ?? 0), 0) +
+    insurances.reduce((s, i) => s + (i.monthly ?? 0), 0);
+  const totalMonthly = monthly != null ? monthly + extrasMonthly : null;
+  // Collapse del desglose con default por viewport: DESKTOP (≥640px) abierto,
+  // MOBILE cerrado (ahorra alto para 100vh). El toggle funciona en ambos. Para
+  // evitar flash/mismatch de hidratación, el default SSR es cerrado y un effect
+  // lo abre en desktop tras montar (matchMedia solo existe en cliente).
   const [abierto, setAbierto] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches) {
+      setAbierto(true);
+    }
+  }, []);
 
   return (
     <div
@@ -69,8 +82,8 @@ export function EquipoPedidoCard({
           className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
           style={{ backgroundColor: '#FEF3E2', color: '#B45309' }}
         >
-          <Ban className="h-3 w-3" />
-          No disponible
+          <TriangleAlert className="h-3 w-3" strokeWidth={2.4} />
+          Excede tu cuota
         </span>
       </div>
 
@@ -106,11 +119,11 @@ export function EquipoPedidoCard({
               ))}
             </div>
           ) : null}
-          {/* Cuota tachada */}
-          {monthly ? (
+          {/* Cuota tachada = TOTAL del pedido (equipo + accesorios + seguros). */}
+          {totalMonthly ? (
             <div className="mt-1.5">
               <span className="font-['Baloo_2',_sans-serif] text-[15px] font-bold line-through" style={{ color: OFERTA_COLORS.textSoft }}>
-                S/{Math.round(monthly)}{cuotaSuffix(paymentFrequency)}
+                S/{Math.round(totalMonthly)}{cuotaSuffix(paymentFrequency)}
               </span>
               {termMonths ? (
                 <span className="ml-1 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
@@ -123,53 +136,78 @@ export function EquipoPedidoCard({
         </div>
       </div>
 
-      {/* Toggle "ver lo que pediste" — solo mobile (sm:hidden). En sm+ la lista
-          está siempre visible, así que el botón no aparece. */}
+      {/* Toggle "ver lo que pediste" — visible en TODOS los viewports. El default
+          de `abierto` lo fija el effect por viewport (desktop abierto, mobile
+          cerrado); el usuario puede abrir/cerrar en ambos. */}
       {hayAddons ? (
         <button
           type="button"
           onClick={() => setAbierto((v) => !v)}
-          className="mt-2.5 flex w-full items-center justify-between border-t pt-2.5 text-[12px] font-semibold sm:hidden"
+          className="group mt-2.5 flex w-full cursor-pointer items-center justify-between border-t pt-2.5 text-[12px] font-semibold transition-colors hover:text-[#4F46E5]"
           style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
+          aria-expanded={abierto}
         >
-          <span>Ver lo que pediste ({totalAddons})</span>
+          <span className="transition-colors group-hover:text-[#4F46E5]">Ver lo que pediste ({totalAddons})</span>
           <ChevronDown
-            className="h-4 w-4 transition-transform"
+            className="h-4 w-4 transition-transform duration-300 ease-out group-hover:text-[#4F46E5]"
             style={{ transform: abierto ? 'rotate(180deg)' : 'none' }}
           />
         </button>
       ) : null}
 
-      {/* Accesorios / seguros que había pedido (read-only). En mobile respeta el
-          toggle (`abierto`); en sm+ siempre visible. */}
+      {/* Desglose del pedido: producto principal + accesorios/seguros (read-only).
+          Colapso SUAVE con grid-template-rows (0fr↔1fr) + opacidad — sin librería.
+          El contenido queda siempre montado; solo se anima su alto. */}
       {hayAddons ? (
-        <ul
-          className={`space-y-1.5 border-t pt-3 sm:mt-3 sm:block ${abierto ? 'mt-2.5 block' : 'hidden'}`}
-          style={{ borderColor: OFERTA_COLORS.border }}
+        <div
+          className="grid transition-all duration-300 ease-out"
+          style={{
+            gridTemplateRows: abierto ? '1fr' : '0fr',
+            opacity: abierto ? 1 : 0,
+            marginTop: abierto ? '0.5rem' : 0,
+          }}
         >
-          {accessories.map((a) => (
-            <li key={`ped-a-${a.id}`} className="flex items-center justify-between gap-2 text-[12.5px]">
-              <span className="flex min-w-0 items-center gap-1.5" style={{ color: OFERTA_COLORS.textSoft }}>
-                <Package className="h-3.5 w-3.5 flex-none" />
-                <span className="truncate">{a.name}</span>
-              </span>
-              <span className="flex-none line-through" style={{ color: OFERTA_COLORS.textSoft }}>
-                +S/{Math.round(a.monthly)}{cuotaSuffix(paymentFrequency)}
-              </span>
-            </li>
-          ))}
-          {insurances.map((i) => (
-            <li key={`ped-i-${i.id}`} className="flex items-center justify-between gap-2 text-[12.5px]">
-              <span className="flex min-w-0 items-center gap-1.5" style={{ color: OFERTA_COLORS.textSoft }}>
-                <ShieldCheck className="h-3.5 w-3.5 flex-none" />
-                <span className="truncate">{i.name}</span>
-              </span>
-              <span className="flex-none line-through" style={{ color: OFERTA_COLORS.textSoft }}>
-                +S/{Math.round(i.monthly)}{cuotaSuffix(paymentFrequency)}
-              </span>
-            </li>
-          ))}
-        </ul>
+          <ul
+            className="space-y-1.5 overflow-hidden"
+            style={{ borderColor: OFERTA_COLORS.border }}
+            aria-hidden={!abierto}
+          >
+            {/* Producto principal con su monto (primera línea del desglose). */}
+            {monthly != null ? (
+              <li key="ped-equipo" className="flex items-center justify-between gap-2 text-[12.5px]">
+                <span className="flex min-w-0 items-center gap-1.5 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+                  <Package className="h-3.5 w-3.5 flex-none" />
+                  <span className="truncate">{nombre}</span>
+                </span>
+                <span className="flex-none font-semibold line-through" style={{ color: OFERTA_COLORS.textSoft }}>
+                  S/{Math.round(monthly)}{cuotaSuffix(paymentFrequency)}
+                </span>
+              </li>
+            ) : null}
+            {accessories.map((a) => (
+              <li key={`ped-a-${a.id}`} className="flex items-center justify-between gap-2 text-[12.5px]">
+                <span className="flex min-w-0 items-center gap-1.5" style={{ color: OFERTA_COLORS.textSoft }}>
+                  <Package className="h-3.5 w-3.5 flex-none" />
+                  <span className="truncate">{a.name}</span>
+                </span>
+                <span className="flex-none line-through" style={{ color: OFERTA_COLORS.textSoft }}>
+                  +S/{Math.round(a.monthly)}{cuotaSuffix(paymentFrequency)}
+                </span>
+              </li>
+            ))}
+            {insurances.map((i) => (
+              <li key={`ped-i-${i.id}`} className="flex items-center justify-between gap-2 text-[12.5px]">
+                <span className="flex min-w-0 items-center gap-1.5" style={{ color: OFERTA_COLORS.textSoft }}>
+                  <ShieldCheck className="h-3.5 w-3.5 flex-none" />
+                  <span className="truncate">{i.name}</span>
+                </span>
+                <span className="flex-none line-through" style={{ color: OFERTA_COLORS.textSoft }}>
+                  +S/{Math.round(i.monthly)}{cuotaSuffix(paymentFrequency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
     </div>
   );

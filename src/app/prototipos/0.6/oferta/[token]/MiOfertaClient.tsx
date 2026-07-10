@@ -42,12 +42,24 @@ import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 
 /** Chips de specs clave (procesador/RAM/almacenamiento) — mismo criterio que
  *  OfertaEquipoCard, para reusar el mismo lenguaje visual en la card nueva. */
+// Chips de specs para la card recomendada. Mismo conjunto/formato que la card
+// del catálogo (ProductCard): procesador, RAM+tipo, storage+tipo, GPU, display
+// — así el equipo se ve idéntico en el catálogo y en la oferta.
 function specsToChips(specs?: ProductSpecs | null): string[] {
   if (!specs) return [];
   const chips: string[] = [];
   if (specs.processor?.model) chips.push(specs.processor.model);
-  if (specs.ram?.size) chips.push(`${specs.ram.size}GB`);
-  if (specs.storage?.size) chips.push(`${specs.storage.size}GB ${String(specs.storage.type ?? '').toUpperCase()}`.trim());
+  if (specs.ram?.size) {
+    chips.push(`${specs.ram.size}GB ${String(specs.ram.type ?? '')}`.trim());
+  }
+  if (specs.storage?.size) {
+    chips.push(`${specs.storage.size}GB ${String(specs.storage.type ?? '').toUpperCase()}`.trim());
+  }
+  const gpuModel = specs.gpu?.model && String(specs.gpu.model) !== 'null' ? String(specs.gpu.model) : '';
+  if (gpuModel) chips.push(specs.gpu?.vram ? `${gpuModel} ${specs.gpu.vram}GB` : gpuModel);
+  if (specs.display?.size) {
+    chips.push(`${specs.display.size}" ${String(specs.display.resolution ?? '').toUpperCase()}`.trim());
+  }
   return chips;
 }
 
@@ -345,6 +357,8 @@ export function MiOfertaClient({ token }: { token: string }) {
             ? `inicial S/${Math.round(offer.recommended.hookInitialAmount)}`
             : undefined,
         specs: specsToChips(offer.recommended.specs),
+        comboAccessories: offer.recommended.comboAddons?.accessories.map((a) => a.name),
+        comboInsurances: offer.recommended.comboAddons?.insurances.map((i) => i.name),
       }
     : null;
 
@@ -499,6 +513,13 @@ export function MiOfertaClient({ token }: { token: string }) {
                 ctaText="Aceptar equipo"
                 subtext="Tu solicitud queda aprobada al elegirlo"
                 onElegir={() => handleSelect(offer.recommended as CatalogProduct)}
+                onVerDetalle={
+                  offer.recommended?.slug
+                    ? () => {
+                        window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.recommended!.slug}`;
+                      }
+                    : undefined
+                }
               />
             ) : null}
 

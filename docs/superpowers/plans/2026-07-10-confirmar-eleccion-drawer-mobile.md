@@ -1,20 +1,49 @@
-'use client';
+# ConfirmarEleccionModal responsive (drawer mobile / modal desktop) — Implementation Plan
 
-/**
- * Modal de elección de equipo (Caso 4/5). Tres estados internos:
- *   1. confirmar → resumen del equipo + "Sí, elegir este equipo".
- *   2. cargando  → botón con spinner + texto de progreso (el cambio toca legacy,
- *      puede tardar 1-2s; el texto evita que el spinner se sienta "pegado").
- *   3. éxito     → check animado + "¡Listo!" + "Continuar" (NO recarga la página
- *      en el acto: la navegación la decide el caller vía onSuccessContinue, así
- *      el spinner nunca queda girando durante un window.location).
- *
- * Elegir es una acción importante: consume el link y registra la selección.
- *
- * Rediseño visual (BAL-2186): mismo API de props y misma lógica; solo cambia
- * la presentación para calzar con el mock de Claude Design
- * (docs/superpowers/design-refs/mock-confirmacion.html, frames 1 y 2).
- */
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Que el paso "¿Confirmas tu elección?" sea un bottom sheet (drawer) en mobile y el mismo modal centrado en desktop, sin cambiar los callers.
+
+**Architecture:** Un solo archivo tocado (`ConfirmarEleccionModal.tsx`). Se extrae el contenido a un sub-componente local `ConfirmarEleccionContenido` con flag `variant: 'modal' | 'drawer'` (DRY). `ConfirmarEleccionModal` bifurca por `useIsMobile()` (768px): mobile → drawer `motion.div` (patrón calcado de `BuscadorBottomSheet`/`SeguroDetalleSheet`, envuelto en `AnimatePresence`); desktop → `<Modal>` NextUI actual.
+
+**Tech Stack:** Next.js 16, React 19, TypeScript, NextUI 2.6, framer-motion. Sin backend, sin tests unitarios (client component; se valida con tsc + E2E manual local).
+
+## Global Constraints
+
+- Español peruano, sin mexicanismos.
+- No builds pesados: `npx tsc --noEmit`, NO `npm run build`.
+- Rama `feature/bal-2212-oferta-ajustes-visuales-v2`.
+- Local only para pruebas.
+- Seguir el patrón de drawer YA existente en la oferta (motion.div + dragControls + `max-h-[85dvh]` + `env(safe-area-inset-bottom)`), NO el `Drawer` de NextUI.
+- Props del componente **idénticas** (los 2 callers no cambian): `isOpen, equipo, loading, onConfirm, onClose, addonsSlot, insuranceUpsellSlot`.
+- `loading` bloquea el cierre en ambas presentaciones.
+- La cara "¡Listo!" ya fue eliminada en un cambio previo — el componente solo tiene la cara de confirmación.
+
+---
+
+### Task 1: Extraer el contenido a `ConfirmarEleccionContenido` y bifurcar drawer/modal
+
+**Files:**
+- Modify: `src/app/prototipos/0.6/oferta/[token]/components/ConfirmarEleccionModal.tsx` (archivo completo — imports, nuevo sub-componente, y el cuerpo de `ConfirmarEleccionModal`).
+
+**Interfaces:**
+- Consume: `useIsMobile` de `@/app/prototipos/_shared`; `motion, AnimatePresence, useDragControls` de `framer-motion`; props actuales del componente.
+- Produce: nada nuevo hacia afuera (la firma pública de `ConfirmarEleccionModal` no cambia).
+
+**Contexto — imports actuales (líneas 18-22):**
+```typescript
+import type { ReactNode } from 'react';
+import { Modal, ModalContent, ModalBody, ModalFooter, Button } from '@nextui-org/react';
+import { ShoppingBag, X, CheckCircle2 } from 'lucide-react';
+import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
+import { OFERTA_COLORS } from './redesign/ofertaTheme';
+```
+
+- [ ] **Step 1: Actualizar imports**
+
+Reemplazar el bloque de imports (líneas 18-22) por:
+
+```typescript
 import type { ReactNode } from 'react';
 import { Modal, ModalContent, Button } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -22,40 +51,15 @@ import { ShoppingBag, X, CheckCircle2 } from 'lucide-react';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
+```
 
-/** Header índigo del modal (frames 1/2 del mock) — un tono propio, distinto
- *  del índigo primario de CTAs, para dar jerarquía visual al encabezado. */
-const HEADER_INDIGO = '#5850EC';
+Nota: se quitan `ModalBody`/`ModalFooter` del import de NextUI (el contenido pasa a usar `<div>` neutros para servir a ambas variantes) y se agregan `motion, AnimatePresence, useDragControls` y `useIsMobile`.
 
-export interface EquipoAConfirmar {
-  name: string;
-  brand?: string;
-  imageUrl?: string;
-  monthly?: number;
-  /** Plazo e inicial (%) elegidos — para mostrar "en N meses/semanas · inicial S/X". */
-  term?: number;
-  initial?: number;
-  /** Monto (S/) de la inicial. Se muestra en vez del %; si no viene, cae al %. */
-  initialAmount?: number;
-  /** Frecuencia ('mensual'|'semanal'|'quincenal') → sufijo de cuota y unidad de plazo. */
-  paymentFrequency?: string;
-}
+- [ ] **Step 2: Añadir el sub-componente `ConfirmarEleccionContenido`**
 
-/** Caja "Tu pedido incluye": envoltorio neutro reusado en ambos estados
- *  (confirmación/éxito) para el `addonsSlot` que pasa el caller. El contenido
- *  ya distingue regalos del combo (gratis) de lo elegido (+S/) y trae su propia
- *  cuota total — aquí solo lo enmarcamos, sin duplicar montos ni etiquetas. */
-function PedidoBox({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="mt-4 rounded-xl border p-3.5"
-      style={{ backgroundColor: OFERTA_COLORS.grayBg, borderColor: OFERTA_COLORS.border }}
-    >
-      {children}
-    </div>
-  );
-}
+Insertar esta función **justo antes** de `export function ConfirmarEleccionModal(` (después del helper `PedidoBox`). Contiene el header + body + footer que hoy están inline, con `<div>` neutros en vez de `ModalBody`/`ModalFooter`:
 
+```typescript
 /** Contenido del paso "¿Confirmas tu elección?" — compartido entre la
  *  presentación modal (desktop) y drawer (mobile). Header índigo + resumen del
  *  equipo + desglose (addonsSlot) + upsell seguros + aviso + footer con
@@ -81,17 +85,14 @@ function ConfirmarEleccionContenido({
 }) {
   return (
     <>
-      {/* Header índigo. pt reducido en mobile: el drawer ya trae arriba la franja
-          del drag-handle (también morada) con su propio padding, así que un pt
-          grande aquí dejaba un hueco visible entre la rayita y el título. En
-          desktop no hay handle, pero pt-4 sigue viéndose bien. */}
-      <div className="flex flex-none items-center gap-3 px-5 pb-[22px] pt-4" style={{ backgroundColor: HEADER_INDIGO }}>
+      {/* Header índigo */}
+      <div className="flex flex-none items-center gap-3 px-5 py-[22px]" style={{ backgroundColor: HEADER_INDIGO }}>
         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.16]">
           <ShoppingBag className="h-5 w-5 text-white" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-tight text-white [text-wrap:balance]">¿Confirmas tu elección?</h2>
-          <p className="text-[12.5px] leading-snug text-white/85">Estás a un paso de elegir tu equipo</p>
+          <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold text-white">¿Confirmas tu elección?</h2>
+          <p className="text-[12.5px] text-white/85">Estás a un paso de elegir tu equipo</p>
         </div>
         <button
           onClick={onClose}
@@ -190,29 +191,13 @@ function ConfirmarEleccionContenido({
     </>
   );
 }
+```
 
-export function ConfirmarEleccionModal({
-  isOpen,
-  equipo,
-  loading,
-  onConfirm,
-  onClose,
-  addonsSlot,
-  insuranceUpsellSlot,
-}: {
-  isOpen: boolean;
-  equipo: EquipoAConfirmar | null;
-  loading?: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-  /** Selector de accesorios/seguros (BAL-2064). Se renderiza dentro del modal,
-   *  antes del aviso, cuando se pasa. */
-  addonsSlot?: ReactNode;
-  /** "Asegura tu inversión" (feedback Marco): card verde con seguros
-   *  disponibles NO seleccionados + botón "Añadir", antes del aviso final.
-   *  Solo se pasa cuando el caller tiene seguros disponibles sin elegir. */
-  insuranceUpsellSlot?: ReactNode;
-}) {
+- [ ] **Step 3: Reescribir el cuerpo de `ConfirmarEleccionModal`**
+
+Reemplazar todo el cuerpo de la función `ConfirmarEleccionModal` (desde `const dismiss = ...` hasta el `);` final, o sea el `return (...)` completo) por la bifurcación mobile/desktop. El bloque de destructuring de props (líneas 57-78) NO cambia. Nuevo cuerpo:
+
+```typescript
   const isMobile = useIsMobile();
   const dragControls = useDragControls();
   const dismiss = () => (loading ? undefined : onClose());
@@ -252,14 +237,13 @@ export function ConfirmarEleccionModal({
               className="fixed bottom-0 left-0 right-0 z-[101] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-white"
               style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-              {/* Drag handle (deshabilitado mientras carga). Fondo morado igual
-                  al header para que la franja superior no se vea blanca. */}
+              {/* Drag handle (deshabilitado mientras carga) */}
               <div
                 onPointerDown={(e) => { if (!loading) dragControls.start(e); }}
                 className="flex flex-none justify-center pt-3 pb-1"
-                style={{ cursor: loading ? 'default' : 'grab', backgroundColor: HEADER_INDIGO }}
+                style={{ cursor: loading ? 'default' : 'grab' }}
               >
-                <div className="h-1 w-10 rounded-full bg-white/40" />
+                <div className="h-1 w-10 rounded-full bg-neutral-300" />
               </div>
               <ConfirmarEleccionContenido
                 equipo={equipo}
@@ -283,7 +267,7 @@ export function ConfirmarEleccionModal({
       isOpen={isOpen}
       onClose={dismiss}
       placement="center"
-      size={addonsSlot ? '2xl' : 'md'}
+      size={addonsSlot ? 'lg' : 'md'}
       scrollBehavior="inside"
       hideCloseButton
       backdrop="opaque"
@@ -291,15 +275,12 @@ export function ConfirmarEleccionModal({
       classNames={{
         wrapper: 'z-[101]',
         backdrop: 'z-[100] bg-black/50',
-        // max-h + overflow-hidden acotan el modal al viewport; el header y el
-        // footer quedan fijos y SOLO el body (flex-1 overflow-y-auto) scrollea
-        // cuando el contenido es largo (varios seguros en "Asegura tu inversión").
-        base: 'bg-white rounded-2xl overflow-hidden max-h-[90vh] my-auto',
+        base: 'bg-white rounded-2xl overflow-hidden',
         body: 'bg-white p-0',
         footer: 'bg-white',
       }}
     >
-      <ModalContent className="flex max-h-[90vh] flex-col overflow-hidden">
+      <ModalContent>
         <ConfirmarEleccionContenido
           equipo={equipo}
           loading={loading}
@@ -307,9 +288,54 @@ export function ConfirmarEleccionModal({
           onClose={onClose}
           addonsSlot={addonsSlot}
           insuranceUpsellSlot={insuranceUpsellSlot}
-          scrollClassName="flex-1 overflow-y-auto"
+          scrollClassName=""
         />
       </ModalContent>
     </Modal>
   );
-}
+```
+
+Notas:
+- El drawer usa `z-[100]` (backdrop) / `z-[101]` (sheet) — coherente con el `z-[101]` que el modal ya usa para su wrapper. (Los otros sheets usan `z-[9998]/9999`; aquí se alinea con el z del modal existente para no romper stacking con otros overlays de la oferta, y como el drawer y el modal son mutuamente excluyentes por viewport, no compiten.)
+- `drag={loading ? false : 'y'}` y el guard en `onDragEnd`/`onPointerDown` implementan "no se puede arrastrar para cerrar mientras carga".
+- En desktop `scrollClassName=""` (el `<Modal scrollBehavior="inside">` ya maneja el scroll); en mobile `flex-1 overflow-y-auto` (scroll dentro del 85dvh).
+
+- [ ] **Step 4: Verificar que compila**
+
+Run: `npx tsc --noEmit 2>&1 | grep -iE "ConfirmarEleccionModal|AccesoriosOfertaClient|MiOfertaClient"`
+Expected: sin salida (0 errores en esos archivos). Errores preexistentes ajenos (ej. `landingApi.heroFlags.test.ts`) se ignoran.
+
+- [ ] **Step 5: Verificar que no quedaron imports/símbolos huérfanos**
+
+Run: `grep -nE "ModalBody|ModalFooter" "src/app/prototipos/0.6/oferta/[token]/components/ConfirmarEleccionModal.tsx"`
+Expected: sin salida (ya no se usan `ModalBody`/`ModalFooter`).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add "src/app/prototipos/0.6/oferta/[token]/components/ConfirmarEleccionModal.tsx"
+git commit -m "feat(oferta): ConfirmarEleccionModal como drawer en mobile, modal en desktop (BAL-2212)
+
+Extrae el contenido a ConfirmarEleccionContenido (variant modal/drawer, DRY) y
+bifurca por useIsMobile (768px): mobile → bottom sheet motion.div con el patrón
+de los otros drawers de la oferta (backdrop + spring + dragControls + drag
+handle + 85dvh + safe-area; drag/backdrop no cierran si loading); desktop → el
+Modal NextUI de siempre. Props y callers sin cambios; loading bloquea el cierre.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Verificación E2E (tras implementar, manual, local)
+
+1. **Front (3001)** con `.env.local` apuntando al backend local; refrescar para tomar el cambio.
+2. **Mobile** (DevTools device toolbar <768px o ventana angosta): en complementos, "Continuar" → aparece un **bottom sheet** deslizando desde abajo con el desglose + "Confirmar". Arrastrar el handle hacia abajo lo cierra; tap en backdrop lo cierra. Tocar "Confirmar" → "Procesando…" (no se puede arrastrar ni cerrar) → redirige a "¡Felicidades!".
+3. **Desktop** (≥768px): "Continuar" → **modal centrado** de siempre (sin cambios visuales); "Confirmar" → "Procesando…" → redirige.
+4. **No-regresión index:** abrir el modal de confirmación del index (`MiOfertaClient`, sin addonsSlot) en mobile → drawer; en desktop → modal.
+
+## Self-Review (hecho por el autor del plan)
+
+- **Spec coverage:** el spec pide (1) drawer en mobile con el patrón existente ✓ Step 3; (2) modal en desktop ✓ Step 3; (3) contenido extraído DRY ✓ Step 2; (4) props/callers sin cambios ✓ (destructuring intacto, `ConfirmarEleccionContenido` es interno); (5) loading bloquea cierre ✓ (drag=false, backdrop dismiss guard, X disabled, isDismissable); (6) cara "¡Listo!" ya eliminada — el contenido solo tiene confirmación ✓. Sin gaps.
+- **Placeholder scan:** sin TBD/TODO; todo el JSX está literal (copiado del componente actual verificado).
+- **Type consistency:** `ConfirmarEleccionContenido` recibe los mismos tipos que las props del modal (`EquipoAConfirmar | null`, `ReactNode`, callbacks) + `scrollClassName: string`. `useIsMobile` retorna `boolean`. `useDragControls`/`motion`/`AnimatePresence` de framer-motion (ya usados en otros sheets de la oferta con la misma firma).

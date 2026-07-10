@@ -606,6 +606,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     thumbnail: comboImage || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
     comboImage,
     comboId,
+    comboAddons: (apiProduct as { combo_addons?: CatalogProduct['comboAddons'] }).combo_addons,
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],

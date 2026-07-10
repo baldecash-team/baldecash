@@ -20,3 +20,5 @@ export { FeedbackModal } from './components/FeedbackModal';
 export { Toast, useToast } from './components/Toast';
 export type { ToastType, ToastProps, UseToastReturn } from './components/Toast';
 export { CubeGridSpinner } from './components/CubeGridSpinner';
+export { ScrollToTopButton } from './components/ScrollToTopButton';
+export type { ScrollToTopButtonProps } from './components/ScrollToTopButton';

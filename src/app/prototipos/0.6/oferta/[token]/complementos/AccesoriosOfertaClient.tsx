@@ -16,8 +16,9 @@
  * solo se reemplazó el render.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, Check } from 'lucide-react';
+import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -37,12 +38,11 @@ import { OfertaHeader } from '../components/redesign/OfertaHeader';
 import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
 import { TuEquipoCard } from './redesign/TuEquipoCard';
 import { IncluidosGratisSection } from './redesign/IncluidosGratisSection';
-import { AccesorioRecomendadoCard } from './redesign/AccesorioRecomendadoCard';
+import { AccesorioFilaCard } from './redesign/AccesorioFilaCard';
 import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
 import { CuotaStickyBar } from './redesign/CuotaStickyBar';
 import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
-import { AccesorioDetalleSheet } from './redesign/AccesorioDetalleSheet';
-import { SeguroDetalleSheet } from './redesign/SeguroDetalleSheet';
+import { AccessoryDetailModal, InsuranceDetailModal } from '../../../[landing]/solicitar/components/upsell';
 
 /** localStorage: persiste la selección de add-ons por token + variante, para
  *  sobrevivir un refresh o ida/vuelta sin perder lo elegido. Se limpia al
@@ -116,13 +116,24 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // etiqueta "Incluido gratis".
   const [comboFree, setComboFree] = useState<{ accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] }>({ accessories: [], insurances: [] });
   const [confirming, setConfirming] = useState(false);
+  // Bloqueo SÍNCRONO anti-doble-clic: el estado `confirming` es asíncrono, así
+  // que un doble tap muy rápido podría disparar confirmar() dos veces antes de
+  // que el re-render deshabilite el botón. El ref bloquea en el mismo tick.
+  const confirmLock = useRef(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   const [detailInsurance, setDetailInsurance] = useState<InsurancePlan | null>(null);
+  // De dónde se abrió el detalle (accesorio/seguro), para saber a qué volver al
+  // cerrarlo: al buscador, a la lista de recomendados (sin reabrir nada), o al
+  // modal de confirmación (que se cierra al abrir el detalle y se reabre al cerrar).
+  const [detailOrigin, setDetailOrigin] = useState<'buscador' | 'recomendado' | 'confirmacion'>('buscador');
   // Bottom sheet "Añadir al pedido" (rediseño BAL-2185) — solo UI, no reemplaza
   // el fetch/estado real de accesorios y seguros.
   const [showBuscador, setShowBuscador] = useState(false);
   // Modal de confirmación (siempre, con desglose de add-ons).
   const [modalOpen, setModalOpen] = useState(false);
+  // Modal "¿Estás seguro?" (segunda confirmación antes de guardar): al tocar
+  // "Confirmar" en el modal de elección, se muestra este check final.
+  const [showSeguro, setShowSeguro] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
   // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
@@ -328,11 +339,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const accFits = (a: Accessory) => selectedAcc.includes(a.id) || (a.monthlyQuota || 0) <= remaining + 0.5;
   const insFits = (p: InsurancePlan) => selectedIns.includes(p.id) || (p.monthlyPrice || 0) <= remaining + 0.5;
 
-  // Confirmación real (desde el modal). Al terminar, el modal pasa a "¡Listo!";
-  // la navegación a la oferta ocurre al presionar "Continuar" (onSuccessContinue),
-  // así el spinner no queda girando durante el window.location.
+  // Confirmación real (desde el modal). Tras el OK del backend, redirige DIRECTO
+  // a la página de confirmación (/oferta/{token} → SeleccionConfirmada,
+  // "¡Felicidades!"), sin la cara "¡Listo!" intermedia del modal (BAL-2212).
+  // Se mantiene confirming=true hasta la navegación para no cortar el spinner.
   const confirmar = useCallback(async () => {
     if (variantId == null) return;
+    // Anti-doble-clic: si ya hay una confirmación en curso, ignorar. El ref se
+    // libera solo en el catch (reintentar); en éxito NO se libera porque la
+    // página navega (window.location) y el botón queda inactivo hasta entonces.
+    if (confirmLock.current) return;
+    confirmLock.current = true;
     setConfirming(true);
     try {
       await selectEquipment(token, variantId, comboId, {
@@ -349,12 +366,20 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       // Ya quedó en BD → limpiar el borrador local para no restaurarlo luego.
       clearStoredAddons(token, variantId);
       clearOfferSelection(token);
-      setConfirming(false);
+      // Marca succeeded para el guard del auto-save (l.238) y el analytics
+      // (l.284), pero NO se muestra la cara "¡Listo!" del modal: se redirige
+      // directo a la página de confirmación (¡Felicidades!). Se mantiene
+      // `confirming=true` (no se llama setConfirming(false)) para que el botón
+      // siga en "Procesando tu cambio…" hasta que la navegación reemplace la
+      // página — evita un flash de la cara "¡Listo!" o del botón "Confirmar".
       setSucceeded(true);
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
     } catch (err) {
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
       setConfirming(false);
       setModalOpen(false);
+      setShowSeguro(false); // cierra la segunda confirmación en caso de error
+      confirmLock.current = false; // libera para permitir reintentar
     }
   }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
 
@@ -378,7 +403,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           <li className="flex items-center justify-between gap-3 text-sm">
             <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textStrong }}>
               <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-              <span className="min-w-0 truncate font-medium">{equipoInfo?.name ?? 'Tu equipo'}</span>
+              <span className="min-w-0 font-medium">{equipoInfo?.name ?? 'Tu equipo'}</span>
             </span>
             <span className="shrink-0 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
               S/{Math.round(equipoMonthly)}{suf}
@@ -389,7 +414,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`cf-a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <Gift className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-                <span className="truncate">{a.name}</span>
+                <span className="min-w-0">{a.name}</span>
               </span>
               <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
             </li>
@@ -398,7 +423,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`cf-i-${s.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <Gift className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-                <span className="truncate">{s.name}</span>
+                <span className="min-w-0">{s.name}</span>
               </span>
               <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
             </li>
@@ -408,7 +433,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.textSoft }} />
-                <span className="truncate">{a.name}</span>
+                <span className="min-w-0">{a.name}</span>
               </span>
               <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(a.monthlyQuota || 0)}{suf}</span>
             </li>
@@ -417,7 +442,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <li key={`i-${p.id}`} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                 <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.textSoft }} />
-                <span className="truncate">{p.name}</span>
+                <span className="min-w-0">{p.name}</span>
               </span>
               <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(p.monthlyPrice || 0)}{suf}</span>
             </li>
@@ -432,17 +457,14 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             S/{Math.round(totalMonthly)}{suf}
           </span>
         </div>
-        {!hayRegalos && accSel.length === 0 && insSel.length === 0 ? (
-          <p className="mt-2 text-center text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
-            Puedes sumar accesorios o seguros antes de confirmar.
-          </p>
-        ) : null}
       </div>
     );
   }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency, equipoInfo, equipoMonthly]);
 
   // Accesorio recomendado (destacado arriba, BAL-2185): el primero del listado.
   const recomendado = accessories.length > 0 ? accessories[0] : null;
+  // Los 4 primeros accesorios como shortcut horizontal "Recomendado para ti".
+  const recomendados = accessories.slice(0, 4);
 
   // "Tus extras" (rediseño): accesorios y seguros ya seleccionados, sin repetir
   // el recomendado (que ya se muestra arriba en su propia card).
@@ -480,40 +502,198 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   }, [accessories, insurances, selectedAcc, selectedIns]);
 
   // "Asegura tu inversión" dentro del modal de confirmación (A11, feedback
-  // Marco): seguros disponibles que aún NO se eligieron, con botón "Añadir"
-  // (reusa toggleIns — no hay endpoint nuevo). Condicional a que exista al
-  // menos un seguro sin seleccionar que además quepa en la cuota.
+  // Marco): TODOS los seguros disponibles como toggle (agregar/quitar), no solo
+  // los no elegidos — al seleccionar uno NO desaparece, cambia a estado elegido.
+  // Si un seguro NO cabe en la cuota y no está elegido, se atenúa con el badge
+  // "Supera tu cuota" (mismo patrón que los accesorios, AccesorioFilaCard).
   const insuranceUpsellSlot = useMemo(() => {
-    const noSeleccionados = insurances.filter((p) => !selectedIns.includes(p.id) && insFits(p));
-    if (noSeleccionados.length === 0) return null;
+    if (insurances.length === 0) return null;
     const suf = cuotaSuffix(equipoFrequency);
+    // Ícono, label, descripción y beneficios: MISMOS criterios que el flujo
+    // regular (InsuranceCards.tsx getInsuranceIcon/Label/Description/Benefits),
+    // para que la info del seguro sea idéntica en ambos flujos.
+    const iconFor = (type: string) => (type === 'seguro_robo' ? Lock : ShieldCheck);
+    const labelFor = (type: string) => {
+      switch (type) {
+        case 'garantia_extendida': return 'Garantía extendida';
+        case 'seguro_robo': return 'Protección contra robo';
+        default: return type.replace(/_/g, ' ');
+      }
+    };
+    const descFor = (type: string) => {
+      switch (type) {
+        case 'garantia_extendida': return 'Protección completa contra fallas técnicas o defectos de fábrica.';
+        case 'seguro_robo': return 'Protección mundial contra robo. Reposición inmediata sin deducible.';
+        default: return '';
+      }
+    };
+    const benefitsFor = (type: string): string[] => {
+      switch (type) {
+        case 'garantia_extendida': return [
+          '3 años de cobertura',
+          'Sin deducibles ni papeleos',
+          'Cobertura mundial 100% digital',
+        ];
+        case 'seguro_robo': return [
+          'Cobertura por robo y hurto',
+          'Reposición sin deducible',
+          'Proceso de reclamo 100% digital',
+        ];
+        default: return [];
+      }
+    };
     return (
       <div
         className="mt-4 rounded-xl border p-3.5"
         style={{ backgroundColor: OFERTA_COLORS.greenSoft, borderColor: OFERTA_COLORS.greenDark + '33' }}
       >
-        <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
-          Asegura tu inversión
-        </p>
-        <div className="mt-2 space-y-2">
-          {noSeleccionados.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
-              <span className="min-w-0 text-[12.5px]" style={{ color: OFERTA_COLORS.textStrong }}>
-                <span className="block truncate font-medium">{p.name}</span>
-                <span style={{ color: OFERTA_COLORS.textMid }}>
-                  Añade garantía extendida por +S/{Math.round(p.monthlyPrice || 0)}{suf} antes de confirmar
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => toggleIns(p.id)}
-                className="shrink-0 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-white"
-                style={{ backgroundColor: OFERTA_COLORS.greenDark }}
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+          <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+            Asegura tu inversión
+          </p>
+        </div>
+        {/* 1 solo seguro → ocupa el 100% del ancho (1 col); 2+ → 2 columnas en
+            desktop. En mobile siempre 1 columna. */}
+        <div className={`mt-2.5 grid grid-cols-1 gap-2.5 ${insurances.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+          {insurances.map((p) => {
+            const Icon = iconFor(p.insuranceType);
+            const agregado = selectedIns.includes(p.id);
+            // "No cabe" solo aplica si aún no está elegido: un seguro elegido
+            // siempre se puede quitar aunque ya no quepa nada más.
+            const bloqueado = !insFits(p) && !agregado;
+            // Beneficios y descripción: mismos textos hardcodeados del flujo
+            // regular (benefitsFor/descFor por insuranceType), no coverage[] del
+            // backend, para que la info sea idéntica entre ambos flujos.
+            const beneficios = benefitsFor(p.insuranceType);
+            const descripcion = descFor(p.insuranceType);
+            return (
+              <div
+                key={p.id}
+                className={`flex h-full flex-col overflow-hidden rounded-xl border-[1.5px] bg-white transition-opacity ${bloqueado ? 'opacity-55' : ''}`}
+                style={{ borderColor: agregado ? OFERTA_COLORS.greenDark : OFERTA_COLORS.border, boxShadow: '0 1px 2px rgba(16,24,40,.06)' }}
               >
-                Añadir
-              </button>
-            </div>
-          ))}
+                <div className="flex flex-1 flex-col p-3.5">
+                  {/* Header: ícono + eyebrow/nombre (+ check si elegido) */}
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="flex h-10 w-10 flex-none items-center justify-center rounded-xl"
+                      style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.greenDark }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className="text-[10.5px] font-bold uppercase leading-tight tracking-wide" style={{ color: OFERTA_COLORS.tealBrand }}>
+                          {labelFor(p.insuranceType)}
+                        </span>
+                        {p.isRecommended ? (
+                          <span
+                            className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white"
+                            style={{ backgroundColor: OFERTA_COLORS.greenDark }}
+                          >
+                            Recomendado
+                          </span>
+                        ) : null}
+                      </div>
+                      <h3 className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold leading-tight" style={{ color: OFERTA_COLORS.textStrong }}>
+                        {p.name}
+                      </h3>
+                    </div>
+                    {agregado ? (
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full" style={{ backgroundColor: OFERTA_COLORS.greenDark }}>
+                        <Check className="h-3.5 w-3.5 text-white" strokeWidth={2.8} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Bloque de precio (destacado, con total en cuotas) */}
+                  <div className="mt-3 rounded-lg px-3 py-2" style={{ backgroundColor: OFERTA_COLORS.greenSoft }}>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-['Baloo_2',_sans-serif] text-[20px] font-extrabold leading-none" style={{ color: OFERTA_COLORS.greenDark }}>
+                        +S/{Math.round(p.monthlyPrice || 0)}
+                      </span>
+                      <span className="text-[12px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>{suf}</span>
+                    </div>
+                    {p.totalPrice ? (
+                      <p className="mt-0.5 text-[11px]" style={{ color: OFERTA_COLORS.textMid }}>
+                        Total S/{Math.round(p.totalPrice).toLocaleString('es-PE')} en {p.paymentMonths} cuotas
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {/* Descripción corta (mismo texto que el flujo regular). */}
+                  {descripcion ? (
+                    <p className="mt-2.5 text-[12px] leading-snug" style={{ color: OFERTA_COLORS.textMid }}>
+                      {descripcion}
+                    </p>
+                  ) : null}
+
+                  {/* Beneficios (3 con check) */}
+                  {beneficios.length > 0 ? (
+                    <ul className="mt-2.5 space-y-1.5">
+                      {beneficios.map((b, i) => (
+                        <li key={i} className="flex items-start gap-1.5 text-[11.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+                          <Check className="mt-[2px] h-3.5 w-3.5 flex-none" strokeWidth={2.6} style={{ color: OFERTA_COLORS.greenDark }} />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {/* Duración + proveedor (pb-3 para separar del botón que viene
+                      anclado abajo con mt-auto). */}
+                  {(p.durationMonths || p.provider?.name) ? (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pb-3 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                      {p.durationMonths ? <span>{p.durationMonths} meses</span> : null}
+                      {p.durationMonths && p.provider?.name ? <span>·</span> : null}
+                      {p.provider?.name ? <span>{p.provider.name}</span> : null}
+                    </div>
+                  ) : null}
+
+                  {/* Acciones: toggle full-width + "Ver detalle" / badge "Supera tu
+                      cuota". mt-auto → pegado al fondo para alinear el botón entre
+                      las 2 columnas aunque las cards tengan distinto alto. */}
+                  <button
+                    type="button"
+                    onClick={() => toggleIns(p.id)}
+                    disabled={bloqueado}
+                    className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-lg border-[1.5px] py-2.5 text-[13px] font-bold transition-all duration-200 ease-out enabled:cursor-pointer enabled:hover:brightness-95 enabled:active:scale-[.98] disabled:cursor-not-allowed"
+                    style={
+                      agregado
+                        ? { borderColor: OFERTA_COLORS.greenDark, backgroundColor: '#fff', color: OFERTA_COLORS.greenDark }
+                        : { borderColor: OFERTA_COLORS.greenDark, backgroundColor: OFERTA_COLORS.greenDark, color: '#fff' }
+                    }
+                  >
+                    {agregado ? (
+                      <><Check className="h-4 w-4" strokeWidth={2.6} /> Agregado</>
+                    ) : (
+                      <><Plus className="h-4 w-4" strokeWidth={2.6} /> Añadir protección</>
+                    )}
+                  </button>
+                  {bloqueado ? (
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold" style={{ color: '#B45309' }}>
+                      <TriangleAlert className="h-3 w-3 shrink-0" strokeWidth={2.4} />
+                      Supera tu cuota
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailOrigin('confirmacion');
+                        setModalOpen(false);
+                        window.setTimeout(() => setDetailInsurance(p), 220);
+                      }}
+                      className="mt-1.5 w-full cursor-pointer text-center text-[11px] font-semibold"
+                      style={{ color: OFERTA_COLORS.tealBrand }}
+                    >
+                      Ver detalle
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -552,12 +732,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           (vive en localStorage). El detalle del equipo sigue accesible desde
           el catálogo / la card. */}
       <nav aria-label="Ruta" className="mx-auto w-full max-w-md px-4 pt-4">
-        <ol className="flex flex-wrap items-center gap-1 text-[13px]">
+        <ol className="flex flex-wrap items-center gap-1.5 text-[13px]">
+          {/* Pasos anteriores: mini-pills clicables (chip lila, hover claro). */}
           <li>
             <button
               onClick={goToIndex}
-              className="cursor-pointer font-medium transition-colors hover:underline"
-              style={{ color: OFERTA_COLORS.textMid }}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97]"
+              style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E522', color: '#4F46E5' }}
             >
               Mi oferta
             </button>
@@ -566,14 +747,19 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           <li>
             <button
               onClick={goToCatalogo}
-              className="cursor-pointer font-medium transition-colors hover:underline"
-              style={{ color: OFERTA_COLORS.textMid }}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97]"
+              style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E522', color: '#4F46E5' }}
             >
               Catálogo
             </button>
           </li>
           <li aria-hidden="true" style={{ color: OFERTA_COLORS.textSoft }}>›</li>
-          <li aria-current="page" className="font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+          {/* Paso actual: destacado, no clicable. */}
+          <li
+            aria-current="page"
+            className="inline-flex items-center rounded-lg px-2.5 py-1 text-[12px] font-bold text-white"
+            style={{ backgroundColor: OFERTA_COLORS.primary }}
+          >
             Complementos
           </li>
         </ol>
@@ -601,52 +787,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             total={totalMonthly}
           />
         )}
-
-        {/* ¡Asegura tu inversión! (feedback Marco): shortcut visual a los
-            seguros disponibles sin entrar al buscador. Condicional a que haya
-            seguros disponibles para este equipo. */}
-        {insurances.length > 0 ? (
-          <div
-            className="rounded-xl border p-3.5"
-            style={{ backgroundColor: OFERTA_COLORS.greenSoft, borderColor: OFERTA_COLORS.greenDark + '33' }}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-              <p className="font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
-                ¡Asegura tu inversión!
-              </p>
-            </div>
-            <p className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
-              Protege tu equipo con estas opciones:
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-2.5">
-              {insurances.map((p) => {
-                const seleccionado = selectedIns.includes(p.id);
-                const fits = insFits(p);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => toggleIns(p.id)}
-                    disabled={!fits}
-                    className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5 text-left transition-all hover:border-[#4F46E5] hover:bg-[#EEF1FF] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[color:inherit] disabled:hover:bg-white disabled:hover:shadow-none"
-                    style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
-                  >
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="min-w-0 truncate text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
-                        {p.name}
-                      </span>
-                      {seleccionado ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" style={{ color: OFERTA_COLORS.primary }} /> : null}
-                    </span>
-                    <span className="shrink-0 text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
-                      +S/{Math.round(p.monthlyPrice || 0)}/mes
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
 
         {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una
             opción (BAL-2097). No forma parte del mock visual, pero la
@@ -690,17 +830,26 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Incluidos gratis (regalos del combo, BAL-2159) */}
         <IncluidosGratisSection accesorios={comboFree.accessories} seguros={comboFree.insurances} />
 
-        {/* Recomendado para ti */}
-        {recomendado ? (
+        {/* Recomendado para ti: 4 primeros en scroll horizontal, cada uno con
+            "Ver detalle" (abre el drawer). Badge "Recomendado" en el primero. */}
+        {recomendados.length > 0 ? (
           <div>
             <h2 className="mb-2.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               Recomendado para ti
             </h2>
-            <AccesorioRecomendadoCard
-              accesorio={recomendado}
-              seleccionado={selectedAcc.includes(recomendado.id)}
-              onToggle={() => toggleAcc(recomendado)}
-            />
+            <div className="space-y-2.5">
+              {recomendados.map((a, i) => (
+                <AccesorioFilaCard
+                  key={a.id}
+                  accesorio={a}
+                  agregado={selectedAcc.includes(a.id)}
+                  onToggle={() => toggleAcc(a)}
+                  onVerDetalle={() => { setDetailOrigin('recomendado'); setDetailAccessory(a); }}
+                  badge={i === 0 ? 'Recomendado' : undefined}
+                  noCabe={!accFits(a)}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
 
@@ -715,7 +864,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
           <Plus className="h-4 w-4" strokeWidth={2.4} />
-          Añadir uno más
+          Ver más accesorios
         </button>
 
         {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado. */}
@@ -734,7 +883,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             if (overBudget) return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
             setModalOpen(true);
           }}
-          ctaText={overBudget ? 'Supera tu cuota' : 'Añadir accesorios y seguros'}
+          ctaText={overBudget ? 'Supera tu cuota' : 'Confirmar mi pedido'}
         />
       </div>
 
@@ -745,49 +894,49 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {showBuscador && !detailAccessory && !detailInsurance ? (
           <BuscadorBottomSheet
             accesorios={accessories}
-            seguros={insurances}
             seleccionadosAcc={selectedAcc}
-            seleccionadosIns={selectedIns}
             onToggleAcc={toggleAcc}
-            onToggleIns={toggleIns}
-            onVerDetalle={(a) => setDetailAccessory(a)}
-            onVerDetalleSeguro={(s) => setDetailInsurance(s)}
+            onVerDetalle={(a) => { setDetailOrigin('buscador'); setDetailAccessory(a); }}
             total={totalMonthly}
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
             accFits={accFits}
-            insFits={insFits}
           />
         ) : null}
       </AnimatePresence>
 
-      {/* Bottom sheet detalle de accesorio (BAL-2185). "Volver a la lista"
-          (onVolver) reabre el buscador; la X (onCerrar) cierra todo. */}
-      <AnimatePresence>
-        {detailAccessory ? (
-          <AccesorioDetalleSheet
-            accesorio={detailAccessory}
-            agregado={selectedAcc.includes(detailAccessory.id)}
-            onAgregar={() => toggleAcc(detailAccessory)}
-            onVolver={() => { setDetailAccessory(null); setShowBuscador(true); }}
-            onCerrar={() => { setDetailAccessory(null); setShowBuscador(false); }}
-          />
-        ) : null}
-      </AnimatePresence>
+      {/* Detalle de accesorio: MISMO componente del flujo regular
+          (AccessoryDetailModal), responsive (modal desktop / bottom sheet mobile),
+          probado en prod. Al cerrar vuelve según el origen: si se abrió desde el
+          buscador, lo reabre; desde "Recomendado para ti", no reabre nada. */}
+      <AccessoryDetailModal
+        accessory={detailAccessory}
+        isOpen={detailAccessory !== null}
+        isSelected={detailAccessory ? selectedAcc.includes(detailAccessory.id) : false}
+        onToggle={() => { if (detailAccessory) toggleAcc(detailAccessory); }}
+        onClose={() => {
+          setDetailAccessory(null);
+          if (detailOrigin === 'buscador') setShowBuscador(true);
+        }}
+      />
 
-      {/* Bottom sheet detalle de SEGURO (feedback Emilio: los seguros también
-          tienen más info). Mismo patrón de drawers exclusivos que el accesorio. */}
-      <AnimatePresence>
-        {detailInsurance ? (
-          <SeguroDetalleSheet
-            seguro={detailInsurance}
-            agregado={selectedIns.includes(detailInsurance.id)}
-            onAgregar={() => toggleIns(detailInsurance.id)}
-            onVolver={() => { setDetailInsurance(null); setShowBuscador(true); }}
-            onCerrar={() => { setDetailInsurance(null); setShowBuscador(false); }}
-          />
-        ) : null}
-      </AnimatePresence>
+      {/* Detalle de seguro: MISMO componente del flujo regular
+          (InsuranceDetailModal), responsive. Al cerrar vuelve según el origen:
+          buscador → reabre buscador; confirmacion → reabre el modal de
+          confirmación; recomendado → no reabre nada. */}
+      <InsuranceDetailModal
+        plan={detailInsurance}
+        isOpen={detailInsurance !== null}
+        isSelected={detailInsurance ? selectedIns.includes(detailInsurance.id) : false}
+        onToggle={() => { if (detailInsurance) toggleIns(detailInsurance.id); }}
+        onClose={() => {
+          setDetailInsurance(null);
+          if (detailOrigin === 'buscador') setShowBuscador(true);
+          // Reabrir el modal de confirmación tras la animación de salida del
+          // detalle (~220ms), para que las transiciones no se solapen.
+          else if (detailOrigin === 'confirmacion') window.setTimeout(() => setModalOpen(true), 220);
+        }}
+      />
 
       {/* Modal de confirmación (siempre) con desglose de equipo + add-ons.
           Fase 3 lo rediseña; se mantiene tal cual por ahora. */}
@@ -799,15 +948,70 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             : { name: 'Tu equipo', monthly: equipoMonthly, term: (equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm), initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
         }
         loading={confirming}
-        succeeded={succeeded}
-        onConfirm={confirmar}
+        onConfirm={() => setShowSeguro(true)}
         onClose={() => (confirming ? undefined : setModalOpen(false))}
-        onSuccessContinue={() => {
-          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
-        }}
         addonsSlot={addonsResumen}
-        insuranceUpsellSlot={succeeded ? null : insuranceUpsellSlot}
+        insuranceUpsellSlot={insuranceUpsellSlot}
       />
+
+      {/* Segunda confirmación "¿Estás seguro?" — modal centrado (desktop y mobile).
+          "Sí, confirmar" guarda (confirmar); "Cancelar" vuelve al modal de
+          elección. Se bloquea el cierre mientras confirma. */}
+      <Modal
+        isOpen={showSeguro}
+        onClose={() => (confirming ? undefined : setShowSeguro(false))}
+        placement="center"
+        size="sm"
+        hideCloseButton
+        backdrop="opaque"
+        isDismissable={!confirming}
+        classNames={{
+          wrapper: 'z-[201]',
+          backdrop: 'z-[200] bg-black/50',
+          base: 'bg-white rounded-2xl overflow-hidden mx-4',
+          body: 'bg-white p-0',
+        }}
+      >
+        <ModalContent>
+          <ModalBody>
+            <div className="px-5 py-6 text-center">
+              <div
+                className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ backgroundColor: '#FEF3E2' }}
+              >
+                <TriangleAlert className="h-6 w-6" strokeWidth={2.2} style={{ color: '#B45309' }} />
+              </div>
+              <h2 className="mt-3.5 font-['Baloo_2',_sans-serif] text-[19px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                ¿Estás seguro?
+              </h2>
+              <p className="mt-1.5 text-[13.5px] leading-[1.5]" style={{ color: OFERTA_COLORS.textMid }}>
+                Al confirmar, cambiaremos tu equipo y tu solicitud quedará aprobada.
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={confirmar}
+                  disabled={confirming}
+                  className="flex w-full cursor-pointer items-center justify-center rounded-lg py-3.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
+                  style={{ backgroundColor: OFERTA_COLORS.primary }}
+                >
+                  {confirming ? 'Procesando…' : 'Sí, confirmar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSeguro(false)}
+                  disabled={confirming}
+                  className="w-full cursor-pointer rounded-lg py-3 font-['Baloo_2',_sans-serif] text-[14px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ color: OFERTA_COLORS.textMid }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

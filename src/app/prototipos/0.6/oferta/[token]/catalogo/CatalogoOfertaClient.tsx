@@ -9,8 +9,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { CubeGridSpinner } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, ScrollToTopButton } from '@/app/prototipos/_shared';
 
+import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
 import type { CatalogProduct } from '../../../[landing]/catalogo/types/catalog';
 import {
   getOffer,
@@ -138,6 +139,12 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onBack={backToOferta}
+      />
+
+      {/* Botón "volver arriba" — componente compartido, tema de la oferta. */}
+      <ScrollToTopButton
+        className="fixed bottom-6 right-6 z-[100] flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-white shadow-lg transition-all duration-200 ease-out hover:scale-110 hover:brightness-95 active:scale-95"
+        style={{ backgroundColor: OFERTA_COLORS.primary, boxShadow: '0 6px 16px rgba(79,70,229,.4)' }}
       />
     </div>
   );

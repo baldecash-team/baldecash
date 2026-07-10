@@ -70,10 +70,10 @@ export function TusExtras({ items, onQuitar }: TusExtrasProps) {
               )}
 
               <div className="min-w-0 flex-1">
-                <div className="truncate font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                <div className="font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                   {item.name}
                 </div>
-                <div className="mt-0.5 truncate text-[12px]" style={{ color: OFERTA_COLORS.textMid }}>
+                <div className="mt-0.5 text-[12px]" style={{ color: OFERTA_COLORS.textMid }}>
                   {item.subtitle ? (
                     <>
                       {item.subtitle}
