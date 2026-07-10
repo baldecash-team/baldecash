@@ -8,9 +8,10 @@
  *
  * Presentación rediseñada (BAL-2185, Task 9) siguiendo
  * docs/superpowers/design-refs/mock-accesorios.html: TuEquipoCard +
- * IncluidosGratisSection + AccesorioRecomendadoCard + TusExtras +
- * CuotaStickyBar, con BuscadorBottomSheet y AccesorioDetalleSheet como
- * bottom sheets para agregar más accesorios/seguros o ver el detalle de uno.
+ * IncluidosGratisSection + AccesorioFilaCard + TusExtras +
+ * CuotaStickyBar, con BuscadorBottomSheet para agregar más accesorios y los
+ * modales del flujo regular (AccessoryDetailModal/InsuranceDetailModal) para
+ * ver el detalle de un accesorio/seguro.
  * La LÓGICA de negocio (fetch, toggleAcc/toggleIns, totalMonthly, remaining,
  * accFits/insFits, selectEquipment, plazo/inicial BAL-2097) no cambió —
  * solo se reemplazó el render.

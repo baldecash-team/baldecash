@@ -217,7 +217,7 @@ export function ConfirmarEleccionModal({
   const dragControls = useDragControls();
   const dismiss = () => (loading ? undefined : onClose());
 
-  // --- MOBILE: bottom sheet (mismo patrón que BuscadorBottomSheet/SeguroDetalleSheet) ---
+  // --- MOBILE: bottom sheet (mismo patrón que BuscadorBottomSheet) ---
   if (isMobile) {
     return (
       <AnimatePresence>
