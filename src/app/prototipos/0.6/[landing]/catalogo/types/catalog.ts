@@ -688,6 +688,12 @@ export interface CatalogProduct {
   /** Id del combo del que nace el ítem (para reenviarlo en submit/select y
    *  resolver el accesorio correcto en legacy). Un equipo puede estar en varios combos. */
   comboId?: number;
+  /** Accesorios/seguros incluidos del combo (para los badges "Incluye: ..." en
+   *  la card recomendada). Solo presente cuando el ítem es un combo. */
+  comboAddons?: {
+    accessories: { id: number | null; name: string }[];
+    insurances: { id: number | null; name: string }[];
+  };
   colors?: ProductColor[]; // NUEVO v0.6: colores disponibles
   deviceType?: CatalogDeviceType; // NUEVO v0.6: tipo de dispositivo para link al detalle
   price: number;
