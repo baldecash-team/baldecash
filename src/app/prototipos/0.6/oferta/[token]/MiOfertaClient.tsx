@@ -403,6 +403,16 @@ export function MiOfertaClient({ token }: { token: string }) {
         specs: offer.exclusiveOffer.specs
           ? specsToChips(createSpecsFromEav(offer.exclusiveOffer.specs, 'laptop'))
           : undefined,
+        // Accesorio recomendado del Perfil B (CON COSTO, no gratis): se muestra
+        // con su cuota dentro de la card del equipo exclusivo.
+        recommendedAccessory: offer.exclusiveOffer.accessory
+          ? {
+              name: offer.exclusiveOffer.accessory.name,
+              monthly: offer.exclusiveOffer.accessory.monthly,
+            }
+          : null,
+        // Precio del equipo SOLO (sin el accesorio del Perfil B), bajo el nombre.
+        equipoMonthly: offer.exclusiveOffer.monthlyPrice,
       }
     : null;
 
