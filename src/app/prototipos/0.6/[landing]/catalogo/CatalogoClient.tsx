@@ -12,7 +12,6 @@ import {
   Settings,
   Code,
   ArrowLeft,
-  ArrowUp,
   ArrowRight,
   Scale,
   Trash2,
@@ -26,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { useIsMobile, Toast, useToast, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { useIsMobile, Toast, useToast, CubeGridSpinner, useScrollToTop, ScrollToTopButton } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 
 // Catalog components
@@ -771,7 +770,6 @@ function CatalogoContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
 
   // Onboarding state - read config from URL params
@@ -1274,16 +1272,6 @@ function CatalogoContent() {
   // Pagination - now handled by API via useCatalogProducts hook
   // Local row-based pagination removed in favor of API's limit/offset
 
-  // Scroll detection
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
 
   // Handler to clear search
   const handleSearchClear = useCallback(() => {
@@ -2383,19 +2371,13 @@ function CatalogoContent() {
         onClose={() => setIsBlipChatOpen(false)}
       />
 
-      {/* Back to top button */}
-      {showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isBlipChatOpen && !onboarding.shouldShowWelcome && (
-        <div className="fixed bottom-6 right-6 z-[100]">
-          <Button
-            isIconOnly
-            radius="md"
-            className="bg-[var(--color-primary)] text-white shadow-lg cursor-pointer hover:brightness-90 transition-all hover:scale-110"
-            onPress={scrollToTop}
-          >
-            <ArrowUp className="w-5 h-5" />
-          </Button>
-        </div>
-      )}
+      {/* Back to top button — componente compartido. Se oculta mientras hay
+          quiz/modales/drawers/onboarding abiertos (misma condición de antes). */}
+      <ScrollToTopButton
+        threshold={400}
+        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || onboarding.shouldShowWelcome}
+        className="fixed bottom-6 right-6 z-[100] flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-primary)] text-white shadow-lg cursor-pointer transition-all hover:brightness-90 hover:scale-110"
+      />
 
       {/* Settings Modal */}
       <CatalogoSettingsModal
