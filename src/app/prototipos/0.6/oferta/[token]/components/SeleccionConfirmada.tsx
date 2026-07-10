@@ -213,7 +213,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                   <span className="flex min-w-0 items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
                     <span className="min-w-0">
-                      <span className="block truncate font-['Baloo_2',_sans-serif] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                      <span className="block font-['Baloo_2',_sans-serif] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
                         {chosen.name}
                       </span>
                     </span>
@@ -229,7 +229,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                   <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                       <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
-                      <span className="truncate">{a.name}</span>
+                      <span className="min-w-0">{a.name}</span>
                     </span>
                     {a.includedFree ? (
                       <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
@@ -243,7 +243,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                   <li key={`i-${i.id}`} className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
                       <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
-                      <span className="truncate">{i.name}</span>
+                      <span className="min-w-0">{i.name}</span>
                     </span>
                     {i.includedFree ? (
                       <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
