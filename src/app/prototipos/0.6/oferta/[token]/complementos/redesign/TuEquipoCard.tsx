@@ -31,9 +31,13 @@ export interface TuEquipoCardProps {
   extras?: TuEquipoExtraItem[];
   /** Cuota total (equipo + extras). Solo se usa si `extras` viene. */
   total?: number;
+  /** Plazo e inicial ya formateados (read-only), debajo del nombre. Ej.
+   *  "36 meses" e "Inicial S/0". Si no vienen, no se muestran. */
+  plazoTexto?: string | null;
+  inicialTexto?: string | null;
 }
 
-export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquipoCardProps) {
+export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total, plazoTexto, inicialTexto }: TuEquipoCardProps) {
   const cuotaFormateada = Math.round(cuota).toLocaleString('es-PE');
   const mostrarDesglose = Boolean(extras && extras.length > 0);
   const totalFormateado = Math.round(total ?? cuota).toLocaleString('es-PE');
@@ -72,6 +76,14 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquip
           <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.2]" style={{ color: OFERTA_COLORS.textStrong }}>
             {nombre}
           </div>
+          {/* Plazo e inicial (read-only), debajo del nombre. */}
+          {(plazoTexto || inicialTexto) ? (
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+              {plazoTexto ? <span>{plazoTexto}</span> : null}
+              {plazoTexto && inicialTexto ? <span style={{ color: OFERTA_COLORS.textSoft }}>·</span> : null}
+              {inicialTexto ? <span>{inicialTexto}</span> : null}
+            </div>
+          ) : null}
         </div>
         {/* Cuota a la derecha: siempre visible. Sin desglose muestra la cuota del
             equipo; con desglose muestra el TOTAL (evita que "salte" al aparecer

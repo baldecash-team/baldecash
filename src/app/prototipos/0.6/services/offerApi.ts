@@ -64,6 +64,10 @@ export interface RequestedProduct {
    *  (composición real, acta 1-jul). Card izquierda "el que pediste". */
   accessories?: Array<{ id: number | null; name: string; monthly: number }>;
   insurances?: Array<{ id: number | null; name: string; monthly: number }>;
+  /** Specs técnicas (dict plano EAV: processor/ram/storage/gpu/screen...) para
+   *  los chips de la card. Mismo formato que el catálogo. Vacío si el API no las
+   *  da. Se convierten a ProductSpecs con createSpecsFromEav en el consumidor. */
+  specs?: Record<string, string | number | boolean>;
 }
 
 /** Accesorio/seguro elegido en la oferta (para el desglose de confirmación). */
@@ -117,6 +121,18 @@ export interface ExclusiveOffer {
   /** Monto (S/) de la inicial del exclusivo. La card muestra el monto, no el %. */
   initialAmount?: number | null;
   accessory: UpsellAccessory | null;
+  /** Specs técnicas (dict plano EAV) para los chips de la card "oferta
+   *  personalizada". Se convierten con createSpecsFromEav. Vacío si no vienen. */
+  specs?: Record<string, string | number | boolean>;
+  /** ID del combo cuando el exclusivo es un combo (Perfil C). Se pasa a
+   *  complementos para resolver los accesorios/seguros GRATIS del combo. */
+  comboId?: number | null;
+  /** Accesorios/seguros INCLUIDOS cuando el exclusivo es un combo (Perfil C):
+   *  badges "Incluye". Vacío si no es combo. */
+  comboAddons?: {
+    accessories: Array<{ id: number | null; name: string }>;
+    insurances: Array<{ id: number | null; name: string }>;
+  } | null;
 }
 
 /** Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
@@ -246,6 +262,9 @@ export async function getOffer(token: string): Promise<OfferView> {
             termMonths: ex.term_months ?? 24,
             initialAmount: ex.initial_amount ?? null,
             accessory: acc,
+            specs: ex.specs ?? undefined,
+            comboId: ex.combo_id ?? null,
+            comboAddons: ex.combo_addons ?? null,
           }
         : null,
       terms: data.terms ?? [24],

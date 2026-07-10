@@ -12,10 +12,11 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Laptop2, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct, ProductSpecs } from '../../[landing]/catalogo/types/catalog';
+import { createSpecsFromEav } from '../../services/catalogApi';
 import {
   getOffer,
   getCatalog,
@@ -193,6 +194,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       slug: string | null | undefined,
       equipo?: StoredEquipo,
       preselectedAccessoryIds?: number[],
+      preselectedInsuranceIds?: number[],
     ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       if (variantId == null) {
@@ -208,8 +210,15 @@ export function MiOfertaClient({ token }: { token: string }) {
         brand: equipo?.brand,
         imageUrl: equipo?.imageUrl,
         monthly: equipo?.monthly,
+        // Plazo/inicial elegidos (o los reales del pedido en "mantener mi equipo"):
+        // complementos los usa para mostrar el plazo y cotizar los add-ons a esa
+        // celda (BAL-2212). Sin esto caía al default del snapshot.
+        term: equipo?.term,
+        initial: equipo?.initial,
         preselectedAccessoryIds:
           preselectedAccessoryIds && preselectedAccessoryIds.length ? preselectedAccessoryIds : undefined,
+        preselectedInsuranceIds:
+          preselectedInsuranceIds && preselectedInsuranceIds.length ? preselectedInsuranceIds : undefined,
       });
       window.location.href = base;
     },
@@ -246,13 +255,13 @@ export function MiOfertaClient({ token }: { token: string }) {
     const offer = state.kind === 'ready' ? state.offer : null;
     const ex = offer?.exclusiveOffer;
     if (!ex || ex.variantId == null) return;
-    // La oferta exclusiva no nace de un combo del catálogo (el accesorio del
-    // Perfil B se resuelve aparte en el backend) → sin comboId. El accesorio de
-    // regalo (Perfil B) se pasa preseleccionado al mini-checkout.
+    // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
+    // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
+    // (no-combo) se resuelve aparte y se pasa preseleccionado.
     const regaloId = ex.accessory?.product_id;
     goToAccesorios(
       ex.variantId,
-      null,
+      ex.comboId ?? null,
       ex.slug,
       {
         name: ex.name ?? 'Tu equipo',
@@ -273,12 +282,27 @@ export function MiOfertaClient({ token }: { token: string }) {
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
-    goToAccesorios(req.variant_id, null, req.slug, {
-      name: req.name ?? 'Tu equipo',
-      brand: undefined,
-      imageUrl: req.image_url ?? undefined,
-      monthly: req.monthly_price ?? undefined,
-    });
+    // Accesorios/seguros que el cliente YA tenía en su pedido → preseleccionados
+    // en complementos (editables). Al "mantener mi equipo" no debe perderlos.
+    const accIds = (req.accessories ?? [])
+      .map((a) => a.id).filter((id): id is number => id != null);
+    const insIds = (req.insurances ?? [])
+      .map((i) => i.id).filter((id): id is number => id != null);
+    goToAccesorios(
+      req.variant_id, null, req.slug,
+      {
+        name: req.name ?? 'Tu equipo',
+        brand: undefined,
+        imageUrl: req.image_url ?? undefined,
+        monthly: req.monthly_price ?? undefined,
+        // Plazo/inicial REALES del pedido → complementos los muestra y cotiza los
+        // add-ons a esa celda (mismo equipo = mismo plazo del pedido).
+        term: req.term_months ?? req.term ?? undefined,
+        initial: req.initial_percent ?? undefined,
+      },
+      accIds,
+      insIds,
+    );
   }, [state, goToAccesorios]);
 
   const confirmSelect = useCallback(async () => {
@@ -374,6 +398,28 @@ export function MiOfertaClient({ token }: { token: string }) {
           offer.exclusiveOffer.initialAmount != null && offer.exclusiveOffer.initialAmount > 0
             ? `inicial S/${Math.round(offer.exclusiveOffer.initialAmount)}`
             : undefined,
+        // Chips de specs del equipo exclusivo (procesador/RAM/…), para la card
+        // "oferta personalizada" del Caso 5 — igual que el recomendado del Caso 4.
+        specs: offer.exclusiveOffer.specs
+          ? specsToChips(createSpecsFromEav(offer.exclusiveOffer.specs, 'laptop'))
+          : undefined,
+        // Accesorio recomendado del Perfil B (CON COSTO, no gratis): se muestra
+        // con su cuota dentro de la card del equipo exclusivo.
+        recommendedAccessory: offer.exclusiveOffer.accessory
+          ? {
+              name: offer.exclusiveOffer.accessory.name,
+              monthly: offer.exclusiveOffer.accessory.monthly,
+            }
+          : null,
+        // Precio del equipo SOLO (sin el accesorio del Perfil B), bajo el nombre.
+        equipoMonthly: offer.exclusiveOffer.monthlyPrice,
+        // Accesorios/seguros INCLUIDOS del combo (Perfil C) → badges "Incluye".
+        comboAccessories: offer.exclusiveOffer.comboAddons?.accessories?.length
+          ? offer.exclusiveOffer.comboAddons.accessories.map((a) => a.name)
+          : undefined,
+        comboInsurances: offer.exclusiveOffer.comboAddons?.insurances?.length
+          ? offer.exclusiveOffer.comboAddons.insurances.map((i) => i.name)
+          : undefined,
       }
     : null;
 
@@ -387,6 +433,13 @@ export function MiOfertaClient({ token }: { token: string }) {
     (req?.insurances ?? []).reduce((s, i) => s + (i.monthly ?? 0), 0);
   const reqTotalMonthly =
     req?.monthly_price != null ? req.monthly_price + reqExtrasMonthly : null;
+
+  // Chips de specs del equipo pedido (processor/RAM/almacenamiento/GPU/pantalla),
+  // igual que la card del recomendado del Caso 4. El backend manda el dict plano
+  // EAV en req.specs; createSpecsFromEav lo estructura y specsToChips lo pinta.
+  const reqSpecsChips = req?.specs
+    ? specsToChips(createSpecsFromEav(req.specs, 'laptop'))
+    : [];
 
   return (
     <div className="min-h-screen bg-white">
@@ -439,44 +492,55 @@ export function MiOfertaClient({ token }: { token: string }) {
             <OpcionBarra
               destacada
               icono={<IconoAccesorios size={50} />}
-              titulo="Añadir accesorios"
-              subtitulo={
-                exclusivaInfo?.name
-                  ? `Suma extras a tu ${exclusivaInfo.name}`
-                  : 'Suma extras a tu equipo aprobado'
-              }
-              cuota={exclusivaInfo?.monthly != null ? `S/${Math.round(exclusivaInfo.monthly)}/mes` : undefined}
-              onClick={handleAceptarExclusiva}
+              titulo="Añadir accesorios y seguros"
+              subtitulo="Suma accesorios y seguros a tu equipo aprobado"
+              onClick={handleContinuarMiEquipo}
             />
+            {/* Card "Oferta personalizada": equipo exclusivo con foto + specs +
+                cuota + "Ver detalle" separado del CTA "Aceptar equipo" (misma
+                EquipoRecomendadoCard del Caso 4, tone índigo). */}
+            {exclusivaInfo ? (
+              <EquipoRecomendadoCard
+                equipo={exclusivaInfo}
+                tone="indigo"
+                badgeText="Oferta personalizada"
+                ctaText="Aceptar equipo"
+                subtext="Un equipo mejor dentro de tu cuota aprobada"
+                onElegir={handleAceptarExclusiva}
+                onVerDetalle={
+                  offer.exclusiveOffer?.slug
+                    ? () => {
+                        window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.exclusiveOffer!.slug}`;
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
             <CardCambiarEquipo
               montoAprobado={offer.maxMonthlyQuota}
               equiposCount={catalogCount}
-              imagen={exclusivaInfo?.imageUrl ?? null}
-              accesorio={
-                offer.exclusiveOffer?.accessory
-                  ? {
-                      name: offer.exclusiveOffer.accessory.name,
-                      imageUrl: offer.exclusiveOffer.accessory.image_url ?? null,
-                      monthly: offer.exclusiveOffer.accessory.monthly,
-                    }
-                  : null
-              }
               onVerCatalogo={goToCatalogo}
             />
-            <OpcionBarra
-              icono={
-                req?.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={req.image_url} alt={req?.name ?? 'Tu equipo'} className="h-full w-full object-contain" />
-                ) : (
-                  <Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />
-                )
-              }
-              titulo="Mantener mi equipo"
-              subtitulo={req?.name ?? undefined}
-              cuota={req?.monthly_price != null ? `S/${Math.round(req.monthly_price)}/mes` : undefined}
-              onClick={handleContinuarMiEquipo}
-            />
+            {/* "Mantener mi equipo": card rica (misma EquipoPedidoCard del Caso 4,
+                variante 'disponible' → sin tachar, con desglose de los
+                accesorios/seguros que el cliente ya pidió + CTA "Mantener"). */}
+            {req ? (
+              <EquipoPedidoCard
+                variant="disponible"
+                nombre={req.name ?? 'Tu equipo'}
+                imageUrl={req.image_url}
+                monthly={req.monthly_price}
+                termMonths={req.term_months ?? req.term ?? null}
+                initialAmount={req.initial_amount ?? null}
+                initialPercent={req.initial_percent ?? null}
+                paymentFrequency={req.payment_frequency ?? 'mensual'}
+                specs={reqSpecsChips}
+                accessories={req.accessories ?? []}
+                insurances={req.insurances ?? []}
+                ctaText="Mantener este equipo"
+                onElegir={handleContinuarMiEquipo}
+              />
+            ) : null}
           </>
         ) : (
           <>
@@ -494,6 +558,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 initialAmount={req.initial_amount ?? null}
                 initialPercent={req.initial_percent ?? null}
                 paymentFrequency={req.payment_frequency ?? 'mensual'}
+                specs={reqSpecsChips}
                 accessories={req.accessories ?? []}
                 insurances={req.insurances ?? []}
               />

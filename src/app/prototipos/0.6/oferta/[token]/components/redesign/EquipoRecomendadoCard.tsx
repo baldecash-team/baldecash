@@ -75,10 +75,16 @@ export interface EquipoRecomendadoInfo {
   term?: number | null;
   initial?: string | null;
   specs?: string[];
-  /** Accesorios/seguros incluidos del combo (badges "Incluye: ..."). Solo
-   *  cuando el recomendado es un combo. */
+  /** Accesorios/seguros incluidos del combo (badges "Incluye: ..." — GRATIS).
+   *  Solo cuando el recomendado es un combo. */
   comboAccessories?: string[];
   comboInsurances?: string[];
+  /** Accesorio recomendado CON COSTO (Perfil B del upsell): se muestra con su
+   *  cuota (+S/X/mes), no como "incluido gratis". */
+  recommendedAccessory?: { name: string; monthly: number } | null;
+  /** Cuota del equipo SOLO (sin accesorios), para mostrarla bajo el nombre.
+   *  `monthly` puede ser el combinado (equipo + accesorio del Perfil B). */
+  equipoMonthly?: number | null;
 }
 
 export interface EquipoRecomendadoCardProps {
@@ -154,7 +160,8 @@ export function EquipoRecomendadoCard({
   const [detallesAbierto, setDetallesAbierto] = useState(false);
   const haySpecs = !!(equipo.specs && equipo.specs.length > 0);
   const hayIncluye = !!(equipo.comboAccessories?.length || equipo.comboInsurances?.length);
-  const hayDetalles = haySpecs || hayIncluye;
+  const hayRecomendado = !!equipo.recommendedAccessory;
+  const hayDetalles = haySpecs || hayIncluye || hayRecomendado;
 
   return (
     <div
@@ -206,6 +213,12 @@ export function EquipoRecomendadoCard({
             <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.15]">
               {equipo.name}
             </div>
+            {/* Precio del equipo solo (sin accesorios), debajo del nombre. */}
+            {equipo.equipoMonthly != null ? (
+              <div className="mt-0.5 text-[12.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+                S/{Math.round(equipo.equipoMonthly)}/mes
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -262,6 +275,28 @@ export function EquipoRecomendadoCard({
               accessories={equipo.comboAccessories}
               insurances={equipo.comboInsurances}
             />
+
+            {/* Accesorio recomendado CON COSTO (Perfil B): fila con nombre +
+                cuota (+S/X/mes), no como "incluido gratis". */}
+            {equipo.recommendedAccessory ? (
+              <div className="mt-2.5">
+                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[.06em]" style={{ color: OFERTA_COLORS.tealBrand }}>
+                  Recomendado con tu equipo
+                </div>
+                <div
+                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2"
+                  style={{ backgroundColor: OFERTA_COLORS.lilac }}
+                >
+                  <span className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium" style={{ color: OFERTA_COLORS.textStrong }}>
+                    <Package className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} style={{ color: OFERTA_COLORS.primary }} />
+                    <span className="truncate">{equipo.recommendedAccessory.name}</span>
+                  </span>
+                  <span className="shrink-0 text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+                    +S/{Math.round(equipo.recommendedAccessory.monthly)}/mes
+                  </span>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
