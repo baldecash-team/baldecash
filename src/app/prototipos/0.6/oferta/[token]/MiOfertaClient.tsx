@@ -156,12 +156,21 @@ export function MiOfertaClient({ token }: { token: string }) {
         // Funnel: la oferta se cargó y es visible (portada). offerCase distingue
         // Caso 4 (downgrade) de Caso 5 (upsell).
         analytics.track('offer_viewed', { offer_case: offer.offerCase });
+        // Funnel: la portada muestra una card destacada (recomendado en Caso 4
+        // downgrade, oferta exclusiva en Caso 5 upsell).
+        if (offer.recommended || offer.exclusiveOffer) {
+          analytics.track('offer_recommended_view', { offer_case: offer.offerCase });
+        }
         setState({ kind: 'ready', offer });
       })
       .catch((err) => {
         if (!active) return;
         const reason = err instanceof OfferApiError ? err.reason : 'unknown';
         const message = err instanceof OfferApiError ? err.message : 'Error desconocido';
+        // Funnel: el link cargó pero el backend indica que la oferta venció.
+        if (reason === 'expired') {
+          analytics.track('offer_expired_view', { offer_case: 'unknown' });
+        }
         setState({ kind: 'error', reason, message });
       });
     return () => {
@@ -261,6 +270,13 @@ export function MiOfertaClient({ token }: { token: string }) {
     const offer = state.kind === 'ready' ? state.offer : null;
     const ex = offer?.exclusiveOffer;
     if (!ex || ex.variantId == null) return;
+    // Funnel: acepta la oferta exclusiva (Caso 5 upsell).
+    analytics.track('offer_equipment_chosen', {
+      offer_case: offer?.offerCase,
+      source: 'exclusive',
+      variant_id: ex.variantId ?? null,
+      combo_id: ex.comboId ?? null,
+    });
     // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
     // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
     // (no-combo) se resuelve aparte y se pasa preseleccionado.
@@ -277,7 +293,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       },
       regaloId ? [regaloId] : undefined,
     );
-  }, [state, goToAccesorios]);
+  }, [state, goToAccesorios, analytics]);
 
   // Caso 5: "continuar con mi equipo" → mini-checkout de accesorios/seguros con
   // el equipo PEDIDO (igual que "aceptar exclusiva" y que el flujo del Caso 4).
@@ -288,6 +304,12 @@ export function MiOfertaClient({ token }: { token: string }) {
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
+    // Funnel: elige mantener el equipo pedido (rechaza el upsell), Caso 5.
+    analytics.track('offer_equipment_chosen', {
+      offer_case: offer?.offerCase,
+      source: 'keep',
+      variant_id: req.variant_id ?? null,
+    });
     // Accesorios/seguros que el cliente YA tenía en su pedido → preseleccionados
     // en complementos (editables). Al "mantener mi equipo" no debe perderlos.
     const accIds = (req.accessories ?? [])
@@ -309,7 +331,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       accIds,
       insIds,
     );
-  }, [state, goToAccesorios]);
+  }, [state, goToAccesorios, analytics]);
 
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
@@ -323,6 +345,11 @@ export function MiOfertaClient({ token }: { token: string }) {
       await selectEquipment(token, pending.variantId, pending.comboId);
       // Éxito: confirmación EN LA MISMA página (sin re-validar el token consumido).
       const summary = pending.summary;
+      // Funnel: la elección se registró y se muestra la pantalla "¡Listo!".
+      analytics.track('offer_success_view', {
+        offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+        variant_id: pending.variantId ?? null,
+      });
       setPending(null);
       setSelected(summary);
     } catch (err) {
@@ -333,7 +360,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     } finally {
       setConfirming(false);
     }
-  }, [pending, token]);
+  }, [pending, token, state, analytics]);
 
   // Ya eligió un equipo → pantalla de confirmación "¡Listo!".
   if (selected) {
