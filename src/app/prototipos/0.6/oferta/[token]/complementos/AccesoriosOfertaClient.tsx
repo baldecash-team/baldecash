@@ -228,17 +228,28 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
         const accOk = new Set(res.accessories.map((a) => a.id));
-        if (stored) {
+        // Hay algo guardado con CONTENIDO (no un {acc:[],ins:[]} que el persist
+        // effect pudo escribir vacío en un montaje previo). Solo entonces rehidrata;
+        // si está vacío, cae a la preselección del pedido (mantener mi equipo).
+        const storedTieneContenido = !!stored && (stored.acc.length > 0 || stored.ins.length > 0);
+        if (storedTieneContenido) {
           const insOk = new Set(res.insurances.map((p) => p.id));
-          setSelectedAcc(stored.acc.filter((id) => accOk.has(id)));
-          setSelectedIns(stored.ins.filter((id) => insOk.has(id)));
-        } else if (selection.preselectedAccessoryIds?.length) {
-          // Primera vez (sin add-ons guardados): preseleccionar el accesorio de
-          // regalo del Perfil B que venía en la selección, si está disponible.
-          const pre = selection.preselectedAccessoryIds
+          setSelectedAcc(stored!.acc.filter((id) => accOk.has(id)));
+          setSelectedIns(stored!.ins.filter((id) => insOk.has(id)));
+        } else if (selection.preselectedAccessoryIds?.length || selection.preselectedInsuranceIds?.length) {
+          // Primera vez (sin add-ons guardados): preseleccionar lo que venía en la
+          // selección — el regalo del Perfil B, o los accesorios/seguros que el
+          // cliente ya tenía en su pedido al "mantener mi equipo" (Caso 5). Solo
+          // los que hoy están disponibles (podrían no caber a esta celda).
+          const preAcc = (selection.preselectedAccessoryIds ?? [])
             .map(String)
             .filter((id) => accOk.has(id));
-          if (pre.length) setSelectedAcc(pre);
+          if (preAcc.length) setSelectedAcc(preAcc);
+          const insOk = new Set(res.insurances.map((p) => p.id));
+          const preIns = (selection.preselectedInsuranceIds ?? [])
+            .map(String)
+            .filter((id) => insOk.has(id));
+          if (preIns.length) setSelectedIns(preIns);
         }
       } catch (err) {
         if (!active) return;

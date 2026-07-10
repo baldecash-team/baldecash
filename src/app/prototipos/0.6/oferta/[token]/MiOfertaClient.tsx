@@ -194,6 +194,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       slug: string | null | undefined,
       equipo?: StoredEquipo,
       preselectedAccessoryIds?: number[],
+      preselectedInsuranceIds?: number[],
     ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       if (variantId == null) {
@@ -216,6 +217,8 @@ export function MiOfertaClient({ token }: { token: string }) {
         initial: equipo?.initial,
         preselectedAccessoryIds:
           preselectedAccessoryIds && preselectedAccessoryIds.length ? preselectedAccessoryIds : undefined,
+        preselectedInsuranceIds:
+          preselectedInsuranceIds && preselectedInsuranceIds.length ? preselectedInsuranceIds : undefined,
       });
       window.location.href = base;
     },
@@ -279,16 +282,27 @@ export function MiOfertaClient({ token }: { token: string }) {
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
-    goToAccesorios(req.variant_id, null, req.slug, {
-      name: req.name ?? 'Tu equipo',
-      brand: undefined,
-      imageUrl: req.image_url ?? undefined,
-      monthly: req.monthly_price ?? undefined,
-      // Plazo/inicial REALES del pedido → complementos los muestra y cotiza los
-      // add-ons a esa celda (mismo equipo = mismo plazo del pedido).
-      term: req.term_months ?? req.term ?? undefined,
-      initial: req.initial_percent ?? undefined,
-    });
+    // Accesorios/seguros que el cliente YA tenía en su pedido → preseleccionados
+    // en complementos (editables). Al "mantener mi equipo" no debe perderlos.
+    const accIds = (req.accessories ?? [])
+      .map((a) => a.id).filter((id): id is number => id != null);
+    const insIds = (req.insurances ?? [])
+      .map((i) => i.id).filter((id): id is number => id != null);
+    goToAccesorios(
+      req.variant_id, null, req.slug,
+      {
+        name: req.name ?? 'Tu equipo',
+        brand: undefined,
+        imageUrl: req.image_url ?? undefined,
+        monthly: req.monthly_price ?? undefined,
+        // Plazo/inicial REALES del pedido → complementos los muestra y cotiza los
+        // add-ons a esa celda (mismo equipo = mismo plazo del pedido).
+        term: req.term_months ?? req.term ?? undefined,
+        initial: req.initial_percent ?? undefined,
+      },
+      accIds,
+      insIds,
+    );
   }, [state, goToAccesorios]);
 
   const confirmSelect = useCallback(async () => {
