@@ -413,6 +413,13 @@ export function MiOfertaClient({ token }: { token: string }) {
           : null,
         // Precio del equipo SOLO (sin el accesorio del Perfil B), bajo el nombre.
         equipoMonthly: offer.exclusiveOffer.monthlyPrice,
+        // Accesorios/seguros INCLUIDOS del combo (Perfil C) → badges "Incluye".
+        comboAccessories: offer.exclusiveOffer.comboAddons?.accessories?.length
+          ? offer.exclusiveOffer.comboAddons.accessories.map((a) => a.name)
+          : undefined,
+        comboInsurances: offer.exclusiveOffer.comboAddons?.insurances?.length
+          ? offer.exclusiveOffer.comboAddons.insurances.map((i) => i.name)
+          : undefined,
       }
     : null;
 
