@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Laptop2, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct, ProductSpecs } from '../../[landing]/catalogo/types/catalog';
@@ -463,20 +463,25 @@ export function MiOfertaClient({ token }: { token: string }) {
               }
               onVerCatalogo={goToCatalogo}
             />
-            <OpcionBarra
-              icono={
-                req?.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={req.image_url} alt={req?.name ?? 'Tu equipo'} className="h-full w-full object-contain" />
-                ) : (
-                  <Laptop2 className="h-[30px] w-[30px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />
-                )
-              }
-              titulo="Mantener mi equipo"
-              subtitulo={req?.name ?? undefined}
-              cuota={req?.monthly_price != null ? `S/${Math.round(req.monthly_price)}/mes` : undefined}
-              onClick={handleContinuarMiEquipo}
-            />
+            {/* "Mantener mi equipo": card rica (misma EquipoPedidoCard del Caso 4,
+                variante 'disponible' → sin tachar, con desglose de los
+                accesorios/seguros que el cliente ya pidió + CTA "Mantener"). */}
+            {req ? (
+              <EquipoPedidoCard
+                variant="disponible"
+                nombre={req.name ?? 'Tu equipo'}
+                imageUrl={req.image_url}
+                monthly={req.monthly_price}
+                termMonths={req.term_months ?? req.term ?? null}
+                initialAmount={req.initial_amount ?? null}
+                initialPercent={req.initial_percent ?? null}
+                paymentFrequency={req.payment_frequency ?? 'mensual'}
+                accessories={req.accessories ?? []}
+                insurances={req.insurances ?? []}
+                ctaText="Mantener este equipo"
+                onElegir={handleContinuarMiEquipo}
+              />
+            ) : null}
           </>
         ) : (
           <>
