@@ -98,9 +98,9 @@
 }
 .badgeNuevo { background: var(--azul); color: #fff; }
 .prodH { display: flex; gap: 14px; align-items: stretch; }
-.prodLeft { width: 126px; flex: none; display: flex; flex-direction: column; }
+.prodLeft { width: 140px; flex: none; display: flex; flex-direction: column; }
 .prodImg {
-  width: 126px; flex: none; height: 148px; border-radius: 12px; position: relative;
+  width: 140px; flex: none; height: 168px; border-radius: 12px; position: relative;
   background: #fff; display: flex; align-items: center; justify-content: center;
   overflow: hidden; cursor: pointer; padding: 12px;
 }
@@ -112,29 +112,29 @@
 .prodMarca { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
 .prodTitulo {
   font-family: 'Baloo 2', var(--font-baloo), sans-serif;
-  font-weight: 700; font-size: 15.5px; color: var(--navy);
+  font-weight: 700; font-size: 17px; color: var(--navy);
   line-height: 1.2; margin: 2px 0 9px; cursor: pointer;
 }
 .coloresLbl { font-size: 10px; font-weight: 600; color: var(--tenue); margin-bottom: 5px; }
 .swatches { display: flex; gap: 7px; margin-bottom: 11px; }
 .swatch { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid rgba(0, 0, 0, 0.12); }
 .specs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 14px; }
-.spec { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #5b5c6b; min-width: 0; }
+.spec { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #5b5c6b; min-width: 0; }
 .spec svg { color: var(--azul); flex: none; }
 .spec span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .price { background: var(--lavanda); border-radius: 12px; padding: 9px 8px 10px; margin-top: 10px; text-align: center; }
-.priceLbl { font-size: 8.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--azul); opacity: 0.7; margin-bottom: 3px; }
+.priceLbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--azul); opacity: 0.7; margin-bottom: 3px; }
 .priceNum {
   font-family: 'Baloo 2', var(--font-baloo), sans-serif;
-  font-weight: 800; font-size: 21px; color: var(--azul); line-height: 1; white-space: nowrap;
+  font-weight: 800; font-size: 24px; color: var(--azul); line-height: 1; white-space: nowrap;
 }
 .priceNum span { font-size: 11px; font-weight: 600; }
-.priceSub { font-size: 9.5px; color: var(--tenue); margin-top: 5px; line-height: 1.3; }
+.priceSub { font-size: 10.5px; color: var(--tenue); margin-top: 5px; line-height: 1.3; }
 .btns { display: flex; gap: 8px; margin-top: auto; }
 .btn {
-  border-radius: 11px; font-weight: 600; font-size: 14.5px; cursor: pointer;
+  border-radius: 11px; font-weight: 600; font-size: 15.5px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  flex: 1; border: none; height: 44px;
+  flex: 1; border: none; height: 48px;
 }
 .btnOutline { background: var(--card); border: 1.5px solid var(--azul); color: var(--azul); }
 .btnSolid { background: var(--azul); color: #fff; }
@@ -155,13 +155,13 @@
 
 /* ---- Detalle ---- */
 .detalleMarca { display: inline-block; background: var(--azul); color: #fff; font-weight: 600; font-size: 12px; padding: 5px 14px; border-radius: 9px; margin-bottom: 12px; }
-.detalleTitulo { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 22px; color: var(--navy); line-height: 1.15; margin-bottom: 12px; }
+.detalleTitulo { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 25px; color: var(--navy); line-height: 1.15; margin-bottom: 12px; }
 .detalleSwatches { display: flex; gap: 9px; margin-bottom: 6px; }
 .dSwatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: grid; place-items: center; }
 .dSwatchOn { border-color: var(--azul); }
 .dSwatch .tick { opacity: 0; color: #fff; }
 .dSwatchOn .tick { opacity: 1; }
-.colorLabel { font-size: 13px; color: var(--tenue); margin-bottom: 14px; }
+.colorLabel { font-size: 14px; color: var(--tenue); margin-bottom: 14px; }
 .heroImg { background: #fff; border-radius: 14px; height: 280px; position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; overflow: hidden; padding: 22px; }
 .heroImg img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .heroTag { position: absolute; bottom: 10px; left: 10px; background: rgba(30, 31, 45, 0.75); color: #fff; font-size: 10.5px; font-weight: 600; letter-spacing: 0.5px; padding: 5px 10px; border-radius: 7px; }
@@ -170,17 +170,17 @@
 .thumb { width: 66px; height: 66px; border-radius: 11px; border: 1.5px solid var(--borde); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; padding: 6px; }
 .thumb img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .thumbOn { border-color: var(--azul); border-width: 2px; }
-.secTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 16px; color: var(--navy); margin-bottom: 6px; }
-.descText { font-size: 13.5px; color: #5b5c6b; line-height: 1.55; margin-top: 8px; }
+.secTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 17.5px; color: var(--navy); margin-bottom: 6px; }
+.descText { font-size: 15px; color: #5b5c6b; line-height: 1.55; margin-top: 8px; }
 .descFeatures { display: flex; gap: 14px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); }
 .descFeature { display: flex; gap: 10px; align-items: center; flex: 1; }
 .dfIco { width: 38px; height: 38px; border-radius: 10px; background: var(--lavanda); display: grid; place-items: center; color: var(--azul); flex: none; }
-.dfLbl { font-size: 11px; color: var(--tenue); }
-.dfVal { font-size: 13px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+.dfLbl { font-size: 12px; color: var(--tenue); }
+.dfVal { font-size: 14.5px; font-weight: 700; color: var(--navy); line-height: 1.2; }
 
 /* ---- Grados ---- */
 .grados { display: flex; gap: 9px; margin-bottom: 18px; }
-.grado { flex: 1; border: 1.5px solid var(--borde); border-radius: 11px; height: 42px; background: var(--card); font-weight: 600; font-size: 13.5px; color: #5b5c6b; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+.grado { flex: 1; border: 1.5px solid var(--borde); border-radius: 11px; height: 46px; background: var(--card); font-weight: 600; font-size: 14.5px; color: #5b5c6b; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
 .gradoOn { border-color: var(--azul); background: var(--lavanda); color: var(--azul); }
 .gTick { opacity: 0; position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: var(--azul); border-radius: 50%; display: grid; place-items: center; color: #fff; }
 .gradoOn .gTick { opacity: 1; }
@@ -188,12 +188,12 @@
 .grado360 { width: 132px; flex: none; border-radius: 12px; background: #ededf3; display: flex; align-items: center; justify-content: center; position: relative; min-height: 200px; overflow: hidden; padding: 12px; }
 .grado360 img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .carac { flex: 1; }
-.carac h4 { font-size: 13px; font-weight: 700; color: var(--navy); border-bottom: 1px solid var(--borde); padding-bottom: 8px; margin-bottom: 14px; }
+.carac h4 { font-size: 14px; font-weight: 700; color: var(--navy); border-bottom: 1px solid var(--borde); padding-bottom: 8px; margin-bottom: 14px; }
 .caracItem { display: flex; gap: 10px; margin-bottom: 14px; }
 .caracItem:last-child { margin-bottom: 0; }
 .ciIco { width: 24px; height: 24px; flex: none; color: var(--azul); }
-.ciLbl { font-size: 12px; font-weight: 700; color: var(--navy); }
-.ciVal { font-size: 12px; color: var(--tenue); margin-top: 1px; }
+.ciLbl { font-size: 13px; font-weight: 700; color: var(--navy); }
+.ciVal { font-size: 13px; color: var(--tenue); margin-top: 1px; }
 
 /* ---- Calc cuota ---- */
 .calcLbl { font-size: 12.5px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
@@ -238,7 +238,7 @@
 .diaLbl { font-size: 11px; font-weight: 700; }
 .diaNum { font-size: 15px; font-weight: 800; line-height: 1; }
 .diaOn { background: var(--azul); border-color: var(--azul); color: #fff; }
-.rcSublbl { font-size: 12px; font-weight: 700; color: var(--navy); margin: 4px 0 8px; }
+.rcSublbl { font-size: 13px; font-weight: 700; color: var(--navy); margin: 4px 0 8px; }
 
 /* Horarios agrupados (mañana / tarde) — el corte de almuerzo queda implícito */
 .horaGroup { margin-bottom: 12px; }
@@ -260,7 +260,7 @@
 /* ---- Acordeón ---- */
 .acc { padding: 0; overflow: hidden; }
 .accHead { display: flex; align-items: center; justify-content: space-between; padding: 18px; cursor: pointer; gap: 12px; }
-.accSub { font-size: 12.5px; color: var(--tenue); margin-top: 3px; }
+.accSub { font-size: 13.5px; color: var(--tenue); margin-top: 3px; }
 .accChev { color: #9a9aa8; flex: none; transition: transform 0.25s; }
 .accOpen .accChev { transform: rotate(180deg); }
 .accBody { max-height: 0; overflow: hidden; transition: max-height 0.32s ease; }
@@ -274,13 +274,13 @@
 .incluyeItem:last-child { border-bottom: none; padding-bottom: 0; }
 .incluyeItem:first-child { padding-top: 0; }
 .incIco { width: 34px; height: 34px; border-radius: 9px; background: var(--lavanda); display: grid; place-items: center; color: var(--azul); flex: none; }
-.incTxt { flex: 1; font-size: 13.5px; font-weight: 600; color: var(--navy); }
+.incTxt { flex: 1; font-size: 15px; font-weight: 600; color: var(--navy); }
 .incChk { color: var(--verde); }
 
 /* ---- Condición (filas etiqueta/valor) ---- */
 .condHead { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
 .specRows { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; border: 1px solid var(--borde); }
-.specRow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; font-size: 13px; }
+.specRow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; font-size: 14px; }
 .specRow:nth-child(odd) { background: var(--lavanda); }
 .srLbl { color: #5b5c6b; }
 .srVal { font-weight: 700; color: var(--navy); text-align: right; }
@@ -312,7 +312,7 @@
 .simBody { flex: 1; min-width: 0; }
 .simMarca { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
 .simName {
-  font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 14.5px;
+  font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 15.5px;
   color: var(--navy); line-height: 1.25; margin: 3px 0 7px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
@@ -335,8 +335,8 @@
   font-size: 18px;
 }
 .noDisp { background: #f7f7fa; border: 1.5px dashed #d3d3dd; border-radius: 14px; padding: 22px; text-align: center; margin-bottom: 16px; }
-.ndT { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 17px; color: #9a9aa8; }
-.ndS { font-size: 12.5px; color: var(--tenue); margin-top: 6px; }
+.ndT { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 18.5px; color: #9a9aa8; }
+.ndS { font-size: 13.5px; color: var(--tenue); margin-top: 6px; }
 
 /* ---- Bottom sheet filtros ---- */
 .overlay { position: fixed; inset: 0; background: rgba(21, 23, 68, 0.4); z-index: 50; opacity: 0; pointer-events: none; transition: 0.2s; }
@@ -370,10 +370,16 @@
 /* ---- Nota de envío diferido (iPhone seminuevo / iPad) ---- */
 .shipNote {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px;
-  background: var(--lavanda); color: var(--navy); font-size: 13px; margin-bottom: 16px;
+  background: var(--lavanda); color: var(--navy); font-size: 14px; margin-bottom: 16px;
 }
 .shipNote svg { color: var(--azul); flex: none; }
 .shipNote b { font-weight: 700; }
+
+/* ---- Seguridad del equipo (item 10) ---- */
+.segBanner { display: flex; gap: 12px; align-items: flex-start; background: var(--lavanda); border-radius: 12px; padding: 14px; }
+.segIco { width: 42px; height: 42px; border-radius: 11px; background: var(--card); color: var(--azul); display: grid; place-items: center; flex: none; }
+.segText { font-size: 13.5px; color: var(--navy); line-height: 1.45; }
+.segText b { font-weight: 700; }
 
 /* ---- Modal "Producto seminuevo" ya lo aporta RefurbishedWarningModal ---- */
 

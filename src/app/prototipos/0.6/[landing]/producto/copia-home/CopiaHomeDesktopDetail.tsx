@@ -33,7 +33,7 @@ import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
 import { Cronograma } from '../components/detail/cronograma/Cronograma';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
-import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from './politicasPdf';
+import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
@@ -455,7 +455,7 @@ export function CopiaHomeDesktopDetail({
             </div>
 
             {/* Políticas y condiciones descargables (item 5) */}
-            <a className={styles.pdfLink} href={POLITICAS_PDF_DATA_URI} download={POLITICAS_PDF_FILENAME}>
+            <a className={styles.pdfLink} href={POLITICAS_PDF_URL} download={POLITICAS_PDF_FILENAME}>
               <span className={styles.pdfIco}><FileText size={22} /></span>
               <div style={{ flex: 1 }}>
                 <div className={styles.pdfT}>Políticas y condiciones del producto</div>
@@ -596,7 +596,7 @@ export function CopiaHomeDesktopDetail({
         onClose={() => setShowRefurb(false)}
         onConfirm={() => { setShowRefurb(false); proceedToSolicitar(); }}
         productName={product.displayName}
-        policyHref={POLITICAS_PDF_DATA_URI}
+        policyHref={POLITICAS_PDF_URL}
         policyFilename={POLITICAS_PDF_FILENAME}
         shippingNote={deferredShipping ? DEFERRED_SHIPPING_NOTE : undefined}
       />

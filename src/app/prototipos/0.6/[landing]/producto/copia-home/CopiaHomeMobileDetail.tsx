@@ -17,7 +17,7 @@ import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ChevronRight, ShieldCheck, BadgeCheck, Package,
   Check, Battery, Monitor, Star, RefreshCw, Heart, Cpu, Calendar,
-  FileText, Download, Truck, ArrowRight,
+  FileText, Download, Truck, ArrowRight, Store, CalendarDays,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -27,7 +27,7 @@ import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
 import { Cronograma } from '../components/detail/cronograma/Cronograma';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
-import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from './politicasPdf';
+import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
@@ -77,6 +77,8 @@ interface Props {
   apiData: ProductDetailResult;
   landing: string;
   isAvailable?: boolean;
+  /** Landing de 2° financiamiento (renueva-*): excluye el CTA "volver al Grado A" (item 6). */
+  secondFinancing?: boolean;
   defaultTerm?: number;
   defaultInitialPercent?: number;
   defaultFrequency?: string;
@@ -88,6 +90,7 @@ export function CopiaHomeMobileDetail({
   apiData,
   landing,
   isAvailable = true,
+  secondFinancing = false,
   defaultTerm,
   defaultInitialPercent,
   defaultFrequency,
@@ -344,7 +347,7 @@ export function CopiaHomeMobileDetail({
             </div>
           </div>
           {isRefurbished && (
-            <a className={styles.pdfLink} href={POLITICAS_PDF_DATA_URI} download={POLITICAS_PDF_FILENAME}>
+            <a className={styles.pdfLink} href={POLITICAS_PDF_URL} download={POLITICAS_PDF_FILENAME}>
               <span className={styles.pdfIco}><FileText size={20} /></span>
               <div style={{ flex: 1 }}>
                 <div className={styles.pdfT}>Políticas y condiciones del producto</div>
@@ -467,6 +470,22 @@ export function CopiaHomeMobileDetail({
               </Acc>
             )}
 
+            {/* item 10: Seguridad del equipo — recojo con cita tras aprobación */}
+            <div className={styles.card}>
+              <div className={styles.secTitle} style={{ marginBottom: 12 }}>Seguridad del equipo</div>
+              <div className={styles.segBanner}>
+                <span className={styles.segIco}><Store size={26} strokeWidth={1.8} /></span>
+                <p className={styles.segText}>
+                  <b>¡Sabemos que ver el producto hace la diferencia!</b> Financia hoy y agenda una cita
+                  en nuestras oficinas para el recojo de tu equipo, en caso lo prefieras.
+                </p>
+              </div>
+              <div className={styles.rcNote}>
+                <CalendarDays size={15} />
+                <span>El agendamiento de citas se habilitará después de la aprobación del financiamiento y firma del contrato.</span>
+              </div>
+            </div>
+
             {/* CTA fijo mobile estándar de baldecash (¡Lo quiero! + wishlist) */}
             <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none">
               <button
@@ -500,7 +519,9 @@ export function CopiaHomeMobileDetail({
                 ? `Este equipo no está disponible en Grado ${grade}.`
                 : 'Este equipo no está disponible por el momento.'}
             </div>
-            {isRefurbished && (
+            {/* item 6: CTA para volver al equipo disponible (Grado A).
+                Excluido en landings de 2° financiamiento (item 12). */}
+            {isRefurbished && !secondFinancing && (
               <button type="button" className={styles.ndCta} onClick={() => selectGrade('A')}>
                 Ver equipo disponible (Grado A) <ArrowRight size={18} />
               </button>
@@ -538,7 +559,7 @@ export function CopiaHomeMobileDetail({
         onClose={() => setShowRefurb(false)}
         onConfirm={() => { setShowRefurb(false); proceedToSolicitar(); }}
         productName={product.displayName}
-        policyHref={POLITICAS_PDF_DATA_URI}
+        policyHref={POLITICAS_PDF_URL}
         policyFilename={POLITICAS_PDF_FILENAME}
         shippingNote={deferredShipping ? DEFERRED_SHIPPING_NOTE : undefined}
       />

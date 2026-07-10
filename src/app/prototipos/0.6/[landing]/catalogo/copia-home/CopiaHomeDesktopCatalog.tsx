@@ -27,7 +27,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { CopiaHomePromoBanner, PROMO_BANNER_HEIGHT } from '@/app/prototipos/0.6/components/CopiaHomePromoBanner';
-import { POLITICAS_PDF_DATA_URI, POLITICAS_PDF_FILENAME } from '@/app/prototipos/0.6/[landing]/producto/copia-home/politicasPdf';
+import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from '@/app/prototipos/0.6/[landing]/producto/copia-home/politicasPdf';
 import { DEFERRED_SHIPPING_NOTE, hasDeferredShipping } from '@/app/prototipos/0.6/[landing]/producto/copia-home/seminuevoHelpers';
 import type { CatalogProduct, TermMonths } from '../types/catalog';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../../services/catalogApi';
@@ -449,7 +449,7 @@ export function CopiaHomeDesktopCatalog() {
           if (p) selectAndSolicitar(p);
         }}
         productName={pendingRefurb?.displayName}
-        policyHref={POLITICAS_PDF_DATA_URI}
+        policyHref={POLITICAS_PDF_URL}
         policyFilename={POLITICAS_PDF_FILENAME}
         shippingNote={pendingRefurb && productHasDeferredShipping(pendingRefurb) ? DEFERRED_SHIPPING_NOTE : undefined}
       />

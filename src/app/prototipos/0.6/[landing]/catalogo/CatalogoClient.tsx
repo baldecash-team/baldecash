@@ -205,9 +205,9 @@ export function CatalogoClient() {
     );
   }
 
-  // copia-home: variante mobile del catálogo (mockup seminuevos). En desktop el
-  // catálogo vuelve al estándar; la personalización desktop de copia-home es
-  // solo del detalle de producto.
+  // copia-home: variante mobile del catálogo (mockup seminuevos). Las landings de
+  // 2° financiamiento (renueva-*) MANTIENEN su catálogo estándar; solo su detalle
+  // usa la variante seminuevos. En desktop el catálogo vuelve al estándar.
   if (isCopiaHomeLanding(landing) && isMobile) {
     return (
       <ProductProvider landingSlug={landing}>

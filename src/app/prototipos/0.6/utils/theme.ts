@@ -40,6 +40,23 @@ export function isCopiaHomeLanding(slug: string): boolean {
   return slug === 'copia-home';
 }
 
+/**
+ * Landings de segundo financiamiento: su slug contiene "renueva-".
+ * Reciben la experiencia mobile seminuevos (item 12), con envío diferido para
+ * iPads, pero SIN el CTA "volver al Grado A" (item 6 excluido).
+ */
+export function isSecondFinancingLanding(slug: string): boolean {
+  return /renueva-/i.test(slug);
+}
+
+/**
+ * Landings que usan la variante mobile "copia-home" (seminuevos): la propia
+ * `copia-home` y las de segundo financiamiento (`renueva-*`).
+ */
+export function isCopiaHomeStyleLanding(slug: string): boolean {
+  return isCopiaHomeLanding(slug) || isSecondFinancingLanding(slug);
+}
+
 /** Colores de marca para landings oscuras (paleta oficial NVIDIA). */
 export const NVIDIA_GREEN = '#76B900';
 export const NVIDIA_TURQUOISE = '#00D9CB';

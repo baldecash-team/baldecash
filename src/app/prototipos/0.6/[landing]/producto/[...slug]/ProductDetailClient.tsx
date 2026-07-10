@@ -18,7 +18,7 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isCopiaHomeStyleLanding, isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
 import { GamerProductDetailClient } from '../GamerProductDetailClient';
 import { CopiaHomeMobileDetail } from '../copia-home/CopiaHomeMobileDetail';
 import { CopiaHomeDesktopDetail } from '../copia-home/CopiaHomeDesktopDetail';
@@ -326,7 +326,9 @@ function ProductDetailContent() {
   const productIsRefurbished =
     isRefurbishedCondition(apiData.product.condition) ||
     /semi\s*nuevo|seminuevo|reacondicion/i.test(`${apiData.product.name ?? ''} ${apiData.product.displayName ?? ''}`);
-  const useCopiaHomeDesktopDetail = isCopiaHomeLanding(landing) && !isMobile && productIsRefurbished;
+  // copia-home y landings de 2° financiamiento (renueva-*): el detalle desktop de
+  // seminuevos usa la variante (refurb-only). El catálogo NO cambia.
+  const useCopiaHomeDesktopDetail = isCopiaHomeStyleLanding(landing) && !isMobile && productIsRefurbished;
 
   return (
     // overflow-x-clip (no -hidden): clipea el desborde horizontal SIN crear un
@@ -402,11 +404,12 @@ function ProductDetailContent() {
           paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
       >
-        {isCopiaHomeLanding(landing) && isMobile ? (
+        {isCopiaHomeStyleLanding(landing) && isMobile ? (
           <CopiaHomeMobileDetail
             apiData={apiData}
             landing={landing}
             isAvailable={isAvailable}
+            secondFinancing={isSecondFinancingLanding(landing)}
             defaultTerm={defaultTerm ?? apiData.defaultTerm}
             defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
             defaultFrequency={defaultFrequency}
