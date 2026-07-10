@@ -116,7 +116,7 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
             <>
               {' '}· te quedan{' '}
               <span className="font-bold" style={{ color: OFERTA_COLORS.greenDark }}>S/{fmt(restante)}</span>
-              {' '}para accesorios
+              {' '}para mejorar tu equipo o sumar accesorios y seguros
             </>
           ) : (
             <> de tu monto aprobado</>

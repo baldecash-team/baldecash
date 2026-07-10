@@ -502,16 +502,6 @@ export function MiOfertaClient({ token }: { token: string }) {
             <CardCambiarEquipo
               montoAprobado={offer.maxMonthlyQuota}
               equiposCount={catalogCount}
-              imagen={exclusivaInfo?.imageUrl ?? null}
-              accesorio={
-                offer.exclusiveOffer?.accessory
-                  ? {
-                      name: offer.exclusiveOffer.accessory.name,
-                      imageUrl: offer.exclusiveOffer.accessory.image_url ?? null,
-                      monthly: offer.exclusiveOffer.accessory.monthly,
-                    }
-                  : null
-              }
               onVerCatalogo={goToCatalogo}
             />
             {/* "Mantener mi equipo": card rica (misma EquipoPedidoCard del Caso 4,
