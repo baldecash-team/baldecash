@@ -36,7 +36,6 @@ import { MontoAprobadoBar } from './components/redesign/MontoAprobadoBar';
 import { PruebaSocial } from './components/redesign/PruebaSocial';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/redesign/EquipoRecomendadoCard';
 import { OpcionBarra } from './components/redesign/OpcionBarra';
-import { CardCambiarEquipo } from './components/redesign/CardCambiarEquipo';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
@@ -516,10 +515,18 @@ export function MiOfertaClient({ token }: { token: string }) {
                 }
               />
             ) : null}
-            <CardCambiarEquipo
-              montoAprobado={offer.maxMonthlyQuota}
-              equiposCount={catalogCount}
-              onVerCatalogo={goToCatalogo}
+            {/* "Mejora tu equipo" (upsell): mismo componente estándar del Caso 4
+                (OpcionBarra) — antes usaba CardCambiarEquipo, un layout aparte.
+                Se conserva el texto del upsell + el conteo dinámico de equipos. */}
+            <OpcionBarra
+              icono={<ShoppingBag className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              titulo="Mejora tu equipo"
+              subtitulo={
+                catalogCount && catalogCount > 0
+                  ? `Explora ${catalogCount} equipos aprobados para ti`
+                  : 'Explora otros equipos de nuestro catálogo'
+              }
+              onClick={goToCatalogo}
             />
             {/* "Mantener mi equipo": card rica (misma EquipoPedidoCard del Caso 4,
                 variante 'disponible' → sin tachar, con desglose de los
