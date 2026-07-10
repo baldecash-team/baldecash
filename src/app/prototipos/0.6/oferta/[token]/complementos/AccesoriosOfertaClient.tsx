@@ -685,6 +685,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   onToggle={() => toggleAcc(a)}
                   onVerDetalle={() => setDetailAccessory(a)}
                   badge={i === 0 ? 'Recomendado' : undefined}
+                  noCabe={!accFits(a)}
                 />
               ))}
             </div>
