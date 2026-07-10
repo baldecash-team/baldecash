@@ -87,8 +87,8 @@ function ConfirmarEleccionContenido({
           <ShoppingBag className="h-5 w-5 text-white" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold text-white">¿Confirmas tu elección?</h2>
-          <p className="text-[12.5px] text-white/85">Estás a un paso de elegir tu equipo</p>
+          <h2 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-tight text-white [text-wrap:balance]">¿Confirmas tu elección?</h2>
+          <p className="text-[12.5px] leading-snug text-white/85">Estás a un paso de elegir tu equipo</p>
         </div>
         <button
           onClick={onClose}

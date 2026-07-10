@@ -286,41 +286,43 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[10001] flex flex-col min-h-[50vh] max-h-[70vh]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[10001] flex flex-col min-h-[50vh] max-h-[70vh] overflow-hidden"
             style={{ overscrollBehavior: 'contain' }}
           >
-            {/* Drag Handle */}
+            {/* Drag Handle + header morado STICKY (mismo patrón que
+                ConfirmarEleccionModal, que sí funciona): sheet con overflow-hidden,
+                handle+header flex-none (no se encogen → quedan fijos arriba), y
+                SOLO el body scrollea. Color hex directo #4654CD (la var CSS no
+                resuelve confiablemente en el portal). */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
-              className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+              className="flex flex-none justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+              style={{ backgroundColor: '#4654CD' }}
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-white/40 rounded-full" />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
-                  <Package className="w-4 h-4 text-[var(--color-primary)]" />
+            {/* Header morado fijo (mismo estilo que el header desktop) */}
+            <div className="flex flex-none items-center justify-between px-4 pb-4 pt-1" style={{ backgroundColor: '#4654CD' }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-4 h-4 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-white">
                     Características
                   </h2>
-                  <p className="text-xs text-neutral-500 truncate max-w-[180px]">
+                  <p className="text-xs text-white/70 truncate max-w-[180px]">
                     {accessory.name}
                   </p>
                 </div>
               </div>
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                onPress={onClose}
-                className="cursor-pointer"
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
               >
-                <X className="w-4 h-4" />
-              </Button>
+                <X className="w-4 h-4 text-white" />
+              </button>
             </div>
 
             {/* Body - scrollable */}

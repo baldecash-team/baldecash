@@ -103,14 +103,14 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquip
         <div className="overflow-hidden border-t pt-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
           <ul className="space-y-1.5">
             <li className="flex items-center justify-between text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
-              <span className="truncate">Equipo</span>
+              <span>Equipo</span>
               <span className="shrink-0 font-medium" style={{ color: OFERTA_COLORS.textStrong }}>
                 S/{cuotaFormateada}/mes
               </span>
             </li>
             {(extras ?? []).map((item, idx) => (
               <li key={`${item.label}-${idx}`} className="flex items-center justify-between text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
-                <span className="min-w-0 truncate">{item.label}</span>
+                <span className="min-w-0">{item.label}</span>
                 <span className="shrink-0 font-medium" style={{ color: OFERTA_COLORS.textStrong }}>
                   +S/{Math.round(item.monthly).toLocaleString('es-PE')}/mes
                 </span>
