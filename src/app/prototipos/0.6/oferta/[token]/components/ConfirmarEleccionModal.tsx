@@ -249,13 +249,14 @@ export function ConfirmarEleccionModal({
               className="fixed bottom-0 left-0 right-0 z-[101] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-white"
               style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-              {/* Drag handle (deshabilitado mientras carga) */}
+              {/* Drag handle (deshabilitado mientras carga). Fondo morado igual
+                  al header para que la franja superior no se vea blanca. */}
               <div
                 onPointerDown={(e) => { if (!loading) dragControls.start(e); }}
                 className="flex flex-none justify-center pt-3 pb-1"
-                style={{ cursor: loading ? 'default' : 'grab' }}
+                style={{ cursor: loading ? 'default' : 'grab', backgroundColor: HEADER_INDIGO }}
               >
-                <div className="h-1 w-10 rounded-full bg-neutral-300" />
+                <div className="h-1 w-10 rounded-full bg-white/40" />
               </div>
               <ConfirmarEleccionContenido
                 equipo={equipo}
