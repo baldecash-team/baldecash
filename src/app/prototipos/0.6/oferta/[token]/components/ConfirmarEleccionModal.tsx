@@ -280,7 +280,7 @@ export function ConfirmarEleccionModal({
       isOpen={isOpen}
       onClose={dismiss}
       placement="center"
-      size={addonsSlot ? 'lg' : 'md'}
+      size={addonsSlot ? '2xl' : 'md'}
       scrollBehavior="inside"
       hideCloseButton
       backdrop="opaque"
@@ -288,12 +288,15 @@ export function ConfirmarEleccionModal({
       classNames={{
         wrapper: 'z-[101]',
         backdrop: 'z-[100] bg-black/50',
-        base: 'bg-white rounded-2xl overflow-hidden',
+        // max-h + overflow-hidden acotan el modal al viewport; el header y el
+        // footer quedan fijos y SOLO el body (flex-1 overflow-y-auto) scrollea
+        // cuando el contenido es largo (varios seguros en "Asegura tu inversión").
+        base: 'bg-white rounded-2xl overflow-hidden max-h-[90vh] my-auto',
         body: 'bg-white p-0',
         footer: 'bg-white',
       }}
     >
-      <ModalContent>
+      <ModalContent className="flex max-h-[90vh] flex-col overflow-hidden">
         <ConfirmarEleccionContenido
           equipo={equipo}
           loading={loading}
@@ -301,7 +304,7 @@ export function ConfirmarEleccionModal({
           onClose={onClose}
           addonsSlot={addonsSlot}
           insuranceUpsellSlot={insuranceUpsellSlot}
-          scrollClassName=""
+          scrollClassName="flex-1 overflow-y-auto"
         />
       </ModalContent>
     </Modal>

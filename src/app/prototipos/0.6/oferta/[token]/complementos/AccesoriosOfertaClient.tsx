@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, HeartPulse, Check } from 'lucide-react';
 import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
@@ -502,56 +502,175 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   }, [accessories, insurances, selectedAcc, selectedIns]);
 
   // "Asegura tu inversión" dentro del modal de confirmación (A11, feedback
-  // Marco): seguros disponibles que aún NO se eligieron, con botón "Añadir"
-  // (reusa toggleIns — no hay endpoint nuevo). Condicional a que exista al
-  // menos un seguro sin seleccionar que además quepa en la cuota.
+  // Marco): TODOS los seguros disponibles como toggle (agregar/quitar), no solo
+  // los no elegidos — al seleccionar uno NO desaparece, cambia a estado elegido.
+  // Si un seguro NO cabe en la cuota y no está elegido, se atenúa con el badge
+  // "Supera tu cuota" (mismo patrón que los accesorios, AccesorioFilaCard).
   const insuranceUpsellSlot = useMemo(() => {
-    const noSeleccionados = insurances.filter((p) => !selectedIns.includes(p.id) && insFits(p));
-    if (noSeleccionados.length === 0) return null;
+    if (insurances.length === 0) return null;
     const suf = cuotaSuffix(equipoFrequency);
+    // Ícono por tipo de seguro (robo → candado, multiasistencia → pulso,
+    // garantía/otros → escudo). Da identidad visual a cada card.
+    const iconFor = (type: string) => {
+      if (type?.includes('robo')) return Lock;
+      if (type?.includes('multiasistencia') || type?.includes('asistencia')) return HeartPulse;
+      return ShieldCheck;
+    };
+    // Eyebrow (label del tipo) igual al flujo regular (InsuranceCards).
+    const labelFor = (type: string) => {
+      if (type === 'garantia_extendida') return 'Garantía extendida';
+      if (type === 'seguro_robo') return 'Protección contra robo';
+      if (type?.includes('multiasistencia')) return 'Multiasistencia';
+      return type?.replace(/_/g, ' ') ?? 'Seguro';
+    };
     return (
       <div
         className="mt-4 rounded-xl border p-3.5"
         style={{ backgroundColor: OFERTA_COLORS.greenSoft, borderColor: OFERTA_COLORS.greenDark + '33' }}
       >
-        <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
-          Asegura tu inversión
-        </p>
-        <div className="mt-2 space-y-2">
-          {noSeleccionados.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
-              <span className="min-w-0 text-[12.5px]" style={{ color: OFERTA_COLORS.textStrong }}>
-                <span className="block font-medium">{p.name}</span>
-                <span style={{ color: OFERTA_COLORS.textMid }}>
-                  Añade garantía extendida por +S/{Math.round(p.monthlyPrice || 0)}{suf} antes de confirmar
-                </span>
-                {/* "Ver detalle" desde el modal de confirmación: cierra el modal
-                    y, tras su animación de salida (~220ms), abre el detalle del
-                    seguro — así las transiciones no se pisan. Al cerrar el detalle
-                    se reabre el modal encadenado igual. */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDetailOrigin('confirmacion');
-                    setModalOpen(false);
-                    window.setTimeout(() => setDetailInsurance(p), 220);
-                  }}
-                  className="mt-0.5 block cursor-pointer text-[11px] font-semibold"
-                  style={{ color: OFERTA_COLORS.tealBrand }}
-                >
-                  Ver detalle
-                </button>
-              </span>
-              <button
-                type="button"
-                onClick={() => toggleIns(p.id)}
-                className="shrink-0 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-white"
-                style={{ backgroundColor: OFERTA_COLORS.greenDark }}
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
+          <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+            Asegura tu inversión
+          </p>
+        </div>
+        <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {insurances.map((p) => {
+            const Icon = iconFor(p.insuranceType);
+            const agregado = selectedIns.includes(p.id);
+            // "No cabe" solo aplica si aún no está elegido: un seguro elegido
+            // siempre se puede quitar aunque ya no quepa nada más.
+            const bloqueado = !insFits(p) && !agregado;
+            // Beneficios: los 3 primeros de la cobertura del backend
+            // (CoverageItem.name), como en las cards del flujo regular.
+            const beneficios = (p.coverage ?? []).slice(0, 3).map((c) => c.name).filter(Boolean);
+            return (
+              <div
+                key={p.id}
+                className={`flex h-full flex-col overflow-hidden rounded-xl border-[1.5px] bg-white transition-opacity ${bloqueado ? 'opacity-55' : ''}`}
+                style={{ borderColor: agregado ? OFERTA_COLORS.greenDark : OFERTA_COLORS.border, boxShadow: '0 1px 2px rgba(16,24,40,.06)' }}
               >
-                Añadir
-              </button>
-            </div>
-          ))}
+                <div className="flex flex-1 flex-col p-3.5">
+                  {/* Header: ícono + eyebrow/nombre (+ check si elegido) */}
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="flex h-10 w-10 flex-none items-center justify-center rounded-xl"
+                      style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.greenDark }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className="text-[10.5px] font-bold uppercase leading-tight tracking-wide" style={{ color: OFERTA_COLORS.tealBrand }}>
+                          {labelFor(p.insuranceType)}
+                        </span>
+                        {p.isRecommended ? (
+                          <span
+                            className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white"
+                            style={{ backgroundColor: OFERTA_COLORS.greenDark }}
+                          >
+                            Recomendado
+                          </span>
+                        ) : null}
+                      </div>
+                      <h3 className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold leading-tight" style={{ color: OFERTA_COLORS.textStrong }}>
+                        {p.name}
+                      </h3>
+                    </div>
+                    {agregado ? (
+                      <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full" style={{ backgroundColor: OFERTA_COLORS.greenDark }}>
+                        <Check className="h-3.5 w-3.5 text-white" strokeWidth={2.8} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Bloque de precio (destacado, con total en cuotas) */}
+                  <div className="mt-3 rounded-lg px-3 py-2" style={{ backgroundColor: OFERTA_COLORS.greenSoft }}>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-['Baloo_2',_sans-serif] text-[20px] font-extrabold leading-none" style={{ color: OFERTA_COLORS.greenDark }}>
+                        +S/{Math.round(p.monthlyPrice || 0)}
+                      </span>
+                      <span className="text-[12px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>{suf}</span>
+                    </div>
+                    {p.totalPrice ? (
+                      <p className="mt-0.5 text-[11px]" style={{ color: OFERTA_COLORS.textMid }}>
+                        Total S/{Math.round(p.totalPrice).toLocaleString('es-PE')} en {p.paymentMonths} cuotas
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {/* Descripción corta (si el backend la trae). */}
+                  {p.description ? (
+                    <p className="mt-2.5 text-[12px] leading-snug" style={{ color: OFERTA_COLORS.textMid }}>
+                      {p.description}
+                    </p>
+                  ) : null}
+
+                  {/* Beneficios (3 con check) */}
+                  {beneficios.length > 0 ? (
+                    <ul className="mt-2.5 space-y-1.5">
+                      {beneficios.map((b, i) => (
+                        <li key={i} className="flex items-start gap-1.5 text-[11.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+                          <Check className="mt-[2px] h-3.5 w-3.5 flex-none" strokeWidth={2.6} style={{ color: OFERTA_COLORS.greenDark }} />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {/* Duración + proveedor (pb-3 para separar del botón que viene
+                      anclado abajo con mt-auto). */}
+                  {(p.durationMonths || p.provider?.name) ? (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pb-3 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                      {p.durationMonths ? <span>{p.durationMonths} meses</span> : null}
+                      {p.durationMonths && p.provider?.name ? <span>·</span> : null}
+                      {p.provider?.name ? <span>{p.provider.name}</span> : null}
+                    </div>
+                  ) : null}
+
+                  {/* Acciones: toggle full-width + "Ver detalle" / badge "Supera tu
+                      cuota". mt-auto → pegado al fondo para alinear el botón entre
+                      las 2 columnas aunque las cards tengan distinto alto. */}
+                  <button
+                    type="button"
+                    onClick={() => toggleIns(p.id)}
+                    disabled={bloqueado}
+                    className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-lg border-[1.5px] py-2.5 text-[13px] font-bold transition-all duration-200 ease-out enabled:cursor-pointer enabled:hover:brightness-95 enabled:active:scale-[.98] disabled:cursor-not-allowed"
+                    style={
+                      agregado
+                        ? { borderColor: OFERTA_COLORS.greenDark, backgroundColor: '#fff', color: OFERTA_COLORS.greenDark }
+                        : { borderColor: OFERTA_COLORS.greenDark, backgroundColor: OFERTA_COLORS.greenDark, color: '#fff' }
+                    }
+                  >
+                    {agregado ? (
+                      <><Check className="h-4 w-4" strokeWidth={2.6} /> Agregado</>
+                    ) : (
+                      <><Plus className="h-4 w-4" strokeWidth={2.6} /> Añadir protección</>
+                    )}
+                  </button>
+                  {bloqueado ? (
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold" style={{ color: '#B45309' }}>
+                      <TriangleAlert className="h-3 w-3 shrink-0" strokeWidth={2.4} />
+                      Supera tu cuota
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailOrigin('confirmacion');
+                        setModalOpen(false);
+                        window.setTimeout(() => setDetailInsurance(p), 220);
+                      }}
+                      className="mt-1.5 w-full cursor-pointer text-center text-[11px] font-semibold"
+                      style={{ color: OFERTA_COLORS.tealBrand }}
+                    >
+                      Ver detalle
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
