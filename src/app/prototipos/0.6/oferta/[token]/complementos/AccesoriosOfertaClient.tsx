@@ -17,7 +17,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert } from 'lucide-react';
+import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -130,6 +131,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [showBuscador, setShowBuscador] = useState(false);
   // Modal de confirmación (siempre, con desglose de add-ons).
   const [modalOpen, setModalOpen] = useState(false);
+  // Modal "¿Estás seguro?" (segunda confirmación antes de guardar): al tocar
+  // "Confirmar" en el modal de elección, se muestra este check final.
+  const [showSeguro, setShowSeguro] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
   // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
@@ -374,6 +378,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
       setConfirming(false);
       setModalOpen(false);
+      setShowSeguro(false); // cierra la segunda confirmación en caso de error
       confirmLock.current = false; // libera para permitir reintentar
     }
   }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
@@ -452,11 +457,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             S/{Math.round(totalMonthly)}{suf}
           </span>
         </div>
-        {!hayRegalos && accSel.length === 0 && insSel.length === 0 ? (
-          <p className="mt-2 text-center text-xs" style={{ color: OFERTA_COLORS.textSoft }}>
-            Puedes sumar accesorios o seguros antes de confirmar.
-          </p>
-        ) : null}
       </div>
     );
   }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency, equipoInfo, equipoMonthly]);
@@ -806,11 +806,70 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             : { name: 'Tu equipo', monthly: equipoMonthly, term: (equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm), initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
         }
         loading={confirming}
-        onConfirm={confirmar}
+        onConfirm={() => setShowSeguro(true)}
         onClose={() => (confirming ? undefined : setModalOpen(false))}
         addonsSlot={addonsResumen}
         insuranceUpsellSlot={insuranceUpsellSlot}
       />
+
+      {/* Segunda confirmación "¿Estás seguro?" — modal centrado (desktop y mobile).
+          "Sí, confirmar" guarda (confirmar); "Cancelar" vuelve al modal de
+          elección. Se bloquea el cierre mientras confirma. */}
+      <Modal
+        isOpen={showSeguro}
+        onClose={() => (confirming ? undefined : setShowSeguro(false))}
+        placement="center"
+        size="sm"
+        hideCloseButton
+        backdrop="opaque"
+        isDismissable={!confirming}
+        classNames={{
+          wrapper: 'z-[201]',
+          backdrop: 'z-[200] bg-black/50',
+          base: 'bg-white rounded-2xl overflow-hidden mx-4',
+          body: 'bg-white p-0',
+        }}
+      >
+        <ModalContent>
+          <ModalBody>
+            <div className="px-5 py-6 text-center">
+              <div
+                className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ backgroundColor: '#FEF3E2' }}
+              >
+                <TriangleAlert className="h-6 w-6" strokeWidth={2.2} style={{ color: '#B45309' }} />
+              </div>
+              <h2 className="mt-3.5 font-['Baloo_2',_sans-serif] text-[19px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                ¿Estás seguro?
+              </h2>
+              <p className="mt-1.5 text-[13.5px] leading-[1.5]" style={{ color: OFERTA_COLORS.textMid }}>
+                Al confirmar, cambiaremos tu equipo y tu solicitud quedará aprobada.
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={confirmar}
+                  disabled={confirming}
+                  className="flex w-full cursor-pointer items-center justify-center rounded-lg py-3.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
+                  style={{ backgroundColor: OFERTA_COLORS.primary }}
+                >
+                  {confirming ? 'Procesando…' : 'Sí, confirmar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSeguro(false)}
+                  disabled={confirming}
+                  className="w-full cursor-pointer rounded-lg py-3 font-['Baloo_2',_sans-serif] text-[14px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ color: OFERTA_COLORS.textMid }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
