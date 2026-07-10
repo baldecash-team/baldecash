@@ -296,9 +296,12 @@ export function CatalogoOfertaTab({
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97] sm:gap-2 sm:px-3.5 sm:text-sm"
+              style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E533', color: '#4F46E5' }}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2.4} />
+              {/* Texto corto en mobile ("Mi oferta"), completo en desktop. */}
+              <span className="sm:hidden">Mi oferta</span>
               <span className="hidden sm:inline">Volver a mi oferta</span>
             </button>
           ) : (
