@@ -741,7 +741,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             if (overBudget) return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
             setModalOpen(true);
           }}
-          ctaText={overBudget ? 'Supera tu cuota' : 'Añadir accesorios y seguros'}
+          ctaText={overBudget ? 'Supera tu cuota' : 'Confirmar mi pedido'}
         />
       </div>
 
