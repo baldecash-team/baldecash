@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users } from 'lucide-react';
+import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users, HeartPulse } from 'lucide-react';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { InsuranceDetailModal } from './InsuranceDetailModal';
@@ -66,16 +66,22 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   const maPlans = plans.filter((p) => p.insuranceType === 'multiasistencia');
   const equipoPlans = plans.filter((p) => p.insuranceType !== 'multiasistencia');
 
-  // Insurama (equipo) y A365 (Multiasistencia) comparten la misma grilla de 2
-  // columnas. Total de tarjetas: 1 sola → centrada; 2+ → 2 columnas. Así con 1
-  // seguro Insurama + MA quedan lado a lado, y con 2 Insurama la MA cae debajo.
-  const totalCards = equipoPlans.length + maPlans.length;
-  const gridCols = totalCards === 1
+  // La Multiasistencia (A365) es su PROPIA sección, independiente de los seguros
+  // de equipo (Insurama). Se muestra aunque no haya garantía/robo, pero SOLO si
+  // el backend devuelve un plan A365; si no hay plan disponible, no se renderiza
+  // nada (sin tarjeta ni aviso).
+  const showMultiasistenciaSection = maPlans.length > 0;
+
+  // Los seguros de equipo van solos en su grilla: 1 sola → centrada; 2+ → 2 cols.
+  const gridCols = equipoPlans.length === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
     : 'grid-cols-1 sm:grid-cols-2';
 
   return (
     <>
+      {/* ===== Sección: Protege tu equipo (seguros Insurama) ===== */}
+      {equipoPlans.length > 0 && (
+      <>
       {/* Intro */}
       {showIntro && (
         <motion.div
@@ -224,23 +230,51 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
             </motion.div>
           );
         })}
-
-        {/* Multiasistencia (A365): MISMA grilla de 2 columnas que los seguros
-            Insurama → 1 columna Insurama + 1 columna A365 lado a lado si hay 1
-            Insurama; si hay 2 Insurama, la MA cae debajo (en desktop). */}
-        {maPlans.map((plan) => (
-          <MultiasistenciaCard
-            key={plan.id}
-            plan={plan}
-            isSelected={selectedPlanIds.includes(plan.id)}
-            onToggle={() => onToggle(plan.id)}
-            onSeeMore={() => {
-              analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
-              setDetailPlan(plan);
-            }}
-          />
-        ))}
       </div>
+      </>
+      )}
+
+      {/* ===== Sección propia: Protégete tú y tu familia (Multiasistencia A365) =====
+          Independiente de los seguros de equipo. Solo se renderiza si el backend
+          devuelve un plan A365; si no hay plan disponible, no se muestra nada. */}
+      {showMultiasistenciaSection && (
+        <div className={equipoPlans.length > 0 ? 'mt-8' : ''}>
+          {showIntro && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-[var(--color-primary)] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <HeartPulse className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-800">
+                    Protégete tú y tu familia
+                  </h2>
+                  <p className="text-sm text-neutral-500">
+                    Mientras pagas tu equipo, tú y hasta 3 familiares quedan cubiertos. Es opcional.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {maPlans.map((plan) => (
+            <MultiasistenciaCard
+              key={plan.id}
+              plan={plan}
+              isSelected={selectedPlanIds.includes(plan.id)}
+              onToggle={() => onToggle(plan.id)}
+              onSeeMore={() => {
+                analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+                setDetailPlan(plan);
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Social proof */}
       {badgeText && (
