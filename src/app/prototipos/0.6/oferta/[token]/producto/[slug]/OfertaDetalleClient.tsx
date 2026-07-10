@@ -14,6 +14,7 @@ import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import { Navbar } from '../../../../components/hero/Navbar';
 import { NavbarSearch } from '../../../../[landing]/catalogo/components/catalog/NavbarActions';
+import { SearchDrawer } from '../../../../[landing]/catalogo/components/catalog/SearchDrawer';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
@@ -53,6 +54,7 @@ type State =
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [searchValue, setSearchValue] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   // Plazos/iniciales permitidos por la oferta (BAL-2096). Default [24]/[0] = como antes.
   const [offerTerms, setOfferTerms] = useState<number[]>([24]);
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
@@ -289,45 +291,54 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       <div className="pt-16" />
       {/* Sub-barra: volver a mi oferta + buscador (lleva al catálogo de la oferta) */}
       <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-3 py-2.5 sm:px-4 lg:px-6">
-          <a
-            href={backToOffer}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97] sm:gap-2 sm:px-3.5 sm:text-sm"
-            style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E533', color: '#4F46E5' }}
-          >
-            <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2.4} />
-            <span className="sm:hidden">Mi oferta</span>
-            <span className="hidden sm:inline">Volver a mi oferta</span>
-          </a>
-          {/* Desktop: buscador centrado, ancho como el flujo regular */}
-          <div className="hidden md:flex md:justify-center">
-            <NavbarSearch
-              value={searchValue}
-              onChange={setSearchValue}
-              onClear={() => setSearchValue('')}
-              onSubmit={irAlCatalogoConBusqueda}
-              placeholder="Buscar otro equipo…"
-              fetchSuggestions={fetchOfferSuggestions}
-              onSelectSuggestion={goToOfferDetail}
-            />
+        <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4 lg:px-6">
+          {/* Izquierda: dos accesos — "Mi oferta" (pill) + "Catálogo". Ambos
+              visibles en mobile y desktop (el texto se acorta en mobile). */}
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={backToOffer}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97] sm:gap-2 sm:px-3.5 sm:text-sm"
+              style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E533', color: '#4F46E5' }}
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2.4} />
+              <span className="sm:hidden">Mi oferta</span>
+              <span className="hidden sm:inline">Volver a mi oferta</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => goToCatalog('')}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 text-[13px] font-semibold text-gray-600 transition-all duration-200 ease-out hover:bg-gray-50 hover:text-[var(--color-primary)] active:scale-[.97] sm:gap-2 sm:px-3.5 sm:text-sm"
+            >
+              <LayoutGrid className="h-4 w-4 shrink-0" />
+              <span className="sm:hidden">Catálogo</span>
+              <span className="hidden sm:inline">Ver todo el catálogo</span>
+            </button>
           </div>
-          {/* Mobile: botón que lleva al catálogo */}
+          {/* Centro (col 1fr): buscador en desktop; en mobile queda vacío pero
+              mantiene el 1fr para empujar la lupa al extremo derecho. */}
+          <div className="flex justify-center">
+            <div className="hidden w-full justify-center md:flex">
+              <NavbarSearch
+                value={searchValue}
+                onChange={setSearchValue}
+                onClear={() => setSearchValue('')}
+                onSubmit={irAlCatalogoConBusqueda}
+                placeholder="Buscar otro equipo…"
+                fetchSuggestions={fetchOfferSuggestions}
+                onSelectSuggestion={goToOfferDetail}
+              />
+            </div>
+          </div>
+          {/* Derecha (col auto): botón-ícono lupa (40×40) — solo mobile, al
+              extremo derecho. Abre el SearchDrawer (bottom sheet), igual que el
+              catálogo de oferta y el detalle del flujo regular. */}
           <button
             type="button"
-            onClick={() => goToCatalog('')}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-50 md:hidden"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Buscar entre tus equipos"
+            className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 md:hidden"
           >
-            <Search className="h-4 w-4" style={{ color: 'var(--color-primary)' }} />
-            Buscar
-          </button>
-          {/* Desktop: acceso directo al catálogo completo (sin buscar) */}
-          <button
-            type="button"
-            onClick={() => goToCatalog('')}
-            className="hidden shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-[var(--color-primary)] md:inline-flex"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            <span>Ver todo el catálogo</span>
+            <Search className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
           </button>
         </div>
       </div>
@@ -359,6 +370,22 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           cronogramaVersion={defaultDetalleConfig.cronogramaVersion}
         />
       </main>
+
+      {/* Buscador mobile (bottom sheet) — mismo SearchDrawer del catálogo de
+          oferta y del detalle regular. Topado por cuota vía fetchOfferSuggestions. */}
+      <SearchDrawer
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        value={searchValue}
+        onChange={setSearchValue}
+        onClear={() => setSearchValue('')}
+        onSubmit={() => {
+          setSearchOpen(false);
+          irAlCatalogoConBusqueda();
+        }}
+        fetchSuggestions={fetchOfferSuggestions}
+        onSelectSuggestion={goToOfferDetail}
+      />
     </div>
   );
 }
