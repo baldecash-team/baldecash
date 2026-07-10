@@ -166,14 +166,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Color state - default to current product
   const defaultColorId = useMemo(() => {
     if (hasSiblings) {
-      // Find current product in siblings
+      // BAL-2214: emparejar por productId, no por slug. Con combos el slug del
+      // sibling lleva -combo-{id} y no coincide con product.slug, lo que dejaba
+      // el check/label en el primer color en vez del producto actual.
       const currentSibling = product.colorSiblings.find(
-        sib => sib.slug === product.slug
+        sib => String(sib.productId) === String(product.id)
       );
       return currentSibling ? String(currentSibling.productId) : String(product.colorSiblings[0].productId);
     }
     return product.colors && product.colors.length > 0 ? product.colors[0].id : '';
-  }, [product.colors, product.colorSiblings, product.slug, hasSiblings]);
+  }, [product.colors, product.colorSiblings, product.id, hasSiblings]);
 
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
 
