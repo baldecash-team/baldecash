@@ -64,6 +64,10 @@ export interface RequestedProduct {
    *  (composición real, acta 1-jul). Card izquierda "el que pediste". */
   accessories?: Array<{ id: number | null; name: string; monthly: number }>;
   insurances?: Array<{ id: number | null; name: string; monthly: number }>;
+  /** Specs técnicas (dict plano EAV: processor/ram/storage/gpu/screen...) para
+   *  los chips de la card. Mismo formato que el catálogo. Vacío si el API no las
+   *  da. Se convierten a ProductSpecs con createSpecsFromEav en el consumidor. */
+  specs?: Record<string, string | number | boolean>;
 }
 
 /** Accesorio/seguro elegido en la oferta (para el desglose de confirmación). */

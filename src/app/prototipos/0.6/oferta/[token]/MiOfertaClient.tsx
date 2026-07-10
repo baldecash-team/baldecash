@@ -16,6 +16,7 @@ import { ShoppingBag } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 import type { CatalogProduct, ProductSpecs } from '../../[landing]/catalogo/types/catalog';
+import { createSpecsFromEav } from '../../services/catalogApi';
 import {
   getOffer,
   getCatalog,
@@ -388,6 +389,13 @@ export function MiOfertaClient({ token }: { token: string }) {
   const reqTotalMonthly =
     req?.monthly_price != null ? req.monthly_price + reqExtrasMonthly : null;
 
+  // Chips de specs del equipo pedido (processor/RAM/almacenamiento/GPU/pantalla),
+  // igual que la card del recomendado del Caso 4. El backend manda el dict plano
+  // EAV en req.specs; createSpecsFromEav lo estructura y specsToChips lo pinta.
+  const reqSpecsChips = req?.specs
+    ? specsToChips(createSpecsFromEav(req.specs, 'laptop'))
+    : [];
+
   return (
     <div className="min-h-screen bg-white">
       <OfertaHeader />
@@ -476,6 +484,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 initialAmount={req.initial_amount ?? null}
                 initialPercent={req.initial_percent ?? null}
                 paymentFrequency={req.payment_frequency ?? 'mensual'}
+                specs={reqSpecsChips}
                 accessories={req.accessories ?? []}
                 insurances={req.insurances ?? []}
                 ctaText="Mantener este equipo"
@@ -499,6 +508,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 initialAmount={req.initial_amount ?? null}
                 initialPercent={req.initial_percent ?? null}
                 paymentFrequency={req.payment_frequency ?? 'mensual'}
+                specs={reqSpecsChips}
                 accessories={req.accessories ?? []}
                 insurances={req.insurances ?? []}
               />
