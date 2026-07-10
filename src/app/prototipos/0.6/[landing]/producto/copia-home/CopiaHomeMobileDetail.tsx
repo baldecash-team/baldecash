@@ -120,7 +120,7 @@ export function CopiaHomeMobileDetail({
     ? product.colorSiblings.map((s) => ({ id: String(s.productId), name: s.color, hex: s.colorHex, slug: s.slug }))
     : (product.colors ?? []).map((c) => ({ id: c.id, name: c.name, hex: c.hex, slug: product.slug }));
   const initialColorId = hasSiblings
-    ? String(product.colorSiblings.find((s) => s.slug === product.slug)?.productId ?? product.colorSiblings[0].productId)
+    ? String(product.colorSiblings.find((s) => String(s.productId) === String(product.id))?.productId ?? product.colorSiblings[0].productId)
     : (displayColors[0]?.id ?? '');
   const [colorId, setColorId] = useState(initialColorId);
   const selectedColor = displayColors.find((c) => c.id === colorId);

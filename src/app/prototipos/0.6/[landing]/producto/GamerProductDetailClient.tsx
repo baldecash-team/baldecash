@@ -561,7 +561,7 @@ function DetailContent() {
     : null;
   const displayColors = siblingColors || product?.colors || [];
   const defaultColorId = hasSiblings
-    ? String(product!.colorSiblings.find((s) => s.slug === product!.slug)?.productId || displayColors[0]?.id)
+    ? String(product!.colorSiblings.find((s) => String(s.productId) === String(product!.id))?.productId || displayColors[0]?.id)
     : displayColors[0]?.id || '';
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
 
