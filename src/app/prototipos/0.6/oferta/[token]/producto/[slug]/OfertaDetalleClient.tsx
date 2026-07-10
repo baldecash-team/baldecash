@@ -27,6 +27,7 @@ import {
 import { getOffer, getCatalog, OfferApiError } from '../../../../services/offerApi';
 import { saveOfferSelection } from '../../offerStorage';
 import type { ProductSuggestion } from '../../../../services/catalogApi';
+import { useAnalytics } from '../../../../analytics/useAnalytics';
 
 type State =
   // readOnly = es el detalle del equipo que el estudiante PIDIÓ. Se puede VER
@@ -52,12 +53,15 @@ type State =
   | { kind: 'error'; message: string };
 
 export function OfertaDetalleClient({ token, slug }: { token: string; slug: string }) {
+  const analytics = useAnalytics();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [searchValue, setSearchValue] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   // Plazos/iniciales permitidos por la oferta (BAL-2096). Default [24]/[0] = como antes.
   const [offerTerms, setOfferTerms] = useState<number[]>([24]);
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
+  // offer_case para analytics (BAL-2236). 'unknown' hasta que carga la oferta.
+  const [offerCase, setOfferCase] = useState<string>('unknown');
   // Plazo/inicial que el cliente eligió en el selector (BAL-2097) → se propagan a
   // la página de accesorios. Null hasta que el selector emita (se usa el default).
   const [pickedTerm, setPickedTerm] = useState<number | null>(null);
@@ -110,6 +114,13 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     [token],
   );
 
+  // Funnel: entrada al detalle de producto de la oferta (subruta /producto/[slug]).
+  // offer_case aún no se conoce al montar (la oferta carga async) → 'unknown'.
+  useEffect(() => {
+    analytics.track('offer_explore_view', { offer_case: 'unknown', origin: 'detail' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -120,6 +131,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         if (active) {
           setOfferTerms(offer.terms?.length ? offer.terms : [24]);
           setOfferInitials(offer.initials?.length ? offer.initials : [0]);
+          setOfferCase(offer.offerCase ?? 'unknown');
         }
 
         // Oferta ya consumida (el estudiante ya eligió su equipo): el detalle no
@@ -256,6 +268,17 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
     window.location.href = base;
   }, [token, variantId, comboId, slug, state, offerMonthly, defaultTerm, defaultInitial, pickedTerm, pickedInitial]);
 
+  // Funnel: click en "Elegir este equipo" del detalle (BAL-2236). Envuelve
+  // goToAccesorios sin tocar ProductDetail: trackea y luego navega igual.
+  const onElegirEquipo = useCallback(() => {
+    analytics.track('offer_equipment_chosen', {
+      offer_case: offerCase,
+      source: 'detail',
+      variant_id: variantId ?? null,
+      combo_id: comboId ?? null,
+    });
+    goToAccesorios();
+  }, [analytics, offerCase, variantId, comboId, goToAccesorios]);
 
   if (state.kind === 'loading') {
     // Sin pantalla intermedia "cargando equipo" (como el detalle regular):
@@ -360,7 +383,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           // Sin CTA de elección; en su lugar, un aviso que guía de vuelta.
           // "Elegir este equipo" → página de accesorios/seguros (mini-checkout,
           // BAL-2064). Allí el cliente suma add-ons y confirma todo junto.
-          onClickCTA={readOnly ? undefined : goToAccesorios}
+          onClickCTA={readOnly ? undefined : onElegirEquipo}
           ctaText="Elegir este equipo"
           readOnlyNotice={
             readOnly
