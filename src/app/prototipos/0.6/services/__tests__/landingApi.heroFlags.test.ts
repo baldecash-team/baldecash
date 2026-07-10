@@ -1,5 +1,5 @@
 import { transformLandingData } from '../landingApi';
-import type { LandingHeroResponse } from '../../types/hero';
+import type { LandingHeroResponse } from '../landingApi';
 
 function baseResponse(heroContentConfig: Record<string, unknown>): LandingHeroResponse {
   return {

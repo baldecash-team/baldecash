@@ -192,7 +192,7 @@ interface ApiPartner {
   type?: string;
 }
 
-interface LandingHeroResponse {
+export interface LandingHeroResponse {
   landing: LandingResponse;
   components: HomeComponentResponse[];
   faqs?: ApiFaqItem[];
