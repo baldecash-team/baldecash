@@ -256,8 +256,13 @@ export function CopiaHomeMobileDetail({
     });
   };
 
-  // ---- Accesorios "qué incluye" (item 8: solo mica protectora + cable cargador) ----
-  const accesorios = ['Mica protectora', 'Cable cargador'];
+  // ---- "¿Qué incluye?" ----
+  // Combo → productos del combo (ej. impresora, mochila). iPhone seminuevo → mica + cable.
+  // El resto de equipos no muestra la sección.
+  const comboAccessories = apiData.combo?.accessories?.map((a) => a.productName) ?? [];
+  const hasCombo = comboAccessories.length > 0;
+  const accesorios = hasCombo ? comboAccessories : ['Mica protectora', 'Cable cargador'];
+  const showIncluye = hasCombo || (isIphone && isRefurbished);
 
   const condRows = [
     { l: 'Condición de batería', v: '80 - 99%', blue: true },
@@ -334,7 +339,7 @@ export function CopiaHomeMobileDetail({
               <span className={styles.dfIco}>{isRefurbished ? <BadgeCheck size={18} /> : <Package size={18} />}</span>
               <div>
                 <div className={styles.dfLbl}>Producto</div>
-                <div className={styles.dfVal}>{isRefurbished ? 'Seminuevo' : 'Nuevo sellado'}</div>
+                <div className={styles.dfVal}>{isRefurbished ? 'Seminuevo' : 'Nuevo'}</div>
               </div>
             </div>
           </div>
@@ -415,16 +420,18 @@ export function CopiaHomeMobileDetail({
 
         {canBuy ? (
           <>
-            {/* Qué incluye */}
-            <Acc title="¿Qué incluye tu equipo?" sub="Accesorios incluidos con tu compra" icon={<Package size={20} />} isOpen={!!open.incluye} onToggle={() => toggle('incluye')}>
-              {accesorios.map((txt, i) => (
-                <div key={i} className={styles.incluyeItem}>
-                  <span className={styles.incIco}><Package size={18} /></span>
-                  <span className={styles.incTxt}>{txt}</span>
-                  <span className={styles.incChk}><Check size={14} strokeWidth={3} /></span>
-                </div>
-              ))}
-            </Acc>
+            {/* Qué incluye — combos (sus productos) e iPhones seminuevos (mica + cable) */}
+            {showIncluye && (
+              <Acc title="¿Qué incluye tu equipo?" sub="Accesorios incluidos con tu compra" icon={<Package size={20} />} isOpen={!!open.incluye} onToggle={() => toggle('incluye')}>
+                {accesorios.map((txt, i) => (
+                  <div key={i} className={styles.incluyeItem}>
+                    <span className={styles.incIco}><Package size={18} /></span>
+                    <span className={styles.incTxt}>{txt}</span>
+                    <span className={styles.incChk}><Check size={14} strokeWidth={3} /></span>
+                  </div>
+                ))}
+              </Acc>
+            )}
 
             {/* Calcula tu cuota — componente del flujo normal (PricingCalculator) */}
             <div style={{ marginBottom: 16 }}>

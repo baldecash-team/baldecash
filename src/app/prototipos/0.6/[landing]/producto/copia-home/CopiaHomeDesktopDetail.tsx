@@ -238,8 +238,13 @@ export function CopiaHomeDesktopDetail({
     });
   };
 
-  // ---- Accesorios "qué incluye" (item 8: solo mica protectora + cable cargador) ----
-  const accesorios = ['Mica protectora', 'Cable cargador'];
+  // ---- "¿Qué incluye?" ----
+  // Combo → productos del combo (ej. impresora, mochila). iPhone seminuevo → mica + cable.
+  // El resto de equipos no muestra la sección.
+  const comboAccessories = apiData.combo?.accessories?.map((a) => a.productName) ?? [];
+  const hasCombo = comboAccessories.length > 0;
+  const accesorios = hasCombo ? comboAccessories : ['Mica protectora', 'Cable cargador'];
+  const showIncluye = hasCombo || (isIphone && isRefurbished);
 
   const condRows = [
     { l: 'Condición de batería', v: '80 - 99%', blue: true },
@@ -462,20 +467,22 @@ export function CopiaHomeDesktopDetail({
 
           {canBuy && (
             <>
-              {/* Qué incluye */}
-              <div className={styles.panel}>
-                <div className={styles.secTitle}>¿Qué incluye tu equipo?</div>
-                <div className={styles.secSub}>Accesorios incluidos con tu compra</div>
-                <div className={styles.incluyeGrid}>
-                  {accesorios.map((txt, i) => (
-                    <div key={i} className={styles.incTile}>
-                      <span className={styles.incIco}><Package size={18} /></span>
-                      <span className={styles.incTxt}>{txt}</span>
-                      <span className={styles.incChk}><Check size={16} strokeWidth={3} /></span>
-                    </div>
-                  ))}
+              {/* Qué incluye — combos (sus productos) e iPhones seminuevos (mica + cable) */}
+              {showIncluye && (
+                <div className={styles.panel}>
+                  <div className={styles.secTitle}>¿Qué incluye tu equipo?</div>
+                  <div className={styles.secSub}>Accesorios incluidos con tu compra</div>
+                  <div className={styles.incluyeGrid}>
+                    {accesorios.map((txt, i) => (
+                      <div key={i} className={styles.incTile}>
+                        <span className={styles.incIco}><Package size={18} /></span>
+                        <span className={styles.incTxt}>{txt}</span>
+                        <span className={styles.incChk}><Check size={16} strokeWidth={3} /></span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Especificaciones reales (con Condición como primer grupo) */}
               {(hasSpecs || isRefurbished) && (
