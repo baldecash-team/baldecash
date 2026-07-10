@@ -362,8 +362,10 @@ export function CopiaHomeDesktopDetail({
 
               {canBuy ? (
                 <>
-                  <div className={styles.block}>
-                    <div className={styles.blockT}>Calcula tu cuota</div>
+                  {/* PricingCalculator ya trae su propio título "Calcula tu cuota";
+                      calcWrap neutraliza su card para que quede plano (sin card
+                      dentro de card ni sombra), como el componente en modo normal. */}
+                  <div className={`${styles.block} ${styles.calcWrap}`}>
                     <PricingCalculator
                       paymentPlans={paymentPlans}
                       defaultTerm={defaultTerm ?? initialTerm}

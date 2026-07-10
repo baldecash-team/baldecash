@@ -146,6 +146,10 @@
 /* ---- Cronograma embebido: neutraliza el card propio del componente estándar ---- */
 .cronoWrap > div { border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; background: transparent !important; }
 
+/* ---- PricingCalculator embebido: quita su card propia (padding/fondo/sombra/
+   radio/max-width) para que quede plano dentro de la caja de compra. ---- */
+.calcWrap > div { max-width: none !important; margin: 0 !important; padding: 0 !important; background: transparent !important; border-radius: 0 !important; box-shadow: none !important; }
+
 /* ---- Buy box (columna derecha) ---- */
 .buyMarca { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; color: var(--azul); text-transform: uppercase; }
 .buyTitle { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 28px; color: var(--navy); line-height: 1.15; margin: 4px 0 14px; }
