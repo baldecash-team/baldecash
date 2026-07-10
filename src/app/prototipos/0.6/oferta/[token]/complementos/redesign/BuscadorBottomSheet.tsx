@@ -20,7 +20,7 @@
  * real (toggle) y el fetch de datos viven en AccesoriosOfertaClient (Task 9).
  */
 import { useMemo, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ShoppingBag } from 'lucide-react';
 import { motion, useDragControls } from 'framer-motion';
 
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
@@ -103,34 +103,42 @@ export function BuscadorBottomSheet({
         onDragEnd={(_, info) => {
           if (info.offset.y > 100) onCerrar();
         }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[85dvh] flex-col rounded-t-2xl bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-white"
         style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {/* Drag handle */}
+        {/* Drag handle (franja morada, estándar de los drawers de detalle) */}
         <div
           onPointerDown={(e) => dragControls.start(e)}
           className="flex flex-none cursor-grab justify-center pt-3 pb-1 active:cursor-grabbing"
+          style={{ backgroundColor: '#4654CD' }}
         >
-          <div className="h-1 w-10 rounded-full bg-neutral-300" />
+          <div className="h-1 w-10 rounded-full bg-white/40" />
         </div>
 
-        {/* Header */}
-        <div className="flex flex-none items-center justify-between px-5 pb-3 pt-1">
-          <h2 className="font-['Baloo_2',_sans-serif] text-[18px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-            Añadir al pedido
-          </h2>
+        {/* Header morado estándar (pt-4 pb-[22px], igual que los drawers de
+            detalle de accesorio/seguro y el modal de confirmación): ícono en
+            cuadro + título + X. */}
+        <div className="flex flex-none items-center gap-3 px-5 pb-[22px] pt-4" style={{ backgroundColor: '#4654CD' }}>
+          <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-white/[0.16]">
+            <ShoppingBag className="h-5 w-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-['Baloo_2',_sans-serif] text-[18px] font-bold leading-tight text-white">
+              Suma más accesorios
+            </h2>
+            <p className="text-[12.5px] leading-snug text-white/85">Personaliza tu equipo con lo que necesitas</p>
+          </div>
           <button
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full"
-            style={{ backgroundColor: '#F1F2F7' }}
+            className="flex h-8 w-8 flex-none cursor-pointer items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
           >
-            <X className="h-4 w-4" style={{ color: OFERTA_COLORS.textMid }} />
+            <X className="h-4 w-4 text-white" />
           </button>
         </div>
 
-        <div ref={sheetScrollRef} className="flex-1 overflow-y-auto px-5 pb-28">
+        <div ref={sheetScrollRef} className="flex-1 overflow-y-auto px-5 pb-28 pt-4">
           {/* Buscador */}
           <div className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: OFERTA_COLORS.textSoft }} />

@@ -81,8 +81,11 @@ function ConfirmarEleccionContenido({
 }) {
   return (
     <>
-      {/* Header índigo */}
-      <div className="flex flex-none items-center gap-3 px-5 py-[22px]" style={{ backgroundColor: HEADER_INDIGO }}>
+      {/* Header índigo. pt reducido en mobile: el drawer ya trae arriba la franja
+          del drag-handle (también morada) con su propio padding, así que un pt
+          grande aquí dejaba un hueco visible entre la rayita y el título. En
+          desktop no hay handle, pero pt-4 sigue viéndose bien. */}
+      <div className="flex flex-none items-center gap-3 px-5 pb-[22px] pt-4" style={{ backgroundColor: HEADER_INDIGO }}>
         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.16]">
           <ShoppingBag className="h-5 w-5 text-white" />
         </div>

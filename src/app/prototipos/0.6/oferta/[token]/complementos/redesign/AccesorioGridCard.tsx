@@ -74,7 +74,14 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle,
         </button>
       </div>
 
-      <div className="mt-2 font-['Baloo_2',_sans-serif] text-[12.5px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
+      {/* Título: máx 2 líneas con "…"; reserva SIEMPRE el alto de 2 líneas
+          (min-h) para que todas las cards del grid mantengan la misma altura
+          aunque un nombre sea de 1 línea (queda arriba, con el espacio de la 2ª
+          reservado). line-clamp-2 corta y agrega la elipsis. */}
+      <div
+        className="mt-2 line-clamp-2 min-h-[2.3em] font-['Baloo_2',_sans-serif] text-[12.5px] font-bold leading-[1.15]"
+        style={{ color: OFERTA_COLORS.textStrong }}
+      >
         {accesorio.name}
       </div>
       <div className="mt-1 text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>

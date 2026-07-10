@@ -436,7 +436,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
                 derecha, no pegada al handle. flex-none → sticky arriba. En gamer
                 se usa el header propio de ModalContentShared. */}
             {!isGamer && (
-              <div className="flex flex-none items-center justify-between px-5 pb-4 pt-1" style={{ background: 'var(--color-primary, #4654CD)' }}>
+              <div className="flex flex-none items-center justify-between px-5 pb-[22px] pt-4" style={{ background: 'var(--color-primary, #4654CD)' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     {(() => { const Icon = getModalConfig(plan.insuranceType).icon; return <Icon className="w-4.5 h-4.5 text-white" />; })()}

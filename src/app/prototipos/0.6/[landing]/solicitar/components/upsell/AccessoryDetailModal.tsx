@@ -302,8 +302,9 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
               <div className="w-10 h-1.5 bg-white/40 rounded-full" />
             </div>
 
-            {/* Header morado fijo (mismo estilo que el header desktop) */}
-            <div className="flex flex-none items-center justify-between px-4 pb-4 pt-1" style={{ backgroundColor: '#4654CD' }}>
+            {/* Header morado fijo. Padding estándar del drawer de confirmación:
+                pt-4 pb-[22px] (16px arriba, 22px abajo). */}
+            <div className="flex flex-none items-center justify-between px-4 pb-[22px] pt-4" style={{ backgroundColor: '#4654CD' }}>
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
                   <Package className="w-4 h-4 text-white" />
