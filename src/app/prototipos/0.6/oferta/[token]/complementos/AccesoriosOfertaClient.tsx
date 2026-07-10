@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus, Sparkles } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -552,12 +552,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           (vive en localStorage). El detalle del equipo sigue accesible desde
           el catálogo / la card. */}
       <nav aria-label="Ruta" className="mx-auto w-full max-w-md px-4 pt-4">
-        <ol className="flex flex-wrap items-center gap-1 text-[13px]">
+        <ol className="flex flex-wrap items-center gap-1.5 text-[13px]">
+          {/* Pasos anteriores: mini-pills clicables (chip lila, hover claro). */}
           <li>
             <button
               onClick={goToIndex}
-              className="cursor-pointer font-medium transition-colors hover:underline"
-              style={{ color: OFERTA_COLORS.textMid }}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97]"
+              style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E522', color: '#4F46E5' }}
             >
               Mi oferta
             </button>
@@ -566,14 +567,19 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           <li>
             <button
               onClick={goToCatalogo}
-              className="cursor-pointer font-medium transition-colors hover:underline"
-              style={{ color: OFERTA_COLORS.textMid }}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-all duration-200 ease-out hover:bg-[#E4E9FF] hover:shadow-sm active:scale-[.97]"
+              style={{ backgroundColor: '#EEF1FF', borderColor: '#4F46E522', color: '#4F46E5' }}
             >
               Catálogo
             </button>
           </li>
           <li aria-hidden="true" style={{ color: OFERTA_COLORS.textSoft }}>›</li>
-          <li aria-current="page" className="font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+          {/* Paso actual: destacado, no clicable. */}
+          <li
+            aria-current="page"
+            className="inline-flex items-center rounded-lg px-2.5 py-1 text-[12px] font-bold text-white"
+            style={{ backgroundColor: OFERTA_COLORS.primary }}
+          >
             Complementos
           </li>
         </ol>
@@ -601,52 +607,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             total={totalMonthly}
           />
         )}
-
-        {/* ¡Asegura tu inversión! (feedback Marco): shortcut visual a los
-            seguros disponibles sin entrar al buscador. Condicional a que haya
-            seguros disponibles para este equipo. */}
-        {insurances.length > 0 ? (
-          <div
-            className="rounded-xl border p-3.5"
-            style={{ backgroundColor: OFERTA_COLORS.greenSoft, borderColor: OFERTA_COLORS.greenDark + '33' }}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-              <p className="font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
-                ¡Asegura tu inversión!
-              </p>
-            </div>
-            <p className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
-              Protege tu equipo con estas opciones:
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-2.5">
-              {insurances.map((p) => {
-                const seleccionado = selectedIns.includes(p.id);
-                const fits = insFits(p);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => toggleIns(p.id)}
-                    disabled={!fits}
-                    className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5 text-left transition-all hover:border-[#4F46E5] hover:bg-[#EEF1FF] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[color:inherit] disabled:hover:bg-white disabled:hover:shadow-none"
-                    style={{ borderColor: seleccionado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
-                  >
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="min-w-0 truncate text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
-                        {p.name}
-                      </span>
-                      {seleccionado ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" style={{ color: OFERTA_COLORS.primary }} /> : null}
-                    </span>
-                    <span className="shrink-0 text-[12px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
-                      +S/{Math.round(p.monthlyPrice || 0)}/mes
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
 
         {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una
             opción (BAL-2097). No forma parte del mock visual, pero la
