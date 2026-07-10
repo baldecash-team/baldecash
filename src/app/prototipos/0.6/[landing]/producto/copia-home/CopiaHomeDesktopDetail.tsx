@@ -428,27 +428,6 @@ export function CopiaHomeDesktopDetail({
 
         {/* ===== Secciones a todo el ancho ===== */}
         <div className={styles.detFull}>
-          {/* Condición — primero (item 7). Solo grado comprable (A). */}
-          {canBuy && isRefurbished && (
-            <div className={styles.panel}>
-              <div className={styles.secHeadIco}>
-                <span className={styles.secIco}><BadgeCheck size={22} /></span>
-                <div>
-                  <div className={styles.secTitle}>Condición</div>
-                  <div className={styles.secSub} style={{ marginBottom: 0 }}>Resultado de la revisión técnica del equipo</div>
-                </div>
-              </div>
-              <div className={styles.specRows}>
-                {condRows.map((r, i) => (
-                  <div key={i} className={styles.specRow}>
-                    <span className={styles.srLbl}>{r.l}</span>
-                    <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Descripción */}
           <div className={styles.panel}>
             <div className={styles.secTitle}>Descripción</div>
@@ -496,8 +475,8 @@ export function CopiaHomeDesktopDetail({
                 </div>
               </div>
 
-              {/* Especificaciones reales */}
-              {hasSpecs && (
+              {/* Especificaciones reales (con Condición como primer grupo) */}
+              {(hasSpecs || isRefurbished) && (
                 <div className={styles.panel}>
                   <div className={styles.secHeadIco}>
                     <span className={styles.secIco}><Cpu size={22} /></span>
@@ -506,6 +485,20 @@ export function CopiaHomeDesktopDetail({
                       <div className={styles.secSub} style={{ marginBottom: 0 }}>Ficha técnica completa del equipo</div>
                     </div>
                   </div>
+                  {/* Condición primero, dentro de especificaciones */}
+                  {isRefurbished && (
+                    <div className={styles.specGroup}>
+                      <div className={styles.specGroupTitle}>Condición</div>
+                      <div className={styles.specRows}>
+                        {condRows.map((r, i) => (
+                          <div key={i} className={styles.specRow}>
+                            <span className={styles.srLbl}>{r.l}</span>
+                            <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {specCategories.filter((c) => c.specs && c.specs.length > 0).map((cat) => (
                     <div key={cat.category} className={styles.specGroup}>
                       <div className={styles.specGroupTitle}>{cat.category}</div>
@@ -550,11 +543,11 @@ export function CopiaHomeDesktopDetail({
             </>
           )}
 
-          {/* Equipos reacondicionados */}
+          {/* Recomendados */}
           {similares.length > 0 && (
             <div className={styles.panel}>
-              <div className={styles.secTitle}>Equipos reacondicionados</div>
-              <div className={styles.secSub}>Otros seminuevos que podrían interesarte</div>
+              <div className={styles.secTitle}>Recomendados</div>
+              <div className={styles.secSub}>Equipos que podrían interesarte</div>
               <div className={styles.incluyeGrid}>
                 {similares.slice(0, 4).map((sp) => (
                   <div key={sp.id} className={styles.incTile} style={{ cursor: 'pointer' }} onClick={() => router.push(routes.producto(landing, sp.slug))}>

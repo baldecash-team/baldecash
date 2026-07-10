@@ -39,15 +39,13 @@
 
 /* ---- Layout general ---- */
 .detTop { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 32px; align-items: start; }
-.detGal {
-  position: sticky;
-  top: calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 20px);
-}
+/* La galería NO es sticky: hace scroll junto con la sección (sin espacio vacío
+   debajo de la imagen). */
+.detGal { position: static; }
 .detFull { margin-top: 20px; }
 
 @media (max-width: 900px) {
   .detTop { grid-template-columns: 1fr; }
-  .detGal { position: static; }
 }
 
 .panel {

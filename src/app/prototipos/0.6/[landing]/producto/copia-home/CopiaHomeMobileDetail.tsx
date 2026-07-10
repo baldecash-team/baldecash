@@ -15,9 +15,9 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
-  ChevronDown, ShieldCheck, BadgeCheck, Package,
+  ChevronDown, ChevronRight, ShieldCheck, BadgeCheck, Package,
   Check, Battery, Monitor, Star, RefreshCw, Heart, Cpu, Calendar,
-  FileText, Download, Truck, ArrowRight,
+  FileText, Download, Truck,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -314,27 +314,6 @@ export function CopiaHomeMobileDetail({
           )}
         </div>
 
-        {/* Condición — primero (item 7). Solo grado comprable (A). */}
-        {canBuy && isRefurbished && (
-          <div className={styles.card}>
-            <div className={styles.condHead}>
-              <span className={styles.accIco}><BadgeCheck size={20} /></span>
-              <div>
-                <div className={styles.secTitle} style={{ margin: 0 }}>Condición</div>
-                <div className={styles.accSub}>Resultado de la revisión técnica del equipo</div>
-              </div>
-            </div>
-            <div className={styles.specRows}>
-              {condRows.map((r, i) => (
-                <div key={i} className={styles.specRow}>
-                  <span className={styles.srLbl}>{r.l}</span>
-                  <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Envío diferido (iPhone seminuevo / iPad) */}
         {deferredShipping && (
           <div className={styles.shipNote}>
@@ -402,9 +381,22 @@ export function CopiaHomeMobileDetail({
           </Acc>
         )}
 
-        {/* Especificaciones (colapsable, minimizado por defecto) */}
-        {hasSpecs && (
+        {/* Especificaciones (colapsable). Condición como primer grupo. */}
+        {(hasSpecs || isRefurbished) && (
           <Acc title="Especificaciones" sub="Ficha técnica completa del equipo" icon={<Cpu size={20} />} isOpen={!!open.specs} onToggle={() => toggle('specs')}>
+            {isRefurbished && (
+              <div className={styles.specGroup}>
+                <div className={styles.rcSublbl}>Condición</div>
+                <div className={styles.specRows}>
+                  {condRows.map((r, i) => (
+                    <div key={i} className={styles.specRow}>
+                      <span className={styles.srLbl}>{r.l}</span>
+                      <span className={`${styles.srVal} ${r.blue ? styles.srValBlue : ''}`}>{r.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {specCategories.filter((c) => c.specs && c.specs.length > 0).map((cat) => (
               <div key={cat.category} className={styles.specGroup}>
                 <div className={styles.rcSublbl}>{cat.category}</div>
@@ -498,20 +490,15 @@ export function CopiaHomeMobileDetail({
             <div className={styles.ndT}>No disponible</div>
             <div className={styles.ndS}>
               {isRefurbished
-                ? `Este equipo no está disponible en Grado ${grade}.`
+                ? `Este equipo no está disponible en Grado ${grade}. Elige el Grado A para continuar.`
                 : 'Este equipo no está disponible por el momento.'}
             </div>
-            {isRefurbished && (
-              <button type="button" className={styles.ndCta} onClick={() => selectGrade('A')}>
-                Ver equipo disponible (Grado A) <ArrowRight size={18} />
-              </button>
-            )}
           </div>
         )}
 
-        {/* Equipos reacondicionados (colapsable, minimizado por defecto) */}
+        {/* Recomendados (colapsable, minimizado por defecto) */}
         {similares.length > 0 && (
-          <Acc title="Equipos reacondicionados" sub="Otros seminuevos que podrían interesarte" icon={<RefreshCw size={20} />} isOpen={!!open.similares} onToggle={() => toggle('similares')}>
+          <Acc title="Recomendados" sub="Equipos que podrían interesarte" icon={<RefreshCw size={20} />} isOpen={!!open.similares} onToggle={() => toggle('similares')}>
             <div className={styles.simList}>
               {similares.map((sp) => (
                 <div key={sp.id} className={styles.simCard} onClick={() => router.push(routes.producto(landing, sp.slug))}>
@@ -524,9 +511,9 @@ export function CopiaHomeMobileDetail({
                   <div className={styles.simBody}>
                     <div className={styles.simMarca}>{sp.brand}</div>
                     <div className={styles.simName}>{sp.displayName}</div>
-                    <div className={styles.simQuota}>Desde S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}<span> /mes</span></div>
+                    <div className={styles.simQuota}>Desde <b>S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}</b> /mes</div>
                   </div>
-                  <ChevronDown className={styles.simChev} size={18} />
+                  <span className={styles.simChev}><ChevronRight size={18} /></span>
                 </div>
               ))}
             </div>
