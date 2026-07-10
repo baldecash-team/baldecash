@@ -387,7 +387,7 @@ export function CopiaHomeMobileDetail({
         )}
 
         {/* Especificaciones (colapsable). Condición como primer grupo. */}
-        {(hasSpecs || isRefurbished) && (
+        {canBuy && (hasSpecs || isRefurbished) && (
           <Acc title="Especificaciones" sub="Ficha técnica completa del equipo" icon={<Cpu size={20} />} isOpen={!!open.specs} onToggle={() => toggle('specs')}>
             {isRefurbished && (
               <div className={styles.specGroup}>
@@ -504,7 +504,7 @@ export function CopiaHomeMobileDetail({
         )}
 
         {/* Recomendados (colapsable, minimizado por defecto) */}
-        {similares.length > 0 && (
+        {canBuy && similares.length > 0 && (
           <Acc title="Recomendados" sub="Equipos que podrían interesarte" icon={<RefreshCw size={20} />} isOpen={!!open.similares} onToggle={() => toggle('similares')}>
             <div className={styles.simList}>
               {similares.map((sp) => (

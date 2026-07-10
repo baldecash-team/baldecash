@@ -434,7 +434,7 @@ export function CopiaHomeDesktopDetail({
         </div>
 
         {/* ===== Secciones a todo el ancho ===== */}
-        <div className={styles.detFull}>
+        {canBuy && <div className={styles.detFull}>
           {/* Descripción */}
           <div className={styles.panel}>
             <div className={styles.secTitle}>Descripción</div>
@@ -574,7 +574,7 @@ export function CopiaHomeDesktopDetail({
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Modal "¿Cómo agendar?" */}
