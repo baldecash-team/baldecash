@@ -255,13 +255,13 @@ export function MiOfertaClient({ token }: { token: string }) {
     const offer = state.kind === 'ready' ? state.offer : null;
     const ex = offer?.exclusiveOffer;
     if (!ex || ex.variantId == null) return;
-    // La oferta exclusiva no nace de un combo del catálogo (el accesorio del
-    // Perfil B se resuelve aparte en el backend) → sin comboId. El accesorio de
-    // regalo (Perfil B) se pasa preseleccionado al mini-checkout.
+    // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
+    // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
+    // (no-combo) se resuelve aparte y se pasa preseleccionado.
     const regaloId = ex.accessory?.product_id;
     goToAccesorios(
       ex.variantId,
-      null,
+      ex.comboId ?? null,
       ex.slug,
       {
         name: ex.name ?? 'Tu equipo',

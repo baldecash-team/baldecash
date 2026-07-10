@@ -124,6 +124,9 @@ export interface ExclusiveOffer {
   /** Specs técnicas (dict plano EAV) para los chips de la card "oferta
    *  personalizada". Se convierten con createSpecsFromEav. Vacío si no vienen. */
   specs?: Record<string, string | number | boolean>;
+  /** ID del combo cuando el exclusivo es un combo (Perfil C). Se pasa a
+   *  complementos para resolver los accesorios/seguros GRATIS del combo. */
+  comboId?: number | null;
   /** Accesorios/seguros INCLUIDOS cuando el exclusivo es un combo (Perfil C):
    *  badges "Incluye". Vacío si no es combo. */
   comboAddons?: {
@@ -260,6 +263,7 @@ export async function getOffer(token: string): Promise<OfferView> {
             initialAmount: ex.initial_amount ?? null,
             accessory: acc,
             specs: ex.specs ?? undefined,
+            comboId: ex.combo_id ?? null,
             comboAddons: ex.combo_addons ?? null,
           }
         : null,
