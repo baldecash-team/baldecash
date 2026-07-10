@@ -16,7 +16,7 @@
  * solo se reemplazó el render.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Package, ShieldCheck, Gift, CheckCircle2, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
@@ -37,7 +37,7 @@ import { OfertaHeader } from '../components/redesign/OfertaHeader';
 import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
 import { TuEquipoCard } from './redesign/TuEquipoCard';
 import { IncluidosGratisSection } from './redesign/IncluidosGratisSection';
-import { AccesorioRecomendadoCard } from './redesign/AccesorioRecomendadoCard';
+import { AccesorioFilaCard } from './redesign/AccesorioFilaCard';
 import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
 import { CuotaStickyBar } from './redesign/CuotaStickyBar';
 import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
@@ -116,6 +116,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // etiqueta "Incluido gratis".
   const [comboFree, setComboFree] = useState<{ accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] }>({ accessories: [], insurances: [] });
   const [confirming, setConfirming] = useState(false);
+  // Bloqueo SÍNCRONO anti-doble-clic: el estado `confirming` es asíncrono, así
+  // que un doble tap muy rápido podría disparar confirmar() dos veces antes de
+  // que el re-render deshabilite el botón. El ref bloquea en el mismo tick.
+  const confirmLock = useRef(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   const [detailInsurance, setDetailInsurance] = useState<InsurancePlan | null>(null);
   // Bottom sheet "Añadir al pedido" (rediseño BAL-2185) — solo UI, no reemplaza
@@ -334,6 +338,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // Se mantiene confirming=true hasta la navegación para no cortar el spinner.
   const confirmar = useCallback(async () => {
     if (variantId == null) return;
+    // Anti-doble-clic: si ya hay una confirmación en curso, ignorar. El ref se
+    // libera solo en el catch (reintentar); en éxito NO se libera porque la
+    // página navega (window.location) y el botón queda inactivo hasta entonces.
+    if (confirmLock.current) return;
+    confirmLock.current = true;
     setConfirming(true);
     try {
       await selectEquipment(token, variantId, comboId, {
@@ -362,6 +371,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
       setConfirming(false);
       setModalOpen(false);
+      confirmLock.current = false; // libera para permitir reintentar
     }
   }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
 
@@ -450,6 +460,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
 
   // Accesorio recomendado (destacado arriba, BAL-2185): el primero del listado.
   const recomendado = accessories.length > 0 ? accessories[0] : null;
+  // Los 4 primeros accesorios como shortcut horizontal "Recomendado para ti".
+  const recomendados = accessories.slice(0, 4);
 
   // "Tus extras" (rediseño): accesorios y seguros ya seleccionados, sin repetir
   // el recomendado (que ya se muestra arriba en su propia card).
@@ -657,17 +669,25 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Incluidos gratis (regalos del combo, BAL-2159) */}
         <IncluidosGratisSection accesorios={comboFree.accessories} seguros={comboFree.insurances} />
 
-        {/* Recomendado para ti */}
-        {recomendado ? (
+        {/* Recomendado para ti: 4 primeros en scroll horizontal, cada uno con
+            "Ver detalle" (abre el drawer). Badge "Recomendado" en el primero. */}
+        {recomendados.length > 0 ? (
           <div>
             <h2 className="mb-2.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               Recomendado para ti
             </h2>
-            <AccesorioRecomendadoCard
-              accesorio={recomendado}
-              seleccionado={selectedAcc.includes(recomendado.id)}
-              onToggle={() => toggleAcc(recomendado)}
-            />
+            <div className="space-y-2.5">
+              {recomendados.map((a, i) => (
+                <AccesorioFilaCard
+                  key={a.id}
+                  accesorio={a}
+                  agregado={selectedAcc.includes(a.id)}
+                  onToggle={() => toggleAcc(a)}
+                  onVerDetalle={() => setDetailAccessory(a)}
+                  badge={i === 0 ? 'Recomendado' : undefined}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
 
@@ -682,7 +702,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
           <Plus className="h-4 w-4" strokeWidth={2.4} />
-          Añadir uno más
+          Ver más accesorios
         </button>
 
         {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado. */}
@@ -712,18 +732,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {showBuscador && !detailAccessory && !detailInsurance ? (
           <BuscadorBottomSheet
             accesorios={accessories}
-            seguros={insurances}
             seleccionadosAcc={selectedAcc}
-            seleccionadosIns={selectedIns}
             onToggleAcc={toggleAcc}
-            onToggleIns={toggleIns}
             onVerDetalle={(a) => setDetailAccessory(a)}
-            onVerDetalleSeguro={(s) => setDetailInsurance(s)}
             total={totalMonthly}
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
             accFits={accFits}
-            insFits={insFits}
           />
         ) : null}
       </AnimatePresence>
@@ -766,14 +781,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             : { name: 'Tu equipo', monthly: equipoMonthly, term: (equipoFrequency !== 'mensual' && equipoTerm ? equipoTerm : curTerm), initial: curInitial, initialAmount: equipoInitialAmount, paymentFrequency: equipoFrequency }
         }
         loading={confirming}
-        succeeded={succeeded}
         onConfirm={confirmar}
         onClose={() => (confirming ? undefined : setModalOpen(false))}
-        onSuccessContinue={() => {
-          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
-        }}
         addonsSlot={addonsResumen}
-        insuranceUpsellSlot={succeeded ? null : insuranceUpsellSlot}
+        insuranceUpsellSlot={insuranceUpsellSlot}
       />
     </div>
   );

@@ -20,52 +20,40 @@
  * real (toggle) y el fetch de datos viven en AccesoriosOfertaClient (Task 9).
  */
 import { useMemo, useRef, useState } from 'react';
-import { Search, X, ShieldCheck } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { motion, useDragControls } from 'framer-motion';
 
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
-import type { Accessory, AccessoryCategory, InsurancePlan } from '../../../../[landing]/solicitar/types/upsell';
+import type { Accessory, AccessoryCategory } from '../../../../[landing]/solicitar/types/upsell';
 import { AccesorioGridCard } from './AccesorioGridCard';
-import { SeguroCard } from './SeguroCard';
 import { CuotaStickyBar } from './CuotaStickyBar';
 
 export interface BuscadorBottomSheetProps {
   accesorios: Accessory[];
-  seguros: InsurancePlan[];
   seleccionadosAcc: string[];
-  seleccionadosIns: string[];
   onToggleAcc: (a: Accessory) => void;
-  onToggleIns: (planId: string) => void;
   onVerDetalle: (a: Accessory) => void;
-  onVerDetalleSeguro: (p: InsurancePlan) => void;
   total: number;
   onCerrar: () => void;
   onListo: () => void;
   accFits?: (a: Accessory) => boolean;
-  insFits?: (p: InsurancePlan) => boolean;
 }
 
 export function BuscadorBottomSheet({
   accesorios,
-  seguros,
   seleccionadosAcc,
-  seleccionadosIns,
   onToggleAcc,
-  onToggleIns,
   onVerDetalle,
-  onVerDetalleSeguro,
   total,
   onCerrar,
   onListo,
   accFits,
-  insFits,
 }: BuscadorBottomSheetProps) {
   const dragControls = useDragControls();
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('todos');
   const sheetScrollRef = useRef<HTMLDivElement>(null);
   // Pestaña activa del filtro segmentado (feedback Marco): "acc" | "ins".
-  const [activeTab, setActiveTab] = useState<'acc' | 'ins'>('acc');
 
   // Categorías únicas derivadas de los accesorios disponibles (dedupe por slug).
   const categories = useMemo(() => {
@@ -85,12 +73,6 @@ export function BuscadorBottomSheet({
     }
     return filtered;
   }, [accesorios, activeCategory, query]);
-
-  const filteredSeguros = useMemo(() => {
-    if (!query.trim()) return seguros;
-    const q = query.toLowerCase().trim();
-    return seguros.filter((p) => p.name.toLowerCase().includes(q));
-  }, [seguros, query]);
 
   return (
     <>
@@ -156,45 +138,12 @@ export function BuscadorBottomSheet({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Busca accesorios o seguros"
+              placeholder="Busca accesorios"
               className="w-full rounded-lg border py-3 pl-10 pr-3.5 text-sm outline-none"
               style={{ borderColor: OFERTA_COLORS.border, backgroundColor: OFERTA_COLORS.grayBg, color: OFERTA_COLORS.textStrong }}
             />
           </div>
 
-          {/* Filtro segmentado Accesorios | Seguros (feedback Marco) */}
-          <div
-            className="mt-3.5 grid grid-cols-2 gap-1 rounded-xl p-1"
-            style={{ backgroundColor: OFERTA_COLORS.grayBg, border: `1px solid ${OFERTA_COLORS.border}` }}
-          >
-            <button
-              type="button"
-              onClick={() => setActiveTab('acc')}
-              className="cursor-pointer rounded-lg py-2 text-[13px] font-bold transition-colors"
-              style={
-                activeTab === 'acc'
-                  ? { backgroundColor: '#fff', color: OFERTA_COLORS.primary, boxShadow: '0 1px 4px rgba(31,35,51,.08)' }
-                  : { backgroundColor: 'transparent', color: OFERTA_COLORS.textMid }
-              }
-            >
-              Accesorios
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('ins')}
-              className="cursor-pointer rounded-lg py-2 text-[13px] font-bold transition-colors"
-              style={
-                activeTab === 'ins'
-                  ? { backgroundColor: '#fff', color: OFERTA_COLORS.primary, boxShadow: '0 1px 4px rgba(31,35,51,.08)' }
-                  : { backgroundColor: 'transparent', color: OFERTA_COLORS.textMid }
-              }
-            >
-              Seguros
-            </button>
-          </div>
-
-          {activeTab === 'acc' ? (
-            <>
               {/* Chips de categoría */}
               <div
                 className="mt-3.5 flex gap-2 overflow-x-auto"
@@ -251,47 +200,6 @@ export function BuscadorBottomSheet({
                   No se encontraron accesorios.
                 </p>
               )}
-            </>
-          ) : (
-            <div className="mt-4">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" style={{ color: OFERTA_COLORS.primary }} />
-                <h3 className="font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                  Seguros
-                </h3>
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold"
-                  style={{ backgroundColor: '#E7FBF8', color: OFERTA_COLORS.tealBrand }}
-                >
-                  Insurama
-                </span>
-              </div>
-              <p className="mt-1.5 text-[12px]" style={{ color: OFERTA_COLORS.textSoft }}>
-                Solo mostramos seguros compatibles con tu equipo.
-              </p>
-              {filteredSeguros.length > 0 ? (
-                <div className="mt-3 space-y-2.5">
-                  {filteredSeguros.map((p) => {
-                    const fits = insFits ? insFits(p) : true;
-                    return (
-                      <div key={p.id} className={fits ? '' : 'pointer-events-none opacity-45 grayscale'}>
-                        <SeguroCard
-                          seguro={p}
-                          seleccionado={seleccionadosIns.includes(p.id)}
-                          onToggle={() => onToggleIns(p.id)}
-                          onVerDetalle={() => onVerDetalleSeguro(p)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="mt-6 text-center text-sm" style={{ color: OFERTA_COLORS.textSoft }}>
-                  No se encontraron seguros.
-                </p>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="relative flex-none">

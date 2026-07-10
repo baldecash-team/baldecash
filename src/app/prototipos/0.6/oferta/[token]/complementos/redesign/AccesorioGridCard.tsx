@@ -20,9 +20,11 @@ export interface AccesorioGridCardProps {
   agregado: boolean;
   onToggle: () => void;
   onVerDetalle: () => void;
+  /** Etiqueta destacada (pill) sobre la foto, ej. "Recomendado". Opcional. */
+  badge?: string;
 }
 
-export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle }: AccesorioGridCardProps) {
+export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle, badge }: AccesorioGridCardProps) {
   const cuotaFormateada = Math.round(accesorio.monthlyQuota).toLocaleString('es-PE');
 
   return (
@@ -31,6 +33,14 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle 
       style={{ borderColor: agregado ? OFERTA_COLORS.primary : OFERTA_COLORS.border }}
     >
       <div className="relative">
+        {badge ? (
+          <span
+            className="absolute left-1.5 top-1.5 z-10 rounded-full px-2 py-0.5 text-[9.5px] font-bold text-white"
+            style={{ backgroundColor: OFERTA_COLORS.primary }}
+          >
+            {badge}
+          </span>
+        ) : null}
         <div
           className="flex h-[74px] w-full items-center justify-center rounded-xl border"
           style={{
