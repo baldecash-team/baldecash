@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, HeartPulse, Check } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, Check } from 'lucide-react';
 import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
@@ -509,19 +509,38 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const insuranceUpsellSlot = useMemo(() => {
     if (insurances.length === 0) return null;
     const suf = cuotaSuffix(equipoFrequency);
-    // Ícono por tipo de seguro (robo → candado, multiasistencia → pulso,
-    // garantía/otros → escudo). Da identidad visual a cada card.
-    const iconFor = (type: string) => {
-      if (type?.includes('robo')) return Lock;
-      if (type?.includes('multiasistencia') || type?.includes('asistencia')) return HeartPulse;
-      return ShieldCheck;
-    };
-    // Eyebrow (label del tipo) igual al flujo regular (InsuranceCards).
+    // Ícono, label, descripción y beneficios: MISMOS criterios que el flujo
+    // regular (InsuranceCards.tsx getInsuranceIcon/Label/Description/Benefits),
+    // para que la info del seguro sea idéntica en ambos flujos.
+    const iconFor = (type: string) => (type === 'seguro_robo' ? Lock : ShieldCheck);
     const labelFor = (type: string) => {
-      if (type === 'garantia_extendida') return 'Garantía extendida';
-      if (type === 'seguro_robo') return 'Protección contra robo';
-      if (type?.includes('multiasistencia')) return 'Multiasistencia';
-      return type?.replace(/_/g, ' ') ?? 'Seguro';
+      switch (type) {
+        case 'garantia_extendida': return 'Garantía extendida';
+        case 'seguro_robo': return 'Protección contra robo';
+        default: return type.replace(/_/g, ' ');
+      }
+    };
+    const descFor = (type: string) => {
+      switch (type) {
+        case 'garantia_extendida': return 'Protección completa contra fallas técnicas o defectos de fábrica.';
+        case 'seguro_robo': return 'Protección mundial contra robo. Reposición inmediata sin deducible.';
+        default: return '';
+      }
+    };
+    const benefitsFor = (type: string): string[] => {
+      switch (type) {
+        case 'garantia_extendida': return [
+          '3 años de cobertura',
+          'Sin deducibles ni papeleos',
+          'Cobertura mundial 100% digital',
+        ];
+        case 'seguro_robo': return [
+          'Cobertura por robo y hurto',
+          'Reposición sin deducible',
+          'Proceso de reclamo 100% digital',
+        ];
+        default: return [];
+      }
     };
     return (
       <div
@@ -541,9 +560,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             // "No cabe" solo aplica si aún no está elegido: un seguro elegido
             // siempre se puede quitar aunque ya no quepa nada más.
             const bloqueado = !insFits(p) && !agregado;
-            // Beneficios: los 3 primeros de la cobertura del backend
-            // (CoverageItem.name), como en las cards del flujo regular.
-            const beneficios = (p.coverage ?? []).slice(0, 3).map((c) => c.name).filter(Boolean);
+            // Beneficios y descripción: mismos textos hardcodeados del flujo
+            // regular (benefitsFor/descFor por insuranceType), no coverage[] del
+            // backend, para que la info sea idéntica entre ambos flujos.
+            const beneficios = benefitsFor(p.insuranceType);
+            const descripcion = descFor(p.insuranceType);
             return (
               <div
                 key={p.id}
@@ -599,10 +620,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     ) : null}
                   </div>
 
-                  {/* Descripción corta (si el backend la trae). */}
-                  {p.description ? (
+                  {/* Descripción corta (mismo texto que el flujo regular). */}
+                  {descripcion ? (
                     <p className="mt-2.5 text-[12px] leading-snug" style={{ color: OFERTA_COLORS.textMid }}>
-                      {p.description}
+                      {descripcion}
                     </p>
                   ) : null}
 
