@@ -17,7 +17,7 @@ import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronDown, ChevronRight, ShieldCheck, BadgeCheck, Package,
   Check, Battery, Monitor, Star, RefreshCw, Heart, Cpu, Calendar,
-  FileText, Download, Truck,
+  FileText, Download, Truck, ArrowRight,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -497,9 +497,14 @@ export function CopiaHomeMobileDetail({
             <div className={styles.ndT}>No disponible</div>
             <div className={styles.ndS}>
               {isRefurbished
-                ? `Este equipo no está disponible en Grado ${grade}. Elige el Grado A para continuar.`
+                ? `Este equipo no está disponible en Grado ${grade}.`
                 : 'Este equipo no está disponible por el momento.'}
             </div>
+            {isRefurbished && (
+              <button type="button" className={styles.ndCta} onClick={() => selectGrade('A')}>
+                Ver equipo disponible (Grado A) <ArrowRight size={18} />
+              </button>
+            )}
           </div>
         )}
 
