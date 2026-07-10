@@ -41,8 +41,7 @@ import { AccesorioFilaCard } from './redesign/AccesorioFilaCard';
 import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
 import { CuotaStickyBar } from './redesign/CuotaStickyBar';
 import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
-import { AccesorioDetalleSheet } from './redesign/AccesorioDetalleSheet';
-import { SeguroDetalleSheet } from './redesign/SeguroDetalleSheet';
+import { AccessoryDetailModal, InsuranceDetailModal } from '../../../[landing]/solicitar/components/upsell';
 
 /** localStorage: persiste la selección de add-ons por token + variante, para
  *  sobrevivir un refresh o ida/vuelta sin perder lo elegido. Se limpia al
@@ -122,6 +121,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const confirmLock = useRef(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   const [detailInsurance, setDetailInsurance] = useState<InsurancePlan | null>(null);
+  // De dónde se abrió el detalle (accesorio/seguro), para saber a qué volver al
+  // cerrarlo: al buscador, a la lista de recomendados (sin reabrir nada), o al
+  // modal de confirmación (que se cierra al abrir el detalle y se reabre al cerrar).
+  const [detailOrigin, setDetailOrigin] = useState<'buscador' | 'recomendado' | 'confirmacion'>('buscador');
   // Bottom sheet "Añadir al pedido" (rediseño BAL-2185) — solo UI, no reemplaza
   // el fetch/estado real de accesorios y seguros.
   const [showBuscador, setShowBuscador] = useState(false);
@@ -522,11 +525,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 <span style={{ color: OFERTA_COLORS.textMid }}>
                   Añade garantía extendida por +S/{Math.round(p.monthlyPrice || 0)}{suf} antes de confirmar
                 </span>
-                {/* "Ver detalle" — igual que los accesorios; abre el drawer de
-                    detalle del seguro (por encima del modal). */}
+                {/* "Ver detalle" desde el modal de confirmación: cierra el modal
+                    y, tras su animación de salida (~220ms), abre el detalle del
+                    seguro — así las transiciones no se pisan. Al cerrar el detalle
+                    se reabre el modal encadenado igual. */}
                 <button
                   type="button"
-                  onClick={() => setDetailInsurance(p)}
+                  onClick={() => {
+                    setDetailOrigin('confirmacion');
+                    setModalOpen(false);
+                    window.setTimeout(() => setDetailInsurance(p), 220);
+                  }}
                   className="mt-0.5 block cursor-pointer text-[11px] font-semibold"
                   style={{ color: OFERTA_COLORS.tealBrand }}
                 >
@@ -693,7 +702,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   accesorio={a}
                   agregado={selectedAcc.includes(a.id)}
                   onToggle={() => toggleAcc(a)}
-                  onVerDetalle={() => setDetailAccessory(a)}
+                  onVerDetalle={() => { setDetailOrigin('recomendado'); setDetailAccessory(a); }}
                   badge={i === 0 ? 'Recomendado' : undefined}
                   noCabe={!accFits(a)}
                 />
@@ -745,7 +754,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             accesorios={accessories}
             seleccionadosAcc={selectedAcc}
             onToggleAcc={toggleAcc}
-            onVerDetalle={(a) => setDetailAccessory(a)}
+            onVerDetalle={(a) => { setDetailOrigin('buscador'); setDetailAccessory(a); }}
             total={totalMonthly}
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
@@ -754,38 +763,38 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         ) : null}
       </AnimatePresence>
 
-      {/* Bottom sheet detalle de accesorio (BAL-2185). "Volver a la lista"
-          (onVolver) reabre el buscador; la X (onCerrar) cierra todo. */}
-      <AnimatePresence>
-        {detailAccessory ? (
-          <AccesorioDetalleSheet
-            accesorio={detailAccessory}
-            agregado={selectedAcc.includes(detailAccessory.id)}
-            onAgregar={() => toggleAcc(detailAccessory)}
-            onVolver={() => { setDetailAccessory(null); setShowBuscador(true); }}
-            onCerrar={() => { setDetailAccessory(null); setShowBuscador(false); }}
-          />
-        ) : null}
-      </AnimatePresence>
+      {/* Detalle de accesorio: MISMO componente del flujo regular
+          (AccessoryDetailModal), responsive (modal desktop / bottom sheet mobile),
+          probado en prod. Al cerrar vuelve según el origen: si se abrió desde el
+          buscador, lo reabre; desde "Recomendado para ti", no reabre nada. */}
+      <AccessoryDetailModal
+        accessory={detailAccessory}
+        isOpen={detailAccessory !== null}
+        isSelected={detailAccessory ? selectedAcc.includes(detailAccessory.id) : false}
+        onToggle={() => { if (detailAccessory) toggleAcc(detailAccessory); }}
+        onClose={() => {
+          setDetailAccessory(null);
+          if (detailOrigin === 'buscador') setShowBuscador(true);
+        }}
+      />
 
-      {/* Bottom sheet detalle de SEGURO (feedback Emilio: los seguros también
-          tienen más info). Mismo patrón de drawers exclusivos que el accesorio. */}
-      <AnimatePresence>
-        {detailInsurance ? (
-          <SeguroDetalleSheet
-            seguro={detailInsurance}
-            agregado={selectedIns.includes(detailInsurance.id)}
-            onAgregar={() => toggleIns(detailInsurance.id)}
-            onVolver={() => {
-              setDetailInsurance(null);
-              // Si el detalle se abrió desde el modal de confirmación, "Volver"
-              // regresa al modal (sigue abierto detrás), no al buscador.
-              if (!modalOpen) setShowBuscador(true);
-            }}
-            onCerrar={() => { setDetailInsurance(null); if (!modalOpen) setShowBuscador(false); }}
-          />
-        ) : null}
-      </AnimatePresence>
+      {/* Detalle de seguro: MISMO componente del flujo regular
+          (InsuranceDetailModal), responsive. Al cerrar vuelve según el origen:
+          buscador → reabre buscador; confirmacion → reabre el modal de
+          confirmación; recomendado → no reabre nada. */}
+      <InsuranceDetailModal
+        plan={detailInsurance}
+        isOpen={detailInsurance !== null}
+        isSelected={detailInsurance ? selectedIns.includes(detailInsurance.id) : false}
+        onToggle={() => { if (detailInsurance) toggleIns(detailInsurance.id); }}
+        onClose={() => {
+          setDetailInsurance(null);
+          if (detailOrigin === 'buscador') setShowBuscador(true);
+          // Reabrir el modal de confirmación tras la animación de salida del
+          // detalle (~220ms), para que las transiciones no se solapen.
+          else if (detailOrigin === 'confirmacion') window.setTimeout(() => setModalOpen(true), 220);
+        }}
+      />
 
       {/* Modal de confirmación (siempre) con desglose de equipo + add-ons.
           Fase 3 lo rediseña; se mantiene tal cual por ahora. */}

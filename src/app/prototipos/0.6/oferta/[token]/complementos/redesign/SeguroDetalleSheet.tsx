@@ -95,17 +95,17 @@ function SeguroDetalleContenido({
             <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: OFERTA_COLORS.greenDark }}>
               Qué cubre
             </p>
-            <ul className="mt-2 space-y-2">
+            <div className="mt-2 space-y-2">
               {seguro.coverage.map((item: CoverageItem, index: number) => (
-                <li key={`${seguro.id}-detcov-${index}`} className="flex items-start gap-2 text-[13px]" style={{ color: '#4B5563' }}>
+                <div key={`${seguro.id}-detcov-${index}`} className="flex items-start gap-2 text-[13px]" style={{ color: '#4B5563' }}>
                   <Check className="mt-[2px] h-4 w-4 flex-none" strokeWidth={2.6} style={{ color: OFERTA_COLORS.greenDark }} />
                   <span>
                     <span className="font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>{item.name}</span>
                     {item.description ? <span> — {item.description}</span> : null}
                   </span>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         ) : null}
 
@@ -115,14 +115,14 @@ function SeguroDetalleContenido({
             <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
               No incluye
             </p>
-            <ul className="mt-2 space-y-1.5">
+            <div className="mt-2 space-y-1.5">
               {seguro.exclusions.map((ex, index) => (
-                <li key={`${seguro.id}-exc-${index}`} className="flex items-start gap-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
+                <div key={`${seguro.id}-exc-${index}`} className="flex items-start gap-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
                   <X className="mt-[2px] h-3.5 w-3.5 flex-none" strokeWidth={2.6} style={{ color: OFERTA_COLORS.textSoft }} />
                   <span>{ex}</span>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         ) : null}
 
