@@ -328,9 +328,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const accFits = (a: Accessory) => selectedAcc.includes(a.id) || (a.monthlyQuota || 0) <= remaining + 0.5;
   const insFits = (p: InsurancePlan) => selectedIns.includes(p.id) || (p.monthlyPrice || 0) <= remaining + 0.5;
 
-  // Confirmación real (desde el modal). Al terminar, el modal pasa a "¡Listo!";
-  // la navegación a la oferta ocurre al presionar "Continuar" (onSuccessContinue),
-  // así el spinner no queda girando durante el window.location.
+  // Confirmación real (desde el modal). Tras el OK del backend, redirige DIRECTO
+  // a la página de confirmación (/oferta/{token} → SeleccionConfirmada,
+  // "¡Felicidades!"), sin la cara "¡Listo!" intermedia del modal (BAL-2212).
+  // Se mantiene confirming=true hasta la navegación para no cortar el spinner.
   const confirmar = useCallback(async () => {
     if (variantId == null) return;
     setConfirming(true);
@@ -349,8 +350,14 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       // Ya quedó en BD → limpiar el borrador local para no restaurarlo luego.
       clearStoredAddons(token, variantId);
       clearOfferSelection(token);
-      setConfirming(false);
+      // Marca succeeded para el guard del auto-save (l.238) y el analytics
+      // (l.284), pero NO se muestra la cara "¡Listo!" del modal: se redirige
+      // directo a la página de confirmación (¡Felicidades!). Se mantiene
+      // `confirming=true` (no se llama setConfirming(false)) para que el botón
+      // siga en "Procesando tu cambio…" hasta que la navegación reemplace la
+      // página — evita un flash de la cara "¡Listo!" o del botón "Confirmar".
       setSucceeded(true);
+      window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
     } catch (err) {
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
       setConfirming(false);
