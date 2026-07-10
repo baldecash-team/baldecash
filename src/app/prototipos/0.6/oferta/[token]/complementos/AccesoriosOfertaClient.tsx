@@ -31,8 +31,7 @@ import {
 } from '../../../services/offerApi';
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
-import { TermSelect } from '../../../[landing]/solicitar/components/solicitar/product/TermSelect';
-import { cuotaSuffix } from '../components/equipoCardFormat';
+import { cuotaSuffix, plazoUnit } from '../components/equipoCardFormat';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from '../components/redesign/OfertaHeader';
@@ -264,44 +263,6 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
 
   // Recalcula equipo + accesorios + seguros al nuevo plazo/inicial (BAL-2097) y
   // re-filtra las selecciones actuales contra lo que ahora cabe en el límite.
-  const recalcAddons = useCallback(async (nextTerm: number, nextInitial: number) => {
-    if (variantId == null) return;
-    setLoading(true);
-    try {
-      const res = await getOfferAddonsRich(token, variantId, {
-        accessoryIds: selectedAcc.map(Number),
-        insuranceIds: selectedIns.map(Number),
-        term: nextTerm,
-        initial: nextInitial,
-      }, comboId);
-      setAccessories(res.accessories);
-      setInsurances(res.insurances);
-      setEquipoMonthly(res.equipoMonthly);
-      setEquipoInitialAmount(res.equipoInitialAmount);
-      setEquipoFrequency(res.equipoFrequency);
-      setComboFree(res.comboFreeAddons ?? { accessories: [], insurances: [] });
-      // Lo que ya no cabe con el nuevo plazo/inicial se deselecciona.
-      const accOk = new Set(res.accessories.map((a) => a.id));
-      const insOk = new Set(res.insurances.map((p) => p.id));
-      setSelectedAcc((prev) => prev.filter((id) => accOk.has(id)));
-      setSelectedIns((prev) => prev.filter((id) => insOk.has(id)));
-    } catch (err) {
-      setError(err instanceof OfferApiError ? err.message : 'No pudimos recalcular tu cuota.');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, variantId, selectedAcc, selectedIns]);
-
-  const handleTermChange = useCallback((t: number) => {
-    setCurTerm(t);
-    void recalcAddons(t, curInitial);
-  }, [recalcAddons, curInitial]);
-
-  const handleInitialChange = useCallback((i: number) => {
-    setCurInitial(i);
-    void recalcAddons(curTerm, i);
-  }, [recalcAddons, curTerm]);
-
   // Funnel: pantalla de éxito (modal "¡Listo!") visible tras confirmar.
   useEffect(() => {
     if (succeeded) analytics.track('offer_success_view', { variant_id: variantId });
@@ -407,9 +368,22 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     const suf = cuotaSuffix(equipoFrequency);
     return (
       <div>
-        <p className="mb-2.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: OFERTA_COLORS.tealBrand }}>
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: OFERTA_COLORS.tealBrand }}>
           Tu pedido incluye
         </p>
+        {/* Plazo e inicial del equipo (read-only), bajo el header del desglose. */}
+        {(() => {
+          const t = equipoTerm ?? curTerm;
+          const inicialTxt =
+            equipoInitialAmount > 0
+              ? `Inicial S/${Math.round(equipoInitialAmount)}`
+              : curInitial > 0 ? `Inicial ${curInitial}%` : 'Sin inicial';
+          return t ? (
+            <p className="mb-2.5 text-[12px]" style={{ color: OFERTA_COLORS.textMid }}>
+              {t} {plazoUnit(t, equipoFrequency)} · {inicialTxt}
+            </p>
+          ) : null;
+        })()}
         <ul className="space-y-2.5">
           {/* Equipo (primera línea del desglose) */}
           <li className="flex items-center justify-between gap-3 text-sm">
@@ -797,47 +771,20 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             imageUrl={equipoInfo.imageUrl}
             extras={equipoExtras}
             total={totalMonthly}
+            plazoTexto={(() => {
+              const t = equipoTerm ?? curTerm;
+              return t ? `${t} ${plazoUnit(t, equipoFrequency)}` : null;
+            })()}
+            inicialTexto={
+              equipoInitialAmount > 0
+                ? `Inicial S/${Math.round(equipoInitialAmount)}`
+                : curInitial > 0
+                  ? `Inicial ${curInitial}%`
+                  : 'Sin inicial'
+            }
           />
         )}
 
-        {/* Selectores: plazo (dropdown) + inicial (chips), solo si hay más de una
-            opción (BAL-2097). No forma parte del mock visual, pero la
-            funcionalidad de recalcular equipo + accesorios + seguros por
-            plazo/inicial se mantiene. */}
-        {(offerTerms.length > 1 || offerInitials.length > 1) && (
-          <div className="rounded-xl border p-3.5" style={{ borderColor: OFERTA_COLORS.border }}>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              {offerTerms.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium" style={{ color: OFERTA_COLORS.textMid }}>Plazo:</span>
-                  <TermSelect value={curTerm} options={offerTerms} onChange={handleTermChange} size="sm" frequency={equipoFrequency} />
-                </div>
-              )}
-              {offerInitials.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium" style={{ color: OFERTA_COLORS.textMid }}>Inicial:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {offerInitials.map((i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleInitialChange(i)}
-                        className="cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
-                        style={
-                          curInitial === i
-                            ? { borderColor: OFERTA_COLORS.primary, backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
-                            : { borderColor: OFERTA_COLORS.border, backgroundColor: '#fff', color: OFERTA_COLORS.textMid }
-                        }
-                      >
-                        {i === 0 ? 'Sin inicial' : `${i}%`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Incluidos gratis (regalos del combo, BAL-2159) */}
         <IncluidosGratisSection accesorios={comboFree.accessories} seguros={comboFree.insurances} />
