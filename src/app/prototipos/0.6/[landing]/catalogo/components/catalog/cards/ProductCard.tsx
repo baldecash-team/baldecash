@@ -229,21 +229,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, [displayName, checkTruncation]);
 
   // Obtener imágenes según color seleccionado (para carousel)
-  // Cuando es combo, la portada del combo encabeza la galería.
+  // BAL-2214: cuando el usuario elige un color con imagen propia, esa imagen
+  // encabeza la galería. El comboImage (portada del combo del color primario)
+  // solo lidera cuando NO hay color elegido con imagen — si no, al cambiar de
+  // color se veía la foto del primario + la del color seleccionado.
   const getImagesForSelectedColor = (): string[] => {
-    const lead = product.comboImage ? [product.comboImage] : [];
+    const comboLead = product.comboImage ? [product.comboImage] : [];
     if (!selectedColorId || !product.colors) {
       // Use images array if it has items, otherwise fallback to thumbnail
       const imgs = product.images.length > 0 ? product.images : [product.thumbnail];
-      return [...new Set([...lead, ...imgs])];
+      return [...new Set([...comboLead, ...imgs])];
     }
+    // Color elegido con imagen propia: su imagen lidera, sin anteponer el combo.
     if (selectedColor?.images && selectedColor.images.length > 0) {
-      return [...new Set([...lead, ...selectedColor.images])];
+      return [...new Set([...selectedColor.images])];
     }
     if (selectedColor?.imageUrl) {
-      return [...new Set([...lead, selectedColor.imageUrl])];
+      return [...new Set([selectedColor.imageUrl])];
     }
-    return [...new Set([...lead, product.thumbnail])];
+    return [...new Set([...comboLead, product.thumbnail])];
   };
 
   const selectedImages = getImagesForSelectedColor();
