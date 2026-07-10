@@ -73,18 +73,34 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquip
             {nombre}
           </div>
         </div>
-        {!mostrarDesglose ? (
+        {/* Cuota a la derecha: siempre visible. Sin desglose muestra la cuota del
+            equipo; con desglose muestra el TOTAL (evita que "salte" al aparecer
+            el desglose — la cifra se queda, solo cambia su valor/label). */}
+        <div className="flex-none text-right">
           <div
-            className="flex-none font-['Baloo_2',_sans-serif] text-[15px] font-bold"
-            style={{ color: OFERTA_COLORS.textStrong }}
+            className="font-['Baloo_2',_sans-serif] text-[15px] font-bold"
+            style={{ color: mostrarDesglose ? OFERTA_COLORS.primary : OFERTA_COLORS.textStrong }}
           >
-            S/{cuotaFormateada}/mes
+            S/{mostrarDesglose ? totalFormateado : cuotaFormateada}/mes
           </div>
-        ) : null}
+          {mostrarDesglose ? (
+            <div className="text-[10px] font-semibold" style={{ color: OFERTA_COLORS.textSoft }}>total</div>
+          ) : null}
+        </div>
       </div>
 
-      {mostrarDesglose ? (
-        <div className="mt-3 border-t pt-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
+      {/* Desglose: colapso SUAVE con grid-template-rows (0fr↔1fr) + opacidad —
+          mismo patrón que las otras cards. Siempre montado, solo se anima el alto,
+          así agregar el primer accesorio no "salta". */}
+      <div
+        className="grid transition-all duration-300 ease-out"
+        style={{
+          gridTemplateRows: mostrarDesglose ? '1fr' : '0fr',
+          opacity: mostrarDesglose ? 1 : 0,
+          marginTop: mostrarDesglose ? '0.75rem' : 0,
+        }}
+      >
+        <div className="overflow-hidden border-t pt-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
           <ul className="space-y-1.5">
             <li className="flex items-center justify-between text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
               <span className="truncate">Equipo</span>
@@ -92,7 +108,7 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquip
                 S/{cuotaFormateada}/mes
               </span>
             </li>
-            {extras!.map((item, idx) => (
+            {(extras ?? []).map((item, idx) => (
               <li key={`${item.label}-${idx}`} className="flex items-center justify-between text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
                 <span className="min-w-0 truncate">{item.label}</span>
                 <span className="shrink-0 font-medium" style={{ color: OFERTA_COLORS.textStrong }}>
@@ -110,7 +126,7 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total }: TuEquip
             </span>
           </div>
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
