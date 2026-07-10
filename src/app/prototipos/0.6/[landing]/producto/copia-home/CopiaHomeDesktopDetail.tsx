@@ -545,21 +545,23 @@ export function CopiaHomeDesktopDetail({
             </>
           )}
 
-          {/* Recomendados */}
+          {/* Recomendados — cards con foto, 3 en fila */}
           {similares.length > 0 && (
             <div className={styles.panel}>
               <div className={styles.secTitle}>Recomendados</div>
               <div className={styles.secSub}>Equipos que podrían interesarte</div>
-              <div className={styles.incluyeGrid}>
-                {similares.slice(0, 4).map((sp) => (
-                  <div key={sp.id} className={styles.incTile} style={{ cursor: 'pointer' }} onClick={() => router.push(routes.producto(landing, sp.slug))}>
-                    <span className={styles.incIco}><RefreshCw size={18} /></span>
-                    <span className={styles.incTxt}>
-                      {sp.displayName}
-                      <span style={{ display: 'block', fontWeight: 700, color: 'var(--azul)', fontSize: 13, marginTop: 2 }}>
-                        Desde S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}/mes
-                      </span>
-                    </span>
+              <div className={styles.recGrid}>
+                {similares.slice(0, 3).map((sp) => (
+                  <div key={sp.id} className={styles.recCard} onClick={() => router.push(routes.producto(landing, sp.slug))}>
+                    <div className={styles.recImg}>
+                      {(sp.images?.[0]?.url || sp.thumbnail) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={sp.images?.[0]?.url || sp.thumbnail} alt={sp.displayName} />
+                      )}
+                    </div>
+                    <div className={styles.recMarca}>{sp.brand}</div>
+                    <div className={styles.recName}>{sp.displayName}</div>
+                    <div className={styles.recQuota}>Desde <b>S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}</b> /mes</div>
                   </div>
                 ))}
               </div>

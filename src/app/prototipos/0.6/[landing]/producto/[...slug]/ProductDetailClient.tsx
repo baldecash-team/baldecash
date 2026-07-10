@@ -329,7 +329,10 @@ function ProductDetailContent() {
   const useCopiaHomeDesktopDetail = isCopiaHomeLanding(landing) && !isMobile && productIsRefurbished;
 
   return (
-    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-hidden">
+    // overflow-x-clip (no -hidden): clipea el desborde horizontal SIN crear un
+    // scroll container, para que el detalle de copia-home pueda usar position:
+    // sticky en la galería. Neutral para el resto de detalles.
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-clip">
       {/* Navbar — nvidia usa su header propio en todas sus rutas */}
       {isNvidiaLanding(landing) ? (
         <NvidiaNavbar landing={landing} />
