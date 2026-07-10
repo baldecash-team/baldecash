@@ -209,6 +209,11 @@ export function MiOfertaClient({ token }: { token: string }) {
         brand: equipo?.brand,
         imageUrl: equipo?.imageUrl,
         monthly: equipo?.monthly,
+        // Plazo/inicial elegidos (o los reales del pedido en "mantener mi equipo"):
+        // complementos los usa para mostrar el plazo y cotizar los add-ons a esa
+        // celda (BAL-2212). Sin esto caía al default del snapshot.
+        term: equipo?.term,
+        initial: equipo?.initial,
         preselectedAccessoryIds:
           preselectedAccessoryIds && preselectedAccessoryIds.length ? preselectedAccessoryIds : undefined,
       });
@@ -279,6 +284,10 @@ export function MiOfertaClient({ token }: { token: string }) {
       brand: undefined,
       imageUrl: req.image_url ?? undefined,
       monthly: req.monthly_price ?? undefined,
+      // Plazo/inicial REALES del pedido → complementos los muestra y cotiza los
+      // add-ons a esa celda (mismo equipo = mismo plazo del pedido).
+      term: req.term_months ?? req.term ?? undefined,
+      initial: req.initial_percent ?? undefined,
     });
   }, [state, goToAccesorios]);
 

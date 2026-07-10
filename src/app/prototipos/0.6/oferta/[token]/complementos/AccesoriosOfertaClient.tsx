@@ -191,12 +191,23 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         if (active) {
           if (offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
           if (offer.clientName) setClientName(offer.clientName);
-          const terms = offer.terms?.length ? offer.terms : [24];
-          const initials = offer.initials?.length ? offer.initials : [0];
+          const baseTerms = offer.terms?.length ? offer.terms : [24];
+          const baseInitials = offer.initials?.length ? offer.initials : [0];
+          // Incluir el plazo/inicial REALES del pedido (selección) como opción
+          // válida aunque no estén entre los de la oferta: en "mantener mi equipo"
+          // (Caso 5) el equipo se cotiza a su plazo real (ej. 36m), que puede no
+          // estar en offer.terms (ej. [24]). Así el selector lo muestra y no lo
+          // descarta al default. Ordenados para el dropdown.
+          const terms = selTerm != null && !baseTerms.includes(selTerm)
+            ? [...baseTerms, selTerm].sort((a, b) => a - b)
+            : baseTerms;
+          const initials = selInitial != null && !baseInitials.includes(selInitial)
+            ? [...baseInitials, selInitial].sort((a, b) => a - b)
+            : baseInitials;
           setOfferTerms(terms);
           setOfferInitials(initials);
-          // Valor inicial del selector: lo elegido en el detalle si es válido, si no
-          // el default (plazo más alto + inicial más bajo = celda de menor cuota).
+          // Valor inicial del selector: lo elegido/pedido si es válido, si no el
+          // default (plazo más alto + inicial más bajo = celda de menor cuota).
           setCurTerm(selTerm != null && terms.includes(selTerm) ? selTerm : Math.max(...terms));
           setCurInitial(selInitial != null && initials.includes(selInitial) ? selInitial : Math.min(...initials));
         }
