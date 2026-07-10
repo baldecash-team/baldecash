@@ -553,7 +553,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             Asegura tu inversión
           </p>
         </div>
-        <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        {/* 1 solo seguro → ocupa el 100% del ancho (1 col); 2+ → 2 columnas en
+            desktop. En mobile siempre 1 columna. */}
+        <div className={`mt-2.5 grid grid-cols-1 gap-2.5 ${insurances.length > 1 ? 'sm:grid-cols-2' : ''}`}>
           {insurances.map((p) => {
             const Icon = iconFor(p.insuranceType);
             const agregado = selectedIns.includes(p.id);
