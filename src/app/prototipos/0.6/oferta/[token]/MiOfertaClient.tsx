@@ -470,14 +470,9 @@ export function MiOfertaClient({ token }: { token: string }) {
             <OpcionBarra
               destacada
               icono={<IconoAccesorios size={50} />}
-              titulo="Añadir accesorios"
-              subtitulo={
-                exclusivaInfo?.name
-                  ? `Suma extras a tu ${exclusivaInfo.name}`
-                  : 'Suma extras a tu equipo aprobado'
-              }
-              cuota={exclusivaInfo?.monthly != null ? `S/${Math.round(exclusivaInfo.monthly)}/mes` : undefined}
-              onClick={handleAceptarExclusiva}
+              titulo="Añadir accesorios y seguros"
+              subtitulo="Suma accesorios y seguros a tu equipo aprobado"
+              onClick={handleContinuarMiEquipo}
             />
             <CardCambiarEquipo
               montoAprobado={offer.maxMonthlyQuota}
