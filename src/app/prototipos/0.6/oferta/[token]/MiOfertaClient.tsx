@@ -398,6 +398,11 @@ export function MiOfertaClient({ token }: { token: string }) {
           offer.exclusiveOffer.initialAmount != null && offer.exclusiveOffer.initialAmount > 0
             ? `inicial S/${Math.round(offer.exclusiveOffer.initialAmount)}`
             : undefined,
+        // Chips de specs del equipo exclusivo (procesador/RAM/…), para la card
+        // "oferta personalizada" del Caso 5 — igual que el recomendado del Caso 4.
+        specs: offer.exclusiveOffer.specs
+          ? specsToChips(createSpecsFromEav(offer.exclusiveOffer.specs, 'laptop'))
+          : undefined,
       }
     : null;
 
@@ -474,6 +479,26 @@ export function MiOfertaClient({ token }: { token: string }) {
               subtitulo="Suma accesorios y seguros a tu equipo aprobado"
               onClick={handleContinuarMiEquipo}
             />
+            {/* Card "Oferta personalizada": equipo exclusivo con foto + specs +
+                cuota + "Ver detalle" separado del CTA "Aceptar equipo" (misma
+                EquipoRecomendadoCard del Caso 4, tone índigo). */}
+            {exclusivaInfo ? (
+              <EquipoRecomendadoCard
+                equipo={exclusivaInfo}
+                tone="indigo"
+                badgeText="Oferta personalizada"
+                ctaText="Aceptar equipo"
+                subtext="Un equipo mejor dentro de tu cuota aprobada"
+                onElegir={handleAceptarExclusiva}
+                onVerDetalle={
+                  offer.exclusiveOffer?.slug
+                    ? () => {
+                        window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.exclusiveOffer!.slug}`;
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
             <CardCambiarEquipo
               montoAprobado={offer.maxMonthlyQuota}
               equiposCount={catalogCount}

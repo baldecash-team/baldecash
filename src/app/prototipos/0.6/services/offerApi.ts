@@ -121,6 +121,9 @@ export interface ExclusiveOffer {
   /** Monto (S/) de la inicial del exclusivo. La card muestra el monto, no el %. */
   initialAmount?: number | null;
   accessory: UpsellAccessory | null;
+  /** Specs técnicas (dict plano EAV) para los chips de la card "oferta
+   *  personalizada". Se convierten con createSpecsFromEav. Vacío si no vienen. */
+  specs?: Record<string, string | number | boolean>;
 }
 
 /** Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
@@ -250,6 +253,7 @@ export async function getOffer(token: string): Promise<OfferView> {
             termMonths: ex.term_months ?? 24,
             initialAmount: ex.initial_amount ?? null,
             accessory: acc,
+            specs: ex.specs ?? undefined,
           }
         : null,
       terms: data.terms ?? [24],
