@@ -213,7 +213,15 @@ export type EventType =
   | 'offer_standard_accepted'
   | 'offer_standard_reject_click'
   | 'offer_standard_rejected'
-  | 'offer_standard_decision_error';
+  | 'offer_standard_decision_error'
+  // Cobertura del funnel de oferta (6 pasos + interacciones) — BAL-2236:
+  | 'offer_explore_view'
+  | 'offer_equipment_chosen'
+  | 'offer_complementos_view'
+  | 'offer_confirm_view'
+  | 'offer_over_budget'
+  | 'offer_expired_view'
+  | 'offer_abandoned';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
