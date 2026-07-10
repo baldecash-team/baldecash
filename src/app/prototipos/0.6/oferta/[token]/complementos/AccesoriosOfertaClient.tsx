@@ -145,6 +145,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
   const [curTerm, setCurTerm] = useState<number>(24);
   const [curInitial, setCurInitial] = useState<number>(0);
+  // offer_case para analytics (BAL-2236). 'unknown' hasta que carga la oferta.
+  const [offerCase, setOfferCase] = useState<string>('unknown');
 
   const backToDetail = useCallback(() => {
     const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
@@ -163,6 +165,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
     window.location.href = `${base}/oferta/${token}/catalogo`;
   }, [token]);
+
+  // Funnel: page-view del mini-checkout de complementos. offer_case aún no se
+  // conoce al montar (la oferta carga async) → 'unknown'.
+  useEffect(() => {
+    analytics.track('offer_complementos_view', { offer_case: 'unknown' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Carga inicial: lee la selección de localStorage (variant/combo/slug + equipo),
   // valida el token y trae los add-ons del equipo elegido. Sin selección
@@ -190,6 +199,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         if (active) {
           if (offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
           if (offer.clientName) setClientName(offer.clientName);
+          setOfferCase(offer.offerCase ?? 'unknown');
           const baseTerms = offer.terms?.length ? offer.terms : [24];
           const baseInitials = offer.initials?.length ? offer.initials : [0];
           // Incluir el plazo/inicial REALES del pedido (selección) como opción
@@ -850,7 +860,15 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         <CuotaStickyBar
           total={totalMonthly}
           onContinuar={() => {
-            if (overBudget) return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
+            if (overBudget) {
+              analytics.track('offer_over_budget', { offer_case: offerCase });
+              return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
+            }
+            analytics.track('offer_confirm_view', {
+              offer_case: offerCase,
+              accessory_count: selectedAcc.length,
+              insurance_selected: selectedIns.length > 0,
+            });
             setModalOpen(true);
           }}
           ctaText={overBudget ? 'Supera tu cuota' : 'Confirmar mi pedido'}
