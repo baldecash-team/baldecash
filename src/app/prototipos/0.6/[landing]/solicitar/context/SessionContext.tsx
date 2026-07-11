@@ -98,7 +98,10 @@ export const useSessionOptional = () => {
 
 interface SessionProviderProps {
   children: ReactNode;
-  landingSlug: string;
+  landingSlug?: string;
+  /** Cuando se pasa, se usa como session_id fijo (p.ej. el token de una oferta):
+   *  NO se crea session anónima en backend; el tracking usa este id tal cual. */
+  fixedSessionId?: string;
 }
 
 /**
@@ -234,14 +237,15 @@ function getReferrerInfo(): { referrer_url?: string; referrer_domain?: string } 
 export const SessionProvider: React.FC<SessionProviderProps> = ({
   children,
   landingSlug,
+  fixedSessionId,
 }) => {
-  const [sessionUuid, setSessionUuid] = useState<string | null>(null);
+  const [sessionUuid, setSessionUuid] = useState<string | null>(fixedSessionId ?? null);
   const [sessionId, setSessionId] = useState<number | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(!!fixedSessionId);
   const [isCreating, setIsCreating] = useState(false);
 
   // Memoize storage key based on landing
-  const sessionKey = useMemo(() => getSessionKey(landingSlug), [landingSlug]);
+  const sessionKey = useMemo(() => getSessionKey(landingSlug ?? 'default'), [landingSlug]);
 
   /**
    * Create a new tracking session via API with retry logic
@@ -385,9 +389,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
   // The backend endpoint is idempotent: it recovers the existing session
   // when the UUID stored in localStorage is reused across pages/reloads.
   useEffect(() => {
+    if (fixedSessionId) return; // session_id fijo → no crear session anónima
     if (!landingSlug || isInitialized || isCreating) return;
     initSession(landingSlug);
-  }, [landingSlug, isInitialized, isCreating, initSession]);
+  }, [fixedSessionId, landingSlug, isInitialized, isCreating, initSession]);
 
   return (
     <SessionContext.Provider
