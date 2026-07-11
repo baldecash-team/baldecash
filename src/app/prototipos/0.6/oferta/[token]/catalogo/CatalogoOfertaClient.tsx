@@ -23,6 +23,7 @@ import { Navbar } from '../../../components/hero/Navbar';
 import { CatalogoOfertaTab } from '../components/CatalogoOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from '../components/OfertaEstadoMensaje';
 import { saveOfferSelection } from '../offerStorage';
+import { useAnalytics } from '../../../analytics/useAnalytics';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
@@ -46,12 +47,33 @@ function readInitialQuery(): string {
 }
 
 export function CatalogoOfertaClient({ token }: { token: string }) {
+  const analytics = useAnalytics();
   const [state, setState] = useState<PageState>({ kind: 'loading' });
   const [searchQuery, setSearchQuery] = useState(readInitialQuery);
 
+  // Navegación pura (sin tracking): también se usa para el redirect AUTOMÁTICO
+  // cuando la oferta ya fue consumida (no es un "volver" del usuario).
   const backToOferta = useCallback(() => {
     window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
   }, [token]);
+
+  // Funnel (BAL-2236): click explícito del usuario en "Volver a mi oferta"
+  // (botón `onBack` de CatalogoOfertaTab). Separado de `backToOferta` para no
+  // trackear el redirect automático de arriba (link ya consumido).
+  const handleBackToIndex = useCallback(() => {
+    analytics.track('offer_back_to_index', {
+      offer_case: state.kind === 'ready' ? state.offer.offerCase ?? 'unknown' : 'unknown',
+      from: 'catalog',
+    });
+    backToOferta();
+  }, [analytics, state, backToOferta]);
+
+  // Funnel: entrada al catálogo de la oferta (subruta separada de /oferta/{token}).
+  // offer_case aún no se conoce al montar (la oferta carga async) → 'unknown'.
+  useEffect(() => {
+    analytics.track('offer_explore_view', { offer_case: 'unknown', origin: 'catalog' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -84,13 +106,21 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
     (product: CatalogProduct) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       const variantId = product.variantId ? Number(product.variantId) : null;
+      const comboId = product.comboId != null ? Number(product.comboId) : null;
+      // Funnel: elige un equipo desde el catálogo de la oferta (subruta /catalogo).
+      analytics.track('offer_equipment_chosen', {
+        offer_case: state.kind === 'ready' ? state.offer.offerCase ?? 'unknown' : 'unknown',
+        source: 'catalog',
+        variant_id: variantId ?? null,
+        combo_id: comboId ?? null,
+      });
       if (variantId == null) {
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${product.slug ?? ''}`;
         return;
       }
       saveOfferSelection(token, {
         variantId,
-        comboId: product.comboId != null ? Number(product.comboId) : null,
+        comboId,
         slug: product.slug ?? null,
         name: product.displayName || product.name,
         brand: product.brand,
@@ -99,7 +129,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
       });
       window.location.href = base;
     },
-    [token],
+    [token, analytics, state],
   );
 
   if (state.kind === 'loading') {
@@ -138,7 +168,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         onSelect={handleSelect}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onBack={backToOferta}
+        onBack={handleBackToIndex}
       />
 
       {/* Botón "volver arriba" — componente compartido, tema de la oferta. */}

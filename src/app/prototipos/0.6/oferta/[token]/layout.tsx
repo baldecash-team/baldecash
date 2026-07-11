@@ -10,11 +10,10 @@
  * internamente → con estos providers montados, filter_toggle / sort_change /
  * catalog_load_more / search_submit se emiten automáticamente.
  *
- * landingSlug="home": el endpoint POST /public/tracking/session valida que el
- * slug exista como landing real en la BD, así que usamos "home" (la landing del
- * catálogo de la oferta). No hay dependencia de application_id: el UUID se
- * auto-genera. El origen "oferta" se distingue por la ruta de la página
- * (page_url) que el tracker envía en cada evento.
+ * El token del link seguro (segmento [token] de la ruta) viaja como session_id
+ * de cada evento (patrón admisión). Así el reporte puede resolver la solicitud
+ * exacta hasheando el token contra secure_link.token_hash — sin session anónima
+ * ni landing hardcodeada. El token va SOLO en session_id, nunca en properties.
  *
  * Tipografías del rediseño visual (BAL-2183/2184): Asap (texto general) y
  * Baloo 2 (títulos/monto/acentos) YA se cargan una sola vez a nivel global en
@@ -31,6 +30,7 @@
  */
 
 import { useEffect, type ReactNode } from 'react';
+import { useParams } from 'next/navigation';
 
 import { SessionProvider } from '../../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTrackerContext';
@@ -57,6 +57,9 @@ const BRAND_VARS: Record<string, string> = {
 };
 
 export default function OfertaLayout({ children }: { children: ReactNode }) {
+  const params = useParams();
+  const token = Array.isArray(params?.token) ? params.token[0] : (params?.token ?? '');
+
   useEffect(() => {
     const root = document.documentElement;
     const previous: Record<string, string> = {};
@@ -74,7 +77,7 @@ export default function OfertaLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SessionProvider landingSlug="home">
+    <SessionProvider fixedSessionId={token}>
       <EventTrackerProvider>{children}</EventTrackerProvider>
     </SessionProvider>
   );

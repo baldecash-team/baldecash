@@ -35,7 +35,15 @@ import { useCountdown } from './useCountdown';
 
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
 
-export function StandardOfertaAccion({ token, offer }: { token: string; offer: OfferView }) {
+export function StandardOfertaAccion({
+  token,
+  offer,
+  onConverted,
+}: {
+  token: string;
+  offer: OfferView;
+  onConverted?: () => void;
+}) {
   const analytics = useAnalytics();
   const info = offer.standardOffer ?? null;
   const countdown = useCountdown(offer.expiresAt);
@@ -57,6 +65,7 @@ export function StandardOfertaAccion({ token, offer }: { token: string; offer: O
     try {
       await acceptOffer(token);
       analytics.track('offer_standard_accepted', { offer_code: offer.offerCode });
+      onConverted?.();
       setDecision('accepted');
     } catch (err) {
       const message =
@@ -66,7 +75,7 @@ export function StandardOfertaAccion({ token, offer }: { token: string; offer: O
     } finally {
       setLoading(null);
     }
-  }, [disabled, token, offer.offerCode, analytics]);
+  }, [disabled, token, offer.offerCode, analytics, onConverted]);
 
   const handleReject = useCallback(async () => {
     if (disabled) return;
@@ -76,6 +85,7 @@ export function StandardOfertaAccion({ token, offer }: { token: string; offer: O
     try {
       await rejectOffer(token);
       analytics.track('offer_standard_rejected', { offer_code: offer.offerCode });
+      onConverted?.();
       setDecision('rejected');
     } catch (err) {
       const message =
@@ -85,7 +95,7 @@ export function StandardOfertaAccion({ token, offer }: { token: string; offer: O
     } finally {
       setLoading(null);
     }
-  }, [disabled, token, offer.offerCode, analytics]);
+  }, [disabled, token, offer.offerCode, analytics, onConverted]);
 
   // Confirmación de aceptación — mismo componente "¡Felicidades!" que el
   // Caso 4/5 (sin equipo anterior: acá no hay cambio, solo aceptación).

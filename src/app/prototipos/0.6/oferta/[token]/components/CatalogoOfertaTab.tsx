@@ -31,6 +31,8 @@ import {
 } from '../../../services/offerApi';
 import type { CatalogFiltersResponse } from '../../../types/filters';
 import type { ProductSuggestion } from '../../../services/catalogApi';
+import { useAnalytics } from '../../../analytics/useAnalytics';
+import { diffAndEmitFilterChanges } from '../../../analytics/catalogFilterDiff';
 
 // Config de presentación fijo (mismos valores que usa el catálogo v0.6).
 const OFFER_CONFIG: CatalogLayoutConfig & { colorSelectorVersion: 1 | 2 } = {
@@ -87,6 +89,7 @@ export function CatalogoOfertaTab({
   /** Si se pasa, muestra "Volver a mi oferta" en la fila del buscador (como el detalle). */
   onBack?: () => void;
 }) {
+  const analytics = useAnalytics();
   const [products, setProducts] = useState<CatalogProduct[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults({}));
@@ -147,6 +150,34 @@ export function CatalogoOfertaTab({
 
   // Cuota máxima aprobada (tope del slider y de cualquier filtro de cuota).
   const maxQuota = offer.maxMonthlyQuota;
+
+  // Setter de filtros con tracking: diffea prev/applied y emite un evento por
+  // cada filtro que cambió (mismo patrón que CatalogoClient del catálogo
+  // regular). El "full range" de cuota en la oferta es fijo [0, maxQuota] (no
+  // hay un ref async como en el catálogo normal: el tope ya viene de `offer`).
+  const setFiltersTracked = useCallback<typeof setFilters>(
+    (next) => {
+      setFilters((prev) => {
+        const applied = typeof next === 'function'
+          ? (next as (p: FilterState) => FilterState)(prev)
+          : next;
+        diffAndEmitFilterChanges(prev, applied, analytics, [0, maxQuota]);
+        return applied;
+      });
+    },
+    [analytics, maxQuota]
+  );
+
+  // Setter de orden con tracking: emite trackSortChange solo si el valor cambió.
+  const onSortTracked = useCallback(
+    (value: SortOption) => {
+      setSort((prev) => {
+        if (prev !== value) analytics.trackSortChange({ from: prev, to: value });
+        return value;
+      });
+    },
+    [analytics]
+  );
 
   // Traduce TODO el FilterState del sidebar a los params que acepta
   // /offer/{token}/catalog. Mismo mapeo que el catálogo normal (CatalogoClient),
@@ -269,6 +300,15 @@ export function CatalogoOfertaTab({
     return base; // recommended / newest → orden del API
   }, [products, sort]);
 
+  // Funnel (BAL-2236): el catálogo de la oferta queda VACÍO tras aplicar los
+  // filtros actuales (no en el estado de carga inicial/intermedio).
+  useEffect(() => {
+    if (!loading && items.length === 0) {
+      analytics.track('offer_empty_catalog', { offer_case: offer.offerCase ?? 'unknown' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, items.length]);
+
   // Paso de paginación redondeado a las columnas reales, para que cada bloque
   // llene filas completas (12→10/12/15 según haya 5/4/3 columnas).
   const pageStep = roundToColumns(PAGE_SIZE, gridColumns);
@@ -337,9 +377,9 @@ export function CatalogoOfertaTab({
       <CatalogLayoutV4
         products={items}
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={setFiltersTracked}
         sort={sort}
-        onSortChange={setSort}
+        onSortChange={onSortTracked}
         config={OFFER_CONFIG}
         apiFilters={offerApiFilters}
         isApiFiltersLoading={isApiFiltersLoading}
@@ -379,7 +419,16 @@ export function CatalogoOfertaTab({
                   remainingProducts={remaining}
                   totalProducts={items.length}
                   visibleProducts={visibleItems.length}
-                  onLoadMore={() => setVisibleCount((c) => c + pageStep)}
+                  onLoadMore={() => {
+                    setVisibleCount((c) => {
+                      const next = c + pageStep;
+                      analytics.trackLoadMore({
+                        visible_count: Math.min(next, items.length),
+                        total_count: items.length,
+                      });
+                      return next;
+                    });
+                  }}
                 />
               </div>
             ) : null}

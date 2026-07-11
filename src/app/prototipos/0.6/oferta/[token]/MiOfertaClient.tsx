@@ -11,7 +11,7 @@
  * catálogo" navega a la subruta /catalogo (CatalogLayoutV4 completo).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -92,11 +92,60 @@ export function MiOfertaClient({ token }: { token: string }) {
   const analytics = useAnalytics();
   const [state, setState] = useState<PageState>({ kind: 'loading' });
 
+  // Timing (BAL-2236): ancla de cuándo se emitió offer_viewed (portada visible)
+  // y flag para emitir offer_time_to_first_action UNA sola vez.
+  const offerViewedAt = useRef<number | null>(null);
+  const firstActionTracked = useRef(false);
+
+  // Abandono (BAL-2236): convertedRef = "el usuario CONVIRTIÓ o AVANZÓ" (eligió
+  // un equipo con éxito, o navegó a complementos/catálogo/detalle) — en
+  // cualquiera de esos casos, si luego se oculta la pestaña NO es abandono.
+  // Solo cuenta como abandono cerrar/cambiar de pestaña sin haber hecho nada
+  // de eso. abandonedTracked evita emitir offer_abandoned más de una vez por
+  // sesión (visibilitychange puede disparar varias veces al cambiar de tab).
+  const convertedRef = useRef(false);
+  const abandonedTracked = useRef(false);
+  // Ref-mirror de `state`: el listener de visibilitychange se registra UNA
+  // sola vez (mount) pero necesita leer el offerCase MÁS RECIENTE al momento
+  // de ocultarse la pestaña (la oferta carga async tras el mount).
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (
+        document.visibilityState === 'hidden' &&
+        !convertedRef.current &&
+        !abandonedTracked.current
+      ) {
+        abandonedTracked.current = true;
+        const current = stateRef.current;
+        analytics.track('offer_abandoned', {
+          offer_case: current.kind === 'ready' ? current.offer.offerCase : undefined,
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const trackFirstAction = useCallback(() => {
+    if (firstActionTracked.current || offerViewedAt.current == null) return;
+    firstActionTracked.current = true;
+    analytics.track('offer_time_to_first_action', {
+      offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+      seconds: Math.round((Date.now() - offerViewedAt.current) / 1000),
+    });
+  }, [analytics, state]);
+
   // "Ver otros equipos" navega a la subruta de catálogo (página separada).
   const goToCatalogo = useCallback(() => {
+    trackFirstAction();
     analytics.track('offer_catalog_open', {}); // funnel: abre catálogo de oferta
+    convertedRef.current = true; // avanzó al catálogo → no es abandono (BAL-2236)
     window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
-  }, [token, analytics]);
+  }, [token, analytics, trackFirstAction]);
 
   // Modal de confirmación de elección. Unifica los 3 orígenes (card de catálogo,
   // oferta exclusiva del Caso 5, "continuar con mi equipo"): cada uno arma el
@@ -122,6 +171,9 @@ export function MiOfertaClient({ token }: { token: string }) {
         if (!active) return;
         // Link ya consumido con selección → mostrar directo la confirmación.
         if (offer.alreadySelected && offer.selectedEquipment) {
+          // Ya convirtió (en una visita anterior) → si cierra esta pestaña de
+          // confirmación no es abandono (BAL-2236).
+          convertedRef.current = true;
           const eq = offer.selectedEquipment;
           const req = offer.requestedProduct;
           setSelected({
@@ -156,12 +208,23 @@ export function MiOfertaClient({ token }: { token: string }) {
         // Funnel: la oferta se cargó y es visible (portada). offerCase distingue
         // Caso 4 (downgrade) de Caso 5 (upsell).
         analytics.track('offer_viewed', { offer_case: offer.offerCase });
+        // Timing (BAL-2236): ancla para offer_time_to_first_action / offer_time_to_convert.
+        offerViewedAt.current = Date.now();
+        // Funnel: la portada muestra una card destacada (recomendado en Caso 4
+        // downgrade, oferta exclusiva en Caso 5 upsell).
+        if (offer.recommended || offer.exclusiveOffer) {
+          analytics.track('offer_recommended_view', { offer_case: offer.offerCase });
+        }
         setState({ kind: 'ready', offer });
       })
       .catch((err) => {
         if (!active) return;
         const reason = err instanceof OfferApiError ? err.reason : 'unknown';
         const message = err instanceof OfferApiError ? err.message : 'Error desconocido';
+        // Funnel: el link cargó pero el backend indica que la oferta venció.
+        if (reason === 'expired') {
+          analytics.track('offer_expired_view', { offer_case: 'unknown' });
+        }
         setState({ kind: 'error', reason, message });
       });
     return () => {
@@ -203,6 +266,10 @@ export function MiOfertaClient({ token }: { token: string }) {
       preselectedInsuranceIds?: number[],
     ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
+      // Avanzó (a complementos o, en el fallback, al detalle) → no es abandono
+      // (BAL-2236). Se marca antes de ambas ramas: es el choke point único de
+      // handleSelect / handleAceptarExclusiva / handleContinuarMiEquipo.
+      convertedRef.current = true;
       if (variantId == null) {
         // Sin variante usable → caer al detalle para resolver allí.
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
@@ -234,8 +301,16 @@ export function MiOfertaClient({ token }: { token: string }) {
   // Card "Elegir" del catálogo / "Aceptar equipo" del index → mini-checkout.
   const handleSelect = useCallback(
     (product: CatalogProduct) => {
+      trackFirstAction();
       // Funnel: click "elegir" en una card (equipo aprobado o del catálogo).
       analytics.track('offer_equipment_select_click', {
+        variant_id: product.variantId ? Number(product.variantId) : null,
+        combo_id: product.comboId ?? null,
+      });
+      // Funnel (paso 3): equipo elegido, origen "recommended" (Caso 4).
+      analytics.track('offer_equipment_chosen', {
+        offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+        source: 'recommended',
         variant_id: product.variantId ? Number(product.variantId) : null,
         combo_id: product.comboId ?? null,
       });
@@ -251,16 +326,24 @@ export function MiOfertaClient({ token }: { token: string }) {
         },
       );
     },
-    [goToAccesorios, analytics],
+    [goToAccesorios, analytics, state, trackFirstAction],
   );
 
   // Caso 5: aceptar la oferta exclusiva → mini-checkout de accesorios/seguros.
   // (Perfil B ya trae accesorio incluido y Perfil C es tarifa especial; aun así
   // el cliente puede sumar más add-ons que quepan en su cuota restante.)
   const handleAceptarExclusiva = useCallback(() => {
+    trackFirstAction();
     const offer = state.kind === 'ready' ? state.offer : null;
     const ex = offer?.exclusiveOffer;
     if (!ex || ex.variantId == null) return;
+    // Funnel: acepta la oferta exclusiva (Caso 5 upsell).
+    analytics.track('offer_equipment_chosen', {
+      offer_case: offer?.offerCase,
+      source: 'exclusive',
+      variant_id: ex.variantId ?? null,
+      combo_id: ex.comboId ?? null,
+    });
     // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
     // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
     // (no-combo) se resuelve aparte y se pasa preseleccionado.
@@ -277,7 +360,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       },
       regaloId ? [regaloId] : undefined,
     );
-  }, [state, goToAccesorios]);
+  }, [state, goToAccesorios, analytics, trackFirstAction]);
 
   // Caso 5: "continuar con mi equipo" → mini-checkout de accesorios/seguros con
   // el equipo PEDIDO (igual que "aceptar exclusiva" y que el flujo del Caso 4).
@@ -285,9 +368,16 @@ export function MiOfertaClient({ token }: { token: string }) {
   // el equipo pedido en ofertas upsell (BAL-2100 #1). Antes abría un modal inline
   // que llamaba /select con el equipo pedido → 404 variant_not_eligible.
   const handleContinuarMiEquipo = useCallback(() => {
+    trackFirstAction();
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
+    // Funnel: elige mantener el equipo pedido (rechaza el upsell), Caso 5.
+    analytics.track('offer_equipment_chosen', {
+      offer_case: offer?.offerCase,
+      source: 'keep',
+      variant_id: req.variant_id ?? null,
+    });
     // Accesorios/seguros que el cliente YA tenía en su pedido → preseleccionados
     // en complementos (editables). Al "mantener mi equipo" no debe perderlos.
     const accIds = (req.accessories ?? [])
@@ -309,31 +399,54 @@ export function MiOfertaClient({ token }: { token: string }) {
       accIds,
       insIds,
     );
-  }, [state, goToAccesorios]);
+  }, [state, goToAccesorios, analytics, trackFirstAction]);
 
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
     if (pending.variantId == null) {
-      // Sin variante usable → caer al detalle para resolver allí.
+      // Sin variante usable → caer al detalle para resolver allí (avanzó, no
+      // abandonó — BAL-2236).
+      convertedRef.current = true;
       window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${pending.slug}`;
       return;
     }
     setConfirming(true);
     try {
       await selectEquipment(token, pending.variantId, pending.comboId);
-      // Éxito: confirmación EN LA MISMA página (sin re-validar el token consumido).
+      // Éxito: CONVIRTIÓ (eligió su equipo) → no es abandono si luego oculta la
+      // pestaña (BAL-2236). Confirmación EN LA MISMA página (sin re-validar el
+      // token consumido).
+      convertedRef.current = true;
       const summary = pending.summary;
+      // Funnel: la elección se registró y se muestra la pantalla "¡Listo!".
+      analytics.track('offer_success_view', {
+        offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+        variant_id: pending.variantId ?? null,
+      });
+      // Timing (BAL-2236): tiempo desde offer_viewed hasta la conversión (elección confirmada).
+      if (offerViewedAt.current != null) {
+        analytics.track('offer_time_to_convert', {
+          offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+          seconds: Math.round((Date.now() - offerViewedAt.current) / 1000),
+        });
+      }
       setPending(null);
       setSelected(summary);
     } catch (err) {
       const reason = err instanceof OfferApiError ? err.reason : 'unknown';
       const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
+      // Funnel: la confirmación de elección falló (variante ya no elegible,
+      // link consumido en paralelo, error de red, etc.).
+      analytics.track('offer_select_error', {
+        offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+        reason: err instanceof Error ? err.name : 'unknown',
+      });
       setPending(null);
       setState({ kind: 'error', reason, message });
     } finally {
       setConfirming(false);
     }
-  }, [pending, token]);
+  }, [pending, token, state, analytics]);
 
   // Ya eligió un equipo → pantalla de confirmación "¡Listo!".
   if (selected) {
@@ -370,7 +483,16 @@ export function MiOfertaClient({ token }: { token: string }) {
   // Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
   // decide aceptar/rechazar — vista simple con countdown, sin catálogo.
   if (offer.offerCase === 'standard') {
-    return <StandardOfertaAccion token={token} offer={offer} />;
+    return (
+      <StandardOfertaAccion
+        token={token}
+        offer={offer}
+        onConverted={() => {
+          // Aceptó o rechazó → decidió, no abandonó (BAL-2236).
+          convertedRef.current = true;
+        }}
+      />
+    );
   }
 
   // Mapeo de los datos del offer a EquipoRecomendadoInfo (props opcionales →
@@ -518,6 +640,8 @@ export function MiOfertaClient({ token }: { token: string }) {
                 onVerDetalle={
                   offer.exclusiveOffer?.slug
                     ? () => {
+                        // Vio el detalle → avanzó, no abandonó (BAL-2236).
+                        convertedRef.current = true;
                         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.exclusiveOffer!.slug}`;
                       }
                     : undefined
@@ -601,6 +725,8 @@ export function MiOfertaClient({ token }: { token: string }) {
                 onVerDetalle={
                   offer.recommended?.slug
                     ? () => {
+                        // Vio el detalle → avanzó, no abandonó (BAL-2236).
+                        convertedRef.current = true;
                         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.recommended!.slug}`;
                       }
                     : undefined

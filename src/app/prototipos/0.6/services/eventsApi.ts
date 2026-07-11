@@ -213,7 +213,38 @@ export type EventType =
   | 'offer_standard_accepted'
   | 'offer_standard_reject_click'
   | 'offer_standard_rejected'
-  | 'offer_standard_decision_error';
+  | 'offer_standard_decision_error'
+  // Cobertura del funnel de oferta (6 pasos + interacciones) — BAL-2236:
+  | 'offer_explore_view'
+  | 'offer_equipment_chosen'
+  | 'offer_complementos_view'
+  | 'offer_confirm_view'
+  | 'offer_over_budget'
+  | 'offer_expired_view'
+  | 'offer_abandoned'
+  // BAL-2236 — eventos extra (whatsapp, pricing, errores, comparación, timing):
+  | 'offer_whatsapp_click'
+  | 'offer_pricing_change'
+  | 'offer_accessory_search'
+  | 'offer_select_error'
+  | 'offer_empty_catalog'
+  | 'offer_back_to_index'
+  | 'offer_detail_revisit'
+  | 'offer_catalog_return'
+  | 'offer_time_to_first_action'
+  | 'offer_time_to_convert'
+  // BAL-2236 — eventos de catálogo de oferta con prefijo (alias de los compartidos):
+  | 'offer_filter_toggle'
+  | 'offer_filter_clear_single'
+  | 'offer_filter_clear_all'
+  | 'offer_filter_range_change'
+  | 'offer_filter_section_toggle'
+  | 'offer_filter_snapshot'
+  | 'offer_sort_change'
+  | 'offer_catalog_load_more'
+  | 'offer_search_focus'
+  | 'offer_search_submit'
+  | 'offer_search_clear';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([

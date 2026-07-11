@@ -145,6 +145,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
   const [curTerm, setCurTerm] = useState<number>(24);
   const [curInitial, setCurInitial] = useState<number>(0);
+  // offer_case para analytics (BAL-2236). 'unknown' hasta que carga la oferta.
+  const [offerCase, setOfferCase] = useState<string>('unknown');
 
   const backToDetail = useCallback(() => {
     const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
@@ -163,6 +165,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     const base = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
     window.location.href = `${base}/oferta/${token}/catalogo`;
   }, [token]);
+
+  // Funnel: page-view del mini-checkout de complementos. offer_case aún no se
+  // conoce al montar (la oferta carga async) → 'unknown'.
+  useEffect(() => {
+    analytics.track('offer_complementos_view', { offer_case: 'unknown' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Carga inicial: lee la selección de localStorage (variant/combo/slug + equipo),
   // valida el token y trae los add-ons del equipo elegido. Sin selección
@@ -190,6 +199,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         if (active) {
           if (offer.maxMonthlyQuota) setMaxQuota(offer.maxMonthlyQuota);
           if (offer.clientName) setClientName(offer.clientName);
+          setOfferCase(offer.offerCase ?? 'unknown');
           const baseTerms = offer.terms?.length ? offer.terms : [24];
           const baseInitials = offer.initials?.length ? offer.initials : [0];
           // Incluir el plazo/inicial REALES del pedido (selección) como opción
@@ -359,13 +369,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setSucceeded(true);
       window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
     } catch (err) {
+      analytics.track('offer_select_error', {
+        offer_case: offerCase,
+        reason: err instanceof Error ? err.name : 'unknown',
+      });
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
       setConfirming(false);
       setModalOpen(false);
       setShowSeguro(false); // cierra la segunda confirmación en caso de error
       confirmLock.current = false; // libera para permitir reintentar
     }
-  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
+  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial, offerCase]);
 
   // Slot de desglose para el modal: "Tu pedido incluye" = equipo + regalos del
   // combo (gratis) + accesorios/seguros elegidos (+S/) + UNA cuota total.
@@ -677,6 +691,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     <button
                       type="button"
                       onClick={() => {
+                        analytics.trackInsuranceViewTerms({ insurance_id: p.id });
                         setDetailOrigin('confirmacion');
                         setModalOpen(false);
                         window.setTimeout(() => setDetailInsurance(p), 220);
@@ -814,7 +829,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   accesorio={a}
                   agregado={selectedAcc.includes(a.id)}
                   onToggle={() => toggleAcc(a)}
-                  onVerDetalle={() => { setDetailOrigin('recomendado'); setDetailAccessory(a); }}
+                  onVerDetalle={() => {
+                    analytics.trackAccessoryView({ accessory_id: a.id, accessory_name: a.name });
+                    setDetailOrigin('recomendado');
+                    setDetailAccessory(a);
+                  }}
                   badge={i === 0 ? 'Recomendado' : undefined}
                   noCabe={!accFits(a)}
                 />
@@ -829,7 +848,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Añadir uno más */}
         <button
           type="button"
-          onClick={() => setShowBuscador(true)}
+          onClick={() => {
+            analytics.track('offer_accessory_search', { offer_case: offerCase });
+            setShowBuscador(true);
+          }}
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
@@ -850,7 +872,15 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         <CuotaStickyBar
           total={totalMonthly}
           onContinuar={() => {
-            if (overBudget) return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
+            if (overBudget) {
+              analytics.track('offer_over_budget', { offer_case: offerCase });
+              return; // no navega: debe quitar algo primero (igual que isDisabled del botón original)
+            }
+            analytics.track('offer_confirm_view', {
+              offer_case: offerCase,
+              accessory_count: selectedAcc.length,
+              insurance_selected: selectedIns.length > 0,
+            });
             setModalOpen(true);
           }}
           ctaText={overBudget ? 'Supera tu cuota' : 'Confirmar mi pedido'}
@@ -866,7 +896,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             accesorios={accessories}
             seleccionadosAcc={selectedAcc}
             onToggleAcc={toggleAcc}
-            onVerDetalle={(a) => { setDetailOrigin('buscador'); setDetailAccessory(a); }}
+            onVerDetalle={(a) => {
+              analytics.trackAccessoryView({ accessory_id: a.id, accessory_name: a.name });
+              setDetailOrigin('buscador');
+              setDetailAccessory(a);
+            }}
             total={totalMonthly}
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
