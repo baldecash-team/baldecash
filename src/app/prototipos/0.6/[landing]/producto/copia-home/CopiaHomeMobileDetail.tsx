@@ -110,7 +110,7 @@ export function CopiaHomeMobileDetail({
     isRefurbishedCondition(product.condition) ||
     /semi\s*nuevo|seminuevo|reacondicion/i.test(fullName);
 
-  // Garantía de fábrica por modelo (item 3) y envío diferido 14/07 (iPhone semi / iPad).
+  // Garantía de fábrica por modelo (item 3) y envío diferido 15/07 (iPhone semi / iPad).
   const warranty = factoryWarranty(fullName, product.warranty);
   const isIphone = isIphoneName(fullName);
   const deferredShipping = hasDeferredShipping({
@@ -326,7 +326,7 @@ export function CopiaHomeMobileDetail({
         {deferredShipping && (
           <div className={styles.shipNote}>
             <Truck size={18} />
-            <span>El envío o recojo será <b>a partir del martes 14/07</b>.</span>
+            <span>El envío o recojo será <b>a partir del miércoles 15/07</b>.</span>
           </div>
         )}
 
@@ -470,7 +470,9 @@ export function CopiaHomeMobileDetail({
               </Acc>
             )}
 
-            {/* item 10: Seguridad del equipo — recojo con cita tras aprobación */}
+            {/* item 10: Seguridad del equipo — recojo con cita tras aprobación.
+                Solo en seminuevos; no aplica a equipos nuevos. */}
+            {isRefurbished && (
             <div className={styles.card}>
               <div className={styles.secTitle} style={{ marginBottom: 12 }}>Seguridad del equipo</div>
               <div className={styles.segBanner}>
@@ -485,6 +487,7 @@ export function CopiaHomeMobileDetail({
                 <span>El agendamiento de citas se habilitará después de la aprobación del financiamiento y firma del contrato.</span>
               </div>
             </div>
+            )}
 
             {/* CTA fijo mobile estándar de baldecash (¡Lo quiero! + wishlist) */}
             <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none">

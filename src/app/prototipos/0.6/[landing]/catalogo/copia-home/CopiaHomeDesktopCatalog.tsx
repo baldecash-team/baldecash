@@ -73,7 +73,7 @@ function deviceLabel(value: string): string {
   return DEVICE_LABEL[value?.toLowerCase()] ?? (value ? value[0].toUpperCase() + value.slice(1) : value);
 }
 
-/** Envío diferido para iPhone seminuevos e iPads (a partir del martes 14/07). */
+/** Envío diferido para iPhone seminuevos e iPads (a partir del miércoles 15/07). */
 function productHasDeferredShipping(p: CatalogProduct): boolean {
   return hasDeferredShipping({
     name: `${p.name ?? ''} ${p.displayName ?? ''}`,

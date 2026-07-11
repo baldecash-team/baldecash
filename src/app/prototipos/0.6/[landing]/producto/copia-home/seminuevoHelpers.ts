@@ -1,14 +1,14 @@
 /**
  * Helpers compartidos por las variantes seminuevo de copia-home (catálogo y
  * detalle, mobile y desktop). Fuente única de verdad para la garantía de
- * fábrica por modelo y el envío diferido (14/07).
+ * fábrica por modelo y el envío diferido (15/07).
  */
 
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
-/** Nota de envío diferido para iPhone seminuevos e iPads (a partir del martes 14/07). */
+/** Nota de envío diferido para iPhone seminuevos e iPads (a partir del miércoles 15/07). */
 export const DEFERRED_SHIPPING_NOTE =
-  'Lo prepararemos con mucho cuidado para ti. El envío o recojo será a partir del martes 14/07.';
+  'Lo prepararemos con mucho cuidado para ti. El envío o recojo será a partir del miércoles 15/07.';
 
 /**
  * Garantía de fábrica según el modelo (regla de negocio):
@@ -27,7 +27,7 @@ export function factoryWarranty(name: string, fallback?: string): string {
 }
 
 /**
- * Envío diferido (14/07): iPhone seminuevos e iPads (cualquier condición del
+ * Envío diferido (15/07): iPhone seminuevos e iPads (cualquier condición del
  * iPad; el iPhone solo si es seminuevo).
  */
 export function hasDeferredShipping(opts: {

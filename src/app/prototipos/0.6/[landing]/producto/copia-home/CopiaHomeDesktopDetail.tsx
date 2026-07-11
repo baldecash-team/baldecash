@@ -88,7 +88,7 @@ export function CopiaHomeDesktopDetail({
     isRefurbishedCondition(product.condition) ||
     /semi\s*nuevo|seminuevo|reacondicion/i.test(fullName);
 
-  // Envío diferido (14/07): iPhone seminuevos e iPads.
+  // Envío diferido (15/07): iPhone seminuevos e iPads.
   const deferredShipping = hasDeferredShipping({
     name: fullName, condition: product.condition, deviceType: product.deviceType, brand: product.brand,
   });
@@ -410,7 +410,7 @@ export function CopiaHomeDesktopDetail({
                   {deferredShipping && (
                     <div className={styles.shipNote}>
                       <Truck size={18} />
-                      <span>El envío o recojo será <b>a partir del martes 14/07</b>.</span>
+                      <span>El envío o recojo será <b>a partir del miércoles 15/07</b>.</span>
                     </div>
                   )}
                 </>

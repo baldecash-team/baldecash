@@ -32,14 +32,13 @@ interface RefurbishedWarningModalProps {
   policyFilename?: string;
   /**
    * Nota extra (último punto). Ej. envío diferido de iPhone seminuevos / iPads:
-   * "El envío o recojo será a partir del martes 14/07".
+   * "El envío o recojo será a partir del miércoles 15/07".
    */
   shippingNote?: string;
 }
 
 const BASE_POINTS: { icon: React.ReactNode; text: string }[] = [
   { icon: <Sparkles className="w-4 h-4" />, text: 'Revisado, probado y reparado por técnicos certificados.' },
-  { icon: <ShieldCheck className="w-4 h-4" />, text: 'Incluye garantía, igual que un equipo nuevo.' },
   { icon: <Tag className="w-4 h-4" />, text: 'Precio menor: ahorra sin sacrificar calidad.' },
   { icon: <Recycle className="w-4 h-4" />, text: 'Puede presentar señales mínimas de uso.' },
 ];
@@ -54,26 +53,26 @@ export const RefurbishedWarningModal: React.FC<RefurbishedWarningModalProps> = (
   shippingNote,
 }) => {
   // Puntos base + ajustes opcionales (garantía de fábrica con política, envío diferido).
-  const points: { icon: React.ReactNode; text: React.ReactNode }[] = BASE_POINTS.map((p, i) => {
-    if (i === 1 && policyHref) {
-      return {
-        icon: p.icon,
-        text: (
-          <>
-            Incluye garantía para daños de fábrica.{' '}
-            <a
-              href={policyHref}
-              download={policyFilename}
-              className="text-[var(--color-primary)] font-semibold underline inline-flex items-center gap-1 cursor-pointer"
-            >
-              Ver política <Download className="w-3.5 h-3.5" />
-            </a>
-          </>
-        ),
-      };
-    }
-    return p;
-  });
+  const points: { icon: React.ReactNode; text: React.ReactNode }[] = [...BASE_POINTS];
+  if (policyHref) {
+    // Punto de garantía de fábrica con enlace a la política (reemplaza el antiguo
+    // "Incluye garantía, igual que un equipo nuevo", ya eliminado).
+    points.splice(1, 0, {
+      icon: <ShieldCheck className="w-4 h-4" />,
+      text: (
+        <>
+          Incluye garantía para daños de fábrica.{' '}
+          <a
+            href={policyHref}
+            download={policyFilename}
+            className="text-[var(--color-primary)] font-semibold underline inline-flex items-center gap-1 cursor-pointer"
+          >
+            Ver política <Download className="w-3.5 h-3.5" />
+          </a>
+        </>
+      ),
+    });
+  }
   if (shippingNote) {
     points.push({ icon: <Truck className="w-4 h-4" />, text: shippingNote });
   }
