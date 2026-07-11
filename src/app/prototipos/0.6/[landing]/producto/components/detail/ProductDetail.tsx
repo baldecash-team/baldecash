@@ -263,6 +263,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
     return defaultTerm ?? maxTerm;
   }, [defaultTerm, activePlans]);
+  const implicitTermRef = useRef(implicitTerm);
+  implicitTermRef.current = implicitTerm;
 
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
@@ -302,7 +304,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // doesn't need searchParams in its deps — avoids a recreate-on-every-replace loop.
     const currentSearch = typeof window !== 'undefined' ? window.location.search.replace(/^\?/, '') : '';
     const params = new URLSearchParams(currentSearch);
-    if (implicitTerm != null && selection.term !== implicitTerm) {
+    const implicit = implicitTermRef.current;
+    if (implicit != null && selection.term !== implicit) {
       params.set('term', String(selection.term));
     } else {
       params.delete('term');
@@ -325,7 +328,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
     // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
     onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
-  }, [analytics, product.id, router, onOfferSelectionChange, implicitTerm]);
+  }, [analytics, product.id, router, onOfferSelectionChange]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
