@@ -221,7 +221,18 @@ export type EventType =
   | 'offer_confirm_view'
   | 'offer_over_budget'
   | 'offer_expired_view'
-  | 'offer_abandoned';
+  | 'offer_abandoned'
+  // BAL-2236 — eventos extra (whatsapp, pricing, errores, comparación, timing):
+  | 'offer_whatsapp_click'
+  | 'offer_pricing_change'
+  | 'offer_accessory_search'
+  | 'offer_select_error'
+  | 'offer_empty_catalog'
+  | 'offer_back_to_index'
+  | 'offer_detail_revisit'
+  | 'offer_catalog_return'
+  | 'offer_time_to_first_action'
+  | 'offer_time_to_convert';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
