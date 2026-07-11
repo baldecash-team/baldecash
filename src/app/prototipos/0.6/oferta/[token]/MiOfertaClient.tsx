@@ -96,6 +96,40 @@ export function MiOfertaClient({ token }: { token: string }) {
   // y flag para emitir offer_time_to_first_action UNA sola vez.
   const offerViewedAt = useRef<number | null>(null);
   const firstActionTracked = useRef(false);
+
+  // Abandono (BAL-2236): convertedRef = "el usuario CONVIRTIÓ o AVANZÓ" (eligió
+  // un equipo con éxito, o navegó a complementos/catálogo/detalle) — en
+  // cualquiera de esos casos, si luego se oculta la pestaña NO es abandono.
+  // Solo cuenta como abandono cerrar/cambiar de pestaña sin haber hecho nada
+  // de eso. abandonedTracked evita emitir offer_abandoned más de una vez por
+  // sesión (visibilitychange puede disparar varias veces al cambiar de tab).
+  const convertedRef = useRef(false);
+  const abandonedTracked = useRef(false);
+  // Ref-mirror de `state`: el listener de visibilitychange se registra UNA
+  // sola vez (mount) pero necesita leer el offerCase MÁS RECIENTE al momento
+  // de ocultarse la pestaña (la oferta carga async tras el mount).
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (
+        document.visibilityState === 'hidden' &&
+        !convertedRef.current &&
+        !abandonedTracked.current
+      ) {
+        abandonedTracked.current = true;
+        const current = stateRef.current;
+        analytics.track('offer_abandoned', {
+          offer_case: current.kind === 'ready' ? current.offer.offerCase : undefined,
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const trackFirstAction = useCallback(() => {
     if (firstActionTracked.current || offerViewedAt.current == null) return;
     firstActionTracked.current = true;
@@ -109,6 +143,7 @@ export function MiOfertaClient({ token }: { token: string }) {
   const goToCatalogo = useCallback(() => {
     trackFirstAction();
     analytics.track('offer_catalog_open', {}); // funnel: abre catálogo de oferta
+    convertedRef.current = true; // avanzó al catálogo → no es abandono (BAL-2236)
     window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
   }, [token, analytics, trackFirstAction]);
 
@@ -136,6 +171,9 @@ export function MiOfertaClient({ token }: { token: string }) {
         if (!active) return;
         // Link ya consumido con selección → mostrar directo la confirmación.
         if (offer.alreadySelected && offer.selectedEquipment) {
+          // Ya convirtió (en una visita anterior) → si cierra esta pestaña de
+          // confirmación no es abandono (BAL-2236).
+          convertedRef.current = true;
           const eq = offer.selectedEquipment;
           const req = offer.requestedProduct;
           setSelected({
@@ -228,6 +266,10 @@ export function MiOfertaClient({ token }: { token: string }) {
       preselectedInsuranceIds?: number[],
     ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
+      // Avanzó (a complementos o, en el fallback, al detalle) → no es abandono
+      // (BAL-2236). Se marca antes de ambas ramas: es el choke point único de
+      // handleSelect / handleAceptarExclusiva / handleContinuarMiEquipo.
+      convertedRef.current = true;
       if (variantId == null) {
         // Sin variante usable → caer al detalle para resolver allí.
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
@@ -362,14 +404,19 @@ export function MiOfertaClient({ token }: { token: string }) {
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
     if (pending.variantId == null) {
-      // Sin variante usable → caer al detalle para resolver allí.
+      // Sin variante usable → caer al detalle para resolver allí (avanzó, no
+      // abandonó — BAL-2236).
+      convertedRef.current = true;
       window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${pending.slug}`;
       return;
     }
     setConfirming(true);
     try {
       await selectEquipment(token, pending.variantId, pending.comboId);
-      // Éxito: confirmación EN LA MISMA página (sin re-validar el token consumido).
+      // Éxito: CONVIRTIÓ (eligió su equipo) → no es abandono si luego oculta la
+      // pestaña (BAL-2236). Confirmación EN LA MISMA página (sin re-validar el
+      // token consumido).
+      convertedRef.current = true;
       const summary = pending.summary;
       // Funnel: la elección se registró y se muestra la pantalla "¡Listo!".
       analytics.track('offer_success_view', {
@@ -584,6 +631,8 @@ export function MiOfertaClient({ token }: { token: string }) {
                 onVerDetalle={
                   offer.exclusiveOffer?.slug
                     ? () => {
+                        // Vio el detalle → avanzó, no abandonó (BAL-2236).
+                        convertedRef.current = true;
                         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.exclusiveOffer!.slug}`;
                       }
                     : undefined
@@ -667,6 +716,8 @@ export function MiOfertaClient({ token }: { token: string }) {
                 onVerDetalle={
                   offer.recommended?.slug
                     ? () => {
+                        // Vio el detalle → avanzó, no abandonó (BAL-2236).
+                        convertedRef.current = true;
                         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${offer.recommended!.slug}`;
                       }
                     : undefined

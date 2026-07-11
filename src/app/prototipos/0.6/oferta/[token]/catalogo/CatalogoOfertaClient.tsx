@@ -51,9 +51,22 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
   const [state, setState] = useState<PageState>({ kind: 'loading' });
   const [searchQuery, setSearchQuery] = useState(readInitialQuery);
 
+  // Navegación pura (sin tracking): también se usa para el redirect AUTOMÁTICO
+  // cuando la oferta ya fue consumida (no es un "volver" del usuario).
   const backToOferta = useCallback(() => {
     window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
   }, [token]);
+
+  // Funnel (BAL-2236): click explícito del usuario en "Volver a mi oferta"
+  // (botón `onBack` de CatalogoOfertaTab). Separado de `backToOferta` para no
+  // trackear el redirect automático de arriba (link ya consumido).
+  const handleBackToIndex = useCallback(() => {
+    analytics.track('offer_back_to_index', {
+      offer_case: state.kind === 'ready' ? state.offer.offerCase ?? 'unknown' : 'unknown',
+      from: 'catalog',
+    });
+    backToOferta();
+  }, [analytics, state, backToOferta]);
 
   // Funnel: entrada al catálogo de la oferta (subruta separada de /oferta/{token}).
   // offer_case aún no se conoce al montar (la oferta carga async) → 'unknown'.
@@ -155,7 +168,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         onSelect={handleSelect}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onBack={backToOferta}
+        onBack={handleBackToIndex}
       />
 
       {/* Botón "volver arriba" — componente compartido, tema de la oferta. */}

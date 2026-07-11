@@ -300,6 +300,15 @@ export function CatalogoOfertaTab({
     return base; // recommended / newest → orden del API
   }, [products, sort]);
 
+  // Funnel (BAL-2236): el catálogo de la oferta queda VACÍO tras aplicar los
+  // filtros actuales (no en el estado de carga inicial/intermedio).
+  useEffect(() => {
+    if (!loading && items.length === 0) {
+      analytics.track('offer_empty_catalog', { offer_case: offer.offerCase ?? 'unknown' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, items.length]);
+
   // Paso de paginación redondeado a las columnas reales, para que cada bloque
   // llene filas completas (12→10/12/15 según haya 5/4/3 columnas).
   const pageStep = roundToColumns(PAGE_SIZE, gridColumns);
