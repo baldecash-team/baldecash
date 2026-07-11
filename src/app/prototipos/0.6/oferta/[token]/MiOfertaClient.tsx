@@ -248,6 +248,13 @@ export function MiOfertaClient({ token }: { token: string }) {
         variant_id: product.variantId ? Number(product.variantId) : null,
         combo_id: product.comboId ?? null,
       });
+      // Funnel (paso 3): equipo elegido, origen "recommended" (Caso 4).
+      analytics.track('offer_equipment_chosen', {
+        offer_case: state.kind === 'ready' ? state.offer.offerCase : undefined,
+        source: 'recommended',
+        variant_id: product.variantId ? Number(product.variantId) : null,
+        combo_id: product.comboId ?? null,
+      });
       goToAccesorios(
         product.variantId ? Number(product.variantId) : null,
         product.comboId ?? null,
@@ -260,7 +267,7 @@ export function MiOfertaClient({ token }: { token: string }) {
         },
       );
     },
-    [goToAccesorios, analytics],
+    [goToAccesorios, analytics, state],
   );
 
   // Caso 5: aceptar la oferta exclusiva → mini-checkout de accesorios/seguros.
