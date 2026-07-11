@@ -257,6 +257,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     });
   }, [analytics, product.id]);
 
+  // The "implicit" term: no ?term param needed when this term is selected.
+  // defaultTerm takes priority (catalog_default_term); falls back to maxTerm (legacy).
+  const implicitTerm = useMemo(() => {
+    const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
+    return defaultTerm ?? maxTerm;
+  }, [defaultTerm, activePlans]);
+
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
     setPricingSelection((prev) => {
@@ -292,10 +299,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     // Sync selection to URL so the page is shareable
     const params = new URLSearchParams(searchParams.toString());
-    const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
-    // Use defaultTerm as the "implicit" term (no param needed). Falls back to maxTerm
-    // for products without catalog_default_term (legacy behavior).
-    const implicitTerm = defaultTerm ?? maxTerm;
     if (implicitTerm != null && selection.term !== implicitTerm) {
       params.set('term', String(selection.term));
     } else {
@@ -323,7 +326,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
     // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
     onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
-  }, [analytics, product.id, searchParams, router, onOfferSelectionChange]);
+  }, [analytics, product.id, searchParams, router, onOfferSelectionChange, implicitTerm]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
