@@ -51,9 +51,9 @@ interface GradeInfo {
 // Grados FE-only (el backend no modela grados). Solo A disponible; B y C no.
 // Mismos valores que CopiaHomeMobileDetail para consistencia entre modos.
 const GRADES: Record<GradeKey, GradeInfo> = {
-  A: { bateria: '80-90%', aspecto: '9/10', condicion: '10/10', reemplazo: 'Ninguno', disponible: true },
-  B: { bateria: '85-90%', aspecto: '7/10', condicion: '9/10', reemplazo: 'Componentes menores', disponible: false },
-  C: { bateria: '80-85%', aspecto: '6/10', condicion: '8/10', reemplazo: 'Batería / pantalla', disponible: false },
+  A: { bateria: 'Mayor a 80%', aspecto: '9.5/10', condicion: '9.5/10', reemplazo: 'Ninguno', disponible: true },
+  B: { bateria: '70% a 80%', aspecto: '7/10', condicion: '8/10', reemplazo: 'Componentes menores', disponible: false },
+  C: { bateria: '60% a 70%', aspecto: '6/10', condicion: '6/10', reemplazo: 'Batería / teclado', disponible: false },
 };
 
 interface Props {
@@ -114,24 +114,26 @@ export function CopiaHomeDesktopDetail({
   const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
   const canBuy = isAvailable && gradeAvailable;
 
-  // Galería. iPhone seminuevo → imagen REAL del producto en el primer slot +
-  // imágenes referenciales por grado (S3). Resto → imágenes reales del API.
+  // Galería principal (hero): SIEMPRE imágenes reales del producto. Las
+  // referenciales por grado viven en "Elige el grado".
   const iphoneGradeGallery = isIphone && isRefurbished;
   const galleryImages = useMemo<{ url: string }[]>(() => {
-    if (iphoneGradeGallery) {
-      const real = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
-      const first = real[0] ?? product.images[0];
-      const gradeImgs = IPHONE_GRADE_IMAGES[grade].map((url) => ({ url }));
-      return first ? [{ url: first.url }, ...gradeImgs] : gradeImgs;
-    }
     const imgs = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
     const list = imgs.length > 0 ? imgs : product.images;
     return list.map((i) => ({ url: i.url }));
-  }, [product.images, iphoneGradeGallery, grade]);
+  }, [product.images]);
   const [imgSel, setImgSel] = useState(0);
 
-  // Al cambiar de grado reseteamos la miniatura activa (cada grado tiene su set).
-  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); };
+  // Carrusel dentro de "Elige el grado": iPhone seminuevo → referenciales por grado
+  // (S3, cambian con el grado); resto → las mismas imágenes reales del producto.
+  const gradeImages = useMemo<string[]>(
+    () => (iphoneGradeGallery ? IPHONE_GRADE_IMAGES[grade] : galleryImages.map((g) => g.url)),
+    [iphoneGradeGallery, grade, galleryImages],
+  );
+  const [gradeImgSel, setGradeImgSel] = useState(0);
+
+  // Al cambiar de grado reseteamos las miniaturas activas.
+  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); setGradeImgSel(0); };
 
   // ---- Calculadora: componente estándar (PricingCalculator) ----
   const initialTerm = useMemo(() => {
@@ -347,15 +349,28 @@ export function CopiaHomeDesktopDetail({
                       </button>
                     ))}
                   </div>
-                  {/* item 6: en grado B/C no se muestran características/specs, solo el aviso + CTA (abajo). */}
-                  {gradeAvailable && (
+                  {/* Condiciones + carrusel del grado seleccionado (A/B/C). En B/C se muestran
+                      sus condiciones e imágenes; el spec sheet completo sigue oculto (item 6). */}
+                  {gradeInfo && (
                     <div className={styles.gradoBody}>
-                      <div className={styles.grado360}>
-                        {galleryImages[0]?.url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={galleryImages[0].url} alt={product.displayName} />
-                        ) : (
-                          <Rotate3d size={40} color="#7a7a88" />
+                      <div>
+                        <div className={styles.grado360}>
+                          {gradeImages[gradeImgSel] ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={gradeImages[gradeImgSel]} alt={`${product.displayName} · Grado ${grade}`} />
+                          ) : (
+                            <Rotate3d size={40} color="#7a7a88" />
+                          )}
+                        </div>
+                        {gradeImages.length > 1 && (
+                          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                            {gradeImages.slice(0, 4).map((url, i) => (
+                              <div key={i} onClick={() => setGradeImgSel(i)} style={{ width: 44, height: 44, borderRadius: 9, border: i === gradeImgSel ? '2px solid #4654cd' : '1.5px solid #e8e8ee', background: '#fff', display: 'grid', placeItems: 'center', overflow: 'hidden', cursor: 'pointer', padding: 4 }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt={`Grado ${grade} ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                       <div className={styles.carac}>

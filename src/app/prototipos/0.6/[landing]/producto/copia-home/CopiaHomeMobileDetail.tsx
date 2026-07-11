@@ -44,9 +44,9 @@ interface GradeInfo {
 
 // Grados FE-only (el backend no modela grados). Solo A disponible; B y C no.
 const GRADES: Record<GradeKey, GradeInfo> = {
-  A: { bateria: '80-90%', aspecto: '9/10', condicion: '10/10', reemplazo: 'Ninguno', disponible: true },
-  B: { bateria: '85-90%', aspecto: '7/10', condicion: '9/10', reemplazo: 'Componentes menores', disponible: false },
-  C: { bateria: '80-85%', aspecto: '6/10', condicion: '8/10', reemplazo: 'Batería / pantalla', disponible: false },
+  A: { bateria: 'Mayor a 80%', aspecto: '9.5/10', condicion: '9.5/10', reemplazo: 'Ninguno', disponible: true },
+  B: { bateria: '70% a 80%', aspecto: '7/10', condicion: '8/10', reemplazo: 'Componentes menores', disponible: false },
+  C: { bateria: '60% a 70%', aspecto: '6/10', condicion: '6/10', reemplazo: 'Batería / teclado', disponible: false },
 };
 
 /** Acordeón (top-level para no remontar en cada render del detalle). */
@@ -134,22 +134,24 @@ export function CopiaHomeMobileDetail({
   const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
   const canBuy = isAvailable && gradeAvailable;
 
-  // Galería. iPhone seminuevo → imagen REAL del producto en el primer slot +
-  // imágenes referenciales por grado (S3). Resto → reales.
+  // Galería principal (hero): SIEMPRE las imágenes reales del producto (incluido
+  // iPhone seminuevo). Las referenciales por grado viven en "Elige el grado".
   const iphoneGradeGallery = isIphone && isRefurbished;
   const galleryImages = useMemo<{ url: string }[]>(() => {
-    if (iphoneGradeGallery) {
-      const real = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
-      const first = real[0] ?? product.images[0];
-      const gradeImgs = IPHONE_GRADE_IMAGES[grade].map((url) => ({ url }));
-      return first ? [{ url: first.url }, ...gradeImgs] : gradeImgs;
-    }
     const imgs = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
     const list = imgs.length > 0 ? imgs : product.images;
     return list.map((i) => ({ url: i.url }));
-  }, [product.images, iphoneGradeGallery, grade]);
+  }, [product.images]);
   const [imgSel, setImgSel] = useState(0);
-  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); };
+
+  // Carrusel dentro de "Elige el grado": iPhone seminuevo → referenciales por grado
+  // (S3, cambian con el grado); resto → las mismas imágenes reales del producto.
+  const gradeImages = useMemo<string[]>(
+    () => (iphoneGradeGallery ? IPHONE_GRADE_IMAGES[grade] : galleryImages.map((g) => g.url)),
+    [iphoneGradeGallery, grade, galleryImages],
+  );
+  const [gradeImgSel, setGradeImgSel] = useState(0);
+  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); setGradeImgSel(0); };
 
   // ---- Calculadora: componente estándar (PricingCalculator) ----
   const initialTerm = useMemo(() => {
@@ -374,15 +376,29 @@ export function CopiaHomeMobileDetail({
                 </button>
               ))}
             </div>
-            {/* item 6: en grado B/C no se muestran características/specs, solo el aviso + CTA (abajo). */}
-            {gradeAvailable && (
-              <div className={styles.gradoBody}>
-                <div className={styles.grado360}>
-                  {galleryImages[0]?.url && (
+            {/* Condiciones + carrusel del grado seleccionado (A/B/C). En B/C se muestran
+                sus condiciones e imágenes; el spec sheet completo sigue oculto (item 6). */}
+            {gradeInfo && (
+              <>
+                {/* Carrusel de imágenes dentro de la condición (referenciales por grado) */}
+                <div className={styles.heroImg} style={{ marginBottom: 10 }}>
+                  {gradeImages[gradeImgSel] && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={galleryImages[0].url} alt={product.displayName} />
+                    <img src={gradeImages[gradeImgSel]} alt={`${product.displayName} · Grado ${grade}`} />
                   )}
+                  <span className={styles.heroTag}>IMAGEN REFERENCIAL</span>
+                  <span className={styles.heroCount}>{gradeImgSel + 1} / {gradeImages.length}</span>
                 </div>
+                {gradeImages.length > 1 && (
+                  <div className={styles.thumbs} style={{ marginBottom: 16 }}>
+                    {gradeImages.slice(0, 4).map((url, i) => (
+                      <div key={i} className={`${styles.thumb} ${i === gradeImgSel ? styles.thumbOn : ''}`} onClick={() => setGradeImgSel(i)}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`Grado ${grade} ${i + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className={styles.carac}>
                   <h4>Características</h4>
                   <div className={styles.caracItem}><span className={styles.ciIco}><Battery size={24} /></span><div><div className={styles.ciLbl}>Nivel de batería</div><div className={styles.ciVal}>{gradeInfo.bateria}</div></div></div>
@@ -390,7 +406,7 @@ export function CopiaHomeMobileDetail({
                   <div className={styles.caracItem}><span className={styles.ciIco}><Star size={24} /></span><div><div className={styles.ciLbl}>Condición técnica</div><div className={styles.ciVal}>{gradeInfo.condicion}</div></div></div>
                   <div className={styles.caracItem}><span className={styles.ciIco}><RefreshCw size={24} /></span><div><div className={styles.ciLbl}>Reemplazo de piezas</div><div className={styles.ciVal}>{gradeInfo.reemplazo}</div></div></div>
                 </div>
-              </div>
+              </>
             )}
           </Acc>
         )}
