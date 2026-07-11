@@ -114,11 +114,16 @@ export function CopiaHomeDesktopDetail({
   const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
   const canBuy = isAvailable && gradeAvailable;
 
-  // Galería. iPhone seminuevo → imágenes referenciales por grado (S3, a modo de
-  // galería + imagen referencial). Resto → imágenes reales del API.
+  // Galería. iPhone seminuevo → imagen REAL del producto en el primer slot +
+  // imágenes referenciales por grado (S3). Resto → imágenes reales del API.
   const iphoneGradeGallery = isIphone && isRefurbished;
   const galleryImages = useMemo<{ url: string }[]>(() => {
-    if (iphoneGradeGallery) return IPHONE_GRADE_IMAGES[grade].map((url) => ({ url }));
+    if (iphoneGradeGallery) {
+      const real = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
+      const first = real[0] ?? product.images[0];
+      const gradeImgs = IPHONE_GRADE_IMAGES[grade].map((url) => ({ url }));
+      return first ? [{ url: first.url }, ...gradeImgs] : gradeImgs;
+    }
     const imgs = product.images.filter((i) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
     const list = imgs.length > 0 ? imgs : product.images;
     return list.map((i) => ({ url: i.url }));
