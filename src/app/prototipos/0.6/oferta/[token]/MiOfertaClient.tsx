@@ -233,10 +233,12 @@ export function MiOfertaClient({ token }: { token: string }) {
   }, [token, analytics]);
 
   // Cuenta los equipos del catálogo de la oferta para el copy de la card
-  // "Cambiar equipo" (solo upsell). Best-effort: si falla, el copy cae a la
-  // versión sin número.
+  // Conteo del catálogo para el subtítulo de la barra "Mejora tu equipo".
+  // Caso 4 (downgrade) y Caso 5 (upsell) usan el mismo copy con contador
+  // (BAL-2224), así que se carga en ambos. Best-effort: si falla, el copy
+  // cae a la versión sin número. No aplica en oferta estándar.
   useEffect(() => {
-    if (state.kind !== 'ready' || state.offer.offerCase !== 'upsell') return;
+    if (state.kind !== 'ready' || state.offer.offerCase === 'standard') return;
     let active = true;
     getCatalog(token, {})
       .then((cat) => { if (active) setCatalogCount(cat.count ?? null); })
@@ -746,8 +748,12 @@ export function MiOfertaClient({ token }: { token: string }) {
               imagen={COLLAGE_EQUIPOS_URL}
               imagenAlt="Equipos disponibles"
               icono={<ShoppingBag className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
-              titulo="Ver otros equipos"
-              subtitulo="Explora el catálogo aprobado"
+              titulo="Mejora tu equipo"
+              subtitulo={
+                catalogCount && catalogCount > 0
+                  ? `Explora ${catalogCount} equipos aprobados para ti`
+                  : 'Explora otros equipos de nuestro catálogo'
+              }
               onClick={goToCatalogo}
             />
           </>
