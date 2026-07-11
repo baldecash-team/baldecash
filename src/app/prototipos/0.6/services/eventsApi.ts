@@ -232,7 +232,19 @@ export type EventType =
   | 'offer_detail_revisit'
   | 'offer_catalog_return'
   | 'offer_time_to_first_action'
-  | 'offer_time_to_convert';
+  | 'offer_time_to_convert'
+  // BAL-2236 — eventos de catálogo de oferta con prefijo (alias de los compartidos):
+  | 'offer_filter_toggle'
+  | 'offer_filter_clear_single'
+  | 'offer_filter_clear_all'
+  | 'offer_filter_range_change'
+  | 'offer_filter_section_toggle'
+  | 'offer_filter_snapshot'
+  | 'offer_sort_change'
+  | 'offer_catalog_load_more'
+  | 'offer_search_focus'
+  | 'offer_search_submit'
+  | 'offer_search_clear';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
