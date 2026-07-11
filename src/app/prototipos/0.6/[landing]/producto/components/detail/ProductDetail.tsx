@@ -297,8 +297,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       return selection;
     });
 
-    // Sync selection to URL so the page is shareable
-    const params = new URLSearchParams(searchParams.toString());
+    // Sync selection to URL so the page is shareable.
+    // Read current search string from window (not searchParams) so this callback
+    // doesn't need searchParams in its deps — avoids a recreate-on-every-replace loop.
+    const currentSearch = typeof window !== 'undefined' ? window.location.search.replace(/^\?/, '') : '';
+    const params = new URLSearchParams(currentSearch);
     if (implicitTerm != null && selection.term !== implicitTerm) {
       params.set('term', String(selection.term));
     } else {
@@ -314,19 +317,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     } else {
       params.delete('frecuency');
     }
-    // Solo reescribir la URL si los params REALMENTE cambiaron. Sin esta guarda,
-    // router.replace produce un nuevo searchParams → recrea este callback →
-    // re-dispara el effect de PricingCalculator que lo llamó → replace de nuevo
-    // = loop infinito de prefetch RSC (_rsc). Comparamos contra la URL actual.
     const next = params.toString();
-    if (next !== searchParams.toString()) {
+    if (next !== currentSearch) {
       router.replace(next ? `?${next}` : '?', { scroll: false });
     }
 
     // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
     // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
     onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
-  }, [analytics, product.id, searchParams, router, onOfferSelectionChange, implicitTerm]);
+  }, [analytics, product.id, router, onOfferSelectionChange, implicitTerm]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {

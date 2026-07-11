@@ -110,6 +110,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
   const isHoverCapable = useHoverCapable();
   const isMountedRef = useRef(false);
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
 
   // Sync term from external controller (e.g. Cronograma chips)
   useEffect(() => {
@@ -224,8 +226,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       isMountedRef.current = true;
       return;
     }
-    if (onSelectionChange && selectedOption) {
-      onSelectionChange({
+    if (onSelectionChangeRef.current && selectedOption) {
+      onSelectionChangeRef.current({
         term: selectedTerm,
         initialPercent: selectedInitialPercent,
         monthlyQuota: selectedOption.monthlyQuota,
@@ -233,7 +235,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         paymentFrequency: selectedFrequency,
       });
     }
-  }, [selectedTerm, selectedInitialPercent, selectedOption, onSelectionChange]);
+  }, [selectedTerm, selectedInitialPercent, selectedOption]);
 
   const freqLabel = getFreqLabel(selectedFrequency);
   const hasFrequencySelector = paymentFrequencies && paymentFrequencies.length > 1;
