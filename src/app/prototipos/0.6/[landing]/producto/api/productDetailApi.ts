@@ -174,6 +174,7 @@ interface ApiSimilarProduct {
   name: string;
   display_name: string;
   brand: string;
+  condition?: string | null;
   thumbnail: string;
   images: (string | ApiSimilarProductImage)[];  // Soporta ambos formatos
   colors: ApiSimilarProductColor[];
@@ -400,6 +401,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     name: apiProduct.name,
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand,
+    condition: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
     thumbnail: apiProduct.thumbnail,
     images: transformedImages,
     colors: apiProduct.colors.map((c): SimilarProductColor => ({

@@ -262,6 +262,8 @@ export interface SimilarProduct {
   name: string;  // Nombre corto (ej: "Dell 14"")
   displayName: string;  // Nombre completo (ej: "Laptop Dell Inspiron 14 i5")
   brand: string;
+  /** Condición (nueva|reacondicionada|open_box) — para el badge "Seminuevo" en recomendados. */
+  condition?: string | null;
   thumbnail: string;
   images?: SimilarProductImage[]; // Imágenes con variantId para filtrar por color
   colors?: SimilarProductColor[]; // Para selector de colores

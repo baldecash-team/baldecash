@@ -566,7 +566,12 @@ export function CopiaHomeDesktopDetail({
                         <img src={sp.images?.[0]?.url || sp.thumbnail} alt={sp.displayName} />
                       )}
                     </div>
-                    <div className={styles.recMarca}>{sp.brand}</div>
+                    <div className={styles.recMarca}>
+                      {sp.brand}
+                      {isRefurbishedCondition(sp.condition) && (
+                        <span style={{ marginLeft: 7, background: '#03dbd0', color: '#04413e', fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, letterSpacing: 0.3, textTransform: 'none' }}>Seminuevo</span>
+                      )}
+                    </div>
                     <div className={styles.recName}>{sp.displayName}</div>
                     <div className={styles.recQuota}>Desde <b>S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}</b> /mes</div>
                   </div>

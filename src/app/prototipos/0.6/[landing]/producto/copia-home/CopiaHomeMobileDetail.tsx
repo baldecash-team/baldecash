@@ -545,7 +545,10 @@ export function CopiaHomeMobileDetail({
                     )}
                   </div>
                   <div className={styles.simBody}>
-                    <div className={styles.simMarca}>{sp.brand}</div>
+                    <div className={styles.simMarca}>
+                      {sp.brand}
+                      {isRefurbishedCondition(sp.condition) && <span className={styles.simBadge}>Seminuevo</span>}
+                    </div>
                     <div className={styles.simName}>{sp.displayName}</div>
                     <div className={styles.simQuota}>Desde <b>S/{formatMoneyNoDecimals(Math.floor(sp.monthlyQuota))}</b> /mes</div>
                   </div>
