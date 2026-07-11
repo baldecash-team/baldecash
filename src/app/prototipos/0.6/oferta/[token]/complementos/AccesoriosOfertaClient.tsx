@@ -369,13 +369,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       setSucceeded(true);
       window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
     } catch (err) {
+      analytics.track('offer_select_error', {
+        offer_case: offerCase,
+        reason: err instanceof Error ? err.name : 'unknown',
+      });
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
       setConfirming(false);
       setModalOpen(false);
       setShowSeguro(false); // cierra la segunda confirmación en caso de error
       confirmLock.current = false; // libera para permitir reintentar
     }
-  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial]);
+  }, [token, variantId, comboId, selectedAcc, selectedIns, totalMonthly, analytics, curTerm, curInitial, offerCase]);
 
   // Slot de desglose para el modal: "Tu pedido incluye" = equipo + regalos del
   // combo (gratis) + accesorios/seguros elegidos (+S/) + UNA cuota total.
@@ -687,6 +691,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     <button
                       type="button"
                       onClick={() => {
+                        analytics.trackInsuranceViewTerms({ insurance_id: p.id });
                         setDetailOrigin('confirmacion');
                         setModalOpen(false);
                         window.setTimeout(() => setDetailInsurance(p), 220);
@@ -824,7 +829,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   accesorio={a}
                   agregado={selectedAcc.includes(a.id)}
                   onToggle={() => toggleAcc(a)}
-                  onVerDetalle={() => { setDetailOrigin('recomendado'); setDetailAccessory(a); }}
+                  onVerDetalle={() => {
+                    analytics.trackAccessoryView({ accessory_id: a.id, accessory_name: a.name });
+                    setDetailOrigin('recomendado');
+                    setDetailAccessory(a);
+                  }}
                   badge={i === 0 ? 'Recomendado' : undefined}
                   noCabe={!accFits(a)}
                 />
@@ -839,7 +848,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Añadir uno más */}
         <button
           type="button"
-          onClick={() => setShowBuscador(true)}
+          onClick={() => {
+            analytics.track('offer_accessory_search', { offer_case: offerCase });
+            setShowBuscador(true);
+          }}
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
@@ -884,7 +896,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             accesorios={accessories}
             seleccionadosAcc={selectedAcc}
             onToggleAcc={toggleAcc}
-            onVerDetalle={(a) => { setDetailOrigin('buscador'); setDetailAccessory(a); }}
+            onVerDetalle={(a) => {
+              analytics.trackAccessoryView({ accessory_id: a.id, accessory_name: a.name });
+              setDetailOrigin('buscador');
+              setDetailAccessory(a);
+            }}
             total={totalMonthly}
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
