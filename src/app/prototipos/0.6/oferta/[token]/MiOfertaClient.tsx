@@ -483,7 +483,16 @@ export function MiOfertaClient({ token }: { token: string }) {
   // Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
   // decide aceptar/rechazar — vista simple con countdown, sin catálogo.
   if (offer.offerCase === 'standard') {
-    return <StandardOfertaAccion token={token} offer={offer} />;
+    return (
+      <StandardOfertaAccion
+        token={token}
+        offer={offer}
+        onConverted={() => {
+          // Aceptó o rechazó → decidió, no abandonó (BAL-2236).
+          convertedRef.current = true;
+        }}
+      />
+    );
   }
 
   // Mapeo de los datos del offer a EquipoRecomendadoInfo (props opcionales →
