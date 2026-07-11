@@ -241,8 +241,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return plan?.termMonths ?? pricingSelection.term;
   }, [pricingSelection, activePlans]);
 
+  // controlledTerm: only updated by Cronograma chips, never by PricingCalculator's own notify.
+  // This prevents the feedback loop where PC notifies → pricingSelection.term updates →
+  // controlledTerm updates → sync effect fires → selectedTerm in PC gets overwritten.
+  const [cronogramaTerm, setCronogramaTerm] = useState<number | undefined>(undefined);
+
   // Handle term change from Cronograma chips (bidirectional sync)
   const handleCronogramaTermChange = useCallback((term: number) => {
+    setCronogramaTerm(term);
     setPricingSelection((prev) => {
       if (!prev) return prev;
       if (prev.term === term) return prev;
@@ -258,13 +264,17 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [analytics, product.id]);
 
   // The "implicit" term: no ?term param needed when this term is selected.
-  // defaultTerm takes priority (catalog_default_term); falls back to maxTerm (legacy).
-  const implicitTerm = useMemo(() => {
+  // Frozen on first render — must not change when URL params update defaultTerm,
+  // otherwise the term omission condition flips and produces wrong URLs mid-session.
+  const implicitTermRef = useRef<number | null>(null);
+  if (implicitTermRef.current === null) {
     const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
-    return defaultTerm ?? maxTerm;
-  }, [defaultTerm, activePlans]);
-  const implicitTermRef = useRef(implicitTerm);
-  implicitTermRef.current = implicitTerm;
+    implicitTermRef.current = defaultTerm ?? maxTerm;
+  }
+
+  // The "implicit" initial: no ?initial param needed when this initial is selected.
+  // Frozen on first render — same reason as implicitTermRef.
+  const implicitInitialRef = useRef(defaultInitialPercent ?? 0);
 
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
@@ -299,36 +309,38 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       return selection;
     });
 
-    // Sync selection to URL so the page is shareable.
-    // Read current search string from window (not searchParams) so this callback
-    // doesn't need searchParams in its deps — avoids a recreate-on-every-replace loop.
-    const currentSearch = typeof window !== 'undefined' ? window.location.search.replace(/^\?/, '') : '';
-    const params = new URLSearchParams(currentSearch);
-    const implicit = implicitTermRef.current;
-    if (implicit != null && selection.term !== implicit) {
-      params.set('term', String(selection.term));
-    } else {
-      params.delete('term');
-    }
-    if (selection.initialPercent > 0) {
-      params.set('initial', String(selection.initialPercent));
-    } else {
-      params.delete('initial');
-    }
-    if (selection.paymentFrequency && selection.paymentFrequency !== 'mensual') {
-      params.set('frecuency', selection.paymentFrequency);
-    } else {
-      params.delete('frecuency');
-    }
-    const next = params.toString();
-    if (next !== currentSearch) {
-      router.replace(next ? `?${next}` : '?', { scroll: false });
-    }
-
     // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
     // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
     onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
-  }, [analytics, product.id, router, onOfferSelectionChange]);
+  }, [analytics, product.id, onOfferSelectionChange]);
+
+  // Sync pricingSelection → URL after every stable render.
+  // Using pricingSelection as source of truth avoids stale reads from window.location
+  // and race conditions with PricingCalculator's internal state.
+  const isMountedForUrl = useRef(false);
+  useEffect(() => {
+    if (!pricingSelection) return;
+    if (!isMountedForUrl.current) {
+      isMountedForUrl.current = true;
+      return;
+    }
+    const params = new URLSearchParams();
+    const implicit = implicitTermRef.current;
+    if (implicit == null || pricingSelection.term !== implicit) {
+      params.set('term', String(pricingSelection.term));
+    }
+    if (pricingSelection.initialPercent !== implicitInitialRef.current) {
+      params.set('initial', String(pricingSelection.initialPercent));
+    }
+    if (pricingSelection.paymentFrequency && pricingSelection.paymentFrequency !== 'mensual') {
+      params.set('frecuency', pricingSelection.paymentFrequency);
+    }
+    const next = params.toString();
+    const currentSearch = window.location.search.replace(/^\?/, '');
+    if (next !== currentSearch) {
+      router.replace(next ? `?${next}` : '?', { scroll: false });
+    }
+  }, [pricingSelection, router]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
@@ -654,7 +666,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 productSlug={product.slug}
                 onPlansChange={setActivePlans}
                 onSelectionChange={handlePricingSelectionChange}
-                controlledTerm={pricingSelection?.term}
+                controlledTerm={cronogramaTerm}
               />
               {/* CTA Buttons, aviso solo-lectura, o banner de no disponible */}
               {readOnlyNotice ? (

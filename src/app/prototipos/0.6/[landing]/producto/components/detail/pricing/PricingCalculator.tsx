@@ -113,11 +113,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
 
-  // Sync term from external controller (e.g. Cronograma chips)
+  // Sync term from external controller (e.g. Cronograma chips).
+  // Guard: skip if already selected to avoid triggering the notification effect.
   useEffect(() => {
     if (controlledTerm == null) return;
     if (paymentPlans.some(p => p.term === controlledTerm)) {
-      setSelectedTerm(controlledTerm);
+      setSelectedTerm(prev => prev === controlledTerm ? prev : controlledTerm);
     }
   }, [controlledTerm, paymentPlans]);
 
