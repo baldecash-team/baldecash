@@ -293,7 +293,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Sync selection to URL so the page is shareable
     const params = new URLSearchParams(searchParams.toString());
     const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
-    if (maxTerm != null && selection.term !== maxTerm) {
+    // Use defaultTerm as the "implicit" term (no param needed). Falls back to maxTerm
+    // for products without catalog_default_term (legacy behavior).
+    const implicitTerm = defaultTerm ?? maxTerm;
+    if (implicitTerm != null && selection.term !== implicitTerm) {
       params.set('term', String(selection.term));
     } else {
       params.delete('term');
