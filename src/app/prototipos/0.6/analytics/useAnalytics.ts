@@ -20,6 +20,23 @@ import type { EventType } from '@/app/prototipos/0.6/services/eventsApi';
 type Primitive = string | number | boolean | null | undefined;
 type Props = Record<string, Primitive | Primitive[]>;
 
+/** Eventos de catálogo compartido → su versión con prefijo offer_ (BAL-2236).
+ *  Solo se aplica en contexto de oferta (ruta con params.token). El resto de
+ *  eventos (incluidos los que ya empiezan con offer_) pasan sin cambio. */
+const OFFER_EVENT_ALIAS: Partial<Record<EventType, EventType>> = {
+  filter_toggle: 'offer_filter_toggle',
+  filter_clear_single: 'offer_filter_clear_single',
+  filter_clear_all: 'offer_filter_clear_all',
+  filter_range_change: 'offer_filter_range_change',
+  filter_section_toggle: 'offer_filter_section_toggle',
+  filter_snapshot: 'offer_filter_snapshot',
+  sort_change: 'offer_sort_change',
+  catalog_load_more: 'offer_catalog_load_more',
+  search_focus: 'offer_search_focus',
+  search_submit: 'offer_search_submit',
+  search_clear: 'offer_search_clear',
+};
+
 export type FilterCode =
   | 'brand'
   | 'gama'
@@ -194,14 +211,16 @@ export interface UseAnalyticsReturn {
 export function useAnalytics(): UseAnalyticsReturn {
   const tracker = useEventTrackerOptional();
   const params = useParams();
+  const isOffer = !!params?.token;
   const landing = (params?.landing as string) || 'home';
 
   const track = useCallback(
     (eventType: EventType, properties?: Props, elementId?: string) => {
       if (!tracker) return;
-      tracker.track(eventType, { landing, ...(properties || {}) }, elementId);
+      const finalType = isOffer ? (OFFER_EVENT_ALIAS[eventType] ?? eventType) : eventType;
+      tracker.track(finalType, { landing, ...(properties || {}) }, elementId);
     },
-    [tracker, landing]
+    [tracker, landing, isOffer]
   );
 
   // Filtros
@@ -249,9 +268,10 @@ export function useAnalytics(): UseAnalyticsReturn {
   const trackFilterSnapshot = useCallback<UseAnalyticsReturn['trackFilterSnapshot']>(
     (args) => {
       if (!tracker) return;
-      tracker.track('filter_snapshot', { landing, ...args });
+      const type = isOffer ? 'offer_filter_snapshot' : 'filter_snapshot';
+      tracker.track(type, { landing, ...args });
     },
-    [tracker, landing]
+    [tracker, landing, isOffer]
   );
 
   // Sort + paginado (debounce: NextUI Select dispara onSelectionChange dos veces)
