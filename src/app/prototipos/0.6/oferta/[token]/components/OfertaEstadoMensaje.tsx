@@ -10,6 +10,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
 import { Clock, Ban, SearchX, AlertCircle, MessageCircle, type LucideIcon } from 'lucide-react';
+import { useAnalytics } from '../../../analytics/useAnalytics';
 
 export type OfertaEstadoIcon = 'clock' | 'ban' | 'search' | 'alert';
 
@@ -41,14 +42,29 @@ export function OfertaEstadoMensaje({
   title,
   description,
   whatsappUrl,
+  offerCase,
 }: {
   icon?: OfertaEstadoIcon;
   title: string;
   description: string;
   /** Si se pasa, muestra un botón "Escríbenos por WhatsApp". */
   whatsappUrl?: string;
+  /** offer_case del caller (si lo tiene disponible) — solo para tracking. */
+  offerCase?: string;
 }) {
   const Icon = ICONS[icon];
+  const analytics = useAnalytics();
+
+  // Funnel: click en "Escríbenos por WhatsApp" desde una pantalla de estado
+  // (vencida/consumida/revocada/inválida/rechazada). Tracking inline aquí
+  // (en vez de prop callback) para no tocar los 3 callers más que con un
+  // offerCase opcional.
+  const handleWhatsappClick = () => {
+    analytics.track('offer_whatsapp_click', {
+      offer_case: offerCase ?? 'unknown',
+      location: 'estado_mensaje',
+    });
+  };
 
   return (
     <div className="flex min-h-screen flex-col overflow-hidden bg-neutral-50">
@@ -95,6 +111,7 @@ export function OfertaEstadoMensaje({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleWhatsappClick}
                 className="cursor-pointer px-8 font-semibold text-white"
                 style={{ backgroundColor: '#25D366' }}
                 startContent={<MessageCircle className="h-5 w-5" />}
