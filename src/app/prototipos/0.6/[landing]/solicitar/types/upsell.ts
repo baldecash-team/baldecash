@@ -50,6 +50,7 @@ export interface InsurancePlan {
   totalPrice: number;
   paymentMonths: number;
   insuranceType: string;
+  imageUrl?: string | null;
   coverage: CoverageItem[];
   exclusions: string[];
   isRecommended: boolean;
