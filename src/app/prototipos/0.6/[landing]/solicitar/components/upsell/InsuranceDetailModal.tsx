@@ -19,6 +19,10 @@ interface InsuranceDetailModalProps {
   badgeText?: string | null;
   /** Oculta el "S/ X · N cuotas". Oferta lo oculta (BAL-2250); regular lo mantiene. */
   hideCuotas?: boolean;
+  /** URL de imagen a mostrar en el header (SOLO oferta). Si viene no-null, se
+   *  renderiza la imagen; si no viene (flujo regular) o es null, no se muestra
+   *  imagen (comportamiento actual). */
+  offerImageUrl?: string | null;
 }
 
 function useGamerTheme() {
@@ -116,7 +120,8 @@ const ModalContentShared: React.FC<{
   isDark?: boolean;
   hideHeader?: boolean;
   hideCuotas?: boolean;
-}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false, hideCuotas = false }) => {
+  offerImageUrl?: string | null;
+}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false, hideCuotas = false, offerImageUrl = null }) => {
   const config = getModalConfig(plan.insuranceType);
   const Icon = config.icon;
   const CYAN = isDark ? '#00ffd5' : '#00897a';
@@ -138,8 +143,12 @@ const ModalContentShared: React.FC<{
       <div className="flex flex-col" style={{ background: bg, color: text, fontFamily: "'Rajdhani', sans-serif" }}>
         {/* Header */}
         <div style={{ background: `linear-gradient(135deg, #0e0e0e 0%, #1a1a1a 100%)`, borderBottom: `1px solid ${border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, background: `rgba(0,255,213,0.1)`, border: `1px solid ${border}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon style={{ width: 18, height: 18, color: CYAN }} />
+          <div style={{ width: 36, height: 36, background: `rgba(0,255,213,0.1)`, border: `1px solid ${border}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {offerImageUrl ? (
+              <img src={offerImageUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <Icon style={{ width: 18, height: 18, color: CYAN }} />
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: CYAN, fontFamily: "'Orbitron', sans-serif", letterSpacing: 1 }}>{config.title}</h2>
@@ -227,8 +236,12 @@ const ModalContentShared: React.FC<{
           fijo con la X). */}
       {!hideHeader && (
         <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
-            <Icon className="w-4.5 h-4.5 text-white" />
+          <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden">
+            {offerImageUrl ? (
+              <img src={offerImageUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <Icon className="w-4.5 h-4.5 text-white" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-bold text-white">{config.title}</h2>
@@ -334,7 +347,7 @@ const ModalContentShared: React.FC<{
 
 // Desktop Modal
 const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; isGamer: boolean; isDark: boolean }> = ({
-  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark, hideCuotas,
+  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark, hideCuotas, offerImageUrl,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -351,7 +364,7 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; 
   >
     <ModalContent>
       <ModalBody>
-        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideCuotas={hideCuotas} />
+        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideCuotas={hideCuotas} offerImageUrl={offerImageUrl} />
       </ModalBody>
     </ModalContent>
   </Modal>
@@ -359,7 +372,7 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; 
 
 // Mobile Bottom Sheet
 const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean; isDark: boolean }> = ({
-  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark, hideCuotas,
+  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark, hideCuotas, offerImageUrl,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && plan;
@@ -445,8 +458,12 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
             {!isGamer && (
               <div className="flex flex-none items-center justify-between px-5 pb-[22px] pt-4" style={{ background: 'var(--color-primary, #4654CD)' }}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    {(() => { const Icon = getModalConfig(plan.insuranceType).icon; return <Icon className="w-4.5 h-4.5 text-white" />; })()}
+                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {offerImageUrl ? (
+                      <img src={offerImageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      (() => { const Icon = getModalConfig(plan.insuranceType).icon; return <Icon className="w-4.5 h-4.5 text-white" />; })()
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-base font-bold text-white">{getModalConfig(plan.insuranceType).title}</h2>
@@ -466,7 +483,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
               className="flex-1 overflow-y-auto"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideHeader={!isGamer} hideCuotas={hideCuotas} />
+              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideHeader={!isGamer} hideCuotas={hideCuotas} offerImageUrl={offerImageUrl} />
             </div>
           </motion.div>
         </>

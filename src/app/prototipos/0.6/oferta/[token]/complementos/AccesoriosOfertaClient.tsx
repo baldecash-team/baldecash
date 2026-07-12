@@ -948,6 +948,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         isOpen={detailInsurance !== null}
         isSelected={detailInsurance ? selectedIns.includes(detailInsurance.id) : false}
         hideCuotas
+        offerImageUrl={detailInsurance?.imageUrl ?? null}
         onToggle={() => { if (detailInsurance) toggleIns(detailInsurance.id); }}
         onClose={() => {
           setDetailInsurance(null);
