@@ -928,6 +928,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         accessory={detailAccessory}
         isOpen={detailAccessory !== null}
         isSelected={detailAccessory ? selectedAcc.includes(detailAccessory.id) : false}
+        hideCuotas
         onToggle={() => { if (detailAccessory) toggleAcc(detailAccessory); }}
         onClose={() => {
           setDetailAccessory(null);
@@ -943,6 +944,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         plan={detailInsurance}
         isOpen={detailInsurance !== null}
         isSelected={detailInsurance ? selectedIns.includes(detailInsurance.id) : false}
+        hideCuotas
         onToggle={() => { if (detailInsurance) toggleIns(detailInsurance.id); }}
         onClose={() => {
           setDetailInsurance(null);

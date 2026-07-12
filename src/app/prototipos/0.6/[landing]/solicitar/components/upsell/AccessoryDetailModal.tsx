@@ -21,6 +21,9 @@ interface AccessoryDetailModalProps {
   isSelected: boolean;
   onToggle: () => void;
   badgeText?: string | null;
+  /** Oculta el "S/ X · N cuotas" bajo la cuota mensual. El flujo de oferta lo
+   *  oculta (BAL-2250); el flujo regular lo mantiene (default false). */
+  hideCuotas?: boolean;
 }
 
 /**
@@ -51,7 +54,8 @@ const ModalContentShared: React.FC<{
   onClose: () => void;
   badgeText?: string | null;
   hideHeader?: boolean;
-}> = ({ accessory, isSelected, onToggle, onClose, badgeText, hideHeader }) => {
+  hideCuotas?: boolean;
+}> = ({ accessory, isSelected, onToggle, onClose, badgeText, hideHeader, hideCuotas }) => {
   const handleToggleAndClose = () => {
     onToggle();
     onClose();
@@ -138,9 +142,11 @@ const ModalContentShared: React.FC<{
             </span>
             <span className="text-sm text-neutral-500 ml-1 font-normal">/mes</span>
           </div>
-          <span className="text-xs text-neutral-400 font-normal">
-            S/ {formatMoneyNoDecimals(Math.floor(accessory.price))} · {term} cuotas
-          </span>
+          {!hideCuotas ? (
+            <span className="text-xs text-neutral-400 font-normal">
+              S/ {formatMoneyNoDecimals(Math.floor(accessory.price))} · {term} cuotas
+            </span>
+          ) : null}
         </div>
 
         {/* Botón de acción - full width */}
@@ -182,6 +188,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
   isSelected,
   onToggle,
   badgeText,
+  hideCuotas,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -204,6 +211,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
           onToggle={onToggle}
           onClose={onClose}
           badgeText={badgeText}
+          hideCuotas={hideCuotas}
         />
       </ModalBody>
     </ModalContent>
@@ -218,6 +226,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
   isSelected,
   onToggle,
   badgeText,
+  hideCuotas,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
@@ -338,6 +347,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose={onClose}
                 badgeText={badgeText}
                 hideHeader
+                hideCuotas={hideCuotas}
               />
             </div>
           </motion.div>

@@ -17,6 +17,8 @@ interface InsuranceDetailModalProps {
   isSelected: boolean;
   onToggle: () => void;
   badgeText?: string | null;
+  /** Oculta el "S/ X · N cuotas". Oferta lo oculta (BAL-2250); regular lo mantiene. */
+  hideCuotas?: boolean;
 }
 
 function useGamerTheme() {
@@ -113,7 +115,8 @@ const ModalContentShared: React.FC<{
   isGamer?: boolean;
   isDark?: boolean;
   hideHeader?: boolean;
-}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false }) => {
+  hideCuotas?: boolean;
+}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false, hideCuotas = false }) => {
   const config = getModalConfig(plan.insuranceType);
   const Icon = config.icon;
   const CYAN = isDark ? '#00ffd5' : '#00897a';
@@ -181,9 +184,11 @@ const ModalContentShared: React.FC<{
               </span>
               <span style={{ fontSize: 11, color: muted }}>/mes</span>
             </div>
-            <span style={{ fontSize: 11, color: muted }}>
-              S/ {formatMoneyNoDecimals(plan.totalPrice)} · {plan.paymentMonths} cuotas
-            </span>
+            {!hideCuotas ? (
+              <span style={{ fontSize: 11, color: muted }}>
+                S/ {formatMoneyNoDecimals(plan.totalPrice)} · {plan.paymentMonths} cuotas
+              </span>
+            ) : null}
           </div>
 
           <button
@@ -294,9 +299,11 @@ const ModalContentShared: React.FC<{
             </span>
             <span className="text-xs text-neutral-500">/mes</span>
           </div>
-          <span className="text-[11px] text-neutral-400">
-            S/ {formatMoneyNoDecimals(plan.totalPrice)} · {plan.paymentMonths} cuotas
-          </span>
+          {!hideCuotas ? (
+            <span className="text-[11px] text-neutral-400">
+              S/ {formatMoneyNoDecimals(plan.totalPrice)} · {plan.paymentMonths} cuotas
+            </span>
+          ) : null}
         </div>
 
         <button
@@ -327,7 +334,7 @@ const ModalContentShared: React.FC<{
 
 // Desktop Modal
 const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; isGamer: boolean; isDark: boolean }> = ({
-  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark,
+  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark, hideCuotas,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -344,7 +351,7 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; 
   >
     <ModalContent>
       <ModalBody>
-        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} />
+        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideCuotas={hideCuotas} />
       </ModalBody>
     </ModalContent>
   </Modal>
@@ -352,7 +359,7 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; 
 
 // Mobile Bottom Sheet
 const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean; isDark: boolean }> = ({
-  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark,
+  plan, isOpen, onClose, isSelected, onToggle, badgeText, isGamer, isDark, hideCuotas,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && plan;
@@ -459,7 +466,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
               className="flex-1 overflow-y-auto"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideHeader={!isGamer} />
+              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideHeader={!isGamer} hideCuotas={hideCuotas} />
             </div>
           </motion.div>
         </>
