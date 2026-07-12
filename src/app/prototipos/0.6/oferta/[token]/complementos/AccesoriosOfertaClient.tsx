@@ -683,8 +683,11 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     )}
                   </button>
                   {bloqueado ? (
-                    <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold" style={{ color: '#B45309' }}>
-                      <TriangleAlert className="h-3 w-3 shrink-0" strokeWidth={2.4} />
+                    <div
+                      className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg border-[1.5px] py-2 text-[12px] font-bold"
+                      style={{ color: '#B45309', borderColor: '#FCD9A6', backgroundColor: '#FFF7ED' }}
+                    >
+                      <TriangleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={2.4} />
                       Supera tu cuota
                     </div>
                   ) : (
