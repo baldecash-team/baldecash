@@ -12,6 +12,8 @@
  * Puramente presentacional: props → UI, sin fetch ni lógica (el toggle lo
  * conecta quien ensambla la página, Task 9).
  */
+import { useState } from 'react';
+
 import { Check, Plus, ShieldCheck } from 'lucide-react';
 
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
@@ -26,6 +28,7 @@ export interface SeguroCardProps {
 }
 
 export function SeguroCard({ seguro, seleccionado, onToggle, onVerDetalle }: SeguroCardProps) {
+  const [imgFailed, setImgFailed] = useState(false);
   const cuotaFormateada = Math.round(seguro.monthlyPrice).toLocaleString('es-PE');
 
   return (
@@ -36,10 +39,20 @@ export function SeguroCard({ seguro, seleccionado, onToggle, onVerDetalle }: Seg
       {/* Fila principal: toca para agregar/quitar */}
       <button type="button" onClick={onToggle} className="flex w-full cursor-pointer items-center gap-3 text-left">
         <div
-          className="flex h-10 w-10 flex-none items-center justify-center rounded-xl"
+          className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-xl"
           style={{ backgroundColor: OFERTA_COLORS.lilac }}
         >
-          <ShieldCheck className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.primary }} />
+          {seguro.imageUrl && !imgFailed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={seguro.imageUrl}
+              alt={seguro.name}
+              className="h-full w-full object-cover"
+              onError={() => setImgFailed(true)}
+            />
+          ) : (
+            <ShieldCheck className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.primary }} />
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
