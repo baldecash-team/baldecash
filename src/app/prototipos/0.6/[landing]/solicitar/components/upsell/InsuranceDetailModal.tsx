@@ -140,7 +140,7 @@ const ModalContentShared: React.FC<{
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: CYAN, fontFamily: "'Orbitron', sans-serif", letterSpacing: 1 }}>{config.title}</h2>
-            <p style={{ fontSize: 11, color: muted, fontFamily: "'Share Tech Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{plan.name}</p>
+            <p style={{ fontSize: 11, color: muted, fontFamily: "'Share Tech Mono', monospace", display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.25 }}>{plan.name}</p>
           </div>
         </div>
 
@@ -227,7 +227,7 @@ const ModalContentShared: React.FC<{
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-bold text-white">{config.title}</h2>
-            <p className="text-xs text-white/60 truncate">{plan.name}</p>
+            <p className="text-xs text-white/60 line-clamp-2 leading-tight">{plan.name}</p>
           </div>
         </div>
       )}
@@ -443,7 +443,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-base font-bold text-white">{getModalConfig(plan.insuranceType).title}</h2>
-                    <p className="text-xs text-white/60 truncate">{plan.name}</p>
+                    <p className="text-xs text-white/60 line-clamp-2 leading-tight">{plan.name}</p>
                   </div>
                 </div>
                 <button

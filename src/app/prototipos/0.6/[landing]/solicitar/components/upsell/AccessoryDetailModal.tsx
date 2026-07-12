@@ -70,7 +70,7 @@ const ModalContentShared: React.FC<{
             <Package className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-white truncate">
+            <h2 className="text-base font-bold text-white line-clamp-2 leading-tight">
               {accessory.name}
             </h2>
             <p className="text-xs text-white/70 truncate">
@@ -313,7 +313,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                   <h2 className="text-base font-bold text-white">
                     Características
                   </h2>
-                  <p className="text-xs text-white/70 truncate max-w-[180px]">
+                  <p className="text-xs text-white/70 line-clamp-2 leading-tight">
                     {accessory.name}
                   </p>
                 </div>
