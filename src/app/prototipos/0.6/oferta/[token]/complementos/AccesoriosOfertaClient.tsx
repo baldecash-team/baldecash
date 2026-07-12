@@ -853,19 +853,25 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Tus extras */}
         <TusExtras items={extrasItems} onQuitar={handleQuitarExtra} />
 
-        {/* Añadir uno más */}
-        <button
-          type="button"
-          onClick={() => {
-            analytics.track('offer_accessory_search', { offer_case: offerCase });
-            setShowBuscador(true);
-          }}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 text-[14px] font-bold"
-          style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.4} />
-          Ver más accesorios
-        </button>
+        {/* Añadir uno más: oculto hasta que el backend responda y solo si hay
+            accesorios en el catálogo de la oferta (BAL-2250). Cuando la cuota
+            aprobada ya está copada por el equipo, el backend no devuelve
+            accesorios → no tiene sentido ofrecer "Ver más" (abriría un buscador
+            vacío). El early-return de `loading` ya muestra skeleton antes. */}
+        {!loading && accessories.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => {
+              analytics.track('offer_accessory_search', { offer_case: offerCase });
+              setShowBuscador(true);
+            }}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 text-[14px] font-bold"
+            style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.4} />
+            Ver más accesorios
+          </button>
+        ) : null}
 
         {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado. */}
         {maxQuota != null && overBudget ? (
