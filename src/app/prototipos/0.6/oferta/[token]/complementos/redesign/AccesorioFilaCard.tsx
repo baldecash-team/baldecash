@@ -81,8 +81,8 @@ export function AccesorioFilaCard({ accesorio, agregado, onToggle, onVerDetalle,
           <button
             type="button"
             onClick={onVerDetalle}
-            className="mt-0.5 cursor-pointer text-[11px] font-semibold"
-            style={{ color: OFERTA_COLORS.tealBrand }}
+            className="mt-1 cursor-pointer rounded-lg border-[1.5px] px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-black/[0.03]"
+            style={{ color: OFERTA_COLORS.tealBrand, borderColor: OFERTA_COLORS.tealBrand }}
           >
             Ver detalle
           </button>

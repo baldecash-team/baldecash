@@ -90,8 +90,8 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle,
       <button
         type="button"
         onClick={onVerDetalle}
-        className="mt-1 cursor-pointer text-[11px] font-semibold"
-        style={{ color: OFERTA_COLORS.tealBrand }}
+        className="mt-1.5 w-full cursor-pointer rounded-lg border-[1.5px] py-2 text-center text-[12px] font-bold transition-colors hover:bg-black/[0.03]"
+        style={{ color: OFERTA_COLORS.tealBrand, borderColor: OFERTA_COLORS.tealBrand }}
       >
         Ver detalle
       </button>

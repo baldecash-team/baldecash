@@ -696,8 +696,8 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                         setModalOpen(false);
                         window.setTimeout(() => setDetailInsurance(p), 220);
                       }}
-                      className="mt-1.5 w-full cursor-pointer text-center text-[11px] font-semibold"
-                      style={{ color: OFERTA_COLORS.tealBrand }}
+                      className="mt-1.5 w-full cursor-pointer rounded-lg border-[1.5px] py-2 text-center text-[12px] font-bold transition-colors hover:bg-black/[0.03]"
+                      style={{ color: OFERTA_COLORS.tealBrand, borderColor: OFERTA_COLORS.tealBrand }}
                     >
                       Ver detalle
                     </button>
