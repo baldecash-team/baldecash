@@ -249,16 +249,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         } else if (selection.preselectedAccessoryIds?.length || selection.preselectedInsuranceIds?.length) {
           // Primera vez (sin add-ons guardados): preseleccionar lo que venía en la
           // selección — el regalo del Perfil B, o los accesorios/seguros que el
-          // cliente ya tenía en su pedido al "mantener mi equipo" (Caso 5). Solo
-          // los que hoy están disponibles (podrían no caber a esta celda).
-          const preAcc = (selection.preselectedAccessoryIds ?? [])
-            .map(String)
-            .filter((id) => accOk.has(id));
+          // cliente ya tenía en su pedido al "mantener mi equipo" (Caso 5). NO se
+          // filtra contra el catálogo: el backend ahora incluye los ítems del pedido
+          // en el /addons con source=order (BAL-2253), y ese filtro era justo lo que
+          // los escondía cuando no estaban en el catálogo de la celda.
+          const preAcc = (selection.preselectedAccessoryIds ?? []).map(String);
           if (preAcc.length) setSelectedAcc(preAcc);
-          const insOk = new Set(res.insurances.map((p) => p.id));
-          const preIns = (selection.preselectedInsuranceIds ?? [])
-            .map(String)
-            .filter((id) => insOk.has(id));
+          const preIns = (selection.preselectedInsuranceIds ?? []).map(String);
           if (preIns.length) setSelectedIns(preIns);
         }
       } catch (err) {

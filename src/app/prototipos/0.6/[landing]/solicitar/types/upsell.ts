@@ -30,6 +30,8 @@ export interface Accessory {
   compatibleWith: string[];
   specs?: AccessorySpec[];
   brand?: { name: string; slug: string } | null;
+  /** Origen del add-on en la oferta: catálogo, del pedido, o regalo del combo (BAL-2253). */
+  source?: 'catalog' | 'order' | 'combo_free';
 }
 
 export type InsuranceTier = 'basic' | 'standard' | 'premium';
@@ -57,6 +59,8 @@ export interface InsurancePlan {
   tier: InsuranceTier;
   durationMonths: number;
   provider?: { name: string; code: string } | null;
+  /** Origen del add-on en la oferta: catálogo, del pedido, o regalo del combo (BAL-2253). */
+  source?: 'catalog' | 'order' | 'combo_free';
 }
 
 export interface UpsellState {
