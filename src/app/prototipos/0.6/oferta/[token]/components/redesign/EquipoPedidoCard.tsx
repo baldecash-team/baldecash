@@ -134,7 +134,7 @@ export function EquipoPedidoCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.2]" style={{ color: nombreColor }}>
+          <div className="text-[14.5px] font-bold leading-[1.2]" style={{ color: nombreColor }}>
             {nombre}
           </div>
           {/* Chips de specs (si el API los provee) */}
@@ -155,7 +155,7 @@ export function EquipoPedidoCard({
               solo en 'excede'. */}
           {totalMonthly ? (
             <div className="mt-1.5">
-              <span className={`font-['Baloo_2',_sans-serif] text-[15px] font-bold ${strike}`} style={{ color: cuotaColor }}>
+              <span className={`text-[15px] font-bold ${strike}`} style={{ color: cuotaColor }}>
                 S/{Math.round(totalMonthly)}{cuotaSuffix(paymentFrequency)}
               </span>
               {termMonths ? (
@@ -250,7 +250,7 @@ export function EquipoPedidoCard({
         <button
           type="button"
           onClick={onElegir}
-          className="mt-3.5 w-full cursor-pointer rounded-lg py-2.5 text-center font-['Baloo_2',_sans-serif] text-[13.5px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98]"
+          className="mt-3.5 w-full cursor-pointer rounded-lg py-2.5 text-center text-[13.5px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98]"
           style={{ backgroundColor: OFERTA_COLORS.primary, boxShadow: '0 6px 14px rgba(79,70,229,.35)' }}
         >
           {ctaText ?? 'Mantener este equipo'}

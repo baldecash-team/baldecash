@@ -210,7 +210,7 @@ export function EquipoRecomendadoCard({
                 {equipo.brand.toUpperCase()}
               </div>
             ) : null}
-            <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.15]">
+            <div className="mt-0.5 text-[14.5px] font-bold leading-[1.15]">
               {equipo.name}
             </div>
             {/* Precio del equipo solo (sin accesorios), debajo del nombre. */}
@@ -314,7 +314,7 @@ export function EquipoRecomendadoCard({
                 líneas, plazo arriba y cuota abajo (order-2/order-1). */}
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:flex-col sm:flex-nowrap sm:items-start sm:gap-y-0">
               <div
-                className="order-1 font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.1] sm:order-2"
+                className="order-1 text-[20px] font-bold leading-[1.1] sm:order-2"
                 style={{ color: t.cuota }}
               >
                 S/{cuotaFormateada}
@@ -332,7 +332,7 @@ export function EquipoRecomendadoCard({
               <button
                 type="button"
                 onClick={onVerDetalle}
-                className="flex-1 cursor-pointer rounded-lg border px-3.5 py-2.5 font-['Baloo_2',_sans-serif] text-[13px] font-bold transition-all duration-200 ease-out hover:bg-[#F7F8FB] hover:shadow-sm active:scale-[.97] sm:flex-none"
+                className="flex-1 cursor-pointer rounded-lg border px-3.5 py-2.5 text-[13px] font-bold transition-all duration-200 ease-out hover:bg-[#F7F8FB] hover:shadow-sm active:scale-[.97] sm:flex-none"
                 style={{ borderColor: t.border, color: t.cuota }}
               >
                 Ver detalle
@@ -340,7 +340,7 @@ export function EquipoRecomendadoCard({
               <button
                 type="button"
                 onClick={onElegir}
-                className="flex-1 cursor-pointer rounded-lg px-4 py-2.5 font-['Baloo_2',_sans-serif] text-[13.5px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97] sm:flex-none"
+                className="flex-1 cursor-pointer rounded-lg px-4 py-2.5 text-[13.5px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97] sm:flex-none"
                 style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
               >
                 {ctaText}
@@ -359,7 +359,7 @@ export function EquipoRecomendadoCard({
                 </div>
               ) : null}
               <div
-                className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.1]"
+                className="text-[20px] font-bold leading-[1.1]"
                 style={{ color: t.cuota }}
               >
                 S/{cuotaFormateada}
@@ -371,7 +371,7 @@ export function EquipoRecomendadoCard({
             <button
               type="button"
               onClick={onElegir}
-              className="cursor-pointer rounded-lg px-5 py-3 font-['Baloo_2',_sans-serif] text-[14px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97]"
+              className="cursor-pointer rounded-lg px-5 py-3 text-[14px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97]"
               style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
             >
               {ctaText}

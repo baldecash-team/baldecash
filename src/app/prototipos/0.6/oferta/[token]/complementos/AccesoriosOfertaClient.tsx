@@ -461,10 +461,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         </ul>
         {/* Cuota total (única cuota del modal) */}
         <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
-          <span className="font-['Baloo_2',_sans-serif] text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+          <span className="text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
             Cuota total
           </span>
-          <span className="font-['Baloo_2',_sans-serif] text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
+          <span className="text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
             S/{Math.round(totalMonthly)}{suf}
           </span>
         </div>
@@ -560,7 +560,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       >
         <div className="flex items-center gap-1.5">
           <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
-          <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
+          <p className="text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
             Asegura tu inversión
           </p>
         </div>
@@ -607,7 +607,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                           </span>
                         ) : null}
                       </div>
-                      <h3 className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold leading-tight" style={{ color: OFERTA_COLORS.textStrong }}>
+                      <h3 className="text-[13.5px] font-bold leading-tight" style={{ color: OFERTA_COLORS.textStrong }}>
                         {p.name}
                       </h3>
                     </div>
@@ -621,7 +621,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   {/* Bloque de precio (destacado, con total en cuotas) */}
                   <div className="mt-3 rounded-lg px-3 py-2" style={{ backgroundColor: OFERTA_COLORS.greenSoft }}>
                     <div className="flex items-baseline gap-1">
-                      <span className="font-['Baloo_2',_sans-serif] text-[20px] font-extrabold leading-none" style={{ color: OFERTA_COLORS.greenDark }}>
+                      <span className="text-[20px] font-extrabold leading-none" style={{ color: OFERTA_COLORS.greenDark }}>
                         +S/{Math.round(p.monthlyPrice || 0)}
                       </span>
                       <span className="text-[12px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>{suf}</span>
@@ -819,7 +819,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             "Ver detalle" (abre el drawer). Badge "Recomendado" en el primero. */}
         {recomendados.length > 0 ? (
           <div>
-            <h2 className="mb-2.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+            <h2 className="mb-2.5 text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               Recomendado para ti
             </h2>
             <div className="space-y-2.5">
@@ -852,7 +852,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             analytics.track('offer_accessory_search', { offer_case: offerCase });
             setShowBuscador(true);
           }}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 font-['Baloo_2',_sans-serif] text-[14px] font-bold"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed py-3.5 text-[14px] font-bold"
           style={{ borderColor: '#C7CBD6', color: OFERTA_COLORS.primary }}
         >
           <Plus className="h-4 w-4" strokeWidth={2.4} />
@@ -997,7 +997,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   type="button"
                   onClick={confirmar}
                   disabled={confirming}
-                  className="flex w-full cursor-pointer items-center justify-center rounded-lg py-3.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex w-full cursor-pointer items-center justify-center rounded-lg py-3.5 text-[15px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
                   style={{ backgroundColor: OFERTA_COLORS.primary }}
                 >
                   {confirming ? 'Procesando…' : 'Sí, confirmar'}
@@ -1006,7 +1006,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   type="button"
                   onClick={() => setShowSeguro(false)}
                   disabled={confirming}
-                  className="w-full cursor-pointer rounded-lg py-3 font-['Baloo_2',_sans-serif] text-[14px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full cursor-pointer rounded-lg py-3 text-[14px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ color: OFERTA_COLORS.textMid }}
                 >
                   Cancelar

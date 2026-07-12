@@ -43,7 +43,7 @@ export function SeguroCard({ seguro, seleccionado, onToggle, onVerDetalle }: Seg
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+          <div className="text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
             {seguro.name}
           </div>
           <div className="mt-0.5 text-[12.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>

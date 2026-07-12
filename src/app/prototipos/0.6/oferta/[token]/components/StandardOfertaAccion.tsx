@@ -174,7 +174,7 @@ export function StandardOfertaAccion({
           </div>
 
           <div className="flex flex-col gap-3 px-4 py-4">
-            <div className="font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-[1.2]">
+            <div className="text-[17px] font-bold leading-[1.2]">
               {info?.productName || 'Equipo'}
             </div>
 
@@ -205,7 +205,7 @@ export function StandardOfertaAccion({
                   <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
                     TEA
                   </div>
-                  <div className="font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                  <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                     {info.tea}%
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export function StandardOfertaAccion({
                   <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
                     Total a pagar
                   </div>
-                  <div className="font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                  <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                     S/{Math.round(totalTexto).toLocaleString('es-PE')}
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export function StandardOfertaAccion({
             type="button"
             onClick={handleAccept}
             disabled={disabled}
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-3.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-3.5 text-[15px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: OFERTA_COLORS.green, boxShadow: '0 6px 14px rgba(34,197,94,.35)' }}
           >
             <CheckCircle2 className="h-5 w-5" />
@@ -250,7 +250,7 @@ export function StandardOfertaAccion({
             type="button"
             onClick={handleReject}
             disabled={disabled}
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 font-['Baloo_2',_sans-serif] text-[15px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 text-[15px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
           >
             <XCircle className="h-5 w-5" />

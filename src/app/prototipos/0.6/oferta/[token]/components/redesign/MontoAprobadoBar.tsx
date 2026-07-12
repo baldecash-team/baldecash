@@ -58,7 +58,7 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
           <div className="text-right">
             <div className="text-[11.5px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>Monto aprobado</div>
             <div
-              className="mt-1 font-['Baloo_2',_sans-serif] text-[18px] font-bold leading-none"
+              className="mt-1 text-[18px] font-bold leading-none"
               style={{ color: OFERTA_COLORS.textMid }}
             >
               S/{fmt(aprobado)}<span className="text-[11px] font-semibold">/mes</span>

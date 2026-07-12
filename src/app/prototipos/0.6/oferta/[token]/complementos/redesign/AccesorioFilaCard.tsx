@@ -65,7 +65,7 @@ export function AccesorioFilaCard({ accesorio, agregado, onToggle, onVerDetalle,
 
       {/* Info: nombre + cuota + ver detalle */}
       <div className="min-w-0 flex-1">
-        <div className="font-['Baloo_2',_sans-serif] text-[13px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
+        <div className="text-[13px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
           {accesorio.name}
         </div>
         <div className="mt-0.5 text-[12.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>

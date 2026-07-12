@@ -579,7 +579,7 @@ export function MiOfertaClient({ token }: { token: string }) {
         {/* Saludo (feedback Marco): "¡Felicitaciones, {nombre}, tu solicitud ha
             sido aprobada!" con nombre completo y "aprobada" en verde bold.
             Idéntico al de la página de complementos. */}
-        <div className="font-['Baloo_2',_sans-serif] text-[18px] font-semibold leading-[1.25]">
+        <div className="text-[18px] font-semibold leading-[1.25]">
           {offer.clientName ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
           <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
         </div>
@@ -608,7 +608,7 @@ export function MiOfertaClient({ token }: { token: string }) {
 
         {/* Título redundante en mobile (el badge "Aprobada" + el monto ya lo
             comunican) → oculto en mobile para caber en 100vh, visible en sm+. */}
-        <div className="hidden font-['Baloo_2',_sans-serif] text-[17px] font-bold sm:block">
+        <div className="hidden text-[17px] font-bold sm:block">
           ¡Estás aprobado! Elige cómo continuar
         </div>
 

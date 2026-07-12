@@ -72,7 +72,7 @@ export function AccesorioRecomendadoCard({ accesorio, seleccionado, onToggle }: 
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
+          <div className="text-[17px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
             {accesorio.name}
           </div>
           {accesorio.description ? (
@@ -80,7 +80,7 @@ export function AccesorioRecomendadoCard({ accesorio, seleccionado, onToggle }: 
               {accesorio.description}
             </div>
           ) : null}
-          <div className="mt-2 font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+          <div className="mt-2 text-[15px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
             +S/{cuotaFormateada}/mes
           </div>
         </div>

@@ -73,7 +73,7 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total, plazoText
           >
             TU EQUIPO
           </div>
-          <div className="mt-0.5 font-['Baloo_2',_sans-serif] text-[14.5px] font-bold leading-[1.2]" style={{ color: OFERTA_COLORS.textStrong }}>
+          <div className="mt-0.5 text-[14.5px] font-bold leading-[1.2]" style={{ color: OFERTA_COLORS.textStrong }}>
             {nombre}
           </div>
           {/* Plazo e inicial (read-only), debajo del nombre. */}
@@ -90,7 +90,7 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total, plazoText
             el desglose — la cifra se queda, solo cambia su valor/label). */}
         <div className="flex-none text-right">
           <div
-            className="font-['Baloo_2',_sans-serif] text-[15px] font-bold"
+            className="text-[15px] font-bold"
             style={{ color: mostrarDesglose ? OFERTA_COLORS.primary : OFERTA_COLORS.textStrong }}
           >
             S/{mostrarDesglose ? totalFormateado : cuotaFormateada}/mes
@@ -130,10 +130,10 @@ export function TuEquipoCard({ nombre, cuota, imageUrl, extras, total, plazoText
             ))}
           </ul>
           <div className="mt-2.5 flex items-center justify-between border-t pt-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
-            <span className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+            <span className="text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               Total
             </span>
-            <span className="font-['Baloo_2',_sans-serif] text-[16px] font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
+            <span className="text-[16px] font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
               S/{totalFormateado}/mes
             </span>
           </div>

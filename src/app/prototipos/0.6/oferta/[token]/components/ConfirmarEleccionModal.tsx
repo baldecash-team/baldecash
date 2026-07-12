@@ -120,7 +120,7 @@ function ConfirmarEleccionContenido({
                     {equipo.brand}
                   </p>
                 ) : null}
-                <p className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                <p className="text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                   {equipo.name}
                 </p>
               </div>
@@ -171,7 +171,7 @@ function ConfirmarEleccionContenido({
           variant="light"
           onPress={onClose}
           isDisabled={loading}
-          className="cursor-pointer font-['Baloo_2',_sans-serif] font-bold"
+          className="cursor-pointer font-bold"
           style={{ color: OFERTA_COLORS.textMid }}
         >
           Cancelar
@@ -181,7 +181,7 @@ function ConfirmarEleccionContenido({
           isLoading={loading}
           isDisabled={loading}
           radius="lg"
-          className="cursor-pointer font-['Baloo_2',_sans-serif] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
+          className="cursor-pointer text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
           style={{ backgroundColor: OFERTA_COLORS.primary }}
         >
           {loading ? 'Procesando tu cambio…' : 'Confirmar'}

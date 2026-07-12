@@ -103,7 +103,7 @@ function EquipoMini({
         </div>
       )}
       <p
-        className="font-['Baloo_2',_sans-serif] text-xs font-bold"
+        className="text-xs font-bold"
         style={{ color: isNew ? OFERTA_COLORS.textStrong : OFERTA_COLORS.textMid }}
       >
         {equipo.name}
@@ -111,7 +111,7 @@ function EquipoMini({
       {equipo.monthly ? (
         <>
           <p
-            className={`mt-1 font-['Baloo_2',_sans-serif] text-[15px] font-extrabold ${isNew ? '' : 'line-through'}`}
+            className={`mt-1 text-[15px] font-extrabold ${isNew ? '' : 'line-through'}`}
             style={{ color: isNew ? OFERTA_COLORS.greenDark : OFERTA_COLORS.textMid }}
           >
             S/{Math.round(equipo.monthly)}{cuotaSuffix(equipo.paymentFrequency)}
@@ -213,7 +213,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                   <span className="flex min-w-0 items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
                     <span className="min-w-0">
-                      <span className="block font-['Baloo_2',_sans-serif] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                      <span className="block font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
                         {chosen.name}
                       </span>
                     </span>
@@ -255,10 +255,10 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
               </ul>
               {/* Cuota total */}
               <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
-                <span className="font-['Baloo_2',_sans-serif] text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                <span className="text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                   Cuota total
                 </span>
-                <span className="font-['Baloo_2',_sans-serif] text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
+                <span className="text-lg font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>
                   S/{Math.round(cuotaTotal)}<span className="text-sm font-normal" style={{ color: OFERTA_COLORS.textSoft }}>{cuotaSuffix(chosen.paymentFrequency)}</span>
                 </span>
               </div>
