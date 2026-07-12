@@ -230,14 +230,15 @@ export function BuscadorBottomSheet(props: BuscadorBottomSheetProps) {
           className="fixed bottom-0 left-0 right-0 z-[9999] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-white"
           style={{ overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          {/* Drag handle (franja morada) */}
+          {/* Zona de arrastre invisible: mantiene el gesto de swipe-to-close sin
+              mostrar la rayita (BAL-2250: se veía como una línea gris suelta
+              sobre el header índigo). Fondo índigo para fundirse con el header. */}
           <div
             onPointerDown={(e) => dragControls.start(e)}
-            className="flex flex-none cursor-grab justify-center pt-3 pb-1 active:cursor-grabbing"
+            className="flex flex-none cursor-grab justify-center pt-2 active:cursor-grabbing"
             style={{ backgroundColor: HEADER_INDIGO }}
-          >
-            <div className="h-1 w-10 rounded-full bg-white/40" />
-          </div>
+            aria-hidden
+          />
           <BuscadorContenido {...props} scrollClassName="flex-1 overflow-y-auto" />
         </motion.div>
       </>
