@@ -905,6 +905,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             onCerrar={() => setShowBuscador(false)}
             onListo={() => setShowBuscador(false)}
             accFits={accFits}
+            plazoTexto={(() => {
+              const t = equipoTerm ?? curTerm;
+              return t ? `${t} ${plazoUnit(t, equipoFrequency)}` : null;
+            })()}
+            inicialTexto={
+              equipoInitialAmount > 0
+                ? `Inicial S/${Math.round(equipoInitialAmount)}`
+                : curInitial > 0
+                  ? `Inicial ${curInitial}%`
+                  : 'Sin inicial'
+            }
           />
         ) : null}
       </AnimatePresence>

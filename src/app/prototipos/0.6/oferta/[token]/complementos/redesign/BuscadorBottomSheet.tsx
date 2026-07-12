@@ -38,6 +38,10 @@ export interface BuscadorBottomSheetProps {
   onCerrar: () => void;
   onListo: () => void;
   accFits?: (a: Accessory) => boolean;
+  /** Plazo e inicial ya formateados, para mostrarlos en la barra de cuota
+   *  (mismos textos que la card del equipo). Ej. "36 meses" / "Inicial S/0". */
+  plazoTexto?: string | null;
+  inicialTexto?: string | null;
 }
 
 /** Contenido compartido entre la presentación modal (desktop) y drawer (mobile):
@@ -52,6 +56,8 @@ function BuscadorContenido({
   onCerrar,
   onListo,
   accFits,
+  plazoTexto,
+  inicialTexto,
   scrollClassName,
 }: BuscadorBottomSheetProps & { scrollClassName: string }) {
   const [query, setQuery] = useState('');
@@ -179,7 +185,7 @@ function BuscadorContenido({
           wrapper reserva ese alto (~78px) para que la barra quede como footer
           real debajo del contenido. */}
       <div className="relative h-[78px] flex-none">
-        <CuotaStickyBar total={total} onContinuar={onListo} ctaText="Listo" />
+        <CuotaStickyBar total={total} onContinuar={onListo} ctaText="Listo" plazoTexto={plazoTexto} inicialTexto={inicialTexto} />
       </div>
     </>
   );

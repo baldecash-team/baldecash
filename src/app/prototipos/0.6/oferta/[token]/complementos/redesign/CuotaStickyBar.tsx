@@ -18,9 +18,14 @@ export interface CuotaStickyBarProps {
   onContinuar: () => void;
   label?: string;
   ctaText?: string;
+  /** Plazo e inicial ya formateados (read-only), bajo la cuota. Ej. "36 meses"
+   *  e "Inicial S/0" — mismos textos que la card del equipo (TuEquipoCard). Si
+   *  no vienen, no se muestran (la barra queda como antes: solo cuota). */
+  plazoTexto?: string | null;
+  inicialTexto?: string | null;
 }
 
-export function CuotaStickyBar({ total, onContinuar, label, ctaText }: CuotaStickyBarProps) {
+export function CuotaStickyBar({ total, onContinuar, label, ctaText, plazoTexto, inicialTexto }: CuotaStickyBarProps) {
   const totalFormateado = Math.round(total).toLocaleString('es-PE');
 
   return (
@@ -38,6 +43,13 @@ export function CuotaStickyBar({ total, onContinuar, label, ctaText }: CuotaStic
         >
           S/{totalFormateado}/mes
         </div>
+        {(plazoTexto || inicialTexto) ? (
+          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: OFERTA_COLORS.textSoft }}>
+            {plazoTexto ? <span>{plazoTexto}</span> : null}
+            {plazoTexto && inicialTexto ? <span>·</span> : null}
+            {inicialTexto ? <span>{inicialTexto}</span> : null}
+          </div>
+        ) : null}
       </div>
       <button
         type="button"
