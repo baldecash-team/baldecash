@@ -588,10 +588,15 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                   {/* Header: ícono + eyebrow/nombre (+ check si elegido) */}
                   <div className="flex items-start gap-2.5">
                     <div
-                      className="flex h-10 w-10 flex-none items-center justify-center rounded-xl"
+                      className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-xl"
                       style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
                     >
-                      <Icon className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.greenDark }} />
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Icon className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.greenDark }} />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
