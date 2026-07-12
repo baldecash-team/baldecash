@@ -317,12 +317,26 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       return [...prev, planId];
     });
 
+  // Ids de accesorios que son REGALO del combo (BAL-2159/BAL-2250). El backend
+  // los devuelve en `combo_free_addons` (gratis) PERO también en `accessories`
+  // con su precio de lista. Se muestran aparte en "Incluidos gratis", así que
+  // su cuota es S/0 en todo desglose/total; cobrarlos infla el total y duplica
+  // el ítem. Un accesorio normal (no combo) mantiene su monto.
+  const comboFreeAccIds = useMemo(
+    () => new Set(comboFree.accessories.map((a) => String(a.id))),
+    [comboFree.accessories],
+  );
+  const accMonthly = useCallback(
+    (a: Accessory) => (comboFreeAccIds.has(a.id) ? 0 : a.monthlyQuota || 0),
+    [comboFreeAccIds],
+  );
+
   // Cuota total = equipo + accesorios + seguros seleccionados.
   const totalMonthly = useMemo(() => {
-    const acc = accessories.filter((a) => selectedAcc.includes(a.id)).reduce((s, a) => s + (a.monthlyQuota || 0), 0);
+    const acc = accessories.filter((a) => selectedAcc.includes(a.id)).reduce((s, a) => s + accMonthly(a), 0);
     const ins = insurances.filter((p) => selectedIns.includes(p.id)).reduce((s, p) => s + (p.monthlyPrice || 0), 0);
     return equipoMonthly + acc + ins;
-  }, [accessories, insurances, selectedAcc, selectedIns, equipoMonthly]);
+  }, [accessories, insurances, selectedAcc, selectedIns, equipoMonthly, accMonthly]);
 
   // Cuota restante = tope aprobado − total actual. El equipo + add-ons no puede
   // superar la cuota máxima aprobada (premisa del Caso 4).
@@ -387,7 +401,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // (2) "regalo por tu combo" solo aplica a lo incluido gratis; lo elegido se
   // muestra con su costo (+S/). El equipo va como primera línea del desglose.
   const addonsResumen = useMemo(() => {
-    const accSel = accessories.filter((a) => selectedAcc.includes(a.id));
+    // Los regalos del combo se listan arriba como "Incluido gratis"; se excluyen
+    // de accSel para no duplicarlos ni cobrarlos con su precio de lista (BAL-2250).
+    const accSel = accessories.filter((a) => selectedAcc.includes(a.id) && !comboFreeAccIds.has(a.id));
     const insSel = insurances.filter((p) => selectedIns.includes(p.id));
     const hayRegalos = comboFree.accessories.length > 0 || comboFree.insurances.length > 0;
     const suf = cuotaSuffix(equipoFrequency);
@@ -470,7 +486,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         </div>
       </div>
     );
-  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency, equipoInfo, equipoMonthly]);
+  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, comboFreeAccIds, equipoFrequency, equipoInfo, equipoMonthly]);
 
   // Accesorio recomendado (destacado arriba, BAL-2185): el primero del listado.
   const recomendado = accessories.length > 0 ? accessories[0] : null;
@@ -481,13 +497,15 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // el recomendado (que ya se muestra arriba en su propia card).
   const extrasItems: TusExtrasItem[] = useMemo(() => {
     const accItems: TusExtrasItem[] = accessories
-      .filter((a) => selectedAcc.includes(a.id) && a.id !== recomendado?.id)
-      .map((a) => ({ id: a.id, name: a.name, monthly: a.monthlyQuota || 0, kind: 'acc', imageUrl: a.image }));
+      // Se excluye el recomendado (card propia arriba) y los regalos del combo
+      // (van en "Incluidos gratis"; repetirlos aquí los duplicaría, BAL-2250).
+      .filter((a) => selectedAcc.includes(a.id) && a.id !== recomendado?.id && !comboFreeAccIds.has(a.id))
+      .map((a) => ({ id: a.id, name: a.name, monthly: accMonthly(a), kind: 'acc', imageUrl: a.image }));
     const insItems: TusExtrasItem[] = insurances
       .filter((p) => selectedIns.includes(p.id))
       .map((p) => ({ id: p.id, name: p.name, monthly: p.monthlyPrice || 0, kind: 'ins', subtitle: 'Insurama', imageUrl: p.imageUrl ?? undefined }));
     return [...accItems, ...insItems];
-  }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id]);
+  }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id, comboFreeAccIds, accMonthly]);
 
   // Desglose para TuEquipoCard (feedback Marco): equipo + accesorios + seguros
   // elegidos, con la cuota total. Solo se pasa cuando hay algo seleccionado
@@ -495,12 +513,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const equipoExtras = useMemo(() => {
     const accSel = accessories
       .filter((a) => selectedAcc.includes(a.id))
-      .map((a) => ({ label: a.name, monthly: a.monthlyQuota || 0 }));
+      .map((a) => ({ label: a.name, monthly: accMonthly(a) }));
     const insSel = insurances
       .filter((p) => selectedIns.includes(p.id))
       .map((p) => ({ label: p.name, monthly: p.monthlyPrice || 0 }));
     return [...accSel, ...insSel];
-  }, [accessories, insurances, selectedAcc, selectedIns]);
+  }, [accessories, insurances, selectedAcc, selectedIns, accMonthly]);
 
   const handleQuitarExtra = useCallback((id: string, kind: 'acc' | 'ins') => {
     if (kind === 'acc') {
