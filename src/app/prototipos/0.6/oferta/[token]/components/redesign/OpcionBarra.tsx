@@ -66,7 +66,7 @@ export function OpcionBarra({ icono, titulo, subtitulo, cuota, onClick, destacad
             RECOMENDADO
           </div>
         ) : null}
-        <div className="font-['Baloo_2',_sans-serif] text-[16px] font-bold leading-[1.15]">{titulo}</div>
+        <div className="text-[16px] font-bold leading-[1.15]">{titulo}</div>
         {subtitulo ? (
           <div className="mt-0.5 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
             {subtitulo}
@@ -76,7 +76,7 @@ export function OpcionBarra({ icono, titulo, subtitulo, cuota, onClick, destacad
       <div className="flex-none text-right">
         {cuota ? (
           <div
-            className="font-['Baloo_2',_sans-serif] text-[18px] font-bold leading-[1.1]"
+            className="text-[18px] font-bold leading-[1.1]"
             style={{ color: OFERTA_COLORS.primary }}
           >
             {cuota}

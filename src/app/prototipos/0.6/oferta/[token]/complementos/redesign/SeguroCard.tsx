@@ -43,7 +43,7 @@ export function SeguroCard({ seguro, seleccionado, onToggle, onVerDetalle }: Seg
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="font-['Baloo_2',_sans-serif] text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+          <div className="text-[13.5px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
             {seguro.name}
           </div>
           <div className="mt-0.5 text-[12.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
@@ -80,8 +80,8 @@ export function SeguroCard({ seguro, seleccionado, onToggle, onVerDetalle }: Seg
         <button
           type="button"
           onClick={onVerDetalle}
-          className="mt-2 cursor-pointer text-[11px] font-semibold"
-          style={{ color: OFERTA_COLORS.tealBrand }}
+          className="mt-2 w-full cursor-pointer rounded-lg border-[1.5px] py-2 text-center text-[12px] font-bold transition-colors hover:bg-black/[0.03]"
+          style={{ color: OFERTA_COLORS.tealBrand, borderColor: OFERTA_COLORS.tealBrand }}
         >
           Ver detalle
         </button>

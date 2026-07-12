@@ -79,7 +79,7 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle,
           aunque un nombre sea de 1 línea (queda arriba, con el espacio de la 2ª
           reservado). line-clamp-2 corta y agrega la elipsis. */}
       <div
-        className="mt-2 line-clamp-2 min-h-[2.3em] font-['Baloo_2',_sans-serif] text-[12.5px] font-bold leading-[1.15]"
+        className="mt-2 line-clamp-2 min-h-[2.3em] text-[12.5px] font-bold leading-[1.15]"
         style={{ color: OFERTA_COLORS.textStrong }}
       >
         {accesorio.name}
@@ -90,8 +90,8 @@ export function AccesorioGridCard({ accesorio, agregado, onToggle, onVerDetalle,
       <button
         type="button"
         onClick={onVerDetalle}
-        className="mt-1 cursor-pointer text-[11px] font-semibold"
-        style={{ color: OFERTA_COLORS.tealBrand }}
+        className="mt-1.5 w-full cursor-pointer rounded-lg border-[1.5px] py-2 text-center text-[12px] font-bold transition-colors hover:bg-black/[0.03]"
+        style={{ color: OFERTA_COLORS.tealBrand, borderColor: OFERTA_COLORS.tealBrand }}
       >
         Ver detalle
       </button>

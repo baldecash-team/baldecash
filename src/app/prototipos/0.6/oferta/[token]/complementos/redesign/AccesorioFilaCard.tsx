@@ -65,7 +65,7 @@ export function AccesorioFilaCard({ accesorio, agregado, onToggle, onVerDetalle,
 
       {/* Info: nombre + cuota + ver detalle */}
       <div className="min-w-0 flex-1">
-        <div className="font-['Baloo_2',_sans-serif] text-[13px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
+        <div className="text-[13px] font-bold leading-[1.15]" style={{ color: OFERTA_COLORS.textStrong }}>
           {accesorio.name}
         </div>
         <div className="mt-0.5 text-[12.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
@@ -81,8 +81,8 @@ export function AccesorioFilaCard({ accesorio, agregado, onToggle, onVerDetalle,
           <button
             type="button"
             onClick={onVerDetalle}
-            className="mt-0.5 cursor-pointer text-[11px] font-semibold"
-            style={{ color: OFERTA_COLORS.tealBrand }}
+            className="mt-1 cursor-pointer rounded-lg border-[1.5px] px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-black/[0.03]"
+            style={{ color: OFERTA_COLORS.tealBrand, borderColor: OFERTA_COLORS.tealBrand }}
           >
             Ver detalle
           </button>

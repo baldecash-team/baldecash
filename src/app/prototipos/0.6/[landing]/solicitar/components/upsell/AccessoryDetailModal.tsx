@@ -21,6 +21,9 @@ interface AccessoryDetailModalProps {
   isSelected: boolean;
   onToggle: () => void;
   badgeText?: string | null;
+  /** Oculta el "S/ X · N cuotas" bajo la cuota mensual. El flujo de oferta lo
+   *  oculta (BAL-2250); el flujo regular lo mantiene (default false). */
+  hideCuotas?: boolean;
 }
 
 /**
@@ -51,7 +54,8 @@ const ModalContentShared: React.FC<{
   onClose: () => void;
   badgeText?: string | null;
   hideHeader?: boolean;
-}> = ({ accessory, isSelected, onToggle, onClose, badgeText, hideHeader }) => {
+  hideCuotas?: boolean;
+}> = ({ accessory, isSelected, onToggle, onClose, badgeText, hideHeader, hideCuotas }) => {
   const handleToggleAndClose = () => {
     onToggle();
     onClose();
@@ -70,7 +74,7 @@ const ModalContentShared: React.FC<{
             <Package className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-white truncate">
+            <h2 className="text-base font-bold text-white line-clamp-2 leading-tight">
               {accessory.name}
             </h2>
             <p className="text-xs text-white/70 truncate">
@@ -138,9 +142,11 @@ const ModalContentShared: React.FC<{
             </span>
             <span className="text-sm text-neutral-500 ml-1 font-normal">/mes</span>
           </div>
-          <span className="text-xs text-neutral-400 font-normal">
-            S/ {formatMoneyNoDecimals(Math.floor(accessory.price))} · {term} cuotas
-          </span>
+          {!hideCuotas ? (
+            <span className="text-xs text-neutral-400 font-normal">
+              S/ {formatMoneyNoDecimals(Math.floor(accessory.price))} · {term} cuotas
+            </span>
+          ) : null}
         </div>
 
         {/* Botón de acción - full width */}
@@ -182,6 +188,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
   isSelected,
   onToggle,
   badgeText,
+  hideCuotas,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -204,6 +211,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
           onToggle={onToggle}
           onClose={onClose}
           badgeText={badgeText}
+          hideCuotas={hideCuotas}
         />
       </ModalBody>
     </ModalContent>
@@ -218,6 +226,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
   isSelected,
   onToggle,
   badgeText,
+  hideCuotas,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
@@ -313,7 +322,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                   <h2 className="text-base font-bold text-white">
                     Características
                   </h2>
-                  <p className="text-xs text-white/70 truncate max-w-[180px]">
+                  <p className="text-xs text-white/70 line-clamp-2 leading-tight">
                     {accessory.name}
                   </p>
                 </div>
@@ -338,6 +347,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose={onClose}
                 badgeText={badgeText}
                 hideHeader
+                hideCuotas={hideCuotas}
               />
             </div>
           </motion.div>

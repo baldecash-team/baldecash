@@ -33,7 +33,7 @@ export function TusExtras({ items, onQuitar }: TusExtrasProps) {
 
   return (
     <div>
-      <h2 className="font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+      <h2 className="text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
         Tus extras
       </h2>
       <div className="mt-2.5 space-y-2">
@@ -70,7 +70,7 @@ export function TusExtras({ items, onQuitar }: TusExtrasProps) {
               )}
 
               <div className="min-w-0 flex-1">
-                <div className="font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                <div className="text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                   {item.name}
                 </div>
                 <div className="mt-0.5 text-[12px]" style={{ color: OFERTA_COLORS.textMid }}>

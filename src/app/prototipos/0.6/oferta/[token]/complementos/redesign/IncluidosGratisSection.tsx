@@ -24,7 +24,7 @@ export function IncluidosGratisSection({ accesorios, seguros }: IncluidosGratisS
 
   return (
     <div>
-      <h2 className="font-['Baloo_2',_sans-serif] text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+      <h2 className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
         Incluidos gratis
       </h2>
       <div className="mt-2.5 space-y-2">
@@ -50,7 +50,7 @@ export function IncluidosGratisSection({ accesorios, seguros }: IncluidosGratisS
                 <Gift className="h-[18px] w-[18px]" strokeWidth={2.2} style={{ color: OFERTA_COLORS.greenDark }} />
               </div>
             )}
-            <div className="min-w-0 flex-1 font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+            <div className="min-w-0 flex-1 text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               {a.name}
             </div>
             <div className="flex-none text-[13px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
@@ -70,7 +70,7 @@ export function IncluidosGratisSection({ accesorios, seguros }: IncluidosGratisS
             >
               <Gift className="h-[18px] w-[18px]" strokeWidth={2.2} style={{ color: OFERTA_COLORS.greenDark }} />
             </div>
-            <div className="min-w-0 flex-1 font-['Baloo_2',_sans-serif] text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+            <div className="min-w-0 flex-1 text-[14px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
               {s.name}
             </div>
             <div className="flex-none text-[13px] font-bold" style={{ color: OFERTA_COLORS.greenDark }}>
