@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, Check } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, Check, X } from 'lucide-react';
 import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
@@ -677,7 +677,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                     }
                   >
                     {agregado ? (
-                      <><Check className="h-4 w-4" strokeWidth={2.6} /> Agregado</>
+                      <><X className="h-4 w-4" strokeWidth={2.6} /> Quitar protección</>
                     ) : (
                       <><Plus className="h-4 w-4" strokeWidth={2.6} /> Añadir protección</>
                     )}
