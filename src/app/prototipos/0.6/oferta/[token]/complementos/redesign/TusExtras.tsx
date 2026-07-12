@@ -10,6 +10,7 @@
  * Puramente presentacional: props → UI, sin fetch ni lógica (el onQuitar lo
  * conecta quien ensambla la página, Task 9).
  */
+import { useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 
 import { OFERTA_COLORS } from '../../components/redesign/ofertaTheme';
@@ -46,12 +47,7 @@ export function TusExtras({ items, onQuitar }: TusExtrasProps) {
               style={{ borderColor: OFERTA_COLORS.border }}
             >
               {item.kind === 'ins' ? (
-                <div
-                  className="flex h-11 w-11 flex-none items-center justify-center rounded-xl"
-                  style={{ backgroundColor: OFERTA_COLORS.lilac }}
-                >
-                  <ShieldCheck className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.primary }} />
-                </div>
+                <SeguroExtraIcon imageUrl={item.imageUrl} name={item.name} />
               ) : (
                 <div
                   className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border"
@@ -99,6 +95,35 @@ export function TusExtras({ items, onQuitar }: TusExtrasProps) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Ícono del seguro en "Tus extras": muestra la imagen por tipo de seguro
+ * (insurance_category.image_url, BAL-2251) dentro del chip lila; cae al escudo
+ * si no hay imagen o si esta falla al cargar. Mismo patrón que SeguroCard y el
+ * modal de confirmación.
+ */
+function SeguroExtraIcon({ imageUrl, name }: { imageUrl?: string; name: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = Boolean(imageUrl) && !imgFailed;
+  return (
+    <div
+      className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-xl"
+      style={{ backgroundColor: OFERTA_COLORS.lilac }}
+    >
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={name}
+          className="h-full w-full object-contain"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <ShieldCheck className="h-5 w-5" strokeWidth={2.1} style={{ color: OFERTA_COLORS.primary }} />
+      )}
     </div>
   );
 }

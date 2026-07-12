@@ -485,7 +485,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       .map((a) => ({ id: a.id, name: a.name, monthly: a.monthlyQuota || 0, kind: 'acc', imageUrl: a.image }));
     const insItems: TusExtrasItem[] = insurances
       .filter((p) => selectedIns.includes(p.id))
-      .map((p) => ({ id: p.id, name: p.name, monthly: p.monthlyPrice || 0, kind: 'ins', subtitle: 'Insurama' }));
+      .map((p) => ({ id: p.id, name: p.name, monthly: p.monthlyPrice || 0, kind: 'ins', subtitle: 'Insurama', imageUrl: p.imageUrl ?? undefined }));
     return [...accItems, ...insItems];
   }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id]);
 
