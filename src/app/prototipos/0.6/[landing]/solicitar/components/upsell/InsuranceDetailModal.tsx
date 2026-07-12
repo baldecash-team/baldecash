@@ -144,11 +144,7 @@ const ModalContentShared: React.FC<{
         {/* Header */}
         <div style={{ background: `linear-gradient(135deg, #0e0e0e 0%, #1a1a1a 100%)`, borderBottom: `1px solid ${border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, background: `rgba(0,255,213,0.1)`, border: `1px solid ${border}`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            {offerImageUrl ? (
-              <img src={offerImageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <Icon style={{ width: 18, height: 18, color: CYAN }} />
-            )}
+            <Icon style={{ width: 18, height: 18, color: CYAN }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: CYAN, fontFamily: "'Orbitron', sans-serif", letterSpacing: 1 }}>{config.title}</h2>
@@ -158,6 +154,11 @@ const ModalContentShared: React.FC<{
 
         {/* Body */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {offerImageUrl && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+              <img src={offerImageUrl} alt={plan.name} style={{ maxHeight: '112px', maxWidth: '100%', objectFit: 'contain' }} />
+            </div>
+          )}
           <p style={{ fontSize: 13, color: muted, lineHeight: 1.6 }}>{config.description}</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px 16px' }}>
@@ -237,11 +238,7 @@ const ModalContentShared: React.FC<{
       {!hideHeader && (
         <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3">
           <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden">
-            {offerImageUrl ? (
-              <img src={offerImageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <Icon className="w-4.5 h-4.5 text-white" />
-            )}
+            <Icon className="w-4.5 h-4.5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-bold text-white">{config.title}</h2>
@@ -252,6 +249,13 @@ const ModalContentShared: React.FC<{
 
       {/* Body */}
       <div className="px-5 py-4 space-y-4">
+        {/* Imagen del seguro (solo oferta) */}
+        {offerImageUrl && (
+          <div className="flex justify-center py-2">
+            <img src={offerImageUrl} alt={plan.name} className="max-h-28 max-w-full object-contain" />
+          </div>
+        )}
+
         {/* Description */}
         <p className="text-sm text-neutral-600">
           {config.description}
@@ -459,11 +463,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
               <div className="flex flex-none items-center justify-between px-5 pb-[22px] pt-4" style={{ background: 'var(--color-primary, #4654CD)' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {offerImageUrl ? (
-                      <img src={offerImageUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      (() => { const Icon = getModalConfig(plan.insuranceType).icon; return <Icon className="w-4.5 h-4.5 text-white" />; })()
-                    )}
+                    {(() => { const Icon = getModalConfig(plan.insuranceType).icon; return <Icon className="w-4.5 h-4.5 text-white" />; })()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-base font-bold text-white">{getModalConfig(plan.insuranceType).title}</h2>
