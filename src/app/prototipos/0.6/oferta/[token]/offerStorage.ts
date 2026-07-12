@@ -53,10 +53,12 @@ function addonsKeyPrefix(token: string): string {
 }
 
 /** Borra los add-ons guardados de TODOS los equipos de este token. Se usa al
- *  cambiar de equipo: el estudiante empieza limpio con el nuevo equipo (no
- *  hereda ni recuerda accesorios/seguros de otro). El refresh del MISMO equipo
- *  no llama saveOfferSelection, así que no dispara esta limpieza. */
-function clearAllAddons(token: string): void {
+ *  cambiar de equipo (dentro de saveOfferSelection) y al ENTRAR a complementos
+ *  desde el index (BAL-2255): en ambos casos es una "entrada nueva" que debe
+ *  resetear a lo que realmente tiene el pedido, no rehidratar una selección
+ *  previa. El refresh DENTRO de complementos no llama esta función, así que su
+ *  selección se conserva (persistencia útil intacta). */
+export function clearAllAddons(token: string): void {
   if (typeof window === 'undefined') return;
   try {
     const prefix = addonsKeyPrefix(token);

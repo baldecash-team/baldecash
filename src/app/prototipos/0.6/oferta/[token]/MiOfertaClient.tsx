@@ -29,7 +29,7 @@ import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaE
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
-import { saveOfferSelection, type StoredEquipo } from './offerStorage';
+import { saveOfferSelection, clearAllAddons, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
 import { OfertaHeader } from './components/redesign/OfertaHeader';
 import { MontoAprobadoBar } from './components/redesign/MontoAprobadoBar';
@@ -277,6 +277,14 @@ export function MiOfertaClient({ token }: { token: string }) {
         window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${slug ?? ''}`;
         return;
       }
+      // Entrar a complementos desde el index es una "entrada nueva": debe
+      // resetear a lo que realmente tiene el pedido, no rehidratar una selección
+      // previa guardada en localStorage (BAL-2255). Sin esto, si el cliente quitó
+      // un accesorio, volvió al index y re-entró manteniendo el MISMO equipo, el
+      // ítem quitado seguía quitado (saveOfferSelection solo limpiaba al CAMBIAR
+      // de equipo). El refresh dentro de complementos no pasa por aquí → conserva
+      // su selección.
+      clearAllAddons(token);
       saveOfferSelection(token, {
         variantId,
         comboId: comboId ?? null,
