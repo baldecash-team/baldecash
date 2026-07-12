@@ -584,6 +584,17 @@ export function MiOfertaClient({ token }: { token: string }) {
           <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
         </div>
 
+        {/* Código de la solicitud (BAL-2250): chip discreto para que el cliente
+            lo tenga a mano si contacta soporte. */}
+        {offer.applicationCode ? (
+          <div
+            className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+            style={{ backgroundColor: OFERTA_COLORS.lilac, color: OFERTA_COLORS.textSoft }}
+          >
+            Solicitud: {offer.applicationCode}
+          </div>
+        ) : null}
+
         {offer.offerCase === 'upsell' ? (
           // Caso 5 (upsell): la barra muestra el equipo que el estudiante PIDIÓ
           // (current_product → requestedProduct), igual que el Caso 4 — NO el
