@@ -665,6 +665,7 @@ export async function getOfferAddonsRich(
     totalPrice: Number(s.totalPrice ?? 0),
     paymentMonths: Number(s.paymentMonths ?? 24),
     insuranceType: String(s.insuranceType ?? ''),
+    imageUrl: (s.imageUrl as string | null) ?? null,
     coverage: (s.coverage as InsurancePlan['coverage']) ?? [],
     exclusions: (s.exclusions as string[]) ?? [],
     isRecommended: Boolean(s.isRecommended),
