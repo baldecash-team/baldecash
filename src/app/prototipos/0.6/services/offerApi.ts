@@ -655,6 +655,7 @@ export async function getOfferAddonsRich(
     compatibleWith: (a.compatibleWith as string[]) ?? ['all'],
     specs: (a.specs as Accessory['specs']) ?? undefined,
     brand: (a.brand ?? null) as Accessory['brand'],
+    source: (a.source as Accessory['source']) ?? 'catalog',
   }));
   const insurances: InsurancePlan[] = (d.insurances ?? []).map((s: Record<string, unknown>) => ({
     id: String(s.id),
@@ -672,6 +673,7 @@ export async function getOfferAddonsRich(
     tier: (s.tier as InsurancePlan['tier']) ?? 'basic',
     durationMonths: Number(s.durationMonths ?? 24),
     provider: (s.provider ?? null) as InsurancePlan['provider'],
+    source: (s.source as InsurancePlan['source']) ?? 'catalog',
   }));
   const comboFreeAddons = {
     accessories: ((d.combo_free_addons?.accessories) ?? []).map((a: Record<string, unknown>) => ({
