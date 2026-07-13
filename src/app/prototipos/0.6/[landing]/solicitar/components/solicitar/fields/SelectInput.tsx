@@ -54,6 +54,10 @@ interface SelectInputProps {
   hideErrorText?: boolean;
   /** Compact: no reserva alto para el error (solo aparece al haber error) — evita gaps desiguales */
   compact?: boolean;
+  /** When true, shows a "Crear «X»" action when the typed term matches no option */
+  creatable?: boolean;
+  /** Called with the trimmed search term when the user clicks "Crear «X»" */
+  onCreate?: (name: string) => void;
 }
 
 export const SelectInput: React.FC<SelectInputProps> = ({
@@ -80,6 +84,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   small = false,
   hideErrorText = false,
   compact = false,
+  creatable = false,
+  onCreate,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,6 +128,20 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 
   const handleClear = () => {
     onChange('');
+    setSearchTerm('');
+  };
+
+  // "Crear «X»" action: only when creatable, there's a typed term, and no
+  // option label matches it exactly (case-insensitive).
+  const trimmedSearchTerm = searchTerm.trim();
+  const showCreateAction =
+    creatable &&
+    !!trimmedSearchTerm &&
+    !options.some((option) => option.label.toLowerCase() === trimmedSearchTerm.toLowerCase());
+
+  const handleCreate = () => {
+    onCreate?.(trimmedSearchTerm);
+    setIsOpen(false);
     setSearchTerm('');
   };
 
@@ -250,35 +270,47 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
                   Buscando...
                 </div>
-              ) : filteredOptions.length === 0 ? (
+              ) : filteredOptions.length === 0 && !showCreateAction ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron resultados
                 </div>
               ) : (
-                filteredOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleSelect(option.value)}
-                    disabled={option.disabled}
-                    className={`
-                      w-full px-3 py-2 text-left text-sm rounded-md
-                      transition-colors cursor-pointer
-                      ${value === option.value
-                        ? 'bg-[var(--color-primary)] text-white'
-                        : 'text-neutral-700 hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
-                      }
-                      ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    {option.label}
-                    {option.description && (
-                      <span className="block text-xs opacity-70 mt-0.5">
-                        {option.description}
-                      </span>
-                    )}
-                  </button>
-                ))
+                <>
+                  {filteredOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleSelect(option.value)}
+                      disabled={option.disabled}
+                      className={`
+                        w-full px-3 py-2 text-left text-sm rounded-md
+                        transition-colors cursor-pointer
+                        ${value === option.value
+                          ? 'bg-[var(--color-primary)] text-white'
+                          : 'text-neutral-700 hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
+                        }
+                        ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                      `}
+                    >
+                      {option.label}
+                      {option.description && (
+                        <span className="block text-xs opacity-70 mt-0.5">
+                          {option.description}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  {showCreateAction && (
+                    <button
+                      type="button"
+                      onClick={handleCreate}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-md text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-colors cursor-pointer"
+                    >
+                      <span className="text-base leading-none">+</span>
+                      <span>Crear «{trimmedSearchTerm}»</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
