@@ -619,6 +619,54 @@ export async function fetchProductDetail(landing: string, slug: string, paymentF
 }
 
 /**
+ * BAL-2250 — Detalle de producto DENTRO de una oferta condicional (por token).
+ * Aplica la TEA custom del Perfil C. Mismo shape que fetchProductDetail; el
+ * detalle regular (fetchProductDetail) NO se toca.
+ */
+export async function fetchOfferProductDetail(
+  token: string,
+  slug: string,
+  paymentFrequency?: string,
+  comboId?: number,
+): Promise<ProductDetailResult | null> {
+  try {
+    const qs = new URLSearchParams();
+    if (paymentFrequency) qs.set('payment_frequency', paymentFrequency);
+    if (comboId != null) qs.set('combo_id', String(comboId));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    const response = await fetch(
+      `${API_BASE_URL}/public/offer/${token}/products/${slug}/detail${suffix}`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' },
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data: ApiProductDetailResponse = await response.json();
+
+    return {
+      product: transformProductData(data.product),
+      combo: data.combo ? transformCombo(data.combo) : undefined,
+      paymentPlans: data.payment_plans.map(transformPaymentPlan),
+      similarProducts: data.similar_products.map(transformSimilarProduct),
+      limitations: data.limitations.map(transformLimitation),
+      certifications: data.certifications.map(transformCertification),
+      isAvailable: data.is_available,
+      paymentFrequencies: data.payment_frequencies ?? undefined,
+      defaultTerm: data.default_term ?? undefined,
+      defaultInitial: data.default_initial ?? undefined,
+    };
+  } catch (error) {
+    console.error('Error fetching offer product detail:', error);
+    throw error;
+  }
+}
+
+/**
  * Hook-friendly fetch with loading/error states
  */
 export async function getProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<{
