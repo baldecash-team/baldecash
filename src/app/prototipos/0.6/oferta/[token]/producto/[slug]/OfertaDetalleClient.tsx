@@ -22,6 +22,7 @@ import { ProductDetail } from '../../../../[landing]/producto/components/detail/
 import { defaultDetalleConfig } from '../../../../[landing]/producto/types/detail';
 import {
   fetchProductDetail,
+  fetchOfferProductDetail,
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
 import { getOffer, getCatalog, OfferApiError } from '../../../../services/offerApi';
@@ -157,7 +158,12 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
         const reqTerm = readOnly ? (offer.requestedProduct?.term ?? null) : null;
         const reqInitial = readOnly ? (offer.requestedProduct?.initial_percent ?? null) : null;
 
-        const detail = await fetchProductDetail(landing, slug, reqFrequency ?? undefined);
+        // BAL-2250 — dentro de la oferta el detalle va por token para aplicar la
+        // TEA custom del Perfil C (consistente con el catálogo). `comboId` no está
+        // disponible aquí (su useMemo se declara más abajo en el componente, tras
+        // este efecto; usarlo forzaría reordenar hooks). Pasamos undefined: el
+        // backend ya extrae el combo_id del sufijo `-combo-{id}` del slug.
+        const detail = await fetchOfferProductDetail(token, slug, reqFrequency ?? undefined, undefined);
         if (!active) return;
         if (!detail) {
           setState({ kind: 'error', message: 'No encontramos este equipo.' });
