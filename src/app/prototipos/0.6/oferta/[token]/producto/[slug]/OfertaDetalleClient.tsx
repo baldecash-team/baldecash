@@ -21,7 +21,6 @@ const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 import { ProductDetail } from '../../../../[landing]/producto/components/detail/ProductDetail';
 import { defaultDetalleConfig } from '../../../../[landing]/producto/types/detail';
 import {
-  fetchProductDetail,
   fetchOfferProductDetail,
   type ProductDetailResult,
 } from '../../../../[landing]/producto/api/productDetailApi';
