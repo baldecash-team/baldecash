@@ -514,6 +514,8 @@ export interface LeadFormFieldConfig {
   /** Opciones fijas para field_type='select' */
   options_static?: LeadFormFieldOption[];
   min_search_length?: number;
+  /** Habilita "Crear «X»" en el SelectInput cuando no hay match (hoy solo institución). */
+  allow_create?: boolean;
 }
 
 export interface LeadFormConfig {

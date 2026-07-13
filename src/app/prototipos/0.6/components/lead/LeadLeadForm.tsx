@@ -155,6 +155,11 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     accepts_marketing: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  // Nombre de institución nueva pendiente de crear (flujo "Crear «X»" del SelectInput,
+  // solo cuando field.allow_create=true). Se limpia al elegir una opción existente o al
+  // volver a escribir. Viaja en el payload de capture como `study_center_name` (nunca en
+  // capture-partial: el backend no la acepta ahí y no debe crear en parcial).
+  const [studyCenterName, setStudyCenterName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -238,10 +243,15 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       }
       const rawValue = getFieldValue(field);
       const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+      const isStudyCenterField = field.code === 'institution' || field.options_source === 'study-centers';
+      // Institución con creación pendiente (studyCenterName seteado por "Crear «X»"):
+      // no hay study_center_id todavía, pero el requisito queda satisfecho — se crea
+      // en el submit vía study_center_name.
+      if (!value && isStudyCenterField && studyCenterName.trim()) continue;
       if (!value) {
         if (field.code === 'document_number') newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
         else if (field.code === 'phone' || field.field_type === 'phone') newErrors[key] = 'Ingresa un celular válido (9 dígitos)';
-        else if (field.code === 'institution' || field.options_source === 'study-centers') newErrors.study_center_id = `Selecciona ${field.label.toLowerCase()}`;
+        else if (isStudyCenterField) newErrors.study_center_id = `Selecciona ${field.label.toLowerCase()}`;
         else newErrors[key] = `Ingresa tu ${field.label.toLowerCase()}`;
       } else if (field.pattern && typeof value === 'string' && !new RegExp(field.pattern).test(value)) {
         if (field.code === 'document_number') newErrors.document_number = 'Ingresa un DNI válido (8 dígitos)';
@@ -381,7 +391,14 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       consent_text: TYC_CONSENT_TEXT,
       accepts_marketing: form.accepts_marketing,
     };
-    if (form.study_center_id) payload.study_center_id = parseInt(form.study_center_id, 10);
+    // Institución: si hay un nombre pendiente de creación (flujo "Crear «X»") y no se
+    // seleccionó un id existente, se manda `study_center_name` para que el backend la
+    // cree/reutilice; con id existente, el comportamiento de siempre. Nunca ambos.
+    if (studyCenterName && !form.study_center_id) {
+      payload.study_center_name = studyCenterName;
+    } else if (form.study_center_id) {
+      payload.study_center_id = parseInt(form.study_center_id, 10);
+    }
     if (documentNumber) payload.document_number = documentNumber;
     if (Object.keys(fields).length > 0) payload.fields = fields;
     return payload;
@@ -545,12 +562,22 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           small={!isSplit}
           compact={!isSplit}
           hideErrorText={isSplit ? false : isDesktop}
+          // Sin study_center_id (creación pendiente) el value queda '' y no hay
+          // selectedOption; savedLabel es el fallback de display del SelectInput,
+          // así el nombre recién creado se ve "seleccionado" hasta el submit.
+          savedLabel={studyCenterName || undefined}
           onChange={(v) => {
+            setStudyCenterName('');
             handleChange('study_center_id', v);
             handleBlur('study_center_id', v);
           }}
           searchable
           onSearch={handleStudyCenterSearch}
+          creatable={Boolean(field.allow_create)}
+          onCreate={(name) => {
+            setStudyCenterName(name);
+            handleChange('study_center_id', '');
+          }}
         />
       );
     }
