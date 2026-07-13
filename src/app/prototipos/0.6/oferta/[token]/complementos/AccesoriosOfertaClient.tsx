@@ -248,14 +248,26 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           setSelectedIns(stored!.ins.filter((id) => insOk.has(id)));
         } else if (selection.preselectedAccessoryIds?.length || selection.preselectedInsuranceIds?.length) {
           // Primera vez (sin add-ons guardados): preseleccionar lo que venía en la
-          // selección — el regalo del Perfil B, o los accesorios/seguros que el
-          // cliente ya tenía en su pedido al "mantener mi equipo" (Caso 5). NO se
-          // filtra contra el catálogo: el backend ahora incluye los ítems del pedido
-          // en el /addons con source=order (BAL-2253), y ese filtro era justo lo que
-          // los escondía cuando no estaban en el catálogo de la celda.
-          const preAcc = (selection.preselectedAccessoryIds ?? []).map(String);
+          // selección (accesorios/seguros del pedido al "mantener mi equipo").
+          // PERO NO preseleccionar los REGALOS (combo / Perfil B): esos ya se
+          // muestran gratis en "Incluidos gratis" (combo_free_addons) y NO deben
+          // ocupar el slot de selectedAcc — si lo ocuparan, el cliente no podría
+          // comprar una unidad ADICIONAL del mismo producto (el id ya estaría
+          // "seleccionado"). Al dejarlos fuera de selectedAcc, su id queda libre en
+          // el catálogo para agregar la 2da unidad con costo (BAL-2250 p15).
+          const comboFreeIds = new Set(
+            (res.comboFreeAddons?.accessories ?? []).map((a) => String(a.id)),
+          );
+          const comboFreeInsIds = new Set(
+            (res.comboFreeAddons?.insurances ?? []).map((s) => String(s.id)),
+          );
+          const preAcc = (selection.preselectedAccessoryIds ?? [])
+            .map(String)
+            .filter((id) => !comboFreeIds.has(id));
           if (preAcc.length) setSelectedAcc(preAcc);
-          const preIns = (selection.preselectedInsuranceIds ?? []).map(String);
+          const preIns = (selection.preselectedInsuranceIds ?? [])
+            .map(String)
+            .filter((id) => !comboFreeInsIds.has(id));
           if (preIns.length) setSelectedIns(preIns);
         }
       } catch (err) {
@@ -314,18 +326,14 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       return [...prev, planId];
     });
 
-  // Ids de accesorios que son REGALO del combo (BAL-2159/BAL-2250). El backend
-  // los devuelve en `combo_free_addons` (gratis) PERO también en `accessories`
-  // con su precio de lista. Se muestran aparte en "Incluidos gratis", así que
-  // su cuota es S/0 en todo desglose/total; cobrarlos infla el total y duplica
-  // el ítem. Un accesorio normal (no combo) mantiene su monto.
-  const comboFreeAccIds = useMemo(
-    () => new Set(comboFree.accessories.map((a) => String(a.id))),
-    [comboFree.accessories],
-  );
+  // Un accesorio en selectedAcc es algo que el cliente AGREGÓ (compra) → cuesta su
+  // cuota. Los REGALOS (combo / Perfil B) NO entran a selectedAcc (se preseleccion-
+  // aron fuera; ver el effect de carga), viven solo en "Incluidos gratis" a S/0. Por
+  // eso el catálogo puede listar el mismo producto con precio para comprar una 2da
+  // unidad, y esa sí cuesta (BAL-2250 p15).
   const accMonthly = useCallback(
-    (a: Accessory) => (comboFreeAccIds.has(a.id) ? 0 : a.monthlyQuota || 0),
-    [comboFreeAccIds],
+    (a: Accessory) => a.monthlyQuota || 0,
+    [],
   );
 
   // Cuota total = equipo + accesorios + seguros seleccionados.
@@ -398,9 +406,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // (2) "regalo por tu combo" solo aplica a lo incluido gratis; lo elegido se
   // muestra con su costo (+S/). El equipo va como primera línea del desglose.
   const addonsResumen = useMemo(() => {
-    // Los regalos del combo se listan arriba como "Incluido gratis"; se excluyen
-    // de accSel para no duplicarlos ni cobrarlos con su precio de lista (BAL-2250).
-    const accSel = accessories.filter((a) => selectedAcc.includes(a.id) && !comboFreeAccIds.has(a.id));
+    // Los regalos del combo se listan arriba como "Incluido gratis". El backend
+    // ya no los incluye en accessories[] (BAL-2250 p15), así que accSel solo
+    // trae accesorios comprados; no hay que excluir nada por id.
+    // Los regalos (combo / Perfil B) NO están en selectedAcc (van solo en
+    // "Incluido gratis"), así que accSel = lo que el cliente agregó (con costo).
+    const accSel = accessories.filter((a) => selectedAcc.includes(a.id));
     const insSel = insurances.filter((p) => selectedIns.includes(p.id));
     const hayRegalos = comboFree.accessories.length > 0 || comboFree.insurances.length > 0;
     const suf = cuotaSuffix(equipoFrequency);
@@ -483,7 +494,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         </div>
       </div>
     );
-  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, comboFreeAccIds, equipoFrequency, equipoInfo, equipoMonthly]);
+  }, [accessories, insurances, selectedAcc, selectedIns, totalMonthly, comboFree, equipoFrequency, equipoInfo, equipoMonthly]);
 
   // Accesorio recomendado (destacado arriba, BAL-2185): el primero del listado.
   const recomendado = accessories.length > 0 ? accessories[0] : null;
@@ -494,15 +505,16 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // el recomendado (que ya se muestra arriba en su propia card).
   const extrasItems: TusExtrasItem[] = useMemo(() => {
     const accItems: TusExtrasItem[] = accessories
-      // Se excluye el recomendado (card propia arriba) y los regalos del combo
-      // (van en "Incluidos gratis"; repetirlos aquí los duplicaría, BAL-2250).
-      .filter((a) => selectedAcc.includes(a.id) && a.id !== recomendado?.id && !comboFreeAccIds.has(a.id))
+      // Se excluye el recomendado (card propia arriba) y los regalos gratis (combo
+      // / Perfil B): van en "Incluidos gratis", repetirlos aquí los duplicaría y
+      // cobraría (BAL-2250 p15).
+      .filter((a) => selectedAcc.includes(a.id) && a.id !== recomendado?.id)
       .map((a) => ({ id: a.id, name: a.name, monthly: accMonthly(a), kind: 'acc', imageUrl: a.image }));
     const insItems: TusExtrasItem[] = insurances
       .filter((p) => selectedIns.includes(p.id))
       .map((p) => ({ id: p.id, name: p.name, monthly: p.monthlyPrice || 0, kind: 'ins', subtitle: 'Insurama', imageUrl: p.imageUrl ?? undefined }));
     return [...accItems, ...insItems];
-  }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id, comboFreeAccIds, accMonthly]);
+  }, [accessories, insurances, selectedAcc, selectedIns, recomendado?.id, accMonthly]);
 
   // Desglose para TuEquipoCard (feedback Marco): equipo + accesorios + seguros
   // elegidos, con la cuota total. Solo se pasa cuando hay algo seleccionado
