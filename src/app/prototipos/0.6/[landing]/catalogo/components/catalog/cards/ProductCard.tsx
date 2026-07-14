@@ -240,14 +240,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       const imgs = product.images.length > 0 ? product.images : [product.thumbnail];
       return [...new Set([...comboLead, ...imgs])];
     }
-    // Color elegido con imagen propia: su imagen lidera, sin anteponer el combo.
-    if (selectedColor?.images && selectedColor.images.length > 0) {
+    // Solo un sibling REAL de otro producto (color_siblings, trae productId propio)
+    // reemplaza la portada del combo con su imagen. Un color del MISMO producto
+    // (o sin productId, ej. colores derivados de variantes) conserva la foto del
+    // combo al frente — si no, el color primario seleccionado por defecto tapaba el
+    // combo y dos combos del mismo equipo mostraban la misma foto base (BAL-2214).
+    const isSibling = !!selectedColor?.productId && selectedColor.productId !== product.id;
+    if (isSibling && selectedColor?.images && selectedColor.images.length > 0) {
       return [...new Set([...selectedColor.images])];
     }
-    if (selectedColor?.imageUrl) {
+    if (isSibling && selectedColor?.imageUrl) {
       return [...new Set([selectedColor.imageUrl])];
     }
-    return [...new Set([...comboLead, product.thumbnail])];
+    // Mismo producto: el combo lidera, luego la galería del color elegido (o la del
+    // producto como fallback).
+    const baseImgs = (selectedColor?.images && selectedColor.images.length > 0)
+      ? selectedColor.images
+      : (product.images.length > 0 ? product.images : [product.thumbnail]);
+    return [...new Set([...comboLead, ...baseImgs])];
   };
 
   const selectedImages = getImagesForSelectedColor();
