@@ -10,7 +10,8 @@
  * la presentación para calzar con el mock de Claude Design
  * (docs/superpowers/design-refs/mock-confirmacion.html, frame 3).
  */
-import { CheckCircle2, ArrowRight, MessageCircle, Package, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, ArrowRight, MessageCircle, Package, ShieldCheck, ChevronDown } from 'lucide-react';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 import { OfertaHeader } from './redesign/OfertaHeader';
 import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
@@ -152,6 +153,17 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
     (chosen.monthly ?? 0) +
     accesorios.reduce((s, a) => s + (a.monthly || 0), 0) +
     seguros.reduce((s, i) => s + (i.monthly || 0), 0);
+  // Nº de items del desglose (equipo + add-ons), para el label del toggle.
+  const totalItems = 1 + accesorios.length + seguros.length;
+  // Colapsable "Tu pedido incluye": desktop (≥640px) abierto, mobile cerrado
+  // (ahorra alto). Default SSR cerrado para evitar mismatch de hidratación; un
+  // effect lo abre en desktop tras montar. "Cuota total" queda SIEMPRE visible.
+  const [detalleAbierto, setDetalleAbierto] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches) {
+      setDetalleAbierto(true);
+    }
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -201,59 +213,78 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
               className="mt-5 rounded-xl p-4 text-left"
               style={{ backgroundColor: OFERTA_COLORS.grayBg, border: `1px solid ${OFERTA_COLORS.border}` }}
             >
-              <p
-                className="mb-3 text-[10px] font-bold uppercase tracking-wide"
+              {/* Header colapsable: toggle con chevron. "Cuota total" queda fuera,
+                  siempre visible. En desktop abre por default, mobile cerrado. */}
+              <button
+                type="button"
+                onClick={() => setDetalleAbierto((v) => !v)}
+                className="group flex w-full cursor-pointer items-center justify-between text-[10px] font-bold uppercase tracking-wide"
                 style={{ color: OFERTA_COLORS.tealBrand }}
+                aria-expanded={detalleAbierto}
               >
-                Tu pedido incluye
-              </p>
-              <ul className="space-y-2.5">
-                {/* Equipo */}
-                <li className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
-                    <span className="min-w-0">
-                      <span className="block font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
-                        {chosen.name}
+                <span>Tu pedido incluye ({totalItems})</span>
+                <ChevronDown
+                  className="h-4 w-4 transition-transform duration-300 ease-out"
+                  style={{ transform: detalleAbierto ? 'rotate(180deg)' : 'none' }}
+                />
+              </button>
+              {/* Lista colapsable (colapso suave grid-rows 0fr↔1fr + opacidad). */}
+              <div
+                className="grid transition-all duration-300 ease-out"
+                style={{
+                  gridTemplateRows: detalleAbierto ? '1fr' : '0fr',
+                  opacity: detalleAbierto ? 1 : 0,
+                  marginTop: detalleAbierto ? '0.75rem' : 0,
+                }}
+              >
+                <ul className="space-y-2.5 overflow-hidden" aria-hidden={!detalleAbierto}>
+                  {/* Equipo */}
+                  <li className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
+                      <span className="min-w-0">
+                        <span className="block font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                          {chosen.name}
+                        </span>
                       </span>
                     </span>
-                  </span>
-                  {chosen.monthly ? (
-                    <span className="shrink-0 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
-                      S/{Math.round(chosen.monthly)}{cuotaSuffix(chosen.paymentFrequency)}
-                    </span>
-                  ) : null}
-                </li>
-                {/* Accesorios */}
-                {accesorios.map((a) => (
-                  <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
-                      <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
-                      <span className="min-w-0">{a.name}</span>
-                    </span>
-                    {a.includedFree ? (
-                      <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
-                    ) : (
-                      <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(a.monthly)}{cuotaSuffix(chosen.paymentFrequency)}</span>
-                    )}
+                    {chosen.monthly ? (
+                      <span className="shrink-0 font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+                        S/{Math.round(chosen.monthly)}{cuotaSuffix(chosen.paymentFrequency)}
+                      </span>
+                    ) : null}
                   </li>
-                ))}
-                {/* Seguros */}
-                {seguros.map((i) => (
-                  <li key={`i-${i.id}`} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
-                      <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
-                      <span className="min-w-0">{i.name}</span>
-                    </span>
-                    {i.includedFree ? (
-                      <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
-                    ) : (
-                      <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(i.monthly)}{cuotaSuffix(chosen.paymentFrequency)}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              {/* Cuota total */}
+                  {/* Accesorios */}
+                  {accesorios.map((a) => (
+                    <li key={`a-${a.id}`} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                        <Package className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
+                        <span className="min-w-0">{a.name}</span>
+                      </span>
+                      {a.includedFree ? (
+                        <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
+                      ) : (
+                        <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(a.monthly)}{cuotaSuffix(chosen.paymentFrequency)}</span>
+                      )}
+                    </li>
+                  ))}
+                  {/* Seguros */}
+                  {seguros.map((i) => (
+                    <li key={`i-${i.id}`} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="flex min-w-0 items-center gap-2" style={{ color: OFERTA_COLORS.textMid }}>
+                        <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: OFERTA_COLORS.green }} />
+                        <span className="min-w-0">{i.name}</span>
+                      </span>
+                      {i.includedFree ? (
+                        <span className="shrink-0 text-xs font-bold" style={{ color: OFERTA_COLORS.greenDark }}>Incluido gratis</span>
+                      ) : (
+                        <span className="shrink-0" style={{ color: OFERTA_COLORS.textMid }}>+S/{Math.round(i.monthly)}{cuotaSuffix(chosen.paymentFrequency)}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {/* Cuota total — SIEMPRE visible (fuera del colapsable) */}
               <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: OFERTA_COLORS.border }}>
                 <span className="text-sm font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
                   Cuota total
