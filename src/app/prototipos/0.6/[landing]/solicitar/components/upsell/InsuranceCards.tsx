@@ -21,6 +21,32 @@ function getInsuranceIcon(type: string) {
   return type === 'seguro_robo' ? Lock : ShieldCheck;
 }
 
+/**
+ * BAL-2338: cuadrito del seguro en la card. Si el plan tiene `imageUrl`
+ * (insurance_category.image_url) muestra la imagen; si no hay o falla la carga,
+ * cae al ícono por tipo (fallback nunca vacío). Mismo patrón que la oferta
+ * (SeguroCard.tsx). El estado de error es por-card (por eso es un componente).
+ */
+function InsuranceThumb({ imageUrl, type, name }: { imageUrl?: string | null; type: string; name: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const Icon = getInsuranceIcon(type);
+  return (
+    <div className="w-10 h-10 bg-[var(--color-primary)] rounded-xl flex items-center justify-center overflow-hidden">
+      {imageUrl && !imgFailed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <Icon className="w-5 h-5 text-white" />
+      )}
+    </div>
+  );
+}
+
 function getInsuranceLabel(type: string): string {
   switch (type) {
     case 'garantia_extendida': return 'Garantía extendida';
@@ -114,7 +140,6 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
       {/* Cards Grid */}
       <div className={`grid ${gridCols} gap-4`}>
         {equipoPlans.map((plan, index) => {
-          const Icon = getInsuranceIcon(plan.insuranceType);
           const isSelected = selectedPlanIds.includes(plan.id);
           const benefits = getBenefits(plan.insuranceType);
           const description = getDescription(plan.insuranceType);
@@ -137,9 +162,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[var(--color-primary)] rounded-xl flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-white" />
-                      </div>
+                      <InsuranceThumb imageUrl={plan.imageUrl} type={plan.insuranceType} name={plan.name} />
                       <div>
                         <p className="text-[11px] font-medium text-[var(--color-secondary)] uppercase tracking-wide">
                           {getInsuranceLabel(plan.insuranceType)}
@@ -294,6 +317,10 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
           if (detailPlan) onToggle(detailPlan.id);
         }}
         badgeText={badgeText}
+        // BAL-2338: imagen del tipo de seguro en el detalle del flujo regular.
+        // Reusa la prop `offerImageUrl` del modal compartido (BAL-2251); si el plan
+        // no tiene imagen (null) el modal no muestra imagen (comportamiento actual).
+        offerImageUrl={detailPlan?.imageUrl ?? null}
       />
     </>
   );

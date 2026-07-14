@@ -1260,6 +1260,9 @@ interface ApiInsurancePlan {
   durationMonths: number;
   waitingPeriodDays: number;
   termsUrl: string | null;
+  // BAL-2338: imagen del tipo de seguro (insurance_category.image_url). El backend
+  // la resuelve para ambos flujos; el regular la consume desde BAL-2338.
+  imageUrl?: string | null;
 }
 
 /**

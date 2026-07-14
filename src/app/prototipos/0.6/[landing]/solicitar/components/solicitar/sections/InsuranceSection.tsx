@@ -100,6 +100,9 @@ export function InsuranceSection({
           exclusions: plan.exclusions,
           durationMonths: plan.durationMonths,
           provider: plan.provider,
+          // BAL-2338: imagen del tipo de seguro (insurance_category.image_url) para
+          // el flujo regular. El backend ya la envía; antes se descartaba aquí.
+          imageUrl: plan.imageUrl ?? null,
         }));
         setInsurancePlans(mappedPlans);
         setAvailableMultiasistencia(mappedPlans.find(p => p.insuranceType === 'multiasistencia') ?? null);
