@@ -97,7 +97,7 @@ export const LeadCouponField: React.FC<LeadCouponFieldProps> = ({
     return (
       <div>
         <label className={labelClass}>{label}</label>
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-3 h-10">
+        <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-green-200 bg-green-50 px-3 h-11">
           <span className="flex items-center gap-2 min-w-0">
             <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
             <span className="font-semibold text-green-700 truncate text-sm">{value}</span>
@@ -158,7 +158,7 @@ export const LeadCouponField: React.FC<LeadCouponFieldProps> = ({
               fontSize: '16px',
               borderColor: hasError ? '#fca5a5' : focused ? primaryColor : undefined,
             }}
-            className={`w-full h-10 pl-9 pr-3 rounded-lg border text-sm font-medium uppercase outline-none transition-colors ${
+            className={`w-full h-11 pl-9 pr-3 rounded-lg border-2 text-base font-medium uppercase outline-none transition-colors ${
               hasError
                 ? 'bg-red-50 text-red-700 placeholder:text-red-300'
                 : 'border-neutral-300 bg-white text-neutral-800 placeholder:text-neutral-400'
@@ -170,7 +170,7 @@ export const LeadCouponField: React.FC<LeadCouponFieldProps> = ({
           onClick={() => apply(input)}
           disabled={state === 'validating'}
           style={{ backgroundColor: primaryColor }}
-          className="px-4 h-10 min-w-[84px] rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          className="px-4 h-11 min-w-[84px] rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
         >
           {state === 'validating' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
         </button>
