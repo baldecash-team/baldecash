@@ -86,12 +86,17 @@ export const LeadCouponField: React.FC<LeadCouponFieldProps> = ({
 
   const label = field.label || 'Cupón de descuento';
   const hasError = state === 'error' || (!!error && state !== 'validating');
+  // Igualar el label al resto de campos (TextInput): text-sm en split, text-xs en
+  // default, mismo peso y color neutral-700 — antes se veía más pequeño/claro.
+  const labelClass = `block font-medium text-neutral-700 mb-1 ${
+    variant === 'split' ? 'text-sm' : 'text-xs'
+  }`;
 
   // Estado aplicado: chip verde con el código + botón para quitar.
   if (value) {
     return (
       <div>
-        <label className="block text-xs font-medium text-neutral-600 mb-1">{label}</label>
+        <label className={labelClass}>{label}</label>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-3 h-10">
           <span className="flex items-center gap-2 min-w-0">
             <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -121,7 +126,7 @@ export const LeadCouponField: React.FC<LeadCouponFieldProps> = ({
 
   return (
     <div>
-      <label className="block text-xs font-medium text-neutral-600 mb-1">
+      <label className={labelClass}>
         {label}
         {field.is_required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
