@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, Check, X } from 'lucide-react';
+import { Package, ShieldCheck, Gift, CheckCircle2, Plus, TriangleAlert, Lock, Check, X, Handshake } from 'lucide-react';
 import { Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { AnimatePresence } from 'framer-motion';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
@@ -1036,12 +1036,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             <div className="px-5 py-6 text-center">
               <div
                 className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
-                style={{ backgroundColor: '#FEF3E2' }}
+                style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
               >
-                <TriangleAlert className="h-6 w-6" strokeWidth={2.2} style={{ color: '#B45309' }} />
+                <Handshake className="h-6 w-6" strokeWidth={2.2} style={{ color: OFERTA_COLORS.greenDark }} />
               </div>
               <h2 className="mt-3.5 font-['Baloo_2',_sans-serif] text-[19px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                ¿Estás seguro?
+                ¿Confirmas tu equipo?
               </h2>
               <p className="mt-1.5 text-[13.5px] leading-[1.5]" style={{ color: OFERTA_COLORS.textMid }}>
                 Al confirmar, cambiaremos tu equipo y tu solicitud quedará aprobada.
