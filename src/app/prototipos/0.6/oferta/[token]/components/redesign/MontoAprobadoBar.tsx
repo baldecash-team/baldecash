@@ -56,7 +56,7 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[11.5px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>Monto aprobado</div>
+            <div className="text-[11.5px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>Cuota aprobada</div>
             <div
               className="mt-1 text-[18px] font-bold leading-none"
               style={{ color: OFERTA_COLORS.textMid }}
@@ -82,7 +82,7 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
               <circle cx="12" cy="17.2" r="1.2" fill={RED} />
             </svg>
             <span className="text-[12px] font-semibold" style={{ color: RED }}>
-              Tu cuota excede en S/{fmt(exceso)} el monto aprobado
+              Tu cuota excede en S/{fmt(exceso)} la cuota aprobada
             </span>
           </div>
         ) : null}
@@ -94,7 +94,7 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
   return (
     <div className="rounded-xl px-5 py-3.5 sm:px-6 sm:py-[22px]" style={{ backgroundColor: OFERTA_COLORS.lilac }}>
       <div className="text-[11.5px] font-bold tracking-[.11em]" style={{ color: OFERTA_COLORS.tealBrand }}>
-        TU MONTO APROBADO
+        TU CUOTA APROBADA
       </div>
       <div
         className="mt-1 font-['Baloo_2',_sans-serif] text-[34px] font-extrabold leading-none sm:mt-1.5 sm:text-[46px]"
@@ -119,7 +119,7 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
               {' '}para mejorar tu equipo o sumar accesorios y seguros
             </>
           ) : (
-            <> de tu monto aprobado</>
+            <> de tu cuota aprobada</>
           )}
         </p>
       ) : null}
