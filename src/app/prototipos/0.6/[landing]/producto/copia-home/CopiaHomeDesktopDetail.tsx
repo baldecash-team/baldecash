@@ -247,16 +247,10 @@ export function CopiaHomeDesktopDetail({
 
   // ---- "¿Qué incluye?" ----
   // Accesorios vienen del combo real en DB (landing_product.combo_id → combo_item).
-  // BAL-2362: migrando iPhones reacondicionados a combo real; durante la transición,
-  // los que ya tienen combo en DB lo muestran; los que están en PRODUCTS_MIGRATING_TO_COMBO
-  // se excluyen del fallback hardcodeado para validar el flujo real.
-  // TODO BAL-2362: eliminar fallback y PRODUCTS_MIGRATING_TO_COMBO cuando todos estén migrados.
-  const PRODUCTS_MIGRATING_TO_COMBO = ['1520']; // iPhone 15 Pro Blue Titanium Reacondicionado
   const comboAccessories = apiData.combo?.accessories?.map((a) => a.productName) ?? [];
   const hasCombo = comboAccessories.length > 0;
-  const useHardcodedFallback = isIphone && isRefurbished && !PRODUCTS_MIGRATING_TO_COMBO.includes(product.id);
-  const accesorios = hasCombo ? comboAccessories : ['Mica protectora', 'Cable cargador'];
-  const showIncluye = hasCombo || useHardcodedFallback;
+  const accesorios = comboAccessories;
+  const showIncluye = hasCombo;
 
   const condRows = [
     { l: 'Condición de batería', v: '80 - 99%', blue: true },
