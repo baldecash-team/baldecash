@@ -14,8 +14,9 @@ import { uploadFile } from '../_lib/upload';
 import { admissionEvents } from '../_lib/events';
 import { friendlyError } from '../_lib/errors';
 import { loadProgress, saveProgress, clearProgress } from '../_lib/videoProgress';
+import { createUploadQueue, type UploadEntry } from '../_lib/videoUploadQueue';
 
-type FlowState = 'intro' | 'capture' | 'uploading' | 'completing' | 'confirmed';
+type FlowState = 'intro' | 'capture' | 'completing' | 'retry' | 'confirmed';
 
 interface VideoFlowProps {
   token: string;
@@ -95,11 +96,13 @@ export function resolveQuestion(
 export function VideoFlow({ token, documentTypeCodes, questions = [], applicantName, onDone }: VideoFlowProps) {
   const [state, setState] = useState<FlowState>('intro');
   const [index, setIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
   // Un solo error a la vez (cámara, formato o subida), con su ícono.
   const [error, setError] = useState<{ msg: string; icon?: 'alert' | 'camera' } | null>(null);
   const [cameraGranted, setCameraGranted] = useState(false);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number; accuracy_m?: number } | null>(null);
+  // Cola de subidas en segundo plano + clips fallidos para la pantalla de reintento.
+  const queueRef = useRef<ReturnType<typeof createUploadQueue> | null>(null);
+  const [failedClips, setFailedClips] = useState<UploadEntry[]>([]);
 
   // El número de videos lo marcan questions (si las hay), luego document_type_codes,
   // y como último recurso las preguntas de negocio hardcodeadas (evita "PREGUNTA 1 DE 0").
@@ -157,73 +160,89 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
     }
   }, [state, index, total, events]);
 
+  // Cola de subidas: se inicializa perezosamente con el doUpload real (presign →
+  // PUT S3 → confirm). Lanza en error para que la cola marque el clip fallido.
+  function getQueue() {
+    if (!queueRef.current) {
+      const doUpload = async (i: number, file: File, code: string) => {
+        const urlResult = await requestUploadUrl(token, {
+          filename: file.name,
+          content_type: file.type || 'video/mp4',
+          file_size_bytes: file.size,
+          document_type_code: code,
+        });
+        if (!urlResult.ok) {
+          events.track('video_upload_error', { error_type: urlResult.error.reason ?? urlResult.error.code, question_index: i });
+          throw new Error(urlResult.error.reason ?? urlResult.error.code ?? 'upload_url_failed');
+        }
+        const { upload_url, content_type, file_key } = urlResult.data;
+        await uploadFile(upload_url, file, content_type);
+        const confirmResult = await confirmUpload(token, { file_key, document_type_code: code });
+        if (!confirmResult.ok) {
+          events.track('video_upload_error', { error_type: confirmResult.error.reason ?? confirmResult.error.code, question_index: i });
+          throw new Error(confirmResult.error.reason ?? confirmResult.error.code ?? 'confirm_failed');
+        }
+      };
+      queueRef.current = createUploadQueue(doUpload);
+    }
+    return queueRef.current;
+  }
+
+  // Cierra el link recién cuando TODAS las subidas confirmaron. Si alguna falló,
+  // va a la pantalla de reintento (sin re-grabar).
+  async function finalizeAll() {
+    goStage('completing');
+    const q = getQueue();
+    await q.settleAll();
+    const failed = q.failed();
+    if (failed.length > 0) {
+      setFailedClips(failed);
+      goStage('retry');
+      return;
+    }
+    const completeResult = await completeLink(token, {
+      latitude: coords!.latitude,
+      longitude: coords!.longitude,
+      accuracy_m: coords?.accuracy_m,
+    });
+    if (!completeResult.ok) {
+      events.track('video_completion_error', { error_type: completeResult.error.reason ?? completeResult.error.code });
+      setError({ msg: friendlyError(completeResult.error) });
+      goStage('capture');
+      return;
+    }
+    clearProgress(token);
+    goStage('confirmed');
+    events.track('video_success_shown');
+    events.completed();
+    onDone?.();
+  }
+
   async function handleCaptured(file: File) {
     const i = index;
     const code = resolveQuestion(questions, documentTypeCodes, i).code;
-
     setError(null);
-    setProgress(0);
-    goStage('uploading');
 
-    try {
-      const urlResult = await requestUploadUrl(token, {
-        filename: file.name,
-        content_type: file.type || 'video/mp4',
-        file_size_bytes: file.size,
-        document_type_code: code,
-      });
+    // Dispara la subida en background (silenciosa) y avanza YA a la siguiente.
+    getQueue().start(i, file, code);
 
-      if (!urlResult.ok) {
-        events.track('video_upload_error', { error_type: urlResult.error.reason ?? urlResult.error.code, question_index: i });
-        setError({ msg: friendlyError(urlResult.error) });
-        goStage('capture');
-        return;
-      }
-
-      const { upload_url, content_type, file_key } = urlResult.data;
-
-      await uploadFile(upload_url, file, content_type, setProgress);
-
-      const confirmResult = await confirmUpload(token, { file_key, document_type_code: code });
-
-      if (!confirmResult.ok) {
-        events.track('video_upload_error', { error_type: confirmResult.error.reason ?? confirmResult.error.code, question_index: i });
-        setError({ msg: friendlyError(confirmResult.error) });
-        goStage('capture');
-        return;
-      }
-
-      const nextIndex = i + 1;
-
-      if (nextIndex < total) {
-        saveProgress(token, nextIndex);
-        setIndex(nextIndex);
-        setProgress(0);
-        goStage('capture');
-      } else {
-        goStage('completing');
-        const completeResult = await completeLink(token, {
-          latitude: coords!.latitude,
-          longitude: coords!.longitude,
-          accuracy_m: coords?.accuracy_m,
-        });
-        if (!completeResult.ok) {
-          events.track('video_completion_error', { error_type: completeResult.error.reason ?? completeResult.error.code });
-          setError({ msg: friendlyError(completeResult.error) });
-          goStage('capture');
-          return;
-        }
-        clearProgress(token);
-        goStage('confirmed');
-        events.track('video_success_shown');
-        events.completed();
-        onDone?.();
-      }
-    } catch {
-      events.track('video_upload_error', { error_type: 'exception', question_index: i });
-      setError({ msg: 'Ocurrió un error al subir el video. Inténtalo de nuevo.' });
+    const nextIndex = i + 1;
+    if (nextIndex < total) {
+      saveProgress(token, nextIndex);
+      setIndex(nextIndex);
       goStage('capture');
+    } else {
+      await finalizeAll();
     }
+  }
+
+  async function handleRetry() {
+    const q = getQueue();
+    for (const clip of q.failed()) {
+      q.start(clip.index, clip.file, clip.code);
+    }
+    setFailedClips([]);
+    await finalizeAll();
   }
 
   return (
@@ -266,33 +285,22 @@ export function VideoFlow({ token, documentTypeCodes, questions = [], applicantN
         </div>
       )}
 
-      {/* ── uploading ────────────────────────────────────────────────────── */}
-      {state === 'uploading' && (
+      {/* ── retry ────────────────────────────────────────────────────────── */}
+      {state === 'retry' && (
         <div className="flex flex-col items-center gap-4 py-10">
-          <div className="w-12 h-12 rounded-full border-4 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
-          <p className="text-[#1f2937] font-semibold">Subiendo tu video…</p>
-          <p className="text-[#6b7280] text-sm text-center">Por favor no cierres esta pantalla.</p>
-
-          {/* Barra de progreso real de la subida a S3 (estado `progress`, 0–100%). */}
-          <div className="w-full max-w-xs">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[#6b7280] text-xs font-medium">Progreso</span>
-              <span className="text-[#4654CD] text-sm font-semibold tabular-nums">{progress}%</span>
-            </div>
-            <div
-              className="w-full h-2.5 rounded-full bg-[#e5e7eb] overflow-hidden"
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Progreso de subida del video"
-            >
-              <div
-                className="h-full rounded-full bg-[#4654CD] transition-all duration-200"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
+          <p className="text-[#1f2937] font-semibold">
+            No pudimos subir {failedClips.length === 1 ? 'un video' : 'algunos videos'}
+          </p>
+          <p className="text-[#6b7280] text-sm text-center">
+            Revisa tu conexión y vuelve a intentar. No necesitas grabar de nuevo.
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="rounded-lg bg-[#4654CD] px-5 py-2.5 text-white font-semibold"
+          >
+            Reintentar
+          </button>
         </div>
       )}
 
