@@ -28,7 +28,7 @@ export function MontoHero({ monto }: MontoHeroProps) {
         className="text-[11.5px] font-bold tracking-[.11em]"
         style={{ color: OFERTA_COLORS.tealBrand }}
       >
-        TU MONTO APROBADO
+        TU CUOTA APROBADA
       </div>
       <div
         className="mt-1.5 font-['Baloo_2',_sans-serif] text-[46px] font-extrabold leading-none"
