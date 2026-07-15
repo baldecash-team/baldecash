@@ -273,7 +273,7 @@ export function CopiaHomeMobileDetail({
   // los que ya tienen combo en DB lo muestran; los que están en PRODUCTS_WITH_COMBO_IN_DB
   // se excluyen del fallback hardcodeado para validar el flujo real.
   // TODO BAL-2362: eliminar fallback y PRODUCTS_WITH_COMBO_IN_DB cuando todos estén migrados.
-  const PRODUCTS_MIGRATING_TO_COMBO = [1520]; // iPhone 15 Pro Blue Titanium Reacondicionado
+  const PRODUCTS_MIGRATING_TO_COMBO = ['1520']; // iPhone 15 Pro Blue Titanium Reacondicionado
   const comboAccessories = apiData.combo?.accessories?.map((a) => a.productName) ?? [];
   const hasCombo = comboAccessories.length > 0;
   const useHardcodedFallback = isIphone && isRefurbished && !PRODUCTS_MIGRATING_TO_COMBO.includes(product.id);
