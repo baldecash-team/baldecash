@@ -36,6 +36,8 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
+import { shouldOfferMaUpsell } from '../utils/maUpsell';
+import { MultiasistenciaUpsellModal } from '../components/upsell/MultiasistenciaUpsellModal';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -51,7 +53,14 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts, availableMultiasistencia, toggleInsurance } = useProduct();
+
+  // Multiasistencia (A365) "segunda oportunidad" upsell — solo landing copia-home.
+  // Ver utils/maUpsell.ts (shouldOfferMaUpsell) y utils/submitInsuranceIds.ts.
+  const isCopiaHome = landing === 'copia-home';
+  const [maUpsellOpen, setMaUpsellOpen] = useState(false);
+  const [maDeclined, setMaDeclined] = useState(false);
+  const maSelected = selectedInsurances.some((i) => i.id === availableMultiasistencia?.id);
 
   // Frecuencia del producto principal (para sufijo de cuotas en resumen)
   const primaryFrequency = getAllProducts()[0]?.paymentFrequency;
@@ -210,6 +219,32 @@ function ComplementosContent() {
     router.push(routes.solicitarStep(landing, lastStepSlug));
   };
 
+  // Envía la solicitud con los seguros actuales + extraIds (p.ej. la MA recién
+  // aceptada en el upsell, cuyo toggle de estado es async — ver buildSubmitInsuranceIds).
+  const submitNow = async (extraInsuranceIds: string[] = []) => {
+    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances, extraInsuranceIds);
+    await submitApplication({
+      insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
+      insuranceIds,
+      // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
+      otpEnabled: isEnabled('otp_verification'),
+    });
+  };
+
+  const handleMaAccept = async () => {
+    try { tracker?.track('ma_upsell_accept', { plan_id: availableMultiasistencia?.id }); } catch {}
+    setMaUpsellOpen(false);
+    if (availableMultiasistencia) toggleInsurance(availableMultiasistencia);
+    await submitNow(availableMultiasistencia ? [availableMultiasistencia.id] : []);
+  };
+
+  const handleMaDecline = async () => {
+    try { tracker?.track('ma_upsell_decline', { plan_id: availableMultiasistencia?.id }); } catch {}
+    setMaDeclined(true);
+    setMaUpsellOpen(false);
+    await submitNow([]);
+  };
+
   const handleSubmit = async () => {
     // Validate ALL wizard steps (regular + summary steps with fields) before submitting
     const stepsToValidate = [...regularSteps, ...validatableSummarySteps];
@@ -228,15 +263,14 @@ function ComplementosContent() {
       }
     }
 
-    // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
-    // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
-    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
-    await submitApplication({
-      insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
-      insuranceIds,
-      // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
-      otpEnabled: isEnabled('otp_verification'),
-    });
+    // "Segunda oportunidad" de Multiasistencia (A365), solo en copia-home.
+    if (isCopiaHome && shouldOfferMaUpsell({ availableMultiasistencia, maSelected, declined: maDeclined })) {
+      try { tracker?.track('ma_upsell_shown', { plan_id: availableMultiasistencia?.id }); } catch {}
+      setMaUpsellOpen(true);
+      return;
+    }
+
+    await submitNow([]);
   };
 
   // Total monthly is now calculated in ProductContext (includes insurance + accessories)
@@ -389,6 +423,16 @@ function ComplementosContent() {
           La selección de opciones adicionales es opcional. Puedes continuar sin seleccionar ninguna.
         </p>
       </div>
+
+      {/* Multiasistencia "segunda oportunidad" upsell (solo copia-home) */}
+      {isCopiaHome && (
+        <MultiasistenciaUpsellModal
+          isOpen={maUpsellOpen}
+          monthlyPrice={availableMultiasistencia?.monthlyPrice ?? 0}
+          onAccept={handleMaAccept}
+          onDecline={handleMaDecline}
+        />
+      )}
     </div>
   );
 

@@ -22,10 +22,26 @@ export const MultiasistenciaUpsellModal: React.FC<MultiasistenciaUpsellModalProp
   isOpen, monthlyPrice, onAccept, onDecline,
 }) => {
   const price = Math.floor(monthlyPrice ?? 0);
+  // In-flight guard: once either button is clicked, both become disabled
+  // so a rapid double-click can't fire onAccept/onDecline twice.
+  const [isResolving, setIsResolving] = React.useState(false);
+
+  const handleAccept = () => {
+    if (isResolving) return;
+    setIsResolving(true);
+    onAccept();
+  };
+
+  const handleDecline = () => {
+    if (isResolving) return;
+    setIsResolving(true);
+    onDecline();
+  };
+
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onDecline}
+      onClose={handleDecline}
       placement="center"
       hideCloseButton
       // Backdrop explícito: NextUI por defecto usa `bg-overlay/50`, cuyo token
@@ -46,7 +62,7 @@ export const MultiasistenciaUpsellModal: React.FC<MultiasistenciaUpsellModalProp
             </span>
             <h3 className="text-xl font-bold text-white mb-1">Protégete hoy, no cuando ya sea tarde</h3>
             <p className="text-sm text-white/90">
-              Una emergencia no avisa. Por muy poco al mes, tú y tu familia tienen médico, soporte técnico y respaldo legal cuando lo necesiten — no esperes a necesitarlo para tenerlo.
+              Una emergencia no avisa. Por muy poco al mes, tú y tu familia tienen médico, soporte técnico y respaldo legal — no esperes a necesitarlo para tenerlo.
             </p>
           </div>
           <div className="px-6 py-5">
@@ -61,13 +77,13 @@ export const MultiasistenciaUpsellModal: React.FC<MultiasistenciaUpsellModalProp
             <p className="text-center text-sm text-neutral-500 mb-4">
               Por solo <b className="text-2xl text-[var(--color-primary)]">S/{formatMoneyNoDecimals(price)}</b> /mes en tu cuota
             </p>
-            <button onClick={onAccept}
-              className="w-full py-3.5 rounded-xl font-extrabold text-base bg-[var(--color-secondary)] text-white cursor-pointer hover:brightness-95">
+            <button onClick={handleAccept} disabled={isResolving}
+              className="w-full py-3.5 rounded-xl font-extrabold text-base bg-[var(--color-secondary)] text-white cursor-pointer hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed">
               Sí, lo quiero ✓
             </button>
-            <button onClick={onDecline}
-              className="w-full mt-2.5 text-xs text-neutral-500 underline cursor-pointer">
-              No, prefiero arriesgarme y continuar sin protección
+            <button onClick={handleDecline} disabled={isResolving}
+              className="w-full mt-2.5 text-xs text-neutral-500 underline cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+              No, continuar sin protección
             </button>
           </div>
         </ModalBody>
