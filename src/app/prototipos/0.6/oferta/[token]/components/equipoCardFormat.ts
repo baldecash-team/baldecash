@@ -11,6 +11,17 @@ export function cuotaSuffix(freq?: string | null): string {
   return f === 'semanal' ? '/sem' : f === 'quincenal' ? '/qcn' : '/mes';
 }
 
+/**
+ * BAL-2379: factor para llevar una cuota de su frecuencia nativa a MENSUAL, para
+ * poder compararla contra la cuota aprobada (que es mensual). quincenal→2 (24
+ * periodos/año ÷ 12), semanal→4 (48÷12), mensual→1. Espejo del `_monthly_factor`
+ * del backend (conditional_offer_service.py).
+ */
+export function monthlyFactor(freq?: string | null): number {
+  const f = (freq ?? 'mensual').toLowerCase();
+  return f === 'semanal' ? 4 : f === 'quincenal' ? 2 : 1;
+}
+
 /** Unidad del plazo (singular/plural) según frecuencia: mes(es)/semana(s)/quincena(s). */
 export function plazoUnit(n: number | null | undefined, freq?: string | null): string {
   const f = freq ?? 'mensual';

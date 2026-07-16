@@ -1,6 +1,15 @@
-import { cuotaSuffix, plazoUnit, inicialText } from './equipoCardFormat';
+import { cuotaSuffix, plazoUnit, inicialText, monthlyFactor } from './equipoCardFormat';
 
 describe('equipoCardFormat', () => {
+  test('monthlyFactor lleva a mensual: quincenal x2, semanal x4 (BAL-2379)', () => {
+    expect(monthlyFactor('mensual')).toBe(1);
+    expect(monthlyFactor('quincenal')).toBe(2);
+    expect(monthlyFactor('semanal')).toBe(4);
+    expect(monthlyFactor('QUINCENAL')).toBe(2); // case-insensitive
+    expect(monthlyFactor(undefined)).toBe(1);
+    expect(monthlyFactor(null)).toBe(1);
+  });
+
   test('cuotaSuffix por frecuencia', () => {
     expect(cuotaSuffix('semanal')).toBe('/sem');
     expect(cuotaSuffix('quincenal')).toBe('/qcn');

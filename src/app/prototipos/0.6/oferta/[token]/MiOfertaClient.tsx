@@ -28,6 +28,7 @@ import {
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
+import { monthlyFactor } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
 import { saveOfferSelection, clearAllAddons, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
@@ -563,14 +564,19 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   const req = offer.requestedProduct;
 
-  // Cuota total del pedido para la barra (Caso 4): equipo + accesorios + seguros
-  // que el estudiante ya tenía. La barra debe reflejar lo que realmente ocupa
-  // de su monto aprobado, no solo el equipo.
+  // Cuota total del pedido para la barra (Caso 4/5): equipo + accesorios + seguros
+  // que el estudiante ya tenía. La barra la compara contra la cuota aprobada, que
+  // es MENSUAL. BAL-2379: para celulares (semanal/quincenal) la cuota del pedido
+  // viene en su frecuencia nativa, así que se lleva a mensual con monthlyFactor
+  // antes de compararla; si no, la barra sobrestimaba el restante (59/qcn vs 600/mes).
+  // La card "tu pedido" sigue mostrando la cuota nativa (/qcn) — esto es solo para
+  // el cálculo del restante de la barra.
+  const reqFreqFactor = monthlyFactor(req?.payment_frequency);
   const reqExtrasMonthly =
-    (req?.accessories ?? []).reduce((s, a) => s + (a.monthly ?? 0), 0) +
-    (req?.insurances ?? []).reduce((s, i) => s + (i.monthly ?? 0), 0);
+    ((req?.accessories ?? []).reduce((s, a) => s + (a.monthly ?? 0), 0) +
+     (req?.insurances ?? []).reduce((s, i) => s + (i.monthly ?? 0), 0)) * reqFreqFactor;
   const reqTotalMonthly =
-    req?.monthly_price != null ? req.monthly_price + reqExtrasMonthly : null;
+    req?.monthly_price != null ? (req.monthly_price * reqFreqFactor) + reqExtrasMonthly : null;
 
   // Chips de specs del equipo pedido (processor/RAM/almacenamiento/GPU/pantalla),
   // igual que la card del recomendado del Caso 4. El backend manda el dict plano

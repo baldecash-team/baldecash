@@ -31,7 +31,7 @@ import {
 } from '../../../services/offerApi';
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
-import { cuotaSuffix, plazoUnit } from '../components/equipoCardFormat';
+import { cuotaSuffix, plazoUnit, monthlyFactor } from '../components/equipoCardFormat';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from '../components/redesign/OfertaHeader';
@@ -98,6 +98,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [insurances, setInsurances] = useState<InsurancePlan[]>([]);
   const [equipoMonthly, setEquipoMonthly] = useState(0);
+  // BAL-2379: cuota del equipo mensualizada (para el total/límite; el equipo
+  // quincenal/semanal se compara en mensual). `equipoMonthly` (nativo) es solo display.
+  const [equipoMonthlyBilled, setEquipoMonthlyBilled] = useState(0);
   // Monto (S/) de la inicial del equipo a la celda actual — se muestra el monto,
   // no el %. Se recalcula al cambiar plazo/inicial.
   const [equipoInitialAmount, setEquipoInitialAmount] = useState(0);
@@ -230,6 +233,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setAccessories(res.accessories);
         setInsurances(res.insurances);
         setEquipoMonthly(res.equipoMonthly);
+        setEquipoMonthlyBilled(res.equipoMonthlyBilled);
         setEquipoInitialAmount(res.equipoInitialAmount);
         setEquipoFrequency(res.equipoFrequency);
         setEquipoTerm(res.equipoTerm);
@@ -336,19 +340,25 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     [],
   );
 
-  // Cuota total = equipo + accesorios + seguros seleccionados.
+  // BAL-2379: maxQuota es MENSUAL. El backend YA envía en mensual los montos que
+  // se comparan contra ella: equipoMonthlyBilled (equipo × periodos/mes) y
+  // accessories[].monthlyQuota (mensualizado); los seguros ya son mensuales. El
+  // front NO multiplica — solo suma. `equipoMonthly` (nativo) se reserva para la
+  // card "TU EQUIPO", que lo muestra con su sufijo (/qcn, /sem).
+
+  // Cuota total MENSUAL = equipo (billed) + accesorios + seguros.
   const totalMonthly = useMemo(() => {
     const acc = accessories.filter((a) => selectedAcc.includes(a.id)).reduce((s, a) => s + accMonthly(a), 0);
     const ins = insurances.filter((p) => selectedIns.includes(p.id)).reduce((s, p) => s + (p.monthlyPrice || 0), 0);
-    return equipoMonthly + acc + ins;
-  }, [accessories, insurances, selectedAcc, selectedIns, equipoMonthly, accMonthly]);
+    return equipoMonthlyBilled + acc + ins;
+  }, [accessories, insurances, selectedAcc, selectedIns, equipoMonthlyBilled, accMonthly]);
 
-  // Cuota restante = tope aprobado − total actual. El equipo + add-ons no puede
-  // superar la cuota máxima aprobada (premisa del Caso 4).
+  // Cuota restante MENSUAL = tope aprobado − total actual. El equipo + add-ons no
+  // puede superar la cuota máxima aprobada (premisa del Caso 4/5).
   const remaining = maxQuota != null ? maxQuota - totalMonthly : Infinity;
   const overBudget = maxQuota != null && totalMonthly > maxQuota + 0.5;
-  // Un add-on NO seleccionado se puede agregar solo si su cuota cabe en el
-  // restante. Los ya seleccionados siempre se pueden quitar.
+  // Un add-on NO seleccionado se puede agregar solo si su cuota (mensual) cabe
+  // en el restante. Los ya seleccionados siempre se pueden quitar.
   const accFits = (a: Accessory) => selectedAcc.includes(a.id) || (a.monthlyQuota || 0) <= remaining + 0.5;
   const insFits = (p: InsurancePlan) => selectedIns.includes(p.id) || (p.monthlyPrice || 0) <= remaining + 0.5;
 
@@ -824,11 +834,14 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           </p>
         </div>
 
-        {/* Tu equipo (con desglose de extras si hay accesorios/seguros elegidos) */}
+        {/* Tu equipo (con desglose de extras si hay accesorios/seguros elegidos).
+            BAL-2379: esta card resume el consumo MENSUAL de la cuota aprobada (todo
+            en /mes). Para celulares quincenal/semanal se usa la cuota mensualizada
+            (billed), no la nativa, para que cuadre con el total. */}
         {equipoInfo && (
           <TuEquipoCard
             nombre={equipoInfo.name}
-            cuota={equipoMonthly}
+            cuota={equipoMonthlyBilled}
             imageUrl={equipoInfo.imageUrl}
             extras={equipoExtras}
             total={totalMonthly}
