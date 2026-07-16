@@ -625,7 +625,7 @@ export async function getOfferAddonsRich(
   variantId: number,
   selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
   comboId?: number | null,
-): Promise<{ remaining: number; equipoMonthly: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] } }> {
+): Promise<{ remaining: number; equipoMonthly: number; equipoMonthlyBilled: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] } }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
@@ -689,6 +689,9 @@ export async function getOfferAddonsRich(
   return {
     remaining: Number(d.remaining ?? 0),
     equipoMonthly: Number(d.equipo_monthly ?? 0),
+    // BAL-2379: cuota del equipo MENSUALIZADA (para el total/límite). Fallback a
+    // equipo_monthly para equipos mensuales o respuestas viejas sin el campo.
+    equipoMonthlyBilled: Number(d.equipo_monthly_billed ?? d.equipo_monthly ?? 0),
     equipoInitialAmount: Number(d.equipo_initial_amount ?? 0),
     equipoFrequency: String(d.equipo_frequency ?? 'mensual'),
     equipoTerm: d.equipo_term != null ? Number(d.equipo_term) : null,
