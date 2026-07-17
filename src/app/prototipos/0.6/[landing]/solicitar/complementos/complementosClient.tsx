@@ -236,6 +236,7 @@ function ComplementosContent() {
       insuranceIds,
       // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
       otpEnabled: isEnabled('otp_verification'),
+      kycEnabled: isEnabled('kyc'),
     });
   };
 

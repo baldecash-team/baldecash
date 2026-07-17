@@ -55,6 +55,7 @@ interface SubmitOptions {
    * aquí para no acoplar el hook a `usePreview`).
    */
   otpEnabled?: boolean;
+  kycEnabled?: boolean;
 }
 
 /**
@@ -243,7 +244,7 @@ export function useSubmitApplication(
    */
   const submit = useCallback(
     async (submitOptions: SubmitOptions = {}): Promise<boolean> => {
-      const { insuranceId = null, insuranceIds, otpEnabled = false } = submitOptions;
+      const { insuranceId = null, insuranceIds, otpEnabled = false, kycEnabled = false } = submitOptions;
 
       setError(null);
 
@@ -421,11 +422,17 @@ export function useSubmitApplication(
 
           setIsSubmitting(false);
 
-          // Siempre vamos directo a la página de confirmación (resumen). El OTP
-          // quedó como CTA opcional dentro de esa vista.
-          router.push(
-            routes.solicitarConfirmacion(landing, result.application_code)
-          );
+          // Cuando la landing habilita `kyc` (hoy solo copia-home), pasamos por
+          // los pasos posteriores de verificación antes del resumen. En el resto
+          // de landings (kyc apagado) el comportamiento es el de siempre: directo
+          // a confirmación.
+          if (kycEnabled) {
+            router.push(routes.solicitarKyc(landing, { code: result.application_code }));
+          } else {
+            router.push(
+              routes.solicitarConfirmacion(landing, result.application_code)
+            );
+          }
 
           return true;
         } else {

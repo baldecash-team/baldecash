@@ -469,7 +469,7 @@ function StepContent() {
       router.push(routes.solicitarComplementos(landing));
     } else {
       // No more steps and no complementos - submit directly
-      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification') });
+      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled: isEnabled('kyc') });
     }
   };
 
@@ -556,7 +556,7 @@ function StepContent() {
       router.push(routes.solicitarComplementos(landing));
     } else {
       // No sections after wizard - submit application directly
-      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification') });
+      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled: isEnabled('kyc') });
       // The hook handles navigation to confirmation page on success
       // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
