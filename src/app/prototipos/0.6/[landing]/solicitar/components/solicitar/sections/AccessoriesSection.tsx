@@ -22,6 +22,8 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { Accessory, AccessoryCategory } from '../../../types/upsell';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { AccessoriesLoadingScreen } from './AccessoriesLoadingScreen';
+import { useSessionOptional } from '../../../context/SessionContext';
 
 /** Responsive page size: 2 mobile, 4 tablet, 6 desktop */
 function usePageSize() {
@@ -109,6 +111,9 @@ export function AccessoriesSection({
     toggleAccessory(accessory);
   };
   const [isLoading, setIsLoading] = useState(true);
+  const session = useSessionOptional();
+  const hasFetchedOnceRef = useRef(false);
+  const [isFirstFetch, setIsFirstFetch] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
   // Filters — activeCategory es un slug de subcategoría o 'todos'
@@ -165,10 +170,16 @@ export function AccessoriesSection({
     let cancelled = false;
 
     async function fetchAccessories() {
+      const isRefresh = !hasFetchedOnceRef.current;
       setIsLoading(true);
+      setIsFirstFetch(isRefresh);
       try {
-        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema);
+        const apiAccessories = await getLandingAccessories(
+          landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema,
+          session?.sessionUuid ?? null, isRefresh,
+        );
         if (cancelled) return;
+        hasFetchedOnceRef.current = true;
         if (apiAccessories && apiAccessories.length > 0) {
           analytics.track('accessory_variant_assigned', { variant: abVariant, count: apiAccessories.length, ecosistema: ecosistema ?? null });
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
@@ -315,9 +326,13 @@ export function AccessoriesSection({
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
-        </div>
+        isFirstFetch ? (
+          <AccessoriesLoadingScreen />
+        ) : (
+          <div className="flex justify-center py-8">
+            <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
+          </div>
+        )
       ) : (
         <>
           {/* Toolbar: Category chips + Arrows + Search + Selected count */}

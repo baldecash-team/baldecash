@@ -1168,6 +1168,8 @@ export async function getLandingAccessories(
   paymentFrequency?: string,
   variant?: string,
   ecosistema?: string,
+  sessionId?: string | null,
+  refreshRecommendations?: boolean,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1195,6 +1197,12 @@ export async function getLandingAccessories(
     }
     if (ecosistema) {
       queryParams.set('ecosistema', ecosistema);
+    }
+    if (sessionId) {
+      queryParams.set('session_id', sessionId);
+    }
+    if (refreshRecommendations) {
+      queryParams.set('refresh_recommendations', 'true');
     }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
