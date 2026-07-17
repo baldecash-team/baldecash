@@ -176,7 +176,7 @@ export function AccessoriesSection({
       try {
         const apiAccessories = await getLandingAccessories(
           landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema,
-          session?.sessionUuid ?? null, isRefresh,
+          session?.sessionUuid ?? null, isRefresh, selectedProduct?.slug ?? null,
         );
         if (cancelled) return;
         hasFetchedOnceRef.current = true;

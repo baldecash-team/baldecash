@@ -1170,6 +1170,7 @@ export async function getLandingAccessories(
   ecosistema?: string,
   sessionId?: string | null,
   refreshRecommendations?: boolean,
+  productSlug?: string | null,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1204,6 +1205,7 @@ export async function getLandingAccessories(
     if (refreshRecommendations) {
       queryParams.set('refresh_recommendations', 'true');
     }
+    if (productSlug) { queryParams.set('product_slug', productSlug); }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
     const accessoriesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, slug);
