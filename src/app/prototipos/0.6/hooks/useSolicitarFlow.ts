@@ -5,10 +5,14 @@ import {
   getSolicitarConfig,
   getEnabledSections,
   isSectionEnabled,
+  getKycSteps,
+  isKycStepEnabled,
   DEFAULT_SOLICITAR_FLOW,
   type SolicitarFlowConfig,
   type SolicitarSection,
   type SolicitarSectionType,
+  type KycStep,
+  type KycStepType,
 } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
 
@@ -18,7 +22,7 @@ import { usePreview } from '../context/PreviewContext';
  * - `otp_verification` es un gate full-screen post-submit (antes del resumen),
  *   se consume vía `isEnabled('otp_verification')`, no como sección inline.
  */
-const INLINE_EXCLUDED_SECTIONS: SolicitarSectionType[] = ['wizard_steps', 'otp_verification'];
+const INLINE_EXCLUDED_SECTIONS: SolicitarSectionType[] = ['wizard_steps', 'otp_verification', 'kyc'];
 
 interface UseSolicitarFlowOptions {
   /**
@@ -76,6 +80,14 @@ interface UseSolicitarFlowResult {
    * True si el cupón de descuento es obligatorio para comenzar la solicitud
    */
   isCouponRequired: boolean;
+  /**
+   * Sub-pasos habilitados de la sección `kyc`, ordenados por `order`
+   */
+  kycSteps: KycStep[];
+  /**
+   * Verificar si un sub-paso de `kyc` está habilitado
+   */
+  isKycStepEnabled: (type: KycStepType) => boolean;
 }
 
 /**
@@ -148,6 +160,13 @@ export function useSolicitarFlow({
     [config]
   );
 
+  const kycSteps = useMemo(() => getKycSteps(config), [config]);
+
+  const isKycStepEnabledFn = useMemo(
+    () => (type: KycStepType) => isKycStepEnabled(config, type),
+    [config]
+  );
+
   const getPosition = useMemo(
     () => (type: SolicitarSectionType): number | null => {
       const index = enabledSections.findIndex(s => s.type === type);
@@ -198,6 +217,8 @@ export function useSolicitarFlow({
     sectionsAfterWizard,
     shouldShowComplementos,
     isCouponRequired,
+    kycSteps,
+    isKycStepEnabled: isKycStepEnabledFn,
   };
 }
 
