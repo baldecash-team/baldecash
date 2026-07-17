@@ -1468,6 +1468,13 @@ export function isSectionEnabled(
   return section?.enabled ?? true;
 }
 
+/** True SOLO si la landing tiene la sección `kyc` presente y habilitada.
+ *  Fail-safe: sección ausente ⇒ false (a diferencia de isSectionEnabled que
+ *  hace `?? true`). Úsalo para el gate de los pasos posteriores kyc. */
+export function isKycEnabled(config: SolicitarFlowConfig): boolean {
+  return config.sections.find(s => s.type === 'kyc')?.enabled ?? false;
+}
+
 /** Orden canónico de los sub-pasos de la sección `kyc`. */
 export const KYC_STEP_TYPES: KycStepType[] = [
   'dni_selfie',

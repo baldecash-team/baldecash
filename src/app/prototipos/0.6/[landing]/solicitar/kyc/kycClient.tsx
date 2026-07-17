@@ -29,8 +29,7 @@ function KycContent() {
   const landing = (params.landing as string) || 'home';
   const code = searchParams.get('code') || undefined;
 
-  const { isEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
-  const kycEnabled = isEnabled('kyc');
+  const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
 
   const goToConfirmacion = () =>
     router.replace(routes.solicitarConfirmacion(landing, code));

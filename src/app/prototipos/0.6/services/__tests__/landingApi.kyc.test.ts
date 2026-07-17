@@ -1,5 +1,6 @@
 import {
   getKycSteps,
+  isKycEnabled,
   isKycStepEnabled,
   isSectionEnabled,
   KYC_STEP_TYPES,
@@ -47,5 +48,20 @@ describe('kyc helpers', () => {
   it('isSectionEnabled("kyc") sigue funcionando', () => {
     expect(isSectionEnabled(withKyc(true, []), 'kyc')).toBe(true);
     expect(isSectionEnabled(withKyc(false, []), 'kyc')).toBe(false);
+  });
+
+  describe('isKycEnabled (fail-safe: ausente/deshabilitada ⇒ false)', () => {
+    it('false si la sección kyc está AUSENTE', () => {
+      const cfg: SolicitarFlowConfig = { sections: [{ type: 'wizard_steps', enabled: true, order: 1 }] };
+      expect(isKycEnabled(cfg)).toBe(false);
+    });
+
+    it('false si la sección kyc está presente pero deshabilitada', () => {
+      expect(isKycEnabled(withKyc(false, []))).toBe(false);
+    });
+
+    it('true si la sección kyc está presente y habilitada', () => {
+      expect(isKycEnabled(withKyc(true, []))).toBe(true);
+    });
   });
 });

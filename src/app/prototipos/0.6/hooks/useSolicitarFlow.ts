@@ -7,6 +7,7 @@ import {
   isSectionEnabled,
   getKycSteps,
   isKycStepEnabled,
+  isKycEnabled,
   DEFAULT_SOLICITAR_FLOW,
   type SolicitarFlowConfig,
   type SolicitarSection,
@@ -88,6 +89,13 @@ interface UseSolicitarFlowResult {
    * Verificar si un sub-paso de `kyc` está habilitado
    */
   isKycStepEnabled: (type: KycStepType) => boolean;
+  /**
+   * True SOLO si la landing tiene la sección `kyc` presente y habilitada.
+   * Fail-safe: sección ausente ⇒ false. Úsalo para el gate de los pasos
+   * posteriores kyc (submit y ruta `/solicitar/kyc`), en vez de
+   * `isEnabled('kyc')` (que hace `?? true` y abriría el gate por defecto).
+   */
+  kycEnabled: boolean;
 }
 
 /**
@@ -162,6 +170,8 @@ export function useSolicitarFlow({
 
   const kycSteps = useMemo(() => getKycSteps(config), [config]);
 
+  const kycEnabled = useMemo(() => isKycEnabled(config), [config]);
+
   const isKycStepEnabledFn = useMemo(
     () => (type: KycStepType) => isKycStepEnabled(config, type),
     [config]
@@ -219,6 +229,7 @@ export function useSolicitarFlow({
     isCouponRequired,
     kycSteps,
     isKycStepEnabled: isKycStepEnabledFn,
+    kycEnabled,
   };
 }
 
