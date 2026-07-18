@@ -90,7 +90,7 @@ function KycContent() {
     <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8 overflow-y-auto">
       <div className="w-full max-w-md space-y-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center">
-          Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type] ?? currentStep.type}
+          Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
         </p>
 
         {renderStep(currentStep.type, goNext, goBack)}
