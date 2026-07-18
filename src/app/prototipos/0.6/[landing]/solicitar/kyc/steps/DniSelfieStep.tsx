@@ -61,7 +61,8 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
     async (mode: 'user' | 'environment') => {
       setError(null);
       try {
-        await requestCamera(mode);
+        // Solo se necesita video: este paso captura fotos fijas, no audio.
+        await requestCamera(mode, { audio: false });
       } catch (err) {
         setError(cameraErrorMessage(err));
       }
@@ -241,10 +242,10 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
         </div>
       )}
 
-      {onBack && phase === 'selfie' && !pendingShot && (
+      {!pendingShot && (
         <button
           type="button"
-          onClick={onBack}
+          onClick={() => onBack?.()}
           className="w-full border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
         >
           Atrás

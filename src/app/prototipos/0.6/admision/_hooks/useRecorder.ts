@@ -60,7 +60,7 @@ export interface RecorderState {
 }
 
 export interface RecorderActions {
-  requestCamera: (mode?: FacingMode) => Promise<void>;
+  requestCamera: (mode?: FacingMode, opts?: { audio?: boolean }) => Promise<void>;
   startRecording: () => void;
   stopRecording: () => void;
   reRecord: () => void;
@@ -171,23 +171,24 @@ export function useRecorder(): UseRecorderReturn {
   }, []);
 
   const requestCamera = useCallback(
-    async (mode?: FacingMode) => {
+    async (mode?: FacingMode, opts?: { audio?: boolean }) => {
       const fm = mode ?? facingMode;
+      const audioEnabled = opts?.audio ?? true;
       setRequesting(true);
       try {
         let s: MediaStream;
         try {
-          // Ideal: cámara (con facingMode preferido) + micrófono.
+          // Ideal: cámara (con facingMode preferido) + micrófono (si se solicitó).
           s = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { ideal: fm }, ...VIDEO_CONSTRAINTS },
-            audio: true,
+            audio: audioEnabled,
           });
         } catch (e) {
           const name = (e as { name?: string } | null)?.name ?? '';
           // Si falla por un problema del micrófono (no encontrado / en uso / restricción),
           // reintenta solo con cámara para no bloquear al usuario. Los bloqueos de permiso
           // (NotAllowedError) o de seguridad se propagan tal cual.
-          if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'NotReadableError' || name === 'TrackStartError' || name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+          if (audioEnabled && (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'NotReadableError' || name === 'TrackStartError' || name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError')) {
             s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: fm }, ...VIDEO_CONSTRAINTS } });
           } else {
             throw e;
