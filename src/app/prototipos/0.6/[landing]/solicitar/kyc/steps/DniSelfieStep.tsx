@@ -242,10 +242,19 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
         </div>
       )}
 
-      {!pendingShot && (
+      {/* En fase DNI, "Atrás" vuelve a la selfie (escape del loop de error de
+          cámara). En fase selfie, solo aparece si hay paso previo (onBack). */}
+      {!pendingShot && (phase === 'dni' || onBack) && (
         <button
           type="button"
-          onClick={() => onBack?.()}
+          onClick={() => {
+            if (phase === 'dni') {
+              setPendingShot(null);
+              setPhase('selfie');
+            } else {
+              onBack?.();
+            }
+          }}
           className="w-full border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
         >
           Atrás
