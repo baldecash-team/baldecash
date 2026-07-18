@@ -113,7 +113,7 @@ export function AccessoriesSection({
   const [isLoading, setIsLoading] = useState(true);
   const session = useSessionOptional();
   const hasFetchedOnceRef = useRef(false);
-  const [isFirstFetch, setIsFirstFetch] = useState(true);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
   // Filters — activeCategory es un slug de subcategoría o 'todos'
@@ -172,11 +172,17 @@ export function AccessoriesSection({
     async function fetchAccessories() {
       const isRefresh = !hasFetchedOnceRef.current;
       setIsLoading(true);
-      setIsFirstFetch(isRefresh);
+      let loadingScreenTimer: ReturnType<typeof setTimeout> | null = null;
+      if (isRefresh) {
+        loadingScreenTimer = setTimeout(() => {
+          if (!cancelled) setShowLoadingScreen(true);
+        }, 500);
+      }
       try {
         const apiAccessories = await getLandingAccessories(
           landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema,
           session?.sessionUuid ?? null, isRefresh, selectedProduct?.slug ?? null,
+          selectedProduct?.initialAmount ?? null,
         );
         if (cancelled) return;
         hasFetchedOnceRef.current = true;
@@ -207,6 +213,8 @@ export function AccessoriesSection({
         console.error('Error loading accessories:', error);
         setAccessories([]);
       } finally {
+        if (loadingScreenTimer) clearTimeout(loadingScreenTimer);
+        setShowLoadingScreen(false);
         if (!cancelled) setIsLoading(false);
       }
     }
@@ -326,7 +334,7 @@ export function AccessoriesSection({
       )}
 
       {isLoading ? (
-        isFirstFetch ? (
+        showLoadingScreen ? (
           <AccessoriesLoadingScreen />
         ) : (
           <div className="flex justify-center py-8">

@@ -1171,6 +1171,7 @@ export async function getLandingAccessories(
   sessionId?: string | null,
   refreshRecommendations?: boolean,
   productSlug?: string | null,
+  initialAmount?: number | null,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1206,6 +1207,7 @@ export async function getLandingAccessories(
       queryParams.set('refresh_recommendations', 'true');
     }
     if (productSlug) { queryParams.set('product_slug', productSlug); }
+    if (initialAmount) { queryParams.set('initial_amount', String(initialAmount)); }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
     const accessoriesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, slug);
