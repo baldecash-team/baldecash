@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useRecorder } from '@/app/prototipos/0.6/admision/_hooks/useRecorder';
 import { cameraErrorMessage } from '@/app/prototipos/0.6/admision/_lib/cameraError';
+import { compareFaces } from '@/app/prototipos/0.6/services/kycApi';
 
 export interface DniSelfieStepProps {
   onDone: () => void;
@@ -56,6 +57,33 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
   const [pendingShot, setPendingShot] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  type VerifyState = 'idle' | 'verifying' | 'matched' | 'nomatch' | 'error';
+  const [verifyState, setVerifyState] = useState<VerifyState>('idle');
+  const [similarity, setSimilarity] = useState<number | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  const runVerification = async () => {
+    if (!selfieShot || !dniShot) return;
+    setVerifyState('verifying');
+    setVerifyError(null);
+    const res = await compareFaces(selfieShot, dniShot);
+    if (!res.success) {
+      setVerifyError(res.error || 'No pudimos verificar tu identidad.');
+      setVerifyState('error');
+      return;
+    }
+    setSimilarity(typeof res.similarity === 'number' ? res.similarity : null);
+    setVerifyState(res.is_match ? 'matched' : 'nomatch');
+  };
+
+  const retakeFromSelfie = () => {
+    setSelfieShot(null);
+    setDniShot(null);
+    setSimilarity(null);
+    setVerifyState('idle');
+    setPhase('selfie');
+  };
 
   const openCamera = useCallback(
     async (mode: 'user' | 'environment') => {
@@ -163,14 +191,66 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
               Atrás
             </button>
           )}
+        </div>
+
+        {verifyState === 'idle' && (
           <button
             type="button"
-            onClick={onDone}
-            className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+            onClick={runVerification}
+            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
           >
-            Continuar
+            Verificar identidad
           </button>
-        </div>
+        )}
+
+        {verifyState === 'verifying' && (
+          <div className="flex items-center justify-center gap-2 py-3 text-[#6b7280]">
+            <span className="w-5 h-5 rounded-full border-2 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
+            Verificando identidad…
+          </div>
+        )}
+
+        {verifyState === 'matched' && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 justify-center text-[#16a34a] font-semibold">
+              <span className="w-6 h-6 rounded-full bg-[#16a34a]/10 flex items-center justify-center">✓</span>
+              Identidad verificada{similarity != null ? ` · ${similarity}%` : ''}
+            </div>
+            <button
+              type="button"
+              onClick={onDone}
+              className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Continuar
+            </button>
+          </div>
+        )}
+
+        {(verifyState === 'nomatch' || verifyState === 'error') && (
+          <div className="space-y-3">
+            <p className="text-sm text-[#ef4444] text-center">
+              {verifyState === 'nomatch'
+                ? `Los rostros no coinciden${similarity != null ? ` (${similarity}%)` : ''}. Repite las fotos.`
+                : (verifyError || 'No pudimos verificar tu identidad.')}
+            </p>
+            <button
+              type="button"
+              onClick={retakeFromSelfie}
+              className="w-full border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
+            >
+              Repetir fotos
+            </button>
+            {verifyState === 'error' && (
+              <button
+                type="button"
+                onClick={runVerification}
+                className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
