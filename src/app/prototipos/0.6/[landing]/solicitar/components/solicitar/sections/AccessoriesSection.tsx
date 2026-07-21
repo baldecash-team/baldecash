@@ -77,7 +77,7 @@ export function AccessoriesSection({
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   const { config, badgeText } = useWizardConfig();
-  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
+  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts, setIsLoadingAccessories } = useProduct();
   const analytics = useAnalytics();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
 
@@ -172,12 +172,10 @@ export function AccessoriesSection({
     async function fetchAccessories() {
       const isRefresh = !hasFetchedOnceRef.current;
       setIsLoading(true);
-      let loadingScreenTimer: ReturnType<typeof setTimeout> | null = null;
-      if (isRefresh) {
-        loadingScreenTimer = setTimeout(() => {
-          if (!cancelled) setShowLoadingScreen(true);
-        }, 500);
-      }
+      setIsLoadingAccessories(true);
+      const loadingScreenTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        if (!cancelled) setShowLoadingScreen(true);
+      }, 500);
       try {
         const apiAccessories = await getLandingAccessories(
           landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema,
@@ -213,9 +211,12 @@ export function AccessoriesSection({
         console.error('Error loading accessories:', error);
         setAccessories([]);
       } finally {
-        if (loadingScreenTimer) clearTimeout(loadingScreenTimer);
+        clearTimeout(loadingScreenTimer);
         setShowLoadingScreen(false);
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsLoadingAccessories(false);
+        }
       }
     }
 
@@ -335,7 +336,7 @@ export function AccessoriesSection({
 
       {isLoading ? (
         showLoadingScreen ? (
-          <AccessoriesLoadingScreen />
+          <AccessoriesLoadingScreen productName={selectedProduct?.name} />
         ) : (
           <div className="flex justify-center py-8">
             <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />

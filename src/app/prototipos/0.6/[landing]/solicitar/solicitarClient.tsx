@@ -127,7 +127,7 @@ function WizardPreviewContent() {
     fetchLandingConfig(landing).then(cfg => setHasCatalog(cfg.layout.has_catalog));
   }, [landing]);
 
-  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded, isLoadingAccessories } = useProduct();
 
   // Fallback route: catalog if available, otherwise landing home
   const fallbackRoute = hasCatalog ? routes.catalogo(landing) : routes.landingHome(landing);
@@ -805,10 +805,10 @@ function WizardPreviewContent() {
         {/* CTA Button */}
         <button
           onClick={handleStart}
-          disabled={isOverQuotaLimit || hasUnavailableProducts}
+          disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories}
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     ${isOverQuotaLimit || hasUnavailableProducts
+                     ${isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories
                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                        : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
                      }`}
