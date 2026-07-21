@@ -172,12 +172,9 @@ export function AccessoriesSection({
     async function fetchAccessories() {
       const isRefresh = !hasFetchedOnceRef.current;
       setIsLoading(true);
-      let loadingScreenTimer: ReturnType<typeof setTimeout> | null = null;
-      if (isRefresh) {
-        loadingScreenTimer = setTimeout(() => {
-          if (!cancelled) setShowLoadingScreen(true);
-        }, 500);
-      }
+      const loadingScreenTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        if (!cancelled) setShowLoadingScreen(true);
+      }, 500);
       try {
         const apiAccessories = await getLandingAccessories(
           landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema,
@@ -213,7 +210,7 @@ export function AccessoriesSection({
         console.error('Error loading accessories:', error);
         setAccessories([]);
       } finally {
-        if (loadingScreenTimer) clearTimeout(loadingScreenTimer);
+        clearTimeout(loadingScreenTimer);
         setShowLoadingScreen(false);
         if (!cancelled) setIsLoading(false);
       }
@@ -335,7 +332,7 @@ export function AccessoriesSection({
 
       {isLoading ? (
         showLoadingScreen ? (
-          <AccessoriesLoadingScreen />
+          <AccessoriesLoadingScreen productName={selectedProduct?.name} />
         ) : (
           <div className="flex justify-center py-8">
             <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
