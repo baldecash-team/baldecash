@@ -259,8 +259,6 @@ export type EventType =
   | 'kyc_identity_verify_submit'
   | 'kyc_identity_verified'
   | 'kyc_identity_rejected'
-  | 'kyc_receipt_uploaded'
-  | 'kyc_receipt_upload_error'
   | 'kyc_contract_view'
   | 'kyc_contract_accepted'
   | 'kyc_documents_uploaded'

@@ -3,8 +3,7 @@
 /**
  * Sub-paso KYC: contrato.
  *
- * Fase 2 (UI only): muestra el contrato en un panel scrolleable (no hay
- * lib de visor de PDF en el proyecto todavía; texto placeholder en español)
+ * Muestra el contrato embebido desde un PDF estático (S3) en un iframe
  * y exige aceptación explícita antes de continuar. NO se firma ni se envía
  * nada al backend en esta fase.
  */
@@ -18,15 +17,7 @@ export interface ContratoStepProps {
   onBack?: () => void;
 }
 
-const CONTRACT_PARAGRAPHS = [
-  'El presente contrato de arrendamiento financiero se celebra entre BaldeCash S.A.C. ("el Arrendador") y el solicitante ("el Arrendatario"), sujeto a los términos y condiciones que se detallan a continuación.',
-  'PRIMERO. Objeto del contrato. El Arrendador entrega en arrendamiento al Arrendatario el bien descrito en su solicitud, para uso exclusivo del Arrendatario durante el plazo pactado, comprometiéndose este último a pagar las cuotas periódicas acordadas en las fechas establecidas.',
-  'SEGUNDO. Plazo y renta. El plazo del contrato inicia en la fecha de entrega del bien y se mantiene vigente hasta la cancelación total de las cuotas pactadas. El incumplimiento de pago genera intereses moratorios conforme a la tasa vigente informada al Arrendatario.',
-  'TERCERO. Obligaciones del Arrendatario. El Arrendatario se obliga a dar buen uso al bien, mantenerlo en condiciones adecuadas, no cederlo a terceros sin autorización previa y facilitar las inspecciones que el Arrendador considere necesarias.',
-  'CUARTO. Resolución. El incumplimiento de dos o más cuotas consecutivas faculta al Arrendador a resolver el presente contrato y solicitar la devolución inmediata del bien, sin perjuicio de las acciones legales correspondientes.',
-  'QUINTO. Protección de datos. El Arrendatario autoriza el tratamiento de sus datos personales conforme a la Ley de Protección de Datos Personales, para fines de evaluación crediticia, gestión de cobranza y comunicaciones relacionadas al presente contrato.',
-  'Al aceptar, el Arrendatario declara haber leído, entendido y aceptado la totalidad de las cláusulas del presente contrato.',
-];
+const CONTRACT_PDF_URL = 'https://ws.baldecash.com/storage/contrato-v3-6a5ee61f7aa51.pdf';
 
 export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
@@ -54,10 +45,20 @@ export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
         </p>
       </div>
 
-      <div className="max-h-72 overflow-y-auto border border-[#e5e7eb] rounded-xl p-4 text-sm text-[#374151] space-y-2">
-        {CONTRACT_PARAGRAPHS.map((paragraph, i) => (
-          <p key={i}>{paragraph}</p>
-        ))}
+      <div className="space-y-2">
+        <iframe
+          src={CONTRACT_PDF_URL}
+          title="Contrato"
+          className="w-full h-80 rounded-xl border border-[#e5e7eb]"
+        />
+        <a
+          href={CONTRACT_PDF_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-xs font-semibold text-[#4654CD] hover:underline"
+        >
+          Abrir en pestaña nueva
+        </a>
       </div>
 
       <CheckboxField

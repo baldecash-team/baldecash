@@ -16,7 +16,7 @@ const withKyc = (enabled: boolean, steps: Array<[string, boolean, number]>): Sol
 
 describe('kyc helpers', () => {
   it('KYC_STEP_TYPES en orden canónico', () => {
-    expect(KYC_STEP_TYPES).toEqual(['dni_selfie', 'payment_receipt', 'contract', 'documents']);
+    expect(KYC_STEP_TYPES).toEqual(['dni_selfie', 'contract', 'documents']);
   });
 
   it('getKycSteps devuelve solo los sub-pasos habilitados, ordenados', () => {

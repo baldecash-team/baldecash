@@ -19,13 +19,11 @@ import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import type { KycStepType } from '@/app/prototipos/0.6/services/landingApi';
 import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { DniSelfieStep } from './steps/DniSelfieStep';
-import { ComprobanteStep } from './steps/ComprobanteStep';
 import { ContratoStep } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
 
 const STEP_LABELS: Record<KycStepType, string> = {
   dni_selfie: 'DNI + selfie',
-  payment_receipt: 'Comprobante de pago',
   contract: 'Contrato',
   documents: 'Documentos',
 };
@@ -34,8 +32,6 @@ function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void, 
   switch (type) {
     case 'dni_selfie':
       return <DniSelfieStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} />;
-    case 'payment_receipt':
-      return <ComprobanteStep onDone={onDone} onBack={onBack} />;
     case 'contract':
       return <ContratoStep onDone={onDone} onBack={onBack} />;
     case 'documents':
