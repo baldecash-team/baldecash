@@ -135,6 +135,10 @@ interface ProductContextValue {
   // Estado de la barra de producto (mobile)
   isProductBarExpanded: boolean;
   setIsProductBarExpanded: (expanded: boolean) => void;
+  // Loading state de AccessoriesSection, expuesto para poder bloquear
+  // "Comenzar Solicitud" mientras las recomendaciones de Molti cargan (BAL-2486)
+  isLoadingAccessories: boolean;
+  setIsLoadingAccessories: (loading: boolean) => void;
   // Quota limit validation
   isOverQuotaLimit: boolean;
   maxMonthlyQuota: number;
@@ -245,6 +249,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   // Stays false during SSR so downstream guards don't run server-side.
   const [isHydrated, setIsHydrated] = useState(() => typeof window !== 'undefined');
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
+  const [isLoadingAccessories, setIsLoadingAccessories] = useState(false);
   const [isSyncingPaymentPlans, setIsSyncingPaymentPlans] = useState(false);
   const [unavailableProductIds, setUnavailableProductIds] = useState<string[]>([]);
   const [isValidatingAvailability, setIsValidatingAvailability] = useState(true);
@@ -1048,6 +1053,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         isHydrated,
         isProductBarExpanded,
         setIsProductBarExpanded,
+        isLoadingAccessories,
+        setIsLoadingAccessories,
         isOverQuotaLimit,
         maxMonthlyQuota: MAX_MONTHLY_QUOTA,
         getAllProducts,

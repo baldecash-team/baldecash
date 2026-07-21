@@ -77,7 +77,7 @@ export function AccessoriesSection({
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   const { config, badgeText } = useWizardConfig();
-  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
+  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts, setIsLoadingAccessories } = useProduct();
   const analytics = useAnalytics();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
 
@@ -172,6 +172,7 @@ export function AccessoriesSection({
     async function fetchAccessories() {
       const isRefresh = !hasFetchedOnceRef.current;
       setIsLoading(true);
+      setIsLoadingAccessories(true);
       const loadingScreenTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
         if (!cancelled) setShowLoadingScreen(true);
       }, 500);
@@ -212,7 +213,10 @@ export function AccessoriesSection({
       } finally {
         clearTimeout(loadingScreenTimer);
         setShowLoadingScreen(false);
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsLoadingAccessories(false);
+        }
       }
     }
 
