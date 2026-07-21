@@ -244,7 +244,28 @@ export type EventType =
   | 'offer_catalog_load_more'
   | 'offer_search_focus'
   | 'offer_search_submit'
-  | 'offer_search_clear';
+  | 'offer_search_clear'
+  // Phase 19: KYC
+  | 'kyc_started'
+  | 'kyc_step_complete'
+  | 'kyc_step_back'
+  | 'kyc_camera_requested'
+  | 'kyc_camera_granted'
+  | 'kyc_camera_denied'
+  | 'kyc_selfie_captured'
+  | 'kyc_selfie_retake'
+  | 'kyc_dni_captured'
+  | 'kyc_dni_retake'
+  | 'kyc_identity_verify_submit'
+  | 'kyc_identity_verified'
+  | 'kyc_identity_rejected'
+  | 'kyc_receipt_uploaded'
+  | 'kyc_receipt_upload_error'
+  | 'kyc_contract_view'
+  | 'kyc_contract_accepted'
+  | 'kyc_documents_uploaded'
+  | 'kyc_document_upload_error'
+  | 'kyc_completed';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([

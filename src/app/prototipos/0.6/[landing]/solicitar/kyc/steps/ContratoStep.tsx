@@ -9,8 +9,9 @@
  * nada al backend en esta fase.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
+import { useEventTrackerOptional } from '../../context/EventTrackerContext';
 
 export interface ContratoStepProps {
   onDone: () => void;
@@ -29,6 +30,20 @@ const CONTRACT_PARAGRAPHS = [
 
 export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
+  const tracker = useEventTrackerOptional();
+
+  useEffect(() => {
+    tracker?.track('kyc_contract_view');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAcceptChange = (value: string | string[]) => {
+    const next = value as 'true' | 'false';
+    setAccepted(next);
+    if (next === 'true') {
+      tracker?.track('kyc_contract_accepted');
+    }
+  };
 
   return (
     <div className="w-full space-y-5">
@@ -49,7 +64,7 @@ export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
         id="accept-contract"
         label="He leído y acepto el contrato"
         value={accepted}
-        onChange={(value: string | string[]) => setAccepted(value as 'true' | 'false')}
+        onChange={handleAcceptChange}
         required
       />
 

@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import { FileUpload } from '../../components/solicitar/fields/FileUpload';
+import { useEventTrackerOptional } from '../../context/EventTrackerContext';
 
 interface UploadedFile {
   id: string;
@@ -26,6 +27,14 @@ export interface ComprobanteStepProps {
 
 export function ComprobanteStep({ onDone, onBack }: ComprobanteStepProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const tracker = useEventTrackerOptional();
+
+  const handleChange = (next: UploadedFile[]) => {
+    setFiles(next);
+    if (next.length > 0) {
+      tracker?.track('kyc_receipt_uploaded', { count: next.length });
+    }
+  };
 
   return (
     <div className="w-full space-y-5">
@@ -40,7 +49,7 @@ export function ComprobanteStep({ onDone, onBack }: ComprobanteStepProps) {
         id="payment-receipt"
         label="Comprobante de pago"
         value={files}
-        onChange={setFiles}
+        onChange={handleChange}
         accept=".pdf,.jpg,.jpeg,.png"
         maxFiles={1}
         helpText="Sube la captura de tu Yape/Plin o el voucher"
