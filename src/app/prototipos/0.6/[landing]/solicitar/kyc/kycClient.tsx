@@ -30,10 +30,10 @@ const STEP_LABELS: Record<KycStepType, string> = {
   documents: 'Documentos',
 };
 
-function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void) {
+function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void, applicationCode?: string) {
   switch (type) {
     case 'dni_selfie':
-      return <DniSelfieStep onDone={onDone} onBack={onBack} />;
+      return <DniSelfieStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} />;
     case 'payment_receipt':
       return <ComprobanteStep onDone={onDone} onBack={onBack} />;
     case 'contract':
@@ -107,7 +107,7 @@ function KycContent() {
           Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
         </p>
 
-        {renderStep(currentStep.type, goNext, goBack)}
+        {renderStep(currentStep.type, goNext, goBack, code)}
       </div>
     </div>
   );

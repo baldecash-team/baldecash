@@ -3,10 +3,11 @@
 /**
  * Sub-paso KYC: DNI + selfie.
  *
- * Fase 2 (UI only): captura DOS fotos fijas con la cámara del dispositivo —
- * primero una selfie (cámara frontal) y luego el frente del DNI (cámara
- * trasera) — y las deja en estado local para revisión. NO sube nada a S3 ni
- * corre validación (eso llega en una fase posterior).
+ * Fase 2b: captura DOS fotos fijas con la cámara del dispositivo — primero
+ * una selfie (cámara frontal) y luego el frente del DNI (cámara trasera) —
+ * las sube a S3 vía URLs presignadas (`getKycUploadUrl` + `uploadToS3`) y
+ * compara los rostros por URL contra el endpoint nativo de ws2
+ * (`compareFaces`).
  *
  * Cada foto usa `useRecorder` solo para abrir el stream de cámara (no se usa
  * MediaRecorder): el frame se "congela" pintando el <video> en vivo sobre un
@@ -17,11 +18,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useRecorder } from '@/app/prototipos/0.6/admision/_hooks/useRecorder';
 import { cameraErrorMessage } from '@/app/prototipos/0.6/admision/_lib/cameraError';
-import { compareFaces } from '@/app/prototipos/0.6/services/kycApi';
+import { compareFaces, dataUrlToBlob, getKycUploadUrl, uploadToS3 } from '@/app/prototipos/0.6/services/kycApi';
+import { useEventTrackerOptional } from '../../context/EventTrackerContext';
 
 export interface DniSelfieStepProps {
   onDone: () => void;
   onBack?: () => void;
+  /** application_code, usado para pedir las URLs presignadas de S3. */
+  applicationCode?: string;
 }
 
 type CapturePhase = 'selfie' | 'dni';
@@ -49,8 +53,9 @@ const PHASE_CONFIG: Record<CapturePhase, PhaseConfig> = {
   },
 };
 
-export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
+export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStepProps) {
   const { stream, requestCamera, stopStream, liveVideoRef } = useRecorder();
+  const tracker = useEventTrackerOptional();
   const [phase, setPhase] = useState<Phase>('selfie');
   const [selfieShot, setSelfieShot] = useState<string | null>(null);
   const [dniShot, setDniShot] = useState<string | null>(null);
@@ -58,26 +63,73 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  type VerifyState = 'idle' | 'verifying' | 'matched' | 'nomatch' | 'error';
+  type VerifyState = 'idle' | 'uploading' | 'verifying' | 'matched' | 'nomatch' | 'error';
   const [verifyState, setVerifyState] = useState<VerifyState>('idle');
   const [similarity, setSimilarity] = useState<number | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
   const runVerification = async () => {
     if (!selfieShot || !dniShot) return;
-    setVerifyState('verifying');
-    setVerifyError(null);
-    const res = await compareFaces(selfieShot, dniShot);
-    if (!res.success) {
-      setVerifyError(res.error || 'No pudimos verificar tu identidad.');
+    tracker?.track('kyc_identity_verify_submit');
+
+    if (!applicationCode) {
+      setVerifyError('No pudimos verificar tu identidad. Intenta nuevamente.');
       setVerifyState('error');
       return;
     }
-    setSimilarity(typeof res.similarity === 'number' ? res.similarity : null);
-    setVerifyState(res.is_match ? 'matched' : 'nomatch');
+
+    setVerifyState('uploading');
+    setVerifyError(null);
+
+    try {
+      const [selfieUploadUrl, dniUploadUrl] = await Promise.all([
+        getKycUploadUrl(applicationCode, 'selfie'),
+        getKycUploadUrl(applicationCode, 'dni'),
+      ]);
+      if (!selfieUploadUrl || !dniUploadUrl) {
+        setVerifyError('No pudimos subir tus fotos. Intenta nuevamente.');
+        setVerifyState('error');
+        return;
+      }
+
+      const [selfieUploaded, dniUploaded] = await Promise.all([
+        uploadToS3(selfieUploadUrl.upload_url, dataUrlToBlob(selfieShot)),
+        uploadToS3(dniUploadUrl.upload_url, dataUrlToBlob(dniShot)),
+      ]);
+      if (!selfieUploaded || !dniUploaded) {
+        setVerifyError('No pudimos subir tus fotos. Intenta nuevamente.');
+        setVerifyState('error');
+        return;
+      }
+
+      setVerifyState('verifying');
+      const res = await compareFaces(selfieUploadUrl.file_url, dniUploadUrl.file_url, undefined, {
+        source_key: selfieUploadUrl.key,
+        target_key: dniUploadUrl.key,
+      });
+      if (!res.success) {
+        setVerifyError(res.error || 'No pudimos verificar tu identidad.');
+        setVerifyState('error');
+        return;
+      }
+
+      const similarityValue = typeof res.similarity === 'number' ? res.similarity : null;
+      setSimilarity(similarityValue);
+      if (res.is_match) {
+        tracker?.track('kyc_identity_verified', { similarity: similarityValue });
+        setVerifyState('matched');
+      } else {
+        tracker?.track('kyc_identity_rejected', { similarity: similarityValue });
+        setVerifyState('nomatch');
+      }
+    } catch {
+      setVerifyError('No pudimos verificar tu identidad. Intenta nuevamente.');
+      setVerifyState('error');
+    }
   };
 
   const retakeFromSelfie = () => {
+    tracker?.track('kyc_selfie_retake');
     setSelfieShot(null);
     setDniShot(null);
     setSimilarity(null);
@@ -91,11 +143,13 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
       try {
         // Solo se necesita video: este paso captura fotos fijas, no audio.
         await requestCamera(mode, { audio: false });
+        tracker?.track('kyc_camera_granted', { kind: mode === 'user' ? 'selfie' : 'dni' });
       } catch (err) {
         setError(cameraErrorMessage(err));
+        tracker?.track('kyc_camera_denied', { kind: mode === 'user' ? 'selfie' : 'dni' });
       }
     },
-    [requestCamera]
+    [requestCamera, tracker]
   );
 
   // Abre la cámara con el facingMode correcto al entrar a cada fase de captura.
@@ -127,6 +181,8 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
 
   function handleRepeat() {
     setPendingShot(null);
+    if (phase === 'selfie') tracker?.track('kyc_selfie_retake');
+    else if (phase === 'dni') tracker?.track('kyc_dni_retake');
     if (phase !== 'review') openCamera(PHASE_CONFIG[phase].facingMode);
   }
 
@@ -135,10 +191,12 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
     if (phase === 'selfie') {
       setSelfieShot(pendingShot);
       setPendingShot(null);
+      tracker?.track('kyc_selfie_captured');
       setPhase('dni');
     } else if (phase === 'dni') {
       setDniShot(pendingShot);
       setPendingShot(null);
+      tracker?.track('kyc_dni_captured');
       setPhase('review');
     }
   }
@@ -201,6 +259,13 @@ export function DniSelfieStep({ onDone, onBack }: DniSelfieStepProps) {
           >
             Verificar identidad
           </button>
+        )}
+
+        {verifyState === 'uploading' && (
+          <div className="flex items-center justify-center gap-2 py-3 text-[#6b7280]">
+            <span className="w-5 h-5 rounded-full border-2 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
+            Subiendo imágenes…
+          </div>
         )}
 
         {verifyState === 'verifying' && (
