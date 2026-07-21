@@ -11,12 +11,13 @@
  * por URL directa), redirige al resumen, respetando el switch.
  */
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import type { KycStepType } from '@/app/prototipos/0.6/services/landingApi';
+import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ComprobanteStep } from './steps/ComprobanteStep';
 import { ContratoStep } from './steps/ContratoStep';
@@ -53,6 +54,8 @@ function KycContent() {
 
   const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
   const [index, setIndex] = useState(0);
+  const tracker = useEventTrackerOptional();
+  const startedTrackedRef = useRef(false);
 
   const goToConfirmacion = () =>
     router.replace(routes.solicitarConfirmacion(landing, code));
@@ -69,6 +72,15 @@ function KycContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, kycEnabled, kycSteps.length]);
 
+  // Track kyc_started once, cuando el flujo KYC está habilitado y tiene pasos.
+  useEffect(() => {
+    if (isLoading || !kycEnabled || kycSteps.length === 0) return;
+    if (startedTrackedRef.current) return;
+    startedTrackedRef.current = true;
+    tracker?.track('kyc_started', { steps: kycSteps.map((s) => s.type) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, kycEnabled, kycSteps]);
+
   if (isLoading || !kycEnabled || kycSteps.length === 0) {
     return <LoadingFallback />;
   }
@@ -78,9 +90,11 @@ function KycContent() {
   const currentStep = kycSteps[safeIndex];
 
   const goNext = () => {
+    tracker?.track('kyc_step_complete', { step: currentStep.type, index: safeIndex });
     if (safeIndex + 1 < kycSteps.length) {
       setIndex(safeIndex + 1);
     } else {
+      tracker?.track('kyc_completed');
       goToConfirmacion();
     }
   };
