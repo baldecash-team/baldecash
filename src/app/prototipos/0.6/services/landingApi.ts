@@ -1372,7 +1372,15 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
 /**
  * Tipos de sección disponibles en el flujo de solicitud
  */
-export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance' | 'otp_verification';
+export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance' | 'otp_verification' | 'kyc';
+
+export type KycStepType = 'dni_selfie' | 'payment_receipt' | 'contract' | 'documents';
+
+export interface KycStep {
+  type: KycStepType;
+  enabled: boolean;
+  order: number;
+}
 
 /**
  * Configuración de una sección del flujo
@@ -1381,6 +1389,8 @@ export interface SolicitarSection {
   type: SolicitarSectionType;
   enabled: boolean;
   order: number;
+  /** Solo presente en la sección `kyc`: sub-pasos configurables. */
+  steps?: KycStep[];
 }
 
 /**
@@ -1468,6 +1478,38 @@ export function isSectionEnabled(
 ): boolean {
   const section = config.sections.find(s => s.type === type);
   return section?.enabled ?? true;
+}
+
+/** True SOLO si la landing tiene la sección `kyc` presente y habilitada.
+ *  Fail-safe: sección ausente ⇒ false (a diferencia de isSectionEnabled que
+ *  hace `?? true`). Úsalo para el gate de los pasos posteriores kyc. */
+export function isKycEnabled(config: SolicitarFlowConfig): boolean {
+  return config.sections.find(s => s.type === 'kyc')?.enabled ?? false;
+}
+
+/** Orden canónico de los sub-pasos de la sección `kyc`. */
+export const KYC_STEP_TYPES: KycStepType[] = [
+  'dni_selfie',
+  'payment_receipt',
+  'contract',
+  'documents',
+];
+
+/** Sub-pasos habilitados de la sección `kyc`, ordenados por `order`. Vacío si la
+ *  sección está apagada o ausente. */
+export function getKycSteps(config: SolicitarFlowConfig): KycStep[] {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc || !kyc.enabled || !kyc.steps) return [];
+  return kyc.steps
+    .filter(step => step.enabled)
+    .sort((a, b) => a.order - b.order);
+}
+
+/** True si el sub-paso `type` está habilitado y la sección `kyc` también. */
+export function isKycStepEnabled(config: SolicitarFlowConfig, type: KycStepType): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc || !kyc.enabled || !kyc.steps) return false;
+  return kyc.steps.find(step => step.type === type)?.enabled ?? false;
 }
 
 // ============================================

@@ -80,6 +80,15 @@ export function solicitarVerificacion(
   return q ? `${base}?${q}` : base;
 }
 
+/** Solicitar KYC (pasos posteriores): /{landing}/solicitar/kyc */
+export function solicitarKyc(
+  landing: string,
+  params?: { code?: string }
+): string {
+  const base = `${BASE_PATH}/${landing}/solicitar/kyc`;
+  return params?.code ? `${base}?code=${params.code}` : base;
+}
+
 /** Legal page: /{landing}/legal/{page} */
 export function legal(landing: string, page: string): string {
   return `${BASE_PATH}/${landing}/legal/${page}`;
@@ -153,6 +162,7 @@ export const routes = {
   solicitarComplementos,
   solicitarConfirmacion,
   solicitarVerificacion,
+  solicitarKyc,
   legal,
   proximamente,
   preview,

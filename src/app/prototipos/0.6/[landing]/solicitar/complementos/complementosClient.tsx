@@ -118,6 +118,7 @@ function ComplementosContent() {
     sectionsAfterWizard,
     isCouponRequired,
     isEnabled,
+    kycEnabled,
     isLoading: isFlowConfigLoading,
   } = useSolicitarFlow({ slug: landing, previewKey });
 
@@ -236,6 +237,7 @@ function ComplementosContent() {
       insuranceIds,
       // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
       otpEnabled: isEnabled('otp_verification'),
+      kycEnabled,
     });
   };
 
