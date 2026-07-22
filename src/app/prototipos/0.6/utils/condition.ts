@@ -27,3 +27,21 @@ export function conditionDisplayLabel(condition?: string | null, fallbackLabel?:
   if (!c) return '';
   return c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ');
 }
+
+/**
+ * Normaliza cualquier variante de condición a su forma canónica del API:
+ * 'nueva' | 'reacondicionada'. Resuelve el desajuste entre el enum FE
+ * ('nuevo'/'reacondicionado') y el API/facet ('nueva'/'reacondicionada').
+ */
+export function normalizeCondition(condition?: string | null): string {
+  const c = condition?.toLowerCase().trim() ?? '';
+  if (isRefurbishedCondition(c)) return 'reacondicionada';
+  if (c === 'nuevo' || c === 'nueva' || c === 'new') return 'nueva';
+  return c;
+}
+
+/** ¿Dos valores de condición son equivalentes pese a nuevo/nueva, etc.? */
+export function sameCondition(a?: string | null, b?: string | null): boolean {
+  const na = normalizeCondition(a);
+  return na !== '' && na === normalizeCondition(b);
+}
