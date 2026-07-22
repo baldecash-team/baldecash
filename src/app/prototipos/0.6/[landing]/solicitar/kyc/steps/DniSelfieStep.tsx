@@ -9,9 +9,12 @@
  * compara los rostros por URL contra el endpoint nativo de ws2
  * (`compareFaces`).
  *
- * Cada foto usa `useRecorder` solo para abrir el stream de cámara (no se usa
- * MediaRecorder): el frame se "congela" pintando el <video> en vivo sobre un
- * <canvas> oculto y convirtiéndolo a un dataURL JPEG.
+ * UI alineada con la de videofirma (`admision/_components/VideoRecorder`):
+ * card de cámara oscuro con aspect ratio, overlay de "toca para activar"
+ * (iOS low-power), botón circular de captura y un OVERLAY DE ENCUADRE (óvalo
+ * de rostro para la selfie, marco de documento para el DNI) que ayuda a
+ * cuadrar la toma. El overlay es puramente visual (`pointer-events-none`): la
+ * captura sigue "congelando" el <video> sobre un <canvas> oculto.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -30,31 +33,72 @@ export interface DniSelfieStepProps {
 
 type CapturePhase = 'selfie' | 'dni';
 type Phase = CapturePhase | 'review';
+type OverlayKind = 'oval' | 'document';
 
 interface PhaseConfig {
   title: string;
   guide: string;
+  /** Texto corto sobre el overlay de encuadre. */
+  frameHint: string;
   aspect: string;
   facingMode: 'user' | 'environment';
+  overlay: OverlayKind;
 }
 
 const PHASE_CONFIG: Record<CapturePhase, PhaseConfig> = {
   selfie: {
     title: 'Selfie',
-    guide: 'Mira a la cámara, buena luz, sin lentes',
+    guide: 'Mira a la cámara, con buena luz y sin lentes ni gorra.',
+    frameHint: 'Centra tu rostro dentro del óvalo',
     aspect: 'aspect-[3/4]',
     facingMode: 'user',
+    overlay: 'oval',
   },
   dni: {
     title: 'Foto de tu DNI',
-    guide: 'Foto clara del frente de tu DNI',
+    guide: 'Foto nítida del frente de tu DNI, sin reflejos.',
+    frameHint: 'Encuadra el frente del DNI dentro del marco',
     aspect: 'aspect-[16/10]',
     facingMode: 'environment',
+    overlay: 'document',
   },
 };
 
+/**
+ * Overlay de guía de encuadre. Oscurece todo menos la "ventana" (óvalo o
+ * marco de documento) usando el truco de `box-shadow` con spread enorme, y
+ * dibuja el borde de la ventana. No intercepta gestos (`pointer-events-none`).
+ */
+function FramingOverlay({ kind, hint }: { kind: OverlayKind; hint: string }) {
+  const shape =
+    kind === 'oval'
+      ? 'w-[64%] aspect-[3/4] rounded-[50%]'
+      : 'w-[86%] aspect-[1.585] rounded-lg';
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className={`relative ${shape} border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]`}
+        >
+          {kind === 'document' && (
+            <>
+              <span className="absolute -top-[3px] -left-[3px] h-5 w-5 rounded-tl-lg border-l-4 border-t-4 border-white" />
+              <span className="absolute -top-[3px] -right-[3px] h-5 w-5 rounded-tr-lg border-r-4 border-t-4 border-white" />
+              <span className="absolute -bottom-[3px] -left-[3px] h-5 w-5 rounded-bl-lg border-l-4 border-b-4 border-white" />
+              <span className="absolute -bottom-[3px] -right-[3px] h-5 w-5 rounded-br-lg border-r-4 border-b-4 border-white" />
+            </>
+          )}
+        </div>
+      </div>
+      <p className="absolute inset-x-0 bottom-3 text-center text-[13px] font-medium text-white/90 drop-shadow">
+        {hint}
+      </p>
+    </div>
+  );
+}
+
 export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStepProps) {
-  const { stream, requestCamera, stopStream, liveVideoRef } = useRecorder();
+  const { stream, requestCamera, stopStream, liveVideoRef, liveActive, playLive } = useRecorder();
   const tracker = useEventTrackerOptional();
   const [phase, setPhase] = useState<Phase>('selfie');
   const [selfieShot, setSelfieShot] = useState<string | null>(null);
@@ -324,9 +368,21 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
 
   return (
     <div className="w-full space-y-4">
-      <div className="text-center space-y-1">
-        <h2 className="text-xl font-bold text-[#1f2937]">{config.title}</h2>
-        <p className="text-[#6b7280] text-sm">{config.guide}</p>
+      {/* Header estilo videofirma */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280]">
+          {config.title}
+        </p>
+        <div className="rounded-xl bg-[#F7F7FB] border border-[#ECECFB] px-3.5 py-3">
+          <div className="flex items-start gap-2">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 mt-0.5 shrink-0 text-[#4654CD]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <path d="M12 17h.01" />
+            </svg>
+            <p className="text-sm text-[#374151] leading-relaxed">{config.guide}</p>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -361,16 +417,42 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
         </>
       ) : stream ? (
         <>
-          <div className={`relative rounded-xl overflow-hidden bg-black ${config.aspect} border border-[#e5e7eb]`}>
+          <div className={`relative rounded-xl overflow-hidden bg-[#1f2937] ${config.aspect} border border-[#e5e7eb]`}>
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+
+            {/* Overlay de encuadre: óvalo (selfie) o marco de documento (DNI). */}
+            <FramingOverlay kind={config.overlay} hint={config.frameHint} />
+
+            {/* iOS Low Power Mode bloquea el autoplay → el feed queda en plomo.
+                Este overlay lo reactiva con un gesto directo. */}
+            {!liveActive && (
+              <button
+                type="button"
+                onClick={playLive}
+                aria-label="Activar cámara"
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/55 text-white cursor-pointer"
+              >
+                <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 7l-7 5 7 5V7z" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span className="text-sm font-semibold">Toca para activar la cámara</span>
+              </button>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={handleCapture}
-            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
-          >
-            Capturar
-          </button>
+
+          {/* Botón circular de captura (obturador), como videofirma. */}
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              aria-label="Tomar foto"
+              onClick={handleCapture}
+              className="w-16 h-16 rounded-full bg-white ring-4 ring-[#4654CD]/25 border-4 border-[#4654CD] hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-lg cursor-pointer"
+            >
+              <span className="w-8 h-8 rounded-full bg-[#4654CD]" />
+            </button>
+            <span className="text-[#6b7280] text-xs font-medium">Toca el círculo para tomar la foto</span>
+          </div>
         </>
       ) : error ? (
         <button
