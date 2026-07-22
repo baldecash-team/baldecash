@@ -144,6 +144,10 @@ export function CopiaHomeMobileDetail({
     ? (hasRealGrades ? !!realGradeSib?.isAvailable : GRADES[grade].disponible)
     : true;
   const canBuy = isAvailable && gradeAvailable;
+  // Botones de grado: desde los siblings reales si existen, si no el mock A/B/C.
+  const gradeButtons: GradeKey[] = hasRealGrades
+    ? [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)).map((s) => s.grade as GradeKey)
+    : (['A', 'B', 'C'] as GradeKey[]);
 
   // Galería principal (hero): SIEMPRE las imágenes reales del producto (incluido
   // iPhone seminuevo). Las referenciales por grado viven en "Elige el grado".
@@ -392,7 +396,7 @@ export function CopiaHomeMobileDetail({
         {isRefurbished && gradeInfo && (
           <Acc title="Elige el grado" sub="El grado refleja el nivel de uso y el estado estético del equipo" icon={<Star size={20} />} isOpen={!!open.grado} onToggle={() => toggle('grado')}>
             <div className={styles.grados}>
-              {(['A', 'B', 'C'] as GradeKey[]).map((g) => (
+              {gradeButtons.map((g) => (
                 <button key={g} type="button" className={`${styles.grado} ${g === grade ? styles.gradoOn : ''}`} onClick={() => selectGrade(g)}>
                   Grado {g}<span className={styles.gTick}><Check size={11} strokeWidth={3.5} /></span>
                 </button>

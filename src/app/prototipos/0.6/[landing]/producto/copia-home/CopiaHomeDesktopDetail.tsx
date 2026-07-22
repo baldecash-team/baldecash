@@ -121,6 +121,9 @@ export function CopiaHomeDesktopDetail({
     ? (hasRealGrades ? !!realGradeSib?.isAvailable : GRADES[grade].disponible)
     : true;
   const canBuy = isAvailable && gradeAvailable;
+  const gradeButtons: GradeKey[] = hasRealGrades
+    ? [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)).map((s) => s.grade as GradeKey)
+    : (['A', 'B', 'C'] as GradeKey[]);
 
   // Galería principal (hero): SIEMPRE imágenes reales del producto. Las
   // referenciales por grado viven en "Elige el grado".
@@ -360,7 +363,7 @@ export function CopiaHomeDesktopDetail({
                 <div className={styles.block}>
                   <div className={styles.blockT}>Elige el grado</div>
                   <div className={styles.grados}>
-                    {(['A', 'B', 'C'] as GradeKey[]).map((g) => (
+                    {gradeButtons.map((g) => (
                       <button key={g} type="button" className={`${styles.grado} ${g === grade ? styles.gradoOn : ''}`} onClick={() => selectGrade(g)}>
                         Grado {g}<span className={styles.gTick}><Check size={12} strokeWidth={3.5} /></span>
                       </button>
