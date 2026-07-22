@@ -36,6 +36,7 @@ import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
+import { targetSlugForGrade, currentGrade } from './gradeSelector';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from './copiaHomeDesktop.module.css';
 
@@ -109,9 +110,16 @@ export function CopiaHomeDesktopDetail({
   const selectedColor = displayColors.find((c) => c.id === colorId);
 
   // ---- Grado ----
-  const [grade, setGrade] = useState<GradeKey>('A');
+  const gradeSiblings = product.gradeSiblings ?? [];
+  const hasRealGrades = gradeSiblings.length > 0;
+  const [grade, setGrade] = useState<GradeKey>(
+    (currentGrade(gradeSiblings, Number(product.id)) as GradeKey) || 'A',
+  );
   const gradeInfo = isRefurbished ? GRADES[grade] : null;
-  const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
+  const realGradeSib = gradeSiblings.find((s) => s.grade === grade);
+  const gradeAvailable = isRefurbished
+    ? (hasRealGrades ? !!realGradeSib?.isAvailable : GRADES[grade].disponible)
+    : true;
   const canBuy = isAvailable && gradeAvailable;
 
   // Galería principal (hero): SIEMPRE imágenes reales del producto. Las
@@ -133,7 +141,16 @@ export function CopiaHomeDesktopDetail({
   const [gradeImgSel, setGradeImgSel] = useState(0);
 
   // Al cambiar de grado reseteamos las miniaturas activas.
-  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); setGradeImgSel(0); };
+  const selectGrade = (g: GradeKey) => {
+    if (hasRealGrades) {
+      const slug = targetSlugForGrade(gradeSiblings, g);
+      if (slug && slug !== product.slug) {
+        router.push(routes.producto(landing, slug));
+        return;
+      }
+    }
+    setGrade(g); setImgSel(0); setGradeImgSel(0);
+  };
 
   // ---- Calculadora: componente estándar (PricingCalculator) ----
   const initialTerm = useMemo(() => {
