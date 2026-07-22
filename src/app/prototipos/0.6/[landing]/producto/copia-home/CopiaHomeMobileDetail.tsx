@@ -30,6 +30,7 @@ import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
+import { targetSlugForGrade, currentGrade } from './gradeSelector';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
@@ -129,9 +130,19 @@ export function CopiaHomeMobileDetail({
   const selectedColor = displayColors.find((c) => c.id === colorId);
 
   // ---- Grado ----
-  const [grade, setGrade] = useState<GradeKey>('A');
+  // Grados reales del backend (grade_siblings): cada grado es un Product con su
+  // stock/slug. Si existen, el grado actual y su disponibilidad salen de ahí; si no
+  // (iPhone copia-home sin backend de grados), se cae al mock GRADES FE-only.
+  const gradeSiblings = product.gradeSiblings ?? [];
+  const hasRealGrades = gradeSiblings.length > 0;
+  const [grade, setGrade] = useState<GradeKey>(
+    (currentGrade(gradeSiblings, Number(product.id)) as GradeKey) || 'A',
+  );
   const gradeInfo = isRefurbished ? GRADES[grade] : null;
-  const gradeAvailable = isRefurbished ? GRADES[grade].disponible : true;
+  const realGradeSib = gradeSiblings.find((s) => s.grade === grade);
+  const gradeAvailable = isRefurbished
+    ? (hasRealGrades ? !!realGradeSib?.isAvailable : GRADES[grade].disponible)
+    : true;
   const canBuy = isAvailable && gradeAvailable;
 
   // Galería principal (hero): SIEMPRE las imágenes reales del producto (incluido
@@ -151,7 +162,18 @@ export function CopiaHomeMobileDetail({
     [iphoneGradeGallery, grade, galleryImages],
   );
   const [gradeImgSel, setGradeImgSel] = useState(0);
-  const selectGrade = (g: GradeKey) => { setGrade(g); setImgSel(0); setGradeImgSel(0); };
+  const selectGrade = (g: GradeKey) => {
+    // Grado real: navegar al producto de ese grado (patrón color siblings) para que
+    // el product_id que llega al submit sea el del grado elegido.
+    if (hasRealGrades) {
+      const slug = targetSlugForGrade(gradeSiblings, g);
+      if (slug && slug !== product.slug) {
+        router.push(routes.producto(landing, slug));
+        return;
+      }
+    }
+    setGrade(g); setImgSel(0); setGradeImgSel(0);
+  };
 
   // ---- Calculadora: componente estándar (PricingCalculator) ----
   const initialTerm = useMemo(() => {

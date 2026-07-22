@@ -121,6 +121,16 @@ export interface ColorSibling {
   imageUrl?: string;
 }
 
+/** Grado reacondicionado hermano (A/B/C/D): cada uno un Product real con su stock/precio. */
+export interface GradeSibling {
+  grade: string; // 'A' | 'B' | 'C' | 'D'
+  productId: number;
+  slug: string;
+  price: number | null;
+  stockAvailable: number;
+  isAvailable: boolean;
+}
+
 export interface ProductDetail {
   id: string;
   slug: string;
@@ -139,6 +149,7 @@ export interface ProductDetail {
   images: ProductImage[];
   colors: ProductColor[];
   colorSiblings: ColorSibling[];
+  gradeSiblings?: GradeSibling[];
   description: string;
   shortDescription: string;
   specs: ProductSpec[];

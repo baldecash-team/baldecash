@@ -14,6 +14,7 @@ import {
   ProductImage,
   ProductColor,
   ColorSibling,
+  GradeSibling,
   ProductSpec,
   SpecItem,
   ProductPort,
@@ -56,6 +57,15 @@ interface ApiColorSibling {
   color: string;
   color_hex: string;
   image_url?: string;
+}
+
+interface ApiGradeSibling {
+  grade: string;
+  product_id: number;
+  slug: string;
+  price: number | null;
+  stock_available: number;
+  is_available: boolean;
 }
 
 interface ApiProductBadge {
@@ -115,6 +125,7 @@ interface ApiProductData {
   images: ApiProductImage[];
   colors: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  grade_siblings?: ApiGradeSibling[];
   description: string;
   short_description: string;
   badges: ApiProductBadge[];
@@ -500,6 +511,14 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
       color: sib.color,
       colorHex: sib.color_hex,
       imageUrl: sib.image_url,
+    })),
+    gradeSiblings: (apiProduct.grade_siblings || []).map((sib): GradeSibling => ({
+      grade: sib.grade,
+      productId: sib.product_id,
+      slug: sib.slug,
+      price: sib.price,
+      stockAvailable: sib.stock_available,
+      isAvailable: sib.is_available,
     })),
     description: apiProduct.description,
     shortDescription: apiProduct.short_description,
