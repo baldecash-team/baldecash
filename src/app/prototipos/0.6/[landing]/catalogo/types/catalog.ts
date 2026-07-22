@@ -720,6 +720,8 @@ export interface CatalogProduct {
   condition: ProductCondition;
   /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Conserva el valor sin normalizar para el badge de condición y el match contra el facet. */
   conditionCode?: string;
+  /** Grado de reacondicionamiento (A/B/C/D) si el producto es un grado; si no, undefined. */
+  grade?: string;
   stock: StockStatus;
   stockQuantity: number;
   usage: UsageType[];
