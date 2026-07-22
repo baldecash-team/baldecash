@@ -117,7 +117,7 @@ describe('useSubmitApplication', () => {
     it('submits application and redirects on success', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        public_token: 'APP-123',
+        application_code: 'APP-123',
       });
 
       const onToast = jest.fn();
@@ -175,7 +175,7 @@ describe('useSubmitApplication', () => {
     it('includes insurance_id and insurance_premium when provided', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        public_token: 'APP-456',
+        application_code: 'APP-456',
       });
 
       const { result } = renderHook(() => useSubmitApplication());
@@ -196,7 +196,7 @@ describe('useSubmitApplication', () => {
     it('includes accessories in product_data', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        public_token: 'APP-789',
+        application_code: 'APP-789',
       });
 
       const { result } = renderHook(() => useSubmitApplication());
@@ -299,7 +299,7 @@ describe('useSubmitApplication', () => {
     it('clears error on new submission', async () => {
       mockSubmitApplication
         .mockResolvedValueOnce({ success: false, error: 'First error' })
-        .mockResolvedValueOnce({ success: true, public_token: 'APP-100' });
+        .mockResolvedValueOnce({ success: true, application_code: 'APP-100' });
 
       const { result } = renderHook(() => useSubmitApplication());
 

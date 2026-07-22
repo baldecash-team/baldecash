@@ -420,7 +420,10 @@ export function useSubmitApplication(
             });
           }
 
-          setIsSubmitting(false);
+          // Mantener `isSubmitting` en true hasta navegar: si lo apagábamos
+          // aquí, el loader desaparecía ~1s entre el fin del submit y el
+          // router.push (flash antes de KYC). El componente se desmonta al
+          // navegar; el `finally` solo resetea el loader en caso de error.
 
           // Cuando la landing habilita `kyc` (hoy solo copia-home), pasamos por
           // los pasos posteriores de verificación antes del resumen. En el resto

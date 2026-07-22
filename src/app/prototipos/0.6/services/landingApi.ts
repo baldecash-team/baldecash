@@ -1374,7 +1374,7 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
  */
 export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance' | 'otp_verification' | 'kyc';
 
-export type KycStepType = 'dni_selfie' | 'payment_receipt' | 'contract' | 'documents';
+export type KycStepType = 'dni_selfie' | 'contract' | 'documents';
 
 export interface KycStep {
   type: KycStepType;
@@ -1490,7 +1490,6 @@ export function isKycEnabled(config: SolicitarFlowConfig): boolean {
 /** Orden canónico de los sub-pasos de la sección `kyc`. */
 export const KYC_STEP_TYPES: KycStepType[] = [
   'dni_selfie',
-  'payment_receipt',
   'contract',
   'documents',
 ];
