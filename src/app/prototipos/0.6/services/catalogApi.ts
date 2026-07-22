@@ -141,6 +141,7 @@ export interface ApiCatalogProduct {
   slug: string;
   type: string;
   condition: string;
+  grade?: string | null;
   short_description?: string;
   brand: ApiBrand;
   display_order: number;
@@ -673,6 +674,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
+    grade: apiProduct.grade ?? undefined,
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response
     usage: inferUsage(apiProduct.type, apiProduct.name),
@@ -1023,6 +1025,7 @@ export interface DirectApiProduct {
   slug: string;
   type: string | null;
   condition: string | null;
+  grade?: string | null;
   short_description?: string;
   brand: {
     slug: string | null;
@@ -1132,6 +1135,7 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
     gama: inferGamaTier(price),
     condition: mapCondition(apiProduct.condition || 'nuevo'),
     conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
+    grade: apiProduct.grade ?? undefined,
     stock: apiProduct.stock_available > 0 ? 'available' as StockStatus : 'out_of_stock' as StockStatus,
     stockQuantity: apiProduct.stock_available,
     usage: inferUsage(apiProduct.type || 'laptop', apiProduct.name),
