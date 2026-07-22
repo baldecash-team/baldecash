@@ -578,6 +578,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {showCondition && (
                   <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
                 )}
+                {product.grade && (
+                  <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Grado {product.grade}
+                  </span>
+                )}
                 {hasTopLeftTags && <ProductTags tags={product.tags} />}
               </div>
             )}
