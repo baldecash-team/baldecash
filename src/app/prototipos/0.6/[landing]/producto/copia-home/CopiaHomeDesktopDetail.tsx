@@ -36,6 +36,7 @@ import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
+import GradeThumbStrip from './GradeThumbStrip';
 import { targetSlugForGrade, currentGrade } from './gradeSelector';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from './copiaHomeDesktop.module.css';
@@ -383,14 +384,7 @@ export function CopiaHomeDesktopDetail({
                           )}
                         </div>
                         {gradeImages.length > 1 && (
-                          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                            {gradeImages.slice(0, 4).map((url, i) => (
-                              <div key={i} onClick={() => setGradeImgSel(i)} style={{ width: 44, height: 44, borderRadius: 9, border: i === gradeImgSel ? '2px solid #4654cd' : '1.5px solid #e8e8ee', background: '#fff', display: 'grid', placeItems: 'center', overflow: 'hidden', cursor: 'pointer', padding: 4 }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt={`Grado ${grade} ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                              </div>
-                            ))}
-                          </div>
+                          <GradeThumbStrip images={gradeImages} selected={gradeImgSel} onSelect={setGradeImgSel} grade={grade} />
                         )}
                       </div>
                       <div className={styles.carac}>
