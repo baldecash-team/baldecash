@@ -93,7 +93,10 @@ export function CalculadoraClient({ landing, config }: CalculadoraClientProps) {
   const [plazo, setPlazo] = useState<number | null>(config.plazos[0] ?? null);
   const [inicialPercent, setInicialPercent] = useState(config.inicial.percents[0] ?? 0);
   const [sim, setSim] = useState<CalculadoraSimulation | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
+  // Arranca en true cuando ya hay un plazo por defecto: la primera simulación
+  // se dispara de inmediato (ver efecto debounced más abajo), así que iniciar
+  // en false hacía parpadear "Elige un plazo…" durante el debounce inicial.
+  const [isSimulating, setIsSimulating] = useState(() => config.plazos.length > 0);
   const [error, setError] = useState<string | null>(null);
 
   // Combinación de inputs a la que corresponde el `sim`/`isSimulating`/`error`
@@ -164,12 +167,12 @@ export function CalculadoraClient({ landing, config }: CalculadoraClientProps) {
       shortName: 'Efectivo',
       brand: 'BaldeCash',
       price: Math.floor(monto),
-      monthlyPayment: Math.floor(sim.cuota),
+      monthlyPayment: Math.round(sim.cuota),
       months: plazo,
       term: plazo,
       initialPercent: inicialPercent,
-      initialAmount: Math.floor(sim.inicialAmount),
-      image: '',
+      initialAmount: Math.round(sim.inicialAmount),
+      image: '/images/products/placeholder.jpg',
       type: 'efectivo',
       paymentFrequency: 'mensual',
     };
@@ -271,7 +274,7 @@ export function CalculadoraClient({ landing, config }: CalculadoraClientProps) {
                 S/ {formatMoneyNoDecimals(sim.cuota)}
               </p>
               <p className="text-xs text-neutral-500 mt-1">
-                TEA {sim.tea.toFixed(1)}% · TCEA {sim.tcea.toFixed(1)}%
+                TEA {(sim.tea ?? config.tea).toFixed(1)}% · TCEA {(sim.tcea ?? config.tea).toFixed(1)}%
               </p>
             </>
           ) : (
