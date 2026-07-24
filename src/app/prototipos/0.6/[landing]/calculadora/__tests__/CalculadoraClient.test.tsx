@@ -26,5 +26,9 @@ test('shows cuota after simulate', async () => {
   });
   render(<CalculadoraClient landing="home" config={config} />);
   fireEvent.click(screen.getByText(/12 meses/i));
+  // Mientras la simulación debounced está en curso, "Continuar" debe estar
+  // deshabilitado — no puede enviar la cuota (stale) de la combinación previa.
+  expect(screen.getByText(/continuar/i)).toBeDisabled();
   await waitFor(() => expect(screen.getByText(/350/)).toBeInTheDocument());
+  expect(screen.getByText(/continuar/i)).not.toBeDisabled();
 });

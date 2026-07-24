@@ -9,7 +9,7 @@
  * y el usuario completa la solicitud normalmente — no se llama a submit aquí.
  */
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Loader2, Wallet } from 'lucide-react';
 import type { CalculadoraConfig } from '../../types/landingConfig';
@@ -96,6 +96,25 @@ export function CalculadoraClient({ landing, config }: CalculadoraClientProps) {
   const [isSimulating, setIsSimulating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Combinación de inputs a la que corresponde el `sim`/`isSimulating`/`error`
+  // actuales. Se compara contra los inputs de este render para invalidar la
+  // simulación anterior de inmediato — síncronamente, durante el render,
+  // ANTES de que corra el debounce de 350ms — así `sim` nunca sigue
+  // mostrando (ni "Continuar" puede enviar) la cuota de una combinación
+  // previa mientras la nueva simulación todavía no vuelve. Es el patrón de
+  // "ajustar estado durante el render" que recomienda React para esto
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  // en vez de hacer el reset con setState directo en el cuerpo del efecto,
+  // que dispara la regla `react-hooks/set-state-in-effect`.
+  const inputsKey = plazo == null ? null : `${monto}|${plazo}|${inicialPercent}`;
+  const simInputsRef = useRef(inputsKey);
+  if (simInputsRef.current !== inputsKey) {
+    simInputsRef.current = inputsKey;
+    setSim(null);
+    setError(null);
+    setIsSimulating(true);
+  }
+
   // Cuota en vivo (debounced) — ws2 es la fuente de verdad, el FE nunca calcula.
   useEffect(() => {
     if (plazo == null) return;
@@ -125,7 +144,7 @@ export function CalculadoraClient({ landing, config }: CalculadoraClientProps) {
     };
   }, [landing, monto, plazo, inicialPercent]);
 
-  const canContinue = !!sim && !error && plazo != null && config.efectivoProductId != null;
+  const canContinue = !!sim && !error && !isSimulating && plazo != null && config.efectivoProductId != null;
 
   const handleContinuar = () => {
     if (!canContinue || !sim || plazo == null) return;
