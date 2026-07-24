@@ -29,6 +29,11 @@ export function catalogo(landing: string, query?: string): string {
   return query ? `${base}?${query}` : base;
 }
 
+/** Calculadora de efectivo: /{landing}/calculadora */
+export function calculadora(landing: string): string {
+  return `${BASE_PATH}/${landing}/calculadora`;
+}
+
 /** Product detail: /{landing}/producto/{slug} */
 export function producto(landing: string, slug: string, query?: string): string {
   const base = `${BASE_PATH}/${landing}/producto/${slug}`;
@@ -155,6 +160,7 @@ export const routes = {
   home,
   landingHome,
   catalogo,
+  calculadora,
   producto,
   productoPreview,
   solicitar,

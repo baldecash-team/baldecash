@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { CatalogoClient } from './CatalogoClient';
 import { getLandingMeta } from '../../services/landingApi';
 import { fetchLandingConfig } from '../../services/landingConfigApi';
+import { getCalculadora } from '../../types/landingConfig';
 import { routes } from '../../utils/routes';
 
 export default async function CatalogoPage({
@@ -18,6 +19,10 @@ export default async function CatalogoPage({
 }) {
   const { landing } = await params;
   const landingConfig = await fetchLandingConfig(landing);
+
+  if (getCalculadora(landingConfig)) {
+    redirect(routes.calculadora(landing));
+  }
 
   if (!landingConfig.layout.has_catalog) {
     redirect(routes.landingHome(landing));
