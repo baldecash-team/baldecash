@@ -89,6 +89,44 @@ export function getDeferredPayment(config: LandingConfig): DeferredPaymentConfig
   };
 }
 
+/**
+ * Calculadora de efectivo a nivel landing (namespace `calculadora`).
+ * Viene de `landing.extra_data.calculadora` y lo expone el endpoint
+ * /public/landing/{slug}/config.
+ */
+export interface CalculadoraConfig {
+  enabled: boolean;
+  efectivoProductId: number | null;
+  monto: { min: number; max: number; step: number };
+  plazos: number[];
+  inicial: { percents: number[] };
+  tea: number;
+}
+
+/**
+ * Extrae de forma segura el namespace `calculadora`. Devuelve null cuando está
+ * ausente o no está habilitado (fail-safe, como getDeferredPayment).
+ */
+export function getCalculadora(config: LandingConfig): CalculadoraConfig | null {
+  const raw = (config as Record<string, unknown>)['calculadora'] as
+    | Record<string, unknown>
+    | undefined;
+  if (!raw || raw.enabled !== true) return null;
+  const monto = (raw.monto ?? {}) as Record<string, unknown>;
+  const inicial = (raw.inicial ?? {}) as Record<string, unknown>;
+  const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+  const nums = (v: unknown) => (Array.isArray(v) ? v.map((x) => Number(x)).filter(Number.isFinite) : []);
+  return {
+    enabled: true,
+    efectivoProductId:
+      typeof raw.efectivo_product_id === 'number' ? raw.efectivo_product_id : null,
+    monto: { min: num(monto.min), max: num(monto.max), step: num(monto.step, 100) || 100 },
+    plazos: nums(raw.plazos),
+    inicial: { percents: nums(inicial.percents).length ? nums(inicial.percents) : [0] },
+    tea: num(raw.tea),
+  };
+}
+
 /** A single ingredient (key-value) linked to the landing. */
 export interface LandingConfigIngredient {
   code: string;
