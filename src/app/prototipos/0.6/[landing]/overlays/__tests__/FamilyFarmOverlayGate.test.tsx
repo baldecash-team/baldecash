@@ -8,6 +8,8 @@
  */
 
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -78,7 +80,7 @@ describe('FamilyFarmOverlayGate — submit gating', () => {
     renderGate();
 
     const input = screen.getByLabelText('Número de documento');
-    const submit = screen.getByRole('button', { name: /validar/i });
+    const submit = screen.getByRole('button');
 
     await user.type(input, '1234567');
     expect(submit).toBeDisabled();
@@ -89,7 +91,7 @@ describe('FamilyFarmOverlayGate — submit gating', () => {
     renderGate();
 
     const input = screen.getByLabelText('Número de documento');
-    const submit = screen.getByRole('button', { name: /validar/i });
+    const submit = screen.getByRole('button');
 
     await user.type(input, '12345678');
     expect(submit).not.toBeDisabled();
@@ -105,7 +107,7 @@ describe('FamilyFarmOverlayGate — loading state', () => {
     renderGate();
     const input = screen.getByLabelText('Número de documento');
     await user.type(input, '80011001');
-    const submit = screen.getByRole('button', { name: /validar/i });
+    const submit = screen.getByRole('button');
     await user.click(submit);
 
     expect(submit).toBeDisabled();
@@ -126,7 +128,7 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     renderGate();
     const input = screen.getByLabelText('Número de documento');
     await user.type(input, '80011001');
-    await user.click(screen.getByRole('button', { name: /validar/i }));
+    await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(screen.getByText('¡Hola, Rosa!')).toBeInTheDocument();
@@ -149,7 +151,7 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     renderGate();
     const input = screen.getByLabelText('Número de documento');
     await user.type(input, '80011002');
-    await user.click(screen.getByRole('button', { name: /validar/i }));
+    await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(screen.getByText('Family Farm - Fijo')).toBeInTheDocument();
@@ -166,7 +168,7 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     renderGate();
     const input = screen.getByLabelText('Número de documento');
     await user.type(input, '80011003');
-    await user.click(screen.getByRole('button', { name: /validar/i }));
+    await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(screen.getByText('Tu documento no tiene acceso a esta promoción.')).toBeInTheDocument();
@@ -180,5 +182,68 @@ describe('FamilyFarmOverlayGate — no decorative particles', () => {
     // FloatingParticles renders a `div[aria-hidden]` full of decorative circles;
     // this variant must never mount it (spec: "No decorative particles").
     expect(container.querySelector('[aria-hidden]')).not.toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Commit C — visual redesign: a11y + asset regression assertions
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('FamilyFarmOverlayGate — accessible document input (Commit C)', () => {
+  it('renders a visible <label> bound via for/id to the input, not placeholder-only', () => {
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    expect(input.tagName).toBe('INPUT');
+    expect(input).toHaveAttribute('id');
+    const label = document.querySelector(`label[for="${input.getAttribute('id')}"]`);
+    expect(label).not.toBeNull();
+    expect(label?.textContent).toContain('Número de documento');
+  });
+
+  it('sets inputMode="numeric" and maxLength={12} on the input', () => {
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    expect(input).toHaveAttribute('inputmode', 'numeric');
+    expect(input).toHaveAttribute('maxlength', '12');
+  });
+});
+
+describe('FamilyFarmOverlayGate — no broken mascot image (Commit C)', () => {
+  it('never references mascota.png', () => {
+    const { container } = renderGate();
+    expect(container.querySelector('img[src*="mascota"]')).not.toBeInTheDocument();
+  });
+});
+
+describe('FamilyFarmOverlayGate.module.css — source-text regression guard', () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, '..', 'familyFarmOverlay.module.css'),
+    'utf8',
+  );
+
+  it.each([
+    '@supports not',
+    '@media (hover: hover) and (pointer: fine)',
+    'prefers-reduced-motion',
+    '#5c6a86',
+    '#007068',
+    'tabular-nums',
+    '0 0 0 4px',
+    'border-color: var(--teal) !important',
+    'clamp(48px, 10.4vh, 110px)',
+    'clamp(120px, 12.8vw, 250px)',
+    'clamp(280px, 24.4vw, 430px)',
+    '767px',
+  ])('contains %s', (needle) => {
+    expect(css).toContain(needle);
+  });
+
+  it('declares tokens on .overlay, never on :root', () => {
+    expect(css).not.toMatch(/^:root\s*\{/m);
+    expect(css).toMatch(/\.overlay\s*\{[\s\S]*--teal:/);
+  });
+
+  it('does not hardcode a font-family override', () => {
+    expect(css).not.toMatch(/font-family\s*:/);
   });
 });

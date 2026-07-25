@@ -1,0 +1,497 @@
+/*
+ * FamilyFarmOverlayGate — visual redesign (BAL-2522 Commit C)
+ * Reference: DISENO-CARD.md (family-farm-overlay-para-yampi demo).
+ *
+ * Tokens are scoped to `.overlay` (this variant's root), NEVER `:root` —
+ * these are brand values for one landing variant, not app-wide utilities.
+ */
+
+.overlay {
+  --teal: #00bfb3;
+  --teal-ink: #00786f;
+  --teal-ring: rgba(0, 191, 179, 0.22);
+
+  --ink: #1b2a4a;
+  --ink-soft: #4a5878;
+  /* Accessibility-corrected: #6d7a95 measured 4.25:1 (below AA), #5c6a86 reaches 5.4:1. */
+  --ink-mute: #5c6a86;
+
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-line: rgba(255, 255, 255, 0.55);
+  --hairline: rgba(27, 42, 74, 0.14);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+  background-color: #f0f2f5;
+  background-image: url('/assets/family-farm/fondo-campo.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 1024px;
+  width: 100%;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .stage {
+    flex-direction: row;
+    gap: 0;
+    justify-content: flex-end;
+    max-width: 1140px;
+  }
+}
+
+/* ── Logo ─────────────────────────────────────────────────────────────── */
+/* Desktop: absolute, calibrated for fondo-campo.webp @ 1536x695
+   ("mesa con granadas": left 196px / top 72px / width 375px). */
+.logo {
+  position: absolute;
+  top: clamp(48px, 10.4vh, 110px);
+  left: clamp(120px, 12.8vw, 250px);
+  width: clamp(280px, 24.4vw, 430px);
+  height: auto;
+  z-index: 1;
+  animation: riseIn 0.5s var(--ease-out) both;
+}
+
+@media (max-width: 767px) {
+  .overlay {
+    flex-direction: column;
+    background-position: right center;
+  }
+
+  .logo {
+    position: static;
+    width: min(74vw, 300px);
+    margin: 0 0 20px;
+  }
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+.card {
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(165%);
+  backdrop-filter: blur(28px) saturate(165%);
+  border: 1px solid var(--glass-line);
+  box-shadow:
+    0 24px 60px -18px rgba(13, 15, 46, 0.45),
+    0 2px 8px rgba(13, 15, 46, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  animation: cardIn 0.42s var(--ease-out) both;
+}
+
+/* Mandatory fallback: without it, an unsupported browser renders the card
+   at 62% opacity with no blur and the text becomes illegible over the photo. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card {
+    background: rgba(255, 255, 255, 0.93);
+  }
+}
+
+@media (max-width: 420px) {
+  .card {
+    padding: 22px;
+    border-radius: 24px;
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade {
+  animation: fade 0.3s var(--ease-out);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Staggered content entrance */
+.head,
+.field,
+.btnSubmit,
+.foot {
+  animation: riseIn 0.4s var(--ease-out) both;
+}
+
+.head {
+  animation-delay: 0.06s;
+}
+
+.field {
+  animation-delay: 0.12s;
+}
+
+.btnSubmit {
+  animation-delay: 0.18s;
+}
+
+.foot {
+  animation-delay: 0.24s;
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Head ─────────────────────────────────────────────────────────────── */
+.head {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.kicker {
+  color: var(--teal-ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.title span {
+  color: var(--teal-ink);
+}
+
+.sub {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* ── Field ────────────────────────────────────────────────────────────── */
+.label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  /* 15px top/bottom padding + ~22px line height = 52px, above the 44px
+     minimum touch target. */
+  padding: 15px 16px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.input::placeholder {
+  color: var(--ink-mute);
+  font-weight: 500;
+  letter-spacing: normal;
+  opacity: 0.8;
+}
+
+.input:focus {
+  /*
+   * globals.css:280-285 declares
+   *   input:focus-visible { outline:none !important; border-color:#4654CD !important; }
+   * (BaldeCash purple, global blast radius, DO NOT EDIT). That `!important`
+   * beats this module's specificity, so this rule ALSO needs `!important` to
+   * render the spec's teal border instead of purple. Do not remove this
+   * `!important` without also changing globals.css:280-285 — removing it
+   * silently reintroduces the purple focus trap.
+   */
+  border-color: var(--teal) !important;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 4px var(--teal-ring);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .input:hover:not(:focus) {
+    border-color: rgba(27, 42, 74, 0.26);
+  }
+}
+
+.err {
+  color: #c81e1e;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btnSubmit {
+  width: 100%;
+  /* 15px padding + line-height ≈ 52px, above the 44px touch-target minimum. */
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  /* Flat color, not the demo's gradient: white text on the gradient's upper
+     half measured 2.9:1 (below AA); #007068 flat reaches 6:1. */
+  background: #007068;
+  box-shadow:
+    0 8px 20px -6px rgba(0, 128, 120, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition:
+    transform 0.16s var(--ease-out),
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+  margin-top: 18px;
+}
+
+.btnSubmit:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btnSubmit:not(:disabled):active {
+  transform: scale(0.975);
+}
+
+.btnSubmit.isLoading {
+  opacity: 1;
+  cursor: progress;
+}
+
+.btnSubmit.isLoading .btnLabel {
+  opacity: 0.7;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btnSubmit:not(:disabled):hover {
+    box-shadow:
+      0 12px 26px -6px rgba(0, 128, 120, 0.58),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+}
+
+.btnOutline {
+  margin-top: 6px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--teal-ink);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(0, 134, 124, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  transition:
+    transform 0.16s var(--ease-out),
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.btnOutline:active {
+  transform: scale(0.975);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btnOutline:hover {
+    background: rgba(255, 255, 255, 0.72);
+    border-color: var(--teal-ink);
+  }
+}
+
+/* ── Notices ──────────────────────────────────────────────────────────── */
+.notice {
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 16px;
+  animation: riseIn 0.32s var(--ease-out) both;
+}
+
+.notice p {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.sibling {
+  background: rgba(0, 191, 179, 0.14);
+  border: 1px solid rgba(0, 134, 124, 0.3);
+}
+
+.noaccess {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(200, 30, 30, 0.26);
+}
+
+.land {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--teal-ink);
+  margin-top: 2px;
+}
+
+.foot {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-mute);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* ── Welcome view ─────────────────────────────────────────────────────── */
+.welcome {
+  text-align: center;
+}
+
+.welcomeTitle {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.welcomeMsg {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.55;
+  margin-bottom: 22px;
+}
+
+.docChip {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 12px;
+  border-right: 1px solid var(--hairline);
+}
+
+.tag span {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal-ink);
+}
+
+.docVal {
+  padding-left: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────────── */
+.spin {
+  width: 19px;
+  height: 19px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rot 0.6s linear infinite;
+}
+
+@keyframes rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   Fades are kept (they help convey the state change); translation is
+   dropped (the thing that causes motion sickness); the submit button's
+   :active scale has no framer-motion equivalent, so this media query is
+   required regardless of the animation vehicle chosen. */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .head,
+  .field,
+  .btnSubmit,
+  .foot,
+  .notice,
+  .logo {
+    animation: fade 0.2s ease both;
+  }
+
+  .btnSubmit:not(:disabled):active,
+  .btnOutline:active {
+    transform: none;
+  }
+}
