@@ -1484,8 +1484,8 @@ function FamilyFarmOverlayGate({ landing, onValidated }: { landing: string; onVa
   }, [isValidDni, submitting, landing, dni, session?.sessionUuid]);
 
   const FAMILY_FARM_TEAL = '#00BFB3';
-  // TODO: replace with real URL when provided — placeholder mascot asset.
-  const FAMILY_FARM_MASCOT = '/assets/family-farm/mascota.png';
+  // Mascot asset was never delivered (mascota.png retired, BAL-2522 Commit A);
+  // the redesign (Commit C) replaces it with the fondo-campo/logo pair.
   // Reuse the CADE background asset (per D3: distinct mascot, shared background).
   const FAMILY_FARM_OVERLAY_BG = 'https://baldecash.s3.amazonaws.com/illustrations/cade-overlay-bg.webp';
 
@@ -1496,8 +1496,6 @@ function FamilyFarmOverlayGate({ landing, onValidated }: { landing: string; onVa
     >
       <FloatingParticles color={FAMILY_FARM_TEAL} />
       <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
-        <BaldiIllustration currentBaldiSrc={FAMILY_FARM_MASCOT} />
-
         <motion.div
           className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
           initial={{ opacity: 0, x: 60 }}
@@ -1513,16 +1511,6 @@ function FamilyFarmOverlayGate({ landing, onValidated }: { landing: string; onVa
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="flex md:hidden justify-center mb-3" style={{ height: 144 }}>
-                  <img
-                    src={FAMILY_FARM_MASCOT}
-                    alt="Family Farm"
-                    width={112}
-                    height={144}
-                    className="h-28 sm:h-36 w-auto object-contain"
-                  />
-                </div>
-
                 <div className="text-center mb-4 sm:mb-5">
                   <p className="text-gray-500 text-base sm:text-xl mb-1">Acceso</p>
                   <h2 className="text-xl sm:text-3xl font-bold" style={{ color: '#1B2A4A' }}>
@@ -1596,10 +1584,6 @@ function FamilyFarmOverlayGate({ landing, onValidated }: { landing: string; onVa
                 transition={{ duration: 0.3 }}
                 className="text-center"
               >
-                <div className="flex md:hidden justify-center mb-3">
-                  <img src={FAMILY_FARM_MASCOT} alt="Family Farm" width={112} height={144} className="h-28 sm:h-36 w-auto object-contain" />
-                </div>
-
                 <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
                   {firstName ? `¡Hola, ${firstName}!` : '¡Bienvenido!'}
                 </h2>
