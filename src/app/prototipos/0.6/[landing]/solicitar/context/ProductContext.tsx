@@ -84,7 +84,7 @@ export interface AppliedCoupon {
   code: string;
   discount: number;
   label: string;
-  couponType?: 'fixed' | 'percent_quotas';
+  couponType?: 'fixed' | 'percent_quotas' | 'free_accessory';
   quotasAffected?: number;
   /** Cupón de URL de campaña (?coupon=) — no se puede quitar ni se limpia al cambiar producto */
   lockedFromUrl?: boolean;

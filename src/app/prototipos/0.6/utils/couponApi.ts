@@ -26,14 +26,14 @@ export interface CouponValidateReferralResponse {
 export interface CouponValidateLegacyResponse {
   valid: boolean;
   code: string | null;
-  coupon_type: 'fixed' | 'percent_quotas' | null;
+  coupon_type: 'fixed' | 'percent_quotas' | 'free_accessory' | null;
   value: string | null;
   quotas_affected: number | null;
   label: string | null;
   error_message: string | null;
   /** Nombre del cliente que generó el cupón (cupón de referido) */
   customer_name?: string | null;
-  /** Nombre del regalo asociado (cupón tipo gift, offer_type='gift'). Ej: "Audífonos Samsung Galaxy Buds" */
+  /** Nombre del periférico de regalo (free_accessory). Ej: "Cargador Apple 20W" */
   gift_name?: string | null;
   /** Cantidad de unidades del regalo (por defecto 1) */
   gift_quantity?: number | null;
