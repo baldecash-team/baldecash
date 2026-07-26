@@ -107,6 +107,20 @@
   }
 }
 
+/*
+ * Tablet: centre the card instead of pinning it right (design request,
+ * 2026-07-26). Width — not aspect ratio — is the right signal here: this is
+ * about how much horizontal room there is to offset the card, unlike the
+ * background crop above, which is a ratio problem. Above 1024px the card
+ * returns to the right, keeping DISENO-CARD.md §11's diagonal composition.
+ * Must stay AFTER the rule above: same specificity, so source order decides.
+ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .stage {
+    justify-content: center;
+  }
+}
+
 /* ── Logo ─────────────────────────────────────────────────────────────── */
 /* Desktop: absolute, calibrated for fondo-campo.webp @ 1536x695
    ("mesa con granadas": left 196px / top 72px / width 375px). */
@@ -118,6 +132,27 @@
   height: auto;
   z-index: 1;
   animation: riseIn 0.5s var(--ease-out) backwards;
+}
+
+/*
+ * Tablet: centre the logo on the same axis as the card (design request,
+ * 2026-07-26).
+ *
+ * Must stay AFTER the `.logo` rule above — media queries add no specificity,
+ * so source order decides, and the base `left: clamp(...)` would otherwise win.
+ *
+ * Deliberately NOT `left: 50%; transform: translateX(-50%)`: .logo runs the
+ * riseIn entrance animation, which animates `transform`. The keyframes outrank
+ * normal declarations, so the logo would slide sideways for the animation's
+ * duration before snapping into place. Auto margins between pinned edges
+ * centre it without touching `transform`.
+ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .logo {
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+  }
 }
 
 @media (max-width: 767px) {
