@@ -169,7 +169,7 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
                     Hola <span style={{ fontWeight: 600 }}>{siblingMatch.firstName}</span>, tu acceso está en:
                   </p>
                   <p className={styles.land}>{siblingMatch.name}</p>
-                  <a href={routes.catalogo(siblingMatch.slug)} className={styles.btnOutline}>
+                  <a href={routes.catalogo(siblingMatch.slug)} className={styles.btnPrimary}>
                     Empezar
                   </a>
                 </div>

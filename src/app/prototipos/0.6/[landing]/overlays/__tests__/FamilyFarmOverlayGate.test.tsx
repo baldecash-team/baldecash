@@ -226,7 +226,7 @@ describe('FamilyFarmOverlayGate.module.css — source-text regression guard', ()
     '@media (hover: hover) and (pointer: fine)',
     'prefers-reduced-motion',
     '#5c6a86',
-    '#007068',
+    'linear-gradient(180deg, #00a99f, #008078)',
     'tabular-nums',
     '0 0 0 4px',
     'border-color: var(--teal) !important',
@@ -245,5 +245,17 @@ describe('FamilyFarmOverlayGate.module.css — source-text regression guard', ()
 
   it('does not hardcode a font-family override', () => {
     expect(css).not.toMatch(/font-family\s*:/);
+  });
+
+  /*
+   * Regression guard. An entrance animation ending at `opacity: 1` with
+   * `animation-fill-mode: both` keeps that value applied forever once the
+   * animation finishes, and animations outrank normal declarations in the
+   * cascade — which silently defeated `.btnSubmit:disabled { opacity: .42 }`
+   * and rendered the disabled button as fully solid. Use `backwards`: it still
+   * applies the `from` state during the delay but releases control on finish.
+   */
+  it('never uses animation-fill-mode `both` (it would outrank :disabled)', () => {
+    expect(css).not.toMatch(/animation:[^;]*\bboth\b/);
   });
 });

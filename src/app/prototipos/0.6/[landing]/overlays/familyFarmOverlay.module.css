@@ -65,7 +65,7 @@
   width: clamp(280px, 24.4vw, 430px);
   height: auto;
   z-index: 1;
-  animation: riseIn 0.5s var(--ease-out) both;
+  animation: riseIn 0.5s var(--ease-out) backwards;
 }
 
 @media (max-width: 767px) {
@@ -96,7 +96,7 @@
     0 24px 60px -18px rgba(13, 15, 46, 0.45),
     0 2px 8px rgba(13, 15, 46, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  animation: cardIn 0.42s var(--ease-out) both;
+  animation: cardIn 0.42s var(--ease-out) backwards;
 }
 
 /* Mandatory fallback: without it, an unsupported browser renders the card
@@ -143,7 +143,7 @@
 .field,
 .btnSubmit,
 .foot {
-  animation: riseIn 0.4s var(--ease-out) both;
+  animation: riseIn 0.4s var(--ease-out) backwards;
 }
 
 .head {
@@ -273,7 +273,8 @@
 }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
-.btnSubmit {
+.btnSubmit,
+.btnPrimary {
   width: 100%;
   /* 15px padding + line-height ≈ 52px, above the 44px touch-target minimum. */
   padding: 15px;
@@ -288,9 +289,10 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   color: #fff;
-  /* Flat color, not the demo's gradient: white text on the gradient's upper
-     half measured 2.9:1 (below AA); #007068 flat reaches 6:1. */
-  background: #007068;
+  /* Brand gradient, per DISENO-CARD.md §8. Note: white text over the gradient's
+     upper half measures 2.9:1, below the AA 4.5:1 minimum (§12 documents this).
+     Kept deliberately — the gradient is the approved brand treatment. */
+  background: linear-gradient(180deg, #00a99f, #008078);
   box-shadow:
     0 8px 20px -6px rgba(0, 128, 120, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
@@ -299,6 +301,15 @@
     box-shadow 0.2s ease,
     opacity 0.2s ease;
   margin-top: 18px;
+}
+
+.btnPrimary {
+  margin-top: 14px;
+  text-decoration: none;
+}
+
+.btnPrimary:active {
+  transform: scale(0.975);
 }
 
 .btnSubmit:disabled {
@@ -321,7 +332,8 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btnSubmit:not(:disabled):hover {
+  .btnSubmit:not(:disabled):hover,
+  .btnPrimary:hover {
     box-shadow:
       0 12px 26px -6px rgba(0, 128, 120, 0.58),
       inset 0 1px 0 rgba(255, 255, 255, 0.28);
@@ -366,7 +378,7 @@
   border-radius: 14px;
   padding: 16px;
   margin-top: 16px;
-  animation: riseIn 0.32s var(--ease-out) both;
+  animation: riseIn 0.32s var(--ease-out) backwards;
 }
 
 .notice p {
@@ -487,7 +499,7 @@
   .foot,
   .notice,
   .logo {
-    animation: fade 0.2s ease both;
+    animation: fade 0.2s ease backwards;
   }
 
   .btnSubmit:not(:disabled):active,
