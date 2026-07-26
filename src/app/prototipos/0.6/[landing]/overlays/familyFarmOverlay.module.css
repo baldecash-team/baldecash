@@ -22,6 +22,30 @@
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
+  /*
+   * --bg-focus: single control for WHICH horizontal slice of the photo survives
+   * the `cover` crop. Change it here and nowhere else.
+   *
+   * Why it exists: fondo-campo.webp is 1672x941 (ratio 1.78). On viewports
+   * narrower than that ratio, `cover` scales the image to fill the HEIGHT and
+   * crops the sides — a 0.77-ratio tablet only shows ~43% of the image width.
+   * The three people occupy roughly the left half (0%-51%) of the photo, so a
+   * centered crop cuts them off.
+   *
+   * NOTE — this deliberately overrides DISENO-CARD.md §11, which specified
+   * `right center` below 768px to favour the open field over the people.
+   * Product decision (2026-07-25) reversed that priority. To restore the
+   * original behaviour, revert this commit.
+   *
+   * Known limit, accepted: this fixes tablet portrait, NOT phones. On a phone
+   * the image is scaled by height (nothing is cropped vertically) and the card
+   * spans nearly the full width, leaving the faces behind it. No
+   * `background-position` value can fix that — it would need a separately
+   * cropped phone asset or a stacked layout. Both were considered and
+   * declined; phones intentionally ship with the people mostly hidden.
+   */
+  --bg-focus: center;
+
   position: fixed;
   inset: 0;
   z-index: 10001;
@@ -33,7 +57,35 @@
   background-color: #f0f2f5;
   background-image: url('/assets/family-farm/fondo-campo.webp');
   background-size: cover;
-  background-position: center;
+  background-position: var(--bg-focus) center;
+}
+
+/*
+ * Keyed on ASPECT RATIO, not width. Side-cropping happens whenever the
+ * viewport is squarer than the photo (1.78), which is a ratio condition, not a
+ * width one: a 1440x1452 window has plenty of width but a 0.99 ratio and crops
+ * as hard as a tablet. Width-based breakpoints miss exactly that case.
+ *
+ * Visible width fraction f = viewport_ratio / 1.78, and a `background-position`
+ * of P% starts the visible window at P x (1 - f). The laptop begins around 20%
+ * of the photo width, so every step below keeps that start under ~11%.
+ */
+@media (max-aspect-ratio: 16 / 9) {
+  .overlay {
+    --bg-focus: 35%;
+  }
+}
+
+@media (max-aspect-ratio: 5 / 4) {
+  .overlay {
+    --bg-focus: 22%;
+  }
+}
+
+@media (max-aspect-ratio: 1 / 1) {
+  .overlay {
+    --bg-focus: 15%;
+  }
 }
 
 .stage {
@@ -71,7 +123,6 @@
 @media (max-width: 767px) {
   .overlay {
     flex-direction: column;
-    background-position: right center;
   }
 
   .logo {
