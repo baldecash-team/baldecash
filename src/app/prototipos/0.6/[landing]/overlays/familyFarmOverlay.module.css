@@ -588,7 +588,12 @@
     animation: fade 0.2s ease backwards;
   }
 
+  /* Every control that scales on :active must be listed here — DISENO-CARD.md
+     §10 names .btn-submit, .btn-primary and .btn-outline. Adding a new
+     scaling control without adding it here leaves it animating for users who
+     asked for reduced motion. */
   .btnSubmit:not(:disabled):active,
+  .btnPrimary:active,
   .btnOutline:active {
     transform: none;
   }

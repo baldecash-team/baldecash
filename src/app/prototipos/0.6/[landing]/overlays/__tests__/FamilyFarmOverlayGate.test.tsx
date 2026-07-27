@@ -258,4 +258,22 @@ describe('FamilyFarmOverlayGate.module.css — source-text regression guard', ()
   it('never uses animation-fill-mode `both` (it would outrank :disabled)', () => {
     expect(css).not.toMatch(/animation:[^;]*\bboth\b/);
   });
+
+  /*
+   * Regression guard. DISENO-CARD.md §10 requires every :active scale to be
+   * cancelled under reduced motion. `.btnPrimary` was added later and initially
+   * escaped the reset, leaving one control still scaling. Assert that each
+   * class which scales on :active is also listed in the reduced-motion block.
+   */
+  it('cancels every :active scale under prefers-reduced-motion', () => {
+    const reducedMotion = css.slice(css.indexOf('prefers-reduced-motion'));
+    const scalingControls = [...css.matchAll(/\.(btn[A-Za-z]+)[^{]*:active[^{]*\{[^}]*scale\(/g)]
+      .map((m) => m[1]);
+
+    expect(scalingControls.length).toBeGreaterThan(0);
+    for (const control of new Set(scalingControls)) {
+      // Matches `.btnSubmit:not(:disabled):active` as well as `.btnPrimary:active`.
+      expect(reducedMotion).toMatch(new RegExp(`\\.${control}[^,{]*:active`));
+    }
+  });
 });
