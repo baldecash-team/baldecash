@@ -292,6 +292,15 @@
   margin-top: 8px;
 }
 
+/* Secondary explanatory line under .sub. Kept one step quieter so the head
+   still reads as kicker -> title -> lead, rather than two competing lines. */
+.subNote {
+  color: var(--ink-mute);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
 /* ── Field ────────────────────────────────────────────────────────────── */
 .label {
   display: block;

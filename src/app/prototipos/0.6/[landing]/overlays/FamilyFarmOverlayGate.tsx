@@ -124,9 +124,12 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
               <div className={styles.head}>
                 <p className={styles.kicker}>Acceso</p>
                 <h2 className={styles.title}>
-                  <span>Family Farm</span>
+                  <span>Family Farms</span>
                 </h2>
-                <p className={styles.sub}>Valida tu identidad para continuar</p>
+                <p className={styles.sub}>Descubre tus equipos disponibles</p>
+                <p className={styles.subNote}>
+                  Ingresa tu DNI y conoce los equipos que puedes financiar con BaldeCash.
+                </p>
               </div>
 
               <div className={styles.field}>
@@ -158,7 +161,7 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
                 {submitting ? (
                   <span className={styles.spin} role="status" />
                 ) : (
-                  <span className={styles.btnLabel}>Continuar</span>
+                  <span className={styles.btnLabel}>Ver equipos</span>
                 )}
               </button>
 
