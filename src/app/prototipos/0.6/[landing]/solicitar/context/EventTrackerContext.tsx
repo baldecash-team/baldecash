@@ -43,6 +43,17 @@ const MAX_BUFFER_SIZE = 50;
 /** Scroll depth thresholds to report */
 const SCROLL_THRESHOLDS = [25, 50, 75, 100];
 
+/**
+ * UUIDs que ya emitieron `sesion_vinculada` en esta carga de página.
+ *
+ * Vive a nivel de módulo y no en un ref del provider a propósito: en
+ * StrictMode y en las transiciones de ruta el provider se vuelve a montar con
+ * la misma sesión, y un ref nuevo dejaría pasar una segunda emisión. Al
+ * recargar, el módulo se reinicia, pero entonces la sesión ya no es nueva
+ * (`isNewSession` es false) y tampoco se emite.
+ */
+const sesionesVinculadas = new Set<string>();
+
 // ============================================================================
 // CONTEXT
 // ============================================================================
@@ -107,7 +118,7 @@ interface EventTrackerProviderProps {
 export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   children,
 }) => {
-  const { sessionUuid } = useSession();
+  const { sessionUuid, isNewSession, sessionId } = useSession();
   const pathname = usePathname();
 
   // Buffer of pending events
@@ -193,6 +204,35 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
       },
     });
   }, [sessionUuid, enqueue]);
+
+  // ------------------------------------------------------------------
+  // Auto: sesion_vinculada (SOLO en sesiones nuevas, una única vez)
+  //
+  // A diferencia de session_start —que se re-emite en cada carga porque su
+  // guard es un ref del provider— este evento se dispara únicamente cuando la
+  // sesión nace: `isNewSession` sólo es true si no había uuid en localStorage.
+  // Al recargar, la sesión se recupera y el flag queda en false, así que no
+  // se vuelve a emitir. El Set de módulo cubre los remounts.
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    if (!sessionUuid || !isNewSession || sesionesVinculadas.has(sessionUuid)) return;
+    sesionesVinculadas.add(sessionUuid);
+
+    enqueue({
+      event_type: 'sesion_vinculada',
+      client_ts: Date.now(),
+      page_url: getPageUrl(),
+      element_id: null,
+      properties: {
+        session_id: sessionUuid,
+        // ID numérico del backend: null si la creación de sesión falló y se
+        // está usando el uuid local como fallback.
+        session_db_id: sessionId,
+        landing_path: getPageUrl(),
+        device_type: getDeviceType(),
+      },
+    });
+  }, [sessionUuid, isNewSession, sessionId, enqueue]);
 
   // ------------------------------------------------------------------
   // Auto: page_enter / page_exit on route changes

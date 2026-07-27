@@ -198,6 +198,17 @@ export interface UseAnalyticsReturn {
     total_monthly_payment: number | null;
   }) => void;
 
+  /**
+   * Vinculación de sesión. El disparo automático vive en EventTrackerContext y
+   * ocurre sólo al nacer una sesión; este helper existe para los flujos que
+   * necesiten emitirlo explícitamente (p. ej. una sesión con token fijo).
+   */
+  trackSesionVinculada: (args: {
+    session_id: string;
+    session_db_id?: number | null;
+    source?: string;
+  }) => void;
+
   // Landing / Home
   trackHeroCtaClick: (args: { landing_slug: string; cta_id?: string | null; variant?: string | null }) => void;
   trackSectionCtaClick: (args: { section_name: string; cta_id?: string | null; href?: string | null }) => void;
@@ -671,9 +682,21 @@ export function useAnalytics(): UseAnalyticsReturn {
     [track]
   );
 
+  const trackSesionVinculada = useCallback<UseAnalyticsReturn['trackSesionVinculada']>(
+    ({ session_id, session_db_id, source = 'manual' }) => {
+      track('sesion_vinculada', {
+        session_id,
+        session_db_id: session_db_id ?? null,
+        source,
+      });
+    },
+    [track]
+  );
+
   return useMemo(
     () => ({
       track,
+      trackSesionVinculada,
       // Filtros
       trackFilterToggle,
       trackFilterRangeChange,
@@ -808,6 +831,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackHeroCtaClick,
       trackSectionCtaClick,
       trackPromoCardClick,
+      trackSesionVinculada,
     ]
   );
 }

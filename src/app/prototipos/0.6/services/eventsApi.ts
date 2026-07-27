@@ -263,7 +263,12 @@ export type EventType =
   | 'kyc_contract_accepted'
   | 'kyc_documents_uploaded'
   | 'kyc_document_upload_error'
-  | 'kyc_completed';
+  | 'kyc_completed'
+  // Phase 20: Vinculación de sesión — se emite UNA sola vez, cuando se crea
+  // una sesión nueva. No se emite en recargas ni al recuperar una sesión ya
+  // existente desde localStorage. Lleva el uuid en el payload para poder
+  // cruzar la sesión con otras fuentes de datos fuera de este backend.
+  | 'sesion_vinculada';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
