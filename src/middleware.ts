@@ -54,7 +54,10 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/ucsur': 'https://beneficios.baldecash.com/ucsur',
   '/sise': 'https://beneficios.baldecash.com/sise',
   '/continental': 'https://beneficios.baldecash.com/continental',
-  '/senati': 'https://beneficios.baldecash.com/senati',
+  // '/senati' ya no redirige a beneficios: ahora es la landing de convenio
+  // (antes /convenio-senati-landing). beneficios.baldecash.com/senati
+  // redirige hacia acá, así que mantener esta clave causaría un bucle.
+  '/convenio-senati-landing': '/senati',
   '/carrion': 'https://beneficios.baldecash.com/carrion',
   '/maria-araoz': 'https://beneficios.baldecash.com/maria-araoz',
   '/lasartes': 'https://beneficios.baldecash.com/lasartes-lima',
