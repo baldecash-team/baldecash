@@ -24,6 +24,7 @@ import { fetchLandingConfig } from '../services/landingConfigApi';
 import { routes, normalizeCatalogUrl } from '../utils/routes';
 import { evaluateLandingAccess } from '../services/landingApi';
 import type { EvaluatePayload } from '../services/landingApi';
+import { FamilyFarmOverlayGate } from './overlays/FamilyFarmOverlayGate';
 import { usePreview } from '../context/PreviewContext';
 import { sendEventsBatch } from '../services/eventsApi';
 import { isDarkLanding } from '../utils/theme';
@@ -1426,6 +1427,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
 const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: () => void; deadline?: string }>> = {
   cade: CadeOverlayGate,
   lockertruck: LockertruckOverlayGate,
+  familyfarm: FamilyFarmOverlayGate,
 };
 
 // ── VipGate ───────────────────────────────────────────────────────────────

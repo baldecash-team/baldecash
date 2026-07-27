@@ -1579,3 +1579,57 @@ export async function evaluateLandingAccess(
 
   return response.json() as Promise<EvaluateResponse>;
 }
+
+// ============================================
+// Evaluate Access — family-farm gate (BAL-2521/BAL-2522)
+// ============================================
+
+/**
+ * Respuesta tipada de POST /public/landing/{slug}/evaluate-family-farm.
+ * Contrato FROZEN (ver decisión sdd/landing-family-farm-gate, PR-1 ws2): las
+ * claves opcionales se OMITEN (no se envían como null) cuando no aplican, por
+ * lo que el consumidor debe leerlas con optional-chaining / `in`, nunca
+ * asumir que siempre existen.
+ */
+export interface EvaluateFamilyFarmResponse {
+  valid: boolean;
+  first_name?: string;
+  found_in_sibling?: boolean;
+  sibling_landing_slug?: string;
+  sibling_landing_name?: string;
+  access_token?: string;
+}
+
+/**
+ * Llama a POST /public/landing/{slug}/evaluate-family-farm.
+ *
+ * Mirrors validate-dni's whitelist-only shape (NO Equifax). Usado
+ * exclusivamente por el gate `familyfarm` (FamilyFarmOverlayGate); NO tocar
+ * useDniValidation ni el flujo /evaluate de locker-truck.
+ *
+ * NOTA: nunca loggear el valor del DNI.
+ */
+export async function evaluateFamilyFarmAccess(
+  slug: string,
+  { dni, sessionUuid }: { dni: string; sessionUuid?: string },
+): Promise<EvaluateFamilyFarmResponse> {
+  const body: Record<string, string> = { dni };
+  if (sessionUuid) {
+    body.session_uuid = sessionUuid;
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/public/landing/${encodeURIComponent(slug)}/evaluate-family-farm`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`evaluate-family-farm error: ${response.status}`);
+  }
+
+  return response.json() as Promise<EvaluateFamilyFarmResponse>;
+}
