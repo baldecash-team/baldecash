@@ -57,14 +57,16 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // '/senati' ya no redirige a beneficios: ahora es la landing de convenio
   // (antes /convenio-senati-landing). beneficios.baldecash.com/senati
   // redirige hacia acá, así que mantener esta clave causaría un bucle.
-  '/convenio-senati-landing': '/senati',
+  // El redirect del slug viejo vive en RENAMED_LANDING_SLUGS (abajo), para
+  // cubrir también las subrutas: /catalogo, /producto/..., /solicitar/...
   '/carrion': 'https://beneficios.baldecash.com/carrion',
   '/maria-araoz': 'https://beneficios.baldecash.com/maria-araoz',
   '/lasartes': 'https://beneficios.baldecash.com/lasartes-lima',
   '/ucv-losolivos': 'https://beneficios.baldecash.com/ucv-losolivos',
   '/uncp': 'https://beneficios.baldecash.com/uncp',
   '/upn': 'https://beneficios.baldecash.com/upn',
-  '/ucv': 'https://beneficios.baldecash.com/ucv',
+  // '/ucv' ya no redirige a beneficios: ahora es la landing de convenio
+  // (antes /convenio-ucv-landing). Ver RENAMED_LANDING_SLUGS.
   '/bachillerupn': 'https://pidetuprestamo.baldecash.com/#/titulos-upn',
   '/promoestudiantes': 'https://pidetuprestamo.baldecash.com/#/prestamos?fuente=marcoloretdemola',
   '/baldecash-que-oferton': '/baldecash-oferton',
@@ -81,6 +83,18 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/pasalavoz': '/pasa-la-voz-9466',
   '/terminos-y-condiciones-grupob': '/terminos-y-condiciones-7321',
   '/zonaestudiantes': 'https://zonaclientes.baldecash.com/',
+};
+
+/**
+ * Landings que cambiaron de slug. Se redirige el slug viejo al nuevo
+ * conservando el resto del path, para que los enlaces publicados hacia
+ * subrutas (/catalogo, /producto/..., /solicitar/...) no se pierdan.
+ *
+ * Clave: slug antiguo. Valor: slug nuevo.
+ */
+const RENAMED_LANDING_SLUGS: Record<string, string> = {
+  'convenio-senati-landing': 'senati',
+  'convenio-ucv-landing': 'ucv',
 };
 
 export function middleware(request: NextRequest) {
@@ -102,6 +116,16 @@ export function middleware(request: NextRequest) {
     }
     const url = request.nextUrl.clone();
     url.pathname = redirectDest;
+    return NextResponse.redirect(url, 301);
+  }
+
+  // Landings renombradas: redirige el slug viejo al nuevo conservando el
+  // resto del path (/catalogo, /producto/..., etc.) y el querystring.
+  const [, firstSegment, ...restSegments] = normalizedPath.split('/');
+  const renamedTo = RENAMED_LANDING_SLUGS[firstSegment];
+  if (renamedTo) {
+    const url = request.nextUrl.clone();
+    url.pathname = ['', renamedTo, ...restSegments].join('/');
     return NextResponse.redirect(url, 301);
   }
 
