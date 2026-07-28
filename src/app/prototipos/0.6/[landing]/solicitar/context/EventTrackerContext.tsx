@@ -88,6 +88,45 @@ function publicarEnDataLayer(event: TrackingEvent): void {
   }
 }
 
+/**
+ * Envía el evento a GA4 directamente por gtag, sin pasar por GTM.
+ *
+ * La app carga gtag.js con el ID de medición de la propiedad exportada a
+ * BigQuery (ver `src/app/layout.tsx`), así que este camino no depende de que
+ * haya una etiqueta configurada en el contenedor ni de permisos sobre él.
+ *
+ * `gtag.js` se carga con `strategy="lazyOnload"`, de modo que cuando una sesión
+ * nace temprano `window.gtag` todavía puede no existir. En ese caso el evento
+ * NO se descarta: se encola en el `dataLayer` con el formato de `arguments` que
+ * usa el snippet oficial, y gtag.js lo procesa al inicializarse.
+ */
+function publicarEnGa4(event: TrackingEvent): void {
+  if (typeof window === 'undefined') return;
+  if (!EVENTOS_A_DATALAYER.has(event.event_type)) return;
+
+  const w = window as Window & {
+    gtag?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
+  };
+  const params = { ...(event.properties ?? {}) };
+
+  try {
+    if (typeof w.gtag === 'function') {
+      w.gtag('event', event.event_type, params);
+      return;
+    }
+
+    w.dataLayer = w.dataLayer || [];
+    // Encolar con la misma forma que `function gtag(){dataLayer.push(arguments)}`.
+    (function encolar(this: void, ..._args: unknown[]) {
+      // eslint-disable-next-line prefer-rest-params
+      (w.dataLayer as unknown[]).push(arguments);
+    })('event', event.event_type, params);
+  } catch {
+    // GA4 no disponible: el evento igual viaja al backend propio.
+  }
+}
+
 // ============================================================================
 // CONTEXT
 // ============================================================================
@@ -176,8 +215,11 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   // ------------------------------------------------------------------
   const enqueue = useCallback((event: TrackingEvent) => {
     // Punto único por donde pasan tanto los eventos manuales (`track`) como
-    // los automáticos, así que es el lugar correcto para el puente a GTM.
+    // los automáticos, así que es el lugar correcto para los puentes a GA4.
+    // Dos caminos independientes: por GTM (si el contenedor tiene la etiqueta)
+    // y por gtag directo (que no depende del contenedor).
     publicarEnDataLayer(event);
+    publicarEnGa4(event);
 
     bufferRef.current.push(event);
     // Force flush if buffer is too large
