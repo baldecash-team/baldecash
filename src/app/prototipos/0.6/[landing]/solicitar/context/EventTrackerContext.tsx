@@ -43,6 +43,51 @@ const MAX_BUFFER_SIZE = 50;
 /** Scroll depth thresholds to report */
 const SCROLL_THRESHOLDS = [25, 50, 75, 100];
 
+/**
+ * UUIDs que ya emitieron `sesion_vinculada` en esta carga de página.
+ *
+ * Vive a nivel de módulo y no en un ref del provider a propósito: en
+ * StrictMode y en las transiciones de ruta el provider se vuelve a montar con
+ * la misma sesión, y un ref nuevo dejaría pasar una segunda emisión. Al
+ * recargar, el módulo se reinicia, pero entonces la sesión ya no es nueva
+ * (`isNewSession` es false) y tampoco se emite.
+ */
+const sesionesVinculadas = new Set<string>();
+
+/**
+ * Eventos que, además de ir al backend propio, se publican en el `dataLayer`
+ * para que GTM los reenvíe a GA4 (y de ahí a la exportación de BigQuery).
+ *
+ * La lista es corta a propósito y conviene mantenerla así: el backend recibe
+ * más de 200 tipos de evento, muchos de altísima frecuencia (`scroll_depth`,
+ * `input_focus`, `page_enter`). Volcarlos todos a GA4 sería ruido, gastaría
+ * cupo de nombres de evento y no aportaría nada al análisis de marketing.
+ */
+const EVENTOS_A_DATALAYER = new Set<EventType>(['sesion_vinculada']);
+
+/**
+ * Publica un evento en el `dataLayer` si está en la lista de arriba.
+ *
+ * Silencioso por diseño: si no hay `window`, si GTM todavía no cargó o si algo
+ * falla, no pasa nada. El tracking nunca debe romper el flujo del usuario, y el
+ * evento igual viaja al backend propio por el camino normal.
+ */
+function publicarEnDataLayer(event: TrackingEvent): void {
+  if (typeof window === 'undefined') return;
+  if (!EVENTOS_A_DATALAYER.has(event.event_type)) return;
+
+  try {
+    const w = window as Window & { dataLayer?: Record<string, unknown>[] };
+    w.dataLayer = w.dataLayer || [];
+    w.dataLayer.push({
+      event: event.event_type,
+      ...(event.properties ?? {}),
+    });
+  } catch {
+    // Sin dataLayer disponible no hay nada que hacer.
+  }
+}
+
 // ============================================================================
 // CONTEXT
 // ============================================================================
@@ -107,7 +152,7 @@ interface EventTrackerProviderProps {
 export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   children,
 }) => {
-  const { sessionUuid } = useSession();
+  const { sessionUuid, isNewSession, sessionId } = useSession();
   const pathname = usePathname();
 
   // Buffer of pending events
@@ -130,6 +175,10 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   // Core: enqueue an event
   // ------------------------------------------------------------------
   const enqueue = useCallback((event: TrackingEvent) => {
+    // Punto único por donde pasan tanto los eventos manuales (`track`) como
+    // los automáticos, así que es el lugar correcto para el puente a GTM.
+    publicarEnDataLayer(event);
+
     bufferRef.current.push(event);
     // Force flush if buffer is too large
     if (bufferRef.current.length >= MAX_BUFFER_SIZE) {
@@ -193,6 +242,35 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
       },
     });
   }, [sessionUuid, enqueue]);
+
+  // ------------------------------------------------------------------
+  // Auto: sesion_vinculada (SOLO en sesiones nuevas, una única vez)
+  //
+  // A diferencia de session_start —que se re-emite en cada carga porque su
+  // guard es un ref del provider— este evento se dispara únicamente cuando la
+  // sesión nace: `isNewSession` sólo es true si no había uuid en localStorage.
+  // Al recargar, la sesión se recupera y el flag queda en false, así que no
+  // se vuelve a emitir. El Set de módulo cubre los remounts.
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    if (!sessionUuid || !isNewSession || sesionesVinculadas.has(sessionUuid)) return;
+    sesionesVinculadas.add(sessionUuid);
+
+    enqueue({
+      event_type: 'sesion_vinculada',
+      client_ts: Date.now(),
+      page_url: getPageUrl(),
+      element_id: null,
+      properties: {
+        session_id: sessionUuid,
+        // ID numérico del backend: null si la creación de sesión falló y se
+        // está usando el uuid local como fallback.
+        session_db_id: sessionId,
+        landing_path: getPageUrl(),
+        device_type: getDeviceType(),
+      },
+    });
+  }, [sessionUuid, isNewSession, sessionId, enqueue]);
 
   // ------------------------------------------------------------------
   // Auto: page_enter / page_exit on route changes

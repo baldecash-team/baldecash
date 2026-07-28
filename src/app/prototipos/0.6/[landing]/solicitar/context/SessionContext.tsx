@@ -66,6 +66,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 interface SessionContextValue {
   /** The tracking session UUID */
   sessionUuid: string | null;
+  /**
+   * True SOLO cuando la sesión se creó en esta carga (no había uuid en
+   * localStorage). Queda en false al recuperar una sesión existente, al
+   * recargar la página y cuando se usa `fixedSessionId`.
+   *
+   * Lo consume EventTrackerContext para emitir `sesion_vinculada` una única
+   * vez por sesión, en el momento en que nace.
+   */
+  isNewSession: boolean;
   /** Whether the session has been initialized */
   isInitialized: boolean;
   /** Whether the session creation is in progress */
@@ -243,6 +252,8 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(!!fixedSessionId);
   const [isCreating, setIsCreating] = useState(false);
+  // Con fixedSessionId la sesión viene dada (token de oferta): no nace acá.
+  const [isNewSession, setIsNewSession] = useState(false);
 
   // Memoize storage key based on landing
   const sessionKey = useMemo(() => getSessionKey(landingSlug ?? 'default'), [landingSlug]);
@@ -340,6 +351,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         const existingUuid = safeGetItem(sessionKey);
 
         const uuid = existingUuid || generateUUID();
+        // Sin uuid previo en storage ⇒ la sesión nace en esta carga. Este es
+        // el único caso en el que se emite `sesion_vinculada`.
+        const isNew = !existingUuid;
+        setIsNewSession(isNew);
 
         // Persist UUID immediately so it survives page redirects (e.g. vip_auto)
         if (!existingUuid) {
@@ -381,6 +396,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     setSessionUuid(null);
     setSessionId(null);
     setIsInitialized(false);
+    setIsNewSession(false);
     safeRemoveItem(sessionKey);
   }, [sessionKey]);
 
@@ -398,6 +414,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     <SessionContext.Provider
       value={{
         sessionUuid,
+        isNewSession,
         isInitialized,
         isCreating,
         initSession,
