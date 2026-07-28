@@ -28,8 +28,15 @@ import styles from './familyFarmOverlay.module.css';
 const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
 
-const FAMILY_FARM_BG_URL = '/assets/family-farm/fondo-campo.webp';
-const FAMILY_FARM_LOGO_URL = '/assets/family-farm/logo-family-farms.webp';
+/*
+ * Absolute S3 URLs, matching how every other image under prototipos/0.6 is
+ * served. Do NOT move these back to `/assets/...` in `public/`: that directory
+ * is not served in production, so relative paths 404 there — and the failure is
+ * invisible locally, where `next dev` serves `public/` just fine.
+ * Kept in sync with the `background-image` in familyFarmOverlay.module.css.
+ */
+const FAMILY_FARM_BG_URL = 'https://baldecash.s3.amazonaws.com/illustrations/fondo-campo.webp';
+const FAMILY_FARM_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo-family-farms.webp';
 
 interface SiblingMatch {
   slug: string;

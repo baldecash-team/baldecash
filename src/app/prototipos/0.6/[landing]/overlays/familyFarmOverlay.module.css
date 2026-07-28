@@ -55,7 +55,10 @@
   padding: 24px 16px;
   overflow-y: auto;
   background-color: #f0f2f5;
-  background-image: url('/assets/family-farm/fondo-campo.webp');
+  /* Absolute S3 URL — `public/` is not served in production, so a relative
+     `/assets/...` path 404s there while working fine under `next dev`.
+     Kept in sync with FAMILY_FARM_BG_URL in FamilyFarmOverlayGate.tsx. */
+  background-image: url('https://baldecash.s3.amazonaws.com/illustrations/fondo-campo.webp');
   background-size: cover;
   background-position: var(--bg-focus) center;
 }
