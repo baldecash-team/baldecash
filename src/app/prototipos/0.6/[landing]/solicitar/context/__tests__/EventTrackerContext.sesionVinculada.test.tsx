@@ -124,6 +124,37 @@ describe('sesion_vinculada', () => {
     expect(nombres).not.toContain('page_enter');
   });
 
+  it('llama a gtag directamente cuando ya está cargado', () => {
+    const gtag = jest.fn();
+    (window as Window & { gtag?: unknown }).gtag = gtag;
+    mockSession = { sessionUuid: 'uuid-gtag', isNewSession: true, sessionId: 77 };
+
+    montarYVaciar();
+
+    expect(gtag).toHaveBeenCalledWith(
+      'event',
+      'sesion_vinculada',
+      expect.objectContaining({ session_id: 'uuid-gtag', session_db_id: 77 })
+    );
+    delete (window as Window & { gtag?: unknown }).gtag;
+  });
+
+  it('encola para gtag cuando todavía no cargó, sin perder el evento', () => {
+    delete (window as Window & { gtag?: unknown }).gtag;
+    mockSession = { sessionUuid: 'uuid-encolado', isNewSession: true, sessionId: 88 };
+
+    montarYVaciar();
+
+    // gtag.js procesa las entradas con forma de `arguments` al inicializarse.
+    const encolado = dataLayerPushes().find(
+      (p) => typeof p === 'object' && p !== null && (p as unknown as IArguments)[0] === 'event'
+    ) as unknown as IArguments | undefined;
+
+    expect(encolado).toBeDefined();
+    expect(encolado?.[1]).toBe('sesion_vinculada');
+    expect(encolado?.[2]).toMatchObject({ session_id: 'uuid-encolado', session_db_id: 88 });
+  });
+
   it('no rompe si el dataLayer no existe todavía', () => {
     delete (window as Window & { dataLayer?: unknown[] }).dataLayer;
     mockSession = { sessionUuid: 'uuid-sin-gtm', isNewSession: true, sessionId: 5 };
