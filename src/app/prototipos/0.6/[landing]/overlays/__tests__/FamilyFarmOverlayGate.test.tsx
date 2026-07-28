@@ -215,6 +215,46 @@ describe('FamilyFarmOverlayGate — no broken mascot image (Commit C)', () => {
   });
 });
 
+/*
+ * Regression guard for a real production incident: the overlay shipped with the
+ * background and logo pointing at `/assets/family-farm/*` under `public/`, which
+ * is not served in production — both 404'd and the overlay rendered with a
+ * broken logo and no photo. It passed every local check because `next dev`
+ * serves `public/` happily; only prod exposed it.
+ *
+ * Both the component AND the stylesheet reference the artwork, and the CSS one
+ * is easy to miss — fixing only the constants would have left the background
+ * still broken. Assert both.
+ */
+describe('FamilyFarmOverlayGate — artwork is served from S3, never from public/', () => {
+  const componentSource = fs.readFileSync(
+    path.join(__dirname, '..', 'FamilyFarmOverlayGate.tsx'),
+    'utf8',
+  );
+  const cssSource = fs.readFileSync(
+    path.join(__dirname, '..', 'familyFarmOverlay.module.css'),
+    'utf8',
+  );
+
+  it.each([
+    ['component', () => componentSource],
+    ['stylesheet', () => cssSource],
+  ])('%s never points artwork at a relative /assets path', (_name, read) => {
+    expect(read()).not.toMatch(/['"(]\/assets\//);
+  });
+
+  it('resolves both images to absolute S3 URLs', () => {
+    const bg = componentSource.match(/FAMILY_FARM_BG_URL\s*=\s*'([^']+)'/)?.[1];
+    const logo = componentSource.match(/FAMILY_FARM_LOGO_URL\s*=\s*'([^']+)'/)?.[1];
+
+    for (const url of [bg, logo]) {
+      expect(url).toMatch(/^https:\/\/baldecash\.s3\.amazonaws\.com\//);
+    }
+    // The stylesheet paints the background; it must use the same absolute URL.
+    expect(cssSource).toContain(`url('${bg}')`);
+  });
+});
+
 describe('FamilyFarmOverlayGate.module.css — source-text regression guard', () => {
   const css = fs.readFileSync(
     path.join(__dirname, '..', 'familyFarmOverlay.module.css'),
