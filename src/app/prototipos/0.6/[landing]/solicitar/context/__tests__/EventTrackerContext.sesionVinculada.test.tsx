@@ -49,10 +49,16 @@ function montarYVaciar() {
   return utils;
 }
 
+/** Lo empujado al dataLayer, que es lo que GTM reenvía a GA4. */
+function dataLayerPushes(): Record<string, unknown>[] {
+  return (window as Window & { dataLayer?: Record<string, unknown>[] }).dataLayer ?? [];
+}
+
 describe('sesion_vinculada', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockSend.mockClear();
+    (window as Window & { dataLayer?: unknown[] }).dataLayer = [];
     mockSession = { sessionUuid: 'uuid-nueva', isNewSession: true, sessionId: 42 };
   });
 
@@ -96,6 +102,35 @@ describe('sesion_vinculada', () => {
     montarYVaciar();
 
     expect(eventosEmitidos().some((e) => e.event_type === 'sesion_vinculada')).toBe(false);
+  });
+
+  it('se publica en el dataLayer para que GTM lo mande a GA4', () => {
+    mockSession = { sessionUuid: 'uuid-datalayer', isNewSession: true, sessionId: 99 };
+    montarYVaciar();
+
+    const push = dataLayerPushes().find((p) => p.event === 'sesion_vinculada');
+    expect(push).toBeDefined();
+    expect(push).toMatchObject({ session_id: 'uuid-datalayer', session_db_id: 99 });
+  });
+
+  it('NO publica en el dataLayer los eventos de alta frecuencia', () => {
+    mockSession = { sessionUuid: 'uuid-ruido', isNewSession: true, sessionId: 1 };
+    montarYVaciar();
+
+    // session_start y page_enter viajan al backend propio pero no a GA4.
+    const nombres = dataLayerPushes().map((p) => p.event);
+    expect(nombres).toContain('sesion_vinculada');
+    expect(nombres).not.toContain('session_start');
+    expect(nombres).not.toContain('page_enter');
+  });
+
+  it('no rompe si el dataLayer no existe todavía', () => {
+    delete (window as Window & { dataLayer?: unknown[] }).dataLayer;
+    mockSession = { sessionUuid: 'uuid-sin-gtm', isNewSession: true, sessionId: 5 };
+
+    expect(() => montarYVaciar()).not.toThrow();
+    // El evento igual llega al backend propio.
+    expect(eventosEmitidos().some((e) => e.event_type === 'sesion_vinculada')).toBe(true);
   });
 
   it('manda session_db_id null cuando la creación en backend falló', () => {

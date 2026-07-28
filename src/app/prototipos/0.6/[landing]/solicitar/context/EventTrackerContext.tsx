@@ -54,6 +54,40 @@ const SCROLL_THRESHOLDS = [25, 50, 75, 100];
  */
 const sesionesVinculadas = new Set<string>();
 
+/**
+ * Eventos que, además de ir al backend propio, se publican en el `dataLayer`
+ * para que GTM los reenvíe a GA4 (y de ahí a la exportación de BigQuery).
+ *
+ * La lista es corta a propósito y conviene mantenerla así: el backend recibe
+ * más de 200 tipos de evento, muchos de altísima frecuencia (`scroll_depth`,
+ * `input_focus`, `page_enter`). Volcarlos todos a GA4 sería ruido, gastaría
+ * cupo de nombres de evento y no aportaría nada al análisis de marketing.
+ */
+const EVENTOS_A_DATALAYER = new Set<EventType>(['sesion_vinculada']);
+
+/**
+ * Publica un evento en el `dataLayer` si está en la lista de arriba.
+ *
+ * Silencioso por diseño: si no hay `window`, si GTM todavía no cargó o si algo
+ * falla, no pasa nada. El tracking nunca debe romper el flujo del usuario, y el
+ * evento igual viaja al backend propio por el camino normal.
+ */
+function publicarEnDataLayer(event: TrackingEvent): void {
+  if (typeof window === 'undefined') return;
+  if (!EVENTOS_A_DATALAYER.has(event.event_type)) return;
+
+  try {
+    const w = window as Window & { dataLayer?: Record<string, unknown>[] };
+    w.dataLayer = w.dataLayer || [];
+    w.dataLayer.push({
+      event: event.event_type,
+      ...(event.properties ?? {}),
+    });
+  } catch {
+    // Sin dataLayer disponible no hay nada que hacer.
+  }
+}
+
 // ============================================================================
 // CONTEXT
 // ============================================================================
@@ -141,6 +175,10 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   // Core: enqueue an event
   // ------------------------------------------------------------------
   const enqueue = useCallback((event: TrackingEvent) => {
+    // Punto único por donde pasan tanto los eventos manuales (`track`) como
+    // los automáticos, así que es el lugar correcto para el puente a GTM.
+    publicarEnDataLayer(event);
+
     bufferRef.current.push(event);
     // Force flush if buffer is too large
     if (bufferRef.current.length >= MAX_BUFFER_SIZE) {
