@@ -37,3 +37,17 @@ test('el enlace "Ver todo lo que incluye" dispara onSeeMore', () => {
   fireEvent.click(screen.getByText(/Ver todo lo que incluye/));
   expect(onSeeMore).toHaveBeenCalled();
 });
+
+test('los terminos y condiciones abren la landing /multiasistencia en pestana nueva', () => {
+  render(<MultiasistenciaCard plan={plan} isSelected={false} onToggle={() => {}} onSeeMore={() => {}} />);
+  const link = screen.getByRole('link', { name: /Ver términos y condiciones/ });
+  expect(link).toHaveAttribute('href', '/multiasistencia');
+  expect(link).toHaveAttribute('target', '_blank');
+});
+
+test('describe a quien cubre con el copy del mockup', () => {
+  render(<MultiasistenciaCard plan={plan} isSelected={false} onToggle={() => {}} onSeeMore={() => {}} />);
+  expect(
+    screen.getByText(/hasta 3 familiares durante todo el plazo de tu crédito/)
+  ).toBeInTheDocument();
+});
