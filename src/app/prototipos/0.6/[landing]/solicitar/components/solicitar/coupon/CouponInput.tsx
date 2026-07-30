@@ -22,6 +22,13 @@ import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
 
+/**
+ * Cuánto se muestra el mensaje de error antes de volver a 'idle'.
+ * Estaba en 2s, que no alcanza a leer un texto como "Este cupón no aplica
+ * para el producto seleccionado" — desaparecía a mitad de lectura.
+ */
+const ERROR_VISIBLE_MS = 7000;
+
 interface CouponInputProps {
   /**
    * Si es true, muestra un indicador de que el cupón es obligatorio
@@ -48,7 +55,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     if (!couponCode.trim()) {
       setState('error');
       setErrorMessage('Ingresa un código de cupón');
-      setTimeout(() => setState('idle'), 2000);
+      setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
       return;
     }
 
@@ -83,7 +90,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           coupon_code: couponCode.trim(),
           error_message: result.error ?? 'invalid',
         });
-        setTimeout(() => setState('idle'), 2000);
+        setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
       }
     } catch {
       setState('error');
@@ -92,7 +99,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
         coupon_code: couponCode.trim(),
         error_message: 'network_error',
       });
-      setTimeout(() => setState('idle'), 2000);
+      setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
     }
   };
 
