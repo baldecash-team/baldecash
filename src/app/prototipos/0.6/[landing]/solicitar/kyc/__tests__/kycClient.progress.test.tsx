@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
 // Next.js (SWC) compila los exports del módulo como propiedades no
@@ -24,22 +25,35 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
 });
 
 import KycClient from '../kycClient';
-import { getKycProgress } from '@/app/prototipos/0.6/services/kycApi';
+import { getKycProgress, completeKycStep } from '@/app/prototipos/0.6/services/kycApi';
 
 const mockGetKycProgress = getKycProgress as jest.MockedFunction<typeof getKycProgress>;
+const mockCompleteKycStep = completeKycStep as jest.MockedFunction<typeof completeKycStep>;
+
+// `useSearchParams`/`useSolicitarFlow` mockeados vía jest.fn() (no un valor
+// fijo) para poder variar `?code=` y `kycSteps` por test — necesario para
+// probar la ruta tokenizada, que NO manda `?code=` en la URL a propósito.
+const mockUseSearchParams = jest.fn(() => new URLSearchParams('code=APP-1'));
+const mockKycSteps = jest.fn(() => [{ type: 'dni_selfie' }, { type: 'contract' }]);
+const mockRouterReplace = jest.fn();
+const mockTrack = jest.fn();
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
+  useRouter: () => ({ replace: mockRouterReplace, push: jest.fn() }),
   useParams: () => ({ landing: 'copia-home' }),
-  useSearchParams: () => new URLSearchParams('code=APP-1'),
+  useSearchParams: () => mockUseSearchParams(),
 }));
 
 jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
   useSolicitarFlow: () => ({
     kycEnabled: true,
-    kycSteps: [{ type: 'dni_selfie' }, { type: 'contract' }],
+    kycSteps: mockKycSteps(),
     isLoading: false,
   }),
+}));
+
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext', () => ({
+  useEventTrackerOptional: () => ({ track: mockTrack, flush: jest.fn() }),
 }));
 
 // Mock LayoutContext (KycChrome depende de él para navbar/footer).
@@ -83,6 +97,13 @@ const state = (next: string, idx: number) => ({
   kyc_enabled: true, resume: { enabled: true, ttl_hours: 72 },
 });
 
+beforeEach(() => {
+  window.localStorage.clear();
+  jest.clearAllMocks();
+  mockUseSearchParams.mockReturnValue(new URLSearchParams('code=APP-1'));
+  mockKycSteps.mockReturnValue([{ type: 'dni_selfie' }, { type: 'contract' }]);
+});
+
 afterEach(() => jest.restoreAllMocks());
 
 it('arranca en el sub-paso que dice el API, no en el de localStorage', async () => {
@@ -101,4 +122,63 @@ it('cae al localStorage si el API falla', async () => {
   render(<KycClient />);
 
   await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+});
+
+// Regresión: un ref-guard síncrono (`restoredRef.current = true` antes del
+// fetch) bloqueaba el remount de StrictMode (mount→cleanup→mount en dev) sin
+// relanzar el fetch, y el fetch original llegaba cancelado — la restauración
+// nunca se aplicaba. Sin StrictMode el bug no se ve (por eso "funcionaba" en
+// build de producción), así que el test tiene que forzar el doble montaje.
+it('restaura desde el API incluso bajo StrictMode (mount→cleanup→mount)', async () => {
+  mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+  render(
+    <React.StrictMode>
+      <KycClient />
+    </React.StrictMode>,
+  );
+
+  await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+});
+
+// Regresión: `code` salía solo de `searchParams.get('code')`, así que la ruta
+// tokenizada `/kyc/[token]` (Task 5) — que NO manda `?code=` a propósito —
+// dejaba `code` en `undefined`: sin restauración, sin `completeKycStep` y sin
+// `application_code` en los eventos. El fix deriva `code` de `initialState`
+// cuando no hay query param.
+it('usa el application_code de `initialState` cuando no hay `?code=` en la URL (ruta tokenizada)', async () => {
+  mockUseSearchParams.mockReturnValue(new URLSearchParams()); // sin ?code=
+  mockKycSteps.mockReturnValue([{ type: 'contract' }]); // 1 sub-paso: alcanza con 1 click para avanzar
+  mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+
+  const initialState = state('contract', 0); // next_step_index=0 → arranca directo en 'contract'
+
+  render(<KycClient initialState={initialState as never} resumeToken="tok-abc" />);
+
+  // (a) arranca en el sub-paso que dice `initialState`, no pide getKycProgress de nuevo.
+  await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+  expect(mockGetKycProgress).not.toHaveBeenCalled();
+
+  const user = userEvent.setup();
+  await user.click(screen.getByText('He leído y acepto el contrato'));
+  await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+  // (b) completeKycStep se llama con el código derivado de `initialState` y el
+  // `resumeToken` como prueba (NUNCA el DNI cuando hay token).
+  await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith({
+    applicationCode: 'APP-1',
+    stepType: 'contract',
+    resumeToken: 'tok-abc',
+    documentNumber: undefined,
+  }));
+
+  // (c) los eventos del orquestador llevan `application_code` con ese mismo código.
+  expect(mockTrack).toHaveBeenCalledWith(
+    'kyc_step_complete',
+    expect.objectContaining({ application_code: 'APP-1' }),
+  );
+  expect(mockTrack).toHaveBeenCalledWith(
+    'kyc_completed',
+    expect.objectContaining({ application_code: 'APP-1' }),
+  );
 });

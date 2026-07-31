@@ -149,13 +149,15 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
   const params = useParams();
   const searchParams = useSearchParams();
   const landing = (params.landing as string) || 'home';
-  const code = searchParams.get('code') || undefined;
+  // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
+  // esa ruta NO manda `?code=` a propósito (es justamente lo que oculta el
+  // token), así que `code` no puede depender solo del query param.
+  const code = initialState?.application_code ?? searchParams.get('code') ?? undefined;
 
   const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
   const [index, setIndex] = useState(0);
   const tracker = useEventTrackerOptional();
   const startedTrackedRef = useRef(false);
-  const restoredRef = useRef(false);
 
   const goToConfirmacion = () =>
     router.replace(routes.solicitarConfirmacion(landing, code));
@@ -163,9 +165,15 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
   // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
   // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
   // no responde, para no dejar al cliente sin flujo.
+  //
+  // Sin ref-guard síncrono: bajo StrictMode (mount→cleanup→mount en dev) un
+  // guard como `restoredRef.current = true` antes del fetch async bloquea el
+  // segundo montaje sin relanzar el fetch, y el original ya llegó cancelado
+  // — la restauración nunca se aplica en dev. Un refetch idempotente al
+  // remontar no hace daño; el único guard necesario es el flag de
+  // cancelación del cleanup.
   useEffect(() => {
-    if (restoredRef.current || !code) return;
-    restoredRef.current = true;
+    if (!code) return;
 
     if (initialState) {                       // vino de /kyc/[token]
       setIndex(initialState.next_step_index ?? 0);
