@@ -90,6 +90,8 @@ export function PausarModal({
   // localStorage): el propio usuario lo escribe acá.
   const [dniInput, setDniInput] = useState('');
   const [dniInputError, setDniInputError] = useState<string | null>(null);
+  // El borde del campo cambia de color en foco, como en `TextInput` del wizard.
+  const [dniFocused, setDniFocused] = useState(false);
   const tracker = useEventTrackerOptional();
 
   // Al reabrir, arrancar siempre limpio: no arrastrar el resultado de un intento
@@ -211,27 +213,61 @@ export function PausarModal({
                     solicitud (lockout + auditoría), así que no hace falta
                     tenerlo pre-cargado para ofrecer el botón.
                   */}
+                  {/*
+                    El campo se separa con un borde superior y se alinea a la
+                    izquierda: dentro de un modal centrado, un label largo
+                    alineado a la izquierda sin separación se leía como un
+                    salto. La etiqueta es corta y la explicación baja a texto
+                    de ayuda, igual que en los campos del wizard.
+
+                    El estilo replica `TextInput` del wizard (borde de 2px que
+                    cambia de color en foco/error, `rounded-lg`, error con
+                    ícono) en vez del `focus:ring` que tenía antes, para que
+                    el postulante vea el mismo tipo de campo en todo el flujo.
+                  */}
                   {!documentNumber && (
-                    <div className="w-full text-left space-y-1">
-                      <label htmlFor="pausar-document-number" className="text-sm font-medium text-[#1f2937]">
-                        Ingresa tu número de documento para confirmar que eres tú
+                    <div className="w-full text-left space-y-1.5 pt-4 mt-1 border-t border-neutral-200">
+                      <label
+                        htmlFor="pausar-document-number"
+                        className="flex items-center gap-1.5 font-medium text-neutral-700 text-sm"
+                      >
+                        Número de documento
                       </label>
-                      <input
-                        id="pausar-document-number"
-                        type="text"
-                        inputMode="numeric"
-                        required
-                        disabled={status === 'sending'}
-                        value={dniInput}
-                        onChange={(e) => {
-                          setDniInput(e.target.value);
-                          setDniInputError(null);
-                        }}
-                        placeholder="Ej. 48509924"
-                        className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm text-[#1f2937] focus:outline-none focus:ring-2 focus:ring-[#4654CD] disabled:opacity-50"
-                      />
+                      <p className="text-xs text-neutral-500">
+                        Lo usamos solo para confirmar que la solicitud es tuya.
+                      </p>
+                      <div
+                        className={`flex items-center gap-2 px-3 rounded-lg border-2 bg-white transition-all duration-200 ${
+                          dniInputError
+                            ? 'border-[#ef4444]'
+                            : dniFocused
+                              ? 'border-[var(--color-primary)]'
+                              : 'border-neutral-300'
+                        } ${status === 'sending' ? 'opacity-50' : ''}`}
+                      >
+                        <input
+                          id="pausar-document-number"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          required
+                          disabled={status === 'sending'}
+                          value={dniInput}
+                          onFocus={() => setDniFocused(true)}
+                          onBlur={() => setDniFocused(false)}
+                          onChange={(e) => {
+                            setDniInput(e.target.value.replace(/\D/g, ''));
+                            setDniInputError(null);
+                          }}
+                          placeholder="Ej. 48509924"
+                          className="flex-1 bg-transparent py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none disabled:cursor-not-allowed"
+                        />
+                        {dniInputError && (
+                          <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />
+                        )}
+                      </div>
                       {dniInputError && (
-                        <p className="text-xs text-[#ef4444]">{dniInputError}</p>
+                        <p className="text-sm text-[#ef4444] flex items-center gap-1">{dniInputError}</p>
                       )}
                     </div>
                   )}

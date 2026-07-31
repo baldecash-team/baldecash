@@ -161,7 +161,7 @@ describe('DNI: con localStorage vs pedido en el modal', () => {
 
     render(<PausarModal {...props} />);
 
-    expect(screen.queryByLabelText(/ingresa tu número de documento/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/número de documento/i)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
     await waitFor(() => expect(screen.getByText(/\*\*\*-\*\*\*-777/)).toBeInTheDocument());
@@ -175,7 +175,7 @@ describe('DNI: con localStorage vs pedido en el modal', () => {
 
     render(<PausarModal {...props} documentNumber={undefined} />);
 
-    const input = screen.getByLabelText(/ingresa tu número de documento/i);
+    const input = screen.getByLabelText(/número de documento/i);
     expect(input).toBeRequired();
 
     await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
@@ -186,15 +186,28 @@ describe('DNI: con localStorage vs pedido en el modal', () => {
     expect(screen.getByText('Ingresa tu número de documento.')).toBeInTheDocument();
   });
 
-  it('sin documentNumber: rechaza un valor no numérico sin llamar al backend', async () => {
+  it('sin documentNumber: el input descarta lo que no sean digitos al tipear', async () => {
     render(<PausarModal {...props} documentNumber={undefined} />);
 
-    const input = screen.getByLabelText(/ingresa tu número de documento/i);
-    await userEvent.type(input, 'abc123');
+    const input = screen.getByLabelText(/número de documento/i) as HTMLInputElement;
+    await userEvent.type(input, 'ab12cd34');
+
+    // El campo filtra en el onChange, así que las letras nunca entran al estado.
+    expect(input.value).toBe('1234');
+  });
+
+  it('sin documentNumber: solo letras deja el campo vacio y no llama al backend', async () => {
+    render(<PausarModal {...props} documentNumber={undefined} />);
+
+    const input = screen.getByLabelText(/número de documento/i) as HTMLInputElement;
+    await userEvent.type(input, 'abc');
+    expect(input.value).toBe('');
+
     await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
 
+    // Al quedar vacío cae en la validación de requerido, no en la de formato.
     expect(mockPauseKyc).not.toHaveBeenCalled();
-    expect(screen.getByText(/solo números/i)).toBeInTheDocument();
+    expect(screen.getByText('Ingresa tu número de documento.')).toBeInTheDocument();
   });
 
   it('sin documentNumber: el DNI que escribe el usuario es el que llega a pauseKyc', async () => {
@@ -204,7 +217,7 @@ describe('DNI: con localStorage vs pedido en el modal', () => {
 
     render(<PausarModal {...props} documentNumber={undefined} />);
 
-    const input = screen.getByLabelText(/ingresa tu número de documento/i);
+    const input = screen.getByLabelText(/número de documento/i);
     await userEvent.type(input, '76543210');
     await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
 

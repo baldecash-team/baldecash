@@ -43,6 +43,8 @@ interface PhaseConfig {
   /** Texto corto sobre el overlay de encuadre. */
   frameHint: string;
   aspect: string;
+  /** Tope de ancho: acota el alto derivado de `aspect` sin romper overlays. */
+  maxWidth: string;
   facingMode: 'user' | 'environment';
   overlay: OverlayKind;
 }
@@ -53,6 +55,12 @@ const PHASE_CONFIG: Record<CapturePhase, PhaseConfig> = {
     guide: 'Mira a la cámara, con buena luz y sin lentes ni gorra.',
     frameHint: 'Centra tu rostro dentro del óvalo',
     aspect: 'aspect-[3/4]',
+    // El alto lo determina el ancho por la relación de aspecto. Sin este tope,
+    // en un panel ancho un 3:4 producía una card altísima que no entraba en
+    // pantalla. Acotar el ANCHO (y centrar) es preferible a un `max-h`: los
+    // overlays de encuadre son hijos absolutos de esta misma caja, así que
+    // recortarla por alto los desalinearía del video.
+    maxWidth: 'max-w-[260px]',
     facingMode: 'user',
     overlay: 'oval',
   },
@@ -61,6 +69,7 @@ const PHASE_CONFIG: Record<CapturePhase, PhaseConfig> = {
     guide: 'Foto nítida del frente de tu DNI, sin reflejos.',
     frameHint: 'Encuadra el frente del DNI dentro del marco',
     aspect: 'aspect-[16/10]',
+    maxWidth: 'max-w-[420px]',
     facingMode: 'environment',
     overlay: 'document',
   },
@@ -268,7 +277,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
           justo donde está el número. `items-start` alinea arriba las dos
           columnas, que ahora tienen alturas distintas a propósito.
         */}
-        <div className="grid grid-cols-2 gap-3 items-start">
+        <div className="grid grid-cols-2 gap-3 items-start mx-auto w-full max-w-[420px]">
           <div className="space-y-2">
             <div className={`relative rounded-xl overflow-hidden bg-black ${PHASE_CONFIG.selfie.aspect} border border-[#e5e7eb]`}>
               {selfieShot && (
@@ -405,7 +414,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
 
       {pendingShot ? (
         <>
-          <div className={`relative rounded-xl overflow-hidden bg-black ${config.aspect} border border-[#e5e7eb]`}>
+          <div className={`relative rounded-xl overflow-hidden bg-black mx-auto w-full ${config.maxWidth} ${config.aspect} border border-[#e5e7eb]`}>
             <img src={pendingShot} alt="Foto capturada" className="w-full h-full object-cover" />
           </div>
           <div className="flex gap-3">
@@ -427,7 +436,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
         </>
       ) : stream ? (
         <>
-          <div className={`relative rounded-xl overflow-hidden bg-[#1f2937] ${config.aspect} border border-[#e5e7eb]`}>
+          <div className={`relative rounded-xl overflow-hidden bg-[#1f2937] mx-auto w-full ${config.maxWidth} ${config.aspect} border border-[#e5e7eb]`}>
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
 
             {/* Overlay de encuadre: óvalo (selfie) o marco de documento (DNI). */}
