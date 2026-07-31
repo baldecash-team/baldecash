@@ -260,9 +260,17 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
           <p className="text-[#6b7280] text-sm">Todo listo. Puedes continuar.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/*
+          Cada preview conserva el MISMO aspecto con el que se capturó
+          (`PHASE_CONFIG`): vertical la selfie, apaisado el documento. Antes
+          ambas se forzaban a `aspect-[3/4]`, así que el DNI —tomado en 16/10—
+          se mostraba vertical y `object-cover` le recortaba los costados,
+          justo donde está el número. `items-start` alinea arriba las dos
+          columnas, que ahora tienen alturas distintas a propósito.
+        */}
+        <div className="grid grid-cols-2 gap-3 items-start">
           <div className="space-y-2">
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] border border-[#e5e7eb]">
+            <div className={`relative rounded-xl overflow-hidden bg-black ${PHASE_CONFIG.selfie.aspect} border border-[#e5e7eb]`}>
               {selfieShot && (
                 <img src={selfieShot} alt="Selfie capturada" className="w-full h-full object-cover" />
               )}
@@ -273,7 +281,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
             <p className="text-xs text-center text-[#6b7280]">Selfie</p>
           </div>
           <div className="space-y-2">
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] border border-[#e5e7eb]">
+            <div className={`relative rounded-xl overflow-hidden bg-black ${PHASE_CONFIG.dni.aspect} border border-[#e5e7eb]`}>
               {dniShot && (
                 <img src={dniShot} alt="DNI capturado" className="w-full h-full object-cover" />
               )}
