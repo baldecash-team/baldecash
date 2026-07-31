@@ -26,6 +26,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { getKycProgress, completeKycStep, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
 import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep } from './steps/ContratoStep';
@@ -72,6 +73,15 @@ function clearKycStep(landing: string, code?: string): void {
     window.localStorage.removeItem(kycStepKey(landing, code));
   } catch {
     /* noop */
+  }
+}
+
+/** DNI que el cliente tipeó en el wizard; es la prueba de titularidad en sesión. */
+function readWizardDni(landing: string): string | undefined {
+  try {
+    return window.localStorage.getItem(`baldecash-${landing}-wizard-field-document_number`) ?? undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -134,7 +144,7 @@ function KycChrome({ children }: { children: React.ReactNode }) {
   );
 }
 
-function KycContent() {
+function KycContent({ resumeToken, initialState }: KycClientProps) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -150,14 +160,31 @@ function KycContent() {
   const goToConfirmacion = () =>
     router.replace(routes.solicitarConfirmacion(landing, code));
 
-  // Restaura el sub-paso guardado (refresh / volver) una sola vez, tras montar
-  // en cliente — el server siempre parte de 0, así se evita mismatch de
-  // hidratación. Si estaba en DNI+selfie, re-captura (las fotos no se guardan).
+  // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
+  // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
+  // no responde, para no dejar al cliente sin flujo.
   useEffect(() => {
     if (restoredRef.current || !code) return;
     restoredRef.current = true;
-    const stored = readKycStep(landing, code);
-    if (stored > 0) setIndex(stored);
+
+    if (initialState) {                       // vino de /kyc/[token]
+      setIndex(initialState.next_step_index ?? 0);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const remote = await getKycProgress(code);
+      if (cancelled) return;
+      if (remote && remote.next_step_index != null) {
+        setIndex(remote.next_step_index);
+        writeKycStep(landing, code, remote.next_step_index); // refresca la caché
+      } else {
+        const stored = readKycStep(landing, code);           // fallback
+        if (stored > 0) setIndex(stored);
+      }
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -178,7 +205,7 @@ function KycContent() {
     if (isLoading || !kycEnabled || kycSteps.length === 0) return;
     if (startedTrackedRef.current) return;
     startedTrackedRef.current = true;
-    tracker?.track('kyc_started', { steps: kycSteps.map((s) => s.type) });
+    tracker?.track('kyc_started', { steps: kycSteps.map((s) => s.type), application_code: code });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, kycEnabled, kycSteps]);
 
@@ -197,13 +224,27 @@ function KycContent() {
   const currentStep = kycSteps[safeIndex];
 
   const goNext = () => {
-    tracker?.track('kyc_step_complete', { step: currentStep.type, index: safeIndex });
+    tracker?.track('kyc_step_complete', {
+      step: currentStep.type, index: safeIndex, application_code: code,
+    });
+
+    // Fire-and-forget: la UI no espera al backend. Si falla, el localStorage
+    // sostiene el flujo en este dispositivo y el próximo montaje reconcilia.
+    if (code) {
+      void completeKycStep({
+        applicationCode: code,
+        stepType: currentStep.type,
+        resumeToken,                                  // flujo por link
+        documentNumber: resumeToken ? undefined : readWizardDni(landing), // en sesión
+      });
+    }
+
     if (safeIndex + 1 < kycSteps.length) {
       const next = safeIndex + 1;
       setIndex(next);
       writeKycStep(landing, code, next); // persistir avance (refresh/volver)
     } else {
-      tracker?.track('kyc_completed');
+      tracker?.track('kyc_completed', { application_code: code });
       clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
       goToConfirmacion();
     }
@@ -238,10 +279,17 @@ function LoadingFallback() {
   );
 }
 
-export default function KycClient() {
+export interface KycClientProps {
+  /** Presente solo cuando se entra por /kyc/[token]. */
+  resumeToken?: string;
+  /** Estado ya resuelto por la ruta tokenizada; evita un fetch redundante. */
+  initialState?: KycProgressState;
+}
+
+export default function KycClient(props: KycClientProps = {}) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <KycContent />
+      <KycContent {...props} />
     </Suspense>
   );
 }
