@@ -21,6 +21,7 @@
  */
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
 // jest.spyOn sobre imports de módulo NO funciona en este repo (Next 16/SWC
@@ -33,8 +34,9 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
 });
 
 const mockTrack = jest.fn();
+const mockTrackKyc = jest.fn();
 jest.mock('../resumeEvents', () => ({
-  resumeEvents: () => ({ track: mockTrack }),
+  resumeEvents: () => ({ track: mockTrack, trackKyc: mockTrackKyc }),
 }));
 
 const mockReplace = jest.fn();
@@ -45,12 +47,30 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/kyc/kycClient', () => ({
   __esModule: true,
-  default: (props: { resumeToken?: string; initialState?: { application_code: string } }) => (
+  // El botón simula al orquestador avanzando un sub-paso: emite por el `onTrack`
+  // que reciba. Si ResumeClient no lo pasa, el evento se pierde (que es
+  // exactamente lo que pasaba antes del fix).
+  default: (props: {
+    resumeToken?: string;
+    initialState?: { application_code: string };
+    onTrack?: (type: string, p?: Record<string, unknown>) => void;
+  }) => (
     <div
       data-testid="kyc-client"
       data-resume-token={props.resumeToken}
       data-application-code={props.initialState?.application_code}
-    />
+      data-has-on-track={props.onTrack ? '1' : '0'}
+    >
+      <button
+        type="button"
+        onClick={() => props.onTrack?.('kyc_step_complete', {
+          step: 'contract',
+          application_code: props.initialState?.application_code,
+        })}
+      >
+        avanzar
+      </button>
+    </div>
   ),
 }));
 
@@ -178,6 +198,50 @@ it('error de red: pantalla de reintento (no confunde con "invalido")', async () 
   await waitFor(() => expect(screen.getByText(/no pudimos conectar/i)).toBeInTheDocument());
   expect(screen.queryByText(/enlace no es válido/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/enlace venció/i)).not.toBeInTheDocument();
+});
+
+// Fix final I-1 — la ruta tokenizada montaba KycClient SIN provider de eventos:
+// de los ~18 eventos kyc_* solo salían los 3 de resumeEvents, así que era
+// imposible medir si quien retoma por el link termina el KYC. Ahora se le
+// inyecta el sink del token.
+it('inyecta el sink del token: avanzar un sub-paso emite kyc_step_complete con application_code', async () => {
+  mockResumeKyc.mockResolvedValue(validState as never);
+
+  render(<ResumeClient token="TOK" />);
+
+  await waitFor(() => expect(screen.getByTestId('kyc-client')).toBeInTheDocument());
+  expect(screen.getByTestId('kyc-client').dataset.hasOnTrack).toBe('1');
+
+  await userEvent.setup().click(screen.getByRole('button', { name: 'avanzar' }));
+
+  expect(mockTrackKyc).toHaveBeenCalledWith(
+    'kyc_step_complete',
+    expect.objectContaining({ application_code: 'APP-1', step: 'contract' }),
+  );
+});
+
+// Fix final I-2 — con `landing_slug: null` el fallback a 'home' aterrizaba al
+// cliente en la confirmación de OTRA landing. Sin slug no hay a dónde llevarlo:
+// se trata como enlace no válido.
+it('landing_slug null: pantalla "no es válido", sin adivinar landing ni redirigir', async () => {
+  mockResumeKyc.mockResolvedValue({ ...validState, landing_slug: null } as never);
+
+  render(<ResumeClient token="TOK" />);
+
+  await waitFor(() => expect(screen.getByText(/enlace no es válido/i)).toBeInTheDocument());
+  expect(mockReplace).not.toHaveBeenCalled();
+  expect(screen.queryByTestId('kyc-client')).not.toBeInTheDocument();
+});
+
+it('landing_slug null + is_complete: tampoco redirige a la confirmación de otra landing', async () => {
+  mockResumeKyc.mockResolvedValue({
+    ...validState, landing_slug: null, is_complete: true,
+  } as never);
+
+  render(<ResumeClient token="TOK" />);
+
+  await waitFor(() => expect(screen.getByText(/enlace no es válido/i)).toBeInTheDocument());
+  expect(mockReplace).not.toHaveBeenCalled();
 });
 
 it('muestra un spinner mientras canjea el token', () => {

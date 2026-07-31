@@ -55,6 +55,46 @@ describe('resumeEvents', () => {
     expect(typeof sentEvents[0].page_url).toBe('string');
   });
 
+  // Fix final I-1: `trackKyc` es el sink que se le pasa a `KycClient.onTrack`
+  // para que los eventos del orquestador y de los sub-pasos también salgan en
+  // el camino de reanudación (antes: 3 eventos y silencio).
+  describe('trackKyc (eventos kyc_* del orquestador y sub-pasos)', () => {
+    it('emite por el token como session_id, con application_code en properties', () => {
+      const sink = jest.fn();
+      const events = resumeEvents('TOK-123', sink);
+
+      events.trackKyc('kyc_step_complete', { step: 'contract', application_code: 'APP-1' });
+
+      expect(sink).toHaveBeenCalledWith('TOK-123', expect.any(Array));
+      const [, sentEvents] = sink.mock.calls[0];
+      expect(sentEvents[0]).toEqual(
+        expect.objectContaining({
+          event_type: 'kyc_step_complete',
+          properties: expect.objectContaining({
+            token: 'TOK-123', step: 'contract', application_code: 'APP-1',
+          }),
+        }),
+      );
+    });
+
+    it('sin properties: igual emite, con el token', () => {
+      const sink = jest.fn();
+      const events = resumeEvents('TOK-123', sink);
+
+      events.trackKyc('kyc_completed');
+
+      const [, sentEvents] = sink.mock.calls[0];
+      expect(sentEvents[0].properties).toEqual({ token: 'TOK-123' });
+    });
+
+    it('fire-and-forget: un sink que tira no rompe el flujo del KYC', () => {
+      const sink = jest.fn(() => { throw new Error('boom'); });
+      const events = resumeEvents('TOK-123', sink);
+
+      expect(() => events.trackKyc('kyc_selfie_captured')).not.toThrow();
+    });
+  });
+
   it('fire-and-forget: un sink que tira no rompe al caller', () => {
     const sink = jest.fn(() => {
       throw new Error('boom');

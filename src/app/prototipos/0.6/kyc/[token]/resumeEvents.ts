@@ -31,6 +31,15 @@ export interface ResumeEvents {
    * campo en SQL; omitirlo lo deja invisible en el panel sin avisar).
    */
   track: (type: ResumeEventType, props?: ResumeEventProps) => void;
+  /**
+   * Sink para los eventos `kyc_*` del orquestador y de los sub-pasos, que se
+   * enchufa en `KycClient.onTrack`. Sin esto la ruta tokenizada emitía SOLO
+   * los 3 eventos de arriba y quedaba muda a partir de ahí — imposible medir
+   * si quien retoma por el link efectivamente termina el KYC, que es la
+   * métrica que justifica el feature. Va por el mismo `session_id` (el token)
+   * para que todo el recorrido del enlace quede agrupado.
+   */
+  trackKyc: (type: EventType, props?: Record<string, unknown>) => void;
 }
 
 /**
@@ -55,5 +64,6 @@ export function resumeEvents(token: string, sink: EventSink = defaultSink): Resu
 
   return {
     track: (type, props = {}) => emit(type, { token, ...props }),
+    trackKyc: (type, props) => emit(type, { token, ...(props ?? {}) }),
   };
 }

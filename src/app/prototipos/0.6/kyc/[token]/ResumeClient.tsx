@@ -104,10 +104,21 @@ export function ResumeClient({ token }: ResumeClientProps) {
 
       events.track('kyc_resume_link_opened', { application_code: result.application_code });
 
+      // Sin `landing_slug` no hay a dónde llevarlo: el fallback a 'home' que
+      // había acá aterrizaba al cliente en la confirmación de OTRA landing (y
+      // `useSolicitarFlow('home')` reporta el KYC apagado, así que el redirect
+      // era seguro). Mejor decir que el enlace no sirve que mandarlo a un
+      // flujo ajeno.
+      const landingSlug = result.landing_slug;
+      if (!landingSlug) {
+        setView({ status: 'invalid' });
+        return;
+      }
+
       // El KYC ya se completó, o la landing apagó los sub-pasos desde que se
       // envió el link: no hay nada que retomar, seguir directo a confirmación.
       if (result.is_complete || !result.kyc_enabled) {
-        router.replace(routes.solicitarConfirmacion(result.landing_slug ?? 'home', result.application_code));
+        router.replace(routes.solicitarConfirmacion(landingSlug, result.application_code));
         return;
       }
 
@@ -124,7 +135,10 @@ export function ResumeClient({ token }: ResumeClientProps) {
   if (view.status === 'ready') {
     return (
       <LayoutProvider landingOverride={view.state.landing_slug ?? undefined}>
-        <KycClient resumeToken={token} initialState={view.state} />
+        {/* `onTrack`: esta ruta está fuera de EventTrackerProvider, así que sin
+            este sink KycClient y sus sub-pasos no emitirían NINGÚN evento
+            kyc_*. El `session_id` sigue siendo el token del link. */}
+        <KycClient resumeToken={token} initialState={view.state} onTrack={events.trackKyc} />
       </LayoutProvider>
     );
   }
@@ -151,13 +165,16 @@ export function ResumeClient({ token }: ResumeClientProps) {
     );
   }
 
+  // El copy nombra el botón que existe de verdad ("Recargar página", el
+  // secundario de NotFoundContent): antes pedía recargar mientras el botón
+  // principal decía "Ir al inicio", que hace lo contrario.
   if (view.status === 'network') {
     return (
       <NotFoundContent
         homeUrl={routes.home()}
         homeLabel="Ir al inicio"
         title="No pudimos conectar"
-        description="Hubo un problema de conexión al abrir tu enlace. Recarga la página para intentarlo de nuevo."
+        description="Hubo un problema de conexión al abrir tu enlace. Toca «Recargar página» para intentarlo de nuevo."
       />
     );
   }
