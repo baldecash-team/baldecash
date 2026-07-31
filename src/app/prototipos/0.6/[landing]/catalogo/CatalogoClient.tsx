@@ -61,6 +61,7 @@ import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding } from '@/app/proto
 import { GamerCatalogoContent } from './GamerCatalogoClient';
 import { CopiaHomeMobileCatalog } from './copia-home/CopiaHomeMobileCatalog';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ActivatorResetButton } from './components/activator';
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 
@@ -1998,6 +1999,9 @@ function CatalogoContent() {
         )}
       </CatalogLayout>
       </main>
+
+      {/* Reset de sesión de la activadora — solo Family Farm */}
+      <ActivatorResetButton landing={landing} overlayVariant={overlayVariant} />
 
       {/* Footer from Hero */}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
