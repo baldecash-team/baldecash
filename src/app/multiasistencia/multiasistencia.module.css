@@ -9,11 +9,11 @@
    Tipografía: Asap en toda la página (variable `--font-asap` del layout
    raíz), sin cargar fuentes extra de Google.
 
-   La imagen del hero se importa desde este mismo directorio (`./hero.jpg`)
-   y NO desde `public/`: en producción el proxy delante de baldecash.com solo
-   enruta `/_next/*` y las rutas de página al app de Next, así que cualquier
-   archivo servido desde `/public` devuelve 404. Al referenciarla en el CSS
-   Module, el bundler la emite bajo `/_next/static/media/…`, que sí carga.
+   La imagen del hero vive en S3 (`images/multiasistencia/hero.jpg`), igual
+   que el resto de assets del sitio. NO puede servirse desde `public/`: el
+   proxy delante de baldecash.com solo enruta `/_next/*` y las rutas de
+   página al app de Next, así que cualquier archivo bajo `/public` responde
+   404. El layout raíz ya hace preconnect a baldecash.s3.amazonaws.com.
    ============================================================ */
 
 .page {
@@ -87,7 +87,7 @@
   min-height: 660px; padding: 52px 0 48px;
   background:
     linear-gradient(90deg, rgba(26, 27, 48, 0.96) 0%, rgba(26, 27, 48, 0.9) 22%, rgba(26, 27, 48, 0.55) 42%, rgba(26, 27, 48, 0.12) 56%, rgba(26, 27, 48, 0) 66%),
-    url('./hero.jpg') center / cover no-repeat;
+    url('https://baldecash.s3.amazonaws.com/images/multiasistencia/hero.jpg') center / cover no-repeat;
 }
 .hero .wrap { display: flex; flex-direction: column; min-height: 560px; align-items: flex-start; text-align: left; }
 .hero .pill {
@@ -118,7 +118,7 @@
     min-height: 0; padding: 36px 0 40px;
     background:
       linear-gradient(180deg, rgba(26, 27, 48, 0.34) 0%, rgba(26, 27, 48, 0.14) 45%, rgba(26, 27, 48, 0.42) 100%),
-      url('./hero.jpg') 70% center / cover no-repeat;
+      url('https://baldecash.s3.amazonaws.com/images/multiasistencia/hero.jpg') 70% center / cover no-repeat;
   }
   .hero .wrap { position: relative; z-index: 1; min-height: 0; display: block; }
   .hero h1 { font-size: clamp(30px, 7.6vw, 42px); max-width: 100%; margin: 16px 0 14px; text-shadow: 0 2px 14px rgba(15, 14, 40, 0.65); }
