@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import { FileUpload } from '../../components/solicitar/fields/FileUpload';
-import { useEventTrackerOptional } from '../../context/EventTrackerContext';
+import { useKycTracker, type KycTrack } from '../useKycTracker';
 
 interface UploadedFile {
   id: string;
@@ -25,16 +25,18 @@ export interface DocumentosStepProps {
   onBack?: () => void;
   /** application_code, para que los eventos de este sub-paso sean rastreables. */
   applicationCode?: string;
+  /** Emisor de eventos alternativo (ruta tokenizada /kyc/[token]); ver useKycTracker. */
+  onTrack?: KycTrack;
 }
 
-export function DocumentosStep({ onDone, onBack, applicationCode }: DocumentosStepProps) {
+export function DocumentosStep({ onDone, onBack, applicationCode, onTrack }: DocumentosStepProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const tracker = useEventTrackerOptional();
+  const track = useKycTracker(onTrack);
 
   const handleChange = (next: UploadedFile[]) => {
     setFiles(next);
     if (next.length > 0) {
-      tracker?.track('kyc_documents_uploaded', { count: next.length, application_code: applicationCode });
+      track('kyc_documents_uploaded', { count: next.length, application_code: applicationCode });
     }
   };
 

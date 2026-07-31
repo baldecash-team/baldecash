@@ -183,6 +183,213 @@ it('usa el application_code de `initialState` cuando no hay `?code=` en la URL (
   );
 });
 
+// Fix final C-2 — reconciliación: el índice remoto se aplicaba a secas y
+// además pisaba la caché local. Como `completeKycStep` es fire-and-forget, un
+// POST caído (offline, 429, ownership_locked) deja el remoto ATRÁS del local:
+// el siguiente montaje rebobinaba al cliente (que tenía que re-capturar DNI y
+// selfie) y le borraba el avance guardado. Ahora se toma el máximo.
+describe('reconciliación remoto vs local', () => {
+  it('remoto 0 + local 1 → NO rebobina (se queda en el sub-paso 2)', async () => {
+    window.localStorage.setItem('baldecash-copia-home-kyc-step-APP-1', '1');
+    mockGetKycProgress.mockResolvedValue(state('dni_selfie', 0) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    // Y la caché conserva el avance: el remoto viejo no la pisa con 0.
+    expect(window.localStorage.getItem('baldecash-copia-home-kyc-step-APP-1')).toBe('1');
+  });
+
+  it('remoto 1 + local 0 → el API sigue ganando (cruce de dispositivo)', async () => {
+    window.localStorage.setItem('baldecash-copia-home-kyc-step-APP-1', '0');
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    expect(window.localStorage.getItem('baldecash-copia-home-kyc-step-APP-1')).toBe('1');
+  });
+});
+
+// Fix final C-1 — prueba de titularidad en sesión: el DNI se leía SOLO de la
+// key del form de leads, que la única landing con el feature prendido en prod
+// (`copia-home`, tipo `institutional`) nunca escribe. Hay 3 fuentes reales.
+describe('DNI del wizard (prueba de titularidad en sesión)', () => {
+  const setupUnPaso = () => {
+    mockKycSteps.mockReturnValue([{ type: 'contract' }]);
+    mockGetKycProgress.mockResolvedValue(state('contract', 0) as never);
+    mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+  };
+
+  const avanzar = async () => {
+    const user = userEvent.setup();
+    await user.click(screen.getByText('He leído y acepto el contrato'));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+  };
+
+  it('fuente 2: blob del wizard estándar (el caso real de copia-home)', async () => {
+    window.localStorage.setItem(
+      'baldecash-wizard-copia-home-data',
+      JSON.stringify({
+        document_number: { value: '48509924', touched: true, label: 'DNI' },
+        first_name: { value: 'Ana', touched: true },
+      }),
+    );
+    setupUnPaso();
+
+    render(<KycClient />);
+
+    // (a) el botón de pausa se ofrece (antes nunca aparecía en esta landing).
+    // `waitFor` porque `resume.enabled` llega con la respuesta del API.
+    await waitFor(() => expect(
+      screen.getByRole('button', { name: /continuar en otro momento/i }),
+    ).toBeInTheDocument());
+    // (b) y el DNI viaja como prueba en step-complete (antes: 422 missing_proof)
+    await avanzar();
+    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
+      expect.objectContaining({ documentNumber: '48509924' }),
+    ));
+  });
+
+  it('fuente 1: prefill del form de leads', async () => {
+    window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '11111111');
+    setupUnPaso();
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+    await avanzar();
+    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
+      expect.objectContaining({ documentNumber: '11111111' }),
+    ));
+  });
+
+  it('fuente 3: gate de DNI de las landings VIP', async () => {
+    window.localStorage.setItem('baldecash-dni-copia-home', '22222222');
+    setupUnPaso();
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+    await avanzar();
+    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
+      expect.objectContaining({ documentNumber: '22222222' }),
+    ));
+  });
+
+  it('ninguna fuente: sin DNI, sin botón de pausa y sin prueba en step-complete', async () => {
+    // 2 sub-pasos + índice remoto 1: llegar a "Paso 2 de 2" prueba que la
+    // respuesta del API ya se aplicó, así la ausencia del botón no es un
+    // falso verde por afirmarla antes de que resuelva el fetch.
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+    mockCompleteKycStep.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+    await avanzar();
+    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
+      expect.objectContaining({ documentNumber: undefined }),
+    ));
+  });
+
+  it('blob corrupto o con valor vacío: no lanza y sigue buscando en las otras fuentes', async () => {
+    window.localStorage.setItem('baldecash-wizard-copia-home-data', '{no es json');
+    window.localStorage.setItem('baldecash-dni-copia-home', '33333333');
+    setupUnPaso();
+
+    render(<KycClient />);
+
+    // Si `JSON.parse` propagara, el render entero reventaría acá.
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+    await avanzar();
+    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
+      expect.objectContaining({ documentNumber: '33333333' }),
+    ));
+  });
+
+  it('blob con document_number vacío: no lo toma como prueba', async () => {
+    window.localStorage.setItem(
+      'baldecash-wizard-copia-home-data',
+      JSON.stringify({ document_number: { value: '   ', touched: false } }),
+    );
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+  });
+});
+
+// Fix final I-1 — la ruta tokenizada vive fuera de EventTrackerProvider, así
+// que sin un sink inyectado NINGÚN evento kyc_* se emitía ahí: ni los del
+// orquestador ni los de los sub-pasos. Con `onTrack`, el mismo catálogo de
+// eventos sale por el token del link.
+describe('onTrack (sink de eventos de la ruta tokenizada)', () => {
+  it('emite kyc_step_complete con application_code por el sink, no por el contexto', async () => {
+    const onTrack = jest.fn();
+    mockUseSearchParams.mockReturnValue(new URLSearchParams()); // ruta tokenizada: sin ?code=
+    mockKycSteps.mockReturnValue([{ type: 'contract' }]);
+    mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+
+    render(
+      <KycClient
+        initialState={state('contract', 0) as never}
+        resumeToken="tok-abc"
+        onTrack={onTrack}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('He leído y acepto el contrato'));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(onTrack).toHaveBeenCalledWith(
+      'kyc_step_complete',
+      expect.objectContaining({ application_code: 'APP-1', step: 'contract' }),
+    );
+    expect(onTrack).toHaveBeenCalledWith('kyc_started', expect.objectContaining({ application_code: 'APP-1' }));
+    expect(onTrack).toHaveBeenCalledWith('kyc_completed', expect.objectContaining({ application_code: 'APP-1' }));
+    // El tracker del contexto queda fuera del camino cuando hay sink.
+    expect(mockTrack).not.toHaveBeenCalled();
+  });
+
+  it('el sink también llega a los sub-pasos (kyc_contract_view)', async () => {
+    const onTrack = jest.fn();
+    mockUseSearchParams.mockReturnValue(new URLSearchParams());
+    mockKycSteps.mockReturnValue([{ type: 'contract' }]);
+
+    render(
+      <KycClient
+        initialState={state('contract', 0) as never}
+        resumeToken="tok-abc"
+        onTrack={onTrack}
+      />,
+    );
+
+    await waitFor(() => expect(onTrack).toHaveBeenCalledWith(
+      'kyc_contract_view',
+      expect.objectContaining({ application_code: 'APP-1' }),
+    ));
+    expect(mockTrack).not.toHaveBeenCalled();
+  });
+
+  it('sin onTrack, los eventos siguen saliendo por el contexto (flujo en sesión)', async () => {
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(mockTrack).toHaveBeenCalledWith(
+      'kyc_started',
+      expect.objectContaining({ application_code: 'APP-1' }),
+    ));
+  });
+});
+
 // Regla de visibilidad del botón "Continuar en otro momento" (Task 4): un
 // botón que siempre falla es peor que no ofrecerlo, así que las 4 condiciones
 // se prueban por separado (3 caminos que lo ocultan, 1 que lo muestra).
