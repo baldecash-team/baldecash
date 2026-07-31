@@ -32,6 +32,7 @@ import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
 import { PausarModal } from './PausarModal';
+import { KycLayout } from './KycLayout';
 
 const STEP_LABELS: Record<KycStepType, string> = {
   dni_selfie: 'DNI + selfie',
@@ -339,9 +340,16 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // El botón solo se ofrece si de verdad puede funcionar:
   // - `resume.enabled` en el estado del API (la landing tiene la pausa habilitada)
   // - hay `code` (application_code efectivo)
-  // - hay DNI en localStorage (única prueba de titularidad en sesión)
   // - NO hay `resumeToken`: quien ya entró por el link no necesita pedir otro
-  const canPause = Boolean(progressState?.resume?.enabled && code && wizardDni && !resumeToken);
+  //
+  // YA NO se exige DNI en localStorage: esa condición dejaba sin botón a
+  // CUALQUIER solicitante que llegara a KYC sin el estado del wizard en ESE
+  // mismo navegador (ej. abrir el link en otro dispositivo/navegador, o con
+  // localStorage limpio) — no era un edge case, era la mayoría silenciosa.
+  // El backend ya valida el DNI contra la solicitud (con lockout + auditoría),
+  // así que ahora se le pide al usuario en el propio modal (`PausarModal`)
+  // cuando no hay uno disponible localmente.
+  const canPause = Boolean(progressState?.resume?.enabled && code && !resumeToken);
 
   const handlePauseClick = () => {
     track('kyc_pause_click', { application_code: code });
@@ -350,32 +358,41 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
   return (
     <KycChrome landing={landing}>
-      <div className="w-full max-w-md space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center">
-          Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
-        </p>
+      <KycLayout>
+        {/*
+          Mobile: la card angosta de siempre (rounded-2xl + border + shadow).
+          Desktop (`md:`): se quita ese chrome de card — el panel blanco de
+          `KycLayout` ya lo provee, con más padding y sin el ancho limitado a
+          `max-w-md`, para que la cámara y las previews de DniSelfieStep
+          respiren en vez de verse apretadas.
+        */}
+        <div className="w-full space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7 md:rounded-none md:border-0 md:shadow-none md:px-10 md:py-10 lg:px-12 lg:py-12">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center md:text-left">
+            Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
+          </p>
 
-        {renderStep(currentStep.type, goNext, goBack, code, onTrack)}
+          {renderStep(currentStep.type, goNext, goBack, code, onTrack)}
 
-        {canPause && code && wizardDni && (
-          <div className="pt-1 text-center">
-            <button
-              type="button"
-              onClick={handlePauseClick}
-              className="text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
-            >
-              Continuar en otro momento
-            </button>
-            <PausarModal
-              open={showPausarModal}
-              onClose={() => setShowPausarModal(false)}
-              applicationCode={code}
-              documentNumber={wizardDni}
-              landing={landing}
-            />
-          </div>
-        )}
-      </div>
+          {canPause && code && (
+            <div className="pt-1 text-center md:text-left">
+              <button
+                type="button"
+                onClick={handlePauseClick}
+                className="text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+              >
+                Continuar en otro momento
+              </button>
+              <PausarModal
+                open={showPausarModal}
+                onClose={() => setShowPausarModal(false)}
+                applicationCode={code}
+                documentNumber={wizardDni}
+                landing={landing}
+              />
+            </div>
+          )}
+        </div>
+      </KycLayout>
     </KycChrome>
   );
 }

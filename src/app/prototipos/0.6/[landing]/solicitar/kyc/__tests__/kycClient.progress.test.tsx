@@ -277,17 +277,23 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
     ));
   });
 
-  it('ninguna fuente: sin DNI, sin botón de pausa y sin prueba en step-complete', async () => {
+  it('ninguna fuente: sin DNI, el botón de pausa SIGUE disponible (el modal lo pide) y step-complete va sin prueba', async () => {
     // 2 sub-pasos + índice remoto 1: llegar a "Paso 2 de 2" prueba que la
-    // respuesta del API ya se aplicó, así la ausencia del botón no es un
+    // respuesta del API ya se aplicó, así la presencia del botón no es un
     // falso verde por afirmarla antes de que resuelva el fetch.
+    //
+    // Rediseño: el DNI de localStorage YA NO es requisito para el botón de
+    // pausa — solo lo era para `step-complete` (que sigue mandando `undefined`
+    // sin ninguna fuente, eso no cambió). El botón ahora se ofrece siempre que
+    // `resume.enabled` esté prendido; sin DNI local, es `PausarModal` quien
+    // se lo pide al usuario (cubierto en PausarModal.test.tsx).
     mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
     mockCompleteKycStep.mockResolvedValue(state('contract', 1) as never);
 
     render(<KycClient />);
 
     await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
     await avanzar();
     await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
       expect.objectContaining({ documentNumber: undefined }),
@@ -309,7 +315,7 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
     ));
   });
 
-  it('blob con document_number vacío: no lo toma como prueba', async () => {
+  it('blob con document_number vacío: no lo toma como prueba (pero el botón de pausa sigue disponible)', async () => {
     window.localStorage.setItem(
       'baldecash-wizard-copia-home-data',
       JSON.stringify({ document_number: { value: '   ', touched: false } }),
@@ -319,7 +325,10 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
     render(<KycClient />);
 
     await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+    // El DNI en blanco no cuenta como prueba para `step-complete` (ver test de
+    // "ninguna fuente" más abajo), pero el botón de pausa ya no depende de eso:
+    // el modal le pide el DNI al usuario si hace falta.
+    expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
   });
 });
 
@@ -390,9 +399,13 @@ describe('onTrack (sink de eventos de la ruta tokenizada)', () => {
   });
 });
 
-// Regla de visibilidad del botón "Continuar en otro momento" (Task 4): un
-// botón que siempre falla es peor que no ofrecerlo, así que las 4 condiciones
-// se prueban por separado (3 caminos que lo ocultan, 1 que lo muestra).
+// Regla de visibilidad del botón "Continuar en otro momento" (Task 4, y
+// rediseño posterior sobre el DNI de localStorage): antes exigíamos DNI de
+// localStorage como "prueba de titularidad en sesión", pero eso dejaba sin
+// botón a CUALQUIER solicitante que llegara a KYC sin el estado del wizard
+// en ese navegador — no era un edge case. Ahora el botón se ofrece con solo
+// 3 condiciones (resume.enabled + code + sin resumeToken); el DNI, si hace
+// falta, se pide dentro del propio modal (ver PausarModal.test.tsx).
 describe('botón "Continuar en otro momento"', () => {
   it('se muestra cuando resume.enabled + hay DNI en localStorage + sin resumeToken', async () => {
     window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
@@ -404,13 +417,13 @@ describe('botón "Continuar en otro momento"', () => {
     expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
   });
 
-  it('se oculta si no hay DNI en localStorage (sin prueba de titularidad posible)', async () => {
+  it('se muestra AUNQUE no haya DNI en localStorage: el modal se lo pide al usuario', async () => {
     mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
 
     render(<KycClient />);
 
     await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
   });
 
   it('se oculta si resume.enabled es false', async () => {

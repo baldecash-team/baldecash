@@ -147,3 +147,68 @@ it('emite kyc_resume_link_send_error con application_code y reason ante fallo', 
     expect.objectContaining({ application_code: 'APP-1', reason: 'no_phone' }),
   );
 });
+
+// Rediseño: `canPause` (kycClient.tsx) ya no exige DNI de localStorage, así
+// que este modal puede abrirse SIN `documentNumber`. Estos tests cubren
+// ambos caminos de forma diferenciante: con DNI (prop) no hay input y se usa
+// tal cual; sin DNI, aparece un input obligatorio y numérico cuyo valor es
+// el que efectivamente llega a `pauseKyc`.
+describe('DNI: con localStorage vs pedido en el modal', () => {
+  it('con documentNumber (DNI de localStorage): NO renderiza el input, va directo a confirmar', async () => {
+    mockPauseKyc.mockResolvedValue({
+      masked_phone: '***-***-777', expires_at: '2026-08-03T00:00:00', ttl_hours: 72,
+    });
+
+    render(<PausarModal {...props} />);
+
+    expect(screen.queryByLabelText(/ingresa tu número de documento/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+    await waitFor(() => expect(screen.getByText(/\*\*\*-\*\*\*-777/)).toBeInTheDocument());
+    expect(mockPauseKyc).toHaveBeenCalledWith({ applicationCode: 'APP-1', documentNumber: '48509924' });
+  });
+
+  it('sin documentNumber: renderiza el input y bloquea el envío si está vacío', async () => {
+    mockPauseKyc.mockResolvedValue({
+      masked_phone: '***-***-777', expires_at: '2026-08-03T00:00:00', ttl_hours: 72,
+    });
+
+    render(<PausarModal {...props} documentNumber={undefined} />);
+
+    const input = screen.getByLabelText(/ingresa tu número de documento/i);
+    expect(input).toBeRequired();
+
+    await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+    // Sin DNI escrito: no debe llamar al backend, y debe mostrar el error
+    // (el punto final lo distingue del texto de la label, que no lo tiene).
+    expect(mockPauseKyc).not.toHaveBeenCalled();
+    expect(screen.getByText('Ingresa tu número de documento.')).toBeInTheDocument();
+  });
+
+  it('sin documentNumber: rechaza un valor no numérico sin llamar al backend', async () => {
+    render(<PausarModal {...props} documentNumber={undefined} />);
+
+    const input = screen.getByLabelText(/ingresa tu número de documento/i);
+    await userEvent.type(input, 'abc123');
+    await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+    expect(mockPauseKyc).not.toHaveBeenCalled();
+    expect(screen.getByText(/solo números/i)).toBeInTheDocument();
+  });
+
+  it('sin documentNumber: el DNI que escribe el usuario es el que llega a pauseKyc', async () => {
+    mockPauseKyc.mockResolvedValue({
+      masked_phone: '***-***-999', expires_at: '2026-08-03T00:00:00', ttl_hours: 72,
+    });
+
+    render(<PausarModal {...props} documentNumber={undefined} />);
+
+    const input = screen.getByLabelText(/ingresa tu número de documento/i);
+    await userEvent.type(input, '76543210');
+    await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+    await waitFor(() => expect(screen.getByText(/\*\*\*-\*\*\*-999/)).toBeInTheDocument());
+    expect(mockPauseKyc).toHaveBeenCalledWith({ applicationCode: 'APP-1', documentNumber: '76543210' });
+  });
+});

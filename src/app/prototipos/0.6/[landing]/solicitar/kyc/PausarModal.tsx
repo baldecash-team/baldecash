@@ -12,6 +12,13 @@
  * Estados: idle → sending → sent | error. En error, el copy se mapea por
  * `reason`; `rate_limited` no ofrece reintentar (invita a revisar WhatsApp,
  * reintentar solo generaría más rate-limit).
+ *
+ * `documentNumber` es OPCIONAL: cuando el caller (kycClient.tsx) no encontró
+ * un DNI en localStorage, no lo manda, y este modal le pide al propio usuario
+ * que lo escriba (él lo conoce; el backend ya valida contra la solicitud con
+ * lockout + auditoría, así que no hace falta tenerlo pre-cargado). Si el
+ * caller SÍ tiene el DNI, el comportamiento es el de siempre: sin input,
+ * directo al botón de confirmar.
  */
 
 import { useState } from 'react';
@@ -26,7 +33,8 @@ export interface PausarModalProps {
   /** Se invoca cuando el enlace se envió con éxito (además del estado 'sent' interno). */
   onSent?: () => void;
   applicationCode: string;
-  documentNumber: string;
+  /** Ausente ⇒ el modal pide el DNI al usuario (ver comentario de arriba). */
+  documentNumber?: string;
   landing: string;
 }
 
@@ -78,6 +86,10 @@ export function PausarModal({
   const [status, setStatus] = useState<Status>('idle');
   const [sent, setSent] = useState<SentResult | null>(null);
   const [error, setError] = useState<ErrorResult | null>(null);
+  // Solo se usa cuando el caller NO trae `documentNumber` (sin DNI en
+  // localStorage): el propio usuario lo escribe acá.
+  const [dniInput, setDniInput] = useState('');
+  const [dniInputError, setDniInputError] = useState<string | null>(null);
   const tracker = useEventTrackerOptional();
 
   // Al reabrir, arrancar siempre limpio: no arrastrar el resultado de un intento
@@ -91,14 +103,34 @@ export function PausarModal({
       setStatus('idle');
       setSent(null);
       setError(null);
+      setDniInput('');
+      setDniInputError(null);
     }
   }
 
   const handleSend = async () => {
+    // Sin DNI de localStorage: validar lo que escribió el usuario ANTES de
+    // llamar al backend (requerido + solo dígitos). Con DNI de localStorage,
+    // el comportamiento es el de siempre.
+    let effectiveDocumentNumber = documentNumber;
+    if (!effectiveDocumentNumber) {
+      const trimmed = dniInput.trim();
+      if (!trimmed) {
+        setDniInputError('Ingresa tu número de documento.');
+        return;
+      }
+      if (!/^\d+$/.test(trimmed)) {
+        setDniInputError('Solo números.');
+        return;
+      }
+      setDniInputError(null);
+      effectiveDocumentNumber = trimmed;
+    }
+
     setStatus('sending');
     tracker?.track('kyc_pause_requested', { application_code: applicationCode, landing_slug: landing });
 
-    const result = await pauseKyc({ applicationCode, documentNumber });
+    const result = await pauseKyc({ applicationCode, documentNumber: effectiveDocumentNumber });
 
     if (isKycApiError(result)) {
       tracker?.track('kyc_resume_link_send_error', {
@@ -171,6 +203,38 @@ export function PausarModal({
                       para que continúes cuando quieras.
                     </p>
                   </div>
+
+                  {/*
+                    Solo cuando el caller no encontró el DNI en localStorage:
+                    se lo pedimos al propio usuario en vez de bloquear la
+                    pausa entera. El backend valida este valor contra la
+                    solicitud (lockout + auditoría), así que no hace falta
+                    tenerlo pre-cargado para ofrecer el botón.
+                  */}
+                  {!documentNumber && (
+                    <div className="w-full text-left space-y-1">
+                      <label htmlFor="pausar-document-number" className="text-sm font-medium text-[#1f2937]">
+                        Ingresa tu número de documento para confirmar que eres tú
+                      </label>
+                      <input
+                        id="pausar-document-number"
+                        type="text"
+                        inputMode="numeric"
+                        required
+                        disabled={status === 'sending'}
+                        value={dniInput}
+                        onChange={(e) => {
+                          setDniInput(e.target.value);
+                          setDniInputError(null);
+                        }}
+                        placeholder="Ej. 48509924"
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm text-[#1f2937] focus:outline-none focus:ring-2 focus:ring-[#4654CD] disabled:opacity-50"
+                      />
+                      {dniInputError && (
+                        <p className="text-xs text-[#ef4444]">{dniInputError}</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex gap-3 w-full pt-2">
                     <button
