@@ -182,3 +182,52 @@ it('usa el application_code de `initialState` cuando no hay `?code=` en la URL (
     expect.objectContaining({ application_code: 'APP-1' }),
   );
 });
+
+// Regla de visibilidad del botón "Continuar en otro momento" (Task 4): un
+// botón que siempre falla es peor que no ofrecerlo, así que las 4 condiciones
+// se prueban por separado (3 caminos que lo ocultan, 1 que lo muestra).
+describe('botón "Continuar en otro momento"', () => {
+  it('se muestra cuando resume.enabled + hay DNI en localStorage + sin resumeToken', async () => {
+    window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
+  });
+
+  it('se oculta si no hay DNI en localStorage (sin prueba de titularidad posible)', async () => {
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+  });
+
+  it('se oculta si resume.enabled es false', async () => {
+    window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
+    mockGetKycProgress.mockResolvedValue({
+      ...state('contract', 1),
+      resume: { enabled: false, ttl_hours: 72 },
+    } as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+  });
+
+  it('se oculta si ya se entró por el link (resumeToken presente): no necesita pedir otro', async () => {
+    window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
+    mockUseSearchParams.mockReturnValue(new URLSearchParams()); // ruta tokenizada: sin ?code=
+    mockKycSteps.mockReturnValue([{ type: 'contract' }]);
+    const initialState = state('contract', 0);
+
+    render(<KycClient initialState={initialState as never} resumeToken="tok-abc" />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+  });
+});

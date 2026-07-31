@@ -31,6 +31,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
+import { PausarModal } from './PausarModal';
 
 const STEP_LABELS: Record<KycStepType, string> = {
   dni_selfie: 'DNI + selfie',
@@ -156,6 +157,10 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
 
   const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
   const [index, setIndex] = useState(0);
+  // Estado de progreso completo (no solo el índice): necesario para leer
+  // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
+  const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
+  const [showPausarModal, setShowPausarModal] = useState(false);
   const tracker = useEventTrackerOptional();
   const startedTrackedRef = useRef(false);
 
@@ -184,6 +189,7 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
     void (async () => {
       const remote = await getKycProgress(code);
       if (cancelled) return;
+      if (remote) setProgressState(remote); // resume.enabled vive acá, no en el índice
       if (remote && remote.next_step_index != null) {
         setIndex(remote.next_step_index);
         writeKycStep(landing, code, remote.next_step_index); // refresca la caché
@@ -266,6 +272,19 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
         }
       : undefined;
 
+  // El botón solo se ofrece si de verdad puede funcionar:
+  // - `resume.enabled` en el estado del API (la landing tiene la pausa habilitada)
+  // - hay `code` (application_code efectivo)
+  // - hay DNI en localStorage (única prueba de titularidad en sesión)
+  // - NO hay `resumeToken`: quien ya entró por el link no necesita pedir otro
+  const wizardDni = readWizardDni(landing);
+  const canPause = Boolean(progressState?.resume?.enabled && code && wizardDni && !resumeToken);
+
+  const handlePauseClick = () => {
+    tracker?.track('kyc_pause_click', { application_code: code });
+    setShowPausarModal(true);
+  };
+
   return (
     <KycChrome>
       <div className="w-full max-w-md space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7">
@@ -274,6 +293,25 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
         </p>
 
         {renderStep(currentStep.type, goNext, goBack, code)}
+
+        {canPause && code && wizardDni && (
+          <div className="pt-1 text-center">
+            <button
+              type="button"
+              onClick={handlePauseClick}
+              className="text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+            >
+              Continuar en otro momento
+            </button>
+            <PausarModal
+              open={showPausarModal}
+              onClose={() => setShowPausarModal(false)}
+              applicationCode={code}
+              documentNumber={wizardDni}
+              landing={landing}
+            />
+          </div>
+        )}
       </div>
     </KycChrome>
   );
