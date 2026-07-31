@@ -76,9 +76,21 @@ function hexToRgb(hex: string): string {
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
-export function LayoutProvider({ children }: { children: React.ReactNode }) {
+export function LayoutProvider({
+  children,
+  landingOverride,
+}: {
+  children: React.ReactNode;
+  /**
+   * Fuerza el slug de landing en vez de leerlo de `useParams()`. Necesario
+   * para rutas fuera de `[landing]/**` (ej. `/kyc/[token]`, Task 5) que no
+   * tienen ese segmento en la URL pero sí conocen el landing por otra vía
+   * (`landing_slug` del estado resuelto por el backend).
+   */
+  landingOverride?: string;
+}) {
   const params = useParams();
-  const landing = (params.landing as string) || 'home';
+  const landing = landingOverride || (params.landing as string) || 'home';
 
   const layoutSlug = landing;
 

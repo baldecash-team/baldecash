@@ -14,7 +14,7 @@
  * fondo blanco pelado.
  */
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -26,10 +26,13 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { useEventTrackerOptional } from '../context/EventTrackerContext';
+import { getKycProgress, completeKycStep, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
+import { PausarModal } from './PausarModal';
+import { KycLayout } from './KycLayout';
 
 const STEP_LABELS: Record<KycStepType, string> = {
   dni_selfie: 'DNI + selfie',
@@ -75,14 +78,68 @@ function clearKycStep(landing: string, code?: string): void {
   }
 }
 
-function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void, applicationCode?: string) {
+/**
+ * DNI que el cliente ya dio en esta landing; es la prueba de titularidad del
+ * flujo en sesión (el backend la exige porque los `application_code` son
+ * secuenciales).
+ *
+ * Hay TRES formas de guardarlo según el tipo de landing, y hay que probarlas
+ * todas: leer solo la primera dejaba sin DNI justamente a la única landing con
+ * el feature prendido en producción (`copia-home`, de tipo `institutional`),
+ * con tres consecuencias mudas — el botón de pausa nunca aparecía,
+ * `step-complete` devolvía 422 `missing_proof` y, sin filas de progreso, el API
+ * respondía `next_step_index: 0` y rebobinaba al cliente ya verificado.
+ *
+ * 1. `baldecash-{landing}-wizard-field-document_number` — prefill del form de
+ *    leads (`saveLeadPrefill`, solo landings `lead`).
+ * 2. `baldecash-wizard-{landing}-data` — blob del wizard estándar
+ *    (`WizardContext`), con forma `{ campo: { value, touched, label } }`.
+ * 3. `baldecash-dni-{landing}` — gate de DNI de las landings VIP (`DniModal`).
+ */
+function readWizardDni(landing: string): string | undefined {
+  try {
+    const prefill = window.localStorage.getItem(`baldecash-${landing}-wizard-field-document_number`);
+    if (prefill) return prefill;
+
+    const raw = window.localStorage.getItem(`baldecash-wizard-${landing}-data`);
+    if (raw) {
+      // `try` propio: si el blob está corrupto hay que seguir probando la
+      // fuente 3, no abortar la búsqueda entera.
+      try {
+        // El blob guarda File[] como marcador y arrays para multi-select, así
+        // que solo sirve si `document_number.value` es un string con contenido.
+        const parsed = JSON.parse(raw) as Record<string, { value?: unknown }> | null;
+        const value = parsed?.document_number?.value;
+        if (typeof value === 'string' && value.trim() !== '') return value;
+      } catch {
+        /* blob corrupto: se ignora y se sigue con la fuente 3 */
+      }
+    }
+
+    const dniGate = window.localStorage.getItem(`baldecash-dni-${landing}`);
+    if (dniGate) return dniGate;
+
+    return undefined;
+  } catch {
+    // localStorage no disponible (SSR / sandbox WebKit) o JSON corrupto.
+    return undefined;
+  }
+}
+
+function renderStep(
+  type: KycStepType,
+  onDone: () => void,
+  onBack?: () => void,
+  applicationCode?: string,
+  onTrack?: KycTrack,
+) {
   switch (type) {
     case 'dni_selfie':
-      return <DniSelfieStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} />;
+      return <DniSelfieStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'contract':
-      return <ContratoStep onDone={onDone} onBack={onBack} />;
+      return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'documents':
-      return <DocumentosStep onDone={onDone} onBack={onBack} />;
+      return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     default:
       return null;
   }
@@ -93,9 +150,9 @@ function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void, 
  * con el contenido KYC centrado entre ambos. Mientras el layout carga muestra
  * un spinner sobre el mismo fondo (sin flash blanco).
  */
-function KycChrome({ children }: { children: React.ReactNode }) {
+function KycChrome({ children, landing: landingProp }: { children: React.ReactNode; landing?: string }) {
   const params = useParams();
-  const landing = (params.landing as string) || 'home';
+  const landing = landingProp || (params.landing as string) || 'home';
   const {
     navbarProps,
     footerData,
@@ -134,30 +191,106 @@ function KycChrome({ children }: { children: React.ReactNode }) {
   );
 }
 
-function KycContent() {
+function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const landing = (params.landing as string) || 'home';
-  const code = searchParams.get('code') || undefined;
+  // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
+  // esa ruta vive FUERA de `[landing]/**` (no tiene ese segmento en la URL),
+  // así que `params.landing` viene vacío ahí — sin este fallback, `landing`
+  // caía siempre a 'home' sin importar la landing real de la solicitud
+  // (romperían kycSteps, navbar/footer, la URL de confirmación, etc.).
+  const landing = initialState?.landing_slug || (params.landing as string) || 'home';
+  // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
+  // esa ruta NO manda `?code=` a propósito (es justamente lo que oculta el
+  // token), así que `code` no puede depender solo del query param.
+  const code = initialState?.application_code ?? searchParams.get('code') ?? undefined;
 
   const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
   const [index, setIndex] = useState(0);
-  const tracker = useEventTrackerOptional();
+  // Estado de progreso completo (no solo el índice): necesario para leer
+  // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
+  const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
+  const [showPausarModal, setShowPausarModal] = useState(false);
+  // `onTrack` (ruta tokenizada) o el tracker del contexto (flujo en sesión).
+  const track = useKycTracker(onTrack);
   const startedTrackedRef = useRef(false);
-  const restoredRef = useRef(false);
+  // Memoizado: se lee (y ahora se parsea JSON) en cada render y el DNI del
+  // wizard no cambia mientras dura el KYC. Antes del early return porque es un
+  // hook.
+  const wizardDni = useMemo(() => readWizardDni(landing), [landing]);
+
+  /**
+   * DNI que el postulante tipeó en el modal de pausa y que el BACKEND aceptó
+   * como prueba de titularidad.
+   *
+   * Existe porque el modal puede pedir el DNI cuando no está en `localStorage`
+   * (postulante que llega al KYC sin el estado del wizard en ese navegador),
+   * pero `step-complete` exige esa MISMA prueba en cada sub-paso. Sin
+   * propagarlo, seguía avanzando contra un backend que respondía 422 y su
+   * progreso no se guardaba — en silencio, porque la llamada es
+   * fire-and-forget.
+   *
+   * Se persiste en la clave del prefill del wizard para que `readWizardDni` lo
+   * encuentre si recarga la página. Es el propio documento del titular, ya
+   * validado contra la solicitud, así que no agrega exposición.
+   */
+  const [verifiedDni, setVerifiedDni] = useState<string | undefined>();
+  const effectiveDni = verifiedDni ?? wizardDni;
+
+  const rememberVerifiedDni = (dni: string) => {
+    setVerifiedDni(dni);
+    try {
+      window.localStorage.setItem(`baldecash-${landing}-wizard-field-document_number`, dni);
+    } catch {
+      /* localStorage puede fallar en WebKit sandboxeado; el estado alcanza */
+    }
+  };
 
   const goToConfirmacion = () =>
     router.replace(routes.solicitarConfirmacion(landing, code));
 
-  // Restaura el sub-paso guardado (refresh / volver) una sola vez, tras montar
-  // en cliente — el server siempre parte de 0, así se evita mismatch de
-  // hidratación. Si estaba en DNI+selfie, re-captura (las fotos no se guardan).
+  // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
+  // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
+  // no responde, para no dejar al cliente sin flujo.
+  //
+  // Sin ref-guard síncrono: bajo StrictMode (mount→cleanup→mount en dev) un
+  // guard como `restoredRef.current = true` antes del fetch async bloquea el
+  // segundo montaje sin relanzar el fetch, y el original ya llegó cancelado
+  // — la restauración nunca se aplica en dev. Un refetch idempotente al
+  // remontar no hace daño; el único guard necesario es el flag de
+  // cancelación del cleanup.
   useEffect(() => {
-    if (restoredRef.current || !code) return;
-    restoredRef.current = true;
-    const stored = readKycStep(landing, code);
-    if (stored > 0) setIndex(stored);
+    if (!code) return;
+
+    if (initialState) {                       // vino de /kyc/[token]
+      setIndex(initialState.next_step_index ?? 0);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const remote = await getKycProgress(code);
+      if (cancelled) return;
+      if (remote) setProgressState(remote); // resume.enabled vive acá, no en el índice
+
+      // Se toma el MÁXIMO entre remoto y local, no el remoto a secas:
+      // `completeKycStep` es fire-and-forget por diseño, así que un POST caído
+      // (offline, 429, `ownership_locked`) deja el remoto atrás del local. Con
+      // aplicación incondicional, el siguiente montaje rebobinaba al cliente y
+      // además pisaba la caché con el valor viejo (perdiendo el avance para
+      // siempre). El API sigue ganando al cruzar de dispositivo, que es donde
+      // el local vale 0.
+      const stored = readKycStep(landing, code);
+      if (remote && remote.next_step_index != null) {
+        const idx = Math.max(remote.next_step_index, stored);
+        setIndex(idx);
+        writeKycStep(landing, code, idx); // refresca la caché
+      } else if (stored > 0) {
+        setIndex(stored);                 // fallback: el API no respondió
+      }
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -178,13 +311,13 @@ function KycContent() {
     if (isLoading || !kycEnabled || kycSteps.length === 0) return;
     if (startedTrackedRef.current) return;
     startedTrackedRef.current = true;
-    tracker?.track('kyc_started', { steps: kycSteps.map((s) => s.type) });
+    track('kyc_started', { steps: kycSteps.map((s) => s.type), application_code: code });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, kycEnabled, kycSteps]);
 
   if (isLoading || !kycEnabled || kycSteps.length === 0) {
     return (
-      <KycChrome>
+      <KycChrome landing={landing}>
         <div className="flex items-center justify-center py-20">
           <CubeGridSpinner />
         </div>
@@ -197,13 +330,51 @@ function KycContent() {
   const currentStep = kycSteps[safeIndex];
 
   const goNext = () => {
-    tracker?.track('kyc_step_complete', { step: currentStep.type, index: safeIndex });
+    track('kyc_step_complete', {
+      step: currentStep.type, index: safeIndex, application_code: code,
+    });
+
+    // Fire-and-forget: la UI no espera al backend. Si falla, el localStorage
+    // sostiene el flujo en este dispositivo y el próximo montaje reconcilia.
+    //
+    // Sin prueba de titularidad el backend responde 422 `missing_proof` y el
+    // avance NO se persiste. Como esto no bloquea la UI, el fallo sería mudo:
+    // el postulante avanzaría en pantalla y su link de reanudación lo traería
+    // de vuelta al paso 1. Por eso se emite un evento cuando no se pudo
+    // guardar, para que quede rastro en vez de perderse.
+    if (code) {
+      // Se usa el tipo `error`, que YA está en el catálogo del backend. Un
+      // tipo inventado se descartaría en silencio (`is_valid_event`), que es
+      // justo el modo de falla que este evento viene a hacer visible.
+      const proofDni = resumeToken ? undefined : effectiveDni;
+      if (!resumeToken && !proofDni) {
+        track('error', {
+          scope: 'kyc_step_persist', reason: 'no_proof',
+          step: currentStep.type, index: safeIndex, application_code: code,
+        });
+      } else {
+        void completeKycStep({
+          applicationCode: code,
+          stepType: currentStep.type,
+          resumeToken,                        // flujo por link
+          documentNumber: proofDni,           // en sesión
+        }).then((state) => {
+          if (!state) {
+            track('error', {
+              scope: 'kyc_step_persist', reason: 'request_failed',
+              step: currentStep.type, index: safeIndex, application_code: code,
+            });
+          }
+        });
+      }
+    }
+
     if (safeIndex + 1 < kycSteps.length) {
       const next = safeIndex + 1;
       setIndex(next);
       writeKycStep(landing, code, next); // persistir avance (refresh/volver)
     } else {
-      tracker?.track('kyc_completed');
+      track('kyc_completed', { application_code: code });
       clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
       goToConfirmacion();
     }
@@ -217,15 +388,63 @@ function KycContent() {
         }
       : undefined;
 
-  return (
-    <KycChrome>
-      <div className="w-full max-w-md space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center">
-          Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
-        </p>
+  // El botón solo se ofrece si de verdad puede funcionar:
+  // - `resume.enabled` en el estado del API (la landing tiene la pausa habilitada)
+  // - hay `code` (application_code efectivo)
+  // - NO hay `resumeToken`: quien ya entró por el link no necesita pedir otro
+  //
+  // YA NO se exige DNI en localStorage: esa condición dejaba sin botón a
+  // CUALQUIER solicitante que llegara a KYC sin el estado del wizard en ESE
+  // mismo navegador (ej. abrir el link en otro dispositivo/navegador, o con
+  // localStorage limpio) — no era un edge case, era la mayoría silenciosa.
+  // El backend ya valida el DNI contra la solicitud (con lockout + auditoría),
+  // así que ahora se le pide al usuario en el propio modal (`PausarModal`)
+  // cuando no hay uno disponible localmente.
+  const canPause = Boolean(progressState?.resume?.enabled && code && !resumeToken);
 
-        {renderStep(currentStep.type, goNext, goBack, code)}
-      </div>
+  const handlePauseClick = () => {
+    track('kyc_pause_click', { application_code: code });
+    setShowPausarModal(true);
+  };
+
+  return (
+    <KycChrome landing={landing}>
+      <KycLayout>
+        {/*
+          Mobile: la card angosta de siempre (rounded-2xl + border + shadow).
+          Desktop (`md:`): se quita ese chrome de card — el panel blanco de
+          `KycLayout` ya lo provee, con más padding y sin el ancho limitado a
+          `max-w-md`, para que la cámara y las previews de DniSelfieStep
+          respiren en vez de verse apretadas.
+        */}
+        <div className="w-full space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7 md:rounded-none md:border-0 md:shadow-none md:px-10 md:py-10 lg:px-12 lg:py-12">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center md:text-left">
+            Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
+          </p>
+
+          {renderStep(currentStep.type, goNext, goBack, code, onTrack)}
+
+          {canPause && code && (
+            <div className="pt-1 text-center md:text-left">
+              <button
+                type="button"
+                onClick={handlePauseClick}
+                className="text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+              >
+                Continuar en otro momento
+              </button>
+              <PausarModal
+                open={showPausarModal}
+                onClose={() => setShowPausarModal(false)}
+                applicationCode={code}
+                documentNumber={effectiveDni}
+                landing={landing}
+                onSent={rememberVerifiedDni}
+              />
+            </div>
+          )}
+        </div>
+      </KycLayout>
     </KycChrome>
   );
 }
@@ -238,10 +457,25 @@ function LoadingFallback() {
   );
 }
 
-export default function KycClient() {
+export interface KycClientProps {
+  /** Presente solo cuando se entra por /kyc/[token]. */
+  resumeToken?: string;
+  /** Estado ya resuelto por la ruta tokenizada; evita un fetch redundante. */
+  initialState?: KycProgressState;
+  /**
+   * Emisor de eventos alternativo. Lo usa la ruta tokenizada `/kyc/[token]`,
+   * que vive fuera de `EventTrackerProvider`: sin esto, ninguno de los eventos
+   * `kyc_*` (ni los del orquestador ni los de los sub-pasos) se emitía en el
+   * camino de reanudación. Ausente ⇒ comportamiento idéntico al de siempre
+   * (tracker del contexto).
+   */
+  onTrack?: KycTrack;
+}
+
+export default function KycClient(props: KycClientProps = {}) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <KycContent />
+      <KycContent {...props} />
     </Suspense>
   );
 }

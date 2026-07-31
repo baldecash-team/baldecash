@@ -10,21 +10,25 @@
 
 import { useEffect, useState } from 'react';
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
-import { useEventTrackerOptional } from '../../context/EventTrackerContext';
+import { useKycTracker, type KycTrack } from '../useKycTracker';
 
 export interface ContratoStepProps {
   onDone: () => void;
   onBack?: () => void;
+  /** application_code, para que los eventos de este sub-paso sean rastreables. */
+  applicationCode?: string;
+  /** Emisor de eventos alternativo (ruta tokenizada /kyc/[token]); ver useKycTracker. */
+  onTrack?: KycTrack;
 }
 
 const CONTRACT_PDF_URL = 'https://ws.baldecash.com/storage/contrato-v3-6a5ee61f7aa51.pdf';
 
-export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
+export function ContratoStep({ onDone, onBack, applicationCode, onTrack }: ContratoStepProps) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
-  const tracker = useEventTrackerOptional();
+  const track = useKycTracker(onTrack);
 
   useEffect(() => {
-    tracker?.track('kyc_contract_view');
+    track('kyc_contract_view', { application_code: applicationCode });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -32,7 +36,7 @@ export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
     const next = value as 'true' | 'false';
     setAccepted(next);
     if (next === 'true') {
-      tracker?.track('kyc_contract_accepted');
+      track('kyc_contract_accepted', { application_code: applicationCode });
     }
   };
 
