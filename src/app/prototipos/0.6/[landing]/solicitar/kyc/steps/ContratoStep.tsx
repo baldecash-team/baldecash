@@ -15,16 +15,18 @@ import { useEventTrackerOptional } from '../../context/EventTrackerContext';
 export interface ContratoStepProps {
   onDone: () => void;
   onBack?: () => void;
+  /** application_code, para que los eventos de este sub-paso sean rastreables. */
+  applicationCode?: string;
 }
 
 const CONTRACT_PDF_URL = 'https://ws.baldecash.com/storage/contrato-v3-6a5ee61f7aa51.pdf';
 
-export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
+export function ContratoStep({ onDone, onBack, applicationCode }: ContratoStepProps) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
   const tracker = useEventTrackerOptional();
 
   useEffect(() => {
-    tracker?.track('kyc_contract_view');
+    tracker?.track('kyc_contract_view', { application_code: applicationCode });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -32,7 +34,7 @@ export function ContratoStep({ onDone, onBack }: ContratoStepProps) {
     const next = value as 'true' | 'false';
     setAccepted(next);
     if (next === 'true') {
-      tracker?.track('kyc_contract_accepted');
+      tracker?.track('kyc_contract_accepted', { application_code: applicationCode });
     }
   };
 

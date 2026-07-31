@@ -90,9 +90,9 @@ function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void, 
     case 'dni_selfie':
       return <DniSelfieStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} />;
     case 'contract':
-      return <ContratoStep onDone={onDone} onBack={onBack} />;
+      return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} />;
     case 'documents':
-      return <DocumentosStep onDone={onDone} onBack={onBack} />;
+      return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} />;
     default:
       return null;
   }

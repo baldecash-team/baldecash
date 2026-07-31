@@ -23,16 +23,18 @@ interface UploadedFile {
 export interface DocumentosStepProps {
   onDone: () => void;
   onBack?: () => void;
+  /** application_code, para que los eventos de este sub-paso sean rastreables. */
+  applicationCode?: string;
 }
 
-export function DocumentosStep({ onDone, onBack }: DocumentosStepProps) {
+export function DocumentosStep({ onDone, onBack, applicationCode }: DocumentosStepProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const tracker = useEventTrackerOptional();
 
   const handleChange = (next: UploadedFile[]) => {
     setFiles(next);
     if (next.length > 0) {
-      tracker?.track('kyc_documents_uploaded', { count: next.length });
+      tracker?.track('kyc_documents_uploaded', { count: next.length, application_code: applicationCode });
     }
   };
 

@@ -114,7 +114,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
 
   const runVerification = async () => {
     if (!selfieShot || !dniShot) return;
-    tracker?.track('kyc_identity_verify_submit');
+    tracker?.track('kyc_identity_verify_submit', { application_code: applicationCode });
 
     if (!applicationCode) {
       setVerifyError('No pudimos verificar tu identidad. Intenta nuevamente.');
@@ -160,10 +160,10 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
       const similarityValue = typeof res.similarity === 'number' ? res.similarity : null;
       setSimilarity(similarityValue);
       if (res.is_match) {
-        tracker?.track('kyc_identity_verified', { similarity: similarityValue });
+        tracker?.track('kyc_identity_verified', { similarity: similarityValue, application_code: applicationCode });
         setVerifyState('matched');
       } else {
-        tracker?.track('kyc_identity_rejected', { similarity: similarityValue });
+        tracker?.track('kyc_identity_rejected', { similarity: similarityValue, application_code: applicationCode });
         setVerifyState('nomatch');
       }
     } catch {
@@ -173,7 +173,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
   };
 
   const retakeFromSelfie = () => {
-    tracker?.track('kyc_selfie_retake');
+    tracker?.track('kyc_selfie_retake', { application_code: applicationCode });
     setSelfieShot(null);
     setDniShot(null);
     setSimilarity(null);
@@ -187,13 +187,13 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
       try {
         // Solo se necesita video: este paso captura fotos fijas, no audio.
         await requestCamera(mode, { audio: false });
-        tracker?.track('kyc_camera_granted', { kind: mode === 'user' ? 'selfie' : 'dni' });
+        tracker?.track('kyc_camera_granted', { kind: mode === 'user' ? 'selfie' : 'dni', application_code: applicationCode });
       } catch (err) {
         setError(cameraErrorMessage(err));
-        tracker?.track('kyc_camera_denied', { kind: mode === 'user' ? 'selfie' : 'dni' });
+        tracker?.track('kyc_camera_denied', { kind: mode === 'user' ? 'selfie' : 'dni', application_code: applicationCode });
       }
     },
-    [requestCamera, tracker]
+    [requestCamera, tracker, applicationCode]
   );
 
   // Abre la cámara con el facingMode correcto al entrar a cada fase de captura.
@@ -225,8 +225,8 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
 
   function handleRepeat() {
     setPendingShot(null);
-    if (phase === 'selfie') tracker?.track('kyc_selfie_retake');
-    else if (phase === 'dni') tracker?.track('kyc_dni_retake');
+    if (phase === 'selfie') tracker?.track('kyc_selfie_retake', { application_code: applicationCode });
+    else if (phase === 'dni') tracker?.track('kyc_dni_retake', { application_code: applicationCode });
     if (phase !== 'review') openCamera(PHASE_CONFIG[phase].facingMode);
   }
 
@@ -235,12 +235,12 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
     if (phase === 'selfie') {
       setSelfieShot(pendingShot);
       setPendingShot(null);
-      tracker?.track('kyc_selfie_captured');
+      tracker?.track('kyc_selfie_captured', { application_code: applicationCode });
       setPhase('dni');
     } else if (phase === 'dni') {
       setDniShot(pendingShot);
       setPendingShot(null);
-      tracker?.track('kyc_dni_captured');
+      tracker?.track('kyc_dni_captured', { application_code: applicationCode });
       setPhase('review');
     }
   }
