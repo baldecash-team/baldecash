@@ -104,9 +104,9 @@ function renderStep(type: KycStepType, onDone: () => void, onBack?: () => void, 
  * con el contenido KYC centrado entre ambos. Mientras el layout carga muestra
  * un spinner sobre el mismo fondo (sin flash blanco).
  */
-function KycChrome({ children }: { children: React.ReactNode }) {
+function KycChrome({ children, landing: landingProp }: { children: React.ReactNode; landing?: string }) {
   const params = useParams();
-  const landing = (params.landing as string) || 'home';
+  const landing = landingProp || (params.landing as string) || 'home';
   const {
     navbarProps,
     footerData,
@@ -149,7 +149,12 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const landing = (params.landing as string) || 'home';
+  // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
+  // esa ruta vive FUERA de `[landing]/**` (no tiene ese segmento en la URL),
+  // así que `params.landing` viene vacío ahí — sin este fallback, `landing`
+  // caía siempre a 'home' sin importar la landing real de la solicitud
+  // (romperían kycSteps, navbar/footer, la URL de confirmación, etc.).
+  const landing = initialState?.landing_slug || (params.landing as string) || 'home';
   // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
   // esa ruta NO manda `?code=` a propósito (es justamente lo que oculta el
   // token), así que `code` no puede depender solo del query param.
@@ -225,7 +230,7 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
 
   if (isLoading || !kycEnabled || kycSteps.length === 0) {
     return (
-      <KycChrome>
+      <KycChrome landing={landing}>
         <div className="flex items-center justify-center py-20">
           <CubeGridSpinner />
         </div>
@@ -286,7 +291,7 @@ function KycContent({ resumeToken, initialState }: KycClientProps) {
   };
 
   return (
-    <KycChrome>
+    <KycChrome landing={landing}>
       <div className="w-full max-w-md space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center">
           Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
