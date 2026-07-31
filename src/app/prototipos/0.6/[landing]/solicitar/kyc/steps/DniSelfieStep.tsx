@@ -18,10 +18,18 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useRecorder } from '@/app/prototipos/0.6/admision/_hooks/useRecorder';
 import { cameraErrorMessage } from '@/app/prototipos/0.6/admision/_lib/cameraError';
-import { compareFaces, dataUrlToBlob, getKycUploadUrl, uploadToS3 } from '@/app/prototipos/0.6/services/kycApi';
+import {
+  compareFaces,
+  dataUrlToBlob,
+  getKycUploadUrl,
+  uploadToS3,
+  verifyDni,
+  type CompareFacesResult,
+  type VerifyDniResult,
+} from '@/app/prototipos/0.6/services/kycApi';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
 
 export interface DniSelfieStepProps {
@@ -29,8 +37,115 @@ export interface DniSelfieStepProps {
   onBack?: () => void;
   /** application_code, usado para pedir las URLs presignadas de S3. */
   applicationCode?: string;
+  /**
+   * DNI del titular, si ya se conoce (wizard o modal de pausa). Cuando falta,
+   * el paso lo pide: `verify-dni` lo necesita para saber QUÉ número buscar en
+   * la foto, y de paso vale como prueba de titularidad para guardar el avance.
+   */
+  documentNumber?: string;
+  /** Avisa el DNI que el backend aceptó, para reusarlo en el resto del KYC. */
+  onDniVerified?: (dni: string) => void;
   /** Emisor de eventos alternativo (ruta tokenizada /kyc/[token]); ver useKycTracker. */
   onTrack?: KycTrack;
+}
+
+/** Qué se le muestra al postulante cuando la verificación no pasa. */
+interface Failure {
+  title: string;
+  detail: string;
+  /** Consejos accionables; vacío cuando el fallo no depende de la foto. */
+  tips: string[];
+  /**
+   * Acción principal. `retake` cuando hay que repetir las fotos y `retry`
+   * cuando reintentar con las MISMAS sirve (red, saturación del servicio).
+   * Distinguirlas importa: ofrecer "Reintentar" ante una foto sin rostro
+   * invita a repetir una llamada que no puede funcionar.
+   */
+  primary: 'retake' | 'retry';
+}
+
+const TIPS_DOCUMENTO = [
+  'Usa el frente del DNI, no el reverso.',
+  'Que se lea el número, sin reflejos ni sombras.',
+  'Apoya el documento en una superficie plana y llena el marco.',
+];
+
+const TIPS_ROSTRO = [
+  'Busca un lugar con buena luz, de frente a la cámara.',
+  'Sin lentes, gorra ni mascarilla.',
+  'Que tu rostro entre completo en el óvalo.',
+];
+
+/**
+ * Falla a mostrar cuando `verify-dni` no dio `verified`. Exportada para poder
+ * probar la decisión sin montar el componente: llegar a esta rama exige pasar
+ * por dos capturas de cámara, que jsdom no tiene.
+ */
+export function documentFailure(res: VerifyDniResult): Failure {
+  if (!res.success) {
+    if (res.reason === 'ownership_check_failed') {
+      return {
+        title: 'El DNI no coincide con la solicitud',
+        detail: 'El número ingresado no es el del titular de esta solicitud.',
+        tips: [], primary: 'retry',
+      };
+    }
+    if (res.reason === 'ownership_locked' || res.reason === 'rate_limited') {
+      return {
+        title: 'Demasiados intentos',
+        detail: 'Espera unos minutos antes de volver a intentarlo.',
+        tips: [], primary: 'retry',
+      };
+    }
+    return {
+      title: 'No pudimos validar tu documento',
+      detail: res.error || 'Intenta nuevamente.',
+      tips: [], primary: 'retry',
+    };
+  }
+  if (res.status === 'not_found') {
+    return {
+      title: 'Esa foto no es tu DNI',
+      detail: 'No encontramos tu número de documento en la imagen. Asegúrate de fotografiar tu propio DNI.',
+      tips: TIPS_DOCUMENTO, primary: 'retake',
+    };
+  }
+  return {
+    title: 'No pudimos leer tu DNI',
+    detail: res.status === 'low_confidence'
+      ? 'La foto se ve borrosa y no podemos confirmar el número.'
+      : 'La imagen no se pudo leer.',
+    tips: TIPS_DOCUMENTO, primary: 'retake',
+  };
+}
+
+/** Falla a mostrar cuando la comparación facial no pasa. Ver `documentFailure`. */
+export function faceFailure(res: CompareFacesResult): Failure {
+  if (!res.success) {
+    // `InvalidParameterException` = Rekognition no halló un rostro. Repetir la
+    // llamada con la misma imagen daría el mismo error, así que la acción
+    // principal es repetir la foto, no reintentar.
+    if (res.error_code === 'InvalidParameterException') {
+      return {
+        title: 'No encontramos un rostro en la foto',
+        detail: 'Necesitamos ver tu cara con claridad para compararla con tu DNI.',
+        tips: TIPS_ROSTRO, primary: 'retake',
+      };
+    }
+    return {
+      title: 'No pudimos verificar tu identidad',
+      detail: res.error || 'Intenta nuevamente en unos segundos.',
+      tips: [], primary: 'retry',
+    };
+  }
+  const pct = typeof res.similarity === 'number' ? res.similarity : null;
+  return {
+    title: 'Tu rostro no coincide con el del DNI',
+    detail: `No pudimos confirmar que seas la misma persona${
+      pct != null ? ` (coincidencia ${pct}%)` : ''
+    }.`,
+    tips: TIPS_ROSTRO, primary: 'retake',
+  };
 }
 
 type CapturePhase = 'selfie' | 'dni';
@@ -108,7 +223,9 @@ function FramingOverlay({ kind, hint }: { kind: OverlayKind; hint: string }) {
   );
 }
 
-export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniSelfieStepProps) {
+export function DniSelfieStep({
+  onDone, onBack, applicationCode, documentNumber, onDniVerified, onTrack,
+}: DniSelfieStepProps) {
   const { stream, requestCamera, stopStream, liveVideoRef, liveActive, playLive } = useRecorder();
   const track = useKycTracker(onTrack);
   const [phase, setPhase] = useState<Phase>('selfie');
@@ -118,53 +235,87 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  type VerifyState = 'idle' | 'uploading' | 'verifying' | 'matched' | 'nomatch' | 'error';
+  type VerifyState =
+    | 'idle' | 'uploading' | 'checking-document' | 'verifying' | 'matched' | 'failed';
   const [verifyState, setVerifyState] = useState<VerifyState>('idle');
   const [similarity, setSimilarity] = useState<number | null>(null);
-  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<Failure | null>(null);
+
+  // DNI tipeado acá cuando no llegó por props. Solo dígitos: el backend exige 8.
+  const [dniInput, setDniInput] = useState('');
+  const effectiveDni = (documentNumber || dniInput).replace(/\D/g, '');
+  const dniReady = effectiveDni.length === 8;
+
+  const fail = (f: Failure) => {
+    setFailure(f);
+    setVerifyState('failed');
+  };
 
   const runVerification = async () => {
-    if (!selfieShot || !dniShot) return;
+    if (!selfieShot || !dniShot || !dniReady) return;
     track('kyc_identity_verify_submit', { application_code: applicationCode });
 
     if (!applicationCode) {
-      setVerifyError('No pudimos verificar tu identidad. Intenta nuevamente.');
-      setVerifyState('error');
+      fail({
+        title: 'No pudimos verificar tu identidad',
+        detail: 'Falta el código de tu solicitud. Vuelve a entrar desde tu enlace.',
+        tips: [], primary: 'retry',
+      });
       return;
     }
 
     setVerifyState('uploading');
-    setVerifyError(null);
+    setFailure(null);
+
+    const fallaDeSubida: Failure = {
+      title: 'No pudimos subir tus fotos',
+      detail: 'Revisa tu conexión e intenta de nuevo. Tus fotos no se perdieron.',
+      tips: [], primary: 'retry',
+    };
 
     try {
       const [selfieUploadUrl, dniUploadUrl] = await Promise.all([
         getKycUploadUrl(applicationCode, 'selfie'),
         getKycUploadUrl(applicationCode, 'dni'),
       ]);
-      if (!selfieUploadUrl || !dniUploadUrl) {
-        setVerifyError('No pudimos subir tus fotos. Intenta nuevamente.');
-        setVerifyState('error');
-        return;
-      }
+      if (!selfieUploadUrl || !dniUploadUrl) { fail(fallaDeSubida); return; }
 
       const [selfieUploaded, dniUploaded] = await Promise.all([
         uploadToS3(selfieUploadUrl.upload_url, dataUrlToBlob(selfieShot)),
         uploadToS3(dniUploadUrl.upload_url, dataUrlToBlob(dniShot)),
       ]);
-      if (!selfieUploaded || !dniUploaded) {
-        setVerifyError('No pudimos subir tus fotos. Intenta nuevamente.');
-        setVerifyState('error');
+      if (!selfieUploaded || !dniUploaded) { fail(fallaDeSubida); return; }
+
+      // ── 1. ¿La segunda foto ES un documento, y el del titular? ───────────
+      // Va ANTES de comparar rostros: `compare-faces` solo mira dos caras, así
+      // que dos selfies daban 100% y pasaban. Además corta temprano y ahorra
+      // la llamada a Rekognition cuando la foto no sirve.
+      setVerifyState('checking-document');
+      const doc = await verifyDni({
+        image: dniUploadUrl.file_url,
+        documentNumber: effectiveDni,
+        applicationCode,
+      });
+
+      if (!doc.success || doc.status !== 'verified') {
+        if (doc.success) {
+          track('kyc_document_rejected', { status: doc.status, application_code: applicationCode });
+        }
+        fail(documentFailure(doc));
         return;
       }
+      track('kyc_document_verified', { application_code: applicationCode });
+      onDniVerified?.(effectiveDni);
 
+      // ── 2. ¿El rostro de la selfie es el del documento? ──────────────────
       setVerifyState('verifying');
       const res = await compareFaces(selfieUploadUrl.file_url, dniUploadUrl.file_url, undefined, {
         source_key: selfieUploadUrl.key,
         target_key: dniUploadUrl.key,
       });
+
       if (!res.success) {
-        setVerifyError(res.error || 'No pudimos verificar tu identidad.');
-        setVerifyState('error');
+        fail(faceFailure(res));
         return;
       }
 
@@ -175,11 +326,14 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
         setVerifyState('matched');
       } else {
         track('kyc_identity_rejected', { similarity: similarityValue, application_code: applicationCode });
-        setVerifyState('nomatch');
+        fail(faceFailure(res));
       }
     } catch {
-      setVerifyError('No pudimos verificar tu identidad. Intenta nuevamente.');
-      setVerifyState('error');
+      fail({
+        title: 'No pudimos verificar tu identidad',
+        detail: 'Hubo un problema de conexión. Intenta nuevamente.',
+        tips: [], primary: 'retry',
+      });
     }
   };
 
@@ -315,26 +469,52 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
         </div>
 
         {verifyState === 'idle' && (
-          <button
-            type="button"
-            onClick={runVerification}
-            className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
-          >
-            Verificar identidad
-          </button>
-        )}
-
-        {verifyState === 'uploading' && (
-          <div className="flex items-center justify-center gap-2 py-3 text-[#6b7280]">
-            <span className="w-5 h-5 rounded-full border-2 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
-            Subiendo imágenes…
+          <div className="space-y-3">
+            {/*
+              El DNI solo se pide cuando no vino del wizard. Es obligatorio:
+              `verify-dni` necesita saber QUÉ número buscar en la foto — sin él
+              solo podríamos comprobar que hay "un" documento, no que sea el
+              tuyo. De paso es la prueba de titularidad que guarda el avance.
+            */}
+            {!documentNumber && (
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-[#374151]">
+                  Número de DNI
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={8}
+                  value={dniInput}
+                  onChange={(e) => setDniInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="12345678"
+                  className="w-full rounded-lg border-2 border-[#e5e7eb] px-3 py-2.5 text-[#1f2937] outline-none transition-colors focus:border-[#4654CD]"
+                />
+                <span className="block text-xs text-[#6b7280]">
+                  Lo comparamos con el que aparece en la foto de tu documento.
+                </span>
+              </label>
+            )}
+            <button
+              type="button"
+              onClick={runVerification}
+              disabled={!dniReady}
+              className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl transition-opacity cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Verificar identidad
+            </button>
           </div>
         )}
 
-        {verifyState === 'verifying' && (
+        {(verifyState === 'uploading'
+          || verifyState === 'checking-document'
+          || verifyState === 'verifying') && (
           <div className="flex items-center justify-center gap-2 py-3 text-[#6b7280]">
             <span className="w-5 h-5 rounded-full border-2 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
-            Verificando identidad…
+            {verifyState === 'uploading' && 'Subiendo imágenes…'}
+            {verifyState === 'checking-document' && 'Validando tu documento…'}
+            {verifyState === 'verifying' && 'Comparando tu rostro…'}
           </div>
         )}
 
@@ -354,28 +534,64 @@ export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniS
           </div>
         )}
 
-        {(verifyState === 'nomatch' || verifyState === 'error') && (
-          <div className="space-y-3">
-            <p className="text-sm text-[#ef4444] text-center">
-              {verifyState === 'nomatch'
-                ? `Los rostros no coinciden${similarity != null ? ` (${similarity}%)` : ''}. Repite las fotos.`
-                : (verifyError || 'No pudimos verificar tu identidad.')}
-            </p>
-            <button
-              type="button"
-              onClick={retakeFromSelfie}
-              className="w-full border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
-            >
-              Repetir fotos
-            </button>
-            {verifyState === 'error' && (
+        {verifyState === 'failed' && failure && (
+          <div className="space-y-3" role="alert">
+            {/*
+              El error deja de ser una línea roja suelta y pasa a ser una tarjeta
+              con título, explicación y qué hacer. El motivo: los mensajes que
+              llegan del OCR y de Rekognition describen la causa técnica ("no se
+              detectó un rostro"), no la salida — y sin consejos el postulante
+              repite exactamente la misma foto.
+            */}
+            <div className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3.5 space-y-2">
+              <p className="flex items-start gap-2 font-semibold text-[#b91c1c]">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>{failure.title}</span>
+              </p>
+              <p className="text-sm text-[#7f1d1d]">{failure.detail}</p>
+              {failure.tips.length > 0 && (
+                <ul className="space-y-1 pt-0.5 text-sm text-[#7f1d1d]">
+                  {failure.tips.map((tip) => (
+                    <li key={tip} className="flex items-start gap-2">
+                      <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#b91c1c]" />
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/*
+              La acción principal depende del fallo. Ante una foto que el
+              servicio no pudo leer, "Reintentar" repetiría la misma llamada con
+              la misma imagen y volvería a fallar, así que ahí manda "Repetir
+              fotos"; el reintento solo encabeza cuando la causa es transitoria.
+            */}
+            {failure.primary === 'retake' ? (
               <button
                 type="button"
-                onClick={runVerification}
+                onClick={retakeFromSelfie}
                 className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
               >
-                Reintentar
+                Repetir fotos
               </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={runVerification}
+                  className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                  Reintentar
+                </button>
+                <button
+                  type="button"
+                  onClick={retakeFromSelfie}
+                  className="w-full border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
+                >
+                  Repetir fotos
+                </button>
+              </>
             )}
           </div>
         )}

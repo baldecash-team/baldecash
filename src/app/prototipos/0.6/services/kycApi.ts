@@ -7,6 +7,14 @@ export interface CompareFacesResult {
   threshold?: number;
   comparison_id?: number;
   error?: string;
+  /**
+   * Código crudo de AWS (`InvalidParameterException`, `ThrottlingException`…).
+   * Se propaga porque el front necesita distinguir un fallo del que se sale
+   * repitiendo la foto de uno del que se sale reintentando: sin esto, la única
+   * señal era el texto del mensaje y la UI ofrecía "Reintentar" incluso cuando
+   * reintentar con la misma imagen no podía funcionar.
+   */
+  error_code?: string;
 }
 
 export interface CompareFacesKeys {
@@ -45,14 +53,79 @@ export async function compareFaces(
     if (!response.ok) {
       // 400 de AWS trae { detail: { success:false, error, error_code } }
       let error = 'No pudimos verificar tu identidad. Intenta nuevamente.';
+      let error_code: string | undefined;
       try {
         const data = await response.json();
         error = data?.detail?.error || data?.error || error;
+        error_code = data?.detail?.error_code || data?.error_code;
       } catch { /* noop */ }
-      return { success: false, error };
+      return { success: false, error, error_code };
     }
 
     return (await response.json()) as CompareFacesResult;
+  } catch {
+    return { success: false, error: 'Error de conexión. Intenta nuevamente.' };
+  }
+}
+
+/** Veredicto de `verify-dni`. El backend NUNCA devuelve el texto OCR. */
+export type VerifyDniStatus =
+  | 'verified'        // el número declarado aparece en la foto
+  | 'not_found'       // se leyó bien y el número no está → documento ajeno
+  | 'low_confidence'  // se intuye el número pero mal leído → repetir foto
+  | 'unreadable';     // no se pudo leer nada → repetir foto
+
+export interface VerifyDniResult {
+  success: boolean;
+  status?: VerifyDniStatus;
+  /** `reason` del dominio cuando el backend rechaza (403/429): titularidad, rate-limit. */
+  reason?: string;
+  error?: string;
+}
+
+/**
+ * Verifica que el DNI declarado aparezca en la foto del documento (Textract).
+ *
+ * Responde la pregunta que `compare-faces` no puede: **si la foto es un
+ * documento**. La comparación facial solo mira dos rostros, así que dos selfies
+ * dan 100% de coincidencia y pasan — que es exactamente lo que ocurría antes de
+ * cablear esto.
+ *
+ * `documentNumber` dobla como prueba de titularidad: el backend lo valida
+ * contra la solicitud ANTES de gastar una llamada a Textract.
+ *
+ * Fail-safe: ante error de red devuelve `{ success:false }` con un mensaje
+ * reintentable, nunca lanza.
+ */
+export async function verifyDni(args: {
+  image: string;
+  documentNumber: string;
+  applicationCode: string;
+}): Promise<VerifyDniResult> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/kyc/verify-dni`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: args.image,
+        document_number: args.documentNumber,
+        application_code: args.applicationCode,
+      }),
+    });
+
+    if (!response.ok) {
+      let reason: string | undefined;
+      let error = 'No pudimos validar tu documento. Intenta nuevamente.';
+      try {
+        const data = await response.json();
+        reason = data?.detail?.reason;
+        error = data?.detail?.message || error;
+      } catch { /* noop */ }
+      return { success: false, reason, error };
+    }
+
+    const data = await response.json();
+    return { success: true, status: data?.status as VerifyDniStatus };
   } catch {
     return { success: false, error: 'Error de conexión. Intenta nuevamente.' };
   }
