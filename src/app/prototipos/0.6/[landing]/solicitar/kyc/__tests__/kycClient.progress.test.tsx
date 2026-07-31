@@ -277,27 +277,31 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
     ));
   });
 
-  it('ninguna fuente: sin DNI, el botón de pausa SIGUE disponible (el modal lo pide) y step-complete va sin prueba', async () => {
+  it('ninguna fuente: el botón de pausa sigue disponible y step-complete NO se llama sin prueba', async () => {
     // 2 sub-pasos + índice remoto 1: llegar a "Paso 2 de 2" prueba que la
     // respuesta del API ya se aplicó, así la presencia del botón no es un
     // falso verde por afirmarla antes de que resuelva el fetch.
     //
-    // Rediseño: el DNI de localStorage YA NO es requisito para el botón de
-    // pausa — solo lo era para `step-complete` (que sigue mandando `undefined`
-    // sin ninguna fuente, eso no cambió). El botón ahora se ofrece siempre que
-    // `resume.enabled` esté prendido; sin DNI local, es `PausarModal` quien
-    // se lo pide al usuario (cubierto en PausarModal.test.tsx).
+    // El DNI de localStorage no es requisito para el botón: sin él, es
+    // `PausarModal` quien se lo pide al usuario.
+    //
+    // Y sin ninguna prueba NO se llama al backend. Antes se llamaba con
+    // `documentNumber: undefined`, el backend respondía 422 `missing_proof` y
+    // —al ser fire-and-forget— el avance se perdía sin que nadie se enterara.
+    // Ahora se emite un evento `error` para que quede rastro.
     mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
-    mockCompleteKycStep.mockResolvedValue(state('contract', 1) as never);
 
     render(<KycClient />);
 
     await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
     await avanzar();
-    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalledWith(
-      expect.objectContaining({ documentNumber: undefined }),
-    ));
+
+    expect(mockCompleteKycStep).not.toHaveBeenCalled();
+    expect(mockTrack).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ scope: 'kyc_step_persist', reason: 'no_proof' }),
+    );
   });
 
   it('blob corrupto o con valor vacío: no lanza y sigue buscando en las otras fuentes', async () => {

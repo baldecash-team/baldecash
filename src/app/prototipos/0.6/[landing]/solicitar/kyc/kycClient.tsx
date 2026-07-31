@@ -220,6 +220,33 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // hook.
   const wizardDni = useMemo(() => readWizardDni(landing), [landing]);
 
+  /**
+   * DNI que el postulante tipeó en el modal de pausa y que el BACKEND aceptó
+   * como prueba de titularidad.
+   *
+   * Existe porque el modal puede pedir el DNI cuando no está en `localStorage`
+   * (postulante que llega al KYC sin el estado del wizard en ese navegador),
+   * pero `step-complete` exige esa MISMA prueba en cada sub-paso. Sin
+   * propagarlo, seguía avanzando contra un backend que respondía 422 y su
+   * progreso no se guardaba — en silencio, porque la llamada es
+   * fire-and-forget.
+   *
+   * Se persiste en la clave del prefill del wizard para que `readWizardDni` lo
+   * encuentre si recarga la página. Es el propio documento del titular, ya
+   * validado contra la solicitud, así que no agrega exposición.
+   */
+  const [verifiedDni, setVerifiedDni] = useState<string | undefined>();
+  const effectiveDni = verifiedDni ?? wizardDni;
+
+  const rememberVerifiedDni = (dni: string) => {
+    setVerifiedDni(dni);
+    try {
+      window.localStorage.setItem(`baldecash-${landing}-wizard-field-document_number`, dni);
+    } catch {
+      /* localStorage puede fallar en WebKit sandboxeado; el estado alcanza */
+    }
+  };
+
   const goToConfirmacion = () =>
     router.replace(routes.solicitarConfirmacion(landing, code));
 
@@ -309,13 +336,37 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
     // Fire-and-forget: la UI no espera al backend. Si falla, el localStorage
     // sostiene el flujo en este dispositivo y el próximo montaje reconcilia.
+    //
+    // Sin prueba de titularidad el backend responde 422 `missing_proof` y el
+    // avance NO se persiste. Como esto no bloquea la UI, el fallo sería mudo:
+    // el postulante avanzaría en pantalla y su link de reanudación lo traería
+    // de vuelta al paso 1. Por eso se emite un evento cuando no se pudo
+    // guardar, para que quede rastro en vez de perderse.
     if (code) {
-      void completeKycStep({
-        applicationCode: code,
-        stepType: currentStep.type,
-        resumeToken,                                  // flujo por link
-        documentNumber: resumeToken ? undefined : wizardDni, // en sesión
-      });
+      // Se usa el tipo `error`, que YA está en el catálogo del backend. Un
+      // tipo inventado se descartaría en silencio (`is_valid_event`), que es
+      // justo el modo de falla que este evento viene a hacer visible.
+      const proofDni = resumeToken ? undefined : effectiveDni;
+      if (!resumeToken && !proofDni) {
+        track('error', {
+          scope: 'kyc_step_persist', reason: 'no_proof',
+          step: currentStep.type, index: safeIndex, application_code: code,
+        });
+      } else {
+        void completeKycStep({
+          applicationCode: code,
+          stepType: currentStep.type,
+          resumeToken,                        // flujo por link
+          documentNumber: proofDni,           // en sesión
+        }).then((state) => {
+          if (!state) {
+            track('error', {
+              scope: 'kyc_step_persist', reason: 'request_failed',
+              step: currentStep.type, index: safeIndex, application_code: code,
+            });
+          }
+        });
+      }
     }
 
     if (safeIndex + 1 < kycSteps.length) {
@@ -386,8 +437,9 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
                 open={showPausarModal}
                 onClose={() => setShowPausarModal(false)}
                 applicationCode={code}
-                documentNumber={wizardDni}
+                documentNumber={effectiveDni}
                 landing={landing}
+                onSent={rememberVerifiedDni}
               />
             </div>
           )}

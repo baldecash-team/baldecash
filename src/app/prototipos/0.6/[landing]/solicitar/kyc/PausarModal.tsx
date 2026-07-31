@@ -31,7 +31,13 @@ export interface PausarModalProps {
   open: boolean;
   onClose: () => void;
   /** Se invoca cuando el enlace se envió con éxito (además del estado 'sent' interno). */
-  onSent?: () => void;
+  /**
+   * Se llama tras un envío exitoso, con el DNI que el backend ACEPTÓ como
+   * prueba de titularidad. El caller lo necesita porque `step-complete` exige
+   * esa misma prueba: sin propagarlo, el postulante que tipeó su DNI acá
+   * seguiría avanzando sub-pasos que el backend rechaza con 422.
+   */
+  onSent?: (verifiedDocumentNumber: string) => void;
   applicationCode: string;
   /** Ausente ⇒ el modal pide el DNI al usuario (ver comentario de arriba). */
   documentNumber?: string;
@@ -152,7 +158,9 @@ export function PausarModal({
     });
     setSent({ maskedPhone: result.masked_phone, ttlHours: result.ttl_hours });
     setStatus('sent');
-    onSent?.();
+    // El backend ya validó este DNI contra la solicitud, así que sirve como
+    // prueba para los `step-complete` siguientes.
+    onSent?.(effectiveDocumentNumber);
   };
 
   const canRetry = status === 'error' && !!error && RETRYABLE_REASONS.has(error.reason);
