@@ -126,16 +126,35 @@ function readWizardDni(landing: string): string | undefined {
   }
 }
 
-function renderStep(
-  type: KycStepType,
-  onDone: () => void,
-  onBack?: () => void,
-  applicationCode?: string,
-  onTrack?: KycTrack,
-) {
+interface RenderStepArgs {
+  type: KycStepType;
+  onDone: () => void;
+  onBack?: () => void;
+  applicationCode?: string;
+  onTrack?: KycTrack;
+  /** DNI ya conocido; solo lo consume `dni_selfie`, que lo contrasta con la foto. */
+  documentNumber?: string;
+  onDniVerified?: (dni: string) => void;
+}
+
+// Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
+// la lista llegaba a siete parámetros, casi todos opcionales y varios del
+// mismo tipo — un orden equivocado no lo habría cazado el compilador.
+function renderStep({
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified,
+}: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
-      return <DniSelfieStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
+      return (
+        <DniSelfieStep
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          documentNumber={documentNumber}
+          onDniVerified={onDniVerified}
+          onTrack={onTrack}
+        />
+      );
     case 'contract':
       return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'documents':
@@ -422,16 +441,44 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
           </p>
 
-          {renderStep(currentStep.type, goNext, goBack, code, onTrack)}
+          {renderStep({
+            type: currentStep.type,
+            onDone: goNext,
+            onBack: goBack,
+            applicationCode: code,
+            onTrack,
+            documentNumber: effectiveDni,
+            onDniVerified: rememberVerifiedDni,
+          })}
 
           {canPause && code && (
             <div className="pt-1 text-center md:text-left">
+              {/*
+                El tooltip explica qué hace el enlace ANTES de abrir el modal.
+                "Continuar en otro momento" no dice si se pierde el avance ni
+                cómo se vuelve, y esa duda es justo la que frena a alguien que
+                no puede terminar ahora.
+              */}
               <button
                 type="button"
                 onClick={handlePauseClick}
-                className="text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+                title={`Te enviamos por WhatsApp un enlace para retomar donde quedaste. Vence en ${
+                  progressState?.resume?.ttl_hours ?? 72
+                } horas.`}
+                className="group relative text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
               >
                 Continuar en otro momento
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-lg bg-[#1f2937] px-3 py-2 text-xs font-normal leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                >
+                  Te enviamos por WhatsApp un enlace para retomar donde quedaste.
+                  Vence en {progressState?.resume?.ttl_hours ?? 72} horas.
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[#1f2937]"
+                  />
+                </span>
               </button>
               <PausarModal
                 open={showPausarModal}
