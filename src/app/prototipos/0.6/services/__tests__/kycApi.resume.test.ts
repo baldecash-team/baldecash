@@ -94,6 +94,37 @@ describe('pauseKyc', () => {
   });
 });
 
+// Fix final (minor): FastAPI devuelve los 422 de validación con `detail` como
+// ARRAY de `{loc,msg,type}`. Como los arrays son `typeof 'object'`, caían en la
+// rama de `{reason,message}` y salían como `reason:'unknown'` —
+// indistinguibles de un 500. Ahora tienen reason propio.
+describe('toError con detail de validación (array de FastAPI)', () => {
+  const validationDetail = {
+    detail: [{ loc: ['body', 'document_number'], msg: 'field required', type: 'value_error.missing' }],
+  };
+
+  it('pauseKyc: reason validation_error, no unknown', async () => {
+    global.fetch = jest.fn().mockReturnValue(errJson(422, validationDetail));
+    await expect(pauseKyc({ applicationCode: 'APP-1', documentNumber: '' }))
+      .resolves.toMatchObject({ reason: 'validation_error' });
+  });
+
+  it('resumeKyc: mismo trato', async () => {
+    global.fetch = jest.fn().mockReturnValue(errJson(422, validationDetail));
+    const r = await resumeKyc('TOK');
+    expect(r).toMatchObject({ reason: 'validation_error' });
+    // El mensaje es accionable en español, nunca el `msg` técnico del backend.
+    expect((r as { error: string }).error).not.toContain('field required');
+  });
+
+  it('un detail objeto sigue mandando su propio reason', async () => {
+    global.fetch = jest.fn().mockReturnValue(
+      errJson(410, { detail: { reason: 'expired', message: 'Este enlace expiró.' } }),
+    );
+    await expect(resumeKyc('TOK')).resolves.toMatchObject({ reason: 'expired' });
+  });
+});
+
 describe('resumeKyc', () => {
   it('devuelve el estado con expires_at', async () => {
     global.fetch = jest.fn().mockReturnValue(okJson({ ...STATE, expires_at: '2026-08-03T00:00:00' }));

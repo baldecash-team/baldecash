@@ -169,6 +169,13 @@ async function toError(response: Response): Promise<KycApiError> {
   try {
     const data = await response.json();
     const d = data?.detail;
+    // FastAPI devuelve los errores de validación (422 de Pydantic) como un
+    // ARRAY de `{loc, msg, type}`, no como el `{reason, message}` propio del
+    // dominio. Sin esta rama caía en `typeof d === 'object'` (los arrays lo
+    // son) y salía como `reason:'unknown'` — indistinguible de un 500.
+    if (Array.isArray(d)) {
+      return { reason: 'validation_error', error: 'Revisa los datos e intenta nuevamente.' };
+    }
     if (d && typeof d === 'object') {
       return { reason: d.reason ?? 'unknown', error: d.message ?? 'Ocurrió un error.' };
     }
