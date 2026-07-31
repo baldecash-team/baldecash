@@ -141,9 +141,18 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
         >
+          {/*
+            Sin margen extra: w-5 h-5 (20px) es la misma altura que el
+            line-height de text-sm (20px), así que `items-start` en el
+            botón ya alinea el borde superior de la caja con el de la
+            primera línea del label pixel a pixel. Un `mt-0.5` que había
+            aquí antes desplazaba la caja 2px hacia abajo respecto al
+            texto, rompiendo esa alineación (visible sobre todo con
+            labels de una sola línea, como en ContratoStep).
+          */}
           <div
             className={`
-              w-5 h-5 rounded flex items-center justify-center border-2 transition-all flex-shrink-0 mt-0.5
+              w-5 h-5 rounded flex items-center justify-center border-2 transition-all flex-shrink-0
               ${isCheckedSimple
                 ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                 : error

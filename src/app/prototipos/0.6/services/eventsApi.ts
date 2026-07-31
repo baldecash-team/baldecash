@@ -264,6 +264,15 @@ export type EventType =
   | 'kyc_documents_uploaded'
   | 'kyc_document_upload_error'
   | 'kyc_completed'
+  // "Continuar en otro momento" — pausa elegida por el cliente + link por WhatsApp.
+  // Los emitidos desde /kyc/[token] usan el token como session_id.
+  | 'kyc_pause_click'
+  | 'kyc_pause_requested'
+  | 'kyc_resume_link_sent'
+  | 'kyc_resume_link_send_error'
+  | 'kyc_resume_link_opened'
+  | 'kyc_resume_link_expired'
+  | 'kyc_resumed'
   // Phase 20: Vinculación de sesión — se emite UNA sola vez, cuando se crea
   // una sesión nueva. No se emite en recargas ni al recuperar una sesión ya
   // existente desde localStorage. Lleva el uuid en el payload para poder

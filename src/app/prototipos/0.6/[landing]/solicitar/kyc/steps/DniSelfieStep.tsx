@@ -22,13 +22,15 @@ import { CheckCircle2 } from 'lucide-react';
 import { useRecorder } from '@/app/prototipos/0.6/admision/_hooks/useRecorder';
 import { cameraErrorMessage } from '@/app/prototipos/0.6/admision/_lib/cameraError';
 import { compareFaces, dataUrlToBlob, getKycUploadUrl, uploadToS3 } from '@/app/prototipos/0.6/services/kycApi';
-import { useEventTrackerOptional } from '../../context/EventTrackerContext';
+import { useKycTracker, type KycTrack } from '../useKycTracker';
 
 export interface DniSelfieStepProps {
   onDone: () => void;
   onBack?: () => void;
   /** application_code, usado para pedir las URLs presignadas de S3. */
   applicationCode?: string;
+  /** Emisor de eventos alternativo (ruta tokenizada /kyc/[token]); ver useKycTracker. */
+  onTrack?: KycTrack;
 }
 
 type CapturePhase = 'selfie' | 'dni';
@@ -41,6 +43,8 @@ interface PhaseConfig {
   /** Texto corto sobre el overlay de encuadre. */
   frameHint: string;
   aspect: string;
+  /** Tope de ancho: acota el alto derivado de `aspect` sin romper overlays. */
+  maxWidth: string;
   facingMode: 'user' | 'environment';
   overlay: OverlayKind;
 }
@@ -51,6 +55,12 @@ const PHASE_CONFIG: Record<CapturePhase, PhaseConfig> = {
     guide: 'Mira a la cámara, con buena luz y sin lentes ni gorra.',
     frameHint: 'Centra tu rostro dentro del óvalo',
     aspect: 'aspect-[3/4]',
+    // El alto lo determina el ancho por la relación de aspecto. Sin este tope,
+    // en un panel ancho un 3:4 producía una card altísima que no entraba en
+    // pantalla. Acotar el ANCHO (y centrar) es preferible a un `max-h`: los
+    // overlays de encuadre son hijos absolutos de esta misma caja, así que
+    // recortarla por alto los desalinearía del video.
+    maxWidth: 'max-w-[260px]',
     facingMode: 'user',
     overlay: 'oval',
   },
@@ -59,6 +69,7 @@ const PHASE_CONFIG: Record<CapturePhase, PhaseConfig> = {
     guide: 'Foto nítida del frente de tu DNI, sin reflejos.',
     frameHint: 'Encuadra el frente del DNI dentro del marco',
     aspect: 'aspect-[16/10]',
+    maxWidth: 'max-w-[420px]',
     facingMode: 'environment',
     overlay: 'document',
   },
@@ -97,9 +108,9 @@ function FramingOverlay({ kind, hint }: { kind: OverlayKind; hint: string }) {
   );
 }
 
-export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStepProps) {
+export function DniSelfieStep({ onDone, onBack, applicationCode, onTrack }: DniSelfieStepProps) {
   const { stream, requestCamera, stopStream, liveVideoRef, liveActive, playLive } = useRecorder();
-  const tracker = useEventTrackerOptional();
+  const track = useKycTracker(onTrack);
   const [phase, setPhase] = useState<Phase>('selfie');
   const [selfieShot, setSelfieShot] = useState<string | null>(null);
   const [dniShot, setDniShot] = useState<string | null>(null);
@@ -114,7 +125,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
 
   const runVerification = async () => {
     if (!selfieShot || !dniShot) return;
-    tracker?.track('kyc_identity_verify_submit');
+    track('kyc_identity_verify_submit', { application_code: applicationCode });
 
     if (!applicationCode) {
       setVerifyError('No pudimos verificar tu identidad. Intenta nuevamente.');
@@ -160,10 +171,10 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
       const similarityValue = typeof res.similarity === 'number' ? res.similarity : null;
       setSimilarity(similarityValue);
       if (res.is_match) {
-        tracker?.track('kyc_identity_verified', { similarity: similarityValue });
+        track('kyc_identity_verified', { similarity: similarityValue, application_code: applicationCode });
         setVerifyState('matched');
       } else {
-        tracker?.track('kyc_identity_rejected', { similarity: similarityValue });
+        track('kyc_identity_rejected', { similarity: similarityValue, application_code: applicationCode });
         setVerifyState('nomatch');
       }
     } catch {
@@ -173,7 +184,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
   };
 
   const retakeFromSelfie = () => {
-    tracker?.track('kyc_selfie_retake');
+    track('kyc_selfie_retake', { application_code: applicationCode });
     setSelfieShot(null);
     setDniShot(null);
     setSimilarity(null);
@@ -187,13 +198,13 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
       try {
         // Solo se necesita video: este paso captura fotos fijas, no audio.
         await requestCamera(mode, { audio: false });
-        tracker?.track('kyc_camera_granted', { kind: mode === 'user' ? 'selfie' : 'dni' });
+        track('kyc_camera_granted', { kind: mode === 'user' ? 'selfie' : 'dni', application_code: applicationCode });
       } catch (err) {
         setError(cameraErrorMessage(err));
-        tracker?.track('kyc_camera_denied', { kind: mode === 'user' ? 'selfie' : 'dni' });
+        track('kyc_camera_denied', { kind: mode === 'user' ? 'selfie' : 'dni', application_code: applicationCode });
       }
     },
-    [requestCamera, tracker]
+    [requestCamera, track, applicationCode]
   );
 
   // Abre la cámara con el facingMode correcto al entrar a cada fase de captura.
@@ -225,8 +236,8 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
 
   function handleRepeat() {
     setPendingShot(null);
-    if (phase === 'selfie') tracker?.track('kyc_selfie_retake');
-    else if (phase === 'dni') tracker?.track('kyc_dni_retake');
+    if (phase === 'selfie') track('kyc_selfie_retake', { application_code: applicationCode });
+    else if (phase === 'dni') track('kyc_dni_retake', { application_code: applicationCode });
     if (phase !== 'review') openCamera(PHASE_CONFIG[phase].facingMode);
   }
 
@@ -235,12 +246,12 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
     if (phase === 'selfie') {
       setSelfieShot(pendingShot);
       setPendingShot(null);
-      tracker?.track('kyc_selfie_captured');
+      track('kyc_selfie_captured', { application_code: applicationCode });
       setPhase('dni');
     } else if (phase === 'dni') {
       setDniShot(pendingShot);
       setPendingShot(null);
-      tracker?.track('kyc_dni_captured');
+      track('kyc_dni_captured', { application_code: applicationCode });
       setPhase('review');
     }
   }
@@ -258,9 +269,17 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
           <p className="text-[#6b7280] text-sm">Todo listo. Puedes continuar.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/*
+          Cada preview conserva el MISMO aspecto con el que se capturó
+          (`PHASE_CONFIG`): vertical la selfie, apaisado el documento. Antes
+          ambas se forzaban a `aspect-[3/4]`, así que el DNI —tomado en 16/10—
+          se mostraba vertical y `object-cover` le recortaba los costados,
+          justo donde está el número. `items-start` alinea arriba las dos
+          columnas, que ahora tienen alturas distintas a propósito.
+        */}
+        <div className="grid grid-cols-2 gap-3 items-start mx-auto w-full max-w-[420px]">
           <div className="space-y-2">
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] border border-[#e5e7eb]">
+            <div className={`relative rounded-xl overflow-hidden bg-black ${PHASE_CONFIG.selfie.aspect} border border-[#e5e7eb]`}>
               {selfieShot && (
                 <img src={selfieShot} alt="Selfie capturada" className="w-full h-full object-cover" />
               )}
@@ -271,7 +290,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
             <p className="text-xs text-center text-[#6b7280]">Selfie</p>
           </div>
           <div className="space-y-2">
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] border border-[#e5e7eb]">
+            <div className={`relative rounded-xl overflow-hidden bg-black ${PHASE_CONFIG.dni.aspect} border border-[#e5e7eb]`}>
               {dniShot && (
                 <img src={dniShot} alt="DNI capturado" className="w-full h-full object-cover" />
               )}
@@ -395,7 +414,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
 
       {pendingShot ? (
         <>
-          <div className={`relative rounded-xl overflow-hidden bg-black ${config.aspect} border border-[#e5e7eb]`}>
+          <div className={`relative rounded-xl overflow-hidden bg-black mx-auto w-full ${config.maxWidth} ${config.aspect} border border-[#e5e7eb]`}>
             <img src={pendingShot} alt="Foto capturada" className="w-full h-full object-cover" />
           </div>
           <div className="flex gap-3">
@@ -417,7 +436,7 @@ export function DniSelfieStep({ onDone, onBack, applicationCode }: DniSelfieStep
         </>
       ) : stream ? (
         <>
-          <div className={`relative rounded-xl overflow-hidden bg-[#1f2937] ${config.aspect} border border-[#e5e7eb]`}>
+          <div className={`relative rounded-xl overflow-hidden bg-[#1f2937] mx-auto w-full ${config.maxWidth} ${config.aspect} border border-[#e5e7eb]`}>
             <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
 
             {/* Overlay de encuadre: óvalo (selfie) o marco de documento (DNI). */}
