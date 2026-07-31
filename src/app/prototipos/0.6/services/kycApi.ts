@@ -128,3 +128,128 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   }
   return new Blob([bytes], { type: mime });
 }
+
+// ── "Continuar en otro momento" ──────────────────────────────────────────────
+// El backend exige prueba de titularidad porque los application_code son
+// secuenciales: en sesión se prueba con el DNI, y desde el link con el token.
+
+export type KycStepStatus = 'pending' | 'completed';
+
+export interface KycProgressStep {
+  type: string;
+  status: KycStepStatus;
+  completed_at: string | null;
+}
+
+export interface KycProgressState {
+  application_code: string;
+  landing_slug: string | null;
+  steps: KycProgressStep[];
+  next_step: string | null;
+  next_step_index: number | null;
+  is_complete: boolean;
+  /** false cuando la landing no tiene sub-pasos KYC habilitados. */
+  kyc_enabled: boolean;
+  resume: { enabled: boolean; ttl_hours: number };
+  /** Solo lo devuelve /resume/{token}. */
+  expires_at?: string;
+}
+
+export interface KycApiError {
+  error: string;
+  reason: string;
+}
+
+function isError(x: unknown): x is KycApiError {
+  return typeof x === 'object' && x !== null && 'reason' in x;
+}
+
+/** Extrae `{reason, message}` del `detail` del backend. */
+async function toError(response: Response): Promise<KycApiError> {
+  try {
+    const data = await response.json();
+    const d = data?.detail;
+    if (d && typeof d === 'object') {
+      return { reason: d.reason ?? 'unknown', error: d.message ?? 'Ocurrió un error.' };
+    }
+  } catch { /* noop */ }
+  return { reason: 'unknown', error: 'Ocurrió un error. Intenta nuevamente.' };
+}
+
+/** Estado del KYC. Fail-safe: null ante error, el caller cae al localStorage. */
+export async function getKycProgress(applicationCode: string): Promise<KycProgressState | null> {
+  try {
+    const r = await fetch(
+      `${API_BASE_URL}/public/kyc/progress?application_code=${encodeURIComponent(applicationCode)}`,
+    );
+    if (!r.ok) return null;
+    return (await r.json()) as KycProgressState;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Marca un sub-paso completado. Requiere EXACTAMENTE una prueba: el DNI (flujo
+ * en sesión) o el token (flujo por link). Si llegan las dos, se prioriza el
+ * token y se omite el DNI — mandar ambas devuelve 422 `missing_proof`.
+ */
+export async function completeKycStep(args: {
+  applicationCode: string;
+  stepType: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<KycProgressState | null> {
+  const body: Record<string, string> = {
+    application_code: args.applicationCode,
+    step_type: args.stepType,
+  };
+  if (args.resumeToken) body.resume_token = args.resumeToken;
+  else if (args.documentNumber) body.document_number = args.documentNumber;
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/progress/step-complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as KycProgressState;
+  } catch {
+    return null;
+  }
+}
+
+/** Pausa el KYC y dispara el envío del link por WhatsApp. */
+export async function pauseKyc(args: {
+  applicationCode: string;
+  documentNumber: string;
+}): Promise<{ masked_phone: string; expires_at: string; ttl_hours: number } | KycApiError> {
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/pause`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_code: args.applicationCode,
+        document_number: args.documentNumber,
+      }),
+    });
+    if (!r.ok) return await toError(r);
+    return await r.json();
+  } catch {
+    return { reason: 'network', error: 'Error de conexión. Intenta nuevamente.' };
+  }
+}
+
+/** Canjea el token del link. No lo consume: es reutilizable. */
+export async function resumeKyc(token: string): Promise<KycProgressState | KycApiError> {
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/resume/${encodeURIComponent(token)}`);
+    if (!r.ok) return await toError(r);
+    return (await r.json()) as KycProgressState;
+  } catch {
+    return { reason: 'network', error: 'Error de conexión. Intenta nuevamente.' };
+  }
+}
+
+export { isError as isKycApiError };
