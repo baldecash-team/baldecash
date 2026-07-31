@@ -230,4 +230,23 @@ describe('botón "Continuar en otro momento"', () => {
     await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
   });
+
+  // Fix round 1 — MINOR del reviewer: de los 4 eventos kyc_* de esta task,
+  // `kyc_pause_click` (el que dispara kycClient.tsx al abrir el modal) era el
+  // único sin test que verificara `application_code`.
+  it('kyc_pause_click lleva application_code al abrir el modal', async () => {
+    window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
+    mockGetKycProgress.mockResolvedValue(state('contract', 1) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 2 de 2/)).toBeInTheDocument());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /continuar en otro momento/i }));
+
+    expect(mockTrack).toHaveBeenCalledWith(
+      'kyc_pause_click',
+      expect.objectContaining({ application_code: 'APP-1' }),
+    );
+  });
 });

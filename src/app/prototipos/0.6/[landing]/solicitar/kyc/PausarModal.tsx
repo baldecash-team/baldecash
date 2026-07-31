@@ -56,6 +56,17 @@ function copyForError(reason: string, backendError: string): string {
   }
 }
 
+/**
+ * Reasons donde reintentar CON LOS MISMOS DATOS puede resolver el problema:
+ * fallas transitorias de red/envío. El resto (`ownership_check_failed`,
+ * `ownership_locked`, `no_phone`, `disabled`, `already_complete`,
+ * `rate_limited`) depende de un estado que reintentar no cambia — mostrar
+ * "Intentar de nuevo" ahí es prometer algo que va a fallar idéntico, o
+ * directamente contradice el propio copy (`ownership_check_failed` manda a
+ * reiniciar el flujo, no a reintentar en el mismo modal).
+ */
+const RETRYABLE_REASONS = new Set(['send_failed', 'network']);
+
 export function PausarModal({
   open,
   onClose,
@@ -110,7 +121,7 @@ export function PausarModal({
     onSent?.();
   };
 
-  const canRetry = status === 'error' && error?.reason !== 'rate_limited';
+  const canRetry = status === 'error' && !!error && RETRYABLE_REASONS.has(error.reason);
 
   return (
     <AnimatePresence>

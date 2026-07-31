@@ -67,6 +67,38 @@ it('ante rate limit invita a revisar WhatsApp en vez de reintentar', async () =>
   expect(screen.queryByRole('button', { name: /intentar de nuevo/i })).not.toBeInTheDocument();
 });
 
+// Fix round 1 — reviewer: `canRetry` solo excluía `rate_limited`. Para
+// `ownership_check_failed`/`no_phone`/`ownership_locked` el estado que causó
+// el fallo no cambia por reintentar, y en `ownership_check_failed` el propio
+// copy ("vuelve a intentarlo desde el inicio") contradecía el botón
+// "Intentar de nuevo" que quedaba debajo. Fix: allowlist explícita de reasons
+// transitorios (`send_failed`, `network`) en vez de un denylist de uno solo.
+it('ownership_check_failed no ofrece reintentar (el copy manda a reiniciar el flujo, no a reintentar)', async () => {
+  mockPauseKyc.mockResolvedValue({
+    reason: 'ownership_check_failed', error: 'No coincide con nuestros registros.',
+  });
+
+  render(<PausarModal {...props} />);
+  await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+  await waitFor(() => expect(screen.getByText(/vuelve a intentarlo desde el inicio/i)).toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: /intentar de nuevo/i })).not.toBeInTheDocument();
+  // La única acción disponible debe ser cerrar — coherente con el copy.
+  expect(screen.getByRole('button', { name: /entendido/i })).toBeInTheDocument();
+});
+
+it('send_failed sí ofrece reintentar (falla transitoria de envío)', async () => {
+  mockPauseKyc.mockResolvedValue({
+    reason: 'send_failed', error: 'No pudimos enviarte el enlace. Intenta nuevamente.',
+  });
+
+  render(<PausarModal {...props} />);
+  await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+  await waitFor(() => expect(screen.getByText(/no pudimos enviarte el enlace/i)).toBeInTheDocument());
+  expect(screen.getByRole('button', { name: /intentar de nuevo/i })).toBeInTheDocument();
+});
+
 it('otro reason con reintento habilitado permite volver a enviar', async () => {
   mockPauseKyc.mockResolvedValueOnce({ reason: 'network', error: 'Error de conexión.' });
   mockPauseKyc.mockResolvedValueOnce({
