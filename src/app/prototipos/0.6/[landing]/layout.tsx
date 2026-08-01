@@ -18,6 +18,7 @@ import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
 import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipToken, saveVipName } from '../components/hero/DniModal';
+import { resetLandingSessionIfIdentityChanged } from '../utils/landingSession';
 import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
@@ -122,6 +123,12 @@ function useDniValidation(landing: string, onValidated: () => void) {
         setSubmitting(false);
         return;
       }
+      // ANTES de escribir la identidad nueva: si el DNI validado es de otra
+      // persona, borrar la sesion del anterior. Invertir el orden borraria el
+      // token que se emite justo abajo y dejaria al cliente en bucle contra el
+      // overlay (BAL-2661).
+      resetLandingSessionIfIdentityChanged(landing, dni);
+
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
       try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
@@ -1473,6 +1480,14 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (!data?.linked) return;
+        // Mismo criterio que en la validacion del overlay: si el DNI vinculado
+        // es de otra persona, se borra la sesion del anterior ANTES de escribir
+        // la identidad nueva (BAL-2661).
+        if (data.dni && resetLandingSessionIfIdentityChanged(landing, data.dni)) {
+          // La limpieza tambien borra el token que guardo el efecto de
+          // `vip_auto`. Se reescribe: ese acceso pertenece a quien entra ahora.
+          saveVipToken(landing, token);
+        }
         if (data.first_name) saveVipName(landing, data.first_name);
         if (data.dni) {
           try { localStorage.setItem(`baldecash-dni-${landing}`, data.dni); } catch {}

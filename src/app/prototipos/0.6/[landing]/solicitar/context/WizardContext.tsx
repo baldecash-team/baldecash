@@ -21,6 +21,27 @@ const getStorageKey = (landingSlug: string) => `baldecash-wizard-${landingSlug}-
  * lives in `/catalogo`) can clear this state without re-deriving the key. The
  * key stays defined once, here, in the module that owns it.
  */
+/**
+ * Reads the document number stored inside the persisted form, or null.
+ *
+ * This is the authoritative answer to "whose data is this": the saved DNI key
+ * can be cleared on its own, but the form always carries the document of the
+ * person who filled it. Used to detect that the person changed even when there
+ * is no saved DNI left to compare against.
+ */
+export function readWizardDocumentNumber(landingSlug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getStorageKey(landingSlug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, { value?: unknown } | undefined>;
+    const value = parsed?.document_number?.value;
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export function clearWizardFormStorage(landingSlug: string): void {
   if (typeof window === 'undefined') return;
   try {

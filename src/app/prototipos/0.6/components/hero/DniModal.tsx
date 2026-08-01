@@ -65,6 +65,16 @@ export function clearSavedDni(slug: string): void {
   }
 }
 
+/** Devuelve el DNI guardado para este landing, o null si no hay. */
+export function getSavedDni(slug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(getStorageKey(slug));
+  } catch {
+    return null;
+  }
+}
+
 /** Verifica si ya hay un DNI guardado para este landing */
 export function hasSavedDni(slug: string): boolean {
   try {
