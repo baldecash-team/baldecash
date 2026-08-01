@@ -18,6 +18,10 @@ import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
 import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipToken, saveVipName } from '../components/hero/DniModal';
+import {
+  resetLandingSessionIfIdentityChanged,
+  resetLandingClientDataIfIdentityChanged,
+} from '../utils/landingSession';
 import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
@@ -122,6 +126,12 @@ function useDniValidation(landing: string, onValidated: () => void) {
         setSubmitting(false);
         return;
       }
+      // ANTES de escribir la identidad nueva: si el DNI validado es de otra
+      // persona, borrar la sesion del anterior. Invertir el orden borraria el
+      // token que se emite justo abajo y dejaria al cliente en bucle contra el
+      // overlay (BAL-2661).
+      resetLandingSessionIfIdentityChanged(landing, dni);
+
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
       try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
@@ -1462,7 +1472,28 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   // Fetch lead info (name, dni) as soon as we have a token — no session needed
   useEffect(() => {
     if (infoFetchedRef.current) return;
-    const token = getVipToken(landing);
+    // Tambien se lee `?vip_auto=` de la URL, no solo el token ya guardado.
+    //
+    // Cuando el link personalizado apunta directo a una URL de catalogo, este
+    // efecto corre ANTES de que el gate guarde el token, salia por el early
+    // return de abajo y no reintentaba nunca (sus deps son [landing], que no
+    // cambian). Resultado: la persona entraba con el acceso de una y los datos
+    // de otra, porque sin esta llamada nunca se sabe de quien es el token y la
+    // verificacion de identidad no llega a correr (BAL-2661).
+    //
+    // Entrando por el home no se notaba: ahi el token se guarda y recien
+    // despues se redirige al catalogo, asi que al montar ya existia.
+    // El de la URL tiene PRIORIDAD sobre el guardado: un link personalizado
+    // fresco es un acto explicito de identidad. Al reves, si llegaba un link de
+    // otra persona con una sesion ya abierta, se le preguntaba al backend por
+    // el token viejo, respondia el DNI viejo, y la comparacion concluia que no
+    // habia cambiado nadie: la segunda persona quedaba navegando como la
+    // primera (BAL-2661).
+    const urlToken =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('vip_auto')
+        : null;
+    const token = urlToken || getVipToken(landing);
     if (!token) return;
     infoFetchedRef.current = true;
     fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
@@ -1473,6 +1504,15 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (!data?.linked) return;
+        // Mismo criterio que en la validacion del overlay, pero limpiando SOLO
+        // los datos: aca no se toca el acceso ni el estado del gate.
+        //
+        // El gate de locker-truck NO guarda el token que llega por `?vip_auto=`:
+        // siempre corre su propio /evaluate y recien guarda token cuando el
+        // resultado es `normal` (:926). Borrarle el eval cache y el gate pass a
+        // mitad de camino, o entregarle un token que el no emitio, le permitiria
+        // a alguien saltearse esa calificacion (BAL-2661).
+        if (data.dni) resetLandingClientDataIfIdentityChanged(landing, data.dni);
         if (data.first_name) saveVipName(landing, data.first_name);
         if (data.dni) {
           try { localStorage.setItem(`baldecash-dni-${landing}`, data.dni); } catch {}
@@ -1576,7 +1616,11 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       if (hasWhitelist && typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const vipAuto = params.get('vip_auto');
-        if (vipAuto && !getVipToken(landing)) {
+        // Un link fresco REEMPLAZA el token guardado. Antes solo se guardaba
+        // cuando no habia ninguno, asi que si una segunda persona abria su link
+        // sobre una sesion ya iniciada, su token se descartaba en silencio y
+        // quedaba navegando con el acceso de la primera (BAL-2661).
+        if (vipAuto && vipAuto !== getVipToken(landing)) {
           saveVipToken(landing, vipAuto);
         }
       }

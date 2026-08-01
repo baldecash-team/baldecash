@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@nextui-org/react';
 import { RotateCcw } from 'lucide-react';
 import { getVipToken } from '../../../../components/hero/DniModal';
-import { clearActivatorSession } from './clearActivatorSession';
+import { clearLandingSession } from '../../../../utils/landingSession';
 import { routes } from '../../../../utils/routes';
 import { hardNavigate } from './hardNavigate';
 import { useEventTrackerOptional } from '../../../solicitar/context/EventTrackerContext';
@@ -46,7 +46,7 @@ export function ActivatorResetButton({
     tracker?.flush();
 
     try {
-      clearActivatorSession(landing);
+      clearLandingSession(landing);
     } catch {
       // clearVipData already swallows storage errors internally; this guard
       // exists only in case the call site itself is exercised differently
