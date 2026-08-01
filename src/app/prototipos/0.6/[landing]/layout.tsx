@@ -1469,7 +1469,22 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   // Fetch lead info (name, dni) as soon as we have a token — no session needed
   useEffect(() => {
     if (infoFetchedRef.current) return;
-    const token = getVipToken(landing);
+    // Tambien se lee `?vip_auto=` de la URL, no solo el token ya guardado.
+    //
+    // Cuando el link personalizado apunta directo a una URL de catalogo, este
+    // efecto corre ANTES de que el gate guarde el token, salia por el early
+    // return de abajo y no reintentaba nunca (sus deps son [landing], que no
+    // cambian). Resultado: la persona entraba con el acceso de una y los datos
+    // de otra, porque sin esta llamada nunca se sabe de quien es el token y la
+    // verificacion de identidad no llega a correr (BAL-2661).
+    //
+    // Entrando por el home no se notaba: ahi el token se guarda y recien
+    // despues se redirige al catalogo, asi que al montar ya existia.
+    const token =
+      getVipToken(landing) ||
+      (typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('vip_auto')
+        : null);
     if (!token) return;
     infoFetchedRef.current = true;
     fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
