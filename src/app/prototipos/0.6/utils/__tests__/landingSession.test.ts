@@ -1,6 +1,7 @@
 import {
   clearLandingSession,
   resetLandingSessionIfIdentityChanged,
+  resetLandingClientDataIfIdentityChanged,
 } from '../landingSession';
 
 const LANDING = 'family-farms-baldecash';
@@ -234,6 +235,65 @@ describe('resetLandingSessionIfIdentityChanged', () => {
     localStorage.setItem(dniKey, PREVIOUS_DNI);
 
     resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    const wiped = Object.entries(sessionKeys(SIBLING))
+      .filter(([, key]) => localStorage.getItem(key) === null)
+      .map(([name]) => name);
+
+    expect(wiped).toEqual([]);
+  });
+});
+
+describe('resetLandingClientDataIfIdentityChanged', () => {
+  const PREVIOUS_DNI = '73941627';
+  const NEW_DNI = '70020010';
+
+  const dniKey = `baldecash-dni-${LANDING}`;
+  const tokenKey = `baldecash-vip-token-${LANDING}`;
+  const gatePassKey = `baldecash-gate-pass-${LANDING}`;
+  const evalCacheKey = `baldecash-lockertruck-eval-${LANDING}`;
+  const formKey = `baldecash-wizard-${LANDING}-data`;
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  // The whole reason this variant exists. The locker-truck gate withholds the
+  // VIP token until its own /evaluate returns `normal`; clearing access here
+  // would let someone skip that qualification.
+  it('never touches access or gate state, even when the person changed', () => {
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+    localStorage.setItem(formKey, `{"document_number":{"value":"${PREVIOUS_DNI}"}}`);
+    localStorage.setItem(tokenKey, 'token-del-gate');
+    localStorage.setItem(evalCacheKey, '{"status":"normal","ts":1}');
+    sessionStorage.setItem(gatePassKey, '1');
+
+    const cleared = resetLandingClientDataIfIdentityChanged(LANDING, NEW_DNI);
+
+    expect(cleared).toBe(true);
+    expect(localStorage.getItem(formKey)).toBeNull();
+    // Access and gate survive untouched.
+    expect(localStorage.getItem(tokenKey)).toBe('token-del-gate');
+    expect(localStorage.getItem(evalCacheKey)).toBe('{"status":"normal","ts":1}');
+    expect(sessionStorage.getItem(gatePassKey)).toBe('1');
+  });
+
+  it('keeps the data when the same person comes back', () => {
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+    localStorage.setItem(formKey, `{"document_number":{"value":"${PREVIOUS_DNI}"}}`);
+
+    const cleared = resetLandingClientDataIfIdentityChanged(LANDING, PREVIOUS_DNI);
+
+    expect(cleared).toBe(false);
+    expect(localStorage.getItem(formKey)).not.toBeNull();
+  });
+
+  it('does not touch a sibling landing whose slug contains this one', () => {
+    seedSession(SIBLING);
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+
+    resetLandingClientDataIfIdentityChanged(LANDING, NEW_DNI);
 
     const wiped = Object.entries(sessionKeys(SIBLING))
       .filter(([, key]) => localStorage.getItem(key) === null)

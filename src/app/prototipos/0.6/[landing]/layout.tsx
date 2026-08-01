@@ -18,7 +18,10 @@ import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
 import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipToken, saveVipName } from '../components/hero/DniModal';
-import { resetLandingSessionIfIdentityChanged } from '../utils/landingSession';
+import {
+  resetLandingSessionIfIdentityChanged,
+  resetLandingClientDataIfIdentityChanged,
+} from '../utils/landingSession';
 import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
@@ -1495,14 +1498,15 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (!data?.linked) return;
-        // Mismo criterio que en la validacion del overlay: si el DNI vinculado
-        // es de otra persona, se borra la sesion del anterior ANTES de escribir
-        // la identidad nueva (BAL-2661).
-        if (data.dni && resetLandingSessionIfIdentityChanged(landing, data.dni)) {
-          // La limpieza tambien borra el token que guardo el efecto de
-          // `vip_auto`. Se reescribe: ese acceso pertenece a quien entra ahora.
-          saveVipToken(landing, token);
-        }
+        // Mismo criterio que en la validacion del overlay, pero limpiando SOLO
+        // los datos: aca no se toca el acceso ni el estado del gate.
+        //
+        // El gate de locker-truck NO guarda el token que llega por `?vip_auto=`:
+        // siempre corre su propio /evaluate y recien guarda token cuando el
+        // resultado es `normal` (:926). Borrarle el eval cache y el gate pass a
+        // mitad de camino, o entregarle un token que el no emitio, le permitiria
+        // a alguien saltearse esa calificacion (BAL-2661).
+        if (data.dni) resetLandingClientDataIfIdentityChanged(landing, data.dni);
         if (data.first_name) saveVipName(landing, data.first_name);
         if (data.dni) {
           try { localStorage.setItem(`baldecash-dni-${landing}`, data.dni); } catch {}

@@ -36,6 +36,31 @@ import { clearCatalogBrowsingStorage } from '../[landing]/catalogo/hooks/useCata
  * records that the welcome tour was dismissed — no client data — and clearing
  * it would make the tour reappear for every client an activator serves.
  */
+/**
+ * Clears the client's data WITHOUT touching access or gate state.
+ *
+ * Exists for callers that must not disturb how the person got in. The
+ * locker-truck gate is the reason: it deliberately does NOT store a VIP token
+ * from `?vip_auto=` — it always runs its own `/evaluate` (Equifax
+ * qualification) and only stores a token when the outcome is `normal`
+ * (`layout.tsx:926`). Wiping its eval cache and gate pass mid-flow, or handing
+ * it a token it never issued, would let someone skip that qualification.
+ *
+ * So when the access was established by someone else's timing, clear the data
+ * and leave the door alone.
+ */
+export function clearLandingClientData(landing: string): void {
+  clearWizardFormStorage(landing);
+  clearWizardFieldStorage(landing);
+  clearConsentStorage(landing);
+  clearProductStorage(landing);
+  clearKycProgressStorage(landing);
+  clearOtpHandoff(landing);
+  clearCatalogBrowsingStorage(landing);
+  clearPendingParams(landing);
+  clearSessionStorage(landing);
+}
+
 export function clearLandingSession(landing: string): void {
   // Access: VIP token, name, welcome-pending and the locker-truck gate signals.
   clearVipData(landing);
@@ -104,5 +129,33 @@ export function resetLandingSessionIfIdentityChanged(
   // explicit wipe, and the only thing that does that is the activator's reset,
   // which clears everything anyway.
   clearLandingSession(landing);
+  return true;
+}
+
+/**
+ * Same identity check, but clearing ONLY the data — never access or gate state.
+ *
+ * Used by the `?vip_auto=` path, where the access is established by a different
+ * actor whose timing we do not control: the gate saves the token in its own
+ * effect, and the locker-truck variant deliberately withholds it until its
+ * `/evaluate` qualification returns `normal`. Clearing access there would
+ * either bounce the person or hand locker-truck a token it never issued,
+ * skipping the qualification.
+ *
+ * The overlay path uses `resetLandingSessionIfIdentityChanged` instead: there
+ * the identity is known before anything is written, so the full clear is safe
+ * and correct.
+ */
+export function resetLandingClientDataIfIdentityChanged(
+  landing: string,
+  incomingDni: string
+): boolean {
+  const dni = incomingDni?.trim();
+  if (!dni) return false;
+
+  const previousDni = getSavedDni(landing) ?? readWizardDocumentNumber(landing);
+  if (previousDni === dni) return false;
+
+  clearLandingClientData(landing);
   return true;
 }
