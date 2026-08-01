@@ -1,64 +1,60 @@
-import { clearVipData } from '../../../../components/hero/DniModal';
+import { clearVipData, clearSavedDni } from '../../../../components/hero/DniModal';
+import { clearPendingParams } from '../../../../utils/landingParams';
+import { clearWizardFormStorage } from '../../../solicitar/context/WizardContext';
+import { clearSessionStorage } from '../../../solicitar/context/SessionContext';
+import { clearProductStorage } from '../../../solicitar/context/ProductContext';
+import { clearConsentStorage } from '../../../solicitar/utils/consentStorage';
+import {
+  clearKycProgressStorage,
+  clearWizardFieldStorage,
+} from '../../../solicitar/utils/wizardScopedStorage';
+import { clearOtpHandoff } from '../../../solicitar/utils/otpHandoff';
+import { clearCatalogBrowsingStorage } from '../../hooks/useCatalogSharedState';
 
 /**
- * Clears every trace of the current client's session on a Family Farm landing.
+ * Clears every trace of the current client on a Family Farm landing, so the
+ * activator can hand the device to the next person.
  *
- * `clearVipData` alone is not enough: it drops the VIP token, name and
- * welcome-pending flag, but leaves two keys behind that carry the previous
- * client's identity across the reset —
+ * WHY THIS COMPOSES INSTEAD OF LISTING KEYS — do not "simplify" it back:
  *
- *   - `baldecash-dni-<slug>`                  written at layout.tsx:127 and :1478,
- *     read by DocumentNumberField.tsx:62-66 to PRE-FILL the DNI field of the
- *     application form. Left behind, the next client finds the previous
- *     client's document number already typed in.
- *   - `baldecash-<slug>-wizard-session-uuid`  written at layout.tsx:98. Left
- *     behind, the next client's tracking events are attributed to the previous
- *     client's session.
+ * The first version of this function enumerated storage keys by hand. It
+ * shipped to production and missed the application form, because that key is
+ * named `baldecash-wizard-<slug>-data` — prefix BEFORE the slug — while the
+ * list only covered `baldecash-<slug>-*` and `baldecash-dni-<slug>`. The next
+ * client opened the form pre-filled with the previous client's document,
+ * names, birth date and gender, unable to edit it. See BAL-2657.
  *
- * Scoped deliberately to the activator reset flow instead of being folded into
- * `clearVipData`, which is shared with the CADE and locker-truck gates.
- */
-
-/** Identity of the client who was being served. */
-const identityKeys = (landing: string) => [
-  // Written at layout.tsx:127 and :1478; read by DocumentNumberField.tsx:62-66
-  // to PRE-FILL the DNI field of the application form.
-  `baldecash-dni-${landing}`,
-  // Written at layout.tsx:98. Left behind, the next client's tracking events
-  // are attributed to the previous client's session.
-  `baldecash-${landing}-wizard-session-uuid`,
-];
-
-/**
- * Everything the client did while browsing. Not identifying on its own, but the
- * next client would inherit a catalog that silently remembers someone else's
- * choices — favourites they never marked, an equipment already selected.
- */
-const activityKeys = (landing: string) => [
-  `baldecash-${landing}-compare`, // CatalogoClient.tsx:1098
-  `baldecash-${landing}-wishlist`, // useCatalogSharedState.ts:22
-  `baldecash-${landing}-cart`, // useCatalogSharedState.ts:23
-  // The equipment the client chose to finance. ProductContext.tsx:24 reads it
-  // to preload the application form.
-  `baldecash-${landing}-solicitar-selected-product`,
-];
-
-/**
- * NOT cleared on purpose: `baldecash-<landing>-onboarding-catalog`
- * (useOnboarding.ts:21). It only records that the welcome tour was dismissed —
- * it holds no client data, and clearing it would make the tour modal reappear
- * for every single client the activator serves.
+ * A hand-written list cannot survive: it silently rots the moment anyone adds
+ * a field or renames a key. So each owner now exports its own clearing
+ * function and this composes them. Renaming a key is a one-line change in the
+ * module that owns it, and both this path and the post-submit cleanup follow
+ * automatically. That is already how the post-submit cleanup works
+ * (`useSubmitApplication.ts`), and `clearVipData`, `clearOtpHandoff` and
+ * `resetFormStartTracking` were already plain exported functions.
+ *
+ * NOT cleared on purpose: `baldecash-<landing>-onboarding-catalog`. It only
+ * records that the welcome tour was dismissed — no client data — and clearing
+ * it would make the tour reappear for every client the activator serves.
  */
 export function clearActivatorSession(landing: string): void {
+  // Access: VIP token, name, welcome-pending and the locker-truck gate signals.
   clearVipData(landing);
 
-  if (typeof window === 'undefined') return;
-  for (const key of [...identityKeys(landing), ...activityKeys(landing)]) {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // Storage unavailable (private mode / quota). Keep going and let the
-      // navigation happen regardless.
-    }
-  }
+  // Personal data.
+  clearSavedDni(landing);
+  clearWizardFormStorage(landing);
+  clearWizardFieldStorage(landing);
+  clearConsentStorage(landing);
+
+  // Application progress.
+  clearProductStorage(landing);
+  clearKycProgressStorage(landing);
+  clearOtpHandoff(landing);
+
+  // Browsing and campaign context.
+  clearCatalogBrowsingStorage(landing);
+  clearPendingParams(landing);
+
+  // Tracking session, last: the next client must not inherit it.
+  clearSessionStorage(landing);
 }

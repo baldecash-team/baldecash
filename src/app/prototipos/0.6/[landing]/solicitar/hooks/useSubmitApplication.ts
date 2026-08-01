@@ -17,6 +17,7 @@ import {
   type UploadedFileData,
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
+import { clearConsentStorage } from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
 
@@ -396,6 +397,10 @@ export function useSubmitApplication(
             clearAccessories();
             clearInsurance();
             clearCoupon();
+            // Consent checkboxes. Nothing used to clear these, so the next
+            // person to use the device opened the form with the terms already
+            // marked as accepted by someone else (BAL-2657).
+            clearConsentStorage(landing);
             // Clear catalog cart (lives in separate layer)
             try { localStorage.removeItem(`baldecash-${landing}-cart`); } catch {}
           }

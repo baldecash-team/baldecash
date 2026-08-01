@@ -17,6 +17,23 @@ import type { CatalogDeviceType } from '../[landing]/catalogo/types/catalog';
 const categoriaKey = (landing: string) => `baldecash-${landing}-pending-categoria`;
 const couponKey = (landing: string) => `baldecash-${landing}-pending-coupon`;
 
+/**
+ * Drops the params parked for a landing (campaign coupon, preselected
+ * category). Exported as a plain function so a session reset can clear them
+ * without re-deriving the keys.
+ */
+export function clearPendingParams(landing: string): void {
+  if (typeof window === 'undefined') return;
+  for (const key of [categoriaKey(landing), couponKey(landing)]) {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch {
+      // Storage unavailable (private mode / quota). Keep clearing the rest.
+    }
+  }
+}
+
 const CATEGORIA_MAP: Record<string, CatalogDeviceType> = {
   laptop: 'laptop',
   laptops: 'laptop',

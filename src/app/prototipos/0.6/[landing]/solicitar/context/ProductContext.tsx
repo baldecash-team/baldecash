@@ -28,6 +28,35 @@ const getInsuranceKey = (landing: string) => `baldecash-${landing}-solicitar-sel
 const getMaAvailableKey = (landing: string) => `baldecash-${landing}-solicitar-available-ma`;
 const getCouponKey = (landing: string) => `baldecash-${landing}-solicitar-applied-coupon`;
 
+/**
+ * Drops every product-flow selection persisted for a landing: the chosen
+ * equipment, the application cart, accessories, insurance, the multiasistencia
+ * availability flag and the applied coupon.
+ *
+ * Exported as a plain function, not only as the context's clear* methods, so
+ * callers outside the `/solicitar` provider tree can clear this state without
+ * re-deriving the keys. It reuses the builders above, so the keys stay defined
+ * once and both paths follow any rename automatically.
+ */
+export function clearProductStorage(landing: string): void {
+  if (typeof window === 'undefined') return;
+  const keys = [
+    getStorageKey(landing),
+    getCartProductsKey(landing),
+    getAccessoriesKey(landing),
+    getInsuranceKey(landing),
+    getMaAvailableKey(landing),
+    getCouponKey(landing),
+  ];
+  for (const key of keys) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage unavailable (private mode / quota). Keep clearing the rest.
+    }
+  }
+}
+
 
 // Payment plan option for a specific initial percentage
 export interface PaymentPlanOption {
