@@ -257,6 +257,11 @@ export type EventType =
   | 'kyc_dni_captured'
   | 'kyc_dni_retake'
   | 'kyc_identity_verify_submit'
+  // Lectura del DOCUMENTO (`verify-dni`): si la foto es el DNI del titular.
+  // Aparte de `kyc_identity_*`, que solo comparan rostros. Catalogados en ws2
+  // (`KYC_EVENT_TYPES`); sin eso el backend los descarta en silencio.
+  | 'kyc_document_verified'
+  | 'kyc_document_rejected'
   | 'kyc_identity_verified'
   | 'kyc_identity_rejected'
   | 'kyc_contract_view'
