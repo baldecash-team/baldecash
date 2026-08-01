@@ -1483,11 +1483,17 @@ function VipGate({ landing, children }: { landing: string; children: React.React
     //
     // Entrando por el home no se notaba: ahi el token se guarda y recien
     // despues se redirige al catalogo, asi que al montar ya existia.
-    const token =
-      getVipToken(landing) ||
-      (typeof window !== 'undefined'
+    // El de la URL tiene PRIORIDAD sobre el guardado: un link personalizado
+    // fresco es un acto explicito de identidad. Al reves, si llegaba un link de
+    // otra persona con una sesion ya abierta, se le preguntaba al backend por
+    // el token viejo, respondia el DNI viejo, y la comparacion concluia que no
+    // habia cambiado nadie: la segunda persona quedaba navegando como la
+    // primera (BAL-2661).
+    const urlToken =
+      typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('vip_auto')
-        : null);
+        : null;
+    const token = urlToken || getVipToken(landing);
     if (!token) return;
     infoFetchedRef.current = true;
     fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
@@ -1610,7 +1616,11 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       if (hasWhitelist && typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const vipAuto = params.get('vip_auto');
-        if (vipAuto && !getVipToken(landing)) {
+        // Un link fresco REEMPLAZA el token guardado. Antes solo se guardaba
+        // cuando no habia ninguno, asi que si una segunda persona abria su link
+        // sobre una sesion ya iniciada, su token se descartaba en silencio y
+        // quedaba navegando con el acceso de la primera (BAL-2661).
+        if (vipAuto && vipAuto !== getVipToken(landing)) {
           saveVipToken(landing, vipAuto);
         }
       }
