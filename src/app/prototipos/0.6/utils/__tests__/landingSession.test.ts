@@ -1,4 +1,7 @@
-import { clearActivatorSession } from '../clearActivatorSession';
+import {
+  clearLandingSession,
+  resetLandingSessionIfIdentityChanged,
+} from '../landingSession';
 
 const LANDING = 'family-farms-baldecash';
 /** Sibling landing whose slug CONTAINS the one above. See the nesting test. */
@@ -40,7 +43,7 @@ function seedSession(slug: string) {
   localStorage.setItem(onboardingKey(slug), '{"hasSeenWelcome":true}');
 }
 
-describe('clearActivatorSession', () => {
+describe('clearLandingSession', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -49,7 +52,7 @@ describe('clearActivatorSession', () => {
   it('clears every piece of the previous client session', () => {
     seedSession(LANDING);
 
-    clearActivatorSession(LANDING);
+    clearLandingSession(LANDING);
 
     const survivors = Object.entries(sessionKeys(LANDING))
       .filter(([, key]) => localStorage.getItem(key) !== null)
@@ -67,7 +70,7 @@ describe('clearActivatorSession', () => {
     const key = `baldecash-wizard-${LANDING}-data`;
     localStorage.setItem(key, '{"document_number":{"value":"73941627"}}');
 
-    clearActivatorSession(LANDING);
+    clearLandingSession(LANDING);
 
     expect(localStorage.getItem(key)).toBeNull();
   });
@@ -80,7 +83,7 @@ describe('clearActivatorSession', () => {
     localStorage.setItem(keys.acceptTerms, 'true');
     localStorage.setItem(keys.acceptPrivacy, 'true');
 
-    clearActivatorSession(LANDING);
+    clearLandingSession(LANDING);
 
     expect(localStorage.getItem(keys.acceptTerms)).toBeNull();
     expect(localStorage.getItem(keys.acceptPrivacy)).toBeNull();
@@ -92,7 +95,7 @@ describe('clearActivatorSession', () => {
     localStorage.setItem(`baldecash-${LANDING}-wizard-field-document_number`, '73941627');
     localStorage.setItem(`baldecash-${LANDING}-wizard-field-first_name`, 'Luis');
 
-    clearActivatorSession(LANDING);
+    clearLandingSession(LANDING);
 
     expect(localStorage.getItem(`baldecash-${LANDING}-kyc-step-APP-1`)).toBeNull();
     expect(localStorage.getItem(`baldecash-${LANDING}-kyc-step-APP-2`)).toBeNull();
@@ -108,7 +111,7 @@ describe('clearActivatorSession', () => {
     seedSession(LANDING);
     seedSession(SIBLING);
 
-    clearActivatorSession(LANDING);
+    clearLandingSession(LANDING);
 
     const wiped = Object.entries(sessionKeys(SIBLING))
       .filter(([, key]) => localStorage.getItem(key) === null)
@@ -123,7 +126,7 @@ describe('clearActivatorSession', () => {
     const tourState = '{"hasSeenWelcome":true}';
     localStorage.setItem(onboardingKey(LANDING), tourState);
 
-    clearActivatorSession(LANDING);
+    clearLandingSession(LANDING);
 
     expect(localStorage.getItem(onboardingKey(LANDING))).toBe(tourState);
   });
@@ -134,8 +137,108 @@ describe('clearActivatorSession', () => {
       throw new Error('storage unavailable');
     };
 
-    expect(() => clearActivatorSession(LANDING)).not.toThrow();
+    expect(() => clearLandingSession(LANDING)).not.toThrow();
 
     Storage.prototype.removeItem = original;
+  });
+});
+
+describe('resetLandingSessionIfIdentityChanged', () => {
+  const PREVIOUS_DNI = '73941627';
+  const NEW_DNI = '70020010';
+
+  const dniKey = `baldecash-dni-${LANDING}`;
+  const formKey = `baldecash-wizard-${LANDING}-data`;
+  const formOf = (dni: string) =>
+    `{"document_number":{"value":"${dni}","touched":true},"first_name":{"value":"Luis"}}`;
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it('keeps everything when the same person validates again', () => {
+    seedSession(LANDING);
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+    localStorage.setItem(formKey, formOf(PREVIOUS_DNI));
+
+    const cleared = resetLandingSessionIfIdentityChanged(LANDING, PREVIOUS_DNI);
+
+    expect(cleared).toBe(false);
+    // This is the case of someone who tapped the logo, landed on the home and
+    // came back: they must not have to retype anything.
+    expect(localStorage.getItem(formKey)).toBe(formOf(PREVIOUS_DNI));
+    expect(localStorage.getItem(`baldecash-${LANDING}-wizard-acceptTerms`)).not.toBeNull();
+  });
+
+  it('wipes the previous session when a different person validates', () => {
+    seedSession(LANDING);
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+    localStorage.setItem(formKey, formOf(PREVIOUS_DNI));
+
+    const cleared = resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    expect(cleared).toBe(true);
+    expect(localStorage.getItem(formKey)).toBeNull();
+    expect(localStorage.getItem(`baldecash-${LANDING}-wizard-acceptTerms`)).toBeNull();
+  });
+
+  // Edge case: the saved DNI can be cleared on its own, but the form still
+  // carries the document of whoever filled it. Without this fallback the
+  // comparison would have no reference and the data would survive.
+  it('falls back to the document stored inside the form when no DNI is saved', () => {
+    localStorage.setItem(formKey, formOf(PREVIOUS_DNI));
+
+    const cleared = resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    expect(cleared).toBe(true);
+    expect(localStorage.getItem(formKey)).toBeNull();
+  });
+
+  it('keeps the form when its stored document matches, with no saved DNI', () => {
+    localStorage.setItem(formKey, formOf(PREVIOUS_DNI));
+
+    const cleared = resetLandingSessionIfIdentityChanged(LANDING, PREVIOUS_DNI);
+
+    expect(cleared).toBe(false);
+    expect(localStorage.getItem(formKey)).toBe(formOf(PREVIOUS_DNI));
+  });
+
+  // No reference means the data cannot be attributed to anyone, and
+  // unattributable data on a shared device is what produced BAL-2657/BAL-2661.
+  it('clears orphan data when there is no reference to compare against', () => {
+    localStorage.setItem(`baldecash-${LANDING}-wizard-acceptTerms`, 'true');
+    localStorage.setItem(`baldecash-${LANDING}-solicitar-selected-product`, '{"id":"1"}');
+
+    const cleared = resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    expect(cleared).toBe(true);
+    expect(localStorage.getItem(`baldecash-${LANDING}-wizard-acceptTerms`)).toBeNull();
+    expect(localStorage.getItem(`baldecash-${LANDING}-solicitar-selected-product`)).toBeNull();
+  });
+
+  it('is a harmless no-op on a first visit, with nothing stored', () => {
+    expect(() => resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI)).not.toThrow();
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('does nothing when the incoming DNI is empty', () => {
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+
+    expect(resetLandingSessionIfIdentityChanged(LANDING, '')).toBe(false);
+    expect(localStorage.getItem(dniKey)).toBe(PREVIOUS_DNI);
+  });
+
+  it('does not touch a sibling landing whose slug contains this one', () => {
+    seedSession(SIBLING);
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+
+    resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    const wiped = Object.entries(sessionKeys(SIBLING))
+      .filter(([, key]) => localStorage.getItem(key) === null)
+      .map(([name]) => name);
+
+    expect(wiped).toEqual([]);
   });
 });
