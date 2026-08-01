@@ -21,6 +21,26 @@ import { migrateCartData, migrateWishlistData } from '../types/catalog';
 // Dynamic storage keys based on landing slug
 const getWishlistKey = (landing: string) => `baldecash-${landing}-wishlist`;
 const getCartKey = (landing: string) => `baldecash-${landing}-cart`;
+const getCompareKey = (landing: string) => `baldecash-${landing}-compare`;
+
+/**
+ * Drops what the visitor accumulated while browsing the catalog: favourites,
+ * cart and the comparison list.
+ *
+ * Exported as a plain function so the activator's session reset can clear this
+ * without mounting the hook, keeping the keys defined once.
+ */
+export function clearCatalogBrowsingStorage(landing: string): void {
+  if (typeof window === 'undefined') return;
+  const keys = [getWishlistKey(landing), getCartKey(landing), getCompareKey(landing)];
+  for (const key of keys) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage unavailable (private mode / quota). Keep clearing the rest.
+    }
+  }
+}
 
 // Custom event para sincronizar instancias dentro de la misma pestaña
 // (localStorage 'storage' event solo dispara cross-tab, no same-tab)

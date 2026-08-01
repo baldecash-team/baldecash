@@ -48,6 +48,23 @@ function getStorageKey(slug: string) {
   return `baldecash-dni-${slug}`;
 }
 
+/**
+ * Borra el DNI guardado para este landing.
+ *
+ * Se expone aparte de `clearVipData` porque no es estado de acceso sino dato
+ * personal: `DocumentNumberField` lo lee para prellenar el formulario de
+ * solicitud, asi que dejarlo entrega el documento de una persona a la
+ * siguiente que use el mismo dispositivo.
+ */
+export function clearSavedDni(slug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(getStorageKey(slug));
+  } catch {
+    // Storage no disponible (modo privado / cuota).
+  }
+}
+
 /** Verifica si ya hay un DNI guardado para este landing */
 export function hasSavedDni(slug: string): boolean {
   try {

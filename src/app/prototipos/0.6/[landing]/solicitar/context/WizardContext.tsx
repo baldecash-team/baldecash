@@ -13,6 +13,23 @@ import { CascadingOption } from '../../../services/wizardApi';
 // Follows project convention: baldecash-{feature}-{context}
 const getStorageKey = (landingSlug: string) => `baldecash-wizard-${landingSlug}-data`;
 
+/**
+ * Drops the persisted form for a landing.
+ *
+ * Exported as a plain function, not only as the context's `resetForm`, so that
+ * callers outside the `/solicitar` provider tree (the activator's session reset
+ * lives in `/catalogo`) can clear this state without re-deriving the key. The
+ * key stays defined once, here, in the module that owns it.
+ */
+export function clearWizardFormStorage(landingSlug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(getStorageKey(landingSlug));
+  } catch {
+    // Storage unavailable (private mode / quota).
+  }
+}
+
 interface WizardContextValue {
   formData: Record<string, FieldState>;
   completedSteps: WizardStepId[];
@@ -319,11 +336,8 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     setFormData({});
     setCompletedSteps([]);
     dynamicOptionsCache.current = {};
-    // Clear localStorage for this landing
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(storageKey);
-    }
-  }, [storageKey]);
+    clearWizardFormStorage(landingSlug);
+  }, [landingSlug]);
 
   // Store dynamic options for a field (used for validation lookup)
   const setDynamicOptions = useCallback((fieldCode: string, options: CascadingOption[]) => {

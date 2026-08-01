@@ -26,6 +26,18 @@ import React, {
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
 
 /**
+ * Drops the persisted tracking session for a landing.
+ *
+ * Exported as a plain function, not only as the context's `clearSession`, so
+ * callers outside the `/solicitar` provider tree can clear it without
+ * re-deriving the key. The key stays defined once, here.
+ */
+export function clearSessionStorage(landing: string): void {
+  // safeRemoveItem is hoisted; it already guards SSR and storage failures.
+  safeRemoveItem(getSessionKey(landing));
+}
+
+/**
  * Safe localStorage helpers.
  *
  * Accessing `localStorage` throws in some sandboxed WebKit contexts (Apple Mail
