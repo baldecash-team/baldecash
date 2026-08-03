@@ -428,7 +428,15 @@ function DetailContent() {
     // para mensual meses. `selectedTerm` ya está en native units así que se manda tal cual.
     const term = selectedTerm || data?.paymentPlans?.[0]?.term;
     const paymentFrequency = data?.paymentFrequencies?.[0];
-    getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
+    // productSlug (param 10) es obligatorio para que el backend aplique las
+    // reglas de accesorios por dispositivo (BAL-2767): sin el no puede saber
+    // que equipo es y deja pasar los accesorios de reacondicionados y celulares
+    // Android nuevos. Los params intermedios van en undefined para conservar
+    // sus defaults.
+    getLandingAccessories(
+      landing, deviceType, term, previewKey, paymentFrequency,
+      undefined, undefined, undefined, undefined, slug,
+    ).then((items) => {
       if (cancelled || !items?.length) return;
       setAccessories(items.map((a) => {
         const override = findAccessoryOverride(a.name);

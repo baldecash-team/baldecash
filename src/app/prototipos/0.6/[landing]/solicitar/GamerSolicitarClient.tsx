@@ -312,13 +312,27 @@ export function GamerSolicitarContent() {
     return selectedMonths || 24;
   }, [getAllProducts, selectedMonths]);
 
+  // Slug del equipo principal — se toma el primero del carrito, igual criterio
+  // que `currentTerm`. El backend lo necesita para aplicar las reglas de
+  // accesorios por dispositivo (BAL-2767): sin el no sabe que equipo es y deja
+  // pasar los accesorios de reacondicionados y celulares Android nuevos.
+  const mainProductSlug = useMemo(() => {
+    const products = getAllProducts();
+    return products[0]?.slug ?? null;
+  }, [getAllProducts]);
+
   // Fetch accessories from backend
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setAccLoading(true);
       try {
-        const data = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey);
+        // productSlug es el param 10; los intermedios van en undefined para
+        // conservar sus defaults.
+        const data = await getLandingAccessories(
+          landing, deviceTypes, currentTerm, previewKey,
+          undefined, undefined, undefined, undefined, undefined, mainProductSlug,
+        );
         if (cancelled) return;
         if (data && data.length > 0) {
           const mapped: Accessory[] = data.map((acc) => {
@@ -355,7 +369,7 @@ export function GamerSolicitarContent() {
     load();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing, currentTerm, deviceTypes.join(',')]);
+  }, [landing, currentTerm, deviceTypes.join(','), mainProductSlug]);
 
   // Sync selectedMonths with product
   useEffect(() => {
