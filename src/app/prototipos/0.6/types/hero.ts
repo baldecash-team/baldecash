@@ -142,6 +142,13 @@ export interface HeroBannerProps {
   underlineStyle?: UnderlineStyle;
   /** Landing slug for dynamic URL building */
   landing?: string;
+  /**
+   * BAL-2782: false = solo imagen clickeable, sin textos ni overlay.
+   * Ausente o true = comportamiento actual.
+   */
+  showHeroContent?: boolean;
+  hideOverlay?: boolean;
+  imageIsCta?: boolean;
 }
 
 export interface SocialProofProps {

@@ -314,6 +314,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   badgeText={heroContent.badgeText}
                   underlineStyle={UNDERLINE_STYLE}
                   landing={landing}
+                  showHeroContent={heroContent.showHeroContent}
+                  hideOverlay={heroContent.hideOverlay}
+                  imageIsCta={heroContent.imageIsCta}
                 />
               </section>
             )}
