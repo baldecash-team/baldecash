@@ -221,7 +221,13 @@ function getBrowserInfo(): { browser: string; browserVersion: string } {
 }
 
 /**
- * Extract UTM params from URL
+ * Extract UTM params from URL.
+ *
+ * Además de los 5 UTM estándar viajan dos parámetros propios de las difusiones:
+ * `promotor` (el código del promotor, que no va dentro de utm_term para no
+ * mezclarlo con la sede) y `alk` (el código del link corto, que da atribución
+ * exacta aunque se recorten las UTMs). Sin reenviarlos acá, el backend no puede
+ * saber quién trajo la visita.
  */
 function getUtmParams(): Record<string, string | undefined> {
   if (typeof window === 'undefined') return {};
@@ -233,6 +239,8 @@ function getUtmParams(): Record<string, string | undefined> {
     utm_campaign: params.get('utm_campaign') || undefined,
     utm_term: params.get('utm_term') || undefined,
     utm_content: params.get('utm_content') || undefined,
+    promotor: params.get('promotor') || undefined,
+    alk: params.get('alk') || undefined,
   };
 }
 

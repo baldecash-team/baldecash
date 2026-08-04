@@ -324,7 +324,10 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
       const vipAuto = params.get('vip_auto');
       if (vipAuto) {
         saveVipToken(slug, vipAuto);
-        const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+        // Se arrastran también los parámetros propios de difusiones: si se pierden
+        // en este salto, la visita llega al catálogo sin promotor ni link de origen.
+        const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                         'promotor', 'alk'];
         const utmParams = new URLSearchParams();
         utmKeys.forEach((k) => { const v = params.get(k); if (v) utmParams.set(k, v); });
         const qs = utmParams.toString();
