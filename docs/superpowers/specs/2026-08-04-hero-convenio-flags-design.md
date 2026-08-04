@@ -1,216 +1,246 @@
-# Hero de convenio: respetar los switches de overlay, imagen-CTA y ocultar contenido
+# Portada: switch para mostrar el banner como imagen sola con link
 
 **Fecha:** 2026-08-04
 **Ticket:** BAL-2782
-**Repos:** baldecash (frontend). ws2 y admin2 no requieren cambios.
+**Repos:** admin2 (UI) y baldecash (frontend). ws2 no requiere cambios.
 
-## Problema
+## Pedido
 
-Para la landing 139 (Convenio UPN) se pide poder apagar el texto del banner y la
-capa de sombra negra, y dejar solo la imagen con un link al destino del CTA.
+En el editor de landing, pestaña **Portada**, un switch que gobierne el formato
+del banner:
 
-La configuración ya existe en el admin, pero no tiene efecto en esa landing.
+- **ON (por defecto):** el hero como hoy — título, subtítulo, CTA y overlay
+  oscuro sobre la imagen.
+- **OFF:** esos campos desaparecen del formulario y queda un campo de link. En la
+  web se muestra **solo la imagen**, clickeable, apuntando a ese link (externo o
+  una sección).
+
+Al apagar el switch **no se pierde la información ya cargada**: los textos siguen
+guardados y vuelven a aparecer si se prende de nuevo. Solo se guarda el flag.
+
+Aplica a landings de tipo **institucional** y **convenio**.
 
 ## Estado actual
 
-### Los switches ya están construidos
+### Ya existe un bloque parecido, escondido
 
-`admin2/src/components/landings/sections/HeroSection.tsx` expone tres toggles:
+`admin2/src/components/landings/sections/HeroSection.tsx:651-721` tiene una
+sección **"Estilo del hero"** con tres toggles sueltos:
 
-| Switch | Campo en `config` | Qué hace |
+| Toggle | Campo |
+|---|---|
+| Ocultar overlay oscuro | `hide_overlay` |
+| Imagen clickeable (CTA) | `image_is_cta` |
+| Ocultar contenido | `hide_content` |
+
+Está envuelta en `{isLeadLanding && ...}` (`landing_type === 'lead'`), con este
+comentario:
+
+> *"solo aplica a landings tipo lead, ya que en el sitio público únicamente
+> LeadHeroBanner respeta hide_overlay/image_is_cta/hide_content. Los demás tipos
+> de landing usan otro hero que ignora estos flags."*
+
+Es decir: el bloque se escondió porque los otros heroes no lo respetan.
+
+### Nadie lo está usando
+
+Verificado en producción (`ip-10-1-4-18` / `baldecash`):
+
+| Tipo | Landings activas con hero | Usan algún flag |
 |---|---|---|
-| Ocultar overlay oscuro | `hide_overlay` | quita la capa de sombra |
-| Imagen clickeable (CTA) | `image_is_cta` | la imagen lleva al destino del CTA |
-| Ocultar contenido | `hide_content` | oculta textos, botón, trust signals y marcas |
+| convenio | 29 | 0 |
+| institucional | 22 | 0 |
+| lead | 7 | **0** |
+| **total** | **60** | **0** |
 
-Los tres juntos producen exactamente lo pedido.
+Ni siquiera las 7 landings lead —las únicas donde el bloque es visible— tienen
+alguno de los tres flags configurado. Se puede rediseñar sin romper ninguna
+configuración existente.
 
-### El dato llega al componente
+### Los dos tipos pedidos usan heroes distintos
 
-`src/app/prototipos/0.6/services/landingApi.ts:658-660`:
+El hero se elige por presencia de convenio (`isConvenio = !!agreementData`,
+`HeroSection.tsx:209`), no por `landing_type`:
 
-```ts
-hideOverlay: heroConfig.hide_overlay === true,
-imageIsCta:  heroConfig.image_is_cta === true,
-hideContent: heroConfig.hide_content === true,
-```
+| Tipo | Activas | `agreement_id` | Hero |
+|---|---|---|---|
+| convenio | 29 | todas | `components/hero/convenio/ConvenioHero.tsx` |
+| institucional | 23 | 22 sin convenio | `components/hero/HeroBanner.tsx` |
 
-Los tres están declarados en `HeroContent` (`types/hero.ts:104-106`).
+**Los dos heroes ignoran los flags.** Para cubrir ambos tipos hay que arreglar
+los dos, no uno.
 
-### Solo un hero los respeta
+`LeadHeroBanner.tsx` sí los respeta y tiene tests: es la referencia de cómo debe
+comportarse.
 
-| Componente | Respeta los flags | Lo usan |
-|---|---|---|
-| `components/lead/LeadHeroBanner.tsx` | **sí**, con tests | landings tipo lead |
-| `components/hero/convenio/ConvenioHero.tsx` | **no** | landings de convenio (139 incluida) |
-| `components/hero/HeroBanner.tsx` | **no** | landings normales (layout no-convenio) |
+### El dato ya viaja al frontend
 
-Hay entonces **tres** heroes, y dos no respetan los flags. `HeroBanner` queda
-fuera del alcance de este ticket por una razón concreta: a diferencia de
-`ConvenioHero`, no recibe el objeto `heroContent` sino props sueltas
-(`HeroSection.tsx:299-305`), así que los flags ni siquiera le llegan. Habilitarlo
-exige cambiar su interfaz y tocar el layout de las landings normales — 31 de las
-61 activas —, que no es lo que este ticket pidió.
-
-Las piezas compartidas que se extraen acá dejan ese trabajo listo para cuando se
-decida hacerlo: será pasar los flags y consumir los dos componentes.
-
-`ConvenioHero.tsx:121` pinta el gradiente de forma incondicional:
-
-```tsx
-<div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/20 sm:to-transparent" />
-```
-
-y no lee `hideOverlay`, `imageIsCta` ni `hideContent` en ninguna línea. El
-componente recibe `heroContent` completo — el dato está ahí, sin usar.
-
-### Datos de producción
-
-- Los flags viven en `home_component.config` (JSON) del componente con
-  `component_code = 'hero'`.
-- La landing 139 tiene su fila de hero (id 49) con los tres flags en `NULL`.
-- **60 landings activas tienen hero y ninguna usa estos flags.** La
-  funcionalidad nunca se activó, así que no hay configuraciones vivas que
-  puedan romperse.
+`baldecash/src/app/prototipos/0.6/services/landingApi.ts:658-660` mapea los tres
+flags a `heroContent`, y están declarados en `HeroContent`
+(`types/hero.ts:104-106`). `ConvenioHero` recibe ese objeto y no lo usa;
+`HeroBanner` ni siquiera lo recibe (toma props sueltas, `HeroSection.tsx:299-305`).
 
 ## Solución
 
-Dos partes: hacer que `ConvenioHero` respete los flags, y extraer la lógica
-compartida para que un hero futuro no tenga que reimplementarla.
+### El campo nuevo
 
-### Piezas compartidas
+Un flag propio en la config del hero:
 
-Se crean en `src/app/prototipos/0.6/components/hero/common/`, junto a
-`UnderlinedText.tsx` que ya vive ahí.
-
-**`HeroOverlay.tsx`** — el gradiente condicional:
-
-```tsx
-interface HeroOverlayProps {
-  hidden?: boolean;
-  variant?: 'default' | 'soft';
-}
+```
+show_hero_content: boolean   // ausente o true = comportamiento actual
 ```
 
-Renderiza `null` cuando `hidden` es true. Conserva el `data-testid="hero-overlay"`
-que ya usan los tests de `LeadHeroBanner`.
+Se guarda en `home_component.config` (JSON) del componente con
+`component_code = 'hero'`, junto a los campos que ya viven ahí. **Sin migración.**
 
-**`HeroImageCta.tsx`** — el wrapper clickeable:
+Se elige un campo nuevo en lugar de reusar los tres existentes por dos razones:
+el estado del switch queda en un solo valor en vez de inferirse de tres, y los
+tres sueltos siguen disponibles para landings lead sin que ambas formas de
+configurar lo mismo se pisen.
 
-```tsx
-interface HeroImageCtaProps {
-  enabled: boolean;
-  href?: string;
-  label?: string;
-  onActivate?: () => void;
-  className?: string;
-  children: React.ReactNode;
-}
+**Ausente = `true`.** Las 60 landings actuales no tienen el campo y deben seguir
+viéndose igual.
+
+### El link de la imagen
+
+Se reusa **`hero_cta_url`**, el campo "URL del CTA" que ya existe y ya trae el
+selector de link externo o sección. No se agrega campo nuevo y el dato no se
+duplica: con el switch en OFF ese mismo valor es el destino de la imagen.
+
+### La UI en admin2
+
+Se reutiliza la sección **"Estilo del hero"** de la pestaña Portada, con tres
+cambios:
+
+1. **Cambia su condición de visibilidad.** De `{isLeadLanding && ...}` a
+   mostrarse también en `institutional` y `convenio`.
+
+2. **Contenido según el tipo de landing:**
+
+   - **institucional y convenio** → un switch: *"Mostrar textos sobre la imagen"*.
+     Encendido por defecto. Al apagarlo, un texto explica que solo se mostrará la
+     imagen y que el destino es el de la URL del CTA.
+   - **lead** → los tres toggles actuales, sin cambios.
+
+3. **Campos condicionales.** Con el switch en OFF, en la sección de contenido del
+   hero se ocultan Título, Subtítulo, Badge, Cuota y Texto del CTA. **URL del
+   CTA queda visible**, porque pasa a ser el link de la imagen — con su etiqueta
+   cambiada a *"Link de la imagen"* para que se entienda.
+
+Los valores ocultos **no se borran ni se envían vacíos**: siguen en la BD tal
+como estaban.
+
+### El frontend
+
+Los dos heroes deben respetar el flag. Para no duplicar la lógica —que es
+justamente el problema que llevó a esconder el bloque— se extraen dos piezas
+compartidas a `components/hero/common/`, donde ya vive `UnderlinedText.tsx`:
+
+**`HeroOverlay.tsx`** — el gradiente condicional. Renderiza `null` cuando está
+oculto. Conserva `data-testid="hero-overlay"`, que los tests de `LeadHeroBanner`
+ya usan.
+
+**`HeroImageCta.tsx`** — el wrapper clickeable: `role="button"`, `tabIndex`,
+`aria-label`, manejo de Enter/Espacio y `data-testid="hero-image-cta"`. Esa
+lógica ya está resuelta en `LeadHeroBanner.tsx:118-130` y se mueve tal cual.
+
+Luego:
+
+| Componente | Cambio |
+|---|---|
+| `ConvenioHero.tsx` | consume ambas piezas + guard de contenido |
+| `HeroBanner.tsx` | recibir `heroContent` (hoy toma props sueltas) + lo mismo |
+| `LeadHeroBanner.tsx` | migrar a las piezas compartidas, sin cambio visual |
+
+`landingApi.ts` agrega el mapeo del campo nuevo:
+
+```ts
+showHeroContent: heroConfig.show_hero_content !== false,
 ```
 
-Cuando `enabled` es false renderiza los children en un `div` simple. Cuando es
-true agrega `role="button"`, `tabIndex={0}`, `aria-label`, `cursor-pointer`,
-`onClick` y manejo de Enter/Espacio, más `data-testid="hero-image-cta"`.
-
-Ese manejo de teclado y accesibilidad ya está resuelto en `LeadHeroBanner.tsx:118-130`;
-se mueve tal cual, no se reinventa.
+Nótese el `!== false`: ausente o `true` dan `true`.
 
 ### La diferencia de gradiente
 
-Los dos heroes usan gradientes casi iguales pero no idénticos:
+Los heroes usan gradientes casi iguales pero distintos:
 
 | Componente | Gradiente |
 |---|---|
-| `LeadHeroBanner` | `from-black/85 via-black/65 to-black/20 sm:to-transparent` |
-| `ConvenioHero` | `from-black/85 via-black/70 to-black/20 sm:to-transparent` |
+| `LeadHeroBanner` y `HeroBanner` | `via-black/65` |
+| `ConvenioHero` | `via-black/70` |
 
-**Decisión:** `HeroOverlay` acepta un prop `variant`. `'default'` reproduce el
-gradiente de convenio (`via-black/70`) y `'soft'` el de lead (`via-black/65`).
-Cada hero pasa el que ya usaba.
+`HeroOverlay` acepta `variant`: `'default'` (`/70`) y `'soft'` (`/65`). Cada hero
+pasa el que ya usaba. **No se unifican:** cambiar el aspecto de heroes vivos no
+es parte de lo pedido.
 
-No se unifica el valor: un cambio visual en dos heroes en producción no es parte
-de lo que este ticket pidió, y la diferencia es deliberada o histórica pero no
-nuestra para resolver acá.
+## Alcance en producción
 
-### Cambios en `ConvenioHero`
-
-1. **Overlay** — reemplazar la línea 121 por `<HeroOverlay hidden={heroContent.hideOverlay} />`.
-
-2. **Imagen clickeable** — envolver el `<Image>` en `<HeroImageCta>`, usando el
-   `ctaUrl` ya calculado en la línea 63 y reusando `handleCtaClick` (línea 83),
-   que ya distingue links externos de internos y dispara el tracking.
-
-3. **Ocultar contenido** — envolver el bloque de contenido (badge, headline,
-   subheadline, precio, trust signals y botón, líneas 123-179) en
-   `{!heroContent.hideContent && ( ... )}`.
-
-Con `hideContent` activo el contenedor exterior se mantiene: la altura del hero
-la define el `style` de la línea 97, no el contenido, así que la imagen conserva
-su tamaño.
-
-### Migración de `LeadHeroBanner`
-
-Se reemplazan su overlay y su wrapper por las piezas compartidas, pasando
-`variant="soft"`. Sin cambio visual ni de comportamiento — sus tests existentes
-son la red que lo verifica.
-
-## Archivos afectados
-
-| Archivo | Cambio |
+| Área | Cambio |
 |---|---|
-| `components/hero/common/HeroOverlay.tsx` | crear |
-| `components/hero/common/HeroImageCta.tsx` | crear |
-| `components/hero/convenio/ConvenioHero.tsx` | consumir ambas piezas + `hideContent` |
-| `components/lead/LeadHeroBanner.tsx` | migrar a las piezas compartidas |
-| `components/hero/convenio/__tests__/ConvenioHero.test.tsx` | crear |
+| ws2 | **ninguno** |
+| admin2 | switch en "Estilo del hero" + campos condicionales |
+| baldecash | 2 piezas compartidas + 3 heroes + 1 línea en `landingApi` |
+| Migración | ninguna (campo JSON) |
+| Landings habilitadas | **51** (29 convenio + 22 institucional sin convenio) |
 
-Sin cambios en ws2 ni admin2. Sin migración.
+Ninguna landing cambia de aspecto hasta que alguien apague el switch.
 
 ## Testing
 
-### Unitarios de `ConvenioHero`
+### Unitarios en baldecash (jest)
+
+Este repo usa **jest** (`jest.config.js`), no vitest.
+
+`HeroOverlay` y `HeroImageCta` con sus casos propios (oculto/visible, variantes,
+click, teclado, accesibilidad).
+
+Para cada hero — `ConvenioHero`, `HeroBanner`, `LeadHeroBanner`:
 
 | Caso | Espera |
 |---|---|
-| sin flags | overlay presente, contenido presente, imagen no clickeable |
-| `hideOverlay: true` | sin `data-testid="hero-overlay"` |
-| `hideContent: true` | sin headline, sin subheadline, sin botón de CTA |
-| `imageIsCta: true` | existe `data-testid="hero-image-cta"`, click navega |
-| `imageIsCta: true` + Enter/Espacio | dispara la navegación |
-| `imageIsCta: true` sin href válido | **no** hace la imagen clickeable |
-| los tres flags juntos | solo imagen clickeable, sin overlay ni texto |
+| sin el campo (ausente) | overlay y contenido presentes, imagen no clickeable |
+| `showHeroContent: true` | igual que el anterior |
+| `showHeroContent: false` | sin overlay, sin textos, imagen clickeable |
+| `false` + click en la imagen | navega al destino del CTA |
+| `false` + Enter | navega |
+| `false` sin URL válida | la imagen **no** queda clickeable |
 
-El primer caso es el de no-regresión: cubre las 60 landings que hoy tienen el
-hero sin configurar.
+El primer caso es el de no-regresión: cubre las 60 landings actuales.
 
-### Regresión de `LeadHeroBanner`
-
-Sus tests existentes (`components/lead/__tests__/LeadHeroBanner.test.tsx`) deben
-seguir pasando sin modificarse. Si hay que tocarlos, el refactor cambió
-comportamiento y eso es un error.
-
-Este repo usa **jest** (`jest.config.js`), no vitest:
+Los tests existentes de `LeadHeroBanner` deben pasar **sin modificarse**. Si hay
+que tocarlos, el refactor cambió comportamiento.
 
 ```bash
-npx jest src/app/prototipos/0.6/components/lead/__tests__/LeadHeroBanner.test.tsx
-npx jest src/app/prototipos/0.6/components/hero/convenio/__tests__/ConvenioHero.test.tsx
+npx jest src/app/prototipos/0.6/components/hero src/app/prototipos/0.6/components/lead
 ```
+
+### Unitarios en admin2 (vitest)
+
+admin2 usa **vitest**, no jest.
+
+| Caso | Espera |
+|---|---|
+| landing convenio | se ve el switch nuevo |
+| landing institucional | se ve el switch nuevo |
+| landing lead | se ven los tres toggles de siempre |
+| switch OFF | Título, Subtítulo y Texto del CTA ocultos |
+| switch OFF | URL del CTA visible, etiquetada como link de la imagen |
+| apagar y prender | los textos vuelven con su valor original |
+
+El último es el que prueba lo que pediste: que no se pierda la información.
 
 ### Verificación visual
 
-Sobre la landing 139 en local, con Playwright:
+Sobre la landing 139 (`upn`, convenio) y una institucional, en local:
 
-1. Estado actual (flags en NULL) → hero idéntico a hoy
-2. `hide_overlay` → sin sombra, texto sobre la imagen cruda
-3. Los tres flags → solo imagen, clickeable, sin texto
-4. Click en la imagen → navega al destino del CTA
+1. Estado actual → hero idéntico a hoy
+2. Switch OFF → solo imagen, sin sombra ni texto
+3. Click en la imagen → navega al destino del CTA
+4. Prender de nuevo → los textos vuelven intactos
 
 ## Fuera de alcance
 
-- Unificar el gradiente entre ambos heroes (queda parametrizado)
-- Agregar switches nuevos al admin: los tres existentes alcanzan
-- **`HeroBanner.tsx`** — el hero de las landings normales. No recibe
-  `heroContent` sino props sueltas, así que habilitarlo exige cambiar su
-  interfaz y afecta a 31 landings activas. Las piezas compartidas de este ticket
-  lo dejan preparado para un ticket propio.
-- Configurar landings distintas de la 139
+- Landings de tipo `campaign`, `preapproved`, `partner`, `internal` y `especial`
+- Unificar los gradientes entre heroes (quedan parametrizados)
+- Cambiar los tres toggles sueltos de las landings lead
+- Configurar landings concretas: eso lo hace negocio desde el admin
