@@ -8,6 +8,8 @@ import { ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { HeroContent, BannerImage } from '../../types/hero';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
+import { HeroOverlay } from '../hero/common/HeroOverlay';
+import { HeroImageCta } from '../hero/common/HeroImageCta';
 
 const getIconComponent = (iconName: string): React.ElementType => {
   const icons: Record<string, React.ElementType> = {
@@ -115,33 +117,28 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className={`absolute inset-0 ${imageIsCta ? 'cursor-pointer' : ''}`}
-            {...(imageIsCta
-              ? {
-                  'data-testid': 'hero-image-cta',
-                  role: 'button',
-                  tabIndex: 0,
-                  'aria-label': heroContent?.primaryCta?.text || 'Ver más',
-                  onClick: handleImageCta,
-                  onKeyDown: (e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleImageCta(); }
-                  },
-                }
-              : {})}
+            className="absolute inset-0"
           >
-            <Image
-              src={imgSrc}
-              alt={currentImage?.alt || heroContent?.headline || 'Banner BaldeCash'}
-              fill
-              priority
-              sizes="(max-width: 1023px) 100vw, 70vw"
-              className="object-cover"
-              style={{
-                objectPosition: `${posX}% ${posY}%`,
-                transform: zoom !== 1 ? `scale(${zoom})` : undefined,
-                transformOrigin: 'center center',
-              }}
-            />
+            <HeroImageCta
+              enabled={imageIsCta}
+              label={heroContent?.primaryCta?.text}
+              onActivate={handleImageCta}
+              className="absolute inset-0"
+            >
+              <Image
+                src={imgSrc}
+                alt={currentImage?.alt || heroContent?.headline || 'Banner BaldeCash'}
+                fill
+                priority
+                sizes="(max-width: 1023px) 100vw, 70vw"
+                className="object-cover"
+                style={{
+                  objectPosition: `${posX}% ${posY}%`,
+                  transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+                  transformOrigin: 'center center',
+                }}
+              />
+            </HeroImageCta>
           </motion.div>
         ) : (
           /* Fallback: fondo sólido de marca cuando no hay imagen */
@@ -149,13 +146,8 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── Overlay oscuro — igual que HeroBanner principal ── */}
-      {!heroContent?.hideOverlay && (
-        <div
-          data-testid="hero-overlay"
-          className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20 sm:to-transparent"
-        />
-      )}
+      {/* ── Overlay oscuro — variant soft conserva el via-black/65 original de este hero ── */}
+      <HeroOverlay hidden={heroContent?.hideOverlay} variant="soft" />
 
       {/* ── Carousel controls (solo si > 1 imagen) ── */}
       {images.length > 1 && (
