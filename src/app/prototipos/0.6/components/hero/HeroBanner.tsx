@@ -36,8 +36,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   underlineStyle = 4,
   landing = 'home',
   showHeroContent,
-  hideOverlay,
-  imageIsCta,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
@@ -129,12 +127,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   };
 
   // BAL-2782: el switch del admin apaga textos y overlay, y la imagen toma el
-  // destino del CTA. Los flags sueltos siguen valiendo por separado.
+  // destino del CTA. Es el unico mecanismo: los tres flags sueltos que antes
+  // hacian esto por separado ya no existen.
   const soloImagen = showHeroContent === false;
   const mostrarContenido = !soloImagen;
-  const ocultarOverlay = soloImagen || hideOverlay === true;
-  const imagenClickeable =
-    (soloImagen || imageIsCta === true) && !!ctaUrl && ctaUrl !== '#';
+  const ocultarOverlay = soloImagen;
+  const imagenClickeable = soloImagen && !!ctaUrl && ctaUrl !== '#';
 
   // Map icon names to components
   const getIconComponent = (iconName: string) => {

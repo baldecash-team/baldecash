@@ -171,10 +171,4 @@ describe('HeroBanner — switch de contenido (BAL-2782)', () => {
     render(<HeroBanner {...baseProps} primaryCta={undefined} showHeroContent={false} />);
     expect(screen.queryByTestId('hero-image-cta')).not.toBeInTheDocument();
   });
-
-  it('hideOverlay funciona de forma independiente al switch', () => {
-    render(<HeroBanner {...baseProps} hideOverlay />);
-    expect(screen.queryByTestId('hero-overlay')).not.toBeInTheDocument();
-    expect(screen.getByText('Financia tu laptop')).toBeInTheDocument();
-  });
 });

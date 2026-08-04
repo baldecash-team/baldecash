@@ -99,12 +99,10 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
   // Logos para marquee mobile / tarjetitas desktop
   const logos = brands.map((b) => ({ id: String(b.id), name: b.name, url: b.logo_url }));
 
-  const ctaHref = heroContent?.primaryCta?.href;
-  const imageIsCta = heroContent?.imageIsCta === true && (!!onCtaClick || (!!ctaHref && ctaHref !== '#'));
-  const handleImageCta = () => {
-    if (onCtaClick) { onCtaClick(); return; }
-    if (ctaHref && ctaHref !== '#') { window.location.href = ctaHref; }
-  };
+  // BAL-2782: se eliminaron los tres flags sueltos que antes controlaban
+  // overlay, contenido e imagen-clickeable por separado. Esta landing lead no
+  // tiene UI en el admin para configurarlos, asi que el hero queda fijo con
+  // overlay y contenido siempre visibles, y la imagen deja de ser clickeable.
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -120,9 +118,7 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
             className="absolute inset-0"
           >
             <HeroImageCta
-              enabled={imageIsCta}
-              label={heroContent?.primaryCta?.text}
-              onActivate={handleImageCta}
+              enabled={false}
               className="absolute inset-0"
             >
               <Image
@@ -147,7 +143,7 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
       </AnimatePresence>
 
       {/* ── Overlay oscuro — variant soft conserva el via-black/65 original de este hero ── */}
-      <HeroOverlay hidden={heroContent?.hideOverlay} variant="soft" />
+      <HeroOverlay variant="soft" />
 
       {/* ── Carousel controls (solo si > 1 imagen) ── */}
       {images.length > 1 && (
@@ -185,7 +181,7 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
       )}
 
       {/* ── DESKTOP: Marcas — absolute en ambos modos ── */}
-      {!heroContent?.hideContent && logos.length > 0 && (
+      {logos.length > 0 && (
         <div className={`hidden lg:block absolute bottom-8 z-20 ${contained ? 'left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' : 'left-10'}`}>
           <div style={{ width: 'min(560px, 55vw)' }}>
             <p className="text-white/70 text-xs font-['Asap',_sans-serif] mb-2 uppercase tracking-wider">Marcas disponibles</p>
@@ -205,7 +201,7 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
       )}
 
       {/* ── MOBILE: Marcas — absolute bottom ── */}
-      {!heroContent?.hideContent && logos.length > 0 && (
+      {logos.length > 0 && (
         <div className="lg:hidden absolute bottom-6 left-0 right-0 z-20 px-4">
           <p className="text-white/70 text-xs font-['Asap',_sans-serif] mb-2 uppercase tracking-wider">Marcas disponibles</p>
           <div
@@ -236,7 +232,6 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
       )}
 
       {/* ── Texto hero — visible en mobile y desktop ── */}
-      {!heroContent?.hideContent && (
       <div className={`relative z-10 h-full flex items-center py-8 sm:py-12 overflow-hidden ${contained ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full' : 'px-6 lg:px-10'}`}>
         <div className="w-full max-w-2xl">
           {/* Badge */}
@@ -318,7 +313,6 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
 
         </div>
       </div>
-      )}
 
     </div>
   );
