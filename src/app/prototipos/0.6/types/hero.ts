@@ -104,6 +104,12 @@ export interface HeroContent {
   hideOverlay?: boolean;
   imageIsCta?: boolean;
   hideContent?: boolean;
+  /**
+   * Switch "Mostrar textos sobre la imagen" del admin (BAL-2782).
+   * Ausente o true = banner completo. false = solo imagen clickeable.
+   * Aplica a landings institucional y convenio.
+   */
+  showHeroContent?: boolean;
 }
 
 // ============================================
