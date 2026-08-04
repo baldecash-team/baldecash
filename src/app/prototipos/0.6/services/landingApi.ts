@@ -658,6 +658,9 @@ export function transformLandingData(data: LandingHeroResponse): {
       hideOverlay: heroConfig.hide_overlay === true,
       imageIsCta: heroConfig.image_is_cta === true,
       hideContent: heroConfig.hide_content === true,
+      // `!== false` a proposito: la ausencia del campo significa "mostrar",
+      // que es como estan hoy las 60 landings activas.
+      showHeroContent: heroConfig.show_hero_content !== false,
     };
   }
 

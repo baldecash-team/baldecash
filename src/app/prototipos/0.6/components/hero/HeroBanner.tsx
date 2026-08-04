@@ -14,6 +14,8 @@ import { HeroBannerProps } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
+import { HeroOverlay } from './common/HeroOverlay';
+import { HeroImageCta } from './common/HeroImageCta';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
@@ -33,6 +35,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   badgeText,
   underlineStyle = 4,
   landing = 'home',
+  showHeroContent,
+  hideOverlay,
+  imageIsCta,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
@@ -123,6 +128,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     }
   };
 
+  // BAL-2782: el switch del admin apaga textos y overlay, y la imagen toma el
+  // destino del CTA. Los flags sueltos siguen valiendo por separado.
+  const soloImagen = showHeroContent === false;
+  const mostrarContenido = !soloImagen;
+  const ocultarOverlay = soloImagen || hideOverlay === true;
+  const imagenClickeable =
+    (soloImagen || imageIsCta === true) && !!ctaUrl && ctaUrl !== '#';
+
   // Map icon names to components
   const getIconComponent = (iconName: string) => {
     const icons: Record<string, React.ElementType> = {
@@ -153,113 +166,122 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     >
       {/* Background Image */}
       {imageSrc && (
-        mobileImageSrc ? (
-          // Two distinct URLs: use <picture> so the browser picks the right source per viewport
-          <picture>
-            <source media="(max-width: 639px)" srcSet={mobileImageSrc} />
-            <source media="(min-width: 640px)" srcSet={imageSrc} />
-            <img
+        <HeroImageCta
+          enabled={imagenClickeable}
+          label={primaryCta?.text}
+          onActivate={handleCtaClick}
+          className="absolute inset-0"
+        >
+          {mobileImageSrc ? (
+            // Two distinct URLs: use <picture> so the browser picks the right source per viewport
+            <picture>
+              <source media="(max-width: 639px)" srcSet={mobileImageSrc} />
+              <source media="(min-width: 640px)" srcSet={imageSrc} />
+              <img
+                src={imageSrc}
+                alt="Estudiantes trabajando"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  objectPosition: `${posX}% ${posY}%`,
+                  transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
+                }}
+                fetchPriority="high"
+                onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+              />
+            </picture>
+          ) : (
+            // Single URL: keep next/image for LCP optimization
+            <Image
               src={imageSrc}
               alt="Estudiantes trabajando"
-              className="absolute inset-0 w-full h-full object-cover"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
               style={{
                 objectPosition: `${posX}% ${posY}%`,
                 transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
               }}
-              fetchPriority="high"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.opacity = '0';
+              }}
             />
-          </picture>
-        ) : (
-          // Single URL: keep next/image for LCP optimization
-          <Image
-            src={imageSrc}
-            alt="Estudiantes trabajando"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-            style={{
-              objectPosition: `${posX}% ${posY}%`,
-              transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-            }}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.opacity = '0';
-            }}
-          />
-        )
+          )}
+        </HeroImageCta>
       )}
 
       {/* Overlay — stronger gradient on mobile where text overlaps the image center */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20 sm:to-transparent" />
+      <HeroOverlay hidden={ocultarOverlay} variant="soft" />
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="max-w-2xl">
-          {/* Badge */}
-          {badgeText && (
-            <Chip
-              size="sm"
-              radius="sm"
-              classNames={{
-                base: 'bg-white/20 backdrop-blur-sm px-3 py-1 h-auto mb-4 sm:mb-6',
-                content: 'text-white text-xs font-medium',
-              }}
-            >
-              {badgeText}
-            </Chip>
-          )}
+      {mostrarContenido && (
+        <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <div className="max-w-2xl">
+            {/* Badge */}
+            {badgeText && (
+              <Chip
+                size="sm"
+                radius="sm"
+                classNames={{
+                  base: 'bg-white/20 backdrop-blur-sm px-3 py-1 h-auto mb-4 sm:mb-6',
+                  content: 'text-white text-xs font-medium',
+                }}
+              >
+                {badgeText}
+              </Chip>
+            )}
 
-          {/* Headline */}
-          <h1 className="font-['Baloo_2',_sans-serif] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6">
-            {headline || ''}
-          </h1>
+            {/* Headline */}
+            <h1 className="font-['Baloo_2',_sans-serif] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6">
+              {headline || ''}
+            </h1>
 
-          {/* Subheadline */}
-          <p className="text-base sm:text-lg md:text-xl text-white/80 mb-6 sm:mb-8 max-w-xl">
-            {subheadline}
-          </p>
+            {/* Subheadline */}
+            <p className="text-base sm:text-lg md:text-xl text-white/80 mb-6 sm:mb-8 max-w-xl">
+              {subheadline}
+            </p>
 
-          {/* Price Highlight */}
-          <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
-            <span className="text-white/70 text-sm sm:text-lg">Desde</span>
-            <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
-            <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
-          </div>
+            {/* Price Highlight */}
+            <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
+              <span className="text-white/70 text-sm sm:text-lg">Desde</span>
+              <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
+              <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
+            </div>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <Button
-              size="lg"
-              radius="lg"
-              className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors w-full sm:w-auto"
-              style={{
-                backgroundColor: 'var(--color-secondary, #03DBD0)',
-              }}
-              endContent={<ArrowRight className="w-5 h-5" />}
-              onPress={handleCtaClick}
-            >
-              {primaryCta?.text || ''}
-            </Button>
-          </div>
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <Button
+                size="lg"
+                radius="lg"
+                className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors w-full sm:w-auto"
+                style={{
+                  backgroundColor: 'var(--color-secondary, #03DBD0)',
+                }}
+                endContent={<ArrowRight className="w-5 h-5" />}
+                onPress={handleCtaClick}
+              >
+                {primaryCta?.text || ''}
+              </Button>
+            </div>
 
-          {/* Trust Signals */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-4 md:gap-6">
-            {trustSignals
-              .filter((signal) => signal.is_visible !== false)
-              .map((signal, index) => {
-                const IconComponent = getIconComponent(signal.icon);
-                return (
-                  <div key={index} className="flex items-center gap-2 text-white/80 text-xs sm:text-sm">
-                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
-                    <span>{signal.text}</span>
-                  </div>
-                );
-              })}
+            {/* Trust Signals */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-4 md:gap-6">
+              {trustSignals
+                .filter((signal) => signal.is_visible !== false)
+                .map((signal, index) => {
+                  const IconComponent = getIconComponent(signal.icon);
+                  return (
+                    <div key={index} className="flex items-center gap-2 text-white/80 text-xs sm:text-sm">
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+                      <span>{signal.text}</span>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 };

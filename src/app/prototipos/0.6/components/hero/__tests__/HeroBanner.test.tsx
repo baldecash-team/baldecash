@@ -135,3 +135,46 @@ describe('HeroBanner — imagen de fondo', () => {
     });
   });
 });
+
+describe('HeroBanner — switch de contenido (BAL-2782)', () => {
+  const baseProps = {
+    headline: 'Financia tu laptop',
+    subheadline: 'En cuotas comodas',
+    minQuota: 0,
+    imageSrc: 'https://s3/hero.webp',
+    primaryCta: { text: 'Ver equipos', href: 'catalogo', variant: 'primary' as const },
+    landing: 'mi-landing',
+  };
+
+  it('sin el campo: overlay y textos visibles (no-regresion)', () => {
+    render(<HeroBanner {...baseProps} />);
+    expect(screen.getByTestId('hero-overlay')).toBeInTheDocument();
+    expect(screen.getByText('Financia tu laptop')).toBeInTheDocument();
+    expect(screen.queryByTestId('hero-image-cta')).not.toBeInTheDocument();
+  });
+
+  it('showHeroContent=true se comporta igual que sin el campo', () => {
+    render(<HeroBanner {...baseProps} showHeroContent />);
+    expect(screen.getByTestId('hero-overlay')).toBeInTheDocument();
+    expect(screen.getByText('Financia tu laptop')).toBeInTheDocument();
+  });
+
+  it('showHeroContent=false: sin overlay, sin textos, imagen clickeable', () => {
+    render(<HeroBanner {...baseProps} showHeroContent={false} />);
+    expect(screen.queryByTestId('hero-overlay')).not.toBeInTheDocument();
+    expect(screen.queryByText('Financia tu laptop')).not.toBeInTheDocument();
+    expect(screen.queryByText('En cuotas comodas')).not.toBeInTheDocument();
+    expect(screen.getByTestId('hero-image-cta')).toBeInTheDocument();
+  });
+
+  it('showHeroContent=false sin primaryCta no hace la imagen clickeable', () => {
+    render(<HeroBanner {...baseProps} primaryCta={undefined} showHeroContent={false} />);
+    expect(screen.queryByTestId('hero-image-cta')).not.toBeInTheDocument();
+  });
+
+  it('hideOverlay funciona de forma independiente al switch', () => {
+    render(<HeroBanner {...baseProps} hideOverlay />);
+    expect(screen.queryByTestId('hero-overlay')).not.toBeInTheDocument();
+    expect(screen.getByText('Financia tu laptop')).toBeInTheDocument();
+  });
+});

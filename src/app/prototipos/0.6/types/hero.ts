@@ -104,6 +104,12 @@ export interface HeroContent {
   hideOverlay?: boolean;
   imageIsCta?: boolean;
   hideContent?: boolean;
+  /**
+   * Switch "Mostrar textos sobre la imagen" del admin (BAL-2782).
+   * Ausente o true = banner completo. false = solo imagen clickeable.
+   * Aplica a landings institucional y convenio.
+   */
+  showHeroContent?: boolean;
 }
 
 // ============================================
@@ -136,6 +142,13 @@ export interface HeroBannerProps {
   underlineStyle?: UnderlineStyle;
   /** Landing slug for dynamic URL building */
   landing?: string;
+  /**
+   * BAL-2782: false = solo imagen clickeable, sin textos ni overlay.
+   * Ausente o true = comportamiento actual.
+   */
+  showHeroContent?: boolean;
+  hideOverlay?: boolean;
+  imageIsCta?: boolean;
 }
 
 export interface SocialProofProps {
