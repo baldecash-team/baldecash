@@ -315,8 +315,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   underlineStyle={UNDERLINE_STYLE}
                   landing={landing}
                   showHeroContent={heroContent.showHeroContent}
-                  hideOverlay={heroContent.hideOverlay}
-                  imageIsCta={heroContent.imageIsCta}
                 />
               </section>
             )}

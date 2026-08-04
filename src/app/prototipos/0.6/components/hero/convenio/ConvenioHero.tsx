@@ -65,13 +65,12 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   const ctaUrl = transformLink(heroContent.primaryCta?.href || 'catalogo');
 
   // Modo "solo imagen" (BAL-2782): el switch del admin apaga textos y overlay,
-  // y la imagen toma el destino del CTA. Los flags sueltos siguen valiendo por
-  // separado para quien los use.
+  // y la imagen toma el destino del CTA. Es el unico mecanismo: los tres
+  // flags sueltos que antes hacian esto por separado ya no existen.
   const soloImagen = heroContent.showHeroContent === false;
-  const mostrarContenido = !soloImagen && !heroContent.hideContent;
-  const ocultarOverlay = soloImagen || heroContent.hideOverlay === true;
-  const imagenClickeable =
-    (soloImagen || heroContent.imageIsCta === true) && !!ctaUrl && ctaUrl !== '#';
+  const mostrarContenido = !soloImagen;
+  const ocultarOverlay = soloImagen;
+  const imagenClickeable = soloImagen && !!ctaUrl && ctaUrl !== '#';
 
   // Benefits list from trust signals (fully managed from admin)
   const beneficios = (heroContent.trustSignals || [])

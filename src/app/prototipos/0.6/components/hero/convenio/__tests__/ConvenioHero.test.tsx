@@ -78,10 +78,4 @@ describe('ConvenioHero — switch de contenido', () => {
     renderHero({ showHeroContent: false, backgroundImage: undefined });
     expect(screen.queryByTestId('hero-image-cta')).not.toBeInTheDocument();
   });
-
-  it('los flags sueltos siguen funcionando de forma independiente', () => {
-    renderHero({ hideOverlay: true });
-    expect(screen.queryByTestId('hero-overlay')).not.toBeInTheDocument();
-    expect(screen.getByText('Financia tu equipo ideal')).toBeInTheDocument();
-  });
 });

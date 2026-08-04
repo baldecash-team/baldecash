@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { LeadHeroBanner } from '../LeadHeroBanner';
 import type { HeroContent } from '../../../types/hero';
 
@@ -43,31 +43,12 @@ describe('LeadHeroBanner — flags de hero', () => {
     expect(screen.getByText('Financia tu laptop')).toBeInTheDocument();
   });
 
-  it('hideOverlay oculta el overlay', () => {
-    render(<LeadHeroBanner heroContent={baseHero({ hideOverlay: true })} bannerImages={imgs} landing="x" />);
-    expect(screen.queryByTestId('hero-overlay')).not.toBeInTheDocument();
+  it('la imagen nunca es clickeable (BAL-2782: sin flags sueltos, sin UI para configurarlo)', () => {
+    render(<LeadHeroBanner heroContent={baseHero()} bannerImages={imgs} landing="x" />);
+    expect(screen.queryByTestId('hero-image-cta')).not.toBeInTheDocument();
   });
 
-  it('hideContent oculta el headline', () => {
-    render(<LeadHeroBanner heroContent={baseHero({ hideContent: true })} bannerImages={imgs} landing="x" />);
-    expect(screen.queryByText('Financia tu laptop')).not.toBeInTheDocument();
-  });
-
-  it('imageIsCta hace la imagen clickeable y dispara onCtaClick', () => {
-    const onCtaClick = jest.fn();
-    render(
-      <LeadHeroBanner
-        heroContent={baseHero({ imageIsCta: true, hideContent: true })}
-        bannerImages={imgs}
-        landing="x"
-        onCtaClick={onCtaClick}
-      />,
-    );
-    fireEvent.click(screen.getByTestId('hero-image-cta'));
-    expect(onCtaClick).toHaveBeenCalledTimes(1);
-  });
-
-  it('muestra el marquee de marcas cuando hay brands y no hay hideContent', async () => {
+  it('muestra el marquee de marcas cuando hay brands', async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         json: () =>
@@ -79,39 +60,5 @@ describe('LeadHeroBanner — flags de hero', () => {
 
     const marquees = await screen.findAllByText('Marcas disponibles');
     expect(marquees.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('hideContent oculta el marquee de marcas aunque existan brands', async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        json: () =>
-          Promise.resolve({ brands: [{ id: 1, name: 'HP', logo_url: 'https://s3/hp.png' }] }),
-      }),
-    ) as unknown as typeof fetch;
-
-    render(<LeadHeroBanner heroContent={baseHero({ hideContent: true })} bannerImages={imgs} landing="x" />);
-
-    // Espera a que el fetch de brands resuelva antes de asertar la ausencia.
-    await screen.findByTestId('hero-overlay');
-    expect(screen.queryByText('Marcas disponibles')).not.toBeInTheDocument();
-  });
-
-  it('imageIsCta responde a teclado (Enter y Espacio) disparando onCtaClick', () => {
-    const onCtaClick = jest.fn();
-    render(
-      <LeadHeroBanner
-        heroContent={baseHero({ imageIsCta: true, hideContent: true })}
-        bannerImages={imgs}
-        landing="x"
-        onCtaClick={onCtaClick}
-      />,
-    );
-    const cta = screen.getByTestId('hero-image-cta');
-
-    fireEvent.keyDown(cta, { key: 'Enter' });
-    expect(onCtaClick).toHaveBeenCalledTimes(1);
-
-    fireEvent.keyDown(cta, { key: ' ' });
-    expect(onCtaClick).toHaveBeenCalledTimes(2);
   });
 });

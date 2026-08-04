@@ -101,9 +101,6 @@ export interface HeroContent {
   mobilePositionY?: number;
   mobileZoom?: number;
   badgeText?: string;
-  hideOverlay?: boolean;
-  imageIsCta?: boolean;
-  hideContent?: boolean;
   /**
    * Switch "Mostrar textos sobre la imagen" del admin (BAL-2782).
    * Ausente o true = banner completo. false = solo imagen clickeable.
@@ -147,8 +144,6 @@ export interface HeroBannerProps {
    * Ausente o true = comportamiento actual.
    */
   showHeroContent?: boolean;
-  hideOverlay?: boolean;
-  imageIsCta?: boolean;
 }
 
 export interface SocialProofProps {
