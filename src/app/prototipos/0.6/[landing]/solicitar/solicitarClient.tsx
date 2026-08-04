@@ -405,6 +405,10 @@ function WizardPreviewContent() {
           if (productsToShow.length === 0) return null;
 
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
+          // Efectivo: la cuota viene fija de ws2 para el monto/plazo/inicial
+          // elegidos en la calculadora — no hay plazo alternativo que ofrecer
+          // (ver getAvailableTerms/updateAllProductsToTerm en ProductContext).
+          const isEfectivoProduct = productsToShow[0]?.type === 'efectivo';
 
           return (
             <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-6 sm:mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
@@ -416,36 +420,38 @@ function WizardPreviewContent() {
                     {productsToShow.length === 1 ? 'Producto seleccionado' : `${productsToShow.length} productos seleccionados`}
                   </span>
                 </div>
-                {/* Term selector dropdown - Always show selector */}
-                <div className="flex items-center gap-2">
-                  {needsTermUnification && (
-                    <span className="text-xs text-amber-700">Unificar plazo:</span>
-                  )}
-                  {!needsTermUnification && (
-                    <span className="text-xs text-neutral-500">Plazo:</span>
-                  )}
-                  <TermSelect
-                    value={needsTermUnification ? 0 : ((productsToShow[0]?.term ?? productsToShow[0]?.months) || 0)}
-                    options={availableTerms}
-                    onChange={(term) => {
-                      const primary = productsToShow[0];
-                      const from = primary?.term ?? primary?.months ?? 0;
-                      if (primary && from !== term) {
-                        analytics.trackPricingTermChange({
-                          product_id: primary.id,
-                          from,
-                          to: term,
-                          context: 'solicitar',
-                          frequency: primary.paymentFrequency,
-                        });
-                      }
-                      updateAllProductsToTerm(term);
-                    }}
-                    warning={needsTermUnification}
-                    placeholder="Seleccionar"
-                    frequency={needsTermUnification ? undefined : productsToShow[0]?.paymentFrequency}
-                  />
-                </div>
+                {/* Term selector dropdown - hidden for efectivo (cuota fija de ws2) */}
+                {!isEfectivoProduct && (
+                  <div className="flex items-center gap-2">
+                    {needsTermUnification && (
+                      <span className="text-xs text-amber-700">Unificar plazo:</span>
+                    )}
+                    {!needsTermUnification && (
+                      <span className="text-xs text-neutral-500">Plazo:</span>
+                    )}
+                    <TermSelect
+                      value={needsTermUnification ? 0 : ((productsToShow[0]?.term ?? productsToShow[0]?.months) || 0)}
+                      options={availableTerms}
+                      onChange={(term) => {
+                        const primary = productsToShow[0];
+                        const from = primary?.term ?? primary?.months ?? 0;
+                        if (primary && from !== term) {
+                          analytics.trackPricingTermChange({
+                            product_id: primary.id,
+                            from,
+                            to: term,
+                            context: 'solicitar',
+                            frequency: primary.paymentFrequency,
+                          });
+                        }
+                        updateAllProductsToTerm(term);
+                      }}
+                      warning={needsTermUnification}
+                      placeholder="Seleccionar"
+                      frequency={needsTermUnification ? undefined : productsToShow[0]?.paymentFrequency}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Warning banner for unequal terms */}

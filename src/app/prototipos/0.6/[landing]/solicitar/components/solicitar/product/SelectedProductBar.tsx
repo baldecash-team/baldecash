@@ -74,6 +74,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   // For display purposes, use first product as main product
   const mainProduct = allProducts[0];
 
+  // Efectivo: la cuota viene fija de ws2 para el monto/plazo/inicial elegidos
+  // en la calculadora — no hay plazo alternativo que ofrecer (ver
+  // getAvailableTerms/updateAllProductsToTerm en ProductContext).
+  const isEfectivoProduct = mainProduct.type === 'efectivo';
+
   const formatPrice = (price: number) => {
     return `S/${Math.floor(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
@@ -321,17 +326,19 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         </span>
                       </div>
                     </div>
-                    {/* Term Selector - Mobile */}
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-neutral-500">Plazo:</span>
-                      <TermSelect
-                        value={mainProduct.term ?? mainProduct.months}
-                        options={availableTerms}
-                        onChange={handleTermChange}
-                        size="sm"
-                        frequency={mainProduct.paymentFrequency}
-                      />
-                    </div>
+                    {/* Term Selector - Mobile (oculto para efectivo: cuota fija de ws2) */}
+                    {!isEfectivoProduct && (
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-neutral-500">Plazo:</span>
+                        <TermSelect
+                          value={mainProduct.term ?? mainProduct.months}
+                          options={availableTerms}
+                          onChange={handleTermChange}
+                          size="sm"
+                          frequency={mainProduct.paymentFrequency}
+                        />
+                      </div>
+                    )}
                     {hasInitialPayment && !isGamer && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
                         <span className="text-xs text-neutral-500">Inicial total</span>
@@ -376,16 +383,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 {allProducts.length > 1 ? `${allProducts.length} productos seleccionados` : 'Producto seleccionado'}
               </span>
             </div>
-            {/* Term Selector - Desktop */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-500">Plazo:</span>
-              <TermSelect
-                value={mainProduct.term ?? mainProduct.months}
-                options={availableTerms}
-                onChange={handleTermChange}
-                frequency={mainProduct.paymentFrequency}
-              />
-            </div>
+            {/* Term Selector - Desktop (oculto para efectivo: cuota fija de ws2) */}
+            {!isEfectivoProduct && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-500">Plazo:</span>
+                <TermSelect
+                  value={mainProduct.term ?? mainProduct.months}
+                  options={availableTerms}
+                  onChange={handleTermChange}
+                  frequency={mainProduct.paymentFrequency}
+                />
+              </div>
+            )}
           </div>
 
           {/* Products List */}

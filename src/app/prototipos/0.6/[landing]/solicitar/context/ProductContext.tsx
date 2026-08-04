@@ -619,6 +619,13 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const unifiedFrequency = frequencies.size === 1;
 
     const termsPerProduct = products.map(p => {
+      // Efectivo: la cuota viene fija de ws2 para el plazo elegido en la
+      // calculadora — no hay paymentPlans ni fórmula del FE para reperfilar a
+      // otro plazo. Se expone únicamente el plazo ya sembrado, así el
+      // selector no ofrece opciones que recalcularían mal la cuota.
+      if (p.type === 'efectivo') {
+        return [p.term ?? p.months];
+      }
       if (p.paymentPlans && p.paymentPlans.length > 0) {
         // Unified frequency: return native raw term (48, 24, 12, ...)
         // Mixed frequencies: normalize to months
@@ -650,6 +657,15 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const unifiedFrequency = frequencies.size === 1;
 
     const updatedProducts = products.map(p => {
+      // Efectivo: ws2 es la ÚNICA fuente de la cuota (calculada en la
+      // calculadora para el monto/plazo/inicial elegidos). El FE nunca la
+      // recalcula, así que el producto se mantiene intacto ante cualquier
+      // intento de "unificar plazo" (no debería llamarse para él, dado que
+      // getAvailableTerms() ya lo excluye, pero esto lo blinda igual).
+      if (p.type === 'efectivo') {
+        return p;
+      }
+
       // When frequencies are unified, the incoming `term` is the raw value
       // (e.g. 48 weeks). When mixed, it represents months.
       const plan = p.paymentPlans?.find(pl => {
@@ -786,6 +802,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       || (selectedProduct?.id === productId ? selectedProduct : null);
     if (!product) return [];
 
+    // Efectivo: el inicial ya viene fijado por ws2 al sembrar el producto —
+    // no hay paymentPlans que ofrezcan otros montos de inicial para reelegir.
+    if (product.type === 'efectivo') return [];
+
     // Use paymentPlans from API - source of truth from database
     if (product.paymentPlans && product.paymentPlans.length > 0) {
       const plan = product.paymentPlans.find(p => p.term === product.months)
@@ -824,8 +844,12 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    */
   const syncMissingPaymentPlans = useCallback(async () => {
     const products = getAllProducts();
+    // Efectivo no tiene paymentPlans por diseño (no es un producto de
+    // catálogo — ver A5 en ws2), y tampoco tiene `slug` para resolverlos.
+    // Intentar sincronizarlo dispararía llamadas al catálogo que van a
+    // fallar/no-encontrar, sin ningún beneficio.
     const productsWithoutPlans = products.filter(
-      p => !p.paymentPlans || p.paymentPlans.length === 0
+      p => p.type !== 'efectivo' && (!p.paymentPlans || p.paymentPlans.length === 0)
     );
 
     if (productsWithoutPlans.length === 0) return;
@@ -930,8 +954,20 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       return;
     }
 
+    // Efectivo no existe en el catálogo público de la landing (ws2 lo excluye
+    // del allowlist a propósito — no es un producto comprable de catálogo),
+    // así que nunca se le pregunta a fetchProductsByIds por él: de lo
+    // contrario siempre volvería como "no disponible" y bloquearía
+    // "Comenzar solicitud" para un flujo que es válido.
+    const catalogProducts = products.filter(p => p.type !== 'efectivo');
+    if (catalogProducts.length === 0) {
+      setUnavailableProductIds([]);
+      setIsValidatingAvailability(false);
+      return;
+    }
+
     try {
-      const productIds = products.map(p => p.id);
+      const productIds = catalogProducts.map(p => p.id);
       const activeProducts = await fetchProductsByIds(landingSlug, productIds, previewKey);
       const activeIds = new Set(activeProducts.map(p => p.id));
       const disabled = productIds.filter(id => !activeIds.has(id));
@@ -973,6 +1009,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const updateProductInitial = useCallback((productId: string, newInitialPercent: number) => {
     const updateProduct = (product: SelectedProduct): SelectedProduct => {
       if (product.id !== productId) return product;
+
+      // Efectivo: mismo blindaje que updateAllProductsToTerm — ws2 es la
+      // única fuente de la cuota/inicial, el FE no los re-deriva.
+      if (product.type === 'efectivo') return product;
 
       // Try to use paymentPlans data first
       const plan = product.paymentPlans?.find(p => p.term === product.months);
