@@ -189,9 +189,11 @@ Sus tests existentes (`components/lead/__tests__/LeadHeroBanner.test.tsx`) deben
 seguir pasando sin modificarse. Si hay que tocarlos, el refactor cambió
 comportamiento y eso es un error.
 
+Este repo usa **jest** (`jest.config.js`), no vitest:
+
 ```bash
-npx vitest run src/app/prototipos/0.6/components/lead/__tests__/LeadHeroBanner.test.tsx
-npx vitest run src/app/prototipos/0.6/components/hero/convenio/__tests__/ConvenioHero.test.tsx
+npx jest src/app/prototipos/0.6/components/lead/__tests__/LeadHeroBanner.test.tsx
+npx jest src/app/prototipos/0.6/components/hero/convenio/__tests__/ConvenioHero.test.tsx
 ```
 
 ### Verificación visual
