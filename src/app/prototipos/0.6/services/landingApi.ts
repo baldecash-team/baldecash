@@ -1598,6 +1598,14 @@ export interface EvaluateFamilyFarmResponse {
   sibling_landing_slug?: string;
   sibling_landing_name?: string;
   access_token?: string;
+  /**
+   * Token de acceso de la landing HERMANA (destino), presente solo cuando
+   * `found_in_sibling` es true. Deliberadamente NO reutiliza `access_token`:
+   * ver decisión sdd/landing-router-gate-handoff — `access_token` se persiste
+   * incondicionalmente para la landing ACTUAL en FamilyFarmOverlayGate.tsx,
+   * y confundir ambos campos abriría el catálogo de la puerta-router.
+   */
+  sibling_access_token?: string;
 }
 
 /**

@@ -39,7 +39,7 @@ jest.mock('../../solicitar/context/SessionContext', () => ({
 // ── routes ────────────────────────────────────────────────────────────────
 jest.mock('../../../utils/routes', () => ({
   routes: {
-    catalogo: (slug: string) => `/${slug}/catalogo`,
+    catalogo: (slug: string, query?: string) => `/${slug}/catalogo${query ? `?${query}` : ''}`,
   },
 }));
 
@@ -159,6 +159,77 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     const siblingLink = screen.getByRole('link', { name: /empezar/i });
     expect(siblingLink.tagName).toBe('A');
     expect(siblingLink).toHaveAttribute('href', '/family-farm-fijo/catalogo');
+  });
+
+  // ── sibling_access_token handoff (BAL-2786) ──────────────────────────────
+  it('carries sibling_access_token as ?vip_auto= on the sibling link when the backend provides it', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({
+      valid: false,
+      found_in_sibling: true,
+      sibling_landing_slug: 'family-farms-baldecash-a',
+      sibling_landing_name: 'Family Farms | BaldeCash A',
+      first_name: 'Prueba 2',
+      sibling_access_token: 'sib-tok-abc123',
+    });
+
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    await user.type(input, '80011004');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Family Farms | BaldeCash A')).toBeInTheDocument();
+    });
+    const siblingLink = screen.getByRole('link', { name: /empezar/i });
+    expect(siblingLink).toHaveAttribute('href', '/family-farms-baldecash-a/catalogo?vip_auto=sib-tok-abc123');
+  });
+
+  it('omits ?vip_auto= from the sibling link when sibling_access_token is absent (degrades to current behavior)', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({
+      valid: false,
+      found_in_sibling: true,
+      sibling_landing_slug: 'family-farm-fijo',
+      sibling_landing_name: 'Family Farm - Fijo',
+      first_name: 'Miguel',
+    });
+
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    await user.type(input, '80011002');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Family Farm - Fijo')).toBeInTheDocument();
+    });
+    const siblingLink = screen.getByRole('link', { name: /empezar/i });
+    expect(siblingLink).toHaveAttribute('href', '/family-farm-fijo/catalogo');
+    expect(siblingLink.getAttribute('href')).not.toContain('vip_auto');
+  });
+
+  it('never persists a VIP token for the CURRENT (router) landing on a sibling match', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({
+      valid: false,
+      found_in_sibling: true,
+      sibling_landing_slug: 'family-farms-baldecash-a',
+      sibling_landing_name: 'Family Farms | BaldeCash A',
+      first_name: 'Prueba 2',
+      sibling_access_token: 'sib-tok-abc123',
+    });
+
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    await user.type(input, '80011004');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Family Farms | BaldeCash A')).toBeInTheDocument();
+    });
+    // Critical regression guard (obs 1955): sibling_access_token must NEVER
+    // flow into saveVipToken for the router landing itself.
+    expect(mockSaveVipToken).not.toHaveBeenCalled();
   });
 
   it('valid:false (no sibling) renders the no-access notice', async () => {

@@ -106,4 +106,60 @@ describe('evaluateFamilyFarmAccess', () => {
       evaluateFamilyFarmAccess('unknown-slug', { dni: '80011001' }),
     ).rejects.toThrow('evaluate-family-farm error: 404');
   });
+
+  // ── sibling_access_token (BAL-2786) ─────────────────────────────────────
+  // Backend contract: on a sibling match, the destination token rides under
+  // `sibling_access_token`, NEVER under `access_token` (see decision sdd/
+  // landing-router-gate-handoff obs 1955 — access_token is unconditionally
+  // persisted for the CURRENT landing by FamilyFarmOverlayGate.tsx:91).
+  it('devuelve sibling_access_token tipado cuando el backend lo incluye en found_in_sibling', async () => {
+    const expectedResponse = {
+      valid: false,
+      found_in_sibling: true,
+      sibling_landing_slug: 'family-farms-baldecash-a',
+      sibling_landing_name: 'Family Farms | BaldeCash A',
+      first_name: 'Prueba 2',
+      sibling_access_token: 'sib-tok-abc123',
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => expectedResponse,
+    } as unknown as Response);
+
+    const result = await evaluateFamilyFarmAccess('family-farms-baldecash', { dni: '80011004' });
+
+    expect(result.found_in_sibling).toBe(true);
+    expect(result.sibling_access_token).toBe('sib-tok-abc123');
+  });
+
+  it('sibling_access_token queda undefined cuando el backend no lo envía (degrada al comportamiento actual)', async () => {
+    const expectedResponse = {
+      valid: false,
+      found_in_sibling: true,
+      sibling_landing_slug: 'family-farm-fijo',
+      sibling_landing_name: 'Family Farm Fijo',
+      first_name: 'Luis',
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => expectedResponse,
+    } as unknown as Response);
+
+    const result = await evaluateFamilyFarmAccess('family-farm-cosechador', { dni: '80011002' });
+
+    expect(result.sibling_access_token).toBeUndefined();
+  });
+
+  it('no confunde sibling_access_token con access_token en la rama valid:true (branch directo sin cambios)', async () => {
+    const expectedResponse = { valid: true, first_name: 'Juan', access_token: 'tok-xyz' };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => expectedResponse,
+    } as unknown as Response);
+
+    const result = await evaluateFamilyFarmAccess('family-farm-cosechador', { dni: '80011001' });
+
+    expect(result.access_token).toBe('tok-xyz');
+    expect(result.sibling_access_token).toBeUndefined();
+  });
 });

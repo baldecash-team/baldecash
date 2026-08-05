@@ -42,6 +42,22 @@ interface SiblingMatch {
   slug: string;
   name: string;
   firstName: string;
+  /**
+   * Token de acceso de la landing hermana (destino). Viaja SOLO en el link
+   * de redirección (`?vip_auto=`) — nunca debe pasar por `saveVipToken` para
+   * la landing ACTUAL (ver línea con `data.access_token` más abajo).
+   */
+  accessToken?: string;
+}
+
+/**
+ * Construye el href del botón "Empezar" hacia la landing hermana, adjuntando
+ * el token de acceso como `?vip_auto=<token>` cuando está presente. Cuando no
+ * hay token (backend no lo envía) degrada al link sin query, comportamiento
+ * actual.
+ */
+function buildSiblingHref(slug: string, accessToken?: string): string {
+  return routes.catalogo(slug, accessToken ? `vip_auto=${encodeURIComponent(accessToken)}` : undefined);
 }
 
 export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidated: () => void; deadline?: string }) {
@@ -81,6 +97,7 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
             slug: data.sibling_landing_slug,
             name: data.sibling_landing_name || data.sibling_landing_slug,
             firstName: data.first_name || '',
+            accessToken: data.sibling_access_token,
           });
         } else {
           setNoAccess(true);
@@ -179,7 +196,7 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
                     Hola <span style={{ fontWeight: 600 }}>{siblingMatch.firstName}</span>, tu acceso está en:
                   </p>
                   <p className={styles.land}>{siblingMatch.name}</p>
-                  <a href={routes.catalogo(siblingMatch.slug)} className={styles.btnPrimary}>
+                  <a href={buildSiblingHref(siblingMatch.slug, siblingMatch.accessToken)} className={styles.btnPrimary}>
                     Empezar
                   </a>
                 </div>
