@@ -277,7 +277,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedFrequency, setSelectedFrequency] = useState(hookFrequency);
 
   // Per-frequency hook data (price + term + initial)
-  const freqHook = product.paymentHooks?.[selectedFrequency];
+  // El color elegido manda: cada sibling tiene su propia cuota por frecuencia.
+  // Sin esto la tarjeta mostraba siempre la del producto primario — con el
+  // Titanium seleccionado se veia la cuota del Negro.
+  const freqHook = (selectedColor?.paymentHooks ?? product.paymentHooks)?.[selectedFrequency];
   const displayQuotaForFreq = freqHook?.price ?? displayQuota;
 
   const freqShort = selectedFrequency === 'semanal' ? '/sem' : selectedFrequency === 'quincenal' ? '/qcn' : '/mes';
