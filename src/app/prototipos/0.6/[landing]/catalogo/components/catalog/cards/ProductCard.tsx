@@ -213,7 +213,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const displayQuota = selectedColor?.quotaMonthly ?? product.quotaMonthly;
   const displayOriginalQuota = selectedColor?.originalQuotaMonthly ?? product.originalQuotaMonthly ?? null;
   const displayDiscount = selectedColor?.discount ?? product.discount;
-  const displaySpecs = product.specs; // Specs fijos del producto base, no varían por color
+  // Las specs SI varian por color cuando los siblings son modelos distintos:
+  // el Redmi Note 15 Pro Negro lleva Helio G200 y el Titanium G100. El API
+  // manda las specs de cada sibling; usarlas o caer a las del producto base.
+  const displaySpecs = selectedColor?.specs ?? product.specs;
 
   // Detect if title is truncated (line-clamp-2) to show tooltip on hover
   const titleRef = useRef<HTMLHeadingElement>(null);
