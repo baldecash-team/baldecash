@@ -37,9 +37,12 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/tituloupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
   '/titulosupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
   '/iestp': 'https://beneficios.baldecash.com/iestp',
-  '/uss': 'https://beneficios.baldecash.com/uss',
+  // '/uss' ya no redirige a beneficios: ahora es la landing de convenio.
+  // beneficios.baldecash.com/uss redirige hacia acá, así que mantener esta
+  // clave causaba un bucle infinito (ERR_TOO_MANY_REDIRECTS).
   '/cpsp': 'https://beneficios.baldecash.com/cpsp',
-  '/wiener': 'https://pidetuprestamo.baldecash.com/#/norbertwiener?fuente=wiener-verano',
+  // '/wiener' ya no sale a pidetuprestamo: ahora es la landing de convenio.
+  // beneficios.baldecash.com/norbert-wiener redirige hacia acá.
   '/carrion-egresados': 'https://pidetuprestamo.baldecash.com/#/prestamos?source=carrion&fuente=carrion-egresados',
   '/ansimar': 'https://beneficios.baldecash.com/ansimar',
   '/ucv-docentes': 'https://pidetuprestamo.baldecash.com/#/ucv-docentes-y-administrativos',
@@ -52,19 +55,20 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/iesrp': 'https://beneficios.baldecash.com/instituto-ricardo-palma',
   '/educad': 'https://beneficios.baldecash.com/educad',
   '/ucsur': 'https://beneficios.baldecash.com/ucsur',
-  '/sise': 'https://beneficios.baldecash.com/sise',
-  '/continental': 'https://beneficios.baldecash.com/continental',
+  // '/sise' y '/continental' ya no redirigen a beneficios: ahora son landings
+  // de convenio y beneficios.baldecash.com redirige hacia acá (bucle).
   // '/senati' ya no redirige a beneficios: ahora es la landing de convenio
   // (antes /convenio-senati-landing). beneficios.baldecash.com/senati
   // redirige hacia acá, así que mantener esta clave causaría un bucle.
   // El redirect del slug viejo vive en RENAMED_LANDING_SLUGS (abajo), para
   // cubrir también las subrutas: /catalogo, /producto/..., /solicitar/...
-  '/carrion': 'https://beneficios.baldecash.com/carrion',
+  // '/carrion' ya no redirige a beneficios: ahora es la landing de convenio
+  // y beneficios.baldecash.com/carrion redirige hacia acá (bucle).
   '/maria-araoz': 'https://beneficios.baldecash.com/maria-araoz',
   '/lasartes': 'https://beneficios.baldecash.com/lasartes-lima',
   '/ucv-losolivos': 'https://beneficios.baldecash.com/ucv-losolivos',
   '/uncp': 'https://beneficios.baldecash.com/uncp',
-  '/upn': 'https://beneficios.baldecash.com/upn',
+  // '/upn' ya no redirige a beneficios: ahora es la landing de convenio.
   // '/ucv' ya no redirige a beneficios: ahora es la landing de convenio
   // (antes /convenio-ucv-landing). Ver RENAMED_LANDING_SLUGS.
   '/bachillerupn': 'https://pidetuprestamo.baldecash.com/#/titulos-upn',
