@@ -5,7 +5,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
+import { conditionDisplayLabelFor } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
@@ -133,14 +133,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       if (apiFilters.conditions && apiFilters.conditions.length > 0) {
         return apiFilters.conditions.map(c => ({
           value: c.value,
-          label: conditionDisplayLabel(c.value, c.label),
+          label: conditionDisplayLabelFor(overlayVariant, c.value, c.label),
           count: c.count || 0,
         }));
       }
       return [];
     }
     return filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions;
-  }, [apiFilters, filterCounts]);
+  }, [apiFilters, filterCounts, overlayVariant]);
 
   // Family Farms cambia "Destacados" por "Estado del equipo": la condición sube al
   // segundo lugar del sidebar y pasa a selección única, porque es la segunda
@@ -308,7 +308,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     });
 
     filters.condition.forEach((condition) => {
-      const opt = conditionOptions.find((o) => o.value === condition);
+      // Contra las opciones del API, no contra las del mock: el mock trae los
+      // valores del enum del front ('reacondicionado') y el filtro guarda los del
+      // API ('reacondicionada'), así que nunca casaban y la píldora mostraba el
+      // valor crudo. De paso hereda la etiqueta propia de la campaña.
+      const opt = dynamicConditionOptions?.find((o) => o.value === condition);
       applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
     });
 
@@ -391,7 +395,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     return applied;
-  }, [filters, searchQuery, dynamicGpuOptions]);
+  }, [filters, searchQuery, dynamicGpuOptions, dynamicConditionOptions]);
 
   const appliedFiltersCount = React.useMemo(() => {
     return (
