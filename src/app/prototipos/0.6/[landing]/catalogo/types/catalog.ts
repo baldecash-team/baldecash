@@ -470,6 +470,9 @@ export interface ProductColor {
   discount?: number;
   specs?: ProductSpecs; // Specs del sibling
   rawSpecs?: Record<string, string | number | boolean>;
+  /** Cuota por frecuencia de este color (semanal/quincenal). La tarjeta la
+   *  usa cuando la landing no es mensual; sin esto cae a la del primario. */
+  paymentHooks?: Record<string, { price: number; termMonths?: number; initialPercent?: number }>;
 }
 
 export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: string; description: string }> = {
