@@ -103,9 +103,16 @@ export interface LandingConfigResponse {
   config: Partial<LandingConfig> & Record<string, Record<string, unknown>>;
 }
 
-/** Logo overrides per overlay variant. */
+/**
+ * Logo overrides per overlay variant.
+ *
+ * Los assets viven en S3, nunca en `public/`: servirlos desde ahí ya dejó el
+ * overlay de Family Farms sin logo en producción una vez (BAL-2598).
+ */
 export const OVERLAY_VARIANT_LOGOS: Record<string, string> = {
   cade: 'https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp',
+  // El mismo logo combinado que muestra FamilyFarmOverlayGate al entrar.
+  familyfarm: 'https://baldecash.s3.amazonaws.com/company/logo-family-farms.webp',
 };
 
 /** Default config used when the API is unreachable or returns null/empty. */
