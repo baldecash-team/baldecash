@@ -29,6 +29,33 @@ export function conditionDisplayLabel(condition?: string | null, fallbackLabel?:
 }
 
 /**
+ * Etiqueta del reacondicionado para las campañas que la nombran distinto.
+ * Family Farms vende equipos reacondicionados y los llama por su nombre: su
+ * material y el diseño de sus landings dicen "Reacondicionado", no "Semi nuevo".
+ * La clave es la variante de overlay de la landing (`features.overlay_variant`).
+ */
+const OVERLAY_REFURBISHED_LABELS: Record<string, string> = {
+  familyfarm: 'Reacondicionado',
+};
+
+/**
+ * Como `conditionDisplayLabel`, pero respetando la etiqueta propia de la campaña
+ * cuando la variante de overlay define una. Sin variante, o con una que no
+ * redefine nada, devuelve exactamente lo mismo que `conditionDisplayLabel`.
+ */
+export function conditionDisplayLabelFor(
+  overlayVariant?: string | null,
+  condition?: string | null,
+  fallbackLabel?: string | null,
+): string {
+  if (isRefurbishedCondition(condition) && overlayVariant) {
+    const override = OVERLAY_REFURBISHED_LABELS[overlayVariant];
+    if (override) return override;
+  }
+  return conditionDisplayLabel(condition, fallbackLabel);
+}
+
+/**
  * Normaliza cualquier variante de condición a su forma canónica del API:
  * 'nueva' | 'reacondicionada'. Resuelve el desajuste entre el enum FE
  * ('nuevo'/'reacondicionado') y el API/facet ('nueva'/'reacondicionada').

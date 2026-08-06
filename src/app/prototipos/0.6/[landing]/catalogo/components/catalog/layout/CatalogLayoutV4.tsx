@@ -5,7 +5,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
+import { conditionDisplayLabelFor } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
@@ -14,6 +14,7 @@ import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
 import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { FilterChips } from '../filters/FilterChips';
 import { TagsFilter } from '../filters/TagsFilter';
+import { ConditionRadioFilter } from '../filters/ConditionRadioFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
 import { CouponCampaignBanner } from '../CouponCampaignBanner';
@@ -132,14 +133,29 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       if (apiFilters.conditions && apiFilters.conditions.length > 0) {
         return apiFilters.conditions.map(c => ({
           value: c.value,
-          label: conditionDisplayLabel(c.value, c.label),
+          label: conditionDisplayLabelFor(overlayVariant, c.value, c.label),
           count: c.count || 0,
         }));
       }
       return [];
     }
     return filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions;
-  }, [apiFilters, filterCounts]);
+  }, [apiFilters, filterCounts, overlayVariant]);
+
+  // Family Farms cambia "Destacados" por "Estado del equipo": la condición sube al
+  // segundo lugar del sidebar y pasa a selección única, porque es la segunda
+  // pregunta de la atención presencial. Va por variante de overlay (no por slug)
+  // para que una landing nueva de la campaña lo herede sin deploy.
+  const isFamilyFarm = overlayVariant === 'familyfarm';
+
+  // Contador de "Todos los equipos". Se suma sobre las mismas opciones que se
+  // muestran, no sobre `totalProducts`, que ya viene filtrado por condición: si
+  // no, elegir "Nuevo" bajaría también el número de "Todos los equipos".
+  const conditionTotal = React.useMemo(
+    () => (dynamicConditionOptions ?? []).reduce((acc, opt) => acc + (opt.count || 0), 0),
+    [dynamicConditionOptions],
+  );
+
   const dynamicRamOptions = React.useMemo(() => {
     if (apiFilters) {
       if (apiFilters.specs?.ram?.values && apiFilters.specs.ram.values.length > 0) {
@@ -292,7 +308,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     });
 
     filters.condition.forEach((condition) => {
-      const opt = conditionOptions.find((o) => o.value === condition);
+      // Contra las opciones del API, no contra las del mock: el mock trae los
+      // valores del enum del front ('reacondicionado') y el filtro guarda los del
+      // API ('reacondicionada'), así que nunca casaban y la píldora mostraba el
+      // valor crudo. De paso hereda la etiqueta propia de la campaña.
+      const opt = dynamicConditionOptions?.find((o) => o.value === condition);
       applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
     });
 
@@ -375,7 +395,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     return applied;
-  }, [filters, searchQuery, dynamicGpuOptions]);
+  }, [filters, searchQuery, dynamicGpuOptions, dynamicConditionOptions]);
 
   const appliedFiltersCount = React.useMemo(() => {
     return (
@@ -796,13 +816,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </FilterSection>
                 )}
 
-                {/* Tags Filter */}
-                <TagsFilter
-                  tagOptions={dynamicTagOptions}
-                  selectedTags={filters.tags}
-                  onTagsChange={(tags) => updateFilter('tags', tags)}
-                  showCounts={config.showFilterCounts}
-                />
+                {/* Tags Filter — en Family Farms lo reemplaza "Estado del equipo" */}
+                {isFamilyFarm ? (
+                  <ConditionRadioFilter
+                    conditionOptions={dynamicConditionOptions}
+                    selectedCondition={filters.condition}
+                    onConditionChange={(condition) => updateFilter('condition', condition)}
+                    totalProducts={conditionTotal}
+                    showCounts={config.showFilterCounts}
+                  />
+                ) : (
+                  <TagsFilter
+                    tagOptions={dynamicTagOptions}
+                    selectedTags={filters.tags}
+                    onTagsChange={(tags) => updateFilter('tags', tags)}
+                    showCounts={config.showFilterCounts}
+                  />
+                )}
 
                 {/* Brand Filter - hide if 1 or fewer options */}
                 {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
@@ -840,14 +870,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </FilterSection>
                 )}
 
-                {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
+                {/* Main Filters (Uso recomendado, Condición) - styled based on version.
+                    En Family Farms la condición ya vive arriba, en "Estado del equipo":
+                    sin opciones acá, esa sección no se dibuja y no queda duplicada. */}
                 <TechnicalFiltersStyled
                   version={config.technicalFiltersVersion}
                   showFilters="main"
                   usageOptions={dynamicUsageOptions}
                   selectedUsage={filters.usage}
                   onUsageChange={(usage) => updateFilter('usage', usage)}
-                  conditionOptions={dynamicConditionOptions}
+                  conditionOptions={isFamilyFarm ? [] : dynamicConditionOptions}
                   selectedCondition={filters.condition}
                   onConditionChange={(condition) => updateFilter('condition', condition)}
                   showCounts={config.showFilterCounts}
@@ -1031,13 +1063,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </FilterSection>
             )}
 
-            {/* Tags Filter */}
-            <TagsFilter
-              tagOptions={dynamicTagOptions}
-              selectedTags={filters.tags}
-              onTagsChange={(tags) => updateFilter('tags', tags)}
-              showCounts={config.showFilterCounts}
-            />
+            {/* Tags Filter — en Family Farms lo reemplaza "Estado del equipo" */}
+            {isFamilyFarm ? (
+              <ConditionRadioFilter
+                conditionOptions={dynamicConditionOptions}
+                selectedCondition={filters.condition}
+                onConditionChange={(condition) => updateFilter('condition', condition)}
+                totalProducts={conditionTotal}
+                showCounts={config.showFilterCounts}
+              />
+            ) : (
+              <TagsFilter
+                tagOptions={dynamicTagOptions}
+                selectedTags={filters.tags}
+                onTagsChange={(tags) => updateFilter('tags', tags)}
+                showCounts={config.showFilterCounts}
+              />
+            )}
 
             {/* Brand Filter - hide if 1 or fewer options */}
             {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
@@ -1075,14 +1117,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </FilterSection>
             )}
 
-            {/* Main Filters (Uso recomendado, Condición) */}
+            {/* Main Filters (Uso recomendado, Condición).
+                En Family Farms la condición ya vive arriba, en "Estado del equipo":
+                sin opciones acá, esa sección no se dibuja y no queda duplicada. */}
             <TechnicalFiltersStyled
               version={config.technicalFiltersVersion}
               showFilters="main"
               usageOptions={dynamicUsageOptions}
               selectedUsage={filters.usage}
               onUsageChange={(usage) => updateFilter('usage', usage)}
-              conditionOptions={dynamicConditionOptions}
+              conditionOptions={isFamilyFarm ? [] : dynamicConditionOptions}
               selectedCondition={filters.condition}
               onConditionChange={(condition) => updateFilter('condition', condition)}
               showCounts={config.showFilterCounts}
