@@ -114,6 +114,13 @@ export interface ApiColorSibling {
       initial_percent: number;
       tea: number;
     } | null;
+    /** Cuota por frecuencia de ESTE sibling. Sin esto la tarjeta muestra la
+     *  cuota del producto primario al elegir otro color. */
+    payment_hooks?: Record<string, {
+      price: number;
+      term_months?: number | null;
+      initial_percent?: number;
+    }> | null;
   };
   variant?: {
     id: number;
@@ -631,6 +638,14 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
             discount: sib.pricing.discount_percent > 0 ? sib.pricing.discount_percent : undefined,
             specs: sibSpecs,
             rawSpecs: sib.specs && Object.keys(sib.specs).length > 0 ? sib.specs : undefined,
+            paymentHooks: sib.pricing.payment_hooks
+              ? Object.fromEntries(
+                  Object.entries(sib.pricing.payment_hooks).map(([freq, h]) => [
+                    freq,
+                    { price: h.price, termMonths: h.term_months ?? undefined, initialPercent: h.initial_percent },
+                  ])
+                )
+              : undefined,
           };
         })
       : apiProduct.colors?.map(c => ({
