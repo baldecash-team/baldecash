@@ -18,7 +18,8 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding, isCopiaHomeStyleLanding, isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
+import { resolveDetailVariant } from '../utils/detailVariant';
 import { GamerProductDetailClient } from '../GamerProductDetailClient';
 import { CopiaHomeMobileDetail } from '../copia-home/CopiaHomeMobileDetail';
 import { CopiaHomeDesktopDetail } from '../copia-home/CopiaHomeDesktopDetail';
@@ -70,7 +71,7 @@ function ProductDetailContent() {
   const isMobile = useIsMobile();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, overlayVariant } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
@@ -326,9 +327,21 @@ function ProductDetailContent() {
   const productIsRefurbished =
     isRefurbishedCondition(apiData.product.condition) ||
     /semi\s*nuevo|seminuevo|reacondicion/i.test(`${apiData.product.name ?? ''} ${apiData.product.displayName ?? ''}`);
-  // copia-home y landings de 2° financiamiento (renueva-*): el detalle desktop de
-  // seminuevos usa la variante (refurb-only). El catálogo NO cambia.
-  const useCopiaHomeDesktopDetail = isCopiaHomeStyleLanding(landing) && !isMobile && productIsRefurbished;
+  // Qué ficha corresponde: copia-home y renueva-* entran por slug; Family Farms
+  // por variante de overlay, que llega por API. Ver resolveDetailVariant.
+  const detailVariant = resolveDetailVariant({
+    landing,
+    overlayVariant,
+    isMobile,
+    isRefurbished: productIsRefurbished,
+  });
+
+  // La configuración de la landing llega en su propio pedido, después del layout.
+  // Dibujar ahora mostraría la ficha estándar y saltaría al selector de grados al
+  // resolver: media columna cambiando entera. Se espera.
+  if (detailVariant === 'pending') {
+    return <LoadingFallback />;
+  }
 
   return (
     // overflow-x-clip (no -hidden): clipea el desborde horizontal SIN crear un
@@ -404,7 +417,7 @@ function ProductDetailContent() {
           paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
       >
-        {isCopiaHomeStyleLanding(landing) && isMobile ? (
+        {detailVariant === 'grades-mobile' ? (
           <CopiaHomeMobileDetail
             apiData={apiData}
             landing={landing}
@@ -415,8 +428,9 @@ function ProductDetailContent() {
             defaultFrequency={defaultFrequency}
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
             isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+            gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
           />
-        ) : useCopiaHomeDesktopDetail ? (
+        ) : detailVariant === 'grades-desktop' ? (
           <CopiaHomeDesktopDetail
             apiData={apiData}
             landing={landing}
@@ -426,6 +440,7 @@ function ProductDetailContent() {
             defaultFrequency={defaultFrequency}
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
             isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+            gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
           />
         ) : (
         <ProductDetail
