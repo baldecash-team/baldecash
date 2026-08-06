@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, Truck, CheckCircle2, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, CheckCircle2, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -65,7 +65,8 @@ import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
-import { formatDeferredFrom } from '@/app/prototipos/0.6/utils/deferredDelivery';
+// formatDeferredFrom se usaba en el bloque de entrega diferida de la tarjeta,
+// hoy comentado (BAL-2824). Reponer el import al reactivarlo.
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
 /**
@@ -658,8 +659,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Color Selector - solo visible en cards de familia (colors.length > 1) */}
-            {!hideColors && product.colors && product.colors.length > 1 && (
+            {/* Color Selector — visible desde un color: los de una familia
+                (color_siblings) y tambien el color propio de la variante. */}
+            {!hideColors && product.colors && product.colors.length >= 1 && (
               <div className="flex justify-center mb-4 min-h-[32px]">
                 <ColorSelector
                   colors={product.colors}
@@ -817,7 +819,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Entrega diferida (informativa) — solo si el producto está taggeado */}
+            {/* Entrega diferida (informativa) — OCULTO a pedido de negocio (BAL-2824).
+                El aviso de fecha se mantiene en el modal previo a "Lo quiero"
+                (handleQuieroClick) y en el detalle de producto; se retiró de la
+                grilla porque la fecha estimada quedaba a la vista y desactualizada.
+                Para reactivarlo, descomentar.
             {product.deferredDelivery?.isDeferred && (() => {
               const range = formatDeferredFrom(product.deferredDelivery.estimatedFrom);
               return (
@@ -834,6 +840,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
               );
             })()}
+            */}
 
             {/* CTAs */}
             <div className="flex gap-2 w-full">
