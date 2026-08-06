@@ -74,6 +74,24 @@ export interface UseCatalogProductsResult {
 }
 
 /**
+ * Concatena la pagina entrante descartando lo que ya estaba en la lista.
+ *
+ * La card se renderiza con key={landingProductId ?? id}. Al concatenar paginas
+ * sin filtrar, un producto que ya figuraba entra dos veces y React advierte
+ * "two children with the same key", lo que puede omitir o duplicar tarjetas al
+ * re-renderizar. Devuelve la referencia previa cuando no hay nada nuevo, para
+ * no forzar un re-render de toda la grilla.
+ */
+export function appendUniqueProducts(
+  previos: CatalogProduct[],
+  entrantes: CatalogProduct[],
+): CatalogProduct[] {
+  const vistos = new Set(previos.map(p => String(p.landingProductId ?? p.id)));
+  const nuevos = entrantes.filter(p => !vistos.has(String(p.landingProductId ?? p.id)));
+  return nuevos.length > 0 ? [...previos, ...nuevos] : previos;
+}
+
+/**
  * Hook to load catalog products from API only (NO mock fallback)
  * Implements incremental loading: 16 initial + 8 per "load more"
  * Re-fetches when filters change
@@ -209,7 +227,9 @@ export function useCatalogProducts({
       });
 
       if (result && result.products.length > 0) {
-        setProducts(prev => [...prev, ...result.products]);
+        setProducts(prev => appendUniqueProducts(prev, result.products));
+        // El offset avanza segun lo que devolvio el API, no segun lo que quedo
+        // tras deduplicar: si no, la siguiente pagina repetiria ese tramo.
         setOffset(prev => prev + result.products.length);
         setHasMore(result.hasMore);
       } else {
