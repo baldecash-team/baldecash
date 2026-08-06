@@ -38,6 +38,7 @@ import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import GradeThumbStrip from './GradeThumbStrip';
 import { targetSlugForGrade, currentGrade } from './gradeSelector';
+import { FamilyFarmGradeSelector, type GradeOption } from '../family-farm/FamilyFarmGradeSelector';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from './copiaHomeDesktop.module.css';
 
@@ -67,6 +68,8 @@ interface Props {
   defaultFrequency?: string;
   onToggleWishlist?: (item: WishlistItem) => void;
   isInWishlist?: boolean;
+  /** `familyfarm` cambia el selector de grados por el de la campaña (BAL-2812). */
+  gradeVariant?: 'default' | 'familyfarm';
 }
 
 export function CopiaHomeDesktopDetail({
@@ -78,6 +81,7 @@ export function CopiaHomeDesktopDetail({
   defaultFrequency,
   onToggleWishlist,
   isInWishlist = false,
+  gradeVariant = 'default',
 }: Props) {
   const router = useRouter();
   const product = apiData.product;
@@ -122,6 +126,13 @@ export function CopiaHomeDesktopDetail({
     ? (hasRealGrades ? !!realGradeSib?.isAvailable : GRADES[grade].disponible)
     : true;
   const canBuy = isAvailable && gradeAvailable;
+  // Mismo set que gradeButtons, con el precio y la disponibilidad de cada grado:
+  // los necesita el selector de Family Farms para poner el precio en la tarjeta.
+  const gradeOptions: GradeOption[] = hasRealGrades
+    ? [...gradeSiblings]
+        .sort((a, b) => a.grade.localeCompare(b.grade))
+        .map((s) => ({ grade: s.grade as GradeKey, price: s.price, isAvailable: s.isAvailable }))
+    : (Object.keys(GRADES) as GradeKey[]).map((g) => ({ grade: g, isAvailable: GRADES[g].disponible }));
   const gradeButtons: GradeKey[] = hasRealGrades
     ? [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)).map((s) => s.grade as GradeKey)
     : (['A', 'B', 'C'] as GradeKey[]);
@@ -361,6 +372,14 @@ export function CopiaHomeDesktopDetail({
               {/* Elige el grado (solo reacondicionado) */}
               {isRefurbished && gradeInfo && (
                 <div className={styles.block}>
+                  {gradeVariant === 'familyfarm' ? (
+                    <FamilyFarmGradeSelector
+                      grades={gradeOptions}
+                      selected={grade}
+                      onSelect={selectGrade}
+                    />
+                  ) : (
+                  <>
                   <div className={styles.blockT}>Elige el grado</div>
                   <div className={styles.grados}>
                     {gradeButtons.map((g) => (
@@ -369,6 +388,8 @@ export function CopiaHomeDesktopDetail({
                       </button>
                     ))}
                   </div>
+                  </>
+                  )}
                   {/* Condiciones + carrusel del grado seleccionado (A/B/C). En B/C se muestran
                       sus condiciones e imágenes; el spec sheet completo sigue oculto (item 6). */}
                   {gradeInfo && (

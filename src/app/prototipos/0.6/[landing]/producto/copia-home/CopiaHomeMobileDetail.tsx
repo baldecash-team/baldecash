@@ -31,6 +31,8 @@ import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import { targetSlugForGrade, currentGrade } from './gradeSelector';
+import { FamilyFarmGradeSelector, type GradeOption } from '../family-farm/FamilyFarmGradeSelector';
+import { GRADE_HEADING } from '../family-farm/familyFarmGrades';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
@@ -85,6 +87,8 @@ interface Props {
   defaultFrequency?: string;
   onToggleWishlist?: (item: WishlistItem) => void;
   isInWishlist?: boolean;
+  /** `familyfarm` cambia el selector de grados por el de la campaña (BAL-2812). */
+  gradeVariant?: 'default' | 'familyfarm';
 }
 
 export function CopiaHomeMobileDetail({
@@ -97,6 +101,7 @@ export function CopiaHomeMobileDetail({
   defaultFrequency,
   onToggleWishlist,
   isInWishlist = false,
+  gradeVariant = 'default',
 }: Props) {
   const router = useRouter();
   const { setSelectedProduct } = useProduct();
@@ -145,6 +150,13 @@ export function CopiaHomeMobileDetail({
     : true;
   const canBuy = isAvailable && gradeAvailable;
   // Botones de grado: desde los siblings reales si existen, si no el mock A/B/C.
+  // Mismo set que gradeButtons, con precio y disponibilidad por grado: los usa
+  // el selector de Family Farms para poner el precio en cada tarjeta.
+  const gradeOptions: GradeOption[] = hasRealGrades
+    ? [...gradeSiblings]
+        .sort((a, b) => a.grade.localeCompare(b.grade))
+        .map((s) => ({ grade: s.grade as GradeKey, price: s.price, isAvailable: s.isAvailable }))
+    : (Object.keys(GRADES) as GradeKey[]).map((g) => ({ grade: g, isAvailable: GRADES[g].disponible }));
   const gradeButtons: GradeKey[] = hasRealGrades
     ? [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)).map((s) => s.grade as GradeKey)
     : (['A', 'B', 'C'] as GradeKey[]);
@@ -393,7 +405,16 @@ export function CopiaHomeMobileDetail({
 
         {/* Elige el grado (solo reacondicionado) */}
         {isRefurbished && gradeInfo && (
-          <Acc title="Elige el grado" sub="El grado refleja el nivel de uso y el estado estético del equipo" icon={<Star size={20} />} isOpen={!!open.grado} onToggle={() => toggle('grado')}>
+          <Acc title={gradeVariant === 'familyfarm' ? GRADE_HEADING : 'Elige el grado'} sub="El grado refleja el nivel de uso y el estado estético del equipo" icon={<Star size={20} />} isOpen={!!open.grado} onToggle={() => toggle('grado')}>
+            {gradeVariant === 'familyfarm' ? (
+              // Sin encabezado: el acordeón ya trae el título y el subtítulo.
+              <FamilyFarmGradeSelector
+                grades={gradeOptions}
+                selected={grade}
+                onSelect={selectGrade}
+                showHeading={false}
+              />
+            ) : (
             <div className={styles.grados}>
               {gradeButtons.map((g) => (
                 <button key={g} type="button" className={`${styles.grado} ${g === grade ? styles.gradoOn : ''}`} onClick={() => selectGrade(g)}>
@@ -401,6 +422,7 @@ export function CopiaHomeMobileDetail({
                 </button>
               ))}
             </div>
+            )}
             {/* Condiciones + carrusel del grado seleccionado (A/B/C). En B/C se muestran
                 sus condiciones e imágenes; el spec sheet completo sigue oculto (item 6). */}
             {gradeInfo && (

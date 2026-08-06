@@ -428,6 +428,7 @@ function ProductDetailContent() {
             defaultFrequency={defaultFrequency}
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
             isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+            gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
           />
         ) : detailVariant === 'grades-desktop' ? (
           <CopiaHomeDesktopDetail
@@ -439,6 +440,7 @@ function ProductDetailContent() {
             defaultFrequency={defaultFrequency}
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
             isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+            gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
           />
         ) : (
         <ProductDetail
