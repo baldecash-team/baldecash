@@ -129,6 +129,12 @@ export interface GradeSibling {
   price: number | null;
   stockAvailable: number;
   isAvailable: boolean;
+  /**
+   * Cuota del plazo más corto del grado (BAL-2864). Es la que muestra la
+   * tarjeta del selector; `price` se queda para el panel de ahorro.
+   * `undefined` = no calculable, la tarjeta no muestra número.
+   */
+  minTermQuota?: number;
 }
 
 export interface ProductDetail {

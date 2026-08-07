@@ -34,16 +34,70 @@ describe('FamilyFarmGradeSelector', () => {
     expect(screen.queryByRole('radio', { name: /Grado A/ })).not.toBeInTheDocument();
   });
 
-  it('shows each grade title and price on its card', () => {
+  it('shows each grade title on its card', () => {
     renderSelector();
-    const cardA = screen.getByRole('radio', { name: /Grado A/ });
-    expect(cardA).toHaveTextContent(GRADE_COPY.A.titulo);
-    expect(cardA).toHaveTextContent('S/574');
+    expect(screen.getByRole('radio', { name: /Grado A/ })).toHaveTextContent(GRADE_COPY.A.titulo);
   });
 
-  it('omits the price when the grade does not bring one', () => {
+  // BAL-2861: el precio de lista salió de la tarjeta. Sigue llegando en `price`
+  // porque el panel de ahorro lo necesita, pero no se pinta acá.
+  it('never shows the list price on the card', () => {
+    renderSelector();
+    expect(screen.getByRole('radio', { name: /Grado A/ })).not.toHaveTextContent('574');
+  });
+
+  it('omits the number when the grade does not bring one', () => {
     renderSelector({ grades: [{ grade: 'A', isAvailable: true }], selected: 'A' });
     expect(screen.getByRole('radio', { name: /Grado A/ })).not.toHaveTextContent('S/');
+  });
+
+  // BAL-2861: la tarjeta muestra la cuota del plazo más corto, no el precio de
+  // lista. El precio sugiere un total a pagar, y ese total cambia con el plazo.
+  describe('quota label', () => {
+    const withQuota = [
+      { grade: 'A' as const, price: 2296, minTermQuota: 410, isAvailable: true },
+      { grade: 'C' as const, price: 1148, minTermQuota: 211, isAvailable: true },
+    ];
+
+    it('shows the quota, not the list price', () => {
+      renderSelector({ grades: withQuota, selected: 'A' });
+      const cardA = screen.getByRole('radio', { name: /Grado A/ });
+      expect(cardA).toHaveTextContent('S/410');
+      expect(cardA).not.toHaveTextContent('2,296');
+    });
+
+    it('defaults to the monthly suffix', () => {
+      renderSelector({ grades: withQuota, selected: 'A' });
+      expect(screen.getByRole('radio', { name: /Grado A/ })).toHaveTextContent('S/410/mes');
+    });
+
+    it('follows the weekly frequency of the page', () => {
+      renderSelector({ grades: withQuota, selected: 'A', paymentFrequency: 'semanal' });
+      expect(screen.getByRole('radio', { name: /Grado A/ })).toHaveTextContent('S/410/sem');
+    });
+
+    it('follows the fortnightly frequency of the page', () => {
+      renderSelector({ grades: withQuota, selected: 'A', paymentFrequency: 'quincenal' });
+      expect(screen.getByRole('radio', { name: /Grado A/ })).toHaveTextContent('S/410/qcn');
+    });
+
+    it('shows no number when the grade brings no quota', () => {
+      renderSelector({
+        grades: [{ grade: 'A', price: 2296, isAvailable: true }],
+        selected: 'A',
+      });
+      expect(screen.getByRole('radio', { name: /Grado A/ })).not.toHaveTextContent('S/');
+    });
+
+    // Defensa en profundidad: el backend ya descarta las cuotas no positivas,
+    // pero un 0 que llegara aquí anunciaría un equipo regalado.
+    it('shows no number when the quota is zero', () => {
+      renderSelector({
+        grades: [{ grade: 'A', price: 2296, minTermQuota: 0, isAvailable: true }],
+        selected: 'A',
+      });
+      expect(screen.getByRole('radio', { name: /Grado A/ })).not.toHaveTextContent('S/');
+    });
   });
 
   describe('selection', () => {

@@ -66,6 +66,8 @@ interface ApiGradeSibling {
   price: number | null;
   stock_available: number;
   is_available: boolean;
+  /** Cuota del plazo más corto (BAL-2864). La tarjeta de grado muestra esta. */
+  min_term_quota?: number | null;
 }
 
 interface ApiProductBadge {
@@ -519,6 +521,12 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
       price: sib.price,
       stockAvailable: sib.stock_available,
       isAvailable: sib.is_available,
+      // El wire manda `number | null`; el dominio lo modela `number | undefined`.
+      // Normalizar acá deja el null fuera del resto del front: ningún consumidor
+      // tiene que acordarse de que `null !== undefined` es true en JS.
+      // No es lo que impide el "S/0" — de eso se ocupa el guard del render, que
+      // además descarta el 0. Son dos defensas distintas, no la misma dos veces.
+      minTermQuota: sib.min_term_quota ?? undefined,
     })),
     description: apiProduct.description,
     shortDescription: apiProduct.short_description,
