@@ -30,7 +30,7 @@ function apiPlan(options: ReturnType<typeof apiOption>[]) {
   return {
     term: 13,
     term_months: 3,
-    payment_frequency: 'semanal',
+    payment_frequency: 'semanal' as const,
     tea: 40,
     tcea: 40,
     options,

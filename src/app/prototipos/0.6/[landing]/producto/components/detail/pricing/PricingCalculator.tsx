@@ -221,6 +221,73 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
     }));
   }, [paymentPlans]);
 
+  // ── Armadas de la inicial ────────────────────────────────────────────────
+  //
+  // Cada modalidad (1, 2 o 4 armadas) es una celda propia del pricing con su
+  // propio plazo de financiamiento, y las armadas SE DESCUENTAN del plazo
+  // total: 13 cuotas + 4 armadas = 15 + 2 = 17 + 0 = 17 semanas. Por eso el
+  // chip cambia el plazo de financiamiento pero deja intacto el plazo total,
+  // que es lo que el cliente tiene en la cabeza ("son 17 semanas").
+
+  /** Armadas de un plan, para el % de inicial elegido. */
+  const armadasDe = useCallback((plan: PaymentPlan | undefined): number => {
+    if (!plan?.options) return 1;
+    const opt = plan.options.find(o => o.initialPercent === selectedInitialPercent) ?? plan.options[0];
+    return opt?.initialInstallments ?? 1;
+  }, [selectedInitialPercent]);
+
+  /** Semanas/meses totales del plan: financiamiento + armadas. */
+  const plazoTotalDe = useCallback((plan: PaymentPlan | undefined): number => {
+    if (!plan) return 0;
+    const n = armadasDe(plan);
+    return plan.term + (n > 1 ? n : 0);
+  }, [armadasDe]);
+
+  /**
+   * Modalidades ofrecidas. Con una sola no hay nada que elegir y los chips no
+   * se renderizan: es el caso de todo el catálogo, que queda igual que antes.
+   */
+  const armadasDisponibles = useMemo(() => {
+    const vistas = new Set<number>();
+    paymentPlans.forEach(p => vistas.add(armadasDe(p)));
+    return [...vistas].sort((a, b) => a - b);
+  }, [paymentPlans, armadasDe]);
+
+  const hayArmadas = armadasDisponibles.length > 1;
+
+  const [selectedArmadas, setSelectedArmadas] = useState(1);
+
+  // Si la modalidad elegida deja de existir (cambió el % de inicial o la
+  // frecuencia), cae a la primera disponible en vez de quedar sin planes.
+  useEffect(() => {
+    if (hayArmadas && !armadasDisponibles.includes(selectedArmadas)) {
+      setSelectedArmadas(armadasDisponibles[0]);
+    }
+  }, [armadasDisponibles, hayArmadas, selectedArmadas]);
+
+  /** Planes de la modalidad elegida. Sin armadas, todos. */
+  const planesVisibles = useMemo(
+    () => (hayArmadas ? paymentPlans.filter(p => armadasDe(p) === selectedArmadas) : paymentPlans),
+    [paymentPlans, hayArmadas, selectedArmadas, armadasDe],
+  );
+
+  /** Un plan cualquiera de esa modalidad — solo para leer los montos del chip. */
+  const planesVisiblesPara = (n: number) => paymentPlans.find(p => armadasDe(p) === n);
+
+  /** Cambia la modalidad conservando el plazo total. */
+  const cambiarArmadas = (n: number) => {
+    const totalActual = plazoTotalDe(paymentPlans.find(p => p.term === selectedTerm));
+    setSelectedArmadas(n);
+
+    const candidatos = paymentPlans.filter(p => armadasDe(p) === n);
+    // El mismo plazo total; si no existe, el más cercano — nunca dejar al
+    // usuario sin plazo seleccionado.
+    const destino = candidatos.find(p => plazoTotalDe(p) === totalActual)
+      ?? candidatos.sort((a, b) =>
+        Math.abs(plazoTotalDe(a) - totalActual) - Math.abs(plazoTotalDe(b) - totalActual))[0];
+    if (destino) setSelectedTerm(destino.term);
+  };
+
   // Obtener la opción seleccionada para un plazo específico
   const getOptionForTerm = (term: number): InitialPaymentOption | null => {
     const plan = paymentPlans.find(p => p.term === term);
@@ -312,6 +379,48 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         </div>
       </div>
 
+      {/* Armadas de la inicial — solo si hay mas de una modalidad */}
+      {hayArmadas && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-[var(--text,#374151)] mb-1">
+            ¿Cómo pagas la inicial?
+          </label>
+          <p className="text-xs text-[var(--text-muted,#6b7280)] mb-3">
+            Fraccionarla baja lo que pagas al inicio, pero sube la cuota: el
+            plazo total no cambia.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {armadasDisponibles.map((n) => {
+              const plan = planesVisiblesPara(n);
+              const opt = plan?.options?.find(o => o.initialPercent === selectedInitialPercent) ?? plan?.options?.[0];
+              const cadaUna = opt?.initialInstallmentAmounts?.[0]
+                ?? (opt ? opt.initialAmount / n : 0);
+              const activo = selectedArmadas === n;
+
+              return (
+                <button
+                  key={n}
+                  onClick={() => cambiarArmadas(n)}
+                  aria-pressed={activo}
+                  className={`py-2.5 px-4 text-sm font-medium rounded-full transition-all cursor-pointer min-h-[40px] ${
+                    activo
+                      ? 'bg-[var(--color-primary)] text-white shadow-md'
+                      : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
+                  }`}
+                >
+                  {n === 1 ? 'En 1 pago' : `En ${n} partes`}
+                  <span className={`block text-[11px] font-normal ${activo ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'}`}>
+                    {n === 1
+                      ? `S/${formatMoneyNoDecimals(Math.floor(opt?.initialAmount ?? 0))}`
+                      : `S/${formatMoneyNoDecimals(Math.floor(cadaUna))} c/u`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Term Cards */}
       {isLoadingPlans ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -321,7 +430,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[...paymentPlans].sort((a, b) => a.term - b.term).map((plan) => {
+          {[...planesVisibles].sort((a, b) => a.term - b.term).map((plan) => {
             const option = getOptionForTerm(plan.term);
             if (!option) return null;
 
