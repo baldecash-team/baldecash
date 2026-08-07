@@ -21,6 +21,7 @@ export type SortOption =
   | 'price_asc'
   | 'price_desc'
   | 'quota_asc'
+  | 'quota_desc'
   | 'newest'
   | 'popular';
 

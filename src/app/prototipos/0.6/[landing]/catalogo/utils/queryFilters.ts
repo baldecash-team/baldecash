@@ -265,6 +265,7 @@ export const parseFiltersFromParams = (
       'price_desc',
       'newest',
       'quota_asc',
+      'quota_desc',
       'popular',
     ];
     if (validSorts.includes(sort as SortOption)) {

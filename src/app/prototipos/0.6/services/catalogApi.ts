@@ -297,7 +297,15 @@ export interface CatalogFilters {
   coupon_code?: string;
 }
 
-export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured' | 'newest';
+export type SortBy =
+  | 'display_order'
+  | 'price_asc'
+  | 'price_desc'
+  | 'quota_asc'
+  | 'quota_desc'
+  | 'popular'
+  | 'featured'
+  | 'newest';
 
 // ============================================
 // API Functions
