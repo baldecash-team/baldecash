@@ -329,6 +329,34 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reentrada con el pago pendiente: al volver por el link hay que ABRIR el
+  // paso de pago, no rebobinar al anterior.
+  //
+  // `payment` solo entra en `pasos` cuando ya hay `linkPago`, asi que al montar
+  // la lista tiene un elemento menos y el `next_step_index` del backend (que si
+  // lo cuenta) queda fuera de rango: el clamp lo devolvia al sub-paso previo,
+  // ya completado. Se pide el veredicto para tener el link y recien ahi el paso
+  // existe.
+  const pagoPendienteRemoto = useMemo(() => {
+    const pasosRemotos = progressState?.steps ?? [];
+    if (!pasosRemotos.length) return false;
+
+    const pago = pasosRemotos.find((p) => p.type === 'payment');
+    if (!pago || pago.status === 'completed') return false;
+
+    // Solo si TODO lo anterior esta cerrado; si no, el orden normal manda.
+    return pasosRemotos
+      .filter((p) => p.type !== 'payment')
+      .every((p) => p.status === 'completed');
+  }, [progressState]);
+
+  useEffect(() => {
+    if (pagoPendienteRemoto && !linkPago && !cerrando) {
+      void cerrarKyc();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagoPendienteRemoto, linkPago]);
+
   // Gate: landing sin `kyc` habilitado (o sin sub-pasos habilitados) → saltar
   // directo al resumen. `kycEnabled` viene de `useSolicitarFlow` (fail-safe:
   // sección ausente ⇒ false), así que una entrada por URL directa a una
@@ -445,7 +473,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     setCerrando(true);
 
     // Misma prueba de titularidad que usa `completeKycStep`.
-    const veredicto = code ? await completarKyc(code, effectiveDni) : null;
+    const veredicto = code ? await completarKyc(code, effectiveDni, resumeToken) : null;
 
     if (veredicto?.aprobado && veredicto.tiene_cuota_inicial && veredicto.link_pago) {
       track('kyc_payment_step_shown', { application_code: code });

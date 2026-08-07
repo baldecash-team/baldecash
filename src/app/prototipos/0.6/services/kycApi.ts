@@ -253,8 +253,18 @@ export interface KycVeredicto {
 export async function completarKyc(
   applicationCode: string,
   documentNumber?: string,
+  resumeToken?: string,
 ): Promise<KycVeredicto | null> {
-  if (!documentNumber) return null;
+  // Prueba de titularidad: el DNI o el token, exactamente una. Entrando por la
+  // pagina tokenizada no hay DNI —no se le pide a nadie— y exigirlo dejaba esa
+  // via sin cerrar el KYC, o sea sin paso de pago: se iba derecho a
+  // confirmacion aunque hubiera inicial que cobrar.
+  const prueba = documentNumber
+    ? { document_number: documentNumber }
+    : resumeToken
+      ? { resume_token: resumeToken }
+      : null;
+  if (!prueba) return null;
 
   try {
     const response = await fetch(`${API_BASE_URL}/public/kyc/completar`, {
@@ -262,7 +272,7 @@ export async function completarKyc(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         application_code: applicationCode,
-        document_number: documentNumber,
+        ...prueba,
       }),
     });
 
