@@ -49,6 +49,15 @@ jest.mock('../../../services/landingApi', () => ({
   evaluateFamilyFarmAccess: (...args: unknown[]) => mockEvaluateFamilyFarmAccess(...args),
 }));
 
+// ── hardNavigate ──────────────────────────────────────────────────────────
+// Seam propio del repo: jsdom 20 hace `window.location.assign` no
+// configurable, así que la navegación dura solo se puede observar mockeando
+// este módulo.
+const mockHardNavigate = jest.fn();
+jest.mock('../../catalogo/components/activator/hardNavigate', () => ({
+  hardNavigate: (...args: unknown[]) => mockHardNavigate(...args),
+}));
+
 import { FamilyFarmOverlayGate } from '../FamilyFarmOverlayGate';
 
 function renderGate() {
@@ -113,15 +122,54 @@ describe('FamilyFarmOverlayGate — loading state', () => {
     expect(submit).toBeDisabled();
     expect(screen.getByRole('status')).toBeInTheDocument();
 
-    resolveFn({ valid: true, first_name: 'Rosa' });
+    resolveFn({ valid: true, first_name: 'Rosa', access_token: 'tok-1' });
     await waitFor(() => {
-      expect(screen.getByText('¡Hola, Rosa!')).toBeInTheDocument();
+      expect(mockHardNavigate).toHaveBeenCalledWith('/family-farm-cosechador/catalogo');
     });
+  });
+
+  /*
+   * En los caminos que navegan, `submitting` NO se apaga: la navegación dura no
+   * desmonta el componente al instante, y reactivar el botón mientras la página
+   * se va deja disparar un segundo submit.
+   */
+  it('keeps the submit control disabled after a successful navigation', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({ valid: true, first_name: 'Rosa', access_token: 'tok-1' });
+
+    renderGate();
+    await user.type(screen.getByLabelText('Número de documento'), '80011001');
+    const submit = screen.getByRole('button');
+    await user.click(submit);
+
+    await waitFor(() => expect(mockHardNavigate).toHaveBeenCalledTimes(1));
+    expect(submit).toBeDisabled();
+  });
+
+  it('re-enables the submit control when access is denied, so another DNI can be tried', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({ valid: false, found_in_sibling: false });
+
+    renderGate();
+    await user.type(screen.getByLabelText('Número de documento'), '80011003');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Tu documento no tiene acceso a esta promoción.')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button')).not.toBeDisabled();
+    expect(mockHardNavigate).not.toHaveBeenCalled();
   });
 });
 
 describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
-  it('valid:true renders the welcome view with first_name and document', async () => {
+  /*
+   * BAL-2867: los dos caminos con acceso navegan de una. Las pantallas
+   * intermedias que pedían un segundo clic ("¡Hola, {nombre}!" y "tu acceso
+   * está en {landing}") ya no existen, así que lo que se asserta es el destino
+   * de la navegación, no un render.
+   */
+  it('valid:true navigates straight to this landing catalog, after persisting the VIP token', async () => {
     const user = userEvent.setup();
     mockEvaluateFamilyFarmAccess.mockResolvedValue({ valid: true, first_name: 'Rosa', access_token: 'tok-1' });
 
@@ -131,14 +179,26 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByText('¡Hola, Rosa!')).toBeInTheDocument();
+      expect(mockHardNavigate).toHaveBeenCalledWith('/family-farm-cosechador/catalogo');
     });
-    expect(screen.getByText('80011001')).toBeInTheDocument();
     expect(mockSaveVipToken).toHaveBeenCalledWith('family-farm-cosechador', 'tok-1');
     expect(mockSaveVipName).toHaveBeenCalledWith('family-farm-cosechador', 'Rosa');
   });
 
-  it('valid:false + found_in_sibling:true renders the sibling notice with a link (no re-validation)', async () => {
+  it('no longer renders a welcome step asking for a second click', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({ valid: true, first_name: 'Rosa', access_token: 'tok-1' });
+
+    renderGate();
+    await user.type(screen.getByLabelText('Número de documento'), '80011001');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => expect(mockHardNavigate).toHaveBeenCalled());
+    expect(screen.queryByText('¡Hola, Rosa!')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /comenzar/i })).not.toBeInTheDocument();
+  });
+
+  it('valid:false + found_in_sibling:true navigates straight to the sibling catalog', async () => {
     const user = userEvent.setup();
     mockEvaluateFamilyFarmAccess.mockResolvedValue({
       valid: false,
@@ -154,15 +214,31 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByText('Family Farm - Fijo')).toBeInTheDocument();
+      expect(mockHardNavigate).toHaveBeenCalledWith('/family-farm-fijo/catalogo');
     });
-    const siblingLink = screen.getByRole('link', { name: /empezar/i });
-    expect(siblingLink.tagName).toBe('A');
-    expect(siblingLink).toHaveAttribute('href', '/family-farm-fijo/catalogo');
+  });
+
+  it('no longer renders the sibling notice asking for a second click', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({
+      valid: false,
+      found_in_sibling: true,
+      sibling_landing_slug: 'family-farm-fijo',
+      sibling_landing_name: 'Family Farm - Fijo',
+      first_name: 'Miguel',
+    });
+
+    renderGate();
+    await user.type(screen.getByLabelText('Número de documento'), '80011002');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => expect(mockHardNavigate).toHaveBeenCalled());
+    expect(screen.queryByText('Family Farm - Fijo')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /empezar/i })).not.toBeInTheDocument();
   });
 
   // ── sibling_access_token handoff (BAL-2786) ──────────────────────────────
-  it('carries sibling_access_token as ?vip_auto= on the sibling link when the backend provides it', async () => {
+  it('carries sibling_access_token as ?vip_auto= on the destination URL when the backend provides it', async () => {
     const user = userEvent.setup();
     mockEvaluateFamilyFarmAccess.mockResolvedValue({
       valid: false,
@@ -179,13 +255,13 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByText('Family Farms | BaldeCash A')).toBeInTheDocument();
+      expect(mockHardNavigate).toHaveBeenCalledWith(
+        '/family-farms-baldecash-a/catalogo?vip_auto=sib-tok-abc123',
+      );
     });
-    const siblingLink = screen.getByRole('link', { name: /empezar/i });
-    expect(siblingLink).toHaveAttribute('href', '/family-farms-baldecash-a/catalogo?vip_auto=sib-tok-abc123');
   });
 
-  it('omits ?vip_auto= from the sibling link when sibling_access_token is absent (degrades to current behavior)', async () => {
+  it('omits ?vip_auto= from the destination URL when sibling_access_token is absent', async () => {
     const user = userEvent.setup();
     mockEvaluateFamilyFarmAccess.mockResolvedValue({
       valid: false,
@@ -200,12 +276,9 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     await user.type(input, '80011002');
     await user.click(screen.getByRole('button'));
 
-    await waitFor(() => {
-      expect(screen.getByText('Family Farm - Fijo')).toBeInTheDocument();
-    });
-    const siblingLink = screen.getByRole('link', { name: /empezar/i });
-    expect(siblingLink).toHaveAttribute('href', '/family-farm-fijo/catalogo');
-    expect(siblingLink.getAttribute('href')).not.toContain('vip_auto');
+    await waitFor(() => expect(mockHardNavigate).toHaveBeenCalled());
+    expect(mockHardNavigate).toHaveBeenCalledWith('/family-farm-fijo/catalogo');
+    expect(mockHardNavigate.mock.calls[0][0]).not.toContain('vip_auto');
   });
 
   it('never persists a VIP token for the CURRENT (router) landing on a sibling match', async () => {
@@ -224,15 +297,14 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     await user.type(input, '80011004');
     await user.click(screen.getByRole('button'));
 
-    await waitFor(() => {
-      expect(screen.getByText('Family Farms | BaldeCash A')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(mockHardNavigate).toHaveBeenCalled());
     // Critical regression guard (obs 1955): sibling_access_token must NEVER
-    // flow into saveVipToken for the router landing itself.
+    // flow into saveVipToken for the router landing itself. La navegación
+    // directa no cambia esto: el token del destino viaja solo en la URL.
     expect(mockSaveVipToken).not.toHaveBeenCalled();
   });
 
-  it('valid:false (no sibling) renders the no-access notice', async () => {
+  it('valid:false (no sibling) renders the no-access notice and does not navigate', async () => {
     const user = userEvent.setup();
     mockEvaluateFamilyFarmAccess.mockResolvedValue({ valid: false, found_in_sibling: false });
 
@@ -244,6 +316,7 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     await waitFor(() => {
       expect(screen.getByText('Tu documento no tiene acceso a esta promoción.')).toBeInTheDocument();
     });
+    expect(mockHardNavigate).not.toHaveBeenCalled();
   });
 });
 

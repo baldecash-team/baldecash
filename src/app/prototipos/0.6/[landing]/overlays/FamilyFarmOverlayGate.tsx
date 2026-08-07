@@ -4,11 +4,15 @@
  * FamilyFarmOverlayGate (BAL-2521/BAL-2522)
  *
  * Extracted out of layout.tsx (BAL-2522 Commit B) so the component is
- * importable/testable in isolation — see design D2. State machine,
- * evaluateFamilyFarmAccess call, redirects, saveVipToken/saveVipName,
- * digit sanitization and submit gating remain byte-identical to the
- * extraction; Commit C adds the visual redesign in this file plus the
- * colocated `familyFarmOverlay.module.css`.
+ * importable/testable in isolation — see design D2. Commit C added the visual
+ * redesign in this file plus the colocated `familyFarmOverlay.module.css`.
+ *
+ * BAL-2867 colapsó el flujo a un solo clic: validar el DNI navega directo al
+ * catálogo. Antes había dos pantallas de confirmación —"tu acceso está en
+ * {landing}" para el match hermano, y "¡Hola, {nombre}!" para el propio— que
+ * solo pedían un segundo clic hacia el mismo destino. Con eso desapareció la
+ * máquina de estados `form`/`welcome`: el único desenlace que se queda en el
+ * overlay es el de acceso denegado.
  *
  * Deliberately does NOT import the shared `DniInputRow` or `FloatingParticles`
  * (design D2 point 4 / spec "No decorative particles in this variant"): the
@@ -23,6 +27,7 @@ import { saveVipToken, saveVipName } from '../../components/hero/DniModal';
 import { useSessionOptional } from '../solicitar/context/SessionContext';
 import { routes } from '../../utils/routes';
 import { evaluateFamilyFarmAccess } from '../../services/landingApi';
+import { hardNavigate } from '../catalogo/components/activator/hardNavigate';
 import styles from './familyFarmOverlay.module.css';
 
 const DOC_MIN_LENGTH = 8;
@@ -38,23 +43,14 @@ const DOC_MAX_LENGTH = 12;
 const FAMILY_FARM_BG_URL = 'https://baldecash.s3.amazonaws.com/illustrations/fondo-campo.webp';
 const FAMILY_FARM_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo-family-farms.webp';
 
-interface SiblingMatch {
-  slug: string;
-  name: string;
-  firstName: string;
-  /**
-   * Token de acceso de la landing hermana (destino). Viaja SOLO en el link
-   * de redirección (`?vip_auto=`) — nunca debe pasar por `saveVipToken` para
-   * la landing ACTUAL (ver línea con `data.access_token` más abajo).
-   */
-  accessToken?: string;
-}
-
 /**
- * Construye el href del botón "Empezar" hacia la landing hermana, adjuntando
- * el token de acceso como `?vip_auto=<token>` cuando está presente. Cuando no
- * hay token (backend no lo envía) degrada al link sin query, comportamiento
- * actual.
+ * Construye la URL de destino hacia la landing hermana, adjuntando el token de
+ * acceso como `?vip_auto=<token>` cuando está presente. Cuando no hay token
+ * (backend no lo envía) degrada a la URL sin query.
+ *
+ * Ese token pertenece a la landing DESTINO: viaja solo en la URL y nunca debe
+ * pasar por `saveVipToken`, que persiste bajo la clave de la landing ACTUAL —
+ * la landing-puerta no debe ganar acceso a su propio catálogo.
  */
 function buildSiblingHref(slug: string, accessToken?: string): string {
   return routes.catalogo(slug, accessToken ? `vip_auto=${encodeURIComponent(accessToken)}` : undefined);
@@ -62,13 +58,10 @@ function buildSiblingHref(slug: string, accessToken?: string): string {
 
 export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidated: () => void; deadline?: string }) {
   const session = useSessionOptional();
-  const [view, setView] = useState<'form' | 'welcome'>('form');
   const [dni, setDni] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [siblingMatch, setSiblingMatch] = useState<SiblingMatch | null>(null);
   const [noAccess, setNoAccess] = useState(false);
-  const [firstName, setFirstName] = useState('');
 
   const isValidDni = dni.length >= DOC_MIN_LENGTH && /^\d{8,12}$/.test(dni);
 
@@ -76,15 +69,24 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
     const cleaned = value.replace(/\D/g, '').slice(0, DOC_MAX_LENGTH);
     setDni(cleaned);
     if (errorMsg) setErrorMsg(null);
-    if (siblingMatch) setSiblingMatch(null);
     if (noAccess) setNoAccess(false);
-  }, [errorMsg, siblingMatch, noAccess]);
+  }, [errorMsg, noAccess]);
 
+  /*
+   * Un solo clic hasta el catálogo (BAL-2867). Antes había dos pantallas de
+   * confirmación intermedias — "tu acceso está en {landing}" para el match
+   * hermano y "¡Hola, {nombre}!" para el propio — que solo pedían un segundo
+   * clic para navegar al mismo destino. Ahora se navega en cuanto el backend
+   * responde.
+   *
+   * `submitting` NO se apaga en los caminos que navegan: la navegación dura de
+   * `hardNavigate` no desmonta el componente al instante, y soltar el botón
+   * mientras la página se va permitiría un segundo submit.
+   */
   const handleSubmit = useCallback(async () => {
     if (!isValidDni || submitting) return;
     setSubmitting(true);
     setErrorMsg(null);
-    setSiblingMatch(null);
     setNoAccess(false);
     try {
       const data = await evaluateFamilyFarmAccess(landing, {
@@ -93,22 +95,16 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
       });
       if (!data.valid) {
         if (data.found_in_sibling && data.sibling_landing_slug) {
-          setSiblingMatch({
-            slug: data.sibling_landing_slug,
-            name: data.sibling_landing_name || data.sibling_landing_slug,
-            firstName: data.first_name || '',
-            accessToken: data.sibling_access_token,
-          });
-        } else {
-          setNoAccess(true);
+          hardNavigate(buildSiblingHref(data.sibling_landing_slug, data.sibling_access_token));
+          return;
         }
+        setNoAccess(true);
         setSubmitting(false);
         return;
       }
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
-      setFirstName(data.first_name || '');
-      setView('welcome');
+      hardNavigate(routes.catalogo(landing));
     } catch {
       setErrorMsg('Error de conexión. Intenta de nuevo.');
       setSubmitting(false);
@@ -143,107 +139,61 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
 
       <div className={styles.stage}>
         <div className={styles.card}>
-          {view === 'form' && (
-            <div className={styles.fade}>
-              <div className={styles.head}>
-                <p className={styles.kicker}>Acceso</p>
-                <h2 className={styles.title}>
-                  <span>Family Farms</span>
-                </h2>
-                <p className={styles.sub}>Descubre tus equipos disponibles</p>
-                <p className={styles.subNote}>
-                  Ingresa tu DNI y conoce los equipos que puedes financiar con BaldeCash.
-                </p>
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="familyfarm-dni">
-                  Número de documento
-                </label>
-                <input
-                  id="familyfarm-dni"
-                  className={styles.input}
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={dni}
-                  onChange={(e) => handleChange(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                  placeholder="Ingresa tu DNI"
-                  maxLength={DOC_MAX_LENGTH}
-                  disabled={submitting}
-                  aria-invalid={!!errorMsg}
-                />
-                {errorMsg && <p className={styles.err}>{errorMsg}</p>}
-              </div>
-
-              <button
-                className={`${styles.btnSubmit} ${submitting ? styles.isLoading : ''}`}
-                onClick={handleSubmit}
-                disabled={!isValidDni || submitting}
-              >
-                {submitting ? (
-                  <span className={styles.spin} role="status" />
-                ) : (
-                  <span className={styles.btnLabel}>Ver equipos</span>
-                )}
-              </button>
-
-              {/* Found in sibling landing — CADE-exact: link only, no re-validation */}
-              {siblingMatch && (
-                <div className={`${styles.notice} ${styles.sibling}`}>
-                  <p>
-                    Hola <span style={{ fontWeight: 600 }}>{siblingMatch.firstName}</span>, tu acceso está en:
-                  </p>
-                  <p className={styles.land}>{siblingMatch.name}</p>
-                  <a href={buildSiblingHref(siblingMatch.slug, siblingMatch.accessToken)} className={styles.btnPrimary}>
-                    Empezar
-                  </a>
-                </div>
-              )}
-
-              {/* Not found anywhere — closed message, CADE parity */}
-              {noAccess && (
-                <div className={`${styles.notice} ${styles.noaccess}`}>
-                  <p>Tu documento no tiene acceso a esta promoción.</p>
-                </div>
-              )}
-
-              <p className={styles.foot}>Tus datos están protegidos.</p>
-            </div>
-          )}
-
-          {view === 'welcome' && (
-            <div className={`${styles.welcome} ${styles.fade}`}>
-              <h2 className={styles.welcomeTitle}>
-                {firstName ? `¡Hola, ${firstName}!` : '¡Bienvenido!'}
+          <div className={styles.fade}>
+            <div className={styles.head}>
+              <p className={styles.kicker}>Acceso</p>
+              <h2 className={styles.title}>
+                <span>Family Farms</span>
               </h2>
-              <p className={styles.welcomeMsg}>
-                Nos alegra verte.<br />
-                Estás listo para vivir la experiencia Family Farm.
+              <p className={styles.sub}>Descubre tus equipos disponibles</p>
+              <p className={styles.subNote}>
+                Ingresa tu DNI y conoce los equipos que puedes financiar con BaldeCash.
               </p>
-
-              <div className={styles.docChip}>
-                <div className={styles.tag}>
-                  <span>Documento</span>
-                </div>
-                <span className={styles.docVal}>{dni}</span>
-              </div>
-
-              <button
-                className={styles.btnOutline}
-                onClick={() => {
-                  // On pass, go to THIS landing's own catalog. Not hardcoded:
-                  // the destination is always the current landing slug.
-                  window.location.assign(routes.catalogo(landing));
-                }}
-              >
-                Comenzar
-              </button>
-
-              <p className={styles.foot}>Tus datos están protegidos.</p>
             </div>
-          )}
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="familyfarm-dni">
+                Número de documento
+              </label>
+              <input
+                id="familyfarm-dni"
+                className={styles.input}
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={dni}
+                onChange={(e) => handleChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+                placeholder="Ingresa tu DNI"
+                maxLength={DOC_MAX_LENGTH}
+                disabled={submitting}
+                aria-invalid={!!errorMsg}
+              />
+              {errorMsg && <p className={styles.err}>{errorMsg}</p>}
+            </div>
+
+            <button
+              className={`${styles.btnSubmit} ${submitting ? styles.isLoading : ''}`}
+              onClick={handleSubmit}
+              disabled={!isValidDni || submitting}
+            >
+              {submitting ? (
+                <span className={styles.spin} role="status" />
+              ) : (
+                <span className={styles.btnLabel}>Ver equipos</span>
+              )}
+            </button>
+
+            {/* Único desenlace que se queda en el overlay: los dos caminos con
+                acceso navegan directo al catálogo (BAL-2867). */}
+            {noAccess && (
+              <div className={`${styles.notice} ${styles.noaccess}`}>
+                <p>Tu documento no tiene acceso a esta promoción.</p>
+              </div>
+            )}
+
+            <p className={styles.foot}>Tus datos están protegidos.</p>
+          </div>
         </div>
       </div>
     </div>
