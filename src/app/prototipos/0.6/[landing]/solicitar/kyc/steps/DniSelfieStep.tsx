@@ -94,27 +94,27 @@ export function documentFailure(res: VerifyDniResult): Failure {
       return {
         title: 'El DNI no coincide con la solicitud',
         detail: 'El número ingresado no es el del titular de esta solicitud.',
-        tips: [], primary: 'retry',
+        tips: [], primary: 'retry', reason: 'ownership_check_failed',
       };
     }
     if (res.reason === 'ownership_locked' || res.reason === 'rate_limited') {
       return {
         title: 'Demasiados intentos',
         detail: 'Espera unos minutos antes de volver a intentarlo.',
-        tips: [], primary: 'retry',
+        tips: [], primary: 'retry', reason: 'rate_limited',
       };
     }
     return {
       title: 'No pudimos validar tu documento',
       detail: res.error || 'Intenta nuevamente.',
-      tips: [], primary: 'retry',
+      tips: [], primary: 'retry', reason: 'request_failed',
     };
   }
   if (res.status === 'not_found') {
     return {
       title: 'Esa foto no es tu DNI',
       detail: 'No encontramos tu número de documento en la imagen. Asegúrate de fotografiar tu propio DNI.',
-      tips: TIPS_DOCUMENTO, primary: 'retake',
+      tips: TIPS_DOCUMENTO, primary: 'retake', reason: 'documento_no_coincide',
     };
   }
   return {
@@ -123,6 +123,7 @@ export function documentFailure(res: VerifyDniResult): Failure {
       ? 'La foto se ve borrosa y no podemos confirmar el número.'
       : 'La imagen no se pudo leer.',
     tips: TIPS_DOCUMENTO, primary: 'retake',
+    reason: res.status === 'low_confidence' ? 'documento_baja_confianza' : 'documento_ilegible',
   };
 }
 
@@ -136,13 +137,13 @@ export function faceFailure(res: CompareFacesResult): Failure {
       return {
         title: 'No encontramos un rostro en la foto',
         detail: 'Necesitamos ver tu cara con claridad para compararla con tu DNI.',
-        tips: TIPS_ROSTRO, primary: 'retake',
+        tips: TIPS_ROSTRO, primary: 'retake', reason: 'rostro_no_detectado',
       };
     }
     return {
       title: 'No pudimos verificar tu identidad',
       detail: res.error || 'Intenta nuevamente en unos segundos.',
-      tips: [], primary: 'retry',
+      tips: [], primary: 'retry', reason: 'comparacion_fallida',
     };
   }
   const pct = typeof res.similarity === 'number' ? res.similarity : null;
@@ -151,7 +152,7 @@ export function faceFailure(res: CompareFacesResult): Failure {
     detail: `No pudimos confirmar que seas la misma persona${
       pct != null ? ` (coincidencia ${pct}%)` : ''
     }.`,
-    tips: TIPS_ROSTRO, primary: 'retake',
+    tips: TIPS_ROSTRO, primary: 'retake', reason: 'rostros_no_coinciden',
   };
 }
 
@@ -312,12 +313,33 @@ export function DniSelfieStep({
 
       if (!doc.success || doc.status !== 'verified') {
         if (doc.success) {
-          track('kyc_document_rejected', { status: doc.status, application_code: applicationCode });
+          // Toda la metadata de Textract, no solo el status: sin `occurrences`
+          // ni `max_confidence` no se puede saber si el umbral esta mal
+          // calibrado o si de verdad la foto era ilegible.
+          track('kyc_document_rejected', {
+            application_code: applicationCode,
+            status: doc.status,
+            occurrences: doc.occurrences,
+            occurrences_total: doc.occurrences_total,
+            min_occurrences: doc.min_occurrences,
+            min_confidence: doc.min_confidence,
+            max_confidence: doc.max_confidence,
+            lines_detected: doc.lines_detected,
+          });
         }
         fail(documentFailure(doc));
         return;
       }
-      track('kyc_document_verified', { application_code: applicationCode });
+      track('kyc_document_verified', {
+        application_code: applicationCode,
+        status: doc.status,
+        occurrences: doc.occurrences,
+        occurrences_total: doc.occurrences_total,
+        min_occurrences: doc.min_occurrences,
+        min_confidence: doc.min_confidence,
+        max_confidence: doc.max_confidence,
+        lines_detected: doc.lines_detected,
+      });
       onDniVerified?.(effectiveDni);
 
       // ── 2. ¿El rostro de la selfie es el del documento? ──────────────────
@@ -345,7 +367,7 @@ export function DniSelfieStep({
       fail({
         title: 'No pudimos verificar tu identidad',
         detail: 'Hubo un problema de conexión. Intenta nuevamente.',
-        tips: [], primary: 'retry',
+        tips: [], primary: 'retry', reason: 'error_de_red',
       });
     }
   };
@@ -616,20 +638,33 @@ export function DniSelfieStep({
               opcional. Se pilotea por campana y se mide con kyc_identity_skipped.
             */}
             {bypassHabilitado && (
-              <button
-                type="button"
-                onClick={() => {
-                  track('kyc_identity_skipped', {
-                    application_code: applicationCode,
-                    reason: failure.reason ?? 'desconocido',
-                    primary: failure.primary,
-                  });
-                  onDone();
-                }}
-                className="w-full py-2 text-sm text-neutral-500 underline cursor-pointer"
-              >
-                Continuar de todas formas
-              </button>
+              /*
+                Separado por una linea y en tono neutro: es una salida, no una
+                tercera accion equivalente. Si compitiera visualmente con
+                "Repetir fotos" se volveria el camino facil y el KYC quedaria
+                de adorno. Y dice que pasa despues, porque "continuar" a secas
+                deja creer que la verificacion quedo resuelta.
+              */
+              <div className="border-t border-neutral-200 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    track('kyc_identity_skipped', {
+                      application_code: applicationCode,
+                      reason: failure.reason ?? 'desconocido',
+                      primary: failure.primary,
+                    });
+                    onDone();
+                  }}
+                  className="w-full rounded-xl py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 cursor-pointer"
+                >
+                  Continuar sin verificar
+                </button>
+                <p className="mt-1 text-center text-xs leading-snug text-neutral-400">
+                  Seguimos con tu solicitud, pero podriamos pedirte la
+                  verificacion mas adelante.
+                </p>
+              </div>
             )}
           </div>
         )}

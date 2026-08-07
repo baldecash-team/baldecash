@@ -81,6 +81,24 @@ export interface VerifyDniResult {
   /** `reason` del dominio cuando el backend rechaza (403/429): titularidad, rate-limit. */
   reason?: string;
   error?: string;
+  /*
+   * Métrica de la lectura de Textract. El endpoint ya las devolvía y el tipo no
+   * las declaraba, así que se perdían: sin `occurrences` ni `max_confidence` no
+   * se puede saber si un rechazo viene de un umbral mal calibrado o de una foto
+   * realmente ilegible. Opcionales porque en los errores de guard no vienen.
+   */
+  /** Cuántas veces se leyó el número con confianza suficiente. */
+  occurrences?: number;
+  /** Cuántas veces apareció, contando las de baja confianza. */
+  occurrences_total?: number;
+  /** Umbral de apariciones exigido (`TEXTRACT_MIN_OCCURRENCES`). */
+  min_occurrences?: number;
+  /** Umbral de confianza por línea (`TEXTRACT_MIN_CONFIDENCE`). */
+  min_confidence?: number;
+  /** Mejor confianza obtenida; 0 cuando no se leyó nada. */
+  max_confidence?: number;
+  /** Líneas que Textract detectó en la imagen. Pocas ⇒ foto ilegible. */
+  lines_detected?: number;
 }
 
 /**
