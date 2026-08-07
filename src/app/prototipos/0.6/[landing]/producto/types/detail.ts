@@ -228,6 +228,17 @@ export interface InitialPaymentOption {
   tea?: number | null;
   teaIrr?: number | null;
   tcea?: number | null;
+  /**
+   * En cuántas armadas se paga la inicial (1 = un solo pago).
+   *
+   * No se deduce del plazo: en el perfil del cosechador las armadas se
+   * descuentan del plazo total, así que `term: 8` puede ser "plazo 10 con la
+   * inicial en 2 armadas" o "plazo 8 sin armadas" — mismo número de cuotas,
+   * cronogramas distintos.
+   */
+  initialInstallments?: number;
+  /** Monto de cada armada; la última absorbe el sobrante del redondeo. */
+  initialInstallmentAmounts?: number[];
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */

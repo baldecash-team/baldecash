@@ -185,6 +185,10 @@ export function CopiaHomeDesktopDetail({
   const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
   const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
   const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
+  // En cuantas armadas se cobra la inicial de la opcion elegida. Viene con la
+  // opcion, no es una eleccion aparte: cada modalidad es una celda propia del
+  // pricing con su plazo. 1 = pago unico, el default de todo el catalogo.
+  const initialInstallments = pricingSel?.initialInstallments ?? 1;
 
   // Specs reales del equipo y otros seminuevos.
   const specCategories = product.specs ?? [];
@@ -231,6 +235,7 @@ export function CopiaHomeDesktopDetail({
       term,
       initialPercent,
       initialAmount,
+      initialInstallments,
       image: thumbnail,
       type: product.deviceType as SelectedProduct['type'],
       condition: product.condition,

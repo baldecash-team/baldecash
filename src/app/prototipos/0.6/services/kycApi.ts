@@ -81,6 +81,24 @@ export interface VerifyDniResult {
   /** `reason` del dominio cuando el backend rechaza (403/429): titularidad, rate-limit. */
   reason?: string;
   error?: string;
+  /*
+   * Métrica de la lectura de Textract. El endpoint ya las devolvía y el tipo no
+   * las declaraba, así que se perdían: sin `occurrences` ni `max_confidence` no
+   * se puede saber si un rechazo viene de un umbral mal calibrado o de una foto
+   * realmente ilegible. Opcionales porque en los errores de guard no vienen.
+   */
+  /** Cuántas veces se leyó el número con confianza suficiente. */
+  occurrences?: number;
+  /** Cuántas veces apareció, contando las de baja confianza. */
+  occurrences_total?: number;
+  /** Umbral de apariciones exigido (`TEXTRACT_MIN_OCCURRENCES`). */
+  min_occurrences?: number;
+  /** Umbral de confianza por línea (`TEXTRACT_MIN_CONFIDENCE`). */
+  min_confidence?: number;
+  /** Mejor confianza obtenida; 0 cuando no se leyó nada. */
+  max_confidence?: number;
+  /** Líneas que Textract detectó en la imagen. Pocas ⇒ foto ilegible. */
+  lines_detected?: number;
 }
 
 /**
@@ -212,6 +230,57 @@ export interface KycProgressStep {
   type: string;
   status: KycStepStatus;
   completed_at: string | null;
+}
+
+export interface KycVeredicto {
+  aprobado: boolean;
+  tiene_cuota_inicial: boolean;
+  /** Magic link a Zona Estudiantes (`/zona/payDues`). Null si no hay qué cobrar. */
+  link_pago: string | null;
+}
+
+/**
+ * Cierra el KYC: dispara la aprobación en legacy y devuelve si corresponde
+ * mostrar el paso de pago de la cuota inicial.
+ *
+ * `documentNumber` dobla como prueba de titularidad (los `application_code` son
+ * secuenciales); sin él el backend responde 403 y ni se llama.
+ *
+ * Fail-safe: cualquier error devuelve null y el wizard degrada a confirmación.
+ * Un fallo acá no puede dejar al solicitante atrapado; si la solicitud igual
+ * quedó aprobada, el seguimiento normal la recoge.
+ */
+export async function completarKyc(
+  applicationCode: string,
+  documentNumber?: string,
+  resumeToken?: string,
+): Promise<KycVeredicto | null> {
+  // Prueba de titularidad: el DNI o el token, exactamente una. Entrando por la
+  // pagina tokenizada no hay DNI —no se le pide a nadie— y exigirlo dejaba esa
+  // via sin cerrar el KYC, o sea sin paso de pago: se iba derecho a
+  // confirmacion aunque hubiera inicial que cobrar.
+  const prueba = documentNumber
+    ? { document_number: documentNumber }
+    : resumeToken
+      ? { resume_token: resumeToken }
+      : null;
+  if (!prueba) return null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/kyc/completar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_code: applicationCode,
+        ...prueba,
+      }),
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as KycVeredicto;
+  } catch {
+    return null;
+  }
 }
 
 export interface KycProgressState {

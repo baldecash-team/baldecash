@@ -20,6 +20,18 @@ import { resetFormStartTracking } from './useFieldTracking';
 import { clearConsentStorage } from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
+import { normalizeEmail } from '../../../services/emailValidation';
+
+/**
+ * Los codigos de campo que llevan un correo. Se mantiene alineado con
+ * `EMAIL_FIELD_CODES` del backend (ws2: app/services/email_verification_service.py),
+ * que es quien lo lee para mandar el OTP.
+ */
+const EMAIL_FIELD_CODES = ['email', 'email_universitario', 'institutional_email', 'correo_institucional', 'correo_estudiantil', 'supporter_email'];
+
+function isEmailFieldCode(code: string): boolean {
+  return EMAIL_FIELD_CODES.includes(code) || /(^|_)(email|correo)(_|$)/.test(code);
+}
 
 /**
  * Convert raw term (in payment_frequency units) to calendar months.
@@ -231,7 +243,13 @@ export function useSubmitApplication(
           }
           continue;
         }
-        mapped[key] = fieldState.value;
+        // Los campos de correo se normalizan al salir: el input ya limpia lo que
+        // se teclea, pero un valor prellenado (autocompletado por DNI, restaurado
+        // de localStorage) nunca pasa por ahí. Prod 2026-08-07: un `mailto:` que
+        // llegó así al backend hizo que Mailgun rechazara el OTP con un 400.
+        mapped[key] = isEmailFieldCode(key) && typeof fieldState.value === 'string'
+          ? (normalizeEmail(fieldState.value) || fieldState.value)
+          : fieldState.value;
       }
     }
 
@@ -329,6 +347,11 @@ export function useSubmitApplication(
           ),
           initial_percent: primaryProduct.initialPercent ?? 0, // Send selection, backend calculates amounts
           initial_amount: primaryProduct.initialAmount ?? 0,
+          // En cuantas armadas se cobra la inicial. El backend manda la celda
+          // del pricing como fuente autoritativa y solo cae a este valor si la
+          // celda no configuro armadas; ademas lo sanea a {2,4}, asi que un 1
+          // (el default de todo el catalogo) no cambia nada.
+          initial_installments: primaryProduct.initialInstallments ?? 1,
           // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
           payment_frequency: primaryProduct.paymentFrequency,
@@ -435,7 +458,19 @@ export function useSubmitApplication(
           // de landings (kyc apagado) el comportamiento es el de siempre: directo
           // a confirmación.
           if (kycEnabled) {
-            router.push(routes.solicitarKyc(landing, { code: result.application_code }));
+            // Con el token del submit se va a la pagina tokenizada: el KYC lo
+            // usa como prueba de titularidad y NO tiene que pedir el DNI. Es el
+            // mismo token del link de "continuar despues" (hasheado, con TTL y
+            // revocable), a diferencia del `application_code`, que es
+            // secuencial y adivinable.
+            //
+            // Sin token —el mint es best-effort y nunca bloquea el submit— cae
+            // a la ruta por codigo de siempre, que pide el DNI.
+            router.push(
+              result.kyc_resume_token
+                ? `/prototipos/0.6/kyc/${result.kyc_resume_token}`
+                : routes.solicitarKyc(landing, { code: result.application_code })
+            );
           } else {
             router.push(
               routes.solicitarConfirmacion(landing, result.application_code)

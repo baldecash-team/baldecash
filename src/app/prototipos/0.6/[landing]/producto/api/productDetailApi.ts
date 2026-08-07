@@ -159,6 +159,10 @@ interface ApiInitialPaymentOption {
   tea?: number | null;
   tea_irr?: number | null;
   tcea?: number | null;
+  /** En cuantas armadas se paga la inicial de esta celda (1 = un solo pago). */
+  initial_installments?: number;
+  /** Monto de cada armada; la ultima absorbe el sobrante del redondeo. */
+  initial_installment_amounts?: string[];
 }
 
 interface ApiPaymentPlan {
@@ -377,9 +381,23 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       tea: opt.tea ?? null,
       teaIrr: opt.tea_irr ?? null,
       tcea: opt.tcea ?? null,
+      // Armadas de la inicial. `?? 1` porque las celdas viejas no traen el
+      // campo y ahi la inicial siempre fue de un solo pago.
+      initialInstallments: opt.initial_installments ?? 1,
+      initialInstallmentAmounts: (opt.initial_installment_amounts ?? []).map(Number),
     })),
   };
 }
+
+/**
+ * Alias de `transformPaymentPlan` para tests.
+ *
+ * El transform es el unico punto donde el wire se vuelve tipos de dominio, y
+ * ahi viven los `?? 1` que mantienen al catalogo sin armadas. Se expone con
+ * nombre propio en vez de exportar la funcion interna para que quede claro que
+ * no es parte de la API del modulo.
+ */
+export const transformPaymentPlanForTest = transformPaymentPlan;
 
 function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct {
   // Transformar imágenes: soporta tanto string[] como objeto[] con variant_id
