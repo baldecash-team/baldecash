@@ -303,6 +303,7 @@ export type SortBy =
   | 'price_desc'
   | 'quota_asc'
   | 'quota_desc'
+  | 'popular'
   | 'featured'
   | 'newest';
 

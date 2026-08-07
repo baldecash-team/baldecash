@@ -609,7 +609,9 @@ function CatalogoContent() {
       quota_asc: 'quota_asc',
       quota_desc: 'quota_desc',
       newest: 'newest',
-      popular: 'featured',
+      // BAL-2860: antes iba a 'featured', que es la marca manual de negocio y no
+      // popularidad. Ahora el backend ordena por solicitudes reales del producto.
+      popular: 'popular',
     };
     return sortMap[sort];
   }, [sort]);

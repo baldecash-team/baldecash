@@ -384,7 +384,8 @@ export function GamerCatalogoContent() {
       quota_asc: 'quota_asc',
       quota_desc: 'quota_desc',
       newest: 'newest',
-      popular: 'featured',
+      // BAL-2860: antes 'featured' (marca manual), ahora solicitudes reales.
+      popular: 'popular',
     };
     return map[sort];
   }, [sort]);
