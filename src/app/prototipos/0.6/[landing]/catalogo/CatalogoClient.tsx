@@ -1800,10 +1800,11 @@ function CatalogoContent() {
                 key={product.landingProductId ?? product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                // BAL-2214: bolitas de color solo cuando el producto tiene hermanos
-                // de color (color_siblings → product.colors > 1). El resto del catálogo
-                // sigue sin swatches donde no aplica.
-                hideColors={!(product.colors && product.colors.length > 1)}
+                // BAL-2824: las bolitas se muestran desde un color — sea de una
+                // familia (color_siblings) o el color propio de la variante. Antes
+                // exigia > 1 y el color unico quedaba oculto. Los productos sin
+                // color en su variante siguen sin swatches.
+                hideColors={!(product.colors && product.colors.length >= 1)}
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
                 conditions={apiFilters?.conditions}

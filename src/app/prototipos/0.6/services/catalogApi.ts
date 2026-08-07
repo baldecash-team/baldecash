@@ -655,6 +655,15 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
           hex: c.hex,
           imageUrl: c.image_url,
           images: c.images || (c.image_url ? [c.image_url] : []),
+          // El color propio del producto no viene de color_siblings, asi que el API
+          // no manda datos de producto junto a el. Los heredamos del padre: al
+          // mostrarse el swatch con un solo color, la card lee estos campos para el
+          // href de detalle y el item de carrito, y sin ellos quedaban en undefined.
+          productId: String(apiProduct.id),
+          slug: apiProduct.slug,
+          displayName: apiProduct.display_name || apiProduct.name,
+          price: pricing.final_price,
+          quotaMonthly: hook.monthly_price,
         })) || [],
     deviceType: mapDeviceType(apiProduct.type),
     price: pricing.final_price,
