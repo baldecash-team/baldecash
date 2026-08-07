@@ -340,6 +340,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
   // Reentrada con el pago pendiente: al volver por el link hay que ABRIR el
   // paso de pago, no rebobinar al anterior.
   //
@@ -361,8 +362,11 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       .every((p) => p.status === 'completed');
   }, [progressState]);
 
+  /** Hay pago pendiente y todavia no llego el link: se esta resolviendo. */
+  const resolviendoPago = pagoPendienteRemoto && !linkPago;
+
   useEffect(() => {
-    if (pagoPendienteRemoto && !linkPago && !cerrando) {
+    if (resolviendoPago && !cerrando) {
       void cerrarKyc();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -490,7 +494,10 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     if (veredicto?.aprobado && veredicto.tiene_cuota_inicial && veredicto.link_pago) {
       track('kyc_payment_step_shown', { application_code: code });
       setLinkPago(veredicto.link_pago);
-      const next = pasosBase.length;
+      // Se deriva de `kycSteps` y NO de `pasosBase`: los hooks van antes del
+      // gate que hace `return` temprano, y `pasosBase` se declara despues, asi
+      // que leerla desde aca reventaba con "Cannot access before initialization".
+      const next = kycSteps.filter((s) => s.type !== 'payment').length;
       setIndex(next);
       writeKycStep(landing, code, next);
       cerrandoRef.current = false;
@@ -550,7 +557,18 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             Paso {safeIndex + 1} de {pasos.length} · {STEP_LABELS[currentStep.type]}
           </p>
 
-          {renderStep({
+          {/*
+            Mientras se resuelve el pago pendiente se muestra carga, no el paso.
+            `payment` no existe en la lista hasta tener `linkPago`, asi que el
+            clamp caia al sub-paso anterior y se veia un segundo la pantalla de
+            la foto —ya superada— antes de saltar al pago.
+          */}
+          {resolviendoPago ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10">
+              <CubeGridSpinner />
+              <p className="text-sm text-neutral-500">Estamos preparando tu pago…</p>
+            </div>
+          ) : renderStep({
             type: currentStep.type,
             onDone: goNext,
             onBack: goBack,

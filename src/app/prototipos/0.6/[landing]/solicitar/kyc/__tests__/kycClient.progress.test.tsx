@@ -443,7 +443,11 @@ describe('botón "Continuar en otro momento"', () => {
     expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
   });
 
-  it('se oculta si ya se entró por el link (resumeToken presente): no necesita pedir otro', async () => {
+  it('TAMBIÉN se muestra entrando por el link: el que ya tiene vence', async () => {
+    // Antes se ocultaba con `resumeToken` presente —"ya tiene un link"—, pero
+    // eso hacía que el botón apareciera y desapareciera según cómo hubiera
+    // entrado la persona. Y el link vence a las 72 h: quien retoma sobre la
+    // hora necesita pedir uno nuevo justamente desde acá.
     window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
     mockUseSearchParams.mockReturnValue(new URLSearchParams()); // ruta tokenizada: sin ?code=
     mockKycSteps.mockReturnValue([{ type: 'contract' }]);
@@ -452,7 +456,7 @@ describe('botón "Continuar en otro momento"', () => {
     render(<KycClient initialState={initialState as never} resumeToken="tok-abc" />);
 
     await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: /continuar en otro momento/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continuar en otro momento/i })).toBeInTheDocument();
   });
 
   // Fix round 1 — MINOR del reviewer: de los 4 eventos kyc_* de esta task,
