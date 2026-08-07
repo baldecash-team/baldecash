@@ -264,6 +264,11 @@ export type EventType =
   | 'kyc_document_rejected'
   | 'kyc_identity_verified'
   | 'kyc_identity_rejected'
+  // Siguio sin haber podido verificarse. Distinto de `kyc_identity_rejected`,
+  // donde los rostros no coincidian: aca la verificacion ni siquiera concluyo.
+  | 'kyc_identity_skipped'
+  // Se le mostro el paso de pago de la inicial (aprobado + cuota 0 impaga).
+  | 'kyc_payment_step_shown'
   | 'kyc_contract_view'
   | 'kyc_contract_accepted'
   | 'kyc_documents_uploaded'

@@ -26,18 +26,21 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { getKycProgress, completeKycStep, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
 import { PausarModal } from './PausarModal';
 import { KycLayout } from './KycLayout';
+import { PagoStep } from './steps/PagoStep';
 
 const STEP_LABELS: Record<KycStepType, string> = {
   dni_selfie: 'DNI + selfie',
   contract: 'Contrato',
   documents: 'Documentos',
+  payment: 'Pago de inicial',
 };
 
 /**
@@ -135,13 +138,15 @@ interface RenderStepArgs {
   /** DNI ya conocido; solo lo consume `dni_selfie`, que lo contrasta con la foto. */
   documentNumber?: string;
   onDniVerified?: (dni: string) => void;
+  /** Solo lo consume `payment`: magic link a Zona Estudiantes. */
+  linkPago?: string | null;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -159,6 +164,10 @@ function renderStep({
       return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'documents':
       return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
+    case 'payment':
+      // Solo se llega con veredicto aprobado y cuota inicial impaga, asi que
+      // `linkPago` existe; el guard es defensivo.
+      return linkPago ? <PagoStep linkPago={linkPago} onDone={onDone} /> : null;
     default:
       return null;
   }
@@ -227,6 +236,10 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
   const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
   const [index, setIndex] = useState(0);
+  // Link de pago de la inicial. Null hasta que el veredicto de aprobacion diga
+  // que hay algo que cobrar; su presencia es la que habilita el paso `payment`.
+  const [linkPago, setLinkPago] = useState<string | null>(null);
+  const [cerrando, setCerrando] = useState(false);
   // Estado de progreso completo (no solo el índice): necesario para leer
   // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
   const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
@@ -266,8 +279,11 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     }
   };
 
+  // Los UTM se arrastran a la confirmacion: quien llega hasta aca —sobre todo
+  // si siguio sin poder verificarse— tiene que seguir siendo atribuible a la
+  // campana con la que entro. `routes.*` arma solo lo que la ruta necesita.
   const goToConfirmacion = () =>
-    router.replace(routes.solicitarConfirmacion(landing, code));
+    router.replace(withUtmParams(routes.solicitarConfirmacion(landing, code)));
 
   // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
   // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
@@ -345,8 +361,17 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   }
 
   // Clamp defensivo por si `kycSteps` cambiara de tamaño en caliente.
-  const safeIndex = Math.min(index, kycSteps.length - 1);
-  const currentStep = kycSteps[safeIndex];
+  // `payment` no es un sub-paso mas: solo existe si el veredicto dijo que hay
+  // cuota inicial impaga. Se mantiene FUERA de la lista hasta tenerlo, para que
+  // el contador "Paso N de M" no prometa un paso que quiza nunca aparezca.
+  const pasosBase = kycSteps.filter((s) => s.type !== 'payment');
+  const pasoPagoConfigurado = kycSteps.some((s) => s.type === 'payment');
+  const pasos = linkPago
+    ? [...pasosBase, kycSteps.find((s) => s.type === 'payment')!]
+    : pasosBase;
+
+  const safeIndex = Math.min(index, pasos.length - 1);
+  const currentStep = pasos[safeIndex];
 
   const goNext = () => {
     track('kyc_step_complete', {
@@ -388,16 +413,54 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       }
     }
 
-    if (safeIndex + 1 < kycSteps.length) {
+    if (safeIndex + 1 < pasos.length) {
       const next = safeIndex + 1;
       setIndex(next);
       writeKycStep(landing, code, next); // persistir avance (refresh/volver)
-    } else {
-      track('kyc_completed', { application_code: code });
-      clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
-      goToConfirmacion();
+      return;
     }
+
+    // Ultimo sub-paso: si la landing configuro el pago y aun no hay veredicto,
+    // se consulta antes de cerrar.
+    if (pasoPagoConfigurado && !linkPago) {
+      void cerrarKyc();
+      return;
+    }
+
+    track('kyc_completed', { application_code: code });
+    clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
+    goToConfirmacion();
   };
+
+  /**
+   * Cierra el KYC contra el backend y decide si toca mostrar el paso de pago.
+   *
+   * Degrada a confirmacion ante cualquier respuesta que no lo habilite (no
+   * aprobado, sin cuota inicial, error, o sin DNI). Un fallo aca no puede
+   * dejar al solicitante atrapado: si la solicitud igual quedo aprobada, el
+   * seguimiento normal la recoge.
+   */
+  async function cerrarKyc() {
+    if (cerrando) return;
+    setCerrando(true);
+
+    // Misma prueba de titularidad que usa `completeKycStep`.
+    const veredicto = code ? await completarKyc(code, effectiveDni) : null;
+
+    if (veredicto?.aprobado && veredicto.tiene_cuota_inicial && veredicto.link_pago) {
+      track('kyc_payment_step_shown', { application_code: code });
+      setLinkPago(veredicto.link_pago);
+      const next = pasosBase.length;
+      setIndex(next);
+      writeKycStep(landing, code, next);
+      setCerrando(false);
+      return;
+    }
+
+    track('kyc_completed', { application_code: code });
+    clearKycStep(landing, code);
+    goToConfirmacion();
+  }
   const goBack =
     safeIndex > 0
       ? () => {
@@ -438,7 +501,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
         */}
         <div className="w-full space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7 md:rounded-none md:border-0 md:shadow-none md:px-10 md:py-10 lg:px-12 lg:py-12">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center md:text-left">
-            Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
+            Paso {safeIndex + 1} de {pasos.length} · {STEP_LABELS[currentStep.type]}
           </p>
 
           {renderStep({
@@ -449,6 +512,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             onTrack,
             documentNumber: effectiveDni,
             onDniVerified: rememberVerifiedDni,
+            linkPago,
           })}
 
           {canPause && code && (

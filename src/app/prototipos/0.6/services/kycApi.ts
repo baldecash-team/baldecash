@@ -214,6 +214,47 @@ export interface KycProgressStep {
   completed_at: string | null;
 }
 
+export interface KycVeredicto {
+  aprobado: boolean;
+  tiene_cuota_inicial: boolean;
+  /** Magic link a Zona Estudiantes (`/zona/payDues`). Null si no hay qué cobrar. */
+  link_pago: string | null;
+}
+
+/**
+ * Cierra el KYC: dispara la aprobación en legacy y devuelve si corresponde
+ * mostrar el paso de pago de la cuota inicial.
+ *
+ * `documentNumber` dobla como prueba de titularidad (los `application_code` son
+ * secuenciales); sin él el backend responde 403 y ni se llama.
+ *
+ * Fail-safe: cualquier error devuelve null y el wizard degrada a confirmación.
+ * Un fallo acá no puede dejar al solicitante atrapado; si la solicitud igual
+ * quedó aprobada, el seguimiento normal la recoge.
+ */
+export async function completarKyc(
+  applicationCode: string,
+  documentNumber?: string,
+): Promise<KycVeredicto | null> {
+  if (!documentNumber) return null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/kyc/completar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_code: applicationCode,
+        document_number: documentNumber,
+      }),
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as KycVeredicto;
+  } catch {
+    return null;
+  }
+}
+
 export interface KycProgressState {
   application_code: string;
   landing_slug: string | null;

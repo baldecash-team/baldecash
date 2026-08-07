@@ -31,6 +31,7 @@ import {
   type VerifyDniResult,
 } from '@/app/prototipos/0.6/services/kycApi';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
+import { kycBypassHabilitado } from '@/app/prototipos/0.6/utils/utmParams';
 
 export interface DniSelfieStepProps {
   onDone: () => void;
@@ -62,6 +63,12 @@ interface Failure {
    * invita a repetir una llamada que no puede funcionar.
    */
   primary: 'retake' | 'retry';
+  /**
+   * Identifica la causa para el evento de bypass. Sin esto no se puede
+   * distinguir "siguio porque el servicio no pudo leer" de "siguio aunque los
+   * rostros no coincidian", que son dos riesgos muy distintos.
+   */
+  reason?: string;
 }
 
 const TIPS_DOCUMENTO = [
@@ -228,6 +235,12 @@ export function DniSelfieStep({
 }: DniSelfieStepProps) {
   const { stream, requestCamera, stopStream, liveVideoRef, liveActive, playLive } = useRecorder();
   const track = useKycTracker(onTrack);
+  // Se resuelve una sola vez al montar: depende del UTM de la sesion, no del
+  // render. Va con useState(inicializador) y no useMemo porque toca
+  // sessionStorage, que no existe en SSR.
+  const [bypassHabilitado] = useState(() =>
+    typeof window === 'undefined' ? false : kycBypassHabilitado(),
+  );
   const [phase, setPhase] = useState<Phase>('selfie');
   const [selfieShot, setSelfieShot] = useState<string | null>(null);
   const [dniShot, setDniShot] = useState<string | null>(null);
@@ -592,6 +605,31 @@ export function DniSelfieStep({
                   Repetir fotos
                 </button>
               </>
+            )}
+
+            {/*
+              Salida solo para el trafico que llega con el utm_content acordado
+              (ver KYC_BYPASS_UTM_CONTENT). La medicion sobre 200 DNIs reales
+              mostro que ~la mitad del parque no expone su MRZ en el reverso, o
+              sea "no pudimos verificar" es un desenlace comun y ajeno al
+              solicitante; pero abrir la puerta a todos convertiria el KYC en
+              opcional. Se pilotea por campana y se mide con kyc_identity_skipped.
+            */}
+            {bypassHabilitado && (
+              <button
+                type="button"
+                onClick={() => {
+                  track('kyc_identity_skipped', {
+                    application_code: applicationCode,
+                    reason: failure.reason ?? 'desconocido',
+                    primary: failure.primary,
+                  });
+                  onDone();
+                }}
+                className="w-full py-2 text-sm text-neutral-500 underline cursor-pointer"
+              >
+                Continuar de todas formas
+              </button>
             )}
           </div>
         )}
