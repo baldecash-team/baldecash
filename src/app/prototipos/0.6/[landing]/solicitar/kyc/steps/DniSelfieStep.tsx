@@ -256,8 +256,9 @@ export function DniSelfieStep({
   const [failure, setFailure] = useState<Failure | null>(null);
 
   // DNI tipeado acá cuando no llegó por props. Solo dígitos: el backend exige 8.
-  const [dniInput, setDniInput] = useState('');
-  const effectiveDni = (documentNumber || dniInput).replace(/\D/g, '');
+  // El DNI sale SIEMPRE de la solicitud: del formulario o del canje del token.
+  // Ya no hay input, asi que no hay forma de tipearlo mal.
+  const effectiveDni = (documentNumber ?? '').replace(/\D/g, '');
   const dniReady = effectiveDni.length === 8;
 
   const fail = (f: Failure) => {
@@ -506,31 +507,15 @@ export function DniSelfieStep({
         {verifyState === 'idle' && (
           <div className="space-y-3">
             {/*
-              El DNI solo se pide cuando no vino del wizard. Es obligatorio:
-              `verify-dni` necesita saber QUÉ número buscar en la foto — sin él
-              solo podríamos comprobar que hay "un" documento, no que sea el
-              tuyo. De paso es la prueba de titularidad que guarda el avance.
+              El DNI NO se pide: es el de la solicitud.
+
+              `verify-dni` necesita saber QUE numero buscar en la foto, y ese
+              numero ya lo tiene el sistema —viene del formulario, o del canje
+              del token en `/kyc/{token}`, que lo devuelve junto al estado—.
+              Pedirlo otra vez solo agregaba una forma de equivocarse: un digito
+              mal tipeado hacia fallar una verificacion que en realidad estaba
+              bien, y encima sobre el documento de la propia persona.
             */}
-            {!documentNumber && (
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-[#374151]">
-                  Número de DNI
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  maxLength={8}
-                  value={dniInput}
-                  onChange={(e) => setDniInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="12345678"
-                  className="w-full rounded-lg border-2 border-[#e5e7eb] px-3 py-2.5 text-[#1f2937] outline-none transition-colors focus:border-[#4654CD]"
-                />
-                <span className="block text-xs text-[#6b7280]">
-                  Lo comparamos con el que aparece en la foto de tu documento.
-                </span>
-              </label>
-            )}
             <button
               type="button"
               onClick={runVerification}
