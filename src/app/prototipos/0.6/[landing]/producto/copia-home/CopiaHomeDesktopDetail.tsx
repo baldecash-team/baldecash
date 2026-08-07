@@ -131,7 +131,13 @@ export function CopiaHomeDesktopDetail({
   const gradeOptions: GradeOption[] = hasRealGrades
     ? [...gradeSiblings]
         .sort((a, b) => a.grade.localeCompare(b.grade))
-        .map((s) => ({ grade: s.grade as GradeKey, price: s.price, isAvailable: s.isAvailable }))
+        .map((s) => ({
+          grade: s.grade as GradeKey,
+          // `price` NO se pinta en la tarjeta: alimenta el panel de ahorro.
+          price: s.price ?? undefined,
+          minTermQuota: s.minTermQuota,
+          isAvailable: s.isAvailable,
+        }))
     : (Object.keys(GRADES) as GradeKey[]).map((g) => ({ grade: g, isAvailable: GRADES[g].disponible }));
   const gradeButtons: GradeKey[] = hasRealGrades
     ? [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)).map((s) => s.grade as GradeKey)
@@ -382,6 +388,10 @@ export function CopiaHomeDesktopDetail({
                       grades={gradeOptions}
                       selected={grade}
                       onSelect={selectGrade}
+                      // La frecuencia del MISMO payload que trajo las cuotas, no
+                      // la de la calculadora: esa se refresca sola y dejaría la
+                      // etiqueta cambiando mientras el número queda fijo.
+                      paymentFrequency={paymentPlans[0]?.paymentFrequency}
                     />
                   ) : (
                   <>
