@@ -34,6 +34,17 @@ export interface PricingSelection {
   monthlyQuota: number;
   initialAmount: number;
   paymentFrequency: string;
+  /**
+   * En cuántas armadas se cobra la inicial de la opción elegida. 1 = pago
+   * único, que es lo que trae todo el catálogo.
+   *
+   * No es una elección aparte: viene con la opción. Cada modalidad es una celda
+   * propia del pricing con su plazo, así que al elegir el plazo el cliente ya
+   * eligió cómo paga la inicial.
+   */
+  initialInstallments: number;
+  /** Monto de cada armada. La última absorbe el sobrante del redondeo. */
+  initialInstallmentAmounts: number[];
 }
 
 /** Labels for each payment frequency (cuota suffix) */
@@ -184,6 +195,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             monthlyQuota: newOption.monthlyQuota,
             initialAmount: newOption.initialAmount,
             paymentFrequency: freq,
+            initialInstallments: newOption.initialInstallments ?? 1,
+            initialInstallmentAmounts: newOption.initialInstallmentAmounts ?? [],
           });
         }
       }
@@ -234,6 +247,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         monthlyQuota: selectedOption.monthlyQuota,
         initialAmount: selectedOption.initialAmount,
         paymentFrequency: selectedFrequency,
+        initialInstallments: selectedOption.initialInstallments ?? 1,
+        initialInstallmentAmounts: selectedOption.initialInstallmentAmounts ?? [],
       });
     }
   }, [selectedTerm, selectedInitialPercent, selectedOption]);
@@ -393,6 +408,18 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             {selectedInitialPercent > 0 && selectedOption && (
               <span className="block text-xs text-[var(--text-faint,#9ca3af)] mt-1">
                 + S/{formatMoneyNoDecimals(Math.floor(selectedOption.initialAmount))} de inicial
+                {/* Con la inicial fraccionada el monto de arriba es el total, no
+                    lo que se paga de una: sin este detalle el cliente cree que
+                    debe juntar los S/114 completos antes de empezar. */}
+                {(selectedOption.initialInstallments ?? 1) > 1 && (
+                  <span className="block mt-0.5">
+                    en {selectedOption.initialInstallments} armadas semanales de{' '}
+                    S/{formatMoneyNoDecimals(
+                      Math.floor(selectedOption.initialInstallmentAmounts?.[0]
+                        ?? selectedOption.initialAmount / selectedOption.initialInstallments!)
+                    )}
+                  </span>
+                )}
               </span>
             )}
           </p>

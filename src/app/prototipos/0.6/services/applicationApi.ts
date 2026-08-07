@@ -34,6 +34,14 @@ export interface SubmitApplicationRequest {
     initial_percent: number; // 0, 10, 20, 30 - backend calculates amounts
     /** Initial payment amount in soles (hint for backend; it still recomputes). */
     initial_amount?: number;
+    /**
+     * En cuantas armadas se cobra la inicial: 1 (pago unico), 2 o 4.
+     *
+     * Es un fallback, no la fuente de verdad: manda la celda del pricing y el
+     * backend solo mira esto si la celda no configuro armadas. Ademas lo sanea
+     * a {2,4}, asi que un valor cualquiera degrada a pago unico.
+     */
+    initial_installments?: number;
     unit_price?: number; // Hint for backend, will be validated against DB
     /** Payment frequency of the primary product: 'semanal' | 'quincenal' | 'mensual' */
     payment_frequency?: string;

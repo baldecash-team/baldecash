@@ -228,6 +228,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       monthlyQuota: option.monthlyQuota,
       initialAmount: option.initialAmount,
       paymentFrequency: defaultFrequency ?? 'mensual',
+      initialInstallments: option.initialInstallments ?? 1,
+      initialInstallmentAmounts: option.initialInstallmentAmounts ?? [],
     };
   });
   // Active payment plans — updated when user switches frequency
@@ -514,6 +516,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       term: rawTerm,
       initialPercent: initialPercent,
       initialAmount: initialAmount,
+      initialInstallments: pricingSelection?.initialInstallments ?? 1,
       image: productThumbnail,
       type: product.deviceType as SelectedProduct['type'],
       condition: product.condition,

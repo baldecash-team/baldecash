@@ -387,6 +387,16 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
   };
 }
 
+/**
+ * Alias de `transformPaymentPlan` para tests.
+ *
+ * El transform es el unico punto donde el wire se vuelve tipos de dominio, y
+ * ahi viven los `?? 1` que mantienen al catalogo sin armadas. Se expone con
+ * nombre propio en vez de exportar la funcion interna para que quede claro que
+ * no es parte de la API del modulo.
+ */
+export const transformPaymentPlanForTest = transformPaymentPlan;
+
 function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct {
   // Transformar imágenes: soporta tanto string[] como objeto[] con variant_id
   const transformedImages: SimilarProductImage[] = apiProduct.images.map((img) => {

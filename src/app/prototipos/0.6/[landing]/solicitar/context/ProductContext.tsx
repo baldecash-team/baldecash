@@ -86,6 +86,12 @@ export interface SelectedProduct {
   term?: number;
   initialPercent: number;  // 0, 10, 20, 30 - percentage of initial payment
   initialAmount: number;   // Calculated initial payment amount
+  /**
+   * En cuantas armadas se cobra la inicial. 1 = pago unico, el default de todo
+   * el catalogo. Viaja hasta el submit porque legacy genera una fila de
+   * cronograma por armada y necesita saber cuantas son.
+   */
+  initialInstallments?: number;
   image: string;
   type?: string;           // Product type: "celular", "laptop", "tablet", etc. Used for accessory compatibility
   /** Condición del equipo: 'nueva' | 'reacondicionada' | 'open_box'. Para el aviso de reacondicionado. */
