@@ -167,7 +167,7 @@ function renderStep({
     case 'payment':
       // Solo se llega con veredicto aprobado y cuota inicial impaga, asi que
       // `linkPago` existe; el guard es defensivo.
-      return linkPago ? <PagoStep linkPago={linkPago} onDone={onDone} /> : null;
+      return linkPago ? <PagoStep linkPago={linkPago} /> : null;
     default:
       return null;
   }
@@ -510,7 +510,12 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // El backend ya valida el DNI contra la solicitud (con lockout + auditoría),
   // así que ahora se le pide al usuario en el propio modal (`PausarModal`)
   // cuando no hay uno disponible localmente.
-  const canPause = Boolean(progressState?.resume?.enabled && code && !resumeToken);
+  // Se ofrece en TODOS los pasos y por las dos vias de entrada. Antes se
+  // excluia la entrada por token (`!resumeToken`) —"ya tiene un link"— pero eso
+  // hacia que el boton apareciera y desapareciera segun como hubiera entrado la
+  // persona, y el link viejo vence: quien retoma a las 70 h necesita pedir uno
+  // nuevo justamente desde aca.
+  const canPause = Boolean(progressState?.resume?.enabled && code);
 
   const handlePauseClick = () => {
     track('kyc_pause_click', { application_code: code });
@@ -544,34 +549,35 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
           })}
 
           {canPause && code && (
-            <div className="pt-1 text-center md:text-left">
+            <div className="border-t border-neutral-100 pt-4">
               {/*
                 El tooltip explica qué hace el enlace ANTES de abrir el modal.
                 "Continuar en otro momento" no dice si se pierde el avance ni
                 cómo se vuelve, y esa duda es justo la que frena a alguien que
                 no puede terminar ahora.
               */}
+              {/*
+                Boton, no enlace de texto: aparece en todos los pasos y tiene
+                que verse igual en todos. El texto de abajo dice lo que el
+                tooltip escondia —que llega por WhatsApp y cuanto dura—, porque
+                esa duda es justo la que frena a alguien que no puede terminar
+                ahora, y en tactil no hay hover que lo revele.
+              */}
               <button
                 type="button"
                 onClick={handlePauseClick}
-                title={`Te enviamos por WhatsApp un enlace para retomar donde quedaste. Vence en ${
-                  progressState?.resume?.ttl_hours ?? 72
-                } horas.`}
-                className="group relative text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white py-2.5 text-sm font-semibold text-[#4654CD] transition-colors hover:border-[#4654CD] hover:bg-[#ECECFB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4654CD] cursor-pointer"
               >
+                <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
                 Continuar en otro momento
-                <span
-                  role="tooltip"
-                  className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-lg bg-[#1f2937] px-3 py-2 text-xs font-normal leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-                >
-                  Te enviamos por WhatsApp un enlace para retomar donde quedaste.
-                  Vence en {progressState?.resume?.ttl_hours ?? 72} horas.
-                  <span
-                    aria-hidden
-                    className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[#1f2937]"
-                  />
-                </span>
               </button>
+              <p className="mt-2 text-center text-xs leading-snug text-neutral-500">
+                Te enviamos un enlace por WhatsApp para retomar donde quedaste.
+                Vence en {progressState?.resume?.ttl_hours ?? 72} horas.
+              </p>
               <PausarModal
                 open={showPausarModal}
                 onClose={() => setShowPausarModal(false)}

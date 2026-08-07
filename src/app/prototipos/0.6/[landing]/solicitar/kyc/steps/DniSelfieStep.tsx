@@ -630,8 +630,8 @@ export function DniSelfieStep({
             )}
 
             {/*
-              Salida solo para el trafico que llega con el utm_content acordado
-              (ver KYC_BYPASS_UTM_CONTENT). La medicion sobre 200 DNIs reales
+              Salida solo para el trafico que llega con el utm_term acordado —el
+              parametro de promotor— (ver KYC_BYPASS_UTM_TERM). La medicion sobre 200 DNIs reales
               mostro que ~la mitad del parque no expone su MRZ en el reverso, o
               sea "no pudimos verificar" es un desenlace comun y ajeno al
               solicitante; pero abrir la puerta a todos convertiria el KYC en
@@ -645,7 +645,7 @@ export function DniSelfieStep({
                 de adorno. Y dice que pasa despues, porque "continuar" a secas
                 deja creer que la verificacion quedo resuelta.
               */
-              <div className="border-t border-neutral-200 pt-3">
+              <div className="border-t border-neutral-200 pt-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -656,13 +656,26 @@ export function DniSelfieStep({
                     });
                     onDone();
                   }}
-                  className="w-full rounded-xl py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 cursor-pointer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 bg-white py-2.5 text-sm font-medium text-neutral-500 transition-colors hover:border-neutral-400 hover:bg-neutral-50 hover:text-neutral-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 cursor-pointer"
                 >
+                  {/* Borde punteado y gris: se lee como salida, no como la
+                      accion principal. Con el mismo peso que "Repetir fotos"
+                      seria el camino facil y el KYC quedaria de adorno. */}
+                  <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="m13 6 6 6-6 6" />
+                  </svg>
                   Continuar sin verificar
                 </button>
-                <p className="mt-1 text-center text-xs leading-snug text-neutral-400">
-                  Seguimos con tu solicitud, pero podriamos pedirte la
-                  verificacion mas adelante.
+                <p className="mt-2 flex items-start justify-center gap-1.5 text-center text-xs leading-snug text-neutral-500">
+                  <svg aria-hidden viewBox="0 0 24 24" className="mt-px h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8h.01M11 12h1v4h1" />
+                  </svg>
+                  <span>
+                    Seguimos con tu solicitud, pero podríamos pedirte la
+                    verificación más adelante.
+                  </span>
                 </p>
               </div>
             )}

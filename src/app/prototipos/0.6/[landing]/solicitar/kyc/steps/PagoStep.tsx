@@ -12,10 +12,9 @@
  */
 interface PagoStepProps {
   linkPago: string;
-  onDone: () => void;
 }
 
-export function PagoStep({ linkPago, onDone }: PagoStepProps) {
+export function PagoStep({ linkPago }: PagoStepProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-[#1f2937]">Paga tu cuota inicial</h2>
@@ -34,17 +33,11 @@ export function PagoStep({ linkPago, onDone }: PagoStepProps) {
       </a>
 
       {/*
-        Salida siempre disponible: la inicial también se paga por otros canales
-        (BBVA QR, Kash.io, agente), y bloquear acá dejaría al solicitante sin
-        forma de llegar a su resumen.
+        La salida de este paso es "Continuar en otro momento", que vive en el
+        contenedor del KYC y esta en todos los pasos. Un "Pagar despues" propio
+        duplicaba esa accion con otro nombre y otro comportamiento —cerraba el
+        KYC sin dejarle a la persona el enlace para volver.
       */}
-      <button
-        type="button"
-        onClick={onDone}
-        className="w-full cursor-pointer py-2 text-sm text-neutral-500 underline"
-      >
-        Pagar después
-      </button>
     </div>
   );
 }

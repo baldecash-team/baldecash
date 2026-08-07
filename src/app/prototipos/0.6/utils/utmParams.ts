@@ -18,15 +18,16 @@ const UTM_KEYS = [
 const STORAGE_KEY = 'baldecash-utm';
 
 /**
- * Valor de `utm_content` que habilita continuar el KYC sin haber podido
- * verificar el rostro.
+ * Valor del parámetro de promotor (`utm_term`) que habilita continuar el KYC
+ * sin haber podido verificar el rostro.
  *
- * Va en `utm_content` y no en `utm_campaign` porque campaign identifica la
- * campaña real y pisarlo rompería la atribución justo de estas sesiones, que
- * son las que más interesa medir. `utm_content` es el que existe para
- * distinguir variantes dentro de una misma campaña.
+ * Va en `utm_term` —el que el resto del sistema usa para el promotor— y no en
+ * `utm_content` ni `utm_campaign`: esos dos identifican la campaña y la
+ * variante creativa, y pisarlos rompería la atribución justo de estas
+ * sesiones, que son las que más interesa medir. Además ata la salida a QUIÉN
+ * la ofrece, no a un anuncio.
  */
-export const KYC_BYPASS_UTM_CONTENT = 'kyc-sin-verificar';
+export const KYC_BYPASS_UTM_TERM = 'kyc-sin-verificar';
 
 function leerStorage(): Record<string, string> {
   try {
@@ -93,5 +94,5 @@ export function withUtmParams(url: string, search?: string): string {
  * pilotear por campaña y se mide cuántos la usan sin abrirla al público.
  */
 export function kycBypassHabilitado(search?: string): boolean {
-  return readUtmParams(search).utm_content === KYC_BYPASS_UTM_CONTENT;
+  return readUtmParams(search).utm_term === KYC_BYPASS_UTM_TERM;
 }
