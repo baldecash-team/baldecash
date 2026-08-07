@@ -20,6 +20,7 @@ import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { captureLandingParams } from '@/app/prototipos/0.6/utils/landingParams';
+import { persistUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
@@ -86,6 +87,10 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   // el catálogo y el wizard de solicitar. Una sola vez por landing.
   useEffect(() => {
     captureLandingParams(slug);
+    // Los UTM se guardan al entrar porque las rutas internas del flujo
+    // (`/solicitar/kyc?code=…`, confirmacion) se arman solo con lo suyo y los
+    // dejarian atras. Sin esto se pierde la atribucion a mitad del embudo.
+    persistUtmParams();
   }, [slug]);
 
   // Preview mode listener - receives live updates from admin

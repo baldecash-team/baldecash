@@ -1374,7 +1374,7 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
  */
 export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance' | 'otp_verification' | 'kyc';
 
-export type KycStepType = 'dni_selfie' | 'contract' | 'documents';
+export type KycStepType = 'dni_selfie' | 'contract' | 'documents' | 'payment';
 
 export interface KycStep {
   type: KycStepType;
@@ -1492,6 +1492,7 @@ export const KYC_STEP_TYPES: KycStepType[] = [
   'dni_selfie',
   'contract',
   'documents',
+  'payment',
 ];
 
 /** Sub-pasos habilitados de la sección `kyc`, ordenados por `order`. Vacío si la

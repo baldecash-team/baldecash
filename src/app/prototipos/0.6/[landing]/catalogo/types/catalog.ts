@@ -1010,6 +1010,20 @@ export interface CartPaymentPlanOption {
   initialAmount: number;
   monthlyQuota: number;
   originalQuota?: number;
+  /**
+   * En cuántas armadas se paga la inicial de esta celda (1 = un solo pago).
+   *
+   * No se puede deducir del plazo: en el perfil del cosechador las armadas se
+   * descuentan del plazo total, así que `term: 8` puede ser "plazo 10 pagando
+   * la inicial en 2 armadas" o "plazo 8 sin armadas" — mismo número de cuotas,
+   * cronogramas distintos.
+   */
+  initialInstallments?: number;
+  /**
+   * Monto de cada armada. Se manda la lista completa y no solo el unitario
+   * porque la última absorbe el sobrante del redondeo y difiere en centavos.
+   */
+  initialInstallmentAmounts?: number[];
 }
 
 export interface CartPaymentPlan {
