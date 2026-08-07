@@ -20,8 +20,13 @@ function format(msLeft: number): Countdown {
   const hours = Math.floor((totalSec % 86400) / 3600);
   const minutes = Math.floor((totalSec % 3600) / 60);
   const seconds = totalSec % 60;
+  // #5: contador en palabras completas ("2 días 7 horas") en vez de "2d 7h".
   const label =
-    days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    days > 0
+      ? `${days} ${days === 1 ? 'día' : 'días'} ${hours} ${hours === 1 ? 'hora' : 'horas'}`
+      : hours > 0
+      ? `${hours} ${hours === 1 ? 'hora' : 'horas'} ${minutes} min`
+      : `${minutes} min`;
   return { expired: false, label, days, hours, minutes, seconds };
 }
 
