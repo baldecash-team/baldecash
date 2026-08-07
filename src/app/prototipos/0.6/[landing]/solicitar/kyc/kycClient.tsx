@@ -240,6 +240,17 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // que hay algo que cobrar; su presencia es la que habilita el paso `payment`.
   const [linkPago, setLinkPago] = useState<string | null>(null);
   const [cerrando, setCerrando] = useState(false);
+  /**
+   * Guard REENTRANTE de `cerrarKyc`, en un ref y no en el estado.
+   *
+   * `setCerrando(true)` no se ve hasta el siguiente render, asi que dos
+   * llamadas casi simultaneas —el efecto de reentrada mas el StrictMode de
+   * React en dev, que monta dos veces— pasaban las dos por el `if (cerrando)`.
+   * Y cada llamada genera un magic link NUEVO invalidando el anterior
+   * (`invalidarParaUser`), asi que el link que quedaba pintado en pantalla ya
+   * estaba muerto: de ahi el "Tu enlace expiro o no es valido".
+   */
+  const cerrandoRef = useRef(false);
   // Estado de progreso completo (no solo el índice): necesario para leer
   // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
   const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
@@ -469,7 +480,8 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
    * seguimiento normal la recoge.
    */
   async function cerrarKyc() {
-    if (cerrando) return;
+    if (cerrandoRef.current) return;
+    cerrandoRef.current = true;
     setCerrando(true);
 
     // Misma prueba de titularidad que usa `completeKycStep`.
@@ -481,6 +493,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       const next = pasosBase.length;
       setIndex(next);
       writeKycStep(landing, code, next);
+      cerrandoRef.current = false;
       setCerrando(false);
       return;
     }
