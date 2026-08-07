@@ -85,6 +85,17 @@ export interface SubmitApplicationResponse {
   application_id?: number;
   application_code?: string;
   public_token?: string;  // UUID for secure public URLs
+  /**
+   * Token del KYC emitido en el submit: el mismo del link de "continuar
+   * despues" (hasheado, con TTL, revocable). Sirve de prueba de titularidad
+   * para que el KYC no tenga que pedir el DNI.
+   *
+   * Opcional a proposito: el mint es best-effort y nunca bloquea el submit, asi
+   * que el front debe caer a la ruta por `application_code` si no llega.
+   */
+  kyc_resume_token?: string;
+  kyc_resume_url?: string;
+  kyc_resume_expires_at?: string;
   status?: string;
   error?: string;
   error_code?: string;

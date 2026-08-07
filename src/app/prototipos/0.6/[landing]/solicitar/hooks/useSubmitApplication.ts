@@ -440,7 +440,19 @@ export function useSubmitApplication(
           // de landings (kyc apagado) el comportamiento es el de siempre: directo
           // a confirmación.
           if (kycEnabled) {
-            router.push(routes.solicitarKyc(landing, { code: result.application_code }));
+            // Con el token del submit se va a la pagina tokenizada: el KYC lo
+            // usa como prueba de titularidad y NO tiene que pedir el DNI. Es el
+            // mismo token del link de "continuar despues" (hasheado, con TTL y
+            // revocable), a diferencia del `application_code`, que es
+            // secuencial y adivinable.
+            //
+            // Sin token —el mint es best-effort y nunca bloquea el submit— cae
+            // a la ruta por codigo de siempre, que pide el DNI.
+            router.push(
+              result.kyc_resume_token
+                ? `/prototipos/0.6/kyc/${result.kyc_resume_token}`
+                : routes.solicitarKyc(landing, { code: result.application_code })
+            );
           } else {
             router.push(
               routes.solicitarConfirmacion(landing, result.application_code)
