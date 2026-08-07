@@ -533,20 +533,22 @@ export async function calculateInstallment(
 /**
  * Map API device type to frontend CatalogDeviceType
  */
-function mapDeviceType(type: string): CatalogDeviceType {
+function mapDeviceType(type: string | null | undefined): CatalogDeviceType {
   const typeMap: Record<string, CatalogDeviceType> = {
     laptop: 'laptop',
     celular: 'celular',
     tablet: 'tablet',
     accesorio: 'accesorio',
   };
-  return typeMap[type.toLowerCase()] || 'laptop';
+  // El campo puede venir null desde el API; sin el guard el catalogo entero
+  // muere con "Cannot read properties of null".
+  return typeMap[(type ?? '').toLowerCase()] || 'laptop';
 }
 
 /**
  * Map API condition to frontend ProductCondition
  */
-function mapCondition(condition: string): ProductCondition {
+function mapCondition(condition: string | null | undefined): ProductCondition {
   const conditionMap: Record<string, ProductCondition> = {
     nueva: 'nuevo',
     new: 'nuevo',
@@ -555,7 +557,9 @@ function mapCondition(condition: string): ProductCondition {
     refurbished: 'reacondicionado',
     reacondicionado: 'reacondicionado',
   };
-  return conditionMap[condition.toLowerCase()] || 'nuevo';
+  // Igual que arriba: un producto sin `condition` no puede tumbar la pagina.
+  // Uno de los dos callers ya pasaba `|| 'nuevo'` y el otro no.
+  return conditionMap[(condition ?? '').toLowerCase()] || 'nuevo';
 }
 
 /**
