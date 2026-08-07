@@ -603,7 +603,11 @@ function CatalogoContent() {
       recommended: 'display_order',
       price_asc: 'price_asc',
       price_desc: 'price_desc',
-      quota_asc: 'price_asc', // Same order since quota is proportional to price
+      // BAL-2860: la cuota NO es proporcional al precio — depende de la TEA, el
+      // plazo y la frecuencia de cada producto. Mapear quota_asc a price_asc
+      // hacía que "Cuota: Menor a mayor" mostrara el orden por precio.
+      quota_asc: 'quota_asc',
+      quota_desc: 'quota_desc',
       newest: 'newest',
       popular: 'featured',
     };
