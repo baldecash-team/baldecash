@@ -66,6 +66,8 @@ interface ApiGradeSibling {
   price: number | null;
   stock_available: number;
   is_available: boolean;
+  /** Cuota del plazo más corto (BAL-2864). La tarjeta de grado muestra esta. */
+  min_term_quota?: number | null;
 }
 
 interface ApiProductBadge {
@@ -157,6 +159,10 @@ interface ApiInitialPaymentOption {
   tea?: number | null;
   tea_irr?: number | null;
   tcea?: number | null;
+  /** En cuantas armadas se paga la inicial de esta celda (1 = un solo pago). */
+  initial_installments?: number;
+  /** Monto de cada armada; la ultima absorbe el sobrante del redondeo. */
+  initial_installment_amounts?: string[];
 }
 
 interface ApiPaymentPlan {
@@ -375,9 +381,23 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       tea: opt.tea ?? null,
       teaIrr: opt.tea_irr ?? null,
       tcea: opt.tcea ?? null,
+      // Armadas de la inicial. `?? 1` porque las celdas viejas no traen el
+      // campo y ahi la inicial siempre fue de un solo pago.
+      initialInstallments: opt.initial_installments ?? 1,
+      initialInstallmentAmounts: (opt.initial_installment_amounts ?? []).map(Number),
     })),
   };
 }
+
+/**
+ * Alias de `transformPaymentPlan` para tests.
+ *
+ * El transform es el unico punto donde el wire se vuelve tipos de dominio, y
+ * ahi viven los `?? 1` que mantienen al catalogo sin armadas. Se expone con
+ * nombre propio en vez de exportar la funcion interna para que quede claro que
+ * no es parte de la API del modulo.
+ */
+export const transformPaymentPlanForTest = transformPaymentPlan;
 
 function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct {
   // Transformar imágenes: soporta tanto string[] como objeto[] con variant_id
@@ -519,6 +539,12 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
       price: sib.price,
       stockAvailable: sib.stock_available,
       isAvailable: sib.is_available,
+      // El wire manda `number | null`; el dominio lo modela `number | undefined`.
+      // Normalizar acá deja el null fuera del resto del front: ningún consumidor
+      // tiene que acordarse de que `null !== undefined` es true en JS.
+      // No es lo que impide el "S/0" — de eso se ocupa el guard del render, que
+      // además descarta el 0. Son dos defensas distintas, no la misma dos veces.
+      minTermQuota: sib.min_term_quota ?? undefined,
     })),
     description: apiProduct.description,
     shortDescription: apiProduct.short_description,

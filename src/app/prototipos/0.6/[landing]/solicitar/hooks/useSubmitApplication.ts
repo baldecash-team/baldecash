@@ -347,6 +347,11 @@ export function useSubmitApplication(
           ),
           initial_percent: primaryProduct.initialPercent ?? 0, // Send selection, backend calculates amounts
           initial_amount: primaryProduct.initialAmount ?? 0,
+          // En cuantas armadas se cobra la inicial. El backend manda la celda
+          // del pricing como fuente autoritativa y solo cae a este valor si la
+          // celda no configuro armadas; ademas lo sanea a {2,4}, asi que un 1
+          // (el default de todo el catalogo) no cambia nada.
+          initial_installments: primaryProduct.initialInstallments ?? 1,
           // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
           payment_frequency: primaryProduct.paymentFrequency,
@@ -453,7 +458,19 @@ export function useSubmitApplication(
           // de landings (kyc apagado) el comportamiento es el de siempre: directo
           // a confirmación.
           if (kycEnabled) {
-            router.push(routes.solicitarKyc(landing, { code: result.application_code }));
+            // Con el token del submit se va a la pagina tokenizada: el KYC lo
+            // usa como prueba de titularidad y NO tiene que pedir el DNI. Es el
+            // mismo token del link de "continuar despues" (hasheado, con TTL y
+            // revocable), a diferencia del `application_code`, que es
+            // secuencial y adivinable.
+            //
+            // Sin token —el mint es best-effort y nunca bloquea el submit— cae
+            // a la ruta por codigo de siempre, que pide el DNI.
+            router.push(
+              result.kyc_resume_token
+                ? `/prototipos/0.6/kyc/${result.kyc_resume_token}`
+                : routes.solicitarKyc(landing, { code: result.application_code })
+            );
           } else {
             router.push(
               routes.solicitarConfirmacion(landing, result.application_code)

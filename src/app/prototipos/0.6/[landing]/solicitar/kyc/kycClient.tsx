@@ -26,18 +26,21 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { getKycProgress, completeKycStep, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
 import { PausarModal } from './PausarModal';
 import { KycLayout } from './KycLayout';
+import { PagoStep } from './steps/PagoStep';
 
 const STEP_LABELS: Record<KycStepType, string> = {
   dni_selfie: 'DNI + selfie',
   contract: 'Contrato',
   documents: 'Documentos',
+  payment: 'Pago de inicial',
 };
 
 /**
@@ -135,13 +138,15 @@ interface RenderStepArgs {
   /** DNI ya conocido; solo lo consume `dni_selfie`, que lo contrasta con la foto. */
   documentNumber?: string;
   onDniVerified?: (dni: string) => void;
+  /** Solo lo consume `payment`: magic link a Zona Estudiantes. */
+  linkPago?: string | null;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -159,6 +164,10 @@ function renderStep({
       return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'documents':
       return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
+    case 'payment':
+      // Solo se llega con veredicto aprobado y cuota inicial impaga, asi que
+      // `linkPago` existe; el guard es defensivo.
+      return linkPago ? <PagoStep linkPago={linkPago} /> : null;
     default:
       return null;
   }
@@ -227,6 +236,21 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
   const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
   const [index, setIndex] = useState(0);
+  // Link de pago de la inicial. Null hasta que el veredicto de aprobacion diga
+  // que hay algo que cobrar; su presencia es la que habilita el paso `payment`.
+  const [linkPago, setLinkPago] = useState<string | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+  /**
+   * Guard REENTRANTE de `cerrarKyc`, en un ref y no en el estado.
+   *
+   * `setCerrando(true)` no se ve hasta el siguiente render, asi que dos
+   * llamadas casi simultaneas —el efecto de reentrada mas el StrictMode de
+   * React en dev, que monta dos veces— pasaban las dos por el `if (cerrando)`.
+   * Y cada llamada genera un magic link NUEVO invalidando el anterior
+   * (`invalidarParaUser`), asi que el link que quedaba pintado en pantalla ya
+   * estaba muerto: de ahi el "Tu enlace expiro o no es valido".
+   */
+  const cerrandoRef = useRef(false);
   // Estado de progreso completo (no solo el índice): necesario para leer
   // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
   const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
@@ -266,8 +290,11 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     }
   };
 
+  // Los UTM se arrastran a la confirmacion: quien llega hasta aca —sobre todo
+  // si siguio sin poder verificarse— tiene que seguir siendo atribuible a la
+  // campana con la que entro. `routes.*` arma solo lo que la ruta necesita.
   const goToConfirmacion = () =>
-    router.replace(routes.solicitarConfirmacion(landing, code));
+    router.replace(withUtmParams(routes.solicitarConfirmacion(landing, code)));
 
   // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
   // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
@@ -313,6 +340,38 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
+  // Reentrada con el pago pendiente: al volver por el link hay que ABRIR el
+  // paso de pago, no rebobinar al anterior.
+  //
+  // `payment` solo entra en `pasos` cuando ya hay `linkPago`, asi que al montar
+  // la lista tiene un elemento menos y el `next_step_index` del backend (que si
+  // lo cuenta) queda fuera de rango: el clamp lo devolvia al sub-paso previo,
+  // ya completado. Se pide el veredicto para tener el link y recien ahi el paso
+  // existe.
+  const pagoPendienteRemoto = useMemo(() => {
+    const pasosRemotos = progressState?.steps ?? [];
+    if (!pasosRemotos.length) return false;
+
+    const pago = pasosRemotos.find((p) => p.type === 'payment');
+    if (!pago || pago.status === 'completed') return false;
+
+    // Solo si TODO lo anterior esta cerrado; si no, el orden normal manda.
+    return pasosRemotos
+      .filter((p) => p.type !== 'payment')
+      .every((p) => p.status === 'completed');
+  }, [progressState]);
+
+  /** Hay pago pendiente y todavia no llego el link: se esta resolviendo. */
+  const resolviendoPago = pagoPendienteRemoto && !linkPago;
+
+  useEffect(() => {
+    if (resolviendoPago && !cerrando) {
+      void cerrarKyc();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagoPendienteRemoto, linkPago]);
+
   // Gate: landing sin `kyc` habilitado (o sin sub-pasos habilitados) → saltar
   // directo al resumen. `kycEnabled` viene de `useSolicitarFlow` (fail-safe:
   // sección ausente ⇒ false), así que una entrada por URL directa a una
@@ -345,8 +404,17 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   }
 
   // Clamp defensivo por si `kycSteps` cambiara de tamaño en caliente.
-  const safeIndex = Math.min(index, kycSteps.length - 1);
-  const currentStep = kycSteps[safeIndex];
+  // `payment` no es un sub-paso mas: solo existe si el veredicto dijo que hay
+  // cuota inicial impaga. Se mantiene FUERA de la lista hasta tenerlo, para que
+  // el contador "Paso N de M" no prometa un paso que quiza nunca aparezca.
+  const pasosBase = kycSteps.filter((s) => s.type !== 'payment');
+  const pasoPagoConfigurado = kycSteps.some((s) => s.type === 'payment');
+  const pasos = linkPago
+    ? [...pasosBase, kycSteps.find((s) => s.type === 'payment')!]
+    : pasosBase;
+
+  const safeIndex = Math.min(index, pasos.length - 1);
+  const currentStep = pasos[safeIndex];
 
   const goNext = () => {
     track('kyc_step_complete', {
@@ -388,16 +456,59 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       }
     }
 
-    if (safeIndex + 1 < kycSteps.length) {
+    if (safeIndex + 1 < pasos.length) {
       const next = safeIndex + 1;
       setIndex(next);
       writeKycStep(landing, code, next); // persistir avance (refresh/volver)
-    } else {
-      track('kyc_completed', { application_code: code });
-      clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
-      goToConfirmacion();
+      return;
     }
+
+    // Ultimo sub-paso: si la landing configuro el pago y aun no hay veredicto,
+    // se consulta antes de cerrar.
+    if (pasoPagoConfigurado && !linkPago) {
+      void cerrarKyc();
+      return;
+    }
+
+    track('kyc_completed', { application_code: code });
+    clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
+    goToConfirmacion();
   };
+
+  /**
+   * Cierra el KYC contra el backend y decide si toca mostrar el paso de pago.
+   *
+   * Degrada a confirmacion ante cualquier respuesta que no lo habilite (no
+   * aprobado, sin cuota inicial, error, o sin DNI). Un fallo aca no puede
+   * dejar al solicitante atrapado: si la solicitud igual quedo aprobada, el
+   * seguimiento normal la recoge.
+   */
+  async function cerrarKyc() {
+    if (cerrandoRef.current) return;
+    cerrandoRef.current = true;
+    setCerrando(true);
+
+    // Misma prueba de titularidad que usa `completeKycStep`.
+    const veredicto = code ? await completarKyc(code, effectiveDni, resumeToken) : null;
+
+    if (veredicto?.aprobado && veredicto.tiene_cuota_inicial && veredicto.link_pago) {
+      track('kyc_payment_step_shown', { application_code: code });
+      setLinkPago(veredicto.link_pago);
+      // Se deriva de `kycSteps` y NO de `pasosBase`: los hooks van antes del
+      // gate que hace `return` temprano, y `pasosBase` se declara despues, asi
+      // que leerla desde aca reventaba con "Cannot access before initialization".
+      const next = kycSteps.filter((s) => s.type !== 'payment').length;
+      setIndex(next);
+      writeKycStep(landing, code, next);
+      cerrandoRef.current = false;
+      setCerrando(false);
+      return;
+    }
+
+    track('kyc_completed', { application_code: code });
+    clearKycStep(landing, code);
+    goToConfirmacion();
+  }
   const goBack =
     safeIndex > 0
       ? () => {
@@ -419,7 +530,12 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // El backend ya valida el DNI contra la solicitud (con lockout + auditoría),
   // así que ahora se le pide al usuario en el propio modal (`PausarModal`)
   // cuando no hay uno disponible localmente.
-  const canPause = Boolean(progressState?.resume?.enabled && code && !resumeToken);
+  // Se ofrece en TODOS los pasos y por las dos vias de entrada. Antes se
+  // excluia la entrada por token (`!resumeToken`) —"ya tiene un link"— pero eso
+  // hacia que el boton apareciera y desapareciera segun como hubiera entrado la
+  // persona, y el link viejo vence: quien retoma a las 70 h necesita pedir uno
+  // nuevo justamente desde aca.
+  const canPause = Boolean(progressState?.resume?.enabled && code);
 
   const handlePauseClick = () => {
     track('kyc_pause_click', { application_code: code });
@@ -438,10 +554,21 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
         */}
         <div className="w-full space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7 md:rounded-none md:border-0 md:shadow-none md:px-10 md:py-10 lg:px-12 lg:py-12">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center md:text-left">
-            Paso {safeIndex + 1} de {kycSteps.length} · {STEP_LABELS[currentStep.type]}
+            Paso {safeIndex + 1} de {pasos.length} · {STEP_LABELS[currentStep.type]}
           </p>
 
-          {renderStep({
+          {/*
+            Mientras se resuelve el pago pendiente se muestra carga, no el paso.
+            `payment` no existe en la lista hasta tener `linkPago`, asi que el
+            clamp caia al sub-paso anterior y se veia un segundo la pantalla de
+            la foto —ya superada— antes de saltar al pago.
+          */}
+          {resolviendoPago ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10">
+              <CubeGridSpinner />
+              <p className="text-sm text-neutral-500">Estamos preparando tu pago…</p>
+            </div>
+          ) : renderStep({
             type: currentStep.type,
             onDone: goNext,
             onBack: goBack,
@@ -449,37 +576,39 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             onTrack,
             documentNumber: effectiveDni,
             onDniVerified: rememberVerifiedDni,
+            linkPago,
           })}
 
           {canPause && code && (
-            <div className="pt-1 text-center md:text-left">
+            <div className="border-t border-neutral-100 pt-4">
               {/*
                 El tooltip explica qué hace el enlace ANTES de abrir el modal.
                 "Continuar en otro momento" no dice si se pierde el avance ni
                 cómo se vuelve, y esa duda es justo la que frena a alguien que
                 no puede terminar ahora.
               */}
+              {/*
+                Boton, no enlace de texto: aparece en todos los pasos y tiene
+                que verse igual en todos. El texto de abajo dice lo que el
+                tooltip escondia —que llega por WhatsApp y cuanto dura—, porque
+                esa duda es justo la que frena a alguien que no puede terminar
+                ahora, y en tactil no hay hover que lo revele.
+              */}
               <button
                 type="button"
                 onClick={handlePauseClick}
-                title={`Te enviamos por WhatsApp un enlace para retomar donde quedaste. Vence en ${
-                  progressState?.resume?.ttl_hours ?? 72
-                } horas.`}
-                className="group relative text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white py-2.5 text-sm font-semibold text-[#4654CD] transition-colors hover:border-[#4654CD] hover:bg-[#ECECFB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4654CD] cursor-pointer"
               >
+                <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
                 Continuar en otro momento
-                <span
-                  role="tooltip"
-                  className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-lg bg-[#1f2937] px-3 py-2 text-xs font-normal leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-                >
-                  Te enviamos por WhatsApp un enlace para retomar donde quedaste.
-                  Vence en {progressState?.resume?.ttl_hours ?? 72} horas.
-                  <span
-                    aria-hidden
-                    className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[#1f2937]"
-                  />
-                </span>
               </button>
+              <p className="mt-2 text-center text-xs leading-snug text-neutral-500">
+                Te enviamos un enlace por WhatsApp para retomar donde quedaste.
+                Vence en {progressState?.resume?.ttl_hours ?? 72} horas.
+              </p>
               <PausarModal
                 open={showPausarModal}
                 onClose={() => setShowPausarModal(false)}

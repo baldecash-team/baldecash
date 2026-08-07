@@ -155,7 +155,13 @@ export function CopiaHomeMobileDetail({
   const gradeOptions: GradeOption[] = hasRealGrades
     ? [...gradeSiblings]
         .sort((a, b) => a.grade.localeCompare(b.grade))
-        .map((s) => ({ grade: s.grade as GradeKey, price: s.price, isAvailable: s.isAvailable }))
+        .map((s) => ({
+          grade: s.grade as GradeKey,
+          // `price` NO se pinta en la tarjeta: alimenta el panel de ahorro.
+          price: s.price ?? undefined,
+          minTermQuota: s.minTermQuota,
+          isAvailable: s.isAvailable,
+        }))
     : (Object.keys(GRADES) as GradeKey[]).map((g) => ({ grade: g, isAvailable: GRADES[g].disponible }));
   const gradeButtons: GradeKey[] = hasRealGrades
     ? [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)).map((s) => s.grade as GradeKey)
@@ -203,6 +209,10 @@ export function CopiaHomeMobileDetail({
   const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
   const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
   const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
+  // En cuantas armadas se cobra la inicial de la opcion elegida. Viene con la
+  // opcion, no es una eleccion aparte: cada modalidad es una celda propia del
+  // pricing con su plazo. 1 = pago unico, el default de todo el catalogo.
+  const initialInstallments = pricingSel?.initialInstallments ?? 1;
 
   // Specs reales del equipo y otros seminuevos (para las nuevas secciones colapsables).
   const specCategories = product.specs ?? [];
@@ -246,6 +256,7 @@ export function CopiaHomeMobileDetail({
       term,
       initialPercent,
       initialAmount,
+      initialInstallments,
       image: thumbnail,
       type: product.deviceType as SelectedProduct['type'],
       condition: product.condition,
@@ -413,6 +424,10 @@ export function CopiaHomeMobileDetail({
                 selected={grade}
                 onSelect={selectGrade}
                 showHeading={false}
+                // La frecuencia del MISMO payload que trajo las cuotas, no la de
+                // la calculadora: esa se refresca sola y dejaría la etiqueta
+                // cambiando mientras el número queda fijo.
+                paymentFrequency={paymentPlans[0]?.paymentFrequency}
               />
             ) : (
             <div className={styles.grados}>

@@ -13,6 +13,13 @@ const THIRD_PARTY_NOISE_PATTERN = /blip-chat-widget|baldecash\.chat\.blip\.ai/i;
 Sentry.init({
   dsn: "https://89b76047709a0b3fe7c9bff6c5b221e7@o4504769499561984.ingest.us.sentry.io/4511120032333824",
 
+  // No reportar desde desarrollo: `npm run dev` de cualquier maquina ensuciaba
+  // el proyecto de Sentry con errores locales, indistinguibles de los de
+  // produccion. El DSN esta hardcodeado (no sale del .env), asi que ninguna
+  // variable de entorno lo apagaba: el gate tiene que estar aca.
+  enabled: process.env.NODE_ENV === "production",
+
+
   integrations: [Sentry.replayIntegration()],
 
   tracesSampleRate: 1,

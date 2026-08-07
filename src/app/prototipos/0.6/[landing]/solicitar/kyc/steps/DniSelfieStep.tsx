@@ -31,6 +31,7 @@ import {
   type VerifyDniResult,
 } from '@/app/prototipos/0.6/services/kycApi';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
+import { kycBypassHabilitado } from '@/app/prototipos/0.6/utils/utmParams';
 
 export interface DniSelfieStepProps {
   onDone: () => void;
@@ -62,6 +63,12 @@ interface Failure {
    * invita a repetir una llamada que no puede funcionar.
    */
   primary: 'retake' | 'retry';
+  /**
+   * Identifica la causa para el evento de bypass. Sin esto no se puede
+   * distinguir "siguio porque el servicio no pudo leer" de "siguio aunque los
+   * rostros no coincidian", que son dos riesgos muy distintos.
+   */
+  reason?: string;
 }
 
 const TIPS_DOCUMENTO = [
@@ -87,27 +94,27 @@ export function documentFailure(res: VerifyDniResult): Failure {
       return {
         title: 'El DNI no coincide con la solicitud',
         detail: 'El número ingresado no es el del titular de esta solicitud.',
-        tips: [], primary: 'retry',
+        tips: [], primary: 'retry', reason: 'ownership_check_failed',
       };
     }
     if (res.reason === 'ownership_locked' || res.reason === 'rate_limited') {
       return {
         title: 'Demasiados intentos',
         detail: 'Espera unos minutos antes de volver a intentarlo.',
-        tips: [], primary: 'retry',
+        tips: [], primary: 'retry', reason: 'rate_limited',
       };
     }
     return {
       title: 'No pudimos validar tu documento',
       detail: res.error || 'Intenta nuevamente.',
-      tips: [], primary: 'retry',
+      tips: [], primary: 'retry', reason: 'request_failed',
     };
   }
   if (res.status === 'not_found') {
     return {
       title: 'Esa foto no es tu DNI',
       detail: 'No encontramos tu número de documento en la imagen. Asegúrate de fotografiar tu propio DNI.',
-      tips: TIPS_DOCUMENTO, primary: 'retake',
+      tips: TIPS_DOCUMENTO, primary: 'retake', reason: 'documento_no_coincide',
     };
   }
   return {
@@ -116,6 +123,7 @@ export function documentFailure(res: VerifyDniResult): Failure {
       ? 'La foto se ve borrosa y no podemos confirmar el número.'
       : 'La imagen no se pudo leer.',
     tips: TIPS_DOCUMENTO, primary: 'retake',
+    reason: res.status === 'low_confidence' ? 'documento_baja_confianza' : 'documento_ilegible',
   };
 }
 
@@ -129,13 +137,13 @@ export function faceFailure(res: CompareFacesResult): Failure {
       return {
         title: 'No encontramos un rostro en la foto',
         detail: 'Necesitamos ver tu cara con claridad para compararla con tu DNI.',
-        tips: TIPS_ROSTRO, primary: 'retake',
+        tips: TIPS_ROSTRO, primary: 'retake', reason: 'rostro_no_detectado',
       };
     }
     return {
       title: 'No pudimos verificar tu identidad',
       detail: res.error || 'Intenta nuevamente en unos segundos.',
-      tips: [], primary: 'retry',
+      tips: [], primary: 'retry', reason: 'comparacion_fallida',
     };
   }
   const pct = typeof res.similarity === 'number' ? res.similarity : null;
@@ -144,7 +152,7 @@ export function faceFailure(res: CompareFacesResult): Failure {
     detail: `No pudimos confirmar que seas la misma persona${
       pct != null ? ` (coincidencia ${pct}%)` : ''
     }.`,
-    tips: TIPS_ROSTRO, primary: 'retake',
+    tips: TIPS_ROSTRO, primary: 'retake', reason: 'rostros_no_coinciden',
   };
 }
 
@@ -228,6 +236,12 @@ export function DniSelfieStep({
 }: DniSelfieStepProps) {
   const { stream, requestCamera, stopStream, liveVideoRef, liveActive, playLive } = useRecorder();
   const track = useKycTracker(onTrack);
+  // Se resuelve una sola vez al montar: depende del UTM de la sesion, no del
+  // render. Va con useState(inicializador) y no useMemo porque toca
+  // sessionStorage, que no existe en SSR.
+  const [bypassHabilitado] = useState(() =>
+    typeof window === 'undefined' ? false : kycBypassHabilitado(),
+  );
   const [phase, setPhase] = useState<Phase>('selfie');
   const [selfieShot, setSelfieShot] = useState<string | null>(null);
   const [dniShot, setDniShot] = useState<string | null>(null);
@@ -242,8 +256,9 @@ export function DniSelfieStep({
   const [failure, setFailure] = useState<Failure | null>(null);
 
   // DNI tipeado acá cuando no llegó por props. Solo dígitos: el backend exige 8.
-  const [dniInput, setDniInput] = useState('');
-  const effectiveDni = (documentNumber || dniInput).replace(/\D/g, '');
+  // El DNI sale SIEMPRE de la solicitud: del formulario o del canje del token.
+  // Ya no hay input, asi que no hay forma de tipearlo mal.
+  const effectiveDni = (documentNumber ?? '').replace(/\D/g, '');
   const dniReady = effectiveDni.length === 8;
 
   const fail = (f: Failure) => {
@@ -299,12 +314,33 @@ export function DniSelfieStep({
 
       if (!doc.success || doc.status !== 'verified') {
         if (doc.success) {
-          track('kyc_document_rejected', { status: doc.status, application_code: applicationCode });
+          // Toda la metadata de Textract, no solo el status: sin `occurrences`
+          // ni `max_confidence` no se puede saber si el umbral esta mal
+          // calibrado o si de verdad la foto era ilegible.
+          track('kyc_document_rejected', {
+            application_code: applicationCode,
+            status: doc.status,
+            occurrences: doc.occurrences,
+            occurrences_total: doc.occurrences_total,
+            min_occurrences: doc.min_occurrences,
+            min_confidence: doc.min_confidence,
+            max_confidence: doc.max_confidence,
+            lines_detected: doc.lines_detected,
+          });
         }
         fail(documentFailure(doc));
         return;
       }
-      track('kyc_document_verified', { application_code: applicationCode });
+      track('kyc_document_verified', {
+        application_code: applicationCode,
+        status: doc.status,
+        occurrences: doc.occurrences,
+        occurrences_total: doc.occurrences_total,
+        min_occurrences: doc.min_occurrences,
+        min_confidence: doc.min_confidence,
+        max_confidence: doc.max_confidence,
+        lines_detected: doc.lines_detected,
+      });
       onDniVerified?.(effectiveDni);
 
       // ── 2. ¿El rostro de la selfie es el del documento? ──────────────────
@@ -332,7 +368,7 @@ export function DniSelfieStep({
       fail({
         title: 'No pudimos verificar tu identidad',
         detail: 'Hubo un problema de conexión. Intenta nuevamente.',
-        tips: [], primary: 'retry',
+        tips: [], primary: 'retry', reason: 'error_de_red',
       });
     }
   };
@@ -471,31 +507,15 @@ export function DniSelfieStep({
         {verifyState === 'idle' && (
           <div className="space-y-3">
             {/*
-              El DNI solo se pide cuando no vino del wizard. Es obligatorio:
-              `verify-dni` necesita saber QUÉ número buscar en la foto — sin él
-              solo podríamos comprobar que hay "un" documento, no que sea el
-              tuyo. De paso es la prueba de titularidad que guarda el avance.
+              El DNI NO se pide: es el de la solicitud.
+
+              `verify-dni` necesita saber QUE numero buscar en la foto, y ese
+              numero ya lo tiene el sistema —viene del formulario, o del canje
+              del token en `/kyc/{token}`, que lo devuelve junto al estado—.
+              Pedirlo otra vez solo agregaba una forma de equivocarse: un digito
+              mal tipeado hacia fallar una verificacion que en realidad estaba
+              bien, y encima sobre el documento de la propia persona.
             */}
-            {!documentNumber && (
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-[#374151]">
-                  Número de DNI
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  maxLength={8}
-                  value={dniInput}
-                  onChange={(e) => setDniInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="12345678"
-                  className="w-full rounded-lg border-2 border-[#e5e7eb] px-3 py-2.5 text-[#1f2937] outline-none transition-colors focus:border-[#4654CD]"
-                />
-                <span className="block text-xs text-[#6b7280]">
-                  Lo comparamos con el que aparece en la foto de tu documento.
-                </span>
-              </label>
-            )}
             <button
               type="button"
               onClick={runVerification}
@@ -592,6 +612,57 @@ export function DniSelfieStep({
                   Repetir fotos
                 </button>
               </>
+            )}
+
+            {/*
+              Salida solo para el trafico que llega con el utm_term acordado —el
+              parametro de promotor— (ver KYC_BYPASS_UTM_TERM). La medicion sobre 200 DNIs reales
+              mostro que ~la mitad del parque no expone su MRZ en el reverso, o
+              sea "no pudimos verificar" es un desenlace comun y ajeno al
+              solicitante; pero abrir la puerta a todos convertiria el KYC en
+              opcional. Se pilotea por campana y se mide con kyc_identity_skipped.
+            */}
+            {bypassHabilitado && (
+              /*
+                Separado por una linea y en tono neutro: es una salida, no una
+                tercera accion equivalente. Si compitiera visualmente con
+                "Repetir fotos" se volveria el camino facil y el KYC quedaria
+                de adorno. Y dice que pasa despues, porque "continuar" a secas
+                deja creer que la verificacion quedo resuelta.
+              */
+              <div className="border-t border-neutral-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    track('kyc_identity_skipped', {
+                      application_code: applicationCode,
+                      reason: failure.reason ?? 'desconocido',
+                      primary: failure.primary,
+                    });
+                    onDone();
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 bg-white py-2.5 text-sm font-medium text-neutral-500 transition-colors hover:border-neutral-400 hover:bg-neutral-50 hover:text-neutral-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 cursor-pointer"
+                >
+                  {/* Borde punteado y gris: se lee como salida, no como la
+                      accion principal. Con el mismo peso que "Repetir fotos"
+                      seria el camino facil y el KYC quedaria de adorno. */}
+                  <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="m13 6 6 6-6 6" />
+                  </svg>
+                  Continuar sin verificar
+                </button>
+                <p className="mt-2 flex items-start justify-center gap-1.5 text-center text-xs leading-snug text-neutral-500">
+                  <svg aria-hidden viewBox="0 0 24 24" className="mt-px h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8h.01M11 12h1v4h1" />
+                  </svg>
+                  <span>
+                    Seguimos con tu solicitud, pero podríamos pedirte la
+                    verificación más adelante.
+                  </span>
+                </p>
+              </div>
             )}
           </div>
         )}

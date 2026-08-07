@@ -14,8 +14,17 @@ export type GradeKey = 'A' | 'B' | 'C';
 /** Un grado tal como lo trae `grade_siblings` del API. */
 export interface GradeOption {
   grade: GradeKey;
-  /** Precio del grado. Puede faltar cuando el equipo no tiene hermanos cargados. */
+  /**
+   * Precio de lista del grado. Puede faltar cuando el equipo no tiene hermanos
+   * cargados. NO se muestra en la tarjeta: alimenta el panel de ahorro, que
+   * compara precios de lista contra el mejor grado.
+   */
   price?: number;
+  /**
+   * Cuota del plazo más corto (BAL-2864). Es lo que muestra la tarjeta.
+   * Ausente = no calculable; la tarjeta no muestra número.
+   */
+  minTermQuota?: number;
   isAvailable: boolean;
 }
 

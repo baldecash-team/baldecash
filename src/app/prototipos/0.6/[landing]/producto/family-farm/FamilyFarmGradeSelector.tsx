@@ -13,6 +13,7 @@ import {
   type GradeOption,
 } from './familyFarmGrades';
 import { gradeSavings } from './gradeSavings';
+import { formatMoneyNoDecimals } from '../utils/formatMoney';
 
 export type { GradeOption };
 
@@ -26,6 +27,12 @@ interface FamilyFarmGradeSelectorProps {
    * repetirlo dejaría el encabezado dos veces, uno encima del otro.
    */
   showHeading?: boolean;
+  /**
+   * Frecuencia en la que vienen las cuotas de `grades`, para elegir el sufijo.
+   * Sale del MISMO payload que trajo las cuotas, no de la selección de la
+   * calculadora: si no, la etiqueta cambiaría y el número no.
+   */
+  paymentFrequency?: string;
 }
 
 const PALETTE: Record<GradeKey, string> = {
@@ -36,6 +43,24 @@ const PALETTE: Record<GradeKey, string> = {
 
 function formatPrice(price: number): string {
   return `S/${Math.round(price).toLocaleString('es-PE')}`;
+}
+
+/** Sufijos del repo (`PricingCalculator`), para no mostrar dos etiquetas
+ *  distintas de la misma frecuencia en una misma pantalla. */
+const FREQ_SUFFIX: Record<string, string> = {
+  semanal: '/sem',
+  quincenal: '/qcn',
+  mensual: '/mes',
+};
+
+/** Cuota del plazo más corto, con el sufijo de su frecuencia.
+ *
+ *  Trunca, no redondea: es lo que hace el resto de esta pantalla, a favor del
+ *  usuario. Hoy los valores llegan enteros, así que no cambia nada — pero fija
+ *  la dirección si algún día dejan de serlo. */
+function formatQuota(quota: number, frequency?: string): string {
+  const suffix = FREQ_SUFFIX[frequency ?? 'mensual'] ?? FREQ_SUFFIX.mensual;
+  return `S/${formatMoneyNoDecimals(Math.floor(quota))}${suffix}`;
 }
 
 /**
@@ -51,6 +76,7 @@ export const FamilyFarmGradeSelector: React.FC<FamilyFarmGradeSelectorProps> = (
   selected,
   onSelect,
   showHeading = true,
+  paymentFrequency,
 }) => {
   if (grades.length === 0) return null;
 
@@ -84,7 +110,13 @@ export const FamilyFarmGradeSelector: React.FC<FamilyFarmGradeSelectorProps> = (
               <span className={styles.cardTitle}>Grado {option.grade}</span>
               <span className={styles.cardMeta}>
                 {GRADE_COPY[option.grade].titulo}
-                {option.price !== undefined && ` · ${formatPrice(option.price)}`}
+                {/* La cuota, no el precio de lista: el precio sugiere un total
+                    a pagar y ese total cambia con el plazo elegido.
+                    `typeof` y no `!== undefined`: el API puede mandar null, y
+                    `null !== undefined` es true. El `> 0` descarta el 0 que
+                    anunciaría un equipo regalado. */}
+                {typeof option.minTermQuota === 'number' && option.minTermQuota > 0 &&
+                  ` · ${formatQuota(option.minTermQuota, paymentFrequency)}`}
               </span>
               {isSelected && (
                 <span className={styles.tick} aria-hidden="true">

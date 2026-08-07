@@ -379,9 +379,13 @@ export function GamerCatalogoContent() {
       recommended: 'display_order',
       price_asc: 'price_asc',
       price_desc: 'price_desc',
-      quota_asc: 'price_asc',
+      // BAL-2860: antes iba a 'price_asc' — la cuota no es proporcional al
+      // precio (depende de TEA, plazo y frecuencia de cada producto).
+      quota_asc: 'quota_asc',
+      quota_desc: 'quota_desc',
       newest: 'newest',
-      popular: 'featured',
+      // BAL-2860: antes 'featured' (marca manual), ahora solicitudes reales.
+      popular: 'popular',
     };
     return map[sort];
   }, [sort]);
