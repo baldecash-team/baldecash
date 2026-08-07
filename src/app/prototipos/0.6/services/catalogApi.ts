@@ -764,11 +764,20 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   // Deduplicate color siblings: keep only the first representative per family.
   // Each product that has color siblings already contains all siblings in its
   // `colors` array, so subsequent siblings in the list are redundant cards.
+  //
+  // Solo cuentan los hermanos que vienen de color_siblings (una familia real).
+  // El color propio de la variante NO agrupa nada: su productId es el del mismo
+  // producto, y marcarlo hacia que un equipo repetido en la lista con otro combo
+  // — mismo product_id, distinto landing_product_id — se descartara como si
+  // fuera su propio hermano. Asi desaparecian de la grilla el Lenovo V15 con
+  // seguro y el MacBook Neo Silver sin combo.
   const seenSiblingIds = new Set<string>();
   const products = allProducts.filter(p => {
     if (seenSiblingIds.has(p.id)) return false;
     if (p.colors && p.colors.length > 0) {
-      p.colors.forEach(c => { if (c.productId) seenSiblingIds.add(c.productId); });
+      p.colors.forEach(c => {
+        if (c.productId && c.productId !== p.id) seenSiblingIds.add(c.productId);
+      });
     }
     return true;
   });
