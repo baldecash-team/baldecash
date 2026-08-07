@@ -7,6 +7,7 @@
 
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
+import { sanitizeEmailInput } from '../../../../../services/emailValidation';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
@@ -194,6 +195,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <TextInput
           {...commonProps}
+          // Pegar el hipervínculo del correo (`mailto:alguien@dominio.pe`) era la
+          // forma más común de guardar un address que Mailgun luego no podía
+          // entregar. Se limpia al vuelo, igual que `phone` filtra los no-dígitos.
+          onChange={(newValue: string) => updateField(field.code, sanitizeEmailInput(newValue))}
           type="email"
           placeholder={field.placeholder || undefined}
           inputMode="email"

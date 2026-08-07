@@ -316,4 +316,48 @@ describe('useSubmitApplication', () => {
       expect(result.current.error).toBe(null);
     });
   });
+
+  describe('email normalization', () => {
+    const original = mockFormData.email.value;
+    afterEach(() => {
+      mockFormData.email.value = original;
+    });
+
+    /**
+     * Prod 2026-08-07: `mailto:cgonzalesas@isise.edu.pe` llegó al backend y Mailgun
+     * rechazó el OTP con 400. El input ya limpia lo que se teclea; esto cubre el
+     * valor que nunca pasa por ahí (prefill por DNI, restaurado de localStorage).
+     */
+    it('cleans the email field before sending it to the API', async () => {
+      mockFormData.email.value = '  MAILTO:CGonzalesAS@isise.edu.pe ';
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({ email: 'cgonzalesas@isise.edu.pe' }),
+        })
+      );
+    });
+
+    it('leaves an unusable value untouched instead of sending an empty string', async () => {
+      mockFormData.email.value = 'mailto:';
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({ email: 'mailto:' }),
+        })
+      );
+    });
+  });
 });

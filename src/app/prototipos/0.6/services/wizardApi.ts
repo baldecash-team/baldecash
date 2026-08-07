@@ -5,6 +5,7 @@
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
 import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
+import { isValidEmail } from './emailValidation';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -698,6 +699,13 @@ export function validateField(
     }
   }
 
+  // 3.b Un campo de correo se valida siempre, tenga o no la regla `email` cargada
+  // en el form builder: el backend no puede entregar un address mal formado y el
+  // postulante se queda esperando un código que nunca llega.
+  if (field.type === 'email' && !isValidEmail(trimmedValue)) {
+    return { isValid: false, error: 'Ingresa un correo válido (ejemplo: nombre@dominio.com)' };
+  }
+
   // 4. Validación de pattern (regex)
   if (field.pattern) {
     try {
@@ -739,7 +747,7 @@ export function validateField(
         break;
 
       case 'email':
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
+        if (!isValidEmail(trimmedValue)) {
           hasError = true;
         }
         break;
