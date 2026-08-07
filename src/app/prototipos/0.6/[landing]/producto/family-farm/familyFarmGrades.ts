@@ -11,6 +11,14 @@
 
 export type GradeKey = 'A' | 'B' | 'C';
 
+/** Un grado tal como lo trae `grade_siblings` del API. */
+export interface GradeOption {
+  grade: GradeKey;
+  /** Precio del grado. Puede faltar cuando el equipo no tiene hermanos cargados. */
+  price?: number;
+  isAvailable: boolean;
+}
+
 export interface GradeCopy {
   /** Título corto del grado, el que acompaña al precio en la tarjeta. */
   titulo: string;
@@ -52,6 +60,13 @@ export const GRADE_COPY: Record<GradeKey, GradeCopy> = {
 
 /** Aclaración que va debajo del cuadro, para que el grado no se lea como "roto". */
 export const GRADE_NOTE = 'Todos los grados son 100% funcionales y revisados por técnicos certificados.';
+
+/**
+ * Contra qué se compara el ahorro. Dice "el mejor estado" y no "nuevo" porque
+ * la referencia es el mejor grado cargado del equipo, que también es usado: no
+ * existe en el catálogo el precio del mismo modelo nuevo. Ver `gradeSavings`.
+ */
+export const GRADE_SAVINGS_LABEL = 'Ahorras vs. el mejor estado';
 
 export const GRADE_HEADING = 'Elige el estado de tu equipo';
 export const GRADE_SUBHEADING = 'El grado refleja el nivel de uso y el estado estético del equipo';

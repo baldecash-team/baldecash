@@ -7,16 +7,14 @@ import {
   GRADE_COPY,
   GRADE_HEADING,
   GRADE_NOTE,
+  GRADE_SAVINGS_LABEL,
   GRADE_SUBHEADING,
   type GradeKey,
+  type GradeOption,
 } from './familyFarmGrades';
+import { gradeSavings } from './gradeSavings';
 
-export interface GradeOption {
-  grade: GradeKey;
-  /** Precio del grado, tal como llega en `grade_siblings`. */
-  price?: number;
-  isAvailable: boolean;
-}
+export type { GradeOption };
 
 interface FamilyFarmGradeSelectorProps {
   /** Los grados que existen para este equipo. El catálogo decide cuáles son. */
@@ -57,6 +55,7 @@ export const FamilyFarmGradeSelector: React.FC<FamilyFarmGradeSelectorProps> = (
   if (grades.length === 0) return null;
 
   const copy = GRADE_COPY[selected];
+  const savings = gradeSavings(grades, selected);
 
   return (
     <div>
@@ -118,6 +117,14 @@ export const FamilyFarmGradeSelector: React.FC<FamilyFarmGradeSelectorProps> = (
             ))}
           </ul>
         </div>
+
+        {savings && (
+          <div className={styles.boxSave}>
+            <small>{GRADE_SAVINGS_LABEL}</small>
+            <b>{formatPrice(savings.amount)}</b>
+            <em>{savings.percent}% menos</em>
+          </div>
+        )}
       </div>
 
       <div className={styles.note}>

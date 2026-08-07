@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FamilyFarmGradeSelector } from '../FamilyFarmGradeSelector';
-import { GRADE_COPY, GRADE_HEADING, GRADE_NOTE, GRADE_SUBHEADING } from '../familyFarmGrades';
+import { GRADE_COPY, GRADE_HEADING, GRADE_NOTE, GRADE_SAVINGS_LABEL, GRADE_SUBHEADING } from '../familyFarmGrades';
 
 const grades = [
   { grade: 'A' as const, price: 574, isAvailable: true },
@@ -108,6 +108,39 @@ describe('FamilyFarmGradeSelector', () => {
 
       rerender(<FamilyFarmGradeSelector grades={grades} selected="C" onSelect={jest.fn()} />);
       expect(within(screen.getByTestId('grade-box')).getByText(/Grado C/)).toBeInTheDocument();
+    });
+  });
+
+  // El diseño remata el cuadro con cuánto ahorra el grado elegido. Se compara
+  // contra el mejor grado que el equipo tiene de verdad, no contra un "nuevo"
+  // que no existe en el catálogo (ver gradeSavings).
+  describe('savings', () => {
+    it('shows how much the picked grade saves against the best one', () => {
+      renderSelector({ selected: 'C' });
+      const box = screen.getByTestId('grade-box');
+      expect(box).toHaveTextContent(GRADE_SAVINGS_LABEL);
+      expect(box).toHaveTextContent('S/287');
+      expect(box).toHaveTextContent('50% menos');
+    });
+
+    it('hides it on the best grade, which is the reference itself', () => {
+      renderSelector({ selected: 'A' });
+      expect(screen.getByTestId('grade-box')).not.toHaveTextContent(GRADE_SAVINGS_LABEL);
+    });
+
+    it('falls back to the best grade the product actually has', () => {
+      // Solo B y C, como el Lenovo Tab P11: C se compara contra B.
+      const twoGrades = [
+        { grade: 'B' as const, price: 940, isAvailable: true },
+        { grade: 'C' as const, price: 672, isAvailable: true },
+      ];
+      renderSelector({ grades: twoGrades, selected: 'C' });
+      expect(screen.getByTestId('grade-box')).toHaveTextContent('S/268');
+    });
+
+    it('stays out when there is no price to compare', () => {
+      renderSelector({ grades: [{ grade: 'A', isAvailable: true }, { grade: 'C', isAvailable: true }], selected: 'C' });
+      expect(screen.getByTestId('grade-box')).not.toHaveTextContent(GRADE_SAVINGS_LABEL);
     });
   });
 
