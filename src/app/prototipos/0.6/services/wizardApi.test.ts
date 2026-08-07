@@ -498,6 +498,24 @@ describe('validateField', () => {
       const result = validateField(field, 'user@example.com', {});
       expect(result.isValid).toBe(true);
     });
+
+    // Prod 2026-08-07: la regex vieja (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) daba por
+    // bueno cualquier prefijo pegado porque `:` cae dentro de `[^\s@]`.
+    it.each(['juan@uni', 'juan@uni..edu.pe', 'http://uni.edu.pe', 'juan perez@uni.edu.pe'])(
+      'fails for %s',
+      (value) => {
+        const field = createField({
+          validations: [{ type: 'email', message: 'Email inválido' }],
+        });
+        expect(validateField(field, value, {}).isValid).toBe(false);
+      }
+    );
+
+    it('validates email fields even without the email rule configured', () => {
+      const field = createField({ type: 'email', validations: [] });
+      expect(validateField(field, 'juan@uni', {}).isValid).toBe(false);
+      expect(validateField(field, 'alumno@uni.edu.pe', {}).isValid).toBe(true);
+    });
   });
 
   describe('phone validation', () => {

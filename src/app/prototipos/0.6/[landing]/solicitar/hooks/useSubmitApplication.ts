@@ -20,6 +20,18 @@ import { resetFormStartTracking } from './useFieldTracking';
 import { clearConsentStorage } from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
+import { normalizeEmail } from '../../../services/emailValidation';
+
+/**
+ * Los codigos de campo que llevan un correo. Se mantiene alineado con
+ * `EMAIL_FIELD_CODES` del backend (ws2: app/services/email_verification_service.py),
+ * que es quien lo lee para mandar el OTP.
+ */
+const EMAIL_FIELD_CODES = ['email', 'email_universitario', 'institutional_email', 'correo_institucional', 'correo_estudiantil', 'supporter_email'];
+
+function isEmailFieldCode(code: string): boolean {
+  return EMAIL_FIELD_CODES.includes(code) || /(^|_)(email|correo)(_|$)/.test(code);
+}
 
 /**
  * Convert raw term (in payment_frequency units) to calendar months.
@@ -231,7 +243,13 @@ export function useSubmitApplication(
           }
           continue;
         }
-        mapped[key] = fieldState.value;
+        // Los campos de correo se normalizan al salir: el input ya limpia lo que
+        // se teclea, pero un valor prellenado (autocompletado por DNI, restaurado
+        // de localStorage) nunca pasa por ahí. Prod 2026-08-07: un `mailto:` que
+        // llegó así al backend hizo que Mailgun rechazara el OTP con un 400.
+        mapped[key] = isEmailFieldCode(key) && typeof fieldState.value === 'string'
+          ? (normalizeEmail(fieldState.value) || fieldState.value)
+          : fieldState.value;
       }
     }
 
