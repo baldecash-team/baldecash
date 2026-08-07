@@ -635,6 +635,10 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
             displayName: sib.display_name || sib.name,
             price: sib.pricing.final_price,
             quotaMonthly: sib.pricing.hook?.monthly_price || 0,
+            // BAL-2859: elegir un color equivale a ver esa card como si fuera
+            // independiente, asi que su descuento y su "antes" salen de SU pricing
+            // — no del producto primario. El MacBook Neo Citrus no tiene promocion
+            // y mostraba el -30% del Silver con un tachado que no era suyo.
             originalQuotaMonthly: sib.pricing.hook?.original_monthly_price ?? undefined,
             discount: sib.pricing.discount_percent > 0 ? sib.pricing.discount_percent : undefined,
             specs: sibSpecs,

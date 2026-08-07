@@ -212,8 +212,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const displayName = selectedColor?.displayName || product.displayName;
   const displayPrice = selectedColor?.price ?? product.price;
   const displayQuota = selectedColor?.quotaMonthly ?? product.quotaMonthly;
-  const displayOriginalQuota = selectedColor?.originalQuotaMonthly ?? product.originalQuotaMonthly ?? null;
-  const displayDiscount = selectedColor?.discount ?? product.discount;
+  // BAL-2859: elegir un color equivale a ver esa card como si fuera
+  // independiente, asi que su descuento y su precio "antes" salen de SU pricing.
+  // El `??` caia al producto primario cuando el color no tiene promocion: el
+  // MacBook Neo Citrus no tiene descuento y mostraba el -30% del Silver con un
+  // tachado que no era suyo. Un sibling siempre trae su pricing resuelto, asi
+  // que "sin descuento" es un dato valido y no un hueco que haya que rellenar.
+  const isSiblingColor = !!selectedColor?.productId;
+  const displayOriginalQuota = isSiblingColor
+    ? selectedColor?.originalQuotaMonthly ?? null
+    : product.originalQuotaMonthly ?? null;
+  const displayDiscount = isSiblingColor
+    ? selectedColor?.discount
+    : product.discount;
   // Las specs SI varian por color cuando los siblings son modelos distintos:
   // el Redmi Note 15 Pro Negro lleva Helio G200 y el Titanium G100. El API
   // manda las specs de cada sibling; usarlas o caer a las del producto base.
