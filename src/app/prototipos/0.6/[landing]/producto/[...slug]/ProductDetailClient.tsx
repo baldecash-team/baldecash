@@ -5,7 +5,7 @@
  * Fetches product data from API with fallback to mock data
  */
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast, useIsMobile } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -56,6 +56,7 @@ import {
 } from '../types/detail';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
+import { inicioDelCronograma } from '../components/detail/cronograma/inicioDelCronograma';
 
 function ProductDetailContent() {
   const router = useRouter();
@@ -192,6 +193,14 @@ function ProductDetailContent() {
   }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   const hasCatalog = landingConfig.layout.has_catalog;
+
+  // Los convenios que cobran contra planilla arrancan en una fecha fija de
+  // campaña, no el día en que se mira el producto. Se recalcula solo cuando
+  // llega la config: `new Date()` en el render daría una fecha nueva por render.
+  const inicioCronograma = useMemo(
+    () => inicioDelCronograma(landingConfig, new Date()),
+    [landingConfig],
+  );
 
   // Build catalog URL helper (falls back to landing home if no catalog)
   const getCatalogUrl = (queryParams?: Record<string, string>) => {
@@ -429,6 +438,7 @@ function ProductDetailContent() {
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
             isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
             gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
+            startDate={inicioCronograma}
           />
         ) : detailVariant === 'grades-desktop' ? (
           <CopiaHomeDesktopDetail
@@ -441,6 +451,7 @@ function ProductDetailContent() {
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
             isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
             gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
+            startDate={inicioCronograma}
           />
         ) : (
         <ProductDetail
@@ -458,6 +469,7 @@ function ProductDetailContent() {
           defaultFrequency={defaultFrequency}
           paymentFrequencies={apiData.paymentFrequencies}
           showPlatformCommission={landingConfig.features.show_platform_commission}
+          startDate={inicioCronograma}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
           onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
           onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}
