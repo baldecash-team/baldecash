@@ -295,6 +295,11 @@ export interface KycProgressState {
   resume: { enabled: boolean; ttl_hours: number };
   /** Solo lo devuelve /resume/{token}. */
   expires_at?: string;
+  /**
+   * Pase para el gate de la landing, solo en /resume/{token} y solo si la
+   * landing tiene gate. Vence con el link y está atado al mismo DNI.
+   */
+  landing_access_token?: string;
 }
 
 export interface KycApiError {
