@@ -216,7 +216,15 @@ export interface ComboInfo {
 // Payment Types
 // ============================================
 
-export type InitialPaymentPercentage = 0 | 10 | 20 | 30;
+/**
+ * Porcentajes de inicial que ofrece el catálogo.
+ *
+ * El 25 lo usan las landings de Family Farms, donde la inicial es obligatoria y
+ * el convenio la fijó en ese valor. Estuvo fuera del tipo un tiempo y funcionaba
+ * igual porque el transform castea el valor del wire — o sea que el tipo decía
+ * una cosa y por la pantalla pasaba otra.
+ */
+export type InitialPaymentPercentage = 0 | 10 | 20 | 25 | 30;
 
 /** Opción de pago inicial precalculada */
 export interface InitialPaymentOption {
@@ -239,6 +247,17 @@ export interface InitialPaymentOption {
   initialInstallments?: number;
   /** Monto de cada armada; la última absorbe el sobrante del redondeo. */
   initialInstallmentAmounts?: number[];
+  /**
+   * Plazo total del plan, en la unidad de la frecuencia: lo que la persona
+   * elige.
+   *
+   * Es el complemento de `initialInstallments`. Como las armadas se descuentan
+   * del plazo, dos opciones con `term` distinto pueden ser el MISMO plazo: 13
+   * cuotas con 4 armadas y 15 con 2 son las dos "17 semanas". Agrupar por este
+   * campo es lo que convierte seis plazos sueltos en dos con tres modalidades
+   * de inicial cada uno.
+   */
+  totalTerm?: number;
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */
