@@ -64,6 +64,13 @@ export interface PaymentPlanOption {
   initialAmount: number;
   monthlyQuota: number;
   originalQuota?: number;
+  /**
+   * En cuantas armadas se paga la inicial de esta opcion (1 = un solo pago).
+   *
+   * Hace falta para saber cuanto DURA el plan: las armadas se descuentan del
+   * plazo, asi que 13 cuotas con 4 armadas son 17 periodos.
+   */
+  initialInstallments?: number;
 }
 
 // Payment plan for a specific term
@@ -614,6 +621,19 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    * When frequencies differ, terms are normalized to months so there is a
    * common denominator to unify the cart.
    */
+/**
+ * Plazo total de un plan: las cuotas mas las armadas de la inicial.
+ *
+ * Las armadas se descuentan del plazo, asi que un plan de 13 cuotas con la
+ * inicial en 4 armadas dura 17 periodos. Sin armadas el total es el `term`
+ * —el pago unico es inmediato y no ocupa un periodo—, y por eso este cambio no
+ * altera a ningun producto que no las use.
+ */
+function plazoTotalDelPlan(plan: PaymentPlan): number {
+  const armadas = plan.options?.[0]?.initialInstallments ?? 1;
+  return armadas > 1 ? plan.term + armadas : plan.term;
+}
+
   const getAvailableTerms = useCallback((): number[] => {
     // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
     const defaultTerms = landingId === LANDING_IDS.ZONA_GAMER ? [6, 12, 18, 24] : [12, 18, 24, 36];
@@ -629,7 +649,12 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         // Unified frequency: return native raw term (48, 24, 12, ...)
         // Mixed frequencies: normalize to months
         return p.paymentPlans.map(plan =>
-          unifiedFrequency ? plan.term : (plan.termMonths ?? plan.term)
+          // El plazo TOTAL, no las cuotas. Las armadas se descuentan del plazo,
+          // asi que 13 cuotas con 4 armadas y 15 con 2 son las dos "17 semanas":
+          // ofrecerlas como plazos sueltos hace que quien elige "13" no vea que
+          // eligio 4 armadas. Sin armadas el total ES el term, asi que para todo
+          // el catalogo que no las usa esto es la identidad.
+          unifiedFrequency ? plazoTotalDelPlan(plan) : (plan.termMonths ?? plan.term)
         );
       }
       // Fallback: if no plans, assume all standard terms are available
@@ -658,11 +683,20 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const updatedProducts = products.map(p => {
       // When frequencies are unified, the incoming `term` is the raw value
       // (e.g. 48 weeks). When mixed, it represents months.
-      const plan = p.paymentPlans?.find(pl => {
-        return unifiedFrequency
-          ? pl.term === term
-          : (pl.termMonths ?? pl.term) === term;
-      });
+      // Se busca por el plazo TOTAL, que es lo que el selector ofrece. Cuando
+      // dos planes comparten total —13 cuotas con 4 armadas y 17 sin ellas son
+      // ambos "17 semanas"— gana el que conserva la modalidad de inicial que la
+      // persona ya tenia elegida; si ninguno la conserva, el primero.
+      const candidatos = (p.paymentPlans ?? []).filter(pl =>
+        unifiedFrequency
+          ? plazoTotalDelPlan(pl) === term
+          : (pl.termMonths ?? pl.term) === term
+      );
+      const armadasActuales = p.initialInstallments ?? 1;
+      const plan =
+        candidatos.find(pl =>
+          pl.options.some(opt => (opt.initialInstallments ?? 1) === armadasActuales)
+        ) ?? candidatos[0];
 
       if (plan) {
         const option = plan.options.find(opt => opt.initialPercent === p.initialPercent)
