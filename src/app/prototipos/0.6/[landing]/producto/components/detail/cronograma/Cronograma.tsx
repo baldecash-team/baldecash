@@ -17,6 +17,7 @@ import { CronogramaProps, CronogramaVersion, InitialPaymentPercentage } from '..
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { generateCronogramaPDF } from '../../../utils/generateCronogramaPDF';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { construirFilas } from './filasDelCronograma';
 
 // Cálculo de amortización francesa (cuota fija)
 const calculateAmortization = (principal: number, annualRate: number, months: number) => {
@@ -213,19 +214,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     return calculateAmortization(principal, FINANCIAL_DATA.tea, n);
   }, [adjustedQuota, selectedTerm, commissionAmount, FINANCIAL_DATA.tea]);
 
-  const getPaymentDate = (index: number) => {
-    const date = new Date(startDate);
-    if (paymentFrequency === 'semanal') {
-      date.setDate(date.getDate() + index * 7);
-      return date.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
-    } else if (paymentFrequency === 'quincenal') {
-      date.setDate(date.getDate() + index * 15);
-      return date.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
-    } else {
-      date.setMonth(date.getMonth() + index);
-      return date.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
-    }
-  };
+  /** Fecha de una fila. Mensual omite el día: la cuota cae el mismo día del mes. */
+  const formatearFecha = useCallback((date: Date) => (
+    paymentFrequency === 'mensual'
+      ? date.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })
+      : date.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })
+  ), [paymentFrequency]);
 
   const freqLabel = paymentFrequency === 'semanal' ? 'semanal'
     : paymentFrequency === 'quincenal' ? 'quincenal'
@@ -243,8 +237,24 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     : paymentFrequency === 'quincenal' ? 'quincenas'
     : 'meses';
 
-  const visibleMonths = showAll ? selectedTerm : Math.min(6, selectedTerm);
-  const hasMore = selectedTerm > 6;
+  /**
+   * El calendario completo: las armadas de la inicial y después las cuotas.
+   * Sin armadas son exactamente las cuotas de siempre, así que el resto del
+   * catálogo no cambia.
+   */
+  const filas = useMemo(() => construirFilas({
+    cuotas: selectedTerm,
+    montoCuota: adjustedQuota,
+    frecuencia: paymentFrequency,
+    inicio: startDate,
+    armadas: armadasActuales,
+    montosArmadas: currentOption?.initialInstallmentAmounts,
+    montoInicial: initialAmount,
+  }), [selectedTerm, adjustedQuota, paymentFrequency, startDate, armadasActuales, currentOption, initialAmount]);
+
+  const filasVisibles = showAll ? filas : filas.slice(0, 6);
+  const visibleMonths = filasVisibles.length;
+  const hasMore = filas.length > 6;
   // Total = cuotas mensuales + cuota inicial (si aplica)
   const totalPayment = (adjustedQuota * selectedTerm) + initialAmount;
 
@@ -261,18 +271,32 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     try {
       // Generar datos para el PDF
       const pdfCommission = commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
-      const pdfSchedule = amortizationSchedule.map((row, index) => {
-        const monto = Math.floor(adjustedQuota);
-        const interest = Math.floor(row.interest);
-        const capital = monto - interest - pdfCommission;
+      // El PDF lleva las mismas filas que la pantalla: si la inicial se cobra
+      // en armadas y el documento descargado solo mostrara las cuotas, se
+      // contradiría con lo que la persona acaba de ver.
+      const pdfSchedule = filas.map((fila) => {
+        const monto = Math.floor(fila.monto);
+        if (fila.esArmada) {
+          return {
+            month: fila.numero,
+            date: formatearFecha(fila.fecha),
+            capital: monto, interest: 0, commission: 0,
+            quota: monto,
+            balance: amortizationSchedule[0]?.balance ?? 0,
+            label: fila.etiqueta,
+          };
+        }
+        const row = amortizationSchedule[fila.indiceCuota ?? 0];
+        const interest = Math.floor(row?.interest ?? 0);
         return {
-          month: row.month,
-          date: getPaymentDate(index),
-          capital,
+          month: fila.numero,
+          date: formatearFecha(fila.fecha),
+          capital: monto - interest - pdfCommission,
           interest,
           commission: pdfCommission,
           quota: monto,
-          balance: row.balance,
+          balance: row?.balance ?? 0,
+          label: fila.etiqueta,
         };
       });
 
@@ -314,7 +338,17 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-[var(--text-strong,#111827)]">Detalle de Cuotas</h3>
-              <p className="text-sm text-[var(--text-muted,#6b7280)]">{selectedTerm} pagos {freqLabelPlural}</p>
+              {/* Con la inicial fraccionada el encabezado nombra las dos cosas:
+                  contar solo las cuotas escondía las armadas, y sumarlas todas
+                  escondía que la inicial se paga aparte. */}
+              {armadasActuales > 1 ? (
+                <>
+                  <p className="text-sm text-[var(--text-muted,#6b7280)]">{selectedTerm} cuotas {freqLabelPlural}</p>
+                  <p className="text-sm text-[var(--color-primary)]">+ {armadasActuales} armadas de inicial</p>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--text-muted,#6b7280)]">{selectedTerm} pagos {freqLabelPlural}</p>
+              )}
             </div>
           </div>
 
@@ -351,15 +385,17 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           <>
             {/* Mobile cards */}
             <div className="sm:hidden space-y-2">
-              {Array.from({ length: visibleMonths }, (_, i) => {
-                const isLast = i === selectedTerm - 1;
+              {filasVisibles.map((fila, i) => {
+                const isLast = fila.numero === filas.length;
                 return (
                   <div
                     key={i}
                     className={`flex items-center gap-3 p-3 rounded-xl border ${
                       isLast
                         ? 'bg-green-50 border-green-200'
-                        : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)]'
+                        : fila.esArmada
+                          ? 'bg-[rgba(var(--color-primary-rgb),0.04)] border-[rgba(var(--color-primary-rgb),0.25)]'
+                          : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)]'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
@@ -367,14 +403,14 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         ? 'bg-green-100 text-green-600'
                         : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
                     }`}>
-                      {i + 1}
+                      {fila.numero}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize">Cuota {i + 1}</p>
-                      <p className="text-sm text-[var(--text-muted,#4b5563)] capitalize truncate">{getPaymentDate(i)}</p>
+                      <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize">{fila.etiqueta}</p>
+                      <p className="text-sm text-[var(--text-muted,#4b5563)] capitalize truncate">{formatearFecha(fila.fecha)}</p>
                     </div>
                     <span className="text-sm font-semibold text-[var(--text-strong,#111827)] flex-shrink-0">
-                      S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
+                      S/{formatMoneyNoDecimals(Math.floor(fila.monto))}
                     </span>
                   </div>
                 );
@@ -392,28 +428,33 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: visibleMonths }, (_, i) => (
+                {filasVisibles.map((fila, i) => (
                   <tr
                     key={i}
-                    className={`border-t border-[var(--border-soft,#f3f4f6)] ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-[var(--surface,#fff)] to-transparent' : ''}`}
+                    className={`border-t border-[var(--border-soft,#f3f4f6)] ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-[var(--surface,#fff)] to-transparent' : ''} ${fila.esArmada ? 'bg-[rgba(var(--color-primary-rgb),0.04)]' : ''}`}
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          i === selectedTerm - 1
+                          fila.numero === filas.length
                             ? 'bg-green-100 text-green-600'
                             : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
                         }`}>
-                          {i + 1}
+                          {fila.numero}
                         </div>
+                        {/* La armada se nombra: si no, se lee como una cuota
+                            más y la inicial parece haber desaparecido. */}
+                        {fila.esArmada && (
+                          <span className="text-xs font-medium text-[var(--color-primary)]">{fila.etiqueta}</span>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm text-[var(--text-muted,#4b5563)] capitalize">
-                      {getPaymentDate(i)}
+                      {formatearFecha(fila.fecha)}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className="text-sm font-semibold text-[var(--text-strong,#111827)]">
-                        S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
+                        S/{formatMoneyNoDecimals(Math.floor(fila.monto))}
                       </span>
                     </td>
                   </tr>
@@ -431,11 +472,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           <>
             {/* Mobile cards */}
             <div className="sm:hidden space-y-3">
-              {Array.from({ length: visibleMonths }, (_, i) => {
-                const amort = amortizationSchedule[i];
-                const isLast = i === selectedTerm - 1;
-                const monto = Math.floor(adjustedQuota);
-                const commission = commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
+              {filasVisibles.map((fila, i) => {
+                const amort = fila.indiceCuota != null ? amortizationSchedule[fila.indiceCuota] : undefined;
+                const isLast = fila.numero === filas.length;
+                const monto = Math.floor(fila.monto);
+                const commission = !fila.esArmada && commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
                 const interest = Math.floor(amort?.interest || 0);
                 const capital = monto - interest - commission;
                 return (
@@ -444,7 +485,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     className={`p-3 rounded-xl border ${
                       isLast
                         ? 'bg-green-50 border-green-200'
-                        : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)]'
+                        : fila.esArmada
+                          ? 'bg-[rgba(var(--color-primary-rgb),0.04)] border-[rgba(var(--color-primary-rgb),0.25)]'
+                          : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -454,14 +497,21 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                             ? 'bg-green-100 text-green-600'
                             : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
                         }`}>
-                          {i + 1}
+                          {fila.numero}
                         </div>
-                        <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize truncate">{getPaymentDate(i)}</p>
+                        <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize truncate">{formatearFecha(fila.fecha)}</p>
                       </div>
                       <span className="text-sm font-semibold text-[var(--text-strong,#111827)]">
                         S/{formatMoneyNoDecimals(monto)}
                       </span>
                     </div>
+                    {/* La armada no amortiza: es parte de la inicial, así que
+                        desglosarla en capital/interés sería inventar números. */}
+                    {fila.esArmada ? (
+                      <div className="pt-2 border-t border-[var(--border-soft,#f3f4f6)] text-[11px] text-[var(--color-primary)] font-medium">
+                        {fila.etiqueta} — parte de la cuota inicial
+                      </div>
+                    ) : (
                     <div className="pt-2 border-t border-[var(--border-soft,#f3f4f6)] grid grid-cols-2 gap-1 text-[11px]">
                       <div className="flex justify-between">
                         <span className="text-[var(--text-faint,#9ca3af)]">Capital</span>
@@ -482,6 +532,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         <span className="text-[var(--text,#374151)]">S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}</span>
                       </div>
                     </div>
+                    )}
                   </div>
                 );
               })}
@@ -504,42 +555,49 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: visibleMonths }, (_, i) => {
-                  const amort = amortizationSchedule[i];
+                {filasVisibles.map((fila, i) => {
+                  const amort = fila.indiceCuota != null ? amortizationSchedule[fila.indiceCuota] : undefined;
                   return (
                     <tr
                       key={i}
-                      className={`border-t border-[var(--border-soft,#f3f4f6)] ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-[var(--surface,#fff)] to-transparent' : ''}`}
+                      className={`border-t border-[var(--border-soft,#f3f4f6)] ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-[var(--surface,#fff)] to-transparent' : ''} ${fila.esArmada ? 'bg-[rgba(var(--color-primary-rgb),0.04)]' : ''}`}
                     >
                       <td className="py-3 px-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          i === selectedTerm - 1
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
-                        }`}>
-                          {i + 1}
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            fila.numero === filas.length
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
+                          }`}>
+                            {fila.numero}
+                          </div>
+                          {fila.esArmada && (
+                            <span className="text-xs font-medium text-[var(--color-primary)] whitespace-nowrap">{fila.etiqueta}</span>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-3 text-sm text-[var(--text-muted,#4b5563)] capitalize">
-                        {getPaymentDate(i)}
+                        {formatearFecha(fila.fecha)}
                       </td>
                       {(() => {
-                        const monto = Math.floor(adjustedQuota);
-                        const commission = commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
+                        const monto = Math.floor(fila.monto);
+                        // La armada es inicial, no amortiza: desglosarla en
+                        // capital/interés sería inventar números.
+                        const commission = !fila.esArmada && commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
                         const interest = Math.floor(amort?.interest || 0);
                         // Capital = Monto - Interés - Comisión (así siempre cuadra)
                         const capital = monto - interest - commission;
                         return (
                           <>
                             <td className="py-3 px-3 text-right text-sm text-[var(--text,#374151)]">
-                              S/{formatMoneyNoDecimals(capital)}
+                              {fila.esArmada ? '—' : `S/${formatMoneyNoDecimals(capital)}`}
                             </td>
                             <td className="py-3 px-3 text-right text-sm text-[var(--text-muted,#6b7280)]">
-                              S/{formatMoneyNoDecimals(interest)}
+                              {fila.esArmada ? '—' : `S/${formatMoneyNoDecimals(interest)}`}
                             </td>
                             {commissionAmount != null && commissionAmount > 0 && (
                               <td className="py-3 px-3 text-right text-sm text-[var(--text-muted,#6b7280)]">
-                                S/{formatMoneyNoDecimals(commission)}
+                                {fila.esArmada ? '—' : `S/${formatMoneyNoDecimals(commission)}`}
                               </td>
                             )}
                             <td className="py-3 px-3 text-right">
@@ -565,16 +623,18 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         {/* Payment Table - Version 3: Cards */}
         {version === 3 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {Array.from({ length: visibleMonths }, (_, i) => {
-              const amort = amortizationSchedule[i];
-              const isLast = i === selectedTerm - 1;
+            {filasVisibles.map((fila, i) => {
+              const amort = fila.indiceCuota != null ? amortizationSchedule[fila.indiceCuota] : undefined;
+              const isLast = fila.numero === filas.length;
               return (
                 <div
                   key={i}
                   className={`p-3 rounded-xl border transition-all ${
                     isLast
                       ? 'bg-green-50 border-green-200'
-                      : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.30)]'
+                      : fila.esArmada
+                        ? 'bg-[rgba(var(--color-primary-rgb),0.04)] border-[rgba(var(--color-primary-rgb),0.25)]'
+                        : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.30)]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -583,25 +643,31 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         ? 'bg-green-100 text-green-600'
                         : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
                     }`}>
-                      {i + 1}
+                      {fila.numero}
                     </div>
                     {isLast && <Check className="w-4 h-4 text-green-500" />}
                   </div>
                   <p className="text-xs text-[var(--text-muted,#6b7280)] capitalize mb-1">
-                    {getPaymentDate(i)}
+                    {formatearFecha(fila.fecha)}
                   </p>
                   <p className="text-sm font-bold text-[var(--text-strong,#111827)]">
-                    S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
+                    S/{formatMoneyNoDecimals(Math.floor(fila.monto))}
                   </p>
                   <div className="mt-2 pt-2 border-t border-[var(--border-soft,#f3f4f6)]">
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-[var(--text-faint,#9ca3af)]">Capital</span>
-                      <span className="text-[var(--text-muted,#4b5563)]">S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-[var(--text-faint,#9ca3af)]">Interés</span>
-                      <span className="text-[var(--text-muted,#4b5563)]">S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}</span>
-                    </div>
+                    {fila.esArmada ? (
+                      <p className="text-[10px] font-medium text-[var(--color-primary)]">{fila.etiqueta}</p>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-[var(--text-faint,#9ca3af)]">Capital</span>
+                          <span className="text-[var(--text-muted,#4b5563)]">S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-[var(--text-faint,#9ca3af)]">Interés</span>
+                          <span className="text-[var(--text-muted,#4b5563)]">S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               );
