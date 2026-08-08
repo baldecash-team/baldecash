@@ -295,6 +295,11 @@ export interface KycProgressState {
   resume: { enabled: boolean; ttl_hours: number };
   /** Solo lo devuelve /resume/{token}. */
   expires_at?: string;
+  /**
+   * Pase para el gate de la landing, solo en /resume/{token} y solo si la
+   * landing tiene gate. Vence con el link y está atado al mismo DNI.
+   */
+  landing_access_token?: string;
 }
 
 export interface KycApiError {
@@ -333,6 +338,87 @@ export async function getKycProgress(applicationCode: string): Promise<KycProgre
     );
     if (!r.ok) return null;
     return (await r.json()) as KycProgressState;
+  } catch {
+    return null;
+  }
+}
+
+/** Una fila del cronograma: una armada de la inicial o una cuota. */
+export interface FilaCronograma {
+  numero: number;
+  /** ISO `YYYY-MM-DD`. */
+  fecha: string;
+  /** Decimal como string: el JSON no puede perder centavos. */
+  monto: string;
+  es_armada: boolean;
+  /** «Armada 1 de 4» / «Cuota 1 de 13». */
+  etiqueta: string;
+}
+
+export interface CronogramaPreview {
+  filas: FilaCronograma[];
+  total: string;
+}
+
+/**
+ * La vista previa del cronograma de la solicitud, armadas incluidas.
+ *
+ * Misma prueba de titularidad que el resto de las lecturas del KYC. Fail-safe:
+ * `null` ante error — el paso muestra el flujo sin cronograma antes que fechas
+ * que no son las de esta persona.
+ */
+export async function getCronograma(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<CronogramaPreview | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/cronograma?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as CronogramaPreview;
+  } catch {
+    return null;
+  }
+}
+
+/** El contrato emitido de la solicitud, tal como quedó congelado en legacy. */
+export interface ContratoEmitido {
+  /**
+   * `false` NO es un error: el contrato nace con la aprobación, así que antes
+   * de eso su ausencia es el estado normal del flujo.
+   */
+  disponible: boolean;
+  html?: string;
+  hash?: string;
+  version?: number;
+  emitido_at?: string;
+}
+
+/**
+ * Trae el contrato de la solicitud. Misma prueba de titularidad que el resto
+ * de las lecturas sensibles: el DNI (flujo en sesión) o el token (flujo por
+ * link), nunca las dos.
+ *
+ * Fail-safe: `null` ante error de red o de permisos. El paso lo trata igual
+ * que «todavía no hay contrato» — nunca cae a un documento genérico.
+ */
+export async function getContrato(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<ContratoEmitido | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/contrato?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as ContratoEmitido;
   } catch {
     return null;
   }

@@ -251,3 +251,45 @@ it('muestra un spinner mientras canjea el token', () => {
 
   expect(screen.getByTestId('spinner')).toBeInTheDocument();
 });
+
+/**
+ * El acceso a la landing viaja con el link.
+ *
+ * El gate del DNI lee `baldecash-vip-token-{slug}` de este navegador, y el link
+ * se abre justamente desde otro: sin guardar el token que `resume` devuelve, la
+ * persona cae en el gate a probar lo que el token ya probó.
+ */
+describe('acceso a la landing desde el link', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('guarda el token bajo la clave que el gate lee', async () => {
+    mockResumeKyc.mockResolvedValue({
+      ...validState, landing_access_token: 'vip-abc-123',
+    } as never);
+
+    render(<ResumeClient token="TOK" />);
+
+    await waitFor(() => expect(screen.getByTestId('kyc-client')).toBeInTheDocument());
+    expect(localStorage.getItem('baldecash-vip-token-copia-home')).toBe('vip-abc-123');
+  });
+
+  it('lo guarda tambien cuando redirige a confirmacion: esa vista vive dentro del gate', async () => {
+    mockResumeKyc.mockResolvedValue({
+      ...validState, is_complete: true, landing_access_token: 'vip-abc-123',
+    } as never);
+
+    render(<ResumeClient token="TOK" />);
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    expect(localStorage.getItem('baldecash-vip-token-copia-home')).toBe('vip-abc-123');
+  });
+
+  it('sin token no guarda nada: la landing no tiene gate', async () => {
+    mockResumeKyc.mockResolvedValue(validState as never);
+
+    render(<ResumeClient token="TOK" />);
+
+    await waitFor(() => expect(screen.getByTestId('kyc-client')).toBeInTheDocument());
+    expect(localStorage.getItem('baldecash-vip-token-copia-home')).toBeNull();
+  });
+});

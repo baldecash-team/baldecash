@@ -28,6 +28,11 @@ interface AmortizationRow {
   commission: number;
   quota: number;
   balance: number;
+  /**
+   * «Armada 1 de 4» / «Cuota 1 de 13». Opcional: los planes sin armadas no la
+   * mandan y la fila se numera como siempre.
+   */
+  label?: string;
 }
 
 interface FinancialData {
@@ -324,8 +329,12 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
     x = margin;
     doc.setTextColor(...text);
 
-    // Número de cuota
-    doc.text(String(row.month), x + 2, y + 3);
+    // Número de cuota. Las armadas de la inicial van marcadas («A1») para que
+    // no se lean como cuotas del financiamiento: son parte de la inicial.
+    const armada = row.label?.startsWith('Armada')
+      ? `A${row.label.replace(/\D+/, '').charAt(0)}`
+      : null;
+    doc.text(armada ?? String(row.month), x + 2, y + 3);
     x += colWidths[0];
 
     // Fecha

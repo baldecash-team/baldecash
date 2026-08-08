@@ -237,6 +237,10 @@ export function CopiaHomeDesktopDetail({
       initialPercent,
       initialAmount,
       initialInstallments,
+      // La frecuencia va con el producto: el formulario la relee de aca y sin
+      // ella reconstruye 'mensual', mostrando «17 meses» y «S/46/mes» para un
+      // plan que se cobra por semana.
+      paymentFrequency,
       image: thumbnail,
       type: product.deviceType as SelectedProduct['type'],
       condition: product.condition,
@@ -257,7 +261,7 @@ export function CopiaHomeDesktopDetail({
     } catch { /* localStorage no disponible */ }
     router.push(routes.solicitar(landing));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
+  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, paymentFrequency, colorId, selectedColor, landing, router, galleryImages]);
 
   const onLoQuiero = () => {
     if (!canBuy) return;
