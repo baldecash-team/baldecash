@@ -71,6 +71,12 @@ interface Props {
   isInWishlist?: boolean;
   /** `familyfarm` cambia el selector de grados por el de la campaña (BAL-2812). */
   gradeVariant?: 'default' | 'familyfarm';
+  /**
+   * Día del que arranca el cronograma. Lo resuelve el cliente del detalle con
+   * `inicioDelCronograma`: la fecha fija de la campaña si la landing la
+   * configuró, hoy si no.
+   */
+  startDate?: Date;
 }
 
 export function CopiaHomeDesktopDetail({
@@ -83,6 +89,7 @@ export function CopiaHomeDesktopDetail({
   onToggleWishlist,
   isInWishlist = false,
   gradeVariant = 'default',
+  startDate,
 }: Props) {
   const router = useRouter();
   const product = apiData.product;
@@ -613,6 +620,7 @@ export function CopiaHomeDesktopDetail({
                       productName={product.displayName}
                       productBrand={product.brand}
                       productPrice={product.price}
+                      startDate={startDate}
                       // Family Farms cobra contra planilla y la persona firma un
                       // cronograma: necesita ver amortizacion, interes y comision
                       // por cuota, no solo el monto. El resto del catalogo sigue

@@ -84,6 +84,12 @@ interface ProductDetailProps {
   // Landing config flags
   showPlatformCommission?: boolean;
   /**
+   * Día del que arranca el cronograma. Lo resuelve el cliente del detalle con
+   * `inicioDelCronograma`: la fecha fija de la campaña si la landing la
+   * configuró, hoy si no.
+   */
+  startDate?: Date;
+  /**
    * Modo oferta (BAL-1785): cuando se pasa `onClickCTA`, el botón principal
    * muestra `ctaText` (ej. "Elegir este equipo") y llama a `onClickCTA` en vez
    * de navegar a /solicitar. Aditivo: sin estos props, comportamiento de siempre.
@@ -132,6 +138,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   defaultFrequency,
   paymentFrequencies,
   showPlatformCommission = false,
+  startDate,
   onClickCTA,
   ctaText,
   readOnlyNotice,
@@ -862,7 +869,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <Cronograma
             paymentPlans={activePlans}
             term={36}
-            startDate={new Date()}
+            startDate={startDate}
             version={cronogramaVersion}
             productId={product.id}
             productName={product.displayName}
