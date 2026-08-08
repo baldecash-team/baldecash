@@ -36,7 +36,7 @@ describe('qué se muestra en el paso de firma', () => {
  * un documento que no sea el de esta solicitud.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext', () => ({
@@ -137,5 +137,56 @@ describe('el contrato como PDF', () => {
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
     await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+  });
+});
+
+/**
+ * El contrato aparece unos segundos después de la aprobación.
+ *
+ * Medido en producción: el paso pidió el contrato a las 03:27:30 y legacy lo
+ * emitió a las 03:27:31. Con una sola consulta al montar, esa ventana de
+ * segundos deja al paso en «se está generando» para siempre, aunque el
+ * documento exista un segundo después.
+ */
+describe('el contrato que todavía se está emitiendo', () => {
+  beforeEach(() => { jest.clearAllMocks(); jest.useFakeTimers(); });
+  afterEach(() => jest.useRealTimers());
+
+  it('reintenta y lo muestra cuando aparece', async () => {
+    mockGetContrato
+      .mockResolvedValueOnce({ disponible: false })
+      .mockResolvedValue({ disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+
+    await act(async () => { jest.advanceTimersByTime(5000); });
+
+    await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
+  });
+
+  it('deja de reintentar cuando ya lo tiene', async () => {
+    mockGetContrato.mockResolvedValue({ disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
+    await act(async () => { jest.advanceTimersByTime(30000); });
+
+    expect(mockGetContrato).toHaveBeenCalledTimes(1);
+  });
+
+  it('no reintenta para siempre: se rinde y deja el paso utilizable', async () => {
+    // Antes de la aprobación el contrato NO existe, y puede tardar mucho más que
+    // unos segundos. Reintentar sin techo dejaría el paso pidiendo indefinidamente.
+    mockGetContrato.mockResolvedValue({ disponible: false });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    await act(async () => { jest.advanceTimersByTime(120000); });
+
+    expect(mockGetContrato.mock.calls.length).toBeLessThanOrEqual(7);
   });
 });
