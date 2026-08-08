@@ -56,6 +56,25 @@ export function conditionDisplayLabelFor(
 }
 
 /**
+ * Variantes de overlay cuyas tarjetas de catálogo no repiten el estado del equipo.
+ *
+ * Family Farms ya lo dice dos veces antes de llegar al chip: el banner
+ * "REACONDICIONADO" encabeza la tarjeta y el selector A/B/C de la ficha abre el
+ * grado con su propio diseño (BAL-2812). Los chips "Semi nuevo" y "Grado X"
+ * sobre la foto son la misma información dicha por tercera vez, encima con la
+ * etiqueta estándar que la campaña no usa.
+ *
+ * Va por variante de overlay y no por slug, igual que el resto de la campaña,
+ * para que una landing nueva lo herede sin deploy.
+ */
+const OVERLAY_VARIANTS_WITHOUT_STATE_BADGES = new Set(['familyfarm']);
+
+/** ¿Esta variante de overlay oculta los badges de condición y grado en la tarjeta? */
+export function hidesEquipmentStateBadges(overlayVariant?: string | null): boolean {
+  return !!overlayVariant && OVERLAY_VARIANTS_WITHOUT_STATE_BADGES.has(overlayVariant);
+}
+
+/**
  * Normaliza cualquier variante de condición a su forma canónica del API:
  * 'nueva' | 'reacondicionada'. Resuelve el desajuste entre el enum FE
  * ('nuevo'/'reacondicionado') y el API/facet ('nueva'/'reacondicionada').

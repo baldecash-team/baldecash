@@ -46,6 +46,7 @@ import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat'
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { hidesEquipmentStateBadges } from '@/app/prototipos/0.6/utils/condition';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -1814,6 +1815,7 @@ function CatalogoContent() {
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
                 conditions={apiFilters?.conditions}
+                hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
                 addToCartDisabled={!isProductContextHydrated || onboarding.shouldShowWelcome}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar
