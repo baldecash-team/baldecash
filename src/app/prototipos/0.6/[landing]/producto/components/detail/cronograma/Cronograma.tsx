@@ -585,13 +585,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         {formatearFecha(fila.fecha)}
                       </td>
                       {(() => {
-                        const monto = Math.floor(fila.monto);
-                        // La armada es inicial, no amortiza: desglosarla en
-                        // capital/interés sería inventar números.
-                        const commission = !fila.esArmada && commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
-                        const interest = Math.floor(amort?.interest || 0);
-                        // Capital = Monto - Interés - Comisión (así siempre cuadra)
-                        const capital = monto - interest - commission;
+                        // Mismo desglose probado que el resto: el capital sale por
+                        // resta para que las columnas sumen, y la armada no lleva
+                        // desglose porque no amortiza.
+                        const { monto, capital, interest, commission } =
+                          desgloseDeFila(fila, { amort, commissionAmount, conCentavos });
                         return (
                           <>
                             <td className="py-3 px-3 text-right text-sm text-[var(--text,#374151)]">
@@ -702,7 +700,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             ) : (
               <>
                 <ChevronDown className="w-4 h-4" />
-                Ver las {selectedTerm - 6} cuotas restantes
+                Ver los {filas.length - 6} pagos restantes
               </>
             )}
           </button>
