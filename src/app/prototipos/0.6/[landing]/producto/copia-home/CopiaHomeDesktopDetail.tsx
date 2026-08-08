@@ -27,6 +27,7 @@ import {
   FileText, Download, Truck, ArrowRight,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ProductDetailResult } from '../api/productDetailApi';
@@ -337,7 +338,9 @@ export function CopiaHomeDesktopDetail({
               )}
             </div>
 
-            {canBuy && (
+            {/* El retiro en oficinas no aplica en un convenio de campo: el equipo
+                llega por el convenio y no hay oficina a la que ir. */}
+            {canBuy && !esFamilyFarms(landing) && (
               <div className={styles.panel}>
                 <div className={styles.secTitle} style={{ marginBottom: 14 }}>Seguridad del equipo</div>
                 <div className={styles.recojoBanner}>
@@ -596,13 +599,6 @@ export function CopiaHomeDesktopDetail({
               {/* Cronograma de pagos */}
               {paymentPlans.length > 0 && (
                 <div className={styles.panel}>
-                  <div className={styles.secHeadIco}>
-                    <span className={styles.secIco}><Calendar size={22} /></span>
-                    <div>
-                      <div className={styles.secTitle}>Cronograma de pagos</div>
-                      <div className={styles.secSub} style={{ marginBottom: 0 }}>Detalle de tus cuotas según el plan elegido</div>
-                    </div>
-                  </div>
                   <div className={styles.cronoWrap}>
                     <Cronograma
                       paymentPlans={paymentPlans}
