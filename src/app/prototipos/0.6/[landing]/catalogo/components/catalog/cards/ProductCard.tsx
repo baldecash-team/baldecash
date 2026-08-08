@@ -139,6 +139,13 @@ interface ProductCardProps {
   forcedTerm?: number;
   /** Deshabilita el botón "Lo quiero" (ej. mientras el contexto se hidrata o un modal está abierto). */
   addToCartDisabled?: boolean;
+  /**
+   * Oculta los badges de estado del equipo (condición y grado) sobre la foto.
+   * Para campañas que ya nombran el estado en su propio diseño — ver
+   * `hidesEquipmentStateBadges` en utils/condition. No afecta a los tags del
+   * producto (Oferta, Más vendido…), que vienen por otro canal.
+   */
+  hideStateBadges?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -171,6 +178,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   campaignCoupon = null,
   conditions = null,
   addToCartDisabled = false,
+  hideStateBadges = false,
 }) => {
   const analytics = useAnalytics();
 
@@ -413,7 +421,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // cae al enum normalizado para mock data sin conditionCode.
   const conditionCode = product.conditionCode || product.condition;
   // El badge se muestra SOLO para reacondicionados (no para nuevos ni open_box).
-  const showCondition = isRefurbishedCondition(conditionCode);
+  // Condición y grado se ocultan juntos: describen el mismo estado del equipo, y
+  // la campaña que suprime uno suprime el par.
+  const showCondition = !hideStateBadges && isRefurbishedCondition(conditionCode);
+  const showGrade = !hideStateBadges && !!product.grade;
   const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
 
   return (
@@ -591,12 +602,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             {/* Condition badge + regular tags — top-left */}
-            {(showCondition || hasTopLeftTags) && (
+            {(showCondition || showGrade || hasTopLeftTags) && (
               <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
                 {showCondition && (
                   <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
                 )}
-                {product.grade && (
+                {showGrade && (
                   <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
                     Grado {product.grade}
                   </span>
