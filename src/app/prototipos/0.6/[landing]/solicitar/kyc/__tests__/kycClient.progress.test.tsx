@@ -486,3 +486,55 @@ describe('botón "Continuar en otro momento"', () => {
     );
   });
 });
+
+/**
+ * El paso de pago al cargar el KYC.
+ *
+ * El link se mintea con la aprobacion y ahora viaja en el estado, asi que el
+ * paso puede existir desde el arranque. Antes solo aparecia al final —cuando
+ * `/completar` devolvia el link— y por eso ponerlo primero en la config de la
+ * landing no lo adelantaba.
+ */
+describe('paso de pago desde el estado', () => {
+  it('con link en el estado, el paso de pago existe al cargar', async () => {
+    mockKycSteps.mockReturnValue([
+      { type: 'dni_selfie' }, { type: 'contract' }, { type: 'payment' },
+    ] as never);
+    mockGetKycProgress.mockResolvedValue({
+      ...state('dni_selfie', 0),
+      link_pago: 'https://zona.baldecash.com/magic/abc',
+    } as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 3/)).toBeInTheDocument());
+  });
+
+  it('respeta el orden configurado: pago primero es el primero', async () => {
+    // La landing puede poner el pago antes que el resto; la lista tiene que
+    // seguir ese orden en vez de empujarlo siempre al final.
+    mockKycSteps.mockReturnValue([
+      { type: 'payment' }, { type: 'dni_selfie' }, { type: 'contract' },
+    ] as never);
+    mockGetKycProgress.mockResolvedValue({
+      ...state('dni_selfie', 0),
+      link_pago: 'https://zona.baldecash.com/magic/abc',
+    } as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 3/)).toBeInTheDocument());
+    expect(screen.getByText('Paga tu cuota inicial')).toBeInTheDocument();
+  });
+
+  it('sin link el paso no aparece aunque este configurado', async () => {
+    mockKycSteps.mockReturnValue([
+      { type: 'dni_selfie' }, { type: 'contract' }, { type: 'payment' },
+    ] as never);
+    mockGetKycProgress.mockResolvedValue(state('dni_selfie', 0) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 2/)).toBeInTheDocument());
+  });
+});
