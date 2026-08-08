@@ -239,6 +239,17 @@ export interface InitialPaymentOption {
   initialInstallments?: number;
   /** Monto de cada armada; la última absorbe el sobrante del redondeo. */
   initialInstallmentAmounts?: number[];
+  /**
+   * Plazo total del plan, en la unidad de la frecuencia: lo que la persona
+   * elige.
+   *
+   * Es el complemento de `initialInstallments`. Como las armadas se descuentan
+   * del plazo, dos opciones con `term` distinto pueden ser el MISMO plazo: 13
+   * cuotas con 4 armadas y 15 con 2 son las dos "17 semanas". Agrupar por este
+   * campo es lo que convierte seis plazos sueltos en dos con tres modalidades
+   * de inicial cada uno.
+   */
+  totalTerm?: number;
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */

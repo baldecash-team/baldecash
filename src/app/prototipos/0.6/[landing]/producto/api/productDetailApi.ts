@@ -163,6 +163,13 @@ interface ApiInitialPaymentOption {
   initial_installments?: number;
   /** Monto de cada armada; la ultima absorbe el sobrante del redondeo. */
   initial_installment_amounts?: string[];
+  /**
+   * Semanas que dura el plan contando las armadas: es el plazo que la persona
+   * elige. `term` son las CUOTAS, y las armadas se descuentan de ese total —17
+   * semanas con la inicial en 4 armadas son 4 armadas + 13 cuotas—, asi que sin
+   * este campo el catalogo ofrece seis plazos sueltos donde en realidad hay dos.
+   */
+  total_term?: number;
 }
 
 interface ApiPaymentPlan {
@@ -385,6 +392,14 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       // campo y ahi la inicial siempre fue de un solo pago.
       initialInstallments: opt.initial_installments ?? 1,
       initialInstallmentAmounts: (opt.initial_installment_amounts ?? []).map(Number),
+      // Plazo que la persona elige. El backend lo deriva, pero se recalcula si
+      // no viene: una respuesta vieja no puede dejar la opcion sin plazo, y la
+      // formula es la misma —las armadas completan el total—.
+      totalTerm:
+        opt.total_term ??
+        ((opt.initial_installments ?? 1) > 1
+          ? apiPlan.term + (opt.initial_installments ?? 1)
+          : apiPlan.term),
     })),
   };
 }
