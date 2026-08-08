@@ -1,11 +1,10 @@
 /**
  * Los plazos que el selector ofrece de verdad, sobre el contexto real.
  *
- * `plazoTotalDelPlan.test.ts` cubre la fórmula con una réplica; esto ejercita
- * `getAvailableTerms` tal como la llama `SelectedProductBar`. Family Farms trae
- * seis planes que son dos plazos con tres modalidades de inicial cada uno
- * —6+4, 8+2 y 10+1 son las tres «10 semanas»—, así que agrupar sin deduplicar
- * dejaba el mismo plazo repetido tres veces en la lista.
+ * `etiquetaDePlazo.test.ts` cubre el rótulo; esto ejercita `getAvailableTerms`
+ * tal como la llama `SelectedProductBar`. Los valores son los `term` de cada
+ * celda —las cuotas—, no el plazo total: el total vive en el rótulo, porque el
+ * term es lo que identifica la celda y lo que viaja al backend.
  */
 import { render, screen, act } from '@testing-library/react';
 import { ProductProvider, useProduct } from '../ProductContext';
@@ -77,17 +76,20 @@ function plazosDe(plans: ReturnType<typeof plan>[], frecuencia?: string): string
 
 afterEach(() => localStorage.clear());
 
-it('los seis planes de Family Farms son dos plazos, no seis', () => {
+it('los seis planes de Family Farms son seis opciones, una por celda', () => {
+  // Dos plazos con tres modalidades cada uno: 6+4, 8+2 y 10+1 son las tres
+  // «10 semanas». Se ofrecen las seis porque en el pricing el plazo y la
+  // modalidad de inicial son la misma celda; el rótulo las agrupa a la vista.
   const plazos = plazosDe([
     plan(6, 4), plan(8, 2), plan(10, 1),
     plan(13, 4), plan(15, 2), plan(17, 1),
   ]);
 
-  expect(plazos).toBe('10,17');
+  expect(plazos).toBe('6,8,10,13,15,17');
 });
 
-it('sin armadas el plazo total es el term y la lista no cambia', () => {
-  // El caso de todo el resto del catálogo: la agrupación es la identidad.
+it('sin armadas la lista es la de siempre', () => {
+  // El caso de todo el resto del catálogo.
   const plazos = plazosDe([plan(12, 1), plan(18, 1), plan(24, 1)], 'mensual');
 
   expect(plazos).toBe('12,18,24');

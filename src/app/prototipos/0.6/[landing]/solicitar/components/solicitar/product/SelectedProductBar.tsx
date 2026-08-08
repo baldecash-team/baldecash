@@ -15,6 +15,7 @@ import { useProduct } from '../../../context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { TermSelect, getTermUnit } from './TermSelect';
+import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
 import Image from 'next/image';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
@@ -86,6 +87,13 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const hasInsurance = selectedInsurances.length > 0;
   const hasCoupon = !!appliedCoupon;
   const availableTerms = getAvailableTerms();
+
+  // Con la inicial fraccionada el `term` son las cuotas, no el plazo que la
+  // persona vive: el rotulo lo traduce a «17 semanas · 4 armadas» y ordena por
+  // plazo total. Sin armadas el mapa viene vacio y el selector no cambia.
+  const planesDelPrincipal = mainProduct?.paymentPlans ?? [];
+  const termLabels = etiquetasDePlazo(planesDelPrincipal, mainProduct?.paymentFrequency);
+  const termOptions = ordenarTerms(planesDelPrincipal, availableTerms);
 
   // Calculate total initial payment from all products
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);
@@ -326,10 +334,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
                         value={mainProduct.term ?? mainProduct.months}
-                        options={availableTerms}
+                        options={termOptions}
                         onChange={handleTermChange}
                         size="sm"
                         frequency={mainProduct.paymentFrequency}
+                        labels={termLabels}
                       />
                     </div>
                     {hasInitialPayment && !isGamer && (
@@ -381,9 +390,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
                 value={mainProduct.term ?? mainProduct.months}
-                options={availableTerms}
+                options={termOptions}
                 onChange={handleTermChange}
                 frequency={mainProduct.paymentFrequency}
+                labels={termLabels}
               />
             </div>
           </div>
