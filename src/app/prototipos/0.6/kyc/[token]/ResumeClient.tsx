@@ -38,6 +38,7 @@ import { useRouter } from 'next/navigation';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
+import { saveVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { resumeKyc, isKycApiError, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
 import { LayoutProvider } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import KycClient from '@/app/prototipos/0.6/[landing]/solicitar/kyc/kycClient';
@@ -113,6 +114,14 @@ export function ResumeClient({ token }: ResumeClientProps) {
       if (!landingSlug) {
         setView({ status: 'invalid' });
         return;
+      }
+
+      // El link se abre desde otro equipo: el acceso a la landing no está en
+      // este navegador. El token que devuelve `resume` lo concede — está atado
+      // al mismo DNI y vence con el link. Se guarda antes de ramificar porque
+      // la confirmación también vive dentro de la landing con gate.
+      if (result.landing_access_token) {
+        saveVipToken(landingSlug, result.landing_access_token);
       }
 
       // El KYC ya se completó, o la landing apagó los sub-pasos desde que se

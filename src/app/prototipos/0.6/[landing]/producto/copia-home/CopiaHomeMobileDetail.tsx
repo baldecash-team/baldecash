@@ -33,6 +33,7 @@ import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import { targetSlugForGrade, currentGrade } from './gradeSelector';
 import { FamilyFarmGradeSelector, type GradeOption } from '../family-farm/FamilyFarmGradeSelector';
 import { GRADE_HEADING } from '../family-farm/familyFarmGrades';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
@@ -89,6 +90,12 @@ interface Props {
   isInWishlist?: boolean;
   /** `familyfarm` cambia el selector de grados por el de la campaña (BAL-2812). */
   gradeVariant?: 'default' | 'familyfarm';
+  /**
+   * Día del que arranca el cronograma. Lo resuelve el cliente del detalle con
+   * `inicioDelCronograma`: la fecha fija de la campaña si la landing la
+   * configuró, hoy si no.
+   */
+  startDate?: Date;
 }
 
 export function CopiaHomeMobileDetail({
@@ -102,6 +109,7 @@ export function CopiaHomeMobileDetail({
   onToggleWishlist,
   isInWishlist = false,
   gradeVariant = 'default',
+  startDate,
 }: Props) {
   const router = useRouter();
   const { setSelectedProduct } = useProduct();
@@ -257,6 +265,10 @@ export function CopiaHomeMobileDetail({
       initialPercent,
       initialAmount,
       initialInstallments,
+      // La frecuencia va con el producto: el formulario la relee de aca y sin
+      // ella reconstruye 'mensual', mostrando «17 meses» y «S/46/mes» para un
+      // plan que se cobra por semana.
+      paymentFrequency,
       image: thumbnail,
       type: product.deviceType as SelectedProduct['type'],
       condition: product.condition,
@@ -277,7 +289,7 @@ export function CopiaHomeMobileDetail({
     } catch { /* localStorage no disponible */ }
     router.push(routes.solicitar(landing));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, colorId, selectedColor, landing, router, galleryImages]);
+  }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, paymentFrequency, colorId, selectedColor, landing, router, galleryImages]);
 
   function getSpec(category: string, label: string): string | undefined {
     const cat = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
@@ -548,7 +560,12 @@ export function CopiaHomeMobileDetail({
                     productName={product.displayName}
                     productBrand={product.brand}
                     productPrice={product.price}
-                    version={1}
+                    startDate={startDate}
+                    // Family Farms cobra contra planilla y la persona firma un
+                    // cronograma: necesita ver amortizacion, interes y comision
+                    // por cuota, no solo el monto. El resto del catalogo sigue
+                    // con la tabla simple.
+                    version={esFamilyFarms(landing) ? 2 : 1}
                   />
                 </div>
               </Acc>

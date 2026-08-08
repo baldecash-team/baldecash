@@ -140,13 +140,15 @@ interface RenderStepArgs {
   onDniVerified?: (dni: string) => void;
   /** Solo lo consume `payment`: magic link a Zona Estudiantes. */
   linkPago?: string | null;
+  /** Prueba de titularidad del flujo por link; la consume `contract` para traer su contrato. */
+  resumeToken?: string;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -161,7 +163,18 @@ function renderStep({
         />
       );
     case 'contract':
-      return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
+      return (
+        <ContratoStep
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          onTrack={onTrack}
+          // El contrato es una lectura sensible: trae nombre, documento, equipo
+          // y cronograma. Va con la misma prueba que el resto del KYC.
+          documentNumber={documentNumber}
+          resumeToken={resumeToken}
+        />
+      );
     case 'documents':
       return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'payment':
@@ -311,6 +324,9 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
     if (initialState) {                       // vino de /kyc/[token]
       setIndex(initialState.next_step_index ?? 0);
+      // El link ya viene con el estado: el paso de pago puede existir desde el
+      // arranque en vez de aparecer recién cuando `/completar` lo devuelve.
+      if (initialState.link_pago) setLinkPago(initialState.link_pago);
       return;
     }
 
@@ -319,6 +335,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       const remote = await getKycProgress(code);
       if (cancelled) return;
       if (remote) setProgressState(remote); // resume.enabled vive acá, no en el índice
+      if (remote?.link_pago) setLinkPago(remote.link_pago);
 
       // Se toma el MÁXIMO entre remoto y local, no el remoto a secas:
       // `completeKycStep` es fire-and-forget por diseño, así que un POST caído
@@ -409,9 +426,9 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // el contador "Paso N de M" no prometa un paso que quiza nunca aparezca.
   const pasosBase = kycSteps.filter((s) => s.type !== 'payment');
   const pasoPagoConfigurado = kycSteps.some((s) => s.type === 'payment');
-  const pasos = linkPago
-    ? [...pasosBase, kycSteps.find((s) => s.type === 'payment')!]
-    : pasosBase;
+  // Con link, el pago va donde la landing lo puso: antes se lo empujaba al
+  // final siempre, asi que configurarlo primero no lo adelantaba.
+  const pasos = linkPago ? kycSteps : pasosBase;
 
   const safeIndex = Math.min(index, pasos.length - 1);
   const currentStep = pasos[safeIndex];
@@ -451,7 +468,14 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
               scope: 'kyc_step_persist', reason: 'request_failed',
               step: currentStep.type, index: safeIndex, application_code: code,
             });
+            return;
           }
+          // La aprobacion tarda unos segundos, asi que si el KYC cargo antes de
+          // que el link se persistiera, el estado inicial vino sin el. Esta
+          // respuesta es un estado FRESCO y llega en cada avance: leerla es la
+          // forma de enterarse sin pedir nada extra. Sin esto el paso de pago
+          // quedaba invisible hasta el final del flujo, con el link ya existiendo.
+          if (state.link_pago) setLinkPago(state.link_pago);
         });
       }
     }
@@ -577,6 +601,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             documentNumber: effectiveDni,
             onDniVerified: rememberVerifiedDni,
             linkPago,
+            resumeToken,
           })}
 
           {canPause && code && (

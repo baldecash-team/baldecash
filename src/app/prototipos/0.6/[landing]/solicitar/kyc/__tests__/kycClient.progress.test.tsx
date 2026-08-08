@@ -21,6 +21,10 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
     ...actual,
     getKycProgress: jest.fn(),
     completeKycStep: jest.fn(),
+    // El sub-paso de contrato pide el documento emitido al montar y sin él no
+    // ofrece aceptar nada. Acá el contrato es solo el vehículo para avanzar el
+    // flujo, así que se da por emitido.
+    getContrato: jest.fn().mockResolvedValue({ disponible: true, html: '<p>Contrato</p>' }),
   };
 });
 
@@ -223,6 +227,10 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
 
   const avanzar = async () => {
     const user = userEvent.setup();
+    // El contrato se pide al montar y la casilla recién aparece cuando llegó:
+    // sin esta espera el click corre contra un paso que todavía dice
+    // «se está generando».
+    await screen.findByText('He leído y acepto el contrato');
     await user.click(screen.getByText('He leído y acepto el contrato'));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
   };
@@ -476,5 +484,112 @@ describe('botón "Continuar en otro momento"', () => {
       'kyc_pause_click',
       expect.objectContaining({ application_code: 'APP-1' }),
     );
+  });
+});
+
+/**
+ * El paso de pago al cargar el KYC.
+ *
+ * El link se mintea con la aprobacion y ahora viaja en el estado, asi que el
+ * paso puede existir desde el arranque. Antes solo aparecia al final —cuando
+ * `/completar` devolvia el link— y por eso ponerlo primero en la config de la
+ * landing no lo adelantaba.
+ */
+describe('paso de pago desde el estado', () => {
+  it('con link en el estado, el paso de pago existe al cargar', async () => {
+    mockKycSteps.mockReturnValue([
+      { type: 'dni_selfie' }, { type: 'contract' }, { type: 'payment' },
+    ] as never);
+    mockGetKycProgress.mockResolvedValue({
+      ...state('dni_selfie', 0),
+      link_pago: 'https://zona.baldecash.com/magic/abc',
+    } as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 3/)).toBeInTheDocument());
+  });
+
+  it('respeta el orden configurado: pago primero es el primero', async () => {
+    // La landing puede poner el pago antes que el resto; la lista tiene que
+    // seguir ese orden en vez de empujarlo siempre al final.
+    mockKycSteps.mockReturnValue([
+      { type: 'payment' }, { type: 'dni_selfie' }, { type: 'contract' },
+    ] as never);
+    mockGetKycProgress.mockResolvedValue({
+      ...state('dni_selfie', 0),
+      link_pago: 'https://zona.baldecash.com/magic/abc',
+    } as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 3/)).toBeInTheDocument());
+    expect(screen.getByText('Paga tu cuota inicial')).toBeInTheDocument();
+  });
+
+  it('sin link el paso no aparece aunque este configurado', async () => {
+    mockKycSteps.mockReturnValue([
+      { type: 'dni_selfie' }, { type: 'contract' }, { type: 'payment' },
+    ] as never);
+    mockGetKycProgress.mockResolvedValue(state('dni_selfie', 0) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 2/)).toBeInTheDocument());
+  });
+});
+
+/**
+ * El link de pago que llega mientras la persona avanza.
+ *
+ * La aprobacion tarda unos segundos, asi que si el KYC carga antes de que el
+ * link se persista, el estado inicial viene sin el. `completeKycStep` devuelve
+ * un estado fresco en CADA avance y hasta ahora se tiraba: el paso de pago
+ * quedaba invisible hasta el final del flujo, aunque el link ya existiera.
+ */
+describe('el link de pago que aparece despues de cargar', () => {
+  it('lo toma de la respuesta de step-complete y suma el paso de pago', async () => {
+    // Con pasos por delante: al completar el contrato quedan `documents` y
+    // `payment`, asi que el link llega a tiempo para entrar en la lista. (En el
+    // ULTIMO paso no aplica: ahi el flujo llama a `cerrarKyc`, que consigue el
+    // link por el veredicto.)
+    mockKycSteps.mockReturnValue([
+      { type: 'contract' }, { type: 'documents' }, { type: 'payment' },
+    ] as never);
+    // Sin prueba de titularidad `completeKycStep` ni se llama.
+    window.localStorage.setItem('baldecash-dni-copia-home', '48509924');
+    mockGetKycProgress.mockResolvedValue(state('contract', 0) as never);
+    mockCompleteKycStep.mockResolvedValue({
+      ...state('contract', 0),
+      link_pago: 'https://zona.baldecash.com/magic/abc',
+    } as never);
+
+    render(<KycClient />);
+
+    // Sin link, el contador arranca sin contar el pago.
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 2/)).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await screen.findByText('He leído y acepto el contrato');
+    await user.click(screen.getByText('He leído y acepto el contrato'));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    // El paso de pago entra en la lista sin pedir nada extra.
+    await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalled());
+    await waitFor(() => {
+      const txt = document.body.textContent || '';
+      expect(txt).toMatch(/Paso \d+ de 3/);
+    });
+  });
+
+  it('sin link en la respuesta, nada cambia', async () => {
+    mockKycSteps.mockReturnValue([{ type: 'contract' }, { type: 'payment' }] as never);
+    mockGetKycProgress.mockResolvedValue(state('contract', 0) as never);
+    mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+
+    render(<KycClient />);
+
+    await waitFor(() => expect(screen.getByText(/Paso 1 de 1/)).toBeInTheDocument());
+    expect(screen.queryByText('Paga tu cuota inicial')).not.toBeInTheDocument();
   });
 });

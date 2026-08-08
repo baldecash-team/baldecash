@@ -651,7 +651,11 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       return acc.filter(t => terms.includes(t));
     });
 
-    return intersection.sort((a, b) => a - b);
+    // Deduplicado: agrupar por plazo total hace que varios planes colapsen en
+    // el mismo numero —6+4, 8+2 y 10+1 son las tres "10 semanas"— y sin esto
+    // el selector ofrecia el mismo plazo repetido una vez por modalidad. Para
+    // el catalogo sin armadas cada plazo ya era unico, asi que no cambia nada.
+    return [...new Set(intersection)].sort((a, b) => a - b);
   }, [getAllProducts, landingId]);
 
   /**
