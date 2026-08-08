@@ -155,6 +155,40 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     return paymentPlans.find(p => p.term === selectedTerm) || paymentPlans[0];
   }, [paymentPlans, selectedTerm]);
 
+  /** Armadas de un plan para el % de inicial elegido. Mismo criterio que PricingCalculator. */
+  const armadasDe = useCallback((plan: typeof paymentPlans[number] | undefined): number => {
+    if (!plan?.options) return 1;
+    const opt = plan.options.find(o => o.initialPercent === selectedInitialPercent) ?? plan.options[0];
+    return opt?.initialInstallments ?? 1;
+  }, [selectedInitialPercent]);
+
+  /** Plazo total: cuotas + armadas. Un pago único es inmediato y no ocupa período. */
+  const plazoTotalDe = useCallback((plan: typeof paymentPlans[number] | undefined): number => {
+    if (!plan) return 0;
+    const n = armadasDe(plan);
+    return plan.term + (n > 1 ? n : 0);
+  }, [armadasDe]);
+
+  const armadasActuales = armadasDe(currentPlan);
+
+  /**
+   * Los planes que ofrecen los chips: los de la modalidad de inicial vigente.
+   *
+   * Family Farms trae seis planes que son dos plazos con tres modalidades cada
+   * uno —6+4, 8+2 y 10+1 son las tres «10 semanas»—; listarlos crudos ofrecía
+   * seis plazos donde hay dos, y encima con el número de cuotas en vez del
+   * plazo que la persona eligió. Sin armadas todos los planes son de la misma
+   * modalidad, así que para el resto del catálogo la lista queda igual.
+   */
+  const planesDeLosChips = useMemo(() => {
+    const mismos = paymentPlans.filter(p => armadasDe(p) === armadasActuales);
+    const porTotal = new Map<number, typeof paymentPlans[number]>();
+    (mismos.length > 0 ? mismos : paymentPlans).forEach(p => {
+      if (!porTotal.has(plazoTotalDe(p))) porTotal.set(plazoTotalDe(p), p);
+    });
+    return [...porTotal.entries()].sort((a, b) => a[0] - b[0]);
+  }, [paymentPlans, armadasDe, armadasActuales, plazoTotalDe]);
+
   // Obtener la cuota según el % de inicial seleccionado (sincronizado con PricingCalculator)
   const currentOption = useMemo(() => {
     return currentPlan?.options?.find(opt => opt.initialPercent === selectedInitialPercent)
@@ -286,9 +320,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
           {/* Term Pills */}
           <div className="flex gap-1 flex-wrap">
-            {paymentPlans.map((plan) => (
+            {planesDeLosChips.map(([plazoTotal, plan]) => (
               <button
-                key={plan.term}
+                key={plazoTotal}
                 onClick={() => {
                   setShowAll(false);
                   if (isSynced) {
@@ -298,14 +332,14 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   }
                 }}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                  selectedTerm === plan.term
+                  plazoTotalDe(currentPlan) === plazoTotal
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                 }`}
               >
-                {/* La unidad real, no una «m» que en un plan semanal
-                    sugiere meses y confunde: 17s son 17 semanas. */}
-                {plan.term}{sufijoUnidad}
+                {/* El plazo total que la persona eligió, en su unidad real: una
+                    «m» en un plan semanal sugiere meses y confunde. */}
+                {plazoTotal}{sufijoUnidad}
               </button>
             ))}
           </div>
