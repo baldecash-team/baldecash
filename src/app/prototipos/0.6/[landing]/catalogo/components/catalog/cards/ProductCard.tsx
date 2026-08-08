@@ -11,7 +11,9 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Card, CardBody, Button } from '@nextui-org/react';
 import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, CheckCircle2, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -325,6 +327,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     downPayment: Math.floor(displayInitialAmount),  // inicial S/{Math.floor(displayInitialAmount)}
     downPaymentPercent: displayInitialPercent,
   };
+  // La landing sale de la ruta ([landing]/catalogo): el card no la recibia
+  // por props y agregarsela obligaria a tocar a todos sus consumidores.
+  const routeParams = useParams();
+  const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
+
   const handleViewDetail = (slug?: string) => onViewDetail?.(slug, pricingSnapshot);
 
   const originalQuota = displayOriginalQuota;
@@ -784,7 +791,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
                     <div className="flex items-baseline justify-center gap-0.5 min-w-0 mt-1">
                       <span className="text-3xl sm:text-4xl font-black text-white break-words leading-none">
-                        S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.firstQuota))}
+                        S/{formatCuotaDeLanding(couponQuotaDisplay.firstQuota, landingSlug)}
                       </span>
                       <span className="text-base sm:text-lg text-white/80">{freqShort}</span>
                     </div>
@@ -800,14 +807,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     </span>
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-sm sm:text-base font-bold text-[var(--text-muted,#6b7280)]">
-                        S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.listQuota))}
+                        S/{formatCuotaDeLanding(couponQuotaDisplay.listQuota, landingSlug)}
                       </span>
                       <span className="text-xs text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                     </div>
                   </div>
 
                   <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-2 break-words text-center">
-                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
+                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatCuotaDeLanding(displayInitialAmount, landingSlug)}` : ' · sin inicial'}
                   </p>
                 </>
               ) : (
@@ -815,7 +822,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   <div className="h-5 flex items-center justify-center gap-1.5">
                     {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
                       <>
-                        <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
+                        <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">S/{formatCuotaDeLanding(originalQuota, landingSlug)}{freqShort}</span>
                         {displayDiscount && displayDiscount > 0 && (
                           <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
                             {product.promotion?.discountType === 'fixed'
@@ -830,12 +837,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   </div>
                   <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
                     <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">
-                      S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}
+                      S/{formatCuotaDeLanding(displayQuotaForFreq, landingSlug)}
                     </span>
                     <span className="text-base sm:text-lg text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                   </div>
                   <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-2 break-words">
-                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
+                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatCuotaDeLanding(displayInitialAmount, landingSlug)}` : ' · sin inicial'}
                   </p>
                 </>
               )}
