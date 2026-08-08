@@ -10,6 +10,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { PricingCalculatorProps, PaymentPlan, InitialPaymentOption, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import { fetchProductDetail } from '../../../api/productDetailApi';
 
 // Detect hover-capable devices (desktop) so touch-only devices don't keep a
@@ -248,6 +249,10 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   // chip cambia el plazo de financiamiento pero deja intacto el plazo total,
   // que es lo que el cliente tiene en la cabeza ("son 17 semanas").
 
+  // El convenio cuenta la inicial como un periodo mas del calendario; el resto
+  // del catalogo no.
+  const laInicialOcupaPeriodo = esFamilyFarms(landing);
+
   /** Armadas de un plan, para el % de inicial elegido. */
   const armadasDe = useCallback((plan: PaymentPlan | undefined): number => {
     if (!plan?.options) return 1;
@@ -258,9 +263,17 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   /** Semanas/meses totales del plan: financiamiento + armadas. */
   const plazoTotalDe = useCallback((plan: PaymentPlan | undefined): number => {
     if (!plan) return 0;
+    const opt = plan.options?.find(o => o.initialPercent === selectedInitialPercent) ?? plan.options?.[0];
     const n = armadasDe(plan);
+
+    // En el convenio la inicial ocupa periodos aunque se pague de una sola vez.
+    // ACOTADO: todo producto del catalogo con inicial tiene 1 armada, asi que
+    // global le sumaria un periodo a cada plazo publicado.
+    if (laInicialOcupaPeriodo && (opt?.initialAmount ?? 0) > 0) {
+      return plan.term + Math.max(n, 1);
+    }
     return plan.term + (n > 1 ? n : 0);
-  }, [armadasDe]);
+  }, [armadasDe, selectedInitialPercent, laInicialOcupaPeriodo]);
 
   /**
    * Modalidades ofrecidas. Con una sola no hay nada que elegir y los chips no

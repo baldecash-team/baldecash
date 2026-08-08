@@ -9,6 +9,20 @@ import { construirFilas } from '../filasDelCronograma';
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
+describe('fuera del convenio la inicial no ocupa periodo', () => {
+  it('un pago unico con inicial no corre las cuotas', () => {
+    // Todo producto del catalogo con inicial tiene 1 armada: si ocupara fila,
+    // cada plazo publicado se correria un periodo.
+    const filas = construirFilas({
+      cuotas: 24, montoCuota: 150, frecuencia: 'mensual',
+      inicio: new Date(2026, 7, 8), armadas: 1, montoInicial: 300,
+    });
+
+    expect(filas).toHaveLength(24);
+    expect(filas.some(f => f.esArmada)).toBe(false);
+  });
+});
+
 describe('sin armadas: el catálogo no cambia', () => {
   it('un plan mensual arranca en la cuota 1 y no trae armadas', () => {
     const filas = construirFilas({
@@ -22,14 +36,33 @@ describe('sin armadas: el catálogo no cambia', () => {
     expect(filas[0].indiceCuota).toBe(0);
   });
 
-  it('una sola armada es un pago único: tampoco ocupa un período', () => {
+  it('una sola armada SI ocupa un período: la inicial tiene fecha', () => {
+    // Este test decía lo contrario. Negocio lo cambió el 2026-08-08: los 17
+    // viernes de la campaña incluyen a la inicial, así que con la regla vieja
+    // el pago único terminaba una semana después que las otras modalidades.
+    const filas = construirFilas({
+      cuotas: 16, montoCuota: 25, frecuencia: 'semanal',
+      inicio: new Date(2026, 7, 21), armadas: 1, montoInicial: 134,
+      laInicialOcupaPeriodo: true,
+    });
+
+    expect(filas).toHaveLength(17);
+    expect(filas[0].esArmada).toBe(true);
+    expect(filas[0].etiqueta).toBe('Cuota inicial');
+    expect(filas[1].etiqueta).toBe('Cuota 1 de 16');
+  });
+
+  it('sin inicial arranca en la cuota 1', () => {
+    // El caso de todo el catálogo que no cobra inicial.
     const filas = construirFilas({
       cuotas: 17, montoCuota: 25, frecuencia: 'semanal',
-      inicio: new Date(2026, 7, 8), armadas: 1, montoInicial: 134,
+      inicio: new Date(2026, 7, 21), armadas: 1, montoInicial: 0,
+      laInicialOcupaPeriodo: true,
     });
 
     expect(filas).toHaveLength(17);
     expect(filas.some(f => f.esArmada)).toBe(false);
+    expect(filas[0].etiqueta).toBe('Cuota 1 de 17');
   });
 });
 

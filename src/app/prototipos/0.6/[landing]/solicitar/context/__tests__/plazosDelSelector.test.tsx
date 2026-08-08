@@ -19,8 +19,10 @@ jest.mock('../SessionContext', () => ({
 jest.mock('@/app/prototipos/0.6/[landing]/context/LayoutContext', () => ({
   useLayout: () => ({ layoutData: null }),
 }));
+const mockLanding = jest.fn(() => 'family-farms-baldecash-c');
+
 jest.mock('next/navigation', () => ({
-  useParams: () => ({ landing: 'family-farms-baldecash-c' }),
+  useParams: () => ({ landing: mockLanding() }),
 }));
 
 /** Un plan tal como lo deja `transformPaymentPlan`: las armadas van en la opción. */
@@ -65,9 +67,14 @@ function Probe({ plans, frecuencia }: { plans: ReturnType<typeof plan>[]; frecue
   );
 }
 
-function plazosDe(plans: ReturnType<typeof plan>[], frecuencia?: string): string {
+function plazosDe(
+  plans: ReturnType<typeof plan>[],
+  frecuencia?: string,
+  landingSlug = 'family-farms-baldecash-c',
+): string {
+  mockLanding.mockReturnValue(landingSlug);
   render(
-    <ProductProvider landingSlug="family-farms-baldecash-c">
+    <ProductProvider landingSlug={landingSlug}>
       <Probe plans={plans} frecuencia={frecuencia} />
     </ProductProvider>
   );
@@ -78,17 +85,28 @@ function plazosDe(plans: ReturnType<typeof plan>[], frecuencia?: string): string
 afterEach(() => localStorage.clear());
 
 it('los seis planes de Family Farms son dos plazos, no seis', () => {
+  // En el convenio la inicial ocupa un periodo aunque se pague de una sola vez,
+  // asi que la celda de pago unico es 9+1 y 16+1 — no 10+1 y 17+1.
   const plazos = plazosDe([
-    plan(6, 4), plan(8, 2), plan(10, 1),
-    plan(13, 4), plan(15, 2), plan(17, 1),
+    plan(6, 4), plan(8, 2), plan(9, 1),
+    plan(13, 4), plan(15, 2), plan(16, 1),
   ]);
 
   expect(plazos).toBe('10,17');
 });
 
-it('sin armadas el plazo total es el term y la lista no cambia', () => {
-  // El caso de todo el resto del catálogo: la agrupación es la identidad.
-  const plazos = plazosDe([plan(12, 1), plan(18, 1), plan(24, 1)], 'mensual');
+it('fuera del convenio la inicial NO ocupa periodo: los plazos no cambian', () => {
+  // Todo producto del catalogo con inicial tiene 1 armada. Si la regla del
+  // convenio se aplicara global, estos plazos publicados pasarian a 13, 19 y 25.
+  const plazos = plazosDe([plan(12, 1), plan(18, 1), plan(24, 1)], 'mensual', 'copia-home');
 
   expect(plazos).toBe('12,18,24');
+});
+
+it('en el convenio, un plan sin inicial arranca en la cuota 1', () => {
+  const sinInicial = { ...plan(17, 1) };
+  sinInicial.options[0].initialAmount = 0;
+  sinInicial.options[0].initialPercent = 0;
+
+  expect(plazosDe([sinInicial])).toBe('17');
 });

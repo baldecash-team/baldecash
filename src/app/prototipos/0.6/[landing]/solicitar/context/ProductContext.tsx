@@ -19,6 +19,7 @@ import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -629,8 +630,18 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
  * —el pago unico es inmediato y no ocupa un periodo—, y por eso este cambio no
  * altera a ningun producto que no las use.
  */
-function plazoTotalDelPlan(plan: PaymentPlan): number {
-  const armadas = plan.options?.[0]?.initialInstallments ?? 1;
+function plazoTotalDelPlan(plan: PaymentPlan, laInicialOcupaPeriodo = false): number {
+  const opt = plan.options?.[0];
+  const armadas = opt?.initialInstallments ?? 1;
+  const hayInicial = (opt?.initialAmount ?? 0) > 0;
+
+  // En el convenio la inicial ocupa periodos aunque se pague de una sola vez:
+  // los 17 viernes de la campania la incluyen. ACOTADO, porque todo producto
+  // del catalogo con inicial tiene 1 armada y aplicarlo global le sumaria un
+  // periodo a cada plazo publicado (un plan de 24 meses pasaria a decir 25).
+  if (laInicialOcupaPeriodo && hayInicial) return plan.term + Math.max(armadas, 1);
+
+  // Regla de siempre: solo las armadas de verdad (2 o 4) corren el plazo.
   return armadas > 1 ? plan.term + armadas : plan.term;
 }
 
@@ -654,7 +665,7 @@ function plazoTotalDelPlan(plan: PaymentPlan): number {
           // ofrecerlas como plazos sueltos hace que quien elige "13" no vea que
           // eligio 4 armadas. Sin armadas el total ES el term, asi que para todo
           // el catalogo que no las usa esto es la identidad.
-          unifiedFrequency ? plazoTotalDelPlan(plan) : (plan.termMonths ?? plan.term)
+          unifiedFrequency ? plazoTotalDelPlan(plan, esFamilyFarms(landingSlug)) : (plan.termMonths ?? plan.term)
         );
       }
       // Fallback: if no plans, assume all standard terms are available
@@ -693,7 +704,7 @@ function plazoTotalDelPlan(plan: PaymentPlan): number {
       // persona ya tenia elegida; si ninguno la conserva, el primero.
       const candidatos = (p.paymentPlans ?? []).filter(pl =>
         unifiedFrequency
-          ? plazoTotalDelPlan(pl) === term
+          ? plazoTotalDelPlan(pl, esFamilyFarms(landingSlug)) === term
           : (pl.termMonths ?? pl.term) === term
       );
       const armadasActuales = p.initialInstallments ?? 1;

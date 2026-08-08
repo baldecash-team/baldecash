@@ -19,6 +19,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { construirFilas } from './filasDelCronograma';
 import { desgloseDeFila } from './desgloseDeFila';
 import { formatCuota, landingMuestraCentavos } from '@/app/prototipos/0.6/utils/formatCuota';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 
 // Cálculo de amortización francesa (cuota fija)
 const calculateAmortization = (principal: number, annualRate: number, months: number) => {
@@ -257,6 +258,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     armadas: armadasActuales,
     montosArmadas: currentOption?.initialInstallmentAmounts,
     montoInicial: initialAmount,
+    laInicialOcupaPeriodo: esFamilyFarms(landing),
   }), [selectedTerm, adjustedQuota, paymentFrequency, startDate, armadasActuales, currentOption, initialAmount]);
 
   const filasVisibles = showAll ? filas : filas.slice(0, 6);
