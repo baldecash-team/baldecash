@@ -140,13 +140,15 @@ interface RenderStepArgs {
   onDniVerified?: (dni: string) => void;
   /** Solo lo consume `payment`: magic link a Zona Estudiantes. */
   linkPago?: string | null;
+  /** Prueba de titularidad del flujo por link; la consume `contract` para traer su contrato. */
+  resumeToken?: string;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -161,7 +163,18 @@ function renderStep({
         />
       );
     case 'contract':
-      return <ContratoStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
+      return (
+        <ContratoStep
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          onTrack={onTrack}
+          // El contrato es una lectura sensible: trae nombre, documento, equipo
+          // y cronograma. Va con la misma prueba que el resto del KYC.
+          documentNumber={documentNumber}
+          resumeToken={resumeToken}
+        />
+      );
     case 'documents':
       return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
     case 'payment':
@@ -577,6 +590,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             documentNumber: effectiveDni,
             onDniVerified: rememberVerifiedDni,
             linkPago,
+            resumeToken,
           })}
 
           {canPause && code && (

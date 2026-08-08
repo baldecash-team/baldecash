@@ -343,6 +343,45 @@ export async function getKycProgress(applicationCode: string): Promise<KycProgre
   }
 }
 
+/** El contrato emitido de la solicitud, tal como quedó congelado en legacy. */
+export interface ContratoEmitido {
+  /**
+   * `false` NO es un error: el contrato nace con la aprobación, así que antes
+   * de eso su ausencia es el estado normal del flujo.
+   */
+  disponible: boolean;
+  html?: string;
+  hash?: string;
+  version?: number;
+  emitido_at?: string;
+}
+
+/**
+ * Trae el contrato de la solicitud. Misma prueba de titularidad que el resto
+ * de las lecturas sensibles: el DNI (flujo en sesión) o el token (flujo por
+ * link), nunca las dos.
+ *
+ * Fail-safe: `null` ante error de red o de permisos. El paso lo trata igual
+ * que «todavía no hay contrato» — nunca cae a un documento genérico.
+ */
+export async function getContrato(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<ContratoEmitido | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/contrato?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as ContratoEmitido;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Marca un sub-paso completado. Requiere EXACTAMENTE una prueba: el DNI (flujo
  * en sesión) o el token (flujo por link). Si llegan las dos, se prioriza el

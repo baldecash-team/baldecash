@@ -21,6 +21,10 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
     ...actual,
     getKycProgress: jest.fn(),
     completeKycStep: jest.fn(),
+    // El sub-paso de contrato pide el documento emitido al montar y sin él no
+    // ofrece aceptar nada. Acá el contrato es solo el vehículo para avanzar el
+    // flujo, así que se da por emitido.
+    getContrato: jest.fn().mockResolvedValue({ disponible: true, html: '<p>Contrato</p>' }),
   };
 });
 
@@ -223,6 +227,10 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
 
   const avanzar = async () => {
     const user = userEvent.setup();
+    // El contrato se pide al montar y la casilla recién aparece cuando llegó:
+    // sin esta espera el click corre contra un paso que todavía dice
+    // «se está generando».
+    await screen.findByText('He leído y acepto el contrato');
     await user.click(screen.getByText('He leído y acepto el contrato'));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
   };
