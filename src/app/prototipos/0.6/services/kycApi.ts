@@ -296,6 +296,12 @@ export interface KycProgressState {
   /** Solo lo devuelve /resume/{token}. */
   expires_at?: string;
   /**
+   * Link de pago de la cuota inicial, si la aprobacion ya lo minteo. Viaja
+   * con el estado —y no solo en la respuesta de `/completar`— para que el
+   * sub-paso de pago pueda existir desde que se carga el KYC.
+   */
+  link_pago?: string | null;
+  /**
    * Pase para el gate de la landing, solo en /resume/{token} y solo si la
    * landing tiene gate. Vence con el link y está atado al mismo DNI.
    */
