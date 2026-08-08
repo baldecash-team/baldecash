@@ -10,6 +10,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle, X } from 'lucide-react';
 import { TermSelect, getTermUnit } from './components/solicitar/product/TermSelect';
+import { etiquetasDePlazo, ordenarTerms } from './components/solicitar/product/etiquetaDePlazo';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -406,6 +407,21 @@ function WizardPreviewContent() {
 
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
 
+          // Con la inicial fraccionada el `term` son las cuotas, no el plazo que
+          // la persona vive: el rotulo lo traduce a «17 semanas · 4 armadas» y
+          // ordena por plazo total. Sin armadas el mapa viene vacio y el selector
+          // no cambia. Cuando hay que unificar plazos, el selector trabaja en
+          // meses normalizados y un carrito mixto no tiene una modalidad que
+          // mostrar, asi que ahi no se rotula.
+          const planesDelPrincipal = needsTermUnification
+            ? []
+            : (productsToShow[0]?.paymentPlans ?? []);
+          const termLabels = etiquetasDePlazo(
+            planesDelPrincipal,
+            productsToShow[0]?.paymentFrequency,
+          );
+          const termOptions = ordenarTerms(planesDelPrincipal, availableTerms);
+
           return (
             <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-6 sm:mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
               {/* Header with term selector - Always visible */}
@@ -426,7 +442,8 @@ function WizardPreviewContent() {
                   )}
                   <TermSelect
                     value={needsTermUnification ? 0 : ((productsToShow[0]?.term ?? productsToShow[0]?.months) || 0)}
-                    options={availableTerms}
+                    options={termOptions}
+                    labels={termLabels}
                     onChange={(term) => {
                       const primary = productsToShow[0];
                       const from = primary?.term ?? primary?.months ?? 0;
