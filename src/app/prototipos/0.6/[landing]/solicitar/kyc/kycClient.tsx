@@ -468,7 +468,14 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
               scope: 'kyc_step_persist', reason: 'request_failed',
               step: currentStep.type, index: safeIndex, application_code: code,
             });
+            return;
           }
+          // La aprobacion tarda unos segundos, asi que si el KYC cargo antes de
+          // que el link se persistiera, el estado inicial vino sin el. Esta
+          // respuesta es un estado FRESCO y llega en cada avance: leerla es la
+          // forma de enterarse sin pedir nada extra. Sin esto el paso de pago
+          // quedaba invisible hasta el final del flujo, con el link ya existiendo.
+          if (state.link_pago) setLinkPago(state.link_pago);
         });
       }
     }
