@@ -33,6 +33,7 @@ import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import { targetSlugForGrade, currentGrade } from './gradeSelector';
 import { FamilyFarmGradeSelector, type GradeOption } from '../family-farm/FamilyFarmGradeSelector';
 import { GRADE_HEADING } from '../family-farm/familyFarmGrades';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
 
@@ -552,7 +553,11 @@ export function CopiaHomeMobileDetail({
                     productName={product.displayName}
                     productBrand={product.brand}
                     productPrice={product.price}
-                    version={1}
+                    // Family Farms cobra contra planilla y la persona firma un
+                    // cronograma: necesita ver amortizacion, interes y comision
+                    // por cuota, no solo el monto. El resto del catalogo sigue
+                    // con la tabla simple.
+                    version={esFamilyFarms(landing) ? 2 : 1}
                   />
                 </div>
               </Acc>

@@ -613,7 +613,11 @@ export function CopiaHomeDesktopDetail({
                       productName={product.displayName}
                       productBrand={product.brand}
                       productPrice={product.price}
-                      version={1}
+                      // Family Farms cobra contra planilla y la persona firma un
+                      // cronograma: necesita ver amortizacion, interes y comision
+                      // por cuota, no solo el monto. El resto del catalogo sigue
+                      // con la tabla simple.
+                      version={esFamilyFarms(landing) ? 2 : 1}
                     />
                   </div>
                 </div>
