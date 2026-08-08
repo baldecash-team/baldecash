@@ -343,6 +343,48 @@ export async function getKycProgress(applicationCode: string): Promise<KycProgre
   }
 }
 
+/** Una fila del cronograma: una armada de la inicial o una cuota. */
+export interface FilaCronograma {
+  numero: number;
+  /** ISO `YYYY-MM-DD`. */
+  fecha: string;
+  /** Decimal como string: el JSON no puede perder centavos. */
+  monto: string;
+  es_armada: boolean;
+  /** «Armada 1 de 4» / «Cuota 1 de 13». */
+  etiqueta: string;
+}
+
+export interface CronogramaPreview {
+  filas: FilaCronograma[];
+  total: string;
+}
+
+/**
+ * La vista previa del cronograma de la solicitud, armadas incluidas.
+ *
+ * Misma prueba de titularidad que el resto de las lecturas del KYC. Fail-safe:
+ * `null` ante error — el paso muestra el flujo sin cronograma antes que fechas
+ * que no son las de esta persona.
+ */
+export async function getCronograma(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<CronogramaPreview | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/cronograma?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as CronogramaPreview;
+  } catch {
+    return null;
+  }
+}
+
 /** El contrato emitido de la solicitud, tal como quedó congelado en legacy. */
 export interface ContratoEmitido {
   /**
