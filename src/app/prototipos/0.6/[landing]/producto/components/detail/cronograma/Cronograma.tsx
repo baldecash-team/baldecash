@@ -196,6 +196,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const freqLabel = paymentFrequency === 'semanal' ? 'semanal'
     : paymentFrequency === 'quincenal' ? 'quincenal'
     : 'mensual';
+  // Inicial de la unidad de plazo para los chips: un plan de 17 SEMANAS
+  // mostraba «17m» y esa m sugiere meses.
+  const sufijoUnidad = paymentFrequency === 'semanal' ? 's'
+    : paymentFrequency === 'quincenal' ? 'q'
+    : 'm';
+
   const freqLabelPlural = paymentFrequency === 'semanal' ? 'semanales'
     : paymentFrequency === 'quincenal' ? 'quincenales'
     : 'mensuales';
@@ -297,7 +303,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
                 }`}
               >
-                {plan.term}m
+                {/* La unidad real, no una «m» que en un plan semanal
+                    sugiere meses y confunde: 17s son 17 semanas. */}
+                {plan.term}{sufijoUnidad}
               </button>
             ))}
           </div>
