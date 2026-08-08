@@ -39,7 +39,7 @@ function plan(term: number, installments: number, quota: number): PaymentPlan {
         totalTerm: installments > 1 ? term + installments : term,
       },
     ],
-  } as PaymentPlan;
+  };
 }
 
 /** Las seis celdas reales del perfil cosechador. */

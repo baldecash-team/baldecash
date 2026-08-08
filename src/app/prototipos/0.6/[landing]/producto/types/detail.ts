@@ -216,7 +216,15 @@ export interface ComboInfo {
 // Payment Types
 // ============================================
 
-export type InitialPaymentPercentage = 0 | 10 | 20 | 30;
+/**
+ * Porcentajes de inicial que ofrece el catálogo.
+ *
+ * El 25 lo usan las landings de Family Farms, donde la inicial es obligatoria y
+ * el convenio la fijó en ese valor. Estuvo fuera del tipo un tiempo y funcionaba
+ * igual porque el transform castea el valor del wire — o sea que el tipo decía
+ * una cosa y por la pantalla pasaba otra.
+ */
+export type InitialPaymentPercentage = 0 | 10 | 20 | 25 | 30;
 
 /** Opción de pago inicial precalculada */
 export interface InitialPaymentOption {
