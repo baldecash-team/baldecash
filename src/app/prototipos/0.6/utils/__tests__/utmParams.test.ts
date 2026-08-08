@@ -65,10 +65,10 @@ describe('persistencia entre rutas', () => {
   // La ruta de KYC se arma solo con `?code=`, asi que los UTM de la entrada ya
   // no estan en la URL: sin persistirlos se pierde la atribucion completa.
   it('recupera los UTM guardados cuando la URL ya no los trae', () => {
-    persistUtmParams('?utm_source=meta&utm_term=kyc-sin-verificar');
+    persistUtmParams('?utm_source=meta&utm_term=activacion');
     expect(readUtmParams('?code=APP-1')).toEqual({
       utm_source: 'meta',
-      utm_term: 'kyc-sin-verificar',
+      utm_term: 'activacion',
     });
   });
 
@@ -88,11 +88,11 @@ describe('kycBypassHabilitado', () => {
   beforeEach(() => sessionStorage.clear());
 
   it('se habilita con el utm_term acordado (parametro de promotor)', () => {
-    expect(kycBypassHabilitado('?utm_term=kyc-sin-verificar')).toBe(true);
+    expect(kycBypassHabilitado('?utm_term=activacion')).toBe(true);
   });
 
   it('sigue habilitado en la ruta de KYC, que no lleva el UTM en la URL', () => {
-    persistUtmParams('?utm_term=kyc-sin-verificar');
+    persistUtmParams('?utm_term=activacion');
     expect(kycBypassHabilitado('?code=APP-1')).toBe(true);
   });
 
@@ -101,7 +101,7 @@ describe('kycBypassHabilitado', () => {
     expect(kycBypassHabilitado('?code=APP-1')).toBe(false);
     expect(kycBypassHabilitado('?utm_term=otra-cosa')).toBe(false);
     // El valor en utm_content ya NO habilita: el gate vive en utm_term.
-    expect(kycBypassHabilitado('?utm_content=kyc-sin-verificar')).toBe(false);
-    expect(kycBypassHabilitado('?utm_campaign=kyc-sin-verificar')).toBe(false);
+    expect(kycBypassHabilitado('?utm_content=activacion')).toBe(false);
+    expect(kycBypassHabilitado('?utm_campaign=activacion')).toBe(false);
   });
 });

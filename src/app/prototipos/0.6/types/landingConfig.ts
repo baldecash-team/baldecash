@@ -89,6 +89,42 @@ export function getDeferredPayment(config: LandingConfig): DeferredPaymentConfig
   };
 }
 
+/**
+ * Fecha fija de arranque de cobro de la campaña (namespace `first_payment`).
+ *
+ * Viene de `landing.extra_data.first_payment` y la expone el endpoint
+ * /public/landing/{slug}/config. Existe para convenios que cobran contra
+ * planilla: todos empiezan a pagar el mismo día sin importar cuándo
+ * solicitaron, así que la fecha NO se deriva de la aprobación.
+ */
+export interface FirstPaymentConfig {
+  /** ISO `YYYY-MM-DD`. */
+  date: string;
+  /** Etiqueta de campaña (ej. "family-farms-2026-08"). Informativa. */
+  source?: string;
+}
+
+/**
+ * Extrae el namespace `first_payment` como Date local, o null si la landing no
+ * lo configuró.
+ *
+ * Se parsea a mano en vez de `new Date(iso)`: ese constructor interpreta
+ * `YYYY-MM-DD` como UTC y en Lima (-5) el cronograma arrancaría un día antes.
+ */
+export function getFirstPaymentDate(config: LandingConfig): Date | null {
+  const raw = (config as Record<string, unknown>)['first_payment'] as
+    | Partial<FirstPaymentConfig>
+    | undefined;
+  const iso = typeof raw?.date === 'string' ? raw.date.trim() : '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const [, anio, mes, dia] = m;
+  const d = new Date(Number(anio), Number(mes) - 1, Number(dia));
+  // Un 2026-02-31 pasaría el regex pero no es una fecha: el rollover del
+  // constructor la convertiría en marzo y el cronograma arrancaría en otro mes.
+  return d.getMonth() === Number(mes) - 1 && d.getDate() === Number(dia) ? d : null;
+}
+
 /** A single ingredient (key-value) linked to the landing. */
 export interface LandingConfigIngredient {
   code: string;
