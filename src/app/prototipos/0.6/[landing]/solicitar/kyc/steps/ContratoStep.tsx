@@ -47,16 +47,42 @@ export function ContratoStep({
 
   useEffect(() => {
     let cancelado = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    // El contrato lo emite legacy al aprobar, y eso tarda unos segundos: en
+    // producción el paso preguntó a las 03:27:30 y el documento se emitió a las
+    // 03:27:31. Con una sola consulta al montar, esa ventana dejaba el paso en
+    // «se está generando» para siempre aunque el contrato existiera un segundo
+    // después.
+    //
+    // Se reintenta unas pocas veces y se abandona: antes de la aprobación el
+    // contrato NO existe y puede tardar mucho más, así que insistir sin techo
+    // sería pedir indefinidamente por algo que no va a llegar en esta pantalla.
+    const INTENTOS = 6;
+    const ESPERA_MS = 5000;
 
     void (async () => {
       if (!applicationCode) { setCargando(false); return; }
-      const r = await getContrato({ applicationCode, documentNumber, resumeToken });
-      if (cancelado) return;
-      setContrato(r);
-      setCargando(false);
+
+      for (let intento = 0; intento < INTENTOS && !cancelado; intento += 1) {
+        const r = await getContrato({ applicationCode, documentNumber, resumeToken });
+        if (cancelado) return;
+
+        setContrato(r);
+        setCargando(false);
+
+        if (r?.disponible && (r.html || r.url)) return;
+
+        if (intento < INTENTOS - 1) {
+          await new Promise<void>((resolve) => { timer = setTimeout(resolve, ESPERA_MS); });
+        }
+      }
     })();
 
-    return () => { cancelado = true; };
+    return () => {
+      cancelado = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [applicationCode, documentNumber, resumeToken]);
 
   // Sin html no hay nada que aceptar. `getContrato` ya devuelve `null` ante un
