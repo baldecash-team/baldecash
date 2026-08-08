@@ -9,6 +9,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { PricingCalculatorProps, PaymentPlan, InitialPaymentOption, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { fetchProductDetail } from '../../../api/productDetailApi';
 
 // Detect hover-capable devices (desktop) so touch-only devices don't keep a
@@ -69,6 +70,24 @@ function termToMonths(term: number, frequency: string): number {
   if (frequency === 'semanal') return Math.round(term / 4);
   if (frequency === 'quincenal') return Math.round(term / 2);
   return term;
+}
+
+/**
+ * Cómo se nombra el plazo de un plan, en la unidad en que se cobra.
+ *
+ * Un plan semanal de 17 semanas se mostraba como «5 meses» —el resultado de
+ * `Math.round(17 / 4)`— y el número no coincidía con nada: ni con las 17
+ * semanas que dura, ni con las cuotas que la persona va a pagar. En un
+ * convenio de cosecha, además, la gente razona en semanas, no en meses.
+ */
+const UNIDAD_DE_PLAZO: Record<string, string> = {
+  semanal: 'semanas',
+  quincenal: 'quincenas',
+  mensual: 'meses',
+};
+
+function unidadDePlazo(frequency: string): string {
+  return UNIDAD_DE_PLAZO[frequency] ?? UNIDAD_DE_PLAZO.mensual;
 }
 
 export const PricingCalculator: React.FC<PricingCalculatorProps & {
@@ -217,7 +236,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       amount: opt.initialAmount,
       label: opt.initialPercent === 0
         ? 'Sin inicial'
-        : `S/${formatMoneyNoDecimals(Math.floor(opt.initialAmount))}`,
+        : `S/${formatCuotaDeLanding(opt.initialAmount, landing)}`,
     }));
   }, [paymentPlans]);
 
@@ -411,8 +430,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                   {n === 1 ? 'En 1 pago' : `En ${n} partes`}
                   <span className={`block text-[11px] font-normal ${activo ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'}`}>
                     {n === 1
-                      ? `S/${formatMoneyNoDecimals(Math.floor(opt?.initialAmount ?? 0))}`
-                      : `S/${formatMoneyNoDecimals(Math.floor(cadaUna))} c/u`}
+                      ? `S/${formatCuotaDeLanding(opt?.initialAmount ?? 0, landing)}`
+                      : `S/${formatCuotaDeLanding(cadaUna, landing)} c/u`}
                   </span>
                 </button>
               );
@@ -465,7 +484,10 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                       isSelected ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'
                     }`}
                   >
-                    {plan.termMonths ?? termToMonths(plan.term, selectedFrequency)}<br />meses
+                    {/* El plazo TOTAL en la unidad en que se cobra. Un plan de 17
+                        semanas decia «5 meses» y ese numero no coincidia con nada:
+                        ni con lo que dura ni con las cuotas que se pagan. */}
+                    {plazoTotalDe(plan)}<br />{unidadDePlazo(selectedFrequency)}
                   </p>
 
                   {option.originalQuota && (
@@ -474,7 +496,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                         isSelected ? 'text-white/60' : 'text-[var(--text-faint,#9ca3af)]'
                       }`}
                     >
-                      S/{formatMoneyNoDecimals(Math.floor(option.originalQuota))}
+                      S/{formatCuotaDeLanding(option.originalQuota, landing)}
                     </p>
                   )}
 
@@ -483,7 +505,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                       option.monthlyQuota >= 1000 ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'
                     } ${isSelected ? 'text-white' : 'text-[var(--color-primary)]'}`}
                   >
-                    S/{formatMoneyNoDecimals(Math.floor(option.monthlyQuota))}
+                    S/{formatCuotaDeLanding(option.monthlyQuota, landing)}
                   </p>
 
                   <p
@@ -506,27 +528,26 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
           <p className="text-sm text-[var(--text-muted,#6b7280)] mb-1">{freqLabel.summary}</p>
           {selectedOption?.originalQuota && (
             <p className="line-through text-[var(--text-faint,#9ca3af)] text-xl mb-1">
-              S/{formatMoneyNoDecimals(Math.floor(selectedOption.originalQuota))}{freqLabel.short}
+              S/{formatCuotaDeLanding(selectedOption.originalQuota, landing)}{freqLabel.short}
             </p>
           )}
           <p className="text-4xl font-bold text-[var(--color-primary)]">
-            S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}{freqLabel.short}
+            S/{formatCuotaDeLanding(selectedOption?.monthlyQuota || 0, landing)}{freqLabel.short}
           </p>
           <p className="text-sm text-[var(--text-muted,#6b7280)] mt-2">
-            durante {(paymentPlans.find(p => p.term === selectedTerm)?.termMonths ?? termToMonths(selectedTerm, selectedFrequency))} meses
+            durante {plazoTotalDe(paymentPlans.find(p => p.term === selectedTerm))}{' '}
+            {unidadDePlazo(selectedFrequency)}
             {selectedInitialPercent > 0 && selectedOption && (
               <span className="block text-xs text-[var(--text-faint,#9ca3af)] mt-1">
-                + S/{formatMoneyNoDecimals(Math.floor(selectedOption.initialAmount))} de inicial
+                + S/{formatCuotaDeLanding(selectedOption.initialAmount, landing)} de inicial
                 {/* Con la inicial fraccionada el monto de arriba es el total, no
                     lo que se paga de una: sin este detalle el cliente cree que
                     debe juntar los S/114 completos antes de empezar. */}
                 {(selectedOption.initialInstallments ?? 1) > 1 && (
                   <span className="block mt-0.5">
                     en {selectedOption.initialInstallments} armadas semanales de{' '}
-                    S/{formatMoneyNoDecimals(
-                      Math.floor(selectedOption.initialInstallmentAmounts?.[0]
-                        ?? selectedOption.initialAmount / selectedOption.initialInstallments!)
-                    )}
+                    S/{formatCuotaDeLanding(selectedOption.initialInstallmentAmounts?.[0]
+                        ?? selectedOption.initialAmount / selectedOption.initialInstallments!, landing)}
                   </span>
                 )}
               </span>
