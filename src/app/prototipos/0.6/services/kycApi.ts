@@ -393,6 +393,13 @@ export interface ContratoEmitido {
    */
   disponible: boolean;
   html?: string;
+  /**
+   * URL del PDF que la solicitud ya tiene en su documentación. Es el camino
+   * normal hoy: `contrato_emitido` no tiene escritor en legacy, así que el
+   * snapshot HTML no llega y lo que responde es el archivo — el mismo que
+   * después se firma.
+   */
+  url?: string;
   hash?: string;
   version?: number;
   emitido_at?: string;

@@ -96,3 +96,46 @@ describe('el paso de firma sobre el componente', () => {
     ));
   });
 });
+
+/**
+ * El contrato tambien puede llegar como PDF.
+ *
+ * `contrato_emitido` no tiene escritor en legacy, asi que el snapshot HTML no
+ * llega nunca; lo que si existe es el PDF que la solicitud ya tiene en su
+ * documentacion, que ademas es el mismo documento que despues se firma.
+ */
+describe('el contrato como PDF', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('lo embebe cuando llega la url', async () => {
+    mockGetContrato.mockResolvedValue({
+      disponible: true, url: 'https://ws.baldecash.com/storage/contrato-v3-abc.pdf',
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    const visor = await screen.findByTestId('contrato-documento');
+    expect(visor).toHaveAttribute('src', 'https://ws.baldecash.com/storage/contrato-v3-abc.pdf');
+    expect(screen.getByText('He leído y acepto el contrato')).toBeInTheDocument();
+  });
+
+  it('el html gana cuando llegan los dos', async () => {
+    // El snapshot es el documento congelado; el PDF es el archivo. Si estan los
+    // dos, el snapshot es el que tiene el hash que lo respalda.
+    mockGetContrato.mockResolvedValue({
+      disponible: true, html: '<p>Contrato de Juana</p>', url: 'https://ws.baldecash.com/x.pdf',
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByText(/Juana/)).toBeInTheDocument());
+  });
+
+  it('disponible sin html ni url sigue siendo esperar', async () => {
+    mockGetContrato.mockResolvedValue({ disponible: true });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+  });
+});

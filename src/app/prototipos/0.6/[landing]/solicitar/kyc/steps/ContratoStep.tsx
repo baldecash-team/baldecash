@@ -62,7 +62,11 @@ export function ContratoStep({
   // Sin html no hay nada que aceptar. `getContrato` ya devuelve `null` ante un
   // error, así que la red caída y el "todavía no se emitió" caen al mismo lado:
   // esperar, nunca un documento equivocado.
-  const hayDocumento = !!contrato?.disponible && !!contrato.html;
+  // El snapshot gana sobre el PDF: es el documento congelado, con su hash
+  // detrás. Hoy llega el PDF, porque `contrato_emitido` no tiene escritor.
+  const html = contrato?.disponible ? contrato.html : undefined;
+  const pdf = contrato?.disponible && !html ? contrato.url : undefined;
+  const hayDocumento = !!html || !!pdf;
 
   const handleAcceptChange = (value: string | string[]) => {
     const next = value as 'true' | 'false';
@@ -83,14 +87,33 @@ export function ContratoStep({
 
       {cargando ? (
         <div className="w-full h-80 rounded-xl border border-[#e5e7eb] bg-[#fafafa] animate-pulse" />
-      ) : hayDocumento ? (
+      ) : html ? (
         <div
           data-testid="contrato-documento"
           className="w-full h-80 overflow-y-auto rounded-xl border border-[#e5e7eb] bg-white p-4 text-sm leading-relaxed text-[#374151]"
           // El html viene del snapshot congelado en legacy, no de entrada del
           // usuario: es el mismo documento que quedó guardado al aprobar.
-          dangerouslySetInnerHTML={{ __html: contrato!.html! }}
+          dangerouslySetInnerHTML={{ __html: html }}
         />
+      ) : pdf ? (
+        <div className="space-y-2">
+          <iframe
+            data-testid="contrato-documento"
+            src={pdf}
+            title="Contrato"
+            className="w-full h-80 rounded-xl border border-[#e5e7eb]"
+          />
+          {/* En movil el visor embebido de PDF es incomodo o directamente no
+              carga: el link es la salida para poder leerlo antes de aceptar. */}
+          <a
+            href={pdf}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-xs font-semibold text-[#4654CD] hover:underline"
+          >
+            Abrir en pestaña nueva
+          </a>
+        </div>
       ) : (
         <div
           data-testid="contrato-esperando"
