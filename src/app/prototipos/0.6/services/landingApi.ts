@@ -53,7 +53,23 @@ function handleVip403(slug: string): void {
     window.location.assign(`/prototipos/0.6/${slug}/catalogo`);
     return;
   }
+
+  // La recarga solo sirve si había algo que descartar: token guardado que el
+  // backend rechazó, o uno recién llegado por `?vip_auto=` que VipGate todavía
+  // no persistió (ahí la recarga sí puede resolver la carrera, porque el param
+  // sigue en la URL).
+  //
+  // Sin ninguno de los dos, recargar vuelve a pedir la MISMA URL sin token y el
+  // backend vuelve a responder 403: bucle infinito de recargas. En `[landing]/**`
+  // no se notaba porque VipGate corta antes y muestra el overlay del DNI; en
+  // `/kyc/{token}`, que es hermano de `[landing]` y no tiene ese gate, la
+  // pantalla quedaba recargándose sola y el KYC nunca llegaba a verse.
+  const hadToken =
+    Boolean(getVipToken(slug)) ||
+    new URLSearchParams(window.location.search).has('vip_auto');
+
   clearVipData(slug);
+  if (!hadToken) return;
   window.location.reload();
 }
 
