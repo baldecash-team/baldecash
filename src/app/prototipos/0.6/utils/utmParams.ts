@@ -27,7 +27,7 @@ const STORAGE_KEY = 'baldecash-utm';
  * sesiones, que son las que más interesa medir. Además ata la salida a QUIÉN
  * la ofrece, no a un anuncio.
  */
-export const KYC_BYPASS_UTM_TERM = 'kyc-sin-verificar';
+export const KYC_BYPASS_UTM_TERM = 'activacion';
 
 function leerStorage(): Record<string, string> {
   try {
