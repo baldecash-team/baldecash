@@ -1623,6 +1623,13 @@ export interface EvaluateFamilyFarmResponse {
    * y confundir ambos campos abriría el catálogo de la puerta-router.
    */
   sibling_access_token?: string;
+  /**
+   * Presente solo cuando el DNI esta en la whitelist y el acceso fue
+   * retenido. Se OMITE en cualquier otro caso; nunca llega como false ni
+   * null. Leer siempre como truthy-check, nunca como `=== true` ni
+   * `!== undefined`.
+   */
+  access_withheld?: boolean;
 }
 
 /**

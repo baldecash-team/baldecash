@@ -34,6 +34,15 @@ const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
 
 /*
+ * Copia final de negocio (BAL-2878, no placeholder). Vive en una única
+ * constante de módulo para que un cambio de texto sea un diff de una línea
+ * que no toca lógica, estilos ni tests — los tests de comportamiento
+ * asertan por `data-testid`, nunca contra este string.
+ */
+const WITHHELD_NOTICE_COPY =
+  'Tu documento está registrado, pero por ahora no cumple los requisitos para acceder al catálogo. Puedes volver a intentarlo más adelante.';
+
+/*
  * Absolute S3 URLs, matching how every other image under prototipos/0.6 is
  * served. Do NOT move these back to `/assets/...` in `public/`: that directory
  * is not served in production, so relative paths 404 there — and the failure is
@@ -62,6 +71,7 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
+  const [accessWithheld, setAccessWithheld] = useState(false);
 
   const isValidDni = dni.length >= DOC_MIN_LENGTH && /^\d{8,12}$/.test(dni);
 
@@ -88,6 +98,7 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
     setSubmitting(true);
     setErrorMsg(null);
     setNoAccess(false);
+    setAccessWithheld(false);
     try {
       const data = await evaluateFamilyFarmAccess(landing, {
         dni,
@@ -96,6 +107,11 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
       if (!data.valid) {
         if (data.found_in_sibling && data.sibling_landing_slug) {
           hardNavigate(buildSiblingHref(data.sibling_landing_slug, data.sibling_access_token));
+          return;
+        }
+        if (data.access_withheld) {
+          setAccessWithheld(true);
+          setSubmitting(false);
           return;
         }
         setNoAccess(true);
@@ -189,6 +205,12 @@ export function FamilyFarmOverlayGate({ landing }: { landing: string; onValidate
             {noAccess && (
               <div className={`${styles.notice} ${styles.noaccess}`}>
                 <p>Tu documento no tiene acceso a esta promoción.</p>
+              </div>
+            )}
+
+            {accessWithheld && (
+              <div className={`${styles.notice} ${styles.withheld}`} data-testid="ff-notice-withheld">
+                <p>{WITHHELD_NOTICE_COPY}</p>
               </div>
             )}
 
