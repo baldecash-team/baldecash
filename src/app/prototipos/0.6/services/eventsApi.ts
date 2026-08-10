@@ -252,6 +252,11 @@ export type EventType =
   | 'kyc_camera_requested'
   | 'kyc_camera_granted'
   | 'kyc_camera_denied'
+  // Modal bloqueante con las condiciones de la selfie (sin gorra, sin lentes,
+  // buena luz, rostro descubierto), previo a pedir la cámara y repetido en cada
+  // reintento. `attempt` numera la apertura dentro del paso.
+  | 'kyc_selfie_tips_shown'
+  | 'kyc_selfie_tips_ack'
   | 'kyc_selfie_captured'
   | 'kyc_selfie_retake'
   | 'kyc_dni_captured'

@@ -31,6 +31,7 @@ import {
   type VerifyDniResult,
 } from '@/app/prototipos/0.6/services/kycApi';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
+import { SelfieTipsModal } from './SelfieTipsModal';
 import { kycBypassHabilitado } from '@/app/prototipos/0.6/utils/utmParams';
 
 export interface DniSelfieStepProps {
@@ -243,6 +244,13 @@ export function DniSelfieStep({
     typeof window === 'undefined' ? false : kycBypassHabilitado(),
   );
   const [phase, setPhase] = useState<Phase>('selfie');
+  // Condiciones de la selfie: arranca ABIERTO porque el paso arranca en
+  // 'selfie'. Mientras esté abierto la cámara no se pide (ver el efecto de
+  // abajo): ese es todo el mecanismo — el modal no "avisa", retiene.
+  const [selfieTipsOpen, setSelfieTipsOpen] = useState(true);
+  // Cuántas veces se mostró en este paso. Va en ref y no en estado porque solo
+  // viaja en el evento; volverlo estado agregaría un render por reintento.
+  const selfieTipsAttempt = useRef(0);
   const [selfieShot, setSelfieShot] = useState<string | null>(null);
   const [dniShot, setDniShot] = useState<string | null>(null);
   const [pendingShot, setPendingShot] = useState<string | null>(null);
@@ -380,6 +388,10 @@ export function DniSelfieStep({
     setSimilarity(null);
     setVerifyState('idle');
     setPhase('selfie');
+    // Quien llega acá es justo quien no cumplió alguna condición: el fallo pudo
+    // ser la gorra o el contraluz. Volver a la cámara sin repetirlas invita a
+    // sacar la misma foto otra vez.
+    setSelfieTipsOpen(true);
   };
 
   const openCamera = useCallback(
@@ -398,11 +410,26 @@ export function DniSelfieStep({
   );
 
   // Abre la cámara con el facingMode correcto al entrar a cada fase de captura.
+  // En la selfie espera al modal de condiciones: pedir la cámara antes dejaría
+  // el permiso del navegador y el modal peleando por la misma pantalla.
   useEffect(() => {
     if (phase === 'review') return;
+    if (phase === 'selfie' && selfieTipsOpen) return;
     openCamera(PHASE_CONFIG[phase].facingMode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, [phase, selfieTipsOpen]);
+
+  // Un `shown` por apertura. El par shown/ack es lo que mide el abandono en la
+  // instrucción; sin él solo se vería que la cámara nunca se abrió.
+  useEffect(() => {
+    if (!selfieTipsOpen) return;
+    selfieTipsAttempt.current += 1;
+    track('kyc_selfie_tips_shown', {
+      application_code: applicationCode,
+      attempt: selfieTipsAttempt.current,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selfieTipsOpen]);
 
   // Libera la cámara al salir del paso (desmontar o avanzar de sub-paso).
   useEffect(() => {
@@ -426,8 +453,13 @@ export function DniSelfieStep({
 
   function handleRepeat() {
     setPendingShot(null);
-    if (phase === 'selfie') track('kyc_selfie_retake', { application_code: applicationCode });
-    else if (phase === 'dni') track('kyc_dni_retake', { application_code: applicationCode });
+    if (phase === 'selfie') {
+      track('kyc_selfie_retake', { application_code: applicationCode });
+      // El efecto de arriba reabre la cámara cuando se acepten las condiciones.
+      setSelfieTipsOpen(true);
+      return;
+    }
+    if (phase === 'dni') track('kyc_dni_retake', { application_code: applicationCode });
     if (phase !== 'review') openCamera(PHASE_CONFIG[phase].facingMode);
   }
 
@@ -674,6 +706,17 @@ export function DniSelfieStep({
 
   return (
     <div className="w-full space-y-4">
+      <SelfieTipsModal
+        open={selfieTipsOpen}
+        onAccept={() => {
+          track('kyc_selfie_tips_ack', {
+            application_code: applicationCode,
+            attempt: selfieTipsAttempt.current,
+          });
+          setSelfieTipsOpen(false);
+        }}
+      />
+
       {/* Header estilo videofirma */}
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280]">
@@ -768,6 +811,14 @@ export function DniSelfieStep({
         >
           Reintentar
         </button>
+      ) : selfieTipsOpen ? (
+        /* Con el modal arriba la cámara todavía no se pidió: el fondo reserva
+           el espacio de la card, pero no dice "Solicitando acceso" —sería
+           falso— ni gira un spinner que no espera nada. */
+        <div
+          className={`rounded-xl bg-[#1f2937] mx-auto w-full ${config.maxWidth} ${config.aspect} border border-[#e5e7eb]`}
+          aria-hidden
+        />
       ) : (
         <div className="flex flex-col items-center gap-3 py-10">
           <div className="w-10 h-10 rounded-full border-4 border-[#e5e7eb] border-t-[#4654CD] animate-spin" />
@@ -784,6 +835,7 @@ export function DniSelfieStep({
             if (phase === 'dni') {
               setPendingShot(null);
               setPhase('selfie');
+              setSelfieTipsOpen(true);
             } else {
               onBack?.();
             }

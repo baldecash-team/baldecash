@@ -1,13 +1,14 @@
 /// <reference types="jest" />
 /**
- * Regresión: `DniSelfieStep` tiene 10 call sites de `tracker.track('kyc_*',
+ * Regresión: `DniSelfieStep` tiene 12 call sites de `tracker.track('kyc_*',
  * ...)` — es el archivo más expuesto a que un refactor futuro vuelva a
- * perder `application_code` de alguno de ellos. Este test cubre al menos uno
- * (el que dispara solo, sin interacción: jsdom no tiene `getUserMedia`, así
- * que la apertura de cámara al montar falla y dispara `kyc_camera_denied`).
+ * perder `application_code` de alguno de ellos. Este test cubre el más barato
+ * de alcanzar: jsdom no tiene `getUserMedia`, así que apenas se abre la cámara
+ * falla y dispara `kyc_camera_denied`. Hay que aceptar antes el modal de
+ * condiciones, que es lo que ahora retiene la apertura de la cámara.
  */
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 const mockTrack = jest.fn();
@@ -23,6 +24,7 @@ describe('DniSelfieStep — application_code en el tracking', () => {
 
   it('kyc_camera_denied lleva application_code', async () => {
     render(<DniSelfieStep onDone={jest.fn()} applicationCode="APP-99" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Entendido' }));
 
     await waitFor(() => expect(mockTrack).toHaveBeenCalledWith(
       'kyc_camera_denied',
