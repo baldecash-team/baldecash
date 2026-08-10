@@ -318,6 +318,45 @@ describe('FamilyFarmOverlayGate — backend outcome rendering', () => {
     });
     expect(mockHardNavigate).not.toHaveBeenCalled();
   });
+
+  // ── access_withheld (BAL-2878) ───────────────────────────────────────────
+  it('valid:false with access_withheld:true renders the informational notice, not the error, and re-enables submit', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({
+      valid: false,
+      found_in_sibling: false,
+      access_withheld: true,
+    });
+
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    await user.type(input, '80011005');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ff-notice-withheld')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Tu documento no tiene acceso a esta promoción.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button')).not.toBeDisabled();
+    expect(mockHardNavigate).not.toHaveBeenCalled();
+  });
+
+  it('valid:false without access_withheld still renders the existing no-access error unchanged', async () => {
+    const user = userEvent.setup();
+    mockEvaluateFamilyFarmAccess.mockResolvedValue({ valid: false, found_in_sibling: false });
+
+    renderGate();
+    const input = screen.getByLabelText('Número de documento');
+    await user.type(input, '80011006');
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Tu documento no tiene acceso a esta promoción.')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('ff-notice-withheld')).not.toBeInTheDocument();
+    expect(screen.getByRole('button')).not.toBeDisabled();
+    expect(mockHardNavigate).not.toHaveBeenCalled();
+  });
 });
 
 describe('FamilyFarmOverlayGate — no decorative particles', () => {

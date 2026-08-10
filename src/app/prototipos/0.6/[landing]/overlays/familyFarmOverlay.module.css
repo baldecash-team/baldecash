@@ -446,6 +446,18 @@
   border: 1px solid rgba(200, 30, 30, 0.26);
 }
 
+/*
+ * Aviso informativo (BAL-2878, no de error). Mismo teal sólido de la
+ * pantalla `.sibling` retirada en cd54546a — reutiliza el shell de `.notice`,
+ * solo aporta fondo/borde. Sin gradiente (brandbook §05.5). No declara
+ * `:active` ni `scale()`, así que no necesita entrada en el bloque de
+ * `prefers-reduced-motion` (el guard solo matchea clases `btn*`).
+ */
+.withheld {
+  background: rgba(0, 191, 179, 0.14);
+  border: 1px solid rgba(0, 134, 124, 0.3);
+}
+
 .foot {
   margin-top: 18px;
   text-align: center;
