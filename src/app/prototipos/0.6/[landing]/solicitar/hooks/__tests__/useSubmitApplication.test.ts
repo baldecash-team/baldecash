@@ -6,6 +6,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSubmitApplication } from '../useSubmitApplication';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { readDemoApplication } from '../../utils/demoApplication';
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -25,7 +26,7 @@ const mockSelectedProduct = {
 };
 
 const mockSelectedAccessories = [
-  { id: '1', name: 'Accessory 1', price: 50 },
+  { id: '1', name: 'Accessory 1', price: 50, monthlyQuota: 5 },
 ];
 
 const mockAppliedCoupon = {
@@ -61,6 +62,7 @@ jest.mock('../../context/ProductContext', () => ({
     getAllProducts: () => [mockSelectedProduct],
     selectedAccessories: mockSelectedAccessories,
     selectedInsurance: mockSelectedInsurance,
+    selectedInsurances: [mockSelectedInsurance],
     appliedCoupon: mockAppliedCoupon,
     getDiscountAmount: () => 10, // Fixed coupon: returns discount value directly
     getDiscountedMonthlyPayment: () => 90,
@@ -358,6 +360,89 @@ describe('useSubmitApplication', () => {
           form_data: expect.objectContaining({ email: 'mailto:' }),
         })
       );
+    });
+  });
+
+  /**
+   * Landings demo (`*-demo`): mismo wizard, misma pantalla de confirmación,
+   * pero sin crear la solicitud en ws2.
+   */
+  describe('landing demo', () => {
+    const DEMO_LANDING = 'cibertec-express-demo';
+
+    beforeEach(() => {
+      mockParams.landing = DEMO_LANDING;
+      sessionStorage.clear();
+    });
+
+    afterEach(() => {
+      mockParams.landing = 'test-landing';
+    });
+
+    it('never posts the application to the API', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+
+      let success: boolean = false;
+      await act(async () => {
+        success = await result.current.submit();
+      });
+
+      expect(success).toBe(true);
+      expect(mockSubmitApplication).not.toHaveBeenCalled();
+    });
+
+    it('redirects to the confirmation with a demo code', async () => {
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockPush).toHaveBeenCalledTimes(1);
+      const target = mockPush.mock.calls[0][0] as string;
+      const code = new URL(target, 'https://x').searchParams.get('code');
+      expect(code).toMatch(/^SOL-DEMO-[0-9A-F]{8}$/);
+      expect(target).toBe(routes.solicitarConfirmacion(DEMO_LANDING, code!));
+      expect(onToast).toHaveBeenCalledWith('Solicitud enviada correctamente', 'success');
+    });
+
+    it('leaves the application detail in sessionStorage for /confirmacion', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const code = new URL(mockPush.mock.calls[0][0] as string, 'https://x')
+        .searchParams.get('code');
+      const stored = readDemoApplication(DEMO_LANDING, code);
+
+      expect(stored).not.toBeNull();
+      expect(stored!.status).toBe('pending');
+      expect(stored!.applicant_name).toBe('John Doe');
+      expect(stored!.products).toEqual([
+        expect.objectContaining({ name: 'Test Product', unit_price: 1000 }),
+      ]);
+      expect(stored!.accessories).toEqual([{ name: 'Accessory 1', monthly_quota: 5 }]);
+      expect(stored!.insurances).toEqual([{ name: 'Protección', monthly_price: 45 }]);
+      expect(stored!.coupon).toEqual({ code: 'TEST10', discount_amount: 10 });
+      expect(stored!.total_monthly_payment).toBe(90);
+    });
+
+    it('resets the wizard so the next demo starts clean', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockClearSession).toHaveBeenCalled();
+      expect(mockResetForm).toHaveBeenCalled();
+      expect(mockClearProduct).toHaveBeenCalled();
+      expect(mockClearAccessories).toHaveBeenCalled();
+      expect(mockClearInsurance).toHaveBeenCalled();
+      expect(mockClearCoupon).toHaveBeenCalled();
     });
   });
 });

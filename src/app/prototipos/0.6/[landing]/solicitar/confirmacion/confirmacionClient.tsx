@@ -22,6 +22,8 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { readOtpHandoff, type OtpHandoff } from '../utils/otpHandoff';
+import { isDemoLanding, readDemoApplication } from '../utils/demoApplication';
+import type { ApplicationStatusData } from './types/applicationStatus';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
@@ -43,81 +45,6 @@ function getStoredSessionUuid(landing: string): string | null {
   } catch {
     return null;
   }
-}
-
-// Types
-interface ApplicationStatusData {
-  code: string;
-  status: string;
-  submitted_at: string | null;
-  evaluated_at?: string | null;
-  approved_at?: string | null;
-  applicant_name?: string | null;
-
-  // Products array (multiple products support)
-  products?: Array<{
-    name: string;
-    brand?: string | null;
-    image: string | null;
-    quantity: number;
-    unit_price: number;
-    final_price: number;
-    monthly_quota: number;
-    specs?: {
-      processor?: string;
-      ram?: string;
-      storage?: string;
-    } | null;
-    // v0.6.1: Variant/color info
-    variant?: {
-      id: number;
-      color_name: string;
-      color_hex: string;
-    } | null;
-    // v0.6.1: Per-product initial payment
-    initial_payment_percent?: number;
-    initial_payment?: number;
-  }>;
-
-  /** Número real de cuotas en la frecuencia natural (preferido sobre `term_months`). */
-  term?: number;
-  /** @deprecated Usar `term` + `payment_frequency`. */
-  term_months?: number;
-  payment_frequency?: string;
-
-  // v0.6.1: Initial payment info for data coherence
-  initial_payment_percent?: number;
-  initial_payment?: number;
-
-  accessories?: Array<{
-    name: string;
-    monthly_quota: number;
-  }> | null;
-
-  insurance?: {
-    name: string;
-    monthly_price: number;
-  } | null;
-
-  insurances?: Array<{
-    name: string;
-    monthly_price: number;
-  }> | null;
-
-  coupon?: {
-    code: string;
-    discount_amount: number;
-  } | null;
-
-  total_monthly_payment?: number;
-
-  status_history: Array<{
-    previous_status: string | null;
-    new_status: string;
-    reason_code: string | null;
-    reason_text: string | null;
-    changed_at: string | null;
-  }>;
 }
 
 // Demo options for testing
@@ -439,6 +366,16 @@ function ConfirmacionContent() {
   useEffect(() => {
     if (!applicationCode) return;
     let cancelled = false;
+
+    // Landings demo: la solicitud no existe en ws2. El submit dejó el detalle
+    // armado en sessionStorage; se lee de ahí y no se consulta la API ni se
+    // emite `application_submitted` (no hay solicitud que reportar).
+    if (isDemoLanding(landing)) {
+      setApplicationData(readDemoApplication(landing, applicationCode));
+      setIsLoadingStatus(false);
+      return;
+    }
+
     setIsLoadingStatus(true);
 
     getApplicationStatus(applicationCode)
@@ -481,7 +418,7 @@ function ConfirmacionContent() {
       });
 
     return () => { cancelled = true; };
-  }, [applicationCode]);
+  }, [applicationCode, landing]);
 
   // Navigation handlers
   const handleSelectResult = (path: string) => {

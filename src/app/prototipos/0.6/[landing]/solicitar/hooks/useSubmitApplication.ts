@@ -20,6 +20,13 @@ import { resetFormStartTracking } from './useFieldTracking';
 import { clearConsentStorage } from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
+import {
+  isDemoLanding,
+  buildDemoApplication,
+  generateDemoApplicationCode,
+  saveDemoApplication,
+  DEMO_SUBMIT_DELAY_MS,
+} from '../utils/demoApplication';
 import { normalizeEmail } from '../../../services/emailValidation';
 
 /**
@@ -197,7 +204,9 @@ export function useSubmitApplication(
     getAllProducts,
     selectedAccessories,
     selectedInsurance,
+    selectedInsurances,
     appliedCoupon,
+    getDiscountAmount,
     getDiscountedMonthlyPayment,
     getTotalPrice,
     clearProduct,
@@ -323,6 +332,66 @@ export function useSubmitApplication(
           setSubmitStage('uploading');
         } else {
           setSubmitStage('processing');
+        }
+
+        // Landings demo (slug `*-demo`): el flujo termina acá. Se arma el
+        // detalle de la solicitud con lo que la persona seleccionó y llenó, se
+        // deja en sessionStorage para /confirmacion y se navega al resumen.
+        // No se hace POST a ws2: no existe solicitud real detrás de este código.
+        if (isDemoLanding(landing)) {
+          setSubmitStage('processing');
+          await new Promise((resolve) => setTimeout(resolve, DEMO_SUBMIT_DELAY_MS));
+
+          const demoCode = generateDemoApplicationCode();
+          saveDemoApplication(
+            landing,
+            buildDemoApplication({
+              code: demoCode,
+              products: allProducts,
+              accessories: selectedAccessories,
+              insurances: selectedInsurances,
+              coupon: appliedCoupon,
+              discountAmount: getDiscountAmount(),
+              totalMonthlyPayment: getDiscountedMonthlyPayment(),
+              formData: mappedFormData,
+            })
+          );
+
+          analytics.track('form_submit_success', {
+            product_count: allProducts.length,
+            accessory_count: selectedAccessories.length,
+            demo: true,
+          });
+
+          if (slowTimeoutRef.current) {
+            clearTimeout(slowTimeoutRef.current);
+            slowTimeoutRef.current = null;
+          }
+          setSubmitStage('success');
+          setSubmitSucceeded(true);
+
+          // Mismo reset que el flujo real, para que una segunda demo arranque
+          // de cero. `saveDemoApplication` ya corrió, así que el resumen
+          // sobrevive a la limpieza.
+          if (!keepData) {
+            clearSession();
+            resetFormStartTracking();
+            resetForm();
+            clearProduct();
+            clearCartProducts();
+            clearAccessories();
+            clearInsurance();
+            clearCoupon();
+            clearConsentStorage(landing);
+            try { localStorage.removeItem(`baldecash-${landing}-cart`); } catch {}
+          }
+
+          onToast?.('Solicitud enviada correctamente', 'success');
+          succeeded = true;
+
+          // Ni OTP ni KYC: ambos necesitan un `application_id` real en ws2.
+          router.push(routes.solicitarConfirmacion(landing, demoCode));
+          return true;
         }
 
         // Get first product for backward compatibility fields
@@ -523,8 +592,10 @@ export function useSubmitApplication(
       getAllProducts,
       selectedAccessories,
       selectedInsurance,
+      selectedInsurances,
       appliedCoupon,
       mapFormData,
+      getDiscountAmount,
       getDiscountedMonthlyPayment,
       getTotalPrice,
       clearSession,
