@@ -151,6 +151,10 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/sentry-example-page') ||
       pathname.startsWith('/seguros') ||
       pathname.startsWith('/multiasistencia') ||
+      // Estación de inspección: vive en la raíz, NO bajo /prototipos/0.6. Sin
+      // esta línea el rewrite de abajo la manda al catch-all [[...slug]] de
+      // landings y toda la vinculación por QR devuelve 404 en produccion.
+      pathname.startsWith('/inspeccion') ||
       pathname === '/robots.txt' ||
       pathname === '/sitemap.xml' ||
       pathname === '/favicon.ico'
