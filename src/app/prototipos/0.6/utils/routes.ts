@@ -56,10 +56,26 @@ export function solicitarComplementos(landing: string): string {
   return `${BASE_PATH}/${landing}/solicitar/complementos`;
 }
 
-/** Solicitar confirmación: /{landing}/solicitar/confirmacion */
-export function solicitarConfirmacion(landing: string, code?: string): string {
+/**
+ * Solicitar confirmación: /{landing}/solicitar/confirmacion
+ *
+ * `kycCompletado` marca que se llega desde el cierre del KYC y no desde el
+ * submit. Cambia lo que la pantalla puede prometer: quien cerró el KYC ya fue
+ * aprobado y firmó, así que no hay nada "en revisión" ni una respuesta que
+ * esperar. Viaja en la URL porque la confirmación se puede recargar y volver a
+ * abrir desde cero.
+ */
+export function solicitarConfirmacion(
+  landing: string,
+  code?: string,
+  kycCompletado?: boolean
+): string {
   const base = `${BASE_PATH}/${landing}/solicitar/confirmacion`;
-  return code ? `${base}?code=${code}` : base;
+  const params = new URLSearchParams();
+  if (code) params.set('code', code);
+  if (kycCompletado) params.set('kyc', '1');
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 /**

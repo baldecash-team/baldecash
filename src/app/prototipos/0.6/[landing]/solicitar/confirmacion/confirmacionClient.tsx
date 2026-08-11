@@ -28,6 +28,7 @@ import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
 import { ReceivedScreen } from './components/received';
+import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 
 /**
@@ -250,6 +251,7 @@ function RealConfirmationContent({
   onGoHome,
   overlayVariant,
   otpCta,
+  landing,
 }: {
   applicationCode: string;
   applicationData: ApplicationStatusData | null;
@@ -258,6 +260,7 @@ function RealConfirmationContent({
   onGoHome: () => void;
   overlayVariant?: string | null;
   otpCta?: React.ReactNode;
+  landing: string;
 }) {
   if (isLoading) {
     return <LoadingFallback />;
@@ -265,7 +268,22 @@ function RealConfirmationContent({
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} overlayVariant={overlayVariant} otpCta={otpCta} />;
+  // `?kyc=1` lo pone el cierre del KYC (`kycClient`). Se acota a Family Farms a
+  // propósito: es el único convenio donde cerrar el KYC significa quedar
+  // aprobado y firmado en el acto, así que es el único donde prometer "todo el
+  // proceso terminado" es cierto. En el resto la solicitud sigue en evaluación
+  // y el timeline de estado tiene que quedarse.
+  const kycCompletado = searchParams.get('kyc') === '1' && esFamilyFarms(landing);
+
+  return (
+    <ReceivedScreen
+      data={receivedData}
+      onGoToHome={onGoHome}
+      overlayVariant={overlayVariant}
+      otpCta={otpCta}
+      kycCompletado={kycCompletado}
+    />
+  );
 }
 
 /**
@@ -509,6 +527,7 @@ function ConfirmacionContent() {
             onGoHome={handleGoHome}
             overlayVariant={overlayVariant}
             otpCta={otpCta}
+            landing={landing}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
@@ -545,6 +564,7 @@ function ConfirmacionContent() {
             onGoHome={handleGoHome}
             overlayVariant={overlayVariant}
             otpCta={otpCta}
+            landing={landing}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
