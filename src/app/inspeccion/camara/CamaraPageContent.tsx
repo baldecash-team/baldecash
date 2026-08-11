@@ -5,6 +5,7 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
+import { useKioskRecorder, type EstadoCaptura } from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
 
 function hayCodigoEnUrl(): boolean {
@@ -13,8 +14,18 @@ function hayCodigoEnUrl(): boolean {
 }
 
 /**
- * Vista de kiosco de una cámara. En F1 solo se vincula, se conecta y muestra su
- * estado: la captura llega en F2. Sin navegación a propósito (spec §7).
+ * Vista de kiosco de una cámara. F1 la vinculaba y mostraba el estado del
+ * canal; F2 (acá) suma la captura local: armar la cámara, mostrar el
+ * preview y reflejar `EstadoCaptura` (`useKioskRecorder.ts`). Sin
+ * navegación a propósito (spec §7).
+ *
+ * Captura y canal son DOS problemas distintos con dos soluciones distintas
+ * (spec, plan F2 Task 3): una cámara puede estar `ARMADA` y sin conexión al
+ * canal (el operador arma con el teléfono en la mano, lejos del router), o
+ * conectada al canal y sin armar (recién vinculada, nadie tocó el botón
+ * todavía). Por eso el render de abajo los muestra en dos bloques separados
+ * — captura al centro, en tipografía grande; canal abajo, chico — y ninguno
+ * de los dos texto se arma concatenando o pisando al otro.
  *
  * Vinculación: si la URL trae ?p={código}, se LIMPIA SINCRÓNICAMENTE al
  * entrar al efecto, antes de cualquier `await` — un código no debe
@@ -69,10 +80,25 @@ export default function CamaraPageContent() {
   // Activo mientras el dispositivo esté vinculado como cámara — deliberadamente
   // independiente de `connected` (el canal de presencia, más abajo): la
   // pantalla no debe apagarse solo porque Pusher tarda en reconectar. La
-  // captura en sí (F2 Task 3 / F3) es la que de verdad necesita la pantalla
-  // viva, y arranca en cuanto el dispositivo está vinculado, no cuando el
-  // canal conecta.
+  // captura en sí (`useKioskRecorder`, justo abajo) es la que de verdad
+  // necesita la pantalla viva, y arranca en cuanto el dispositivo está
+  // vinculado, no cuando el canal conecta ni cuando la cámara está armada.
   useWakeLock(session != null && !kindMismatch);
+
+  // Se llama sin condicionar a `kindMismatch`/`session` — reglas de hooks —
+  // pero `armar()` es un gesto humano: nunca se dispara sola. Mientras la
+  // vista no llegue al kiosco real (vinculando, kind equivocado, sin sesión)
+  // esto queda simplemente sin usar.
+  //
+  // Desestructurado acá (no `const captura = useKioskRecorder()`) por
+  // `react-hooks/refs`: el lint no permite pasar `videoRef` río abajo
+  // metido dentro de un objeto (`captura.videoRef` en el `ref={}` del
+  // `<video>`, o `captura` entero como prop de `CapturaEstado`) — solo lo
+  // acepta como variable local plana, igual que un `useRef()` directo. Por
+  // eso `videoRef` se usa suelto acá y `CapturaEstado` recibe el resto de
+  // las funciones/estado sin él.
+  const { estado: capturaEstado, error: capturaError, videoRef, armar, grabar, detener } =
+    useKioskRecorder();
 
   // `error: channelError` para no chocar con el `error` de vinculación
   // (código vencido/ya usado) declarado más arriba: son dos problemas
@@ -157,19 +183,179 @@ export default function CamaraPageContent() {
       : TOKENS.red;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 text-center text-white">
-      <p className="text-sm uppercase tracking-widest text-white/60">
-        {session.label ?? session.kind} · {session.stationId}
-      </p>
-      <p className="mt-4 text-5xl font-bold">{statusText}</p>
-      <span
-        className="mt-6 h-4 w-4 rounded-full"
-        style={{ background: dotColor }}
-        aria-hidden
+    <main className="relative flex min-h-screen flex-col bg-black text-white">
+      {/* Preview a pantalla completa: sirve para encuadrar el equipo (spec,
+          plan F2 Task 3). Montado SIEMPRE que se llega a este branch, sin
+          condicionar al estado de captura — `armar()` escribe
+          `videoRef.current.srcObject` de forma síncrona apenas resuelve
+          `getUserMedia`, antes de que el estado pase a "armada"; si el
+          <video> recién se montara en ese momento, `videoRef.current` sería
+          null cuando `armar()` lo necesita y el preview nunca aparecería. */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover"
       />
-      {channelError && (
-        <p className="mt-4 max-w-sm text-sm text-white/70">{channelError.message}</p>
-      )}
+      {/* Scrim para que el texto sea legible sobre cualquier escena de fondo. */}
+      <div className="absolute inset-0 bg-black/50" aria-hidden />
+
+      <div className="relative z-10 flex min-h-screen flex-1 flex-col items-center justify-between p-6 text-center">
+        {/* Etiqueta de la cámara: qué cámara es esta cuando hay varias en la
+            misma sala (techo, pared, ...) — spec, plan F2 Task 3. */}
+        <p className="mt-2 text-sm uppercase tracking-widest text-white/80">
+          {session.label ?? session.kind} · {session.stationId}
+        </p>
+
+        {/* Estado de CAPTURA — independiente del canal, tipografía grande
+            legible a varios metros de la pared. */}
+        <div className="flex flex-col items-center gap-6">
+          <CapturaEstado
+            estado={capturaEstado}
+            error={capturaError}
+            armar={armar}
+            grabar={grabar}
+            detener={detener}
+          />
+        </div>
+
+        {/* Estado del CANAL — deliberadamente en un bloque aparte, más chico,
+            para que el operador nunca confunda "no puedo grabar" con "no
+            está conectado a la estación": son dos problemas y dos arreglos
+            distintos (spec, plan F2 Task 3). */}
+        <div className="mb-2 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-3 w-3 rounded-full"
+              style={{ background: dotColor }}
+              aria-hidden
+            />
+            <p className="text-sm uppercase tracking-widest text-white/70">Canal: {statusText}</p>
+          </div>
+          {channelError && (
+            <p className="max-w-sm text-xs text-white/60">{channelError.message}</p>
+          )}
+        </div>
+      </div>
     </main>
   );
+}
+
+/**
+ * Bloque central de estado de CAPTURA. El único gesto humano de todo el
+ * flujo es "Armar cámara" (spec, plan F2 Task 3): grande, y explica qué va a
+ * pasar (pide permiso de cámara) porque después de tocarlo la cámara queda
+ * armada durante horas sin que nadie la vuelva a tocar.
+ *
+ * Los botones de "Grabar" / "Detener" que aparecen en "armada"/"grabando"
+ * son TEMPORALES — sirven solo para la verificación manual en hardware de
+ * la Task 4 del plan (jsdom no tiene cámara, no se puede automatizar). F2 no
+ * sube nada ni recibe comandos remotos: ese gesto real de grabar/detener lo
+ * va a mandar el escáner por el canal en F3/F4, y este botón desaparece.
+ */
+interface CapturaEstadoProps {
+  estado: EstadoCaptura;
+  error: string | null;
+  armar: () => Promise<void>;
+  grabar: () => void;
+  detener: () => Promise<{ blob: Blob; mimeType: string; duracionMs: number }>;
+}
+
+// Recibe funciones/estado sueltos, NUNCA el objeto `captura` completo del
+// hook — ver el comentario de arriba de `useKioskRecorder()` en
+// `CamaraPageContent`: ese objeto trae `videoRef` adentro, y
+// `react-hooks/refs` no deja pasar un ref río abajo metido en un prop.
+function CapturaEstado({ estado, error, armar, grabar, detener }: CapturaEstadoProps) {
+  const [ultimaPrueba, setUltimaPrueba] = useState<{
+    pesoKB: number;
+    duracionMs: number;
+    mimeType: string;
+  } | null>(null);
+
+  const handleDetenerPrueba = () => {
+    detener()
+      .then((r) => {
+        setUltimaPrueba({
+          pesoKB: Math.round(r.blob.size / 1024),
+          duracionMs: r.duracionMs,
+          mimeType: r.mimeType,
+        });
+      })
+      .catch(() => {});
+  };
+
+  switch (estado) {
+    case 'inactiva':
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => void armar()}
+            className="rounded-2xl bg-white px-10 py-8 text-3xl font-bold text-black shadow-xl"
+          >
+            Armar cámara
+          </button>
+          <p className="max-w-xs text-sm text-white/70">
+            Va a pedir permiso de cámara y micrófono. Después de esto queda armada durante
+            horas, sin volver a tocarla.
+          </p>
+          {error && <p className="max-w-xs text-sm text-red-300">{error}</p>}
+        </>
+      );
+    case 'armando':
+      return <p className="text-4xl font-bold">ARMANDO…</p>;
+    case 'armada':
+      return (
+        <>
+          <p className="text-6xl font-bold">ARMADA</p>
+          {/* Temporal — ver doc-comment de arriba. */}
+          <button
+            type="button"
+            onClick={() => grabar()}
+            className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white/80"
+          >
+            Grabar (prueba)
+          </button>
+          {ultimaPrueba && (
+            <p className="text-xs text-white/50">
+              Última prueba: {ultimaPrueba.pesoKB} KB · {Math.round(ultimaPrueba.duracionMs / 1000)}s ·{' '}
+              {ultimaPrueba.mimeType}
+            </p>
+          )}
+        </>
+      );
+    case 'grabando':
+      return (
+        <>
+          <p className="text-6xl font-bold" style={{ color: TOKENS.red }}>
+            GRABANDO
+          </p>
+          {/* Temporal — ver doc-comment de arriba. */}
+          <button
+            type="button"
+            onClick={handleDetenerPrueba}
+            className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white/80"
+          >
+            Detener (prueba)
+          </button>
+        </>
+      );
+    case 'caida':
+      return (
+        <>
+          <p className="text-6xl font-bold" style={{ color: TOKENS.red }}>
+            CÁMARA CAÍDA
+          </p>
+          <button
+            type="button"
+            onClick={() => void armar()}
+            className="rounded-2xl bg-white px-8 py-6 text-2xl font-bold text-black shadow-xl"
+          >
+            Rearmar cámara
+          </button>
+          {error && <p className="max-w-xs text-sm text-red-300">{error}</p>}
+        </>
+      );
+  }
 }
