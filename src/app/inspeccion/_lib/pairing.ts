@@ -10,7 +10,9 @@ import {
 
 // Mismo patrón que el resto de los servicios del front (ver kycApi.ts): el
 // fallback ya incluye `/api/v1`, así que acá NO se vuelve a agregar.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+// Exportada para que otros módulos de `_lib` (usePresenceChannel.ts) no
+// dupliquen el literal del fallback.
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 export async function redeemPairingCode(code: string): Promise<DeviceSession> {
   const deviceId = getOrCreateDeviceId();
