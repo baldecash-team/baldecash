@@ -134,14 +134,14 @@ export function StandardOfertaAccion({
       <OfertaHeader />
 
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6 sm:py-10">
-        {/* Saludo — mismo lenguaje que el flujo upsell (UPSELL_APPROVAL):
-            "¡Felicitaciones, {nombre}, tu solicitud ha sido aprobada!" con
-            "aprobada" en verde bold. */}
+        {/* Saludo — mismo lenguaje visual que el flujo upsell, pero la oferta
+            desde admin2 no es una aprobación de solicitud sino una OFERTA: por
+            eso dice "ofertada" (no "aprobada"), en verde bold. */}
         <div className="text-[18px] font-semibold leading-[1.25]">
           {offer.clientName
             ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido`
             : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
-          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>ofertada</span>!
         </div>
 
         {/* Código de la solicitud — mismo chip que el upsell. */}
