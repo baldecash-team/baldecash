@@ -26,11 +26,24 @@ function hayCodigoEnUrl(): boolean {
  * El QR se genera EN EL CLIENTE con `qrcode.react` — no se manda la URL de
  * vinculación a un servicio externo (ver nota sobre `pedirCodigo` más abajo).
  *
- * Vinculación: mismo criterio que `CamaraPageContent.tsx` — si la URL trae
- * `?p=`, se LIMPIA SINCRÓNICAMENTE al entrar al efecto, antes de cualquier
- * `await`, y GANA sobre una sesión ya guardada (ver doc-comment de
- * `CamaraPageContent.tsx` para el razonamiento completo: Analytics,
- * historial, y es el único camino de re-vinculación hoy).
+ * REGLA DE VINCULACIÓN — igual en esta vista y en `CamaraPageContent.tsx`,
+ * a propósito, no una casualidad; no la deduzcas comparando archivos:
+ *
+ *   1. Si la URL trae `?p={código}`, el parámetro se LIMPIA
+ *      SINCRÓNICAMENTE al entrar al efecto, ANTES de cualquier `await` —
+ *      sin excepciones, haya o no una sesión guardada. Un código no debe
+ *      sobrevivir ni un instante del primer render: el layout raíz manda
+ *      `page_location` (con query string) a GA/GTM, así que un código sin
+ *      limpiar termina en Analytics; y mientras siga en la URL, sigue
+ *      siendo canjeable en cada refresh.
+ *   2. El código GANA sobre una sesión ya guardada: escanear un QR es una
+ *      acción deliberada de alguien parado frente a la pantalla —
+ *      re-vincular, cambiar de estación, reemplazar un token revocado —
+ *      no un accidente. Es, hoy, el ÚNICO camino de re-vinculación:
+ *      `clearDeviceSession()` está exportada pero nadie la llama, así que
+ *      si el código "nuevo" perdiera contra la sesión existente, un
+ *      dispositivo mal vinculado solo se recuperaría borrando los datos
+ *      del sitio a mano en Chrome.
  *
  * Este componente se monta SOLO en el cliente (`page.tsx` lo carga con
  * `next/dynamic(..., { ssr: false })`) — ver el doc-comment de `page.tsx`
