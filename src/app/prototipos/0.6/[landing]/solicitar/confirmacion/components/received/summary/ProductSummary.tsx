@@ -15,7 +15,7 @@ import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown } from
 import Image from 'next/image';
 import { ReceivedData } from '../../../types/received';
 import { displayMonths, periodUnitLabel } from '../../../../../../utils/paymentTerm';
-import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { formatCuotaDeLanding, landingMuestraCentavos } from '@/app/prototipos/0.6/utils/formatCuota';
 
 interface ProductSummaryProps {
   data: ReceivedData;
@@ -29,7 +29,14 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   // Truncar (a favor del usuario) es lo de siempre, salvo donde la cuota tiene
   // centavos reales: en Family Farms el cierre del flujo mostraba S/15 sobre un
   // contrato de S/15,20.
+  const muestraCentavos = landingMuestraCentavos(landingSlug);
   const formatPrice = (n: number): string => `S/${formatCuotaDeLanding(n, landingSlug)}`;
+
+  // El rotulo decia "mensual" incluso en planes semanales, al lado de un monto
+  // con sufijo /sem. La unidad sale de la frecuencia, como el sufijo.
+  const rotuloTotal = data.paymentFrequency === 'semanal' ? 'Cuota semanal total'
+    : data.paymentFrequency === 'quincenal' ? 'Cuota quincenal total'
+    : 'Cuota mensual total';
 
   const freqSuffix =
     data.paymentFrequency === 'semanal' ? '/sem'
@@ -71,9 +78,13 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   // Calcular total de seguros
   const insuranceSubtotal = allInsurances.reduce((sum, ins) => sum + ins.monthlyPrice, 0);
 
-  // Calcular total sin descuento (para mostrar tachado)
-  const totalWithoutDiscount = Math.floor(productsSubtotal) +
-    Math.floor(accessoriesSubtotal) +
+  // Calcular total sin descuento (para mostrar tachado).
+  // El truncado por parte es el comportamiento historico del catalogo; donde la
+  // cuota tiene centavos reales truncar aca borraba lo que el propio renglon de
+  // arriba ya mostraba: S/45,40 el equipo y S/45 el total, en la misma tarjeta.
+  const truncarSiCorresponde = (n: number) => (muestraCentavos ? n : Math.floor(n));
+  const totalWithoutDiscount = truncarSiCorresponde(productsSubtotal) +
+    truncarSiCorresponde(accessoriesSubtotal) +
     insuranceSubtotal;
 
   return (
@@ -283,7 +294,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       {/* Total Card */}
       <div className="p-4 rounded-xl bg-[var(--color-primary)]/5">
         <div className="flex justify-between items-center gap-3">
-          <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</span>
+          <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">{rotuloTotal}</span>
           <div className="text-right flex-shrink-0">
             <span className="text-lg sm:text-xl font-bold text-[var(--color-primary)] break-words">
               {formatPrice(totalWithoutDiscount)}{freqSuffix}
