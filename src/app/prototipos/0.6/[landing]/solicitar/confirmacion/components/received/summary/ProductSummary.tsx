@@ -8,22 +8,28 @@
  */
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { ReceivedData } from '../../../types/received';
 import { displayMonths, periodUnitLabel } from '../../../../../../utils/paymentTerm';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 
 interface ProductSummaryProps {
   data: ReceivedData;
 }
 
-/** Format number as price (floor, a favor del usuario) */
-const formatPrice = (n: number): string => `S/${Math.floor(n).toLocaleString('en-US')}`;
-
 export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+  const params = useParams();
+  const landingSlug = (params?.landing as string) || '';
+
+  // Truncar (a favor del usuario) es lo de siempre, salvo donde la cuota tiene
+  // centavos reales: en Family Farms el cierre del flujo mostraba S/15 sobre un
+  // contrato de S/15,20.
+  const formatPrice = (n: number): string => `S/${formatCuotaDeLanding(n, landingSlug)}`;
 
   const freqSuffix =
     data.paymentFrequency === 'semanal' ? '/sem'

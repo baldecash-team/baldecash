@@ -9,10 +9,12 @@
  */
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { TermSelect, getTermUnit } from './TermSelect';
 import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
@@ -28,6 +30,8 @@ interface SelectedProductBarProps {
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
   const { landingId } = useLayout();
+  const params = useParams();
+  const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
 
   // Wrappers que disparan analytics antes de mutar el state global
@@ -75,9 +79,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   // For display purposes, use first product as main product
   const mainProduct = allProducts[0];
 
-  const formatPrice = (price: number) => {
-    return `S/${Math.floor(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
+  // El resumen tiene que decir lo mismo que la tarjeta y que el contrato: en
+  // Family Farms las cuotas tienen centavos reales (S/15,20 la cuota y S/71,75
+  // la armada), y truncarlos acá prometía S/15 sobre un contrato de S/15,20.
+  // El resto del catálogo sigue truncando, que es lo que hacía siempre.
+  const formatPrice = (price: number) => `S/${formatCuotaDeLanding(price, landingSlug)}`;
 
   const freqSuffix = (freq?: string) =>
     freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
