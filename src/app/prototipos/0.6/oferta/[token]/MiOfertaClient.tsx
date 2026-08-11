@@ -36,6 +36,7 @@ import { OfertaHeader } from './components/redesign/OfertaHeader';
 import { MontoAprobadoBar } from './components/redesign/MontoAprobadoBar';
 import { PruebaSocial } from './components/redesign/PruebaSocial';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/redesign/EquipoRecomendadoCard';
+import { specsToChips } from './components/redesign/specsChips';
 import { OpcionBarra } from './components/redesign/OpcionBarra';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
@@ -48,28 +49,8 @@ const COLLAGE_EQUIPOS_URL = 'https://baldecash.s3.amazonaws.com/images/oferta/co
  *  seguros" (Caso 5) — comunica la variedad de accesorios. */
 const COLLAGE_ACCESORIOS_URL = 'https://baldecash.s3.amazonaws.com/images/oferta/collage-accesorios.png';
 
-/** Chips de specs clave (procesador/RAM/almacenamiento) — mismo criterio que
- *  OfertaEquipoCard, para reusar el mismo lenguaje visual en la card nueva. */
-// Chips de specs para la card recomendada. Mismo conjunto/formato que la card
-// del catálogo (ProductCard): procesador, RAM+tipo, storage+tipo, GPU, display
-// — así el equipo se ve idéntico en el catálogo y en la oferta.
-function specsToChips(specs?: ProductSpecs | null): string[] {
-  if (!specs) return [];
-  const chips: string[] = [];
-  if (specs.processor?.model) chips.push(specs.processor.model);
-  if (specs.ram?.size) {
-    chips.push(`${specs.ram.size}GB ${String(specs.ram.type ?? '')}`.trim());
-  }
-  if (specs.storage?.size) {
-    chips.push(`${specs.storage.size}GB ${String(specs.storage.type ?? '').toUpperCase()}`.trim());
-  }
-  const gpuModel = specs.gpu?.model && String(specs.gpu.model) !== 'null' ? String(specs.gpu.model) : '';
-  if (gpuModel) chips.push(specs.gpu?.vram ? `${gpuModel} ${specs.gpu.vram}GB` : gpuModel);
-  if (specs.display?.size) {
-    chips.push(`${specs.display.size}" ${String(specs.display.resolution ?? '').toUpperCase()}`.trim());
-  }
-  return chips;
-}
+// `specsToChips` vive en components/redesign/specsChips: la comparte con la
+// vista de la oferta ESTÁNDAR, que usa la misma card rica.
 
 type PageState =
   | { kind: 'loading' }
