@@ -1433,6 +1433,20 @@ export const DEFAULT_SOLICITAR_FLOW: SolicitarFlowConfig = {
 };
 
 /**
+ * La config de una landing con gate no se pudo leer porque el `vip_token` no
+ * viajó (o venció). Existe como error propio para que el flujo pueda distinguir
+ * "no sé qué secciones tiene" de "sé que tiene las del default".
+ */
+export class SolicitarConfigUnavailableError extends Error {
+  readonly slug: string;
+  constructor(slug: string) {
+    super(`No se pudo leer la config de solicitar de "${slug}" (403)`);
+    this.name = 'SolicitarConfigUnavailableError';
+    this.slug = slug;
+  }
+}
+
+/**
  * Obtiene la configuración del flujo de solicitud para una landing
  * @param slug - Slug de la landing
  * @param previewKey - Clave de preview para acceder a landings no publicadas (opcional)
@@ -1458,7 +1472,16 @@ export async function getSolicitarConfig(
     );
 
     if (!response.ok) {
-      if (response.status === 403) { handleVip403(slug); return DEFAULT_SOLICITAR_FLOW; }
+      // 403 = landing con gate y token ausente/vencido. Acá NO se puede caer al
+      // default: ese default afirma `accessories` e `insurance` —que estas
+      // landings tienen apagados— y omite `kyc` —que tienen prendido—, así que
+      // un token perdido se convertía en "esta landing no tiene KYC" y en un
+      // wizard que se iba a /complementos y terminaba en la pantalla de demo
+      // sin haber creado la solicitud. Se propaga para que el flujo lo trate
+      // como "config desconocida" en vez de inventarla.
+      if (response.status === 403) { handleVip403(slug); throw new SolicitarConfigUnavailableError(slug); }
+      // 404 sí puede usar el default: es lo mismo que responde el backend para
+      // una landing sin `solicitar_flow` configurado.
       if (response.status === 404) return DEFAULT_SOLICITAR_FLOW;
       throw new Error(`API error: ${response.status}`);
     }
@@ -1471,6 +1494,10 @@ export async function getSolicitarConfig(
       is_coupon_required: data.is_coupon_required ?? false,
     };
   } catch (error) {
+    // El 403 es el único que sube: el resto (red, 5xx) conserva el
+    // comportamiento de siempre para no cambiarle el flujo a las landings
+    // públicas, donde el default coincide con su config real.
+    if (error instanceof SolicitarConfigUnavailableError) throw error;
     console.error('Error fetching solicitar config:', error);
     return DEFAULT_SOLICITAR_FLOW;
   }

@@ -14,10 +14,14 @@
  * que se está generando. Lo que no puede pasar es mostrar un documento ajeno.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
 import { getContrato, type ContratoEmitido } from '@/app/prototipos/0.6/services/kycApi';
+import {
+  esFamilyFarms,
+  esFamilyFarmsAdministrativo,
+} from '@/app/prototipos/0.6/utils/familyFarms';
 
 export interface ContratoStepProps {
   onDone: () => void;
@@ -30,12 +34,55 @@ export interface ContratoStepProps {
   documentNumber?: string;
   /** Prueba de titularidad del flujo por link. Gana sobre el DNI. */
   resumeToken?: string;
+  /**
+   * Slug de la landing. Decide qué autorizaciones del convenio se piden: sin
+   * él no se muestran, que es el comportamiento correcto fuera de Family Farms.
+   */
+  landing?: string;
 }
 
+/**
+ * Autorizaciones del convenio Family Farms, aparte de la aceptación del
+ * contrato: son permisos que el trabajador da sobre su remuneración y su
+ * liquidación, así que se marcan una por una y no se pueden dar por incluidas
+ * en un "acepto todo".
+ *
+ * `soloAdministrativo` existe porque el descuento por planilla solo aplica al
+ * perfil G1 —el único quincenal, donde Valle y Pampa retiene y transfiere—; a
+ * los otros dos se les cobra directo y pedirles esa autorización sería pedir
+ * permiso para algo que no va a pasar.
+ */
+interface AutorizacionConvenio {
+  id: string;
+  texto: string;
+  soloAdministrativo?: boolean;
+}
+
+const AUTORIZACIONES_FAMILY_FARMS: AutorizacionConvenio[] = [
+  {
+    // Primero: es la que condiciona cómo se cobra todos los meses, mientras que
+    // la de liquidación solo entra en juego si hay cese.
+    id: 'descuento-planilla',
+    soloAdministrativo: true,
+    texto:
+      'Autorizo a Family Farms Perú a retener de mi remuneración la cuota quincenal '
+      + 'establecida en el cronograma de pagos del Contrato y a transferirla a BaldeCash.',
+  },
+  {
+    id: 'fondo-liquidacion',
+    texto:
+      'Autorizo que, en caso de cese, se aplique al saldo pendiente de este financiamiento '
+      + 'el importe que me corresponda por vacaciones truncas y días pendientes de pago, '
+      + 'conforme al Anexo 1-A del Contrato. La presente autorización no comprende la '
+      + 'Compensación por Tiempo de Servicios.',
+  },
+];
+
 export function ContratoStep({
-  onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken,
+  onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing,
 }: ContratoStepProps) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
+  const [autorizaciones, setAutorizaciones] = useState<Record<string, boolean>>({});
   const [contrato, setContrato] = useState<ContratoEmitido | null>(null);
   const [cargando, setCargando] = useState(true);
   const track = useKycTracker(onTrack);
@@ -93,6 +140,16 @@ export function ContratoStep({
   const html = contrato?.disponible ? contrato.html : undefined;
   const pdf = contrato?.disponible && !html ? contrato.url : undefined;
   const hayDocumento = !!html || !!pdf;
+
+  // Las que le corresponden a ESTE postulante. Fuera del convenio la lista
+  // queda vacía y el paso se comporta igual que siempre.
+  const autorizacionesAplicables = useMemo(() => {
+    if (!esFamilyFarms(landing)) return [];
+    const esAdministrativo = esFamilyFarmsAdministrativo(landing);
+    return AUTORIZACIONES_FAMILY_FARMS.filter((a) => !a.soloAdministrativo || esAdministrativo);
+  }, [landing]);
+
+  const faltaAlgunaAutorizacion = autorizacionesAplicables.some((a) => !autorizaciones[a.id]);
 
   const handleAcceptChange = (value: string | string[]) => {
     const next = value as 'true' | 'false';
@@ -156,13 +213,33 @@ export function ContratoStep({
       )}
 
       {hayDocumento && (
-        <CheckboxField
-          id="accept-contract"
-          label="He leído y acepto el contrato"
-          value={accepted}
-          onChange={handleAcceptChange}
-          required
-        />
+        <div className="space-y-4">
+          <CheckboxField
+            id="accept-contract"
+            label="He leído y acepto el contrato"
+            value={accepted}
+            onChange={handleAcceptChange}
+            required
+          />
+
+          {/* Autorizaciones del convenio: van DEBAJO de la aceptación del
+              contrato porque se refieren a él (el Anexo 1-A, el cronograma de
+              pagos), y entre ellas manda el orden de la lista. Cada una es un
+              permiso distinto sobre el dinero del trabajador: se marcan de a
+              una, nunca en bloque. */}
+          {autorizacionesAplicables.map((a) => (
+            <CheckboxField
+              key={a.id}
+              id={`autorizacion-${a.id}`}
+              label={a.texto}
+              value={autorizaciones[a.id] ? 'true' : 'false'}
+              onChange={(value) =>
+                setAutorizaciones((prev) => ({ ...prev, [a.id]: value === 'true' }))
+              }
+              required
+            />
+          ))}
+        </div>
       )}
 
       <div className="flex gap-3">
@@ -177,10 +254,11 @@ export function ContratoStep({
         )}
         <button
           type="button"
-          // Con documento hay que aceptarlo. Sin documento no hay nada que
+          // Con documento hay que aceptarlo, y con él las autorizaciones del
+          // convenio que le toquen a este perfil. Sin documento no hay nada que
           // aceptar y bloquear el botón dejaría el KYC trabado esperando algo
           // que solo llega con la aprobación.
-          disabled={hayDocumento && accepted !== 'true'}
+          disabled={hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)}
           onClick={onDone}
           className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
         >
