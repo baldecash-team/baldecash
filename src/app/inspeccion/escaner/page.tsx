@@ -14,16 +14,29 @@ interface PairingCode {
   pair_url: string;
 }
 
+function hayCodigoEnUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('p') !== null;
+}
+
 /**
  * Controlador de la estación. En F1 muestra el pre-vuelo y permite vincular
  * cámaras por QR: la lectura del serial es F2 y el comando de grabación es F3.
  *
  * El QR se genera EN EL CLIENTE con `qrcode.react` — no se manda la URL de
  * vinculación a un servicio externo (ver nota sobre `pedirCodigo` más abajo).
+ *
+ * Vinculación: mismo criterio que `camara/page.tsx` — si la URL trae `?p=`,
+ * se LIMPIA SINCRÓNICAMENTE al entrar al efecto, antes de cualquier `await`,
+ * y GANA sobre una sesión ya guardada (ver doc-comment de `camara/page.tsx`
+ * para el razonamiento completo: Analytics, historial, y es el único camino
+ * de re-vinculación hoy).
  */
 export default function EscanerPage() {
-  const [session, setSession] = useState<DeviceSession | null>(null);
-  const [vinculando, setVinculando] = useState(true);
+  // Lazy init por el mismo motivo que camara/page.tsx: valores síncronos
+  // disponibles desde el primer render, sin efecto + microtask de por medio.
+  const [session, setSession] = useState<DeviceSession | null>(() => getDeviceSession());
+  const [vinculando, setVinculando] = useState<boolean>(() => hayCodigoEnUrl());
   const [vinculoError, setVinculoError] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
   const [stateError, setStateError] = useState<string | null>(null);
@@ -31,34 +44,16 @@ export default function EscanerPage() {
   const [pairingError, setPairingError] = useState<string | null>(null);
 
   useEffect(() => {
-    const existente = getDeviceSession();
-    if (existente) {
-      // Deferido a un microtask por la misma razón que en camara/page.tsx:
-      // react-hooks/set-state-in-effect no permite setState síncrono acá.
-      Promise.resolve().then(() => {
-        setSession(existente);
-        setVinculando(false);
-      });
-      return;
-    }
-
     const code = new URLSearchParams(window.location.search).get('p');
-    if (!code) {
-      Promise.resolve().then(() => setVinculando(false));
-      return;
-    }
+    if (!code) return;
+
+    // Sincrónico, antes de cualquier await — ver doc-comment de arriba.
+    window.history.replaceState({}, '', window.location.pathname);
 
     redeemPairingCode(code)
       .then((s) => setSession(s))
       .catch((e: Error) => setVinculoError(e.message))
-      .finally(() => {
-        // El código no debe quedar en el historial ni en el Referer — en
-        // NINGÚN camino, éxito o error (mismo criterio que camara/page.tsx).
-        // Sin esto, un código vencido o ya usado queda pegado en la URL y
-        // cada refresh reintenta canjear el mismo código inválido.
-        window.history.replaceState({}, '', window.location.pathname);
-        setVinculando(false);
-      });
+      .finally(() => setVinculando(false));
   }, []);
 
   // `error: channelError` para no chocar con `vinculoError`/`stateError`/
@@ -71,9 +66,6 @@ export default function EscanerPage() {
   // Las etiquetas esperadas vienen del servidor: el front nunca asume cuántas son.
   useEffect(() => {
     if (!session) return;
-    // Mismo motivo que los otros setState en efecto de este archivo:
-    // react-hooks/set-state-in-effect exige que no sea síncrono.
-    Promise.resolve().then(() => setStateError(null));
     fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
       headers: { 'X-Device-Token': session.token },
     })
@@ -81,7 +73,14 @@ export default function EscanerPage() {
         if (!r.ok) throw new Error(`http_${r.status}`);
         return r.json();
       })
-      .then((d) => setLabels(d.camera_labels ?? []))
+      .then((d) => {
+        setLabels(d.camera_labels ?? []);
+        // Limpia acá, no con un microtask al arrancar el efecto: así no
+        // hace falta ningún setState síncrono en el cuerpo del efecto y el
+        // error previo (si lo había) sigue visible hasta que el reintento
+        // realmente resuelva, en vez de parpadear a "sin error" de entrada.
+        setStateError(null);
+      })
       .catch(() => {
         // Distinguir "no pude consultar el estado" (problema de red del
         // escáner) de "las cámaras no están conectadas" (problema real de
@@ -154,7 +153,40 @@ export default function EscanerPage() {
     );
   }
 
-  const listo = estaListo(labels, members);
+  // `connected` entra en la cuenta: presence es stale ante un corte —
+  // pusher-js no emite member_removed al perder conexión, así que `members`
+  // conserva la última foto. Sin este `&&`, "Estación lista" quedaba en
+  // verde mientras el escáner estaba desconectado y la única pista era un
+  // "Reconectando…" gris y chico (I2).
+  const listo = connected && !channelError && estaListo(labels, members);
+
+  // Precedencia que sostiene la semántica del banner (I1): `channelError`
+  // (no sé nada del canal) > `stateError` (no sé qué espera la estación) >
+  // `listo`/`faltan cámaras` (sé, y falta esto). Cuando gana un error de
+  // arriba, el banner NO debe afirmar nada sobre las cámaras — antes,
+  // `channelError` quedaba en un <p> chico aparte mientras el banner grande
+  // seguía diciendo "Faltan cámaras" (falso: nadie sabía nada de las
+  // cámaras), dos pantallas contradictorias sin que ninguna ganara.
+  let bannerText: string;
+  let bannerBg: string;
+  let bannerColor: string;
+  if (channelError) {
+    bannerText = channelError.message;
+    bannerBg = '#FBEDEE';
+    bannerColor = channelError.reason === 'missing_config' ? TOKENS.tertiary : TOKENS.red;
+  } else if (stateError) {
+    bannerText = stateError;
+    bannerBg = '#FBEDEE';
+    bannerColor = TOKENS.red;
+  } else if (listo) {
+    bannerText = 'Estación lista para escanear';
+    bannerBg = '#E9F4EF';
+    bannerColor = TOKENS.green;
+  } else {
+    bannerText = 'Faltan cámaras — no se puede escanear';
+    bannerBg = '#FBEDEE';
+    bannerColor = TOKENS.red;
+  }
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -171,35 +203,20 @@ export default function EscanerPage() {
 
       <p
         className="mt-6 rounded-xl p-4 text-center text-sm font-semibold"
-        style={{
-          background: stateError ? '#FBEDEE' : listo ? '#E9F4EF' : '#FBEDEE',
-          color: stateError ? TOKENS.red : listo ? TOKENS.green : TOKENS.red,
-        }}
+        style={{ background: bannerBg, color: bannerColor }}
       >
-        {stateError
-          ? stateError
-          : listo
-            ? 'Estación lista para escanear'
-            : 'Faltan cámaras — no se puede escanear'}
+        {bannerText}
       </p>
 
-      {channelError ? (
-        // `missing_config` no es un problema de red y no se arregla
-        // esperando (mismo criterio que camara/page.tsx) — se distingue de
-        // "Reconectando…" para que el operador no vaya a revisar teléfonos
-        // cuando el problema es una env var de Pusher sin setear.
-        <p
-          className="mt-3 text-center text-xs font-semibold"
-          style={{ color: channelError.reason === 'missing_config' ? TOKENS.tertiary : TOKENS.red }}
-        >
-          {channelError.message}
+      {/*
+        "Reconectando…" solo cuando NO hay un error explicado arriba: si
+        channelError o stateError ya están en el banner grande, repetir acá
+        un mensaje distinto sobre lo mismo es la contradicción que era I1.
+      */}
+      {!channelError && !stateError && !connected && (
+        <p className="mt-3 text-center text-xs" style={{ color: TOKENS.slate }}>
+          Reconectando…
         </p>
-      ) : (
-        !connected && (
-          <p className="mt-3 text-center text-xs" style={{ color: TOKENS.slate }}>
-            Reconectando…
-          </p>
-        )
       )}
 
       <section className="mt-8 border-t pt-6" style={{ borderColor: TOKENS.line }}>

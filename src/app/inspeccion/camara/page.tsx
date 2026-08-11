@@ -6,47 +6,51 @@ import { getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
 
+function hayCodigoEnUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('p') !== null;
+}
+
 /**
  * Vista de kiosco de una cámara. En F1 solo se vincula, se conecta y muestra su
  * estado: la captura llega en F2. Sin navegación a propósito (spec §7).
  *
- * Vinculación: si la URL trae ?p={código}, lo canjea y LIMPIA el parámetro para
- * que el código no quede en el historial ni en el Referer.
+ * Vinculación: si la URL trae ?p={código}, se LIMPIA SINCRÓNICAMENTE al
+ * entrar al efecto, antes de cualquier `await` — un código no debe
+ * sobrevivir ni un instante del primer render: queda en Analytics (el
+ * layout raíz manda `page_location` con el query string a GA/GTM), en el
+ * historial, y sobrevive a un refresh si el canje todavía no terminó. Recién
+ * después de limpiar se decide si se canjea.
+ *
+ * El código GANA sobre una sesión ya guardada: abrir una URL con `?p=` es
+ * una acción deliberada de un humano parado frente al escáner —re-vincular,
+ * cambiar de estación, reemplazar un token revocado. Es, hoy, el ÚNICO
+ * camino de re-vinculación: `clearDeviceSession()` está exportada pero
+ * nadie la llama, así que sin esto un dispositivo que necesita cambiar de
+ * identidad solo se recupera borrando los datos del sitio a mano en Chrome.
  */
 export default function CamaraPage() {
-  const [session, setSession] = useState<DeviceSession | null>(null);
+  // Lazy init: `getDeviceSession()` es síncrono (lee `localStorage`), así
+  // que el estado arranca con el valor real desde el primer render en vez
+  // de pasar por un efecto + microtask solo para copiar un valor que ya
+  // estaba disponible. Mismo criterio para `vinculando`: si hay `?p=` en la
+  // URL arranca en `true` (se está por canjear); si no, en `false` — no hay
+  // nada que esperar.
+  const [session, setSession] = useState<DeviceSession | null>(() => getDeviceSession());
   const [error, setError] = useState<string | null>(null);
-  const [vinculando, setVinculando] = useState(true);
+  const [vinculando, setVinculando] = useState<boolean>(() => hayCodigoEnUrl());
 
   useEffect(() => {
-    const existente = getDeviceSession();
-    if (existente) {
-      // Deferido a un microtask (igual que la rama de redeemPairingCode más
-      // abajo) para no llamar setState de forma síncrona en el cuerpo del
-      // efecto: react-hooks/set-state-in-effect lo marca como error.
-      Promise.resolve().then(() => {
-        setSession(existente);
-        setVinculando(false);
-      });
-      return;
-    }
-
     const code = new URLSearchParams(window.location.search).get('p');
-    if (!code) {
-      Promise.resolve().then(() => setVinculando(false));
-      return;
-    }
+    if (!code) return;
+
+    // Sincrónico, antes de cualquier await — ver doc-comment de arriba.
+    window.history.replaceState({}, '', window.location.pathname);
 
     redeemPairingCode(code)
       .then((s) => setSession(s))
       .catch((e: Error) => setError(e.message))
-      .finally(() => {
-        // El código no debe quedar en el historial ni en el Referer —
-        // en NINGÚN camino, éxito o error: un canje fallido (vencido, ya
-        // usado) no hace que el código sea menos sensible.
-        window.history.replaceState({}, '', window.location.pathname);
-        setVinculando(false);
-      });
+      .finally(() => setVinculando(false));
   }, []);
 
   // `error: channelError` para no chocar con el `error` de vinculación

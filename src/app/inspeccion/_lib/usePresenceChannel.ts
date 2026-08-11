@@ -17,11 +17,13 @@ interface PusherMemberInfo {
 
 /**
  * Motivo por el que el canal no está disponible. `missing_config` es el caso
- * de un deploy sin las env vars de Pusher seteadas — el consumidor lo puede
- * distinguir de una desconexión real y mostrar algo accionable en vez de la
- * pantalla de error genérica de la app.
+ * de un deploy sin las env vars de Pusher seteadas; `auth_failed` es una
+ * suscripción rechazada (`/pusher/auth` respondió 401/403/503 — token
+ * revocado, estación ajena, o `INSPECTION_ENABLED=false`). El consumidor lo
+ * puede distinguir de una desconexión real y mostrar algo accionable en vez
+ * de la pantalla de error genérica de la app.
  */
-export type PresenceChannelErrorReason = 'missing_config' | 'connection_failed';
+export type PresenceChannelErrorReason = 'missing_config' | 'connection_failed' | 'auth_failed';
 
 export interface PresenceChannelError {
   reason: PresenceChannelErrorReason;
@@ -44,7 +46,11 @@ export interface PresenceChannelError {
  */
 export function usePresenceChannel(stationId: string | null, token: string | null) {
   const [members, setMembers] = useState<PresenceMember[]>([]);
-  const [connected, setConnected] = useState(false);
+  // `connected` (el valor devuelto) se deriva de estos dos, más abajo: un
+  // socket conectado con el canal sin autorizar NO es "conectado" para
+  // quien consume el hook (ver `pusher:subscription_error` más abajo).
+  const [subscribed, setSubscribed] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [error, setError] = useState<PresenceChannelError | null>(null);
 
   useEffect(() => {
@@ -81,10 +87,11 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
       return undefined;
     }
 
-    // Construcción exitosa: si un ciclo anterior de este mismo hook había
-    // dejado un error seteado (config faltante / falla previa), se limpia acá.
-    Promise.resolve().then(() => setError(null));
-
+    // Ya no hace falta limpiar acá el `error` de un ciclo anterior (config
+    // faltante / falla previa): `pusher:subscription_succeeded` de abajo ya
+    // lo limpia en cuanto hay una suscripción de verdad confirmada, que es
+    // una señal más fuerte que "el constructor no tiró". Menos un
+    // `Promise.resolve().then(...)` de sobra.
     const channel = pusher.subscribe(`presence-inspection-${stationId}`) as PresenceChannel;
 
     const leer = () => {
@@ -99,19 +106,41 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
       setMembers(out);
     };
 
-    channel.bind('pusher:subscription_succeeded', () => { setConnected(true); leer(); });
+    channel.bind('pusher:subscription_succeeded', () => {
+      setSubscribed(true);
+      setError(null);
+      leer();
+    });
+    // Sin esto, `connected` dependía solo del socket: si `/pusher/auth`
+    // responde 401 (token revocado), 403 (estación ajena) o 503
+    // (`INSPECTION_ENABLED=false`, el default hoy), el WebSocket igual
+    // conecta y el semáforo del pre-vuelo se ponía verde con el canal sin
+    // autorizar — en F1 esa pantalla ES el entregable (spec §7), un
+    // semáforo que miente en verde es peor que no tener semáforo.
+    // `pusher-js` no reintenta la suscripción solo tras un
+    // `subscription_error`: el estado queda así hasta recargar la página.
+    channel.bind('pusher:subscription_error', () => {
+      setSubscribed(false);
+      setError({
+        reason: 'auth_failed',
+        message: 'No se pudo autorizar el canal de la estación (token inválido, estación ajena, o módulo deshabilitado). Recargá la página.',
+      });
+    });
     channel.bind('pusher:member_added', leer);
     channel.bind('pusher:member_removed', leer);
     pusher.connection.bind('state_change', (s: { current: string }) =>
-      setConnected(s.current === 'connected')
+      setSocketConnected(s.current === 'connected')
     );
 
     return () => {
       pusher.unsubscribe(`presence-inspection-${stationId}`);
       pusher.disconnect();
-      setConnected(false);
+      setSubscribed(false);
+      setSocketConnected(false);
     };
   }, [stationId, token]);
+
+  const connected = subscribed && socketConnected;
 
   return { members, connected, error };
 }
