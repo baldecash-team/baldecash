@@ -142,13 +142,18 @@ interface RenderStepArgs {
   linkPago?: string | null;
   /** Prueba de titularidad del flujo por link; la consume `contract` para traer su contrato. */
   resumeToken?: string;
+  /**
+   * Landing del flujo. La consume `contract`: las autorizaciones del convenio
+   * Family Farms dependen del perfil, y el perfil se deduce de la landing.
+   */
+  landing?: string;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -173,6 +178,7 @@ function renderStep({
           // y cronograma. Va con la misma prueba que el resto del KYC.
           documentNumber={documentNumber}
           resumeToken={resumeToken}
+          landing={landing}
         />
       );
     case 'documents':
@@ -602,6 +608,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             onDniVerified: rememberVerifiedDni,
             linkPago,
             resumeToken,
+            landing,
           })}
 
           {canPause && code && (
