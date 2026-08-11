@@ -15,10 +15,20 @@
  * `hardNavigate.test.ts`).
  */
 
-import { getSolicitarConfig, DEFAULT_SOLICITAR_FLOW } from '../landingApi';
+import { getSolicitarConfig, SolicitarConfigUnavailableError } from '../landingApi';
 import { getVipToken, saveVipToken, clearVipData } from '../../components/hero/DniModal';
 
 const SLUG = 'family-farms-baldecash-c';
+
+/**
+ * El 403 ahora se propaga (ver landingApi.solicitarConfig.test.ts): estos casos
+ * miran qué hace `handleVip403` de paso, no el valor devuelto.
+ */
+async function pedirConfigEsperandoElFallo() {
+  await expect(getSolicitarConfig(SLUG)).rejects.toBeInstanceOf(
+    SolicitarConfigUnavailableError,
+  );
+}
 
 function stubLocation(search = '') {
   const reload = jest.fn();
@@ -44,17 +54,16 @@ describe('403 de landing con gate', () => {
   it('NO recarga cuando no había token que limpiar (evita el bucle)', async () => {
     const { reload } = stubLocation();
 
-    const cfg = await getSolicitarConfig(SLUG);
+    await pedirConfigEsperandoElFallo();
 
     expect(reload).not.toHaveBeenCalled();
-    expect(cfg).toEqual(DEFAULT_SOLICITAR_FLOW);
   });
 
   it('sí recarga cuando el token guardado fue rechazado', async () => {
     saveVipToken(SLUG, 'token-vencido');
     const { reload } = stubLocation();
 
-    await getSolicitarConfig(SLUG);
+    await pedirConfigEsperandoElFallo();
 
     // El token rechazado se descarta y se recarga: ahora sí la recarga cambia
     // el estado (el gate vuelve a pedir el DNI en vez de reusar basura).
@@ -68,7 +77,7 @@ describe('403 de landing con gate', () => {
     // que ese camino se mantiene igual que siempre.
     const { reload } = stubLocation('?vip_auto=token-fresco');
 
-    await getSolicitarConfig(SLUG);
+    await pedirConfigEsperandoElFallo();
 
     expect(reload).toHaveBeenCalledTimes(1);
   });
