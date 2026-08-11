@@ -4,20 +4,24 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { PartyPopper } from 'lucide-react';
 import { ReceivedData } from '../../../types/received';
+import type { ModoCierreKyc } from '../../../confirmacionClient';
 
 interface ReceivedMessageProps {
   data: ReceivedData;
   overlayVariant?: string | null;
   /**
-   * Se llega desde el cierre del KYC, no desde el submit. Quien cerró el KYC ya
-   * fue aprobado y firmó: no hay nada en revisión ni una respuesta que esperar,
-   * así que el encabezado celebra el proceso terminado y se cae el plazo de
-   * respuesta.
+   * Se llega desde el cierre del KYC, no desde el submit (ver
+   * `modoCierreDelKyc`). Quien cerró el KYC ya fue aprobado y firmó: no hay nada
+   * en revisión ni un plazo de respuesta que prometer.
+   *
+   * Lo que cambia entre los dos modos es de quién es el siguiente paso —del
+   * cliente, que ya tiene su fecha de pago, o de un asesor que lo va a
+   * contactar—.
    */
-  kycCompletado?: boolean;
+  modoCierreKyc?: ModoCierreKyc | null;
 }
 
-export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayVariant, kycCompletado }) => {
+export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayVariant, modoCierreKyc }) => {
   const isCade = overlayVariant === 'cade';
 
   return (
@@ -28,17 +32,25 @@ export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayV
       className="text-center mb-6 sm:mb-8"
     >
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight break-words">
-        {kycCompletado
+        {modoCierreKyc === 'completado'
           ? <>¡Felicitaciones por finalizar todo el proceso, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
-          : isCade
-            ? <>¡Gracias por ser parte del CADE, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
-            : <>¡Hemos recibido tu solicitud, {data.userName}!</>
+          : modoCierreKyc === 'contactaremos'
+            ? <>¡Solicitud enviada, {data.userName}!</>
+            : isCade
+              ? <>¡Gracias por ser parte del CADE, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
+              : <>¡Hemos recibido tu solicitud, {data.userName}!</>
         }
       </h1>
-      {kycCompletado ? (
+      {modoCierreKyc === 'completado' ? (
         <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
           Tu contrato quedó <span className="font-semibold text-[var(--color-primary)]">firmado</span>. Te enviamos por
           WhatsApp y correo los siguientes pasos.
+        </p>
+      ) : modoCierreKyc === 'contactaremos' ? (
+        <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
+          Completaste todos los pasos y tu contrato quedó{' '}
+          <span className="font-semibold text-[var(--color-primary)]">firmado</span>. Nos pondremos en contacto contigo
+          para coordinar lo que sigue.
         </p>
       ) : (
         <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
