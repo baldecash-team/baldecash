@@ -1,10 +1,13 @@
-// Import ANTES que `../page` a propósito — ver el comentario largo en
-// `camara/__tests__/page.test.tsx`: si queda después, el factory de
-// `jest.mock` de abajo revienta con "Cannot access '_fakePusher' before
-// initialization" (orden real de los `require()` transpilados).
+// Import ANTES que `../EscanerPageContent` a propósito — ver el comentario
+// largo en `camara/__tests__/CamaraPageContent.test.tsx`: si queda después,
+// el factory de `jest.mock` de abajo revienta con "Cannot access
+// '_fakePusher' before initialization" (orden real de los `require()`
+// transpilados).
 import { FakePusher as mockFakePusher } from '../../_test-support/fakePusher';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import EscanerPage from '../page';
+// Se testea `EscanerPageContent` directo, NO `page.tsx`: `page.tsx` es solo
+// un wrapper de `next/dynamic(..., { ssr: false })` (ver su doc-comment).
+import EscanerPageContent from '../EscanerPageContent';
 import { getDeviceSession, setDeviceSession } from '../../_lib/deviceSession';
 
 jest.mock('pusher-js', () => ({ __esModule: true, default: mockFakePusher }));
@@ -20,7 +23,7 @@ function mockFetchSequence(responses: Array<{ ok: boolean; json: () => Promise<u
   }) as unknown as typeof fetch;
 }
 
-describe('EscanerPage', () => {
+describe('EscanerPageContent', () => {
   beforeEach(() => {
     localStorage.clear();
     FakePusher.instances.length = 0;
@@ -60,7 +63,7 @@ describe('EscanerPage', () => {
       { ok: true, json: async () => ({ camera_labels: ['techo'] }) },
     ]);
 
-    render(<EscanerPage />);
+    render(<EscanerPageContent />);
 
     // Igual que en camara/page.tsx: se limpia YA, sin esperar la red. Antes
     // del fix, la rama "ya hay sesion" de este archivo directamente no
@@ -84,7 +87,7 @@ describe('EscanerPage', () => {
 
     mockFetchSequence([{ ok: true, json: async () => ({ camera_labels: ['techo'] }) }]);
 
-    render(<EscanerPage />);
+    render(<EscanerPageContent />);
 
     // Todavia sin channelError: banner "Faltan camaras" (no hay conexion
     // confirmada al canal, asi que `listo` tampoco puede ser true — I2).

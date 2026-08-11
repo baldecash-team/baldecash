@@ -1,19 +1,23 @@
-// Import ANTES que `../page` a propósito: `jest.mock` de abajo queda
-// hoisteado por encima de todos los imports (`babel-plugin-jest-hoist`), y
-// el factory referencia `mockFakePusher` — pero el `require` real de este
-// módulo tiene que haber corrido para cuando `../page` (que importa
-// `usePresenceChannel`, que importa `pusher-js`) dispare el factory. Si este
-// import queda después, el factory revienta con
+// Import ANTES que `../CamaraPageContent` a propósito: `jest.mock` de abajo
+// queda hoisteado por encima de todos los imports (`babel-plugin-jest-hoist`),
+// y el factory referencia `mockFakePusher` — pero el `require` real de este
+// módulo tiene que haber corrido para cuando `../CamaraPageContent` (que
+// importa `usePresenceChannel`, que importa `pusher-js`) dispare el factory.
+// Si este import queda después, el factory revienta con
 // "Cannot access '_fakePusher' before initialization" (orden de ejecución
 // real de los `require()` transpilados, no una regla estética).
 import { FakePusher as mockFakePusher } from '../../_test-support/fakePusher';
 import { render, screen, waitFor } from '@testing-library/react';
-import CamaraPage from '../page';
+// Se testea `CamaraPageContent` directo, NO `page.tsx`: `page.tsx` es solo
+// un wrapper de `next/dynamic(..., { ssr: false })` (ver su doc-comment) —
+// probarlo agregaría el mecanismo de carga diferida de Next a la ecuación
+// sin aportar cobertura sobre la lógica real de la vista.
+import CamaraPageContent from '../CamaraPageContent';
 import { getDeviceSession, setDeviceSession } from '../../_lib/deviceSession';
 
 jest.mock('pusher-js', () => ({ __esModule: true, default: mockFakePusher }));
 
-describe('CamaraPage', () => {
+describe('CamaraPageContent', () => {
   beforeEach(() => {
     localStorage.clear();
     window.history.replaceState({}, '', '/inspeccion/camara');
@@ -45,7 +49,7 @@ describe('CamaraPage', () => {
       }),
     }) as unknown as typeof fetch;
 
-    render(<CamaraPage />);
+    render(<CamaraPageContent />);
 
     // El parametro se limpia YA — sincronicamente, sin esperar la respuesta
     // de red. Antes del fix, la rama "ya hay sesion" ni intentaba limpiar
@@ -65,7 +69,7 @@ describe('CamaraPage', () => {
   });
 
   it('sin sesion y sin ?p=, no queda "Vinculando…" colgado: pasa directo a "no vinculado"', () => {
-    render(<CamaraPage />);
+    render(<CamaraPageContent />);
 
     // Con el lazy init, no hay nada que esperar: session=null y
     // vinculando=false desde el primer render, sin flash de "Vinculando…".
