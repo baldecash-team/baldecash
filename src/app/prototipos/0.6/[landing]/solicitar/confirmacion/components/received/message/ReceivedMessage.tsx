@@ -34,8 +34,8 @@ export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayV
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight break-words">
         {modoCierreKyc === 'completado'
           ? <>¡Felicitaciones por finalizar todo el proceso, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
-          : modoCierreKyc === 'contactaremos'
-            ? <>¡Solicitud enviada, {data.userName}!</>
+          : modoCierreKyc === 'aprobado'
+            ? <>¡Solicitud aprobada, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
             : isCade
               ? <>¡Gracias por ser parte del CADE, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
               : <>¡Hemos recibido tu solicitud, {data.userName}!</>
@@ -46,11 +46,10 @@ export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayV
           Tu contrato quedó <span className="font-semibold text-[var(--color-primary)]">firmado</span>. Te enviamos por
           WhatsApp y correo los siguientes pasos.
         </p>
-      ) : modoCierreKyc === 'contactaremos' ? (
+      ) : modoCierreKyc === 'aprobado' ? (
         <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
-          Completaste todos los pasos y tu contrato quedó{' '}
-          <span className="font-semibold text-[var(--color-primary)]">firmado</span>. Nos pondremos en contacto contigo
-          para coordinar lo que sigue.
+          Tu solicitud quedó <span className="font-semibold text-[var(--color-primary)]">aprobada</span>. Nos pondremos
+          en contacto contigo para los siguientes pasos.
         </p>
       ) : (
         <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">

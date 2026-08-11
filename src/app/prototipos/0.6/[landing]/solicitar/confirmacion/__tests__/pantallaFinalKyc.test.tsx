@@ -66,21 +66,24 @@ describe('Confirmación tras cerrar el KYC — cosechador', () => {
 });
 
 /**
- * Administrativo y obrero fijo no tienen armadas ni fecha propia: a ellos los
- * llama un asesor. Prometerles "todo terminado" los dejaría sin saber qué
- * esperar, así que el cierre les avisa que hay contacto en camino.
+ * Administrativo y obrero fijo no pasan por KYC —su landing lo trae apagado— y
+ * en el convenio la aprobación está garantizada por la whitelist. Van del submit
+ * directo acá, así que la pantalla anuncia la aprobación y el contacto del
+ * asesor, no un proceso que ellos tengan que terminar.
  */
-describe('Confirmación tras cerrar el KYC — administrativo y obrero fijo', () => {
-  it('avisa que habrá contacto en vez de celebrar el proceso terminado', () => {
-    render(<ReceivedScreen data={data} modoCierreKyc="contactaremos" />);
+describe('Confirmación del submit — administrativo y obrero fijo', () => {
+  it('anuncia la aprobación y el contacto, sin hablar de proceso terminado', () => {
+    render(<ReceivedScreen data={data} modoCierreKyc="aprobado" />);
 
-    expect(screen.getByText(/Solicitud enviada/i)).toBeInTheDocument();
+    expect(screen.getByText(/Solicitud aprobada/i)).toBeInTheDocument();
     expect(screen.getByText(/Nos pondremos en contacto contigo/i)).toBeInTheDocument();
     expect(screen.queryByText(/Felicitaciones por finalizar todo el proceso/i)).not.toBeInTheDocument();
+    // Sin plazo: la solicitud ya esta resuelta, no hay nada que esperar.
+    expect(screen.queryByText(/24 horas/i)).not.toBeInTheDocument();
   });
 
-  it('tampoco promete un plazo ni deja el timeline: ya fue aprobado y firmó', () => {
-    render(<ReceivedScreen data={data} modoCierreKyc="contactaremos" />);
+  it('no promete un plazo ni deja el timeline: ya no esta en evaluacion', () => {
+    render(<ReceivedScreen data={data} modoCierreKyc="aprobado" />);
 
     expect(screen.queryByText(/Estamos revisando tu información/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/En revisión/i)).not.toBeInTheDocument();

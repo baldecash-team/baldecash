@@ -80,35 +80,42 @@ const RESULT_OPTIONS = [
 ];
 
 /**
- * Cómo cierra la confirmación cuando se llega desde el KYC y no desde el submit.
+ * Cómo cierra la confirmación en Family Farms, donde la solicitud no queda "en
+ * evaluación" como en el resto del catálogo.
  *
- * `?kyc=1` lo pone `kycClient` cuando de verdad cerró el KYC. Se acota a Family
- * Farms a propósito: es el único convenio donde cerrar el KYC significa quedar
- * aprobado y firmado en el acto (`/completar` aprueba contra legacy), así que es
- * el único donde no queda nada "en revisión". En el resto la solicitud sigue en
- * evaluación y la pantalla del submit tiene que quedarse tal cual.
+ * Los dos modos existen porque los tres perfiles del convenio terminan en
+ * lugares distintos:
  *
- * Dentro de Family Farms el cierre no es el mismo para todos:
+ * - `completado` (cosechador) — cierra el KYC, que aprueba y firma en el acto
+ *   (`/completar` contra legacy). Sale con un calendario concreto por delante:
+ *   su primera armada, con fecha fija de campaña. Se le celebra el proceso
+ *   terminado porque el siguiente paso es suyo y ya lo sabe. Requiere `?kyc=1`,
+ *   que pone `kycClient` cuando de verdad cerró el flujo.
  *
- * - `completado` (cosechador) — le queda un calendario de pagos concreto por
- *   delante: la primera armada, con fecha fija de campaña. Se le celebra el
- *   proceso terminado porque el siguiente paso es suyo y ya lo sabe.
- * - `contactaremos` (administrativo y obrero fijo) — el siguiente paso no es
- *   suyo sino de un asesor, así que prometerle "todo terminado" lo dejaría sin
- *   saber qué esperar.
+ * - `aprobado` (administrativo y obrero fijo) — NO tienen KYC: su landing lo
+ *   trae apagado, así que van del submit directo acá. En el convenio la
+ *   aprobación está garantizada por la whitelist de DNI, y el siguiente paso no
+ *   es suyo sino de un asesor que los contacta. Por eso no depende de `?kyc=1`:
+ *   no hay KYC del que volver.
+ *
+ * Fuera de Family Farms no aplica ninguno: ahí la solicitud sí se evalúa y la
+ * pantalla del submit tiene que quedarse tal cual, con su plazo y su timeline.
  *
  * Que la landing mande y no solo el flag importa porque el parámetro es pegable
  * a mano: sin este filtro, cualquiera podría hacer que una solicitud en
- * evaluación se anuncie como terminada.
+ * evaluación se anuncie como resuelta.
  */
-export type ModoCierreKyc = 'completado' | 'contactaremos';
+export type ModoCierreKyc = 'completado' | 'aprobado';
 
 export function modoCierreDelKyc(
   searchParams: URLSearchParams,
   landing: string
 ): ModoCierreKyc | null {
-  if (searchParams.get('kyc') !== '1' || !esFamilyFarms(landing)) return null;
-  return esFamilyFarmsCosechador(landing) ? 'completado' : 'contactaremos';
+  if (!esFamilyFarms(landing)) return null;
+  if (esFamilyFarmsCosechador(landing)) {
+    return searchParams.get('kyc') === '1' ? 'completado' : null;
+  }
+  return 'aprobado';
 }
 
 /**
