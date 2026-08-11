@@ -27,6 +27,7 @@ import {
 } from '../../../services/offerApi';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from './redesign/OfertaHeader';
+import { PruebaSocial } from './redesign/PruebaSocial';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 import { OfertaEstadoMensaje } from './OfertaEstadoMensaje';
 import { SeleccionConfirmada, type ChosenSummary } from './SeleccionConfirmada';
@@ -133,18 +134,29 @@ export function StandardOfertaAccion({
       <OfertaHeader />
 
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6 sm:py-10">
-        {/* Saludo */}
-        <div>
-          <div className="text-[13px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>
-            Hola,
-          </div>
-          <div className="font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-[1.1]">
-            {offer.clientName || ''}
-          </div>
-          <p className="mt-1 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-            Esta es tu oferta de BaldeCash. Revisa los datos y decide.
-          </p>
+        {/* Saludo — mismo lenguaje que el flujo upsell (UPSELL_APPROVAL):
+            "¡Felicitaciones, {nombre}, tu solicitud ha sido aprobada!" con
+            "aprobada" en verde bold. */}
+        <div className="text-[18px] font-semibold leading-[1.25]">
+          {offer.clientName
+            ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido`
+            : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
         </div>
+
+        {/* Código de la solicitud — mismo chip que el upsell. */}
+        {offer.applicationCode ? (
+          <div
+            className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+            style={{ backgroundColor: OFERTA_COLORS.lilac, color: OFERTA_COLORS.textSoft }}
+          >
+            Solicitud: {offer.applicationCode}
+          </div>
+        ) : null}
+
+        <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+          Esta es tu oferta de BaldeCash. Revisa los datos y decide.
+        </p>
 
         {/* Countdown de vigencia */}
         {countdown ? (
@@ -223,6 +235,9 @@ export function StandardOfertaAccion({
             </div>
           </div>
         </div>
+
+        {/* Prueba social — mismo componente que el flujo upsell. */}
+        <PruebaSocial />
 
         {/* Error inline (no reemplaza la página: el cliente puede reintentar) */}
         {error ? (
