@@ -34,6 +34,7 @@ import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
 import { Cronograma } from '../components/detail/cronograma/Cronograma';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
 import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
@@ -193,6 +194,10 @@ export function CopiaHomeDesktopDetail({
   const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
   const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
   const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
+  // La barra decia "/mes" siempre: en un plan semanal prometia la cuota
+  // de la semana como si fuera del mes, doce veces mas barato de lo real.
+  const freqShort = paymentFrequency === 'semanal' ? '/sem'
+    : paymentFrequency === 'quincenal' ? '/qcn' : '/mes';
   // En cuantas armadas se cobra la inicial de la opcion elegida. Viene con la
   // opcion, no es una eleccion aparte: cada modalidad es una celda propia del
   // pricing con su plazo. 1 = pago unico, el default de todo el catalogo.
@@ -469,10 +474,10 @@ export function CopiaHomeDesktopDetail({
 
                   <div className={styles.cta}>
                     <div className={styles.ctaPrice}>
-                      <div className={styles.ctaNum}>S/{formatMoneyNoDecimals(monthlyQuota)}<span>/mes</span></div>
+                      <div className={styles.ctaNum}>S/{formatCuotaDeLanding(monthlyQuota, landing)}<span>{freqShort}</span></div>
                       <div className={styles.ctaSub}>
                         en {term} {paymentFrequency === 'mensual' ? 'meses' : 'cuotas'}
-                        {initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(initialAmount)}` : ' · sin inicial'}
+                        {initialAmount > 0 ? ` · inicial S/${formatCuotaDeLanding(initialAmount, landing)}` : ' · sin inicial'}
                       </div>
                     </div>
                     {onToggleWishlist && (
