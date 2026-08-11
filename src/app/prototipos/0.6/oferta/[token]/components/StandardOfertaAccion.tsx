@@ -1,23 +1,24 @@
 'use client';
 
 /**
- * StandardOfertaAccion — vista simple aceptar/rechazar de la oferta ESTÁNDAR
+ * StandardOfertaAccion — vista aceptar/rechazar de la oferta ESTÁNDAR
  * (F-6B, Task 5 · docs/superpowers/specs/2026-07-08-f6b-oferta-url-cliente-design.md).
  *
  * A diferencia del Caso 4/5 (selección dentro de un catálogo topado por
  * cuota), acá el analista ya armó UNA sola oferta (producto/cuota/tea/plazo/
  * inicial/total) y el cliente solo decide: aceptar o rechazar. Countdown de
- * vigencia (useCountdown, hasta ahora dormido) que deshabilita ambos botones
- * al expirar — evita un accept/reject tardío que el backend igual rechazaría
- * (410 `expired`).
+ * vigencia que deshabilita ambos botones al expirar — evita un accept/reject
+ * tardío que el backend igual rechazaría (410 `expired`).
  *
- * Reusa el mismo lenguaje visual del rediseño (OFERTA_COLORS/OfertaHeader) y,
- * para las confirmaciones, los componentes existentes: `SeleccionConfirmada`
- * al aceptar (mismo "¡Felicidades!" del Caso 4/5) y `OfertaEstadoMensaje` al
- * rechazar (mismo lenguaje visual de las pantallas de estado).
+ * Desde 2026-08-11 usa el MISMO card rico del Caso 5 (EquipoRecomendadoCard) y
+ * el saludo del upsell, en vez de una pantalla propia con un card de texto:
+ * docs/superpowers/specs/2026-08-11-oferta-estandar-look-upsell-design.md.
+ * «Aceptar oferta» es el CTA del card; «Rechazar» queda como acción
+ * secundaria debajo para que no compitan. «Ver detalle» abre la ficha del
+ * equipo en la landing de la solicitud, en pestaña nueva.
  */
 import { useCallback, useState } from 'react';
-import { Ban, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Ban, Clock, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
@@ -25,10 +26,13 @@ import {
   OfferApiError,
   type OfferView,
 } from '../../../services/offerApi';
+import { createSpecsFromEav } from '../../../services/catalogApi';
+import { routes } from '../../../utils/routes';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from './redesign/OfertaHeader';
-import { PruebaSocial } from './redesign/PruebaSocial';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
+import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './redesign/EquipoRecomendadoCard';
+import { specsToChips } from './redesign/specsChips';
 import { OfertaEstadoMensaje } from './OfertaEstadoMensaje';
 import { SeleccionConfirmada, type ChosenSummary } from './SeleccionConfirmada';
 import { inicialText } from './equipoCardFormat';
@@ -98,6 +102,20 @@ export function StandardOfertaAccion({
     }
   }, [disabled, token, offer.offerCode, analytics, onConverted]);
 
+  // "Ver detalle": ficha del equipo en la landing de la solicitud. Necesita los
+  // dos slugs; si falta alguno, el card no pinta el botón.
+  const detalleUrl =
+    info?.productSlug && offer.landingSlug
+      ? routes.producto(offer.landingSlug, info.productSlug)
+      : null;
+
+  const handleVerDetalle = useCallback(() => {
+    if (!detalleUrl) return;
+    analytics.track('offer_standard_detail_click', { offer_code: offer.offerCode });
+    // Pestaña nueva: que no pierda la oferta al ir a mirar el equipo.
+    window.open(detalleUrl, '_blank', 'noopener,noreferrer');
+  }, [detalleUrl, analytics, offer.offerCode]);
+
   // Confirmación de aceptación — mismo componente "¡Felicidades!" que el
   // Caso 4/5 (sin equipo anterior: acá no hay cambio, solo aceptación).
   if (decision === 'accepted') {
@@ -129,22 +147,45 @@ export function StandardOfertaAccion({
 
   const totalTexto = info?.totalAmount ?? info?.totalPrice ?? null;
 
+  // Card del equipo ofrecido. `specs` viene como dict EAV plano del backend
+  // (igual que el Caso 4/5): se estructura y se convierte a chips.
+  const equipo: EquipoRecomendadoInfo = {
+    name: info?.productName || 'Tu equipo',
+    brand: info?.productBrand ?? undefined,
+    imageUrl: info?.productImageUrl ?? undefined,
+    monthly: info?.monthlyPayment ?? 0,
+    term: info?.termMonths ?? undefined,
+    initial:
+      info?.initialPayment != null && info.initialPayment > 0
+        ? `inicial S/${Math.round(info.initialPayment)}`.trim()
+        : undefined,
+    specs: info?.productSpecs
+      ? specsToChips(createSpecsFromEav(info.productSpecs, 'laptop'))
+      : undefined,
+  };
+
+  const ctaText = expired
+    ? 'Oferta vencida'
+    : loading === 'accept'
+      ? 'Aceptando…'
+      : 'Aceptar oferta';
+
   return (
     <div className="min-h-screen bg-white">
       <OfertaHeader />
 
-      <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6 sm:py-10">
-        {/* Saludo — mismo lenguaje visual que el flujo upsell, pero la oferta
-            desde admin2 no es una aprobación de solicitud sino una OFERTA: por
-            eso dice "ofertada" (no "aprobada"), en verde bold. */}
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
+        {/* Saludo — mismo del Caso 4/5: nombre completo y "aprobada" en verde. */}
         <div className="text-[18px] font-semibold leading-[1.25]">
-          {offer.clientName
-            ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido`
-            : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
-          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>ofertada</span>!
+          {offer.clientName ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
         </div>
 
-        {/* Código de la solicitud — mismo chip que el upsell. */}
+        <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+          Tu oferta ha sido generada
+        </p>
+
+        {/* Código de la solicitud: para tenerlo a mano si contacta soporte. */}
         {offer.applicationCode ? (
           <div
             className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
@@ -154,14 +195,10 @@ export function StandardOfertaAccion({
           </div>
         ) : null}
 
-        <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-          Esta es tu oferta de BaldeCash. Revisa los datos y decide.
-        </p>
-
         {/* Countdown de vigencia */}
         {countdown ? (
           <div
-            className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-[13px] font-semibold"
+            className="flex w-fit items-center gap-2 rounded-lg px-3.5 py-2.5 text-[13px] font-semibold"
             style={{
               backgroundColor: expired ? OFERTA_COLORS.amberBg : OFERTA_COLORS.lilac,
               color: expired ? '#B45309' : OFERTA_COLORS.primary,
@@ -173,71 +210,45 @@ export function StandardOfertaAccion({
           </div>
         ) : null}
 
-        {/* Resumen de la oferta */}
-        <div
-          className="overflow-hidden rounded-xl border-[1.5px]"
-          style={{ borderColor: OFERTA_COLORS.primary, boxShadow: '0 10px 24px rgba(79,70,229,.16)' }}
-        >
-          <div
-            className="px-3.5 py-1.5 text-[10px] font-bold tracking-[.09em] text-white"
-            style={{ backgroundColor: OFERTA_COLORS.primary }}
-          >
-            TU OFERTA
-          </div>
+        <EquipoRecomendadoCard
+          equipo={equipo}
+          tone="indigo"
+          badgeText="TU OFERTA"
+          ctaText={ctaText}
+          subtext="Tu solicitud queda cerrada al aceptarla"
+          onElegir={handleAccept}
+          onVerDetalle={detalleUrl ? handleVerDetalle : undefined}
+        />
 
-          <div className="flex flex-col gap-3 px-4 py-4">
-            <div className="text-[17px] font-bold leading-[1.2]">
-              {info?.productName || 'Equipo'}
-            </div>
-
-            {info?.monthlyPayment != null ? (
-              <div className="border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
-                <div
-                  className="font-['Baloo_2',_sans-serif] text-[30px] font-extrabold leading-none"
-                  style={{ color: OFERTA_COLORS.primary }}
-                >
-                  S/{Math.round(info.monthlyPayment)}
-                  <span className="text-[15px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
-                    /mes
-                  </span>
-                </div>
-                {info.termMonths ? (
-                  <div className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
-                    en {info.termMonths} meses
-                    {inicialText(info.initialPayment, info.initialPaymentPercent)}
-                  </div>
-                ) : null}
+        {/* Datos contractuales que la card no muestra: TEA y total a pagar. */}
+        <div className="grid grid-cols-2 gap-2.5 rounded-lg border px-3.5 py-3" style={{ borderColor: OFERTA_COLORS.border }}>
+          {info?.tea != null ? (
+            <div>
+              <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
+                TEA
               </div>
-            ) : null}
-
-            {/* Datos adicionales: TEA / total */}
-            <div className="grid grid-cols-2 gap-2.5 border-t pt-3" style={{ borderColor: '#F1F2F7' }}>
-              {info?.tea != null ? (
-                <div>
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
-                    TEA
-                  </div>
-                  <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                    {info.tea}%
-                  </div>
-                </div>
-              ) : null}
-              {totalTexto != null ? (
-                <div>
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
-                    Total a pagar
-                  </div>
-                  <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                    S/{Math.round(totalTexto).toLocaleString('es-PE')}
-                  </div>
-                </div>
-              ) : null}
+              <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                {info.tea}%
+              </div>
             </div>
-          </div>
+          ) : null}
+          {totalTexto != null ? (
+            <div>
+              <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
+                Total a pagar
+              </div>
+              <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+                S/{Math.round(totalTexto).toLocaleString('es-PE')}
+              </div>
+            </div>
+          ) : null}
+          {info?.termMonths ? (
+            <div className="col-span-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
+              en {info.termMonths} meses
+              {inicialText(info.initialPayment, info.initialPaymentPercent)}
+            </div>
+          ) : null}
         </div>
-
-        {/* Prueba social — mismo componente que el flujo upsell. */}
-        <PruebaSocial />
 
         {/* Error inline (no reemplaza la página: el cliente puede reintentar) */}
         {error ? (
@@ -249,29 +260,17 @@ export function StandardOfertaAccion({
           </div>
         ) : null}
 
-        {/* Acciones */}
-        <div className="flex flex-col gap-2.5 sm:flex-row">
-          <button
-            type="button"
-            onClick={handleAccept}
-            disabled={disabled}
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-3.5 text-[15px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: OFERTA_COLORS.green, boxShadow: '0 6px 14px rgba(34,197,94,.35)' }}
-          >
-            <CheckCircle2 className="h-5 w-5" />
-            {loading === 'accept' ? 'Aceptando…' : 'Aceptar oferta'}
-          </button>
-          <button
-            type="button"
-            onClick={handleReject}
-            disabled={disabled}
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 text-[15px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
-          >
-            <XCircle className="h-5 w-5" />
-            {loading === 'reject' ? 'Rechazando…' : 'Rechazar'}
-          </button>
-        </div>
+        {/* Rechazar: acción secundaria, fuera de la card. */}
+        <button
+          type="button"
+          onClick={handleReject}
+          disabled={disabled}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3 text-[14px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:self-center"
+          style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
+        >
+          <XCircle className="h-5 w-5" />
+          {loading === 'reject' ? 'Rechazando…' : 'Rechazar oferta'}
+        </button>
 
         {expired ? (
           <div className="flex items-center gap-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textSoft }}>

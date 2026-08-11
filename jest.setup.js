@@ -56,3 +56,19 @@ jest.mock('framer-motion', () => ({
 // afterAll(() => {
 //   console.error = originalError;
 // });
+
+// jsdom no implementa matchMedia y varios componentes lo consultan para decidir
+// el layout inicial (p.ej. EquipoRecomendadoCard abre el detalle en desktop).
+// Sin este polyfill el render explota con "matchMedia is not a function".
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},      // deprecado, algunos libs viejos lo usan
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}

@@ -214,6 +214,8 @@ export type EventType =
   | 'offer_standard_reject_click'
   | 'offer_standard_rejected'
   | 'offer_standard_decision_error'
+  // Ver la ficha del equipo en la landing, desde la card de la oferta estándar
+  | 'offer_standard_detail_click'
   // Cobertura del funnel de oferta (6 pasos + interacciones) — BAL-2236:
   | 'offer_explore_view'
   | 'offer_equipment_chosen'

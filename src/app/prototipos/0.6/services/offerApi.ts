@@ -141,6 +141,16 @@ export interface StandardOfferInfo {
   /** Estado de la oferta (sent/viewed/accepted/rejected/expired). */
   status: string | null;
   productName: string | null;
+  /** Marca del equipo, para el encabezado del card. */
+  productBrand: string | null;
+  /** Foto del equipo (ya resuelta a URL servible). Puede faltar. */
+  productImageUrl: string | null;
+  /** Specs técnicas planas (processor/ram/…) para los chips del card — mismo
+   *  formato EAV que el catálogo, listo para `createSpecsFromEav`. */
+  productSpecs: Record<string, string | number | boolean> | null;
+  /** Slug del producto + de la landing de la solicitud: juntos arman el link
+   *  «Ver detalle» (/{landing}/producto/{slug}). Si falta alguno, no se pinta. */
+  productSlug: string | null;
   totalPrice: number | null;
   initialPayment: number | null;
   initialPaymentPercent: number | null;
@@ -281,7 +291,9 @@ export async function getOffer(token: string): Promise<OfferView> {
       // No aplica a la oferta estándar (no hay catálogo topado por cuota).
       maxMonthlyQuota: 0,
       expiresAt: data.expires_at ?? null,
-      landingSlug: null,
+      // La landing de la solicitud (o la de la oferta si el analista la
+      // cambió): con ella se arma el link "Ver detalle" del equipo.
+      landingSlug: data.landing_slug ?? null,
       requestedProduct: null,
       recommended: null,
       applicationCode: data.application_code ?? null,
@@ -292,6 +304,10 @@ export async function getOffer(token: string): Promise<OfferView> {
       standardOffer: {
         status: data.status ?? null,
         productName: data.product_name ?? null,
+        productBrand: data.product_brand ?? null,
+        productImageUrl: data.product_image_url ?? null,
+        productSpecs: data.product_specs ?? null,
+        productSlug: data.product_slug ?? null,
         totalPrice: data.total_price ?? null,
         initialPayment: data.initial_payment ?? null,
         initialPaymentPercent: data.initial_payment_percent ?? null,
