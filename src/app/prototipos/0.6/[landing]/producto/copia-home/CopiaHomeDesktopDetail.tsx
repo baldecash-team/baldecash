@@ -264,7 +264,10 @@ export function CopiaHomeDesktopDetail({
         ram: getSpec('memoria', 'capacidad') || getSpec('ram', 'size') || '',
         storage: getSpec('almacenamiento', 'capacidad') || getSpec('storage', 'size') || '',
       },
-      paymentPlans: undefined,
+      // Los planes viajan con el equipo: el selector de plazo del wizard rotula
+      // «17 semanas · 2 armadas» leyendolos de aca. Sin ellos, quien elige «15»
+      // no ve que esta eligiendo pagar la inicial en dos partes.
+      paymentPlans,
       comboId: apiData.combo?.id,
     };
     try {
