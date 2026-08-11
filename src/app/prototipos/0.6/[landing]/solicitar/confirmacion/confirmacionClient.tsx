@@ -80,6 +80,26 @@ const RESULT_OPTIONS = [
 ];
 
 /**
+ * Si la confirmación se abrió al cerrar el KYC y no al enviar la solicitud.
+ *
+ * `?kyc=1` lo pone `kycClient` cuando de verdad cerró el KYC. Se acota a Family
+ * Farms a propósito: es el único convenio donde cerrar el KYC significa quedar
+ * aprobado y firmado en el acto (`/completar` aprueba contra legacy), así que es
+ * el único donde prometer "todo el proceso terminado" es cierto. En el resto la
+ * solicitud sigue en evaluación y el timeline de estado tiene que quedarse.
+ *
+ * Que la landing mande y no solo el flag importa porque el parámetro es
+ * pegable a mano: sin este filtro, cualquiera podría hacer que una solicitud
+ * en evaluación se anuncie como terminada.
+ */
+export function vieneDelCierreDelKyc(
+  searchParams: URLSearchParams,
+  landing: string
+): boolean {
+  return searchParams.get('kyc') === '1' && esFamilyFarms(landing);
+}
+
+/**
  * Build ReceivedData from API response (preferred) or URL params (fallback)
  */
 function buildReceivedData(
@@ -268,12 +288,7 @@ function RealConfirmationContent({
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  // `?kyc=1` lo pone el cierre del KYC (`kycClient`). Se acota a Family Farms a
-  // propósito: es el único convenio donde cerrar el KYC significa quedar
-  // aprobado y firmado en el acto, así que es el único donde prometer "todo el
-  // proceso terminado" es cierto. En el resto la solicitud sigue en evaluación
-  // y el timeline de estado tiene que quedarse.
-  const kycCompletado = searchParams.get('kyc') === '1' && esFamilyFarms(landing);
+  const kycCompletado = vieneDelCierreDelKyc(searchParams, landing);
 
   return (
     <ReceivedScreen
