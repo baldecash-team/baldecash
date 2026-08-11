@@ -4,7 +4,7 @@
 // '_fakePusher' before initialization" (orden real de los `require()`
 // transpilados).
 import { FakePusher as mockFakePusher } from '../../_test-support/fakePusher';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 // Se testea `EscanerPageContent` directo, NO `page.tsx`: `page.tsx` es solo
 // un wrapper de `next/dynamic(..., { ssr: false })` (ver su doc-comment).
 import EscanerPageContent from '../EscanerPageContent';
@@ -107,5 +107,43 @@ describe('EscanerPageContent', () => {
       expect(screen.queryByText('Faltan cámaras — no se puede escanear')).not.toBeInTheDocument();
       expect(screen.getByText(/No se pudo autorizar el canal/)).toBeInTheDocument();
     });
+  });
+
+  it('con sesion guardada de kind "camara" (sin ?p= en la URL), no monta el pre-vuelo: avisa el rol actual y como cambiarlo', () => {
+    setDeviceSession({
+      deviceId: 'dev-01',
+      token: 'tok-01',
+      stationId: 'est-01',
+      kind: 'camara',
+      label: 'techo',
+    });
+
+    render(<EscanerPageContent />);
+
+    // Ni el pre-vuelo ("Pre-vuelo") ni la pantalla generica de "no
+    // vinculado" — este dispositivo SI esta vinculado, con el otro rol.
+    expect(screen.queryByText('Pre-vuelo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Escáner no vinculado')).not.toBeInTheDocument();
+
+    expect(screen.getByText(/vinculado como cámara/i)).toBeInTheDocument();
+    expect(screen.getByText(/est-01/)).toBeInTheDocument();
+    expect(screen.getByText(/volver a vincularlo/i)).toBeInTheDocument();
+  });
+
+  it('el boton de re-vinculacion limpia la sesion existente y vuelve al estado "no vinculado"', () => {
+    setDeviceSession({
+      deviceId: 'dev-01',
+      token: 'tok-01',
+      stationId: 'est-01',
+      kind: 'camara',
+      label: 'techo',
+    });
+
+    render(<EscanerPageContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: /re-vincular/i }));
+
+    expect(getDeviceSession()).toBeNull();
+    expect(screen.getByText('Escáner no vinculado')).toBeInTheDocument();
   });
 });

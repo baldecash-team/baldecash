@@ -7,7 +7,7 @@
 // "Cannot access '_fakePusher' before initialization" (orden de ejecución
 // real de los `require()` transpilados, no una regla estética).
 import { FakePusher as mockFakePusher } from '../../_test-support/fakePusher';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 // Se testea `CamaraPageContent` directo, NO `page.tsx`: `page.tsx` es solo
 // un wrapper de `next/dynamic(..., { ssr: false })` (ver su doc-comment) —
 // probarlo agregaría el mecanismo de carga diferida de Next a la ecuación
@@ -75,5 +75,45 @@ describe('CamaraPageContent', () => {
     // vinculando=false desde el primer render, sin flash de "Vinculando…".
     expect(screen.getByText('Dispositivo no vinculado')).toBeInTheDocument();
     expect(screen.queryByText('Vinculando…')).not.toBeInTheDocument();
+  });
+
+  it('con sesion guardada de kind "escaner" (sin ?p= en la URL), no monta el kiosco: avisa el rol actual y como cambiarlo', () => {
+    setDeviceSession({
+      deviceId: 'dev-01',
+      token: 'tok-01',
+      stationId: 'est-01',
+      kind: 'escaner',
+      label: null,
+    });
+
+    render(<CamaraPageContent />);
+
+    // Ni el kiosco de camara ("CONECTADA"/"SIN CONEXION") ni la pantalla
+    // generica de "no vinculado" — este dispositivo SI esta vinculado, solo
+    // que con el otro rol.
+    expect(screen.queryByText('CONECTADA')).not.toBeInTheDocument();
+    expect(screen.queryByText('SIN CONEXIÓN')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dispositivo no vinculado')).not.toBeInTheDocument();
+
+    expect(screen.getByText(/vinculado como escáner/i)).toBeInTheDocument();
+    expect(screen.getByText(/est-01/)).toBeInTheDocument();
+    expect(screen.getByText(/volver a vincularlo/i)).toBeInTheDocument();
+  });
+
+  it('el boton de re-vinculacion limpia la sesion existente y vuelve al estado "no vinculado"', () => {
+    setDeviceSession({
+      deviceId: 'dev-01',
+      token: 'tok-01',
+      stationId: 'est-01',
+      kind: 'escaner',
+      label: null,
+    });
+
+    render(<CamaraPageContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: /re-vincular/i }));
+
+    expect(getDeviceSession()).toBeNull();
+    expect(screen.getByText('Dispositivo no vinculado')).toBeInTheDocument();
   });
 });

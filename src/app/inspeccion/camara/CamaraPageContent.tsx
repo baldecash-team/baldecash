@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
-import { getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
+import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
 
@@ -58,18 +58,58 @@ export default function CamaraPageContent() {
       .finally(() => setVinculando(false));
   }, []);
 
+  // La sesión guardada puede pertenecer al otro rol (ver doc-comment de
+  // arriba de `kindMismatch` más abajo): en ese caso no hay canal de
+  // presencia de cámara que conectar — se pasa null a propósito, no solo
+  // para no renderizar el kiosco sino para no autenticar contra Pusher con
+  // un token que no es el de esta vista.
+  const kindMismatch = session != null && session.kind !== 'camara';
+
   // `error: channelError` para no chocar con el `error` de vinculación
   // (código vencido/ya usado) declarado más arriba: son dos problemas
   // distintos y no deben pisarse el mensaje.
   const { connected, error: channelError } = usePresenceChannel(
-    session?.stationId ?? null,
-    session?.token ?? null
+    kindMismatch ? null : (session?.stationId ?? null),
+    kindMismatch ? null : (session?.token ?? null)
   );
 
   if (vinculando) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
         <p className="text-xl">Vinculando…</p>
+      </main>
+    );
+  }
+
+  // Un mismo navegador solo puede estar vinculado a UN rol a la vez (ver
+  // doc-comment de `deviceSession.ts`): `_upsert_device` en el backend
+  // busca por `id` y sobrescribe `kind`/`token_hash`, así que vincularse acá
+  // como escáner mataría esa fila de cámara sin que nadie se entere, salvo
+  // por el semáforo que se apaga en la estación. Si la sesión guardada es
+  // de otro rol, no se monta el kiosco (nunca llegaría a conectar nada
+  // válido) — se explica qué pasa y se ofrece el único camino de
+  // re-vinculación que existe hoy: `clearDeviceSession()`.
+  if (kindMismatch && session) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-black p-6 text-center text-white">
+        <div>
+          <p className="text-2xl font-semibold">Dispositivo vinculado con otro rol</p>
+          <p className="mt-2 text-sm text-white/70">
+            Este dispositivo está vinculado como escáner de la estación {session.stationId}.
+            Para usarlo como cámara hay que volver a vincularlo, y eso lo va a desvincular
+            como escáner.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              clearDeviceSession();
+              setSession(null);
+            }}
+            className="mt-6 rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Re-vincular este dispositivo
+          </button>
+        </div>
       </main>
     );
   }
