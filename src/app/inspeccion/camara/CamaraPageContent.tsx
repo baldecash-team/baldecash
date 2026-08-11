@@ -5,6 +5,7 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
+import { useWakeLock } from '../_lib/useWakeLock';
 
 function hayCodigoEnUrl(): boolean {
   if (typeof window === 'undefined') return false;
@@ -64,6 +65,14 @@ export default function CamaraPageContent() {
   // para no renderizar el kiosco sino para no autenticar contra Pusher con
   // un token que no es el de esta vista.
   const kindMismatch = session != null && session.kind !== 'camara';
+
+  // Activo mientras el dispositivo esté vinculado como cámara — deliberadamente
+  // independiente de `connected` (el canal de presencia, más abajo): la
+  // pantalla no debe apagarse solo porque Pusher tarda en reconectar. La
+  // captura en sí (F2 Task 3 / F3) es la que de verdad necesita la pantalla
+  // viva, y arranca en cuanto el dispositivo está vinculado, no cuando el
+  // canal conecta.
+  useWakeLock(session != null && !kindMismatch);
 
   // `error: channelError` para no chocar con el `error` de vinculación
   // (código vencido/ya usado) declarado más arriba: son dos problemas
