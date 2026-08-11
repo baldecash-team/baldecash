@@ -312,8 +312,13 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // Los UTM se arrastran a la confirmacion: quien llega hasta aca —sobre todo
   // si siguio sin poder verificarse— tiene que seguir siendo atribuible a la
   // campana con la que entro. `routes.*` arma solo lo que la ruta necesita.
-  const goToConfirmacion = () =>
-    router.replace(withUtmParams(routes.solicitarConfirmacion(landing, code)));
+  // `kycCompletado` solo cuando de verdad se cerró el KYC (`cerrarKyc`), no
+  // cuando se cae acá por el gate de landing sin KYC: la pantalla promete cosas
+  // distintas en cada caso.
+  const goToConfirmacion = (kycCompletado = false) =>
+    router.replace(
+      withUtmParams(routes.solicitarConfirmacion(landing, code, kycCompletado))
+    );
 
   // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
   // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
@@ -502,7 +507,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
     track('kyc_completed', { application_code: code });
     clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
-    goToConfirmacion();
+    goToConfirmacion(true);
   };
 
   /**
@@ -537,7 +542,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
 
     track('kyc_completed', { application_code: code });
     clearKycStep(landing, code);
-    goToConfirmacion();
+    goToConfirmacion(true);
   }
   const goBack =
     safeIndex > 0
