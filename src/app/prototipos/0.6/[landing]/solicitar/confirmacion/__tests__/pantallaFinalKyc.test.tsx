@@ -34,23 +34,23 @@ const data: ReceivedData = {
   notificationChannels: ['whatsapp', 'email'],
 } as ReceivedData;
 
-describe('Confirmación tras cerrar el KYC', () => {
+describe('Confirmación tras cerrar el KYC — cosechador', () => {
   it('celebra el proceso terminado en vez de anunciar que se recibió la solicitud', () => {
-    render(<ReceivedScreen data={data} kycCompletado />);
+    render(<ReceivedScreen data={data} modoCierreKyc="completado" />);
 
     expect(screen.getByText(/Felicitaciones por finalizar todo el proceso/i)).toBeInTheDocument();
     expect(screen.queryByText(/Hemos recibido tu solicitud/i)).not.toBeInTheDocument();
   });
 
   it('no promete un plazo de respuesta: ya no hay nada que responder', () => {
-    render(<ReceivedScreen data={data} kycCompletado />);
+    render(<ReceivedScreen data={data} modoCierreKyc="completado" />);
 
     expect(screen.queryByText(/Estamos revisando tu información/i)).not.toBeInTheDocument();
     expect(screen.getByText(/firmado/i)).toBeInTheDocument();
   });
 
   it('oculta el timeline de estado, que diría que sigue en evaluación', () => {
-    render(<ReceivedScreen data={data} kycCompletado />);
+    render(<ReceivedScreen data={data} modoCierreKyc="completado" />);
 
     expect(screen.queryByText(/En revisión/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Solicitud enviada/i)).not.toBeInTheDocument();
@@ -62,5 +62,27 @@ describe('Confirmación tras cerrar el KYC', () => {
     expect(screen.getByText(/Hemos recibido tu solicitud/i)).toBeInTheDocument();
     expect(screen.getByText(/Estamos revisando tu información/i)).toBeInTheDocument();
     expect(screen.getByText(/En revisión/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Administrativo y obrero fijo no tienen armadas ni fecha propia: a ellos los
+ * llama un asesor. Prometerles "todo terminado" los dejaría sin saber qué
+ * esperar, así que el cierre les avisa que hay contacto en camino.
+ */
+describe('Confirmación tras cerrar el KYC — administrativo y obrero fijo', () => {
+  it('avisa que habrá contacto en vez de celebrar el proceso terminado', () => {
+    render(<ReceivedScreen data={data} modoCierreKyc="contactaremos" />);
+
+    expect(screen.getByText(/Solicitud enviada/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nos pondremos en contacto contigo/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Felicitaciones por finalizar todo el proceso/i)).not.toBeInTheDocument();
+  });
+
+  it('tampoco promete un plazo ni deja el timeline: ya fue aprobado y firmó', () => {
+    render(<ReceivedScreen data={data} modoCierreKyc="contactaremos" />);
+
+    expect(screen.queryByText(/Estamos revisando tu información/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/En revisión/i)).not.toBeInTheDocument();
   });
 });

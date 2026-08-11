@@ -28,7 +28,7 @@ import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
 import { ReceivedScreen } from './components/received';
-import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
+import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 
 /**
@@ -80,23 +80,35 @@ const RESULT_OPTIONS = [
 ];
 
 /**
- * Si la confirmación se abrió al cerrar el KYC y no al enviar la solicitud.
+ * Cómo cierra la confirmación cuando se llega desde el KYC y no desde el submit.
  *
  * `?kyc=1` lo pone `kycClient` cuando de verdad cerró el KYC. Se acota a Family
  * Farms a propósito: es el único convenio donde cerrar el KYC significa quedar
  * aprobado y firmado en el acto (`/completar` aprueba contra legacy), así que es
- * el único donde prometer "todo el proceso terminado" es cierto. En el resto la
- * solicitud sigue en evaluación y el timeline de estado tiene que quedarse.
+ * el único donde no queda nada "en revisión". En el resto la solicitud sigue en
+ * evaluación y la pantalla del submit tiene que quedarse tal cual.
  *
- * Que la landing mande y no solo el flag importa porque el parámetro es
- * pegable a mano: sin este filtro, cualquiera podría hacer que una solicitud
- * en evaluación se anuncie como terminada.
+ * Dentro de Family Farms el cierre no es el mismo para todos:
+ *
+ * - `completado` (cosechador) — le queda un calendario de pagos concreto por
+ *   delante: la primera armada, con fecha fija de campaña. Se le celebra el
+ *   proceso terminado porque el siguiente paso es suyo y ya lo sabe.
+ * - `contactaremos` (administrativo y obrero fijo) — el siguiente paso no es
+ *   suyo sino de un asesor, así que prometerle "todo terminado" lo dejaría sin
+ *   saber qué esperar.
+ *
+ * Que la landing mande y no solo el flag importa porque el parámetro es pegable
+ * a mano: sin este filtro, cualquiera podría hacer que una solicitud en
+ * evaluación se anuncie como terminada.
  */
-export function vieneDelCierreDelKyc(
+export type ModoCierreKyc = 'completado' | 'contactaremos';
+
+export function modoCierreDelKyc(
   searchParams: URLSearchParams,
   landing: string
-): boolean {
-  return searchParams.get('kyc') === '1' && esFamilyFarms(landing);
+): ModoCierreKyc | null {
+  if (searchParams.get('kyc') !== '1' || !esFamilyFarms(landing)) return null;
+  return esFamilyFarmsCosechador(landing) ? 'completado' : 'contactaremos';
 }
 
 /**
@@ -288,7 +300,7 @@ function RealConfirmationContent({
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  const kycCompletado = vieneDelCierreDelKyc(searchParams, landing);
+  const modoCierreKyc = modoCierreDelKyc(searchParams, landing);
 
   return (
     <ReceivedScreen
@@ -296,7 +308,7 @@ function RealConfirmationContent({
       onGoToHome={onGoHome}
       overlayVariant={overlayVariant}
       otpCta={otpCta}
-      kycCompletado={kycCompletado}
+      modoCierreKyc={modoCierreKyc}
     />
   );
 }

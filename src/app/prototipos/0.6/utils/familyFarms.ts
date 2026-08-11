@@ -42,3 +42,20 @@ const SLUG_ADMINISTRATIVO = 'family-farms-baldecash-a';
 export function esFamilyFarmsAdministrativo(slug: string | null | undefined): boolean {
   return (slug ?? '').trim().toLowerCase() === SLUG_ADMINISTRATIVO;
 }
+
+/**
+ * El perfil COSECHADOR del convenio.
+ *
+ * Es el único con la inicial del 25% **obligatoria y fraccionada** en 2 o 4
+ * armadas semanales, con fecha fija de campaña. Los otros dos la pagan de una
+ * (opcional en el caso del obrero fijo) o no la tienen.
+ *
+ * Eso cambia lo que se le puede decir al cerrar el KYC: el cosechador queda con
+ * un calendario de pagos concreto por delante, mientras que a administrativo y
+ * obrero fijo los contacta un asesor.
+ */
+const SLUG_COSECHADOR = 'family-farms-baldecash-c';
+
+export function esFamilyFarmsCosechador(slug: string | null | undefined): boolean {
+  return (slug ?? '').trim().toLowerCase() === SLUG_COSECHADOR;
+}
