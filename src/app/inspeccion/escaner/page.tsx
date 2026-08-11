@@ -61,7 +61,9 @@ export default function EscanerPage() {
       });
   }, []);
 
-  const { members, connected } = usePresenceChannel(
+  // `error: channelError` para no chocar con `vinculoError`/`stateError`/
+  // `pairingError`: son problemas distintos y no deben pisarse el mensaje.
+  const { members, connected, error: channelError } = usePresenceChannel(
     session?.stationId ?? null,
     session?.token ?? null
   );
@@ -181,10 +183,23 @@ export default function EscanerPage() {
             : 'Faltan cámaras — no se puede escanear'}
       </p>
 
-      {!connected && (
-        <p className="mt-3 text-center text-xs" style={{ color: TOKENS.slate }}>
-          Reconectando…
+      {channelError ? (
+        // `missing_config` no es un problema de red y no se arregla
+        // esperando (mismo criterio que camara/page.tsx) — se distingue de
+        // "Reconectando…" para que el operador no vaya a revisar teléfonos
+        // cuando el problema es una env var de Pusher sin setear.
+        <p
+          className="mt-3 text-center text-xs font-semibold"
+          style={{ color: channelError.reason === 'missing_config' ? TOKENS.tertiary : TOKENS.red }}
+        >
+          {channelError.message}
         </p>
+      ) : (
+        !connected && (
+          <p className="mt-3 text-center text-xs" style={{ color: TOKENS.slate }}>
+            Reconectando…
+          </p>
+        )
       )}
 
       <section className="mt-8 border-t pt-6" style={{ borderColor: TOKENS.line }}>

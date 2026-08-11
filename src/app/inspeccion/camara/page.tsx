@@ -49,7 +49,10 @@ export default function CamaraPage() {
       });
   }, []);
 
-  const { connected } = usePresenceChannel(
+  // `error: channelError` para no chocar con el `error` de vinculación
+  // (código vencido/ya usado) declarado más arriba: son dos problemas
+  // distintos y no deben pisarse el mensaje.
+  const { connected, error: channelError } = usePresenceChannel(
     session?.stationId ?? null,
     session?.token ?? null
   );
@@ -75,19 +78,40 @@ export default function CamaraPage() {
     );
   }
 
+  // `missing_config` no es un problema de red — esperar no lo arregla, hace
+  // falta setear las env vars de Pusher. Se distingue del texto genérico
+  // "SIN CONEXIÓN" para que el operador no vaya a revisar la red del
+  // teléfono cuando el problema real es un deploy sin configurar.
+  const statusText = channelError
+    ? channelError.reason === 'missing_config'
+      ? 'FALTA CONFIGURACIÓN'
+      : 'ERROR DE CONEXIÓN'
+    : connected
+      ? 'CONECTADA'
+      : 'SIN CONEXIÓN';
+
+  const dotColor = channelError
+    ? channelError.reason === 'missing_config'
+      ? TOKENS.tertiary
+      : TOKENS.red
+    : connected
+      ? TOKENS.green
+      : TOKENS.red;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 text-center text-white">
       <p className="text-sm uppercase tracking-widest text-white/60">
         {session.label ?? session.kind} · {session.stationId}
       </p>
-      <p className="mt-4 text-5xl font-bold">
-        {connected ? 'CONECTADA' : 'SIN CONEXIÓN'}
-      </p>
+      <p className="mt-4 text-5xl font-bold">{statusText}</p>
       <span
         className="mt-6 h-4 w-4 rounded-full"
-        style={{ background: connected ? TOKENS.green : TOKENS.red }}
+        style={{ background: dotColor }}
         aria-hidden
       />
+      {channelError && (
+        <p className="mt-4 max-w-sm text-sm text-white/70">{channelError.message}</p>
+      )}
     </main>
   );
 }
