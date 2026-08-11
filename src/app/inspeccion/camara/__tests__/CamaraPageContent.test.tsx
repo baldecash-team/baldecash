@@ -243,6 +243,41 @@ describe('CamaraPageContent', () => {
       expect(getUserMedia).toHaveBeenCalledTimes(1);
       expect(document.querySelector('video')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /armar cámara/i })).not.toBeInTheDocument();
+      // Sin `?debug=1`, el botón de prueba de grabado NO existe — no solo
+      // está oculto por CSS. Ver la prueba del gate más abajo.
+      expect(screen.queryByRole('button', { name: /grabar \(prueba\)/i })).not.toBeInTheDocument();
+    });
+
+    it('sin ?debug=1, los botones temporales de prueba no estan en el DOM; con ?debug=1, si', async () => {
+      setDeviceSessionCamara();
+
+      const { unmount } = render(<CamaraPageContent />);
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+      // Gate cerrado por defecto: ni el botón de "grabar" ni, si de algún
+      // modo se llegara a "grabando", el de "detener" deberían poder
+      // aparecer nunca sin el query param.
+      expect(screen.queryByRole('button', { name: /grabar \(prueba\)/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /detener \(prueba\)/i })).not.toBeInTheDocument();
+      unmount();
+
+      window.history.replaceState({}, '', '/inspeccion/camara?debug=1');
+      render(<CamaraPageContent />);
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+
+      const grabarPrueba = screen.getByRole('button', { name: /grabar \(prueba\)/i });
+      expect(grabarPrueba).toBeInTheDocument();
+
+      fireEvent.click(grabarPrueba);
+      await waitFor(() => {
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: /detener \(prueba\)/i })).toBeInTheDocument();
     });
 
     it('en "caida" muestra el estado y un boton de rearme que funciona', async () => {

@@ -14,6 +14,19 @@ function hayCodigoEnUrl(): boolean {
 }
 
 /**
+ * Gate de los botones temporales de prueba (ver doc-comment de
+ * `CapturaEstado`, más abajo). Sin `?debug=1` explícito en la URL, no
+ * existen: un operador de la estación mirando el kiosco normal no tiene
+ * forma de tocarlos por accidente y dejar la cámara grabando fuera de una
+ * inspección. Solo alguien que sabe que tiene que agregar el parámetro
+ * (quien hace la verificación en hardware de la Task 4) los ve.
+ */
+function hayDebugEnUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('debug') === '1';
+}
+
+/**
  * Vista de kiosco de una cámara. F1 la vinculaba y mostraba el estado del
  * canal; F2 (acá) suma la captura local: armar la cámara, mostrar el
  * preview y reflejar `EstadoCaptura` (`useKioskRecorder.ts`). Sin
@@ -56,6 +69,9 @@ export default function CamaraPageContent() {
   const [session, setSession] = useState<DeviceSession | null>(() => getDeviceSession());
   const [error, setError] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState<boolean>(() => hayCodigoEnUrl());
+  // Mismo criterio de lazy init que los de arriba: `?debug=1` es síncrono,
+  // no cambia durante la vida del componente, no hace falta un efecto.
+  const [debug] = useState<boolean>(() => hayDebugEnUrl());
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('p');
@@ -217,6 +233,7 @@ export default function CamaraPageContent() {
             armar={armar}
             grabar={grabar}
             detener={detener}
+            debug={debug}
           />
         </div>
 
@@ -253,6 +270,13 @@ export default function CamaraPageContent() {
  * la Task 4 del plan (jsdom no tiene cámara, no se puede automatizar). F2 no
  * sube nada ni recibe comandos remotos: ese gesto real de grabar/detener lo
  * va a mandar el escáner por el canal en F3/F4, y este botón desaparece.
+ *
+ * Quedan detrás del gate `debug` (`?debug=1` en la URL, ver `hayDebugEnUrl`)
+ * en vez de confiar en que alguien se acuerde de borrarlos: sin el query
+ * param no existen en el DOM, así que un operador de la estación en
+ * operación normal no puede tocarlos por accidente y dejar la cámara
+ * grabando fuera de una inspección. Si en F3/F4 alguien se olvida de sacar
+ * este bloque, el daño es cero — no un botón huérfano en producción.
  */
 interface CapturaEstadoProps {
   estado: EstadoCaptura;
@@ -260,13 +284,15 @@ interface CapturaEstadoProps {
   armar: () => Promise<void>;
   grabar: () => void;
   detener: () => Promise<{ blob: Blob; mimeType: string; duracionMs: number }>;
+  /** `true` solo con `?debug=1` en la URL — gatea los botones de prueba. */
+  debug: boolean;
 }
 
 // Recibe funciones/estado sueltos, NUNCA el objeto `captura` completo del
 // hook — ver el comentario de arriba de `useKioskRecorder()` en
 // `CamaraPageContent`: ese objeto trae `videoRef` adentro, y
 // `react-hooks/refs` no deja pasar un ref río abajo metido en un prop.
-function CapturaEstado({ estado, error, armar, grabar, detener }: CapturaEstadoProps) {
+function CapturaEstado({ estado, error, armar, grabar, detener, debug }: CapturaEstadoProps) {
   const [ultimaPrueba, setUltimaPrueba] = useState<{
     pesoKB: number;
     duracionMs: number;
@@ -309,19 +335,23 @@ function CapturaEstado({ estado, error, armar, grabar, detener }: CapturaEstadoP
       return (
         <>
           <p className="text-6xl font-bold">ARMADA</p>
-          {/* Temporal — ver doc-comment de arriba. */}
-          <button
-            type="button"
-            onClick={() => grabar()}
-            className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white/80"
-          >
-            Grabar (prueba)
-          </button>
-          {ultimaPrueba && (
-            <p className="text-xs text-white/50">
-              Última prueba: {ultimaPrueba.pesoKB} KB · {Math.round(ultimaPrueba.duracionMs / 1000)}s ·{' '}
-              {ultimaPrueba.mimeType}
-            </p>
+          {/* Temporal, detrás del gate `debug` — ver doc-comment de arriba. */}
+          {debug && (
+            <>
+              <button
+                type="button"
+                onClick={() => grabar()}
+                className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white/80"
+              >
+                Grabar (prueba)
+              </button>
+              {ultimaPrueba && (
+                <p className="text-xs text-white/50">
+                  Última prueba: {ultimaPrueba.pesoKB} KB ·{' '}
+                  {Math.round(ultimaPrueba.duracionMs / 1000)}s · {ultimaPrueba.mimeType}
+                </p>
+              )}
+            </>
           )}
         </>
       );
@@ -331,14 +361,16 @@ function CapturaEstado({ estado, error, armar, grabar, detener }: CapturaEstadoP
           <p className="text-6xl font-bold" style={{ color: TOKENS.red }}>
             GRABANDO
           </p>
-          {/* Temporal — ver doc-comment de arriba. */}
-          <button
-            type="button"
-            onClick={handleDetenerPrueba}
-            className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white/80"
-          >
-            Detener (prueba)
-          </button>
+          {/* Temporal, detrás del gate `debug` — ver doc-comment de arriba. */}
+          {debug && (
+            <button
+              type="button"
+              onClick={handleDetenerPrueba}
+              className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white/80"
+            >
+              Detener (prueba)
+            </button>
+          )}
         </>
       );
     case 'caida':
