@@ -5,13 +5,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
 import { getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
-import { redeemPairingCode } from '../_lib/pairing';
+import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
-
-// Mismo patrón que pairing.ts: NEXT_PUBLIC_API_URL ya incluye /api/v1 en su
-// fallback, así que acá NO se vuelve a agregar (el brief original sí lo hacía
-// y hubiera duplicado el path — ver task-7-report.md).
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 interface PairingCode {
   code: string;
@@ -28,7 +23,10 @@ interface PairingCode {
  */
 export default function EscanerPage() {
   const [session, setSession] = useState<DeviceSession | null>(null);
+  const [vinculando, setVinculando] = useState(true);
+  const [vinculoError, setVinculoError] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
+  const [stateError, setStateError] = useState<string | null>(null);
   const [pairing, setPairing] = useState<PairingCode | null>(null);
   const [pairingError, setPairingError] = useState<string | null>(null);
 
@@ -37,16 +35,30 @@ export default function EscanerPage() {
     if (existente) {
       // Deferido a un microtask por la misma razón que en camara/page.tsx:
       // react-hooks/set-state-in-effect no permite setState síncrono acá.
-      Promise.resolve().then(() => setSession(existente));
+      Promise.resolve().then(() => {
+        setSession(existente);
+        setVinculando(false);
+      });
       return;
     }
 
     const code = new URLSearchParams(window.location.search).get('p');
-    if (!code) return;
-    redeemPairingCode(code).then((s) => {
-      setSession(s);
-      window.history.replaceState({}, '', window.location.pathname);
-    });
+    if (!code) {
+      Promise.resolve().then(() => setVinculando(false));
+      return;
+    }
+
+    redeemPairingCode(code)
+      .then((s) => setSession(s))
+      .catch((e: Error) => setVinculoError(e.message))
+      .finally(() => {
+        // El código no debe quedar en el historial ni en el Referer — en
+        // NINGÚN camino, éxito o error (mismo criterio que camara/page.tsx).
+        // Sin esto, un código vencido o ya usado queda pegado en la URL y
+        // cada refresh reintenta canjear el mismo código inválido.
+        window.history.replaceState({}, '', window.location.pathname);
+        setVinculando(false);
+      });
   }, []);
 
   const { members, connected } = usePresenceChannel(
@@ -57,11 +69,25 @@ export default function EscanerPage() {
   // Las etiquetas esperadas vienen del servidor: el front nunca asume cuántas son.
   useEffect(() => {
     if (!session) return;
+    // Mismo motivo que los otros setState en efecto de este archivo:
+    // react-hooks/set-state-in-effect exige que no sea síncrono.
+    Promise.resolve().then(() => setStateError(null));
     fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
       headers: { 'X-Device-Token': session.token },
     })
-      .then((r) => r.json())
-      .then((d) => setLabels(d.camera_labels ?? []));
+      .then((r) => {
+        if (!r.ok) throw new Error(`http_${r.status}`);
+        return r.json();
+      })
+      .then((d) => setLabels(d.camera_labels ?? []))
+      .catch(() => {
+        // Distinguir "no pude consultar el estado" (problema de red del
+        // escáner) de "las cámaras no están conectadas" (problema real de
+        // la estación) — si no, un corte de red del escáner se ve idéntico
+        // a "faltan cámaras" y el operador va a revisar los teléfonos
+        // equivocados.
+        setStateError('No se pudo consultar el estado de la estación. Reintentá o revisá la red del escáner.');
+      });
   }, [session]);
 
   const pedirCodigo = useCallback(
@@ -69,19 +95,15 @@ export default function EscanerPage() {
       if (!session) return;
       setPairingError(null);
       try {
-        // NOTA DE CONTRATO (verificado contra el backend, no adivinado):
-        // POST /inspections/stations/{id}/pairing-codes exige `get_backoffice_user`
-        // (app/api/routers/inspection/pairing.py), es decir un UserAccount de
-        // backoffice autenticado por JWT Bearer — NO `X-Device-Token`. El escáner
-        // kiosco solo tiene un token de dispositivo (deviceSession.token), nunca
-        // un JWT de backoffice, así que esta llamada hoy responde 401 contra el
-        // backend real. El brief de esta task (Step 6) pedía mandar
-        // 'X-Device-Token' acá, pero eso no matchea el endpoint tal como quedó
-        // tras el review de Task 6 (fix que restringió el endpoint a backoffice
-        // para que un dispositivo no pudiera emitir sus propios códigos). Dejo
-        // la llamada tal como la especifica el brief porque no es mi lugar
-        // inventar un mecanismo de auth distinto para el kiosco — ver el reporte
-        // de esta task para la pregunta abierta a resolver con backend/producto.
+        // NOTA DE CONTRATO (verificado contra el backend, commit c648e547):
+        // POST /inspections/stations/{id}/pairing-codes acepta DOS vías de
+        // auth (app/api/routers/inspection/pairing.py): un UserAccount de
+        // backoffice por JWT Bearer, O el propio escáner de la estación por
+        // `X-Device-Token` — pero solo para emitir códigos `kind=camara` de
+        // SU PROPIA estación (`_authorize_scanner_camera_code`). Es lo que
+        // permite vincular una cámara caída sin depender de que haya un
+        // supervisor de backoffice disponible. La llamada de acá (kind fijo
+        // en 'camara', mismo `session.stationId`) ya matchea ese contrato.
         const r = await fetch(
           `${API_BASE_URL}/inspections/stations/${session.stationId}/pairing-codes`,
           {
@@ -107,10 +129,25 @@ export default function EscanerPage() {
     [session]
   );
 
+  if (vinculando) {
+    return (
+      <main className="p-6">
+        <p className="text-lg font-semibold" style={{ color: TOKENS.ink }}>
+          Vinculando…
+        </p>
+      </main>
+    );
+  }
+
   if (!session) {
     return (
       <main className="p-6">
-        <p className="text-lg font-semibold">Escáner no vinculado</p>
+        <p className="text-lg font-semibold" style={{ color: TOKENS.ink }}>
+          Escáner no vinculado
+        </p>
+        <p className="mt-2 text-sm" style={{ color: vinculoError ? TOKENS.red : TOKENS.slate }}>
+          {vinculoError ?? 'Abrí la URL de vinculación que emite el backoffice para esta estación.'}
+        </p>
       </main>
     );
   }
@@ -133,11 +170,15 @@ export default function EscanerPage() {
       <p
         className="mt-6 rounded-xl p-4 text-center text-sm font-semibold"
         style={{
-          background: listo ? '#E9F4EF' : '#FBEDEE',
-          color: listo ? TOKENS.green : TOKENS.red,
+          background: stateError ? '#FBEDEE' : listo ? '#E9F4EF' : '#FBEDEE',
+          color: stateError ? TOKENS.red : listo ? TOKENS.green : TOKENS.red,
         }}
       >
-        {listo ? 'Estación lista para escanear' : 'Faltan cámaras — no se puede escanear'}
+        {stateError
+          ? stateError
+          : listo
+            ? 'Estación lista para escanear'
+            : 'Faltan cámaras — no se puede escanear'}
       </p>
 
       {!connected && (
@@ -174,8 +215,20 @@ export default function EscanerPage() {
             <p className="text-xs" style={{ color: TOKENS.slate }}>
               Escaneá este QR con la cámara del teléfono
             </p>
-            <div className="mx-auto mt-3 flex justify-center">
-              <QRCodeSVG value={pairing.pair_url} size={200} />
+            {/*
+              El escáner corre en laptop (pantalla ancha) y el teléfono lo
+              escanea a cierta distancia: cuanto más grande, mejor. QRCodeSVG
+              es vector (viewBox + paths, sin rasterizar) así que escalarlo
+              por CSS no pierde nitidez — el `size` de abajo es solo la
+              resolución interna del viewBox, el tamaño real lo da el
+              contenedor responsive.
+            */}
+            <div className="mx-auto mt-3 w-40 sm:w-56 md:w-72 lg:w-96">
+              <QRCodeSVG
+                value={pairing.pair_url}
+                size={384}
+                style={{ width: '100%', height: 'auto' }}
+              />
             </div>
             <p className="mt-3 font-mono text-2xl tracking-widest" style={{ color: TOKENS.ink }}>
               {pairing.code}

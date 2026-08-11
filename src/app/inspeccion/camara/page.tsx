@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
@@ -37,13 +38,15 @@ export default function CamaraPage() {
     }
 
     redeemPairingCode(code)
-      .then((s) => {
-        setSession(s);
-        // El código no debe quedar en el historial ni en el Referer.
-        window.history.replaceState({}, '', window.location.pathname);
-      })
+      .then((s) => setSession(s))
       .catch((e: Error) => setError(e.message))
-      .finally(() => setVinculando(false));
+      .finally(() => {
+        // El código no debe quedar en el historial ni en el Referer —
+        // en NINGÚN camino, éxito o error: un canje fallido (vencido, ya
+        // usado) no hace que el código sea menos sensible.
+        window.history.replaceState({}, '', window.location.pathname);
+        setVinculando(false);
+      });
   }, []);
 
   const { connected } = usePresenceChannel(
@@ -81,7 +84,8 @@ export default function CamaraPage() {
         {connected ? 'CONECTADA' : 'SIN CONEXIÓN'}
       </p>
       <span
-        className={`mt-6 h-4 w-4 rounded-full ${connected ? 'bg-[#16a34a]' : 'bg-[#ef4444]'}`}
+        className="mt-6 h-4 w-4 rounded-full"
+        style={{ background: connected ? TOKENS.green : TOKENS.red }}
         aria-hidden
       />
     </main>
