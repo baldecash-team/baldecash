@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
-import { getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
+import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
 
@@ -74,16 +74,25 @@ export default function EscanerPageContent() {
       .finally(() => setVinculando(false));
   }, []);
 
+  // La sesión guardada puede pertenecer al otro rol (ver doc-comment sobre
+  // el render de más abajo): en ese caso no hay canal de presencia de
+  // escáner que conectar ni estado de estación que consultar — se pasa
+  // null a propósito, no solo para no renderizar el pre-vuelo sino para no
+  // autenticar contra Pusher ni pegarle al backend con un token que no es
+  // el de esta vista (los botones de vinculación que dependen de `labels`
+  // terminarían dando 403 igual).
+  const kindMismatch = session != null && session.kind !== 'escaner';
+
   // `error: channelError` para no chocar con `vinculoError`/`stateError`/
   // `pairingError`: son problemas distintos y no deben pisarse el mensaje.
   const { members, connected, error: channelError } = usePresenceChannel(
-    session?.stationId ?? null,
-    session?.token ?? null
+    kindMismatch ? null : (session?.stationId ?? null),
+    kindMismatch ? null : (session?.token ?? null)
   );
 
   // Las etiquetas esperadas vienen del servidor: el front nunca asume cuántas son.
   useEffect(() => {
-    if (!session) return;
+    if (!session || kindMismatch) return;
     fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
       headers: { 'X-Device-Token': session.token },
     })
@@ -107,7 +116,7 @@ export default function EscanerPageContent() {
         // equivocados.
         setStateError('No se pudo consultar el estado de la estación. Reintentá o revisá la red del escáner.');
       });
-  }, [session]);
+  }, [session, kindMismatch]);
 
   const pedirCodigo = useCallback(
     async (label: string) => {
@@ -154,6 +163,40 @@ export default function EscanerPageContent() {
         <p className="text-lg font-semibold" style={{ color: TOKENS.ink }}>
           Vinculando…
         </p>
+      </main>
+    );
+  }
+
+  // Un mismo navegador solo puede estar vinculado a UN rol a la vez (ver
+  // doc-comment de `deviceSession.ts`): `_upsert_device` en el backend
+  // busca por `id` y sobrescribe `kind`/`token_hash`, así que vincularse acá
+  // como cámara mataría esa fila de escáner sin que nadie se entere. Si la
+  // sesión guardada es de otro rol, no se monta el pre-vuelo — antes
+  // igual se montaba y los botones de vinculación terminaban dando 403. Se
+  // explica qué pasa y se ofrece el único camino de re-vinculación que
+  // existe hoy: `clearDeviceSession()`.
+  if (kindMismatch && session) {
+    return (
+      <main className="p-6">
+        <p className="text-lg font-semibold" style={{ color: TOKENS.ink }}>
+          Dispositivo vinculado con otro rol
+        </p>
+        <p className="mt-2 text-sm" style={{ color: TOKENS.slate }}>
+          Este dispositivo está vinculado como cámara ({session.label ?? 'sin etiqueta'}) de la
+          estación {session.stationId}. Para usarlo como escáner hay que volver a vincularlo,
+          y eso lo va a desvincular como cámara.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            clearDeviceSession();
+            setSession(null);
+          }}
+          className="mt-4 rounded-lg border px-4 py-2 text-sm font-semibold"
+          style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
+        >
+          Re-vincular este dispositivo
+        </button>
       </main>
     );
   }
