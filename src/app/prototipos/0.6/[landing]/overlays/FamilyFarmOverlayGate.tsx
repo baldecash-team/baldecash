@@ -34,13 +34,13 @@ const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
 
 /*
- * Copia final de negocio (BAL-2878, no placeholder). Vive en una única
+ * Copia final de negocio (BAL-2928, no placeholder). Vive en una única
  * constante de módulo para que un cambio de texto sea un diff de una línea
  * que no toca lógica, estilos ni tests — los tests de comportamiento
  * asertan por `data-testid`, nunca contra este string.
  */
 const WITHHELD_NOTICE_COPY =
-  'Tu documento está registrado, pero por ahora no cumple los requisitos para acceder al catálogo. Puedes volver a intentarlo más adelante.';
+  'Gracias por acercarte. Por ahora todavía no puedes postular: la participación se abre por etapas, según el tiempo trabajado en el fundo. Tu registro quedó guardado y te contactaremos cuando puedas postular.';
 
 /*
  * Absolute S3 URLs, matching how every other image under prototipos/0.6 is
