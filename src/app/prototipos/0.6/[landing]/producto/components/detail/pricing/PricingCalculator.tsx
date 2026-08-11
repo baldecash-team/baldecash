@@ -139,7 +139,6 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(defaultInitialPercent as InitialPaymentPercentage);
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
   const isHoverCapable = useHoverCapable();
-  const isMountedRef = useRef(false);
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
 
@@ -320,12 +319,19 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
     return getOptionForTerm(selectedTerm);
   }, [selectedTerm, selectedInitialPercent, paymentPlans]);
 
-  // Notify parent only when user changes selection (skip initial mount)
+  // Se avisa TAMBIEN en el montaje, no solo cuando el usuario cambia algo.
+  //
+  // Saltarse la primera emision dejaba a los consumidores sin saber que hay
+  // seleccionado hasta que alguien tocara el calculador, y ellos caen a los
+  // defaults del producto mientras tanto. En la barra de "Lo quiero" de
+  // copia-home eso se veia entero: el calculador decia "S/52.90/sem, 17
+  // semanas, + S/250 de inicial" y justo debajo la barra decia "S/52/mes, en
+  // 15 meses, sin inicial" — los cuatro valores equivocados a la vez, sobre el
+  // mismo equipo.
+  //
+  // No dispara analytics de mas: `handlePricingSelectionChange` solo trackea
+  // cuando hay un `prev` con el que comparar, y en la primera emision no lo hay.
   useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      return;
-    }
     if (onSelectionChangeRef.current && selectedOption) {
       onSelectionChangeRef.current({
         term: selectedTerm,

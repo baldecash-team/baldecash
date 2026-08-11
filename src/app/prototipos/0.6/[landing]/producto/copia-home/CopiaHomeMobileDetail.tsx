@@ -214,8 +214,12 @@ export function CopiaHomeMobileDetail({
   const [pricingSel, setPricingSel] = useState<PricingSelection | null>(null);
   const term = pricingSel?.term ?? initialTerm;
   const initialPercent = pricingSel?.initialPercent ?? (defaultInitialPercent ?? 0);
-  const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
-  const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
+  // Sin `Math.floor`: donde la cuota tiene centavos reales (Family Farms) truncar
+  // aca miente dos veces — en la barra de "Lo quiero" y en el payload que se
+  // guarda para solicitar. Quien decide como se escribe es
+  // `formatCuotaDeLanding`, que ya trunca en las landings que no muestran centavos.
+  const monthlyQuota = pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0;
+  const initialAmount = pricingSel?.initialAmount ?? 0;
   const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
   // En cuantas armadas se cobra la inicial de la opcion elegida. Viene con la
   // opcion, no es una eleccion aparte: cada modalidad es una celda propia del
