@@ -168,3 +168,32 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     overlay_deadline: '',
   },
 };
+
+/**
+ * Cupo de solicitudes de la campaña (namespace `application_cap`).
+ *
+ * Lo expone `/public/landing/{slug}/config` solo en las landings que declaran
+ * un tope. Family Farms abre el convenio del cosechador con cupo acotado: se
+ * admiten las primeras N solicitudes y después deja de recibir.
+ *
+ * El backend informa únicamente si está abierta; cuántas van y cuántas faltan
+ * es información de negocio que el público no necesita.
+ */
+export interface ApplicationCapConfig {
+  abierto: boolean;
+}
+
+/**
+ * ¿La campaña sigue recibiendo solicitudes?
+ *
+ * El default manda: ante la ausencia del bloque, un dato mal formado o una
+ * respuesta que no llegó, la campaña está ABIERTA. Cerrar una landing por un
+ * dato que falta sería peor que el problema que esto resuelve, y el envío
+ * igual valida el cupo del lado del servidor: acá solo se avisa antes.
+ */
+export function campanaAbierta(config: LandingConfig | null | undefined): boolean {
+  const raw = (config as Record<string, unknown> | null | undefined)?.['application_cap'];
+  if (!raw || typeof raw !== 'object') return true;
+  const abierto = (raw as Partial<ApplicationCapConfig>).abierto;
+  return typeof abierto === 'boolean' ? abierto : true;
+}

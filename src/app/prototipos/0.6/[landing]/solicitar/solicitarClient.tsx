@@ -34,6 +34,7 @@ import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 
 // Landing config (to check has_catalog)
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { campanaAbierta } from '@/app/prototipos/0.6/types/landingConfig';
 
 // Preview context
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -124,8 +125,16 @@ function WizardPreviewContent() {
 
   // Check if this landing has a catalog (for redirect fallback)
   const [hasCatalog, setHasCatalog] = useState(true);
+  // Cupo de la campaña. Arranca en `true` y solo se cierra si el backend lo
+  // dice: mientras la respuesta viaja, el formulario se ve normal. El envío
+  // valida el cupo del lado del servidor, así que este aviso no es la defensa
+  // —es para no hacer llenar un formulario que ya no se va a poder mandar.
+  const [campanaRecibe, setCampanaRecibe] = useState(true);
   useEffect(() => {
-    fetchLandingConfig(landing).then(cfg => setHasCatalog(cfg.layout.has_catalog));
+    fetchLandingConfig(landing).then(cfg => {
+      setHasCatalog(cfg.layout.has_catalog);
+      setCampanaRecibe(campanaAbierta(cfg));
+    });
   }, [landing]);
 
   const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded, isLoadingAccessories } = useProduct();
@@ -399,6 +408,21 @@ function WizardPreviewContent() {
             Completa el formulario para solicitar tu equipo tecnológico
           </p>
         </div>
+
+        {!campanaRecibe && (
+          <div
+            role="status"
+            className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 sm:px-5 sm:py-5"
+          >
+            <p className="font-semibold text-amber-900">
+              Por ahora no estamos recibiendo más solicitudes
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              Se llenaron los cupos de esta campaña. Si ya enviaste la tuya, sigue su curso con
+              normalidad y te vamos a contactar.
+            </p>
+          </div>
+        )}
 
         {/* Products Card - Shows all cart products or single selected product */}
         {(() => {
