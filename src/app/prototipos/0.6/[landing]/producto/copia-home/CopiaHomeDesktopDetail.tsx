@@ -191,8 +191,12 @@ export function CopiaHomeDesktopDetail({
   const [pricingSel, setPricingSel] = useState<PricingSelection | null>(null);
   const term = pricingSel?.term ?? initialTerm;
   const initialPercent = pricingSel?.initialPercent ?? (defaultInitialPercent ?? 0);
-  const monthlyQuota = Math.floor(pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0);
-  const initialAmount = Math.floor(pricingSel?.initialAmount ?? 0);
+  // Sin `Math.floor`: donde la cuota tiene centavos reales (Family Farms) truncar
+  // aca miente dos veces — en la barra de "Lo quiero" y en el payload que se
+  // guarda para solicitar. Quien decide como se escribe es
+  // `formatCuotaDeLanding`, que ya trunca en las landings que no muestran centavos.
+  const monthlyQuota = pricingSel?.monthlyQuota ?? product.lowestQuota ?? 0;
+  const initialAmount = pricingSel?.initialAmount ?? 0;
   const paymentFrequency = pricingSel?.paymentFrequency ?? defaultFrequency ?? 'mensual';
   // La barra decia "/mes" siempre: en un plan semanal prometia la cuota
   // de la semana como si fuera del mes, doce veces mas barato de lo real.
