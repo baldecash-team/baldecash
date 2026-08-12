@@ -24,8 +24,6 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/carloscueto': 'https://beneficios.baldecash.com/carloscueto',
   '/innova': 'https://beneficios.baldecash.com/innova',
   '/corrientealterna': 'https://beneficios.baldecash.com/corrientealterna',
-  '/zegel': 'https://beneficios.baldecash.com/zegel',
-  '/idat': 'https://beneficios.baldecash.com/idat',
   '/iurusayhua': 'https://beneficios.baldecash.com/iurusayhua',
   '/terminos-condiciones-sorteo-mayo-baldecash': 'https://drive.google.com/file/d/1IdE3FIG0y7iwL6sxYNGnookGZIMuaVtB/view',
   '/usjb': 'https://beneficios.baldecash.com/usjb',
