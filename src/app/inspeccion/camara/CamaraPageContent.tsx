@@ -17,16 +17,32 @@ import { useComandos, type ComandoStartPayload } from '../_lib/useComandos';
  * confirmación para saber que el mensaje llegó, no que ya está grabando
  * (plan F3 Task 4, Step 4).
  *
+ * `listo` — fix post-review de F3 (C2 / I5), CRÍTICO: antes se ackeaba
+ * incondicionalmente, así que "recibí el mensaje" se confundía con "recibí
+ * el mensaje Y voy a poder grabar". Una cámara sin armar o caída ackeaba
+ * igual, el backend contaba ese ack para el quórum, y el escáner terminaba
+ * mostrando GRABANDO sin un solo frame de esa cámara. `listo` distingue las
+ * dos cosas en el timeline de `inspection_event`: `false` es "llegó a una
+ * cámara que no puede grabar", no "no llegó". Quien llama decide `listo`
+ * mirando el estado de captura Y el reloj (`useServerClock.listo` — I5: un
+ * offset sin calibrar todavía degrada la sincronía sin dejar rastro).
+ *
+ * NOTA DE COORDINACIÓN: el contrato de `POST /ack` en ws2 todavía no lee
+ * `listo` (`AckRequest` solo tiene `seq` a la fecha de este fix) — ese
+ * cambio de backend se coordina aparte. Mandarlo ya es inofensivo (Pydantic
+ * ignora campos extra por default) y deja el front listo para el día que el
+ * backend lo empiece a usar, sin otro deploy de acá.
+ *
  * Sin reintento a propósito: si falla por red, para cuando uno resolviera el
  * escáner ya habría decidido por el timeout de 1,5s (spec §10) — no hay nada
  * más accionable acá que dejar que ese camino haga su trabajo.
  */
-async function ackComando(inspectionId: number, seq: number, token: string): Promise<void> {
+async function ackComando(inspectionId: number, seq: number, token: string, listo: boolean): Promise<void> {
   try {
     await fetch(`${API_BASE_URL}/inspections/${inspectionId}/ack`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
-      body: JSON.stringify({ seq }),
+      body: JSON.stringify({ seq, listo }),
     });
   } catch {
     // Ver doc-comment de arriba: nada accionable acá.
@@ -196,8 +212,13 @@ export default function CamaraPageContent() {
 
   // F3: la cámara obedece comandos remotos (spec §6). `offsetMs` traduce el
   // `start_at` absoluto del servidor a un instante local — ver doc-comment
-  // de `useServerClock.ts`.
-  const { offsetMs } = useServerClock();
+  // de `useServerClock.ts`. `clockListo` (I5, fix post-review): antes nadie
+  // lo consumía — `offsetMs` arranca en 0 y las 5 muestras son secuenciales,
+  // así que hay una ventana real de varios segundos donde un `cmd.start`
+  // se programaría contra el reloj CRUDO del teléfono, degradando la
+  // sincronía (criterio duro de F3: ≤150 ms) sin ningún rastro. Entra en
+  // `puedeGrabar` de `manejarStart`, más abajo.
+  const { offsetMs, listo: clockListo } = useServerClock();
 
   // El timer del PRÓXIMO arranque programado. Un ref, no estado: no hace
   // falta re-renderizar por esto, y `manejarStart` necesita poder cancelar
@@ -207,38 +228,87 @@ export default function CamaraPageContent() {
   // programados a la vez si alguna vez pasara).
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Fix post-review (C1, CRÍTICO): antes `manejarStop`/`manejarAbort` solo
+  // llamaban `detener()`, que RECHAZA si todavía no hay grabación en curso
+  // (rechazo tragado por un `.catch(() => {})`) — el timer de `manejarStart`
+  // nunca se cancelaba. Secuencia verificada por la review: `cmd.start` con
+  // `start_at=+1500`, `cmd.abort` a los 500ms, la cámara igual arranca a
+  // grabar a los 1500ms porque nadie tocó `startTimerRef`. Esa grabación no
+  // la para nadie (la inspección ya está `failed`, no va a haber
+  // `cmd.stop`), y el `cmd.start` SIGUIENTE se ackea pero no graba nada
+  // (`grabar()` sale temprano al ver el recorder ocupado) — cámara zombi:
+  // ackea todo, graba nada, y su último `capture_state` reportado sigue
+  // siendo `armada`, así que el semáforo del escáner queda verde. Encima,
+  // `ACK_TIMEOUT_MS` del escáner es EL MISMO valor que `_START_DELAY_MS` del
+  // backend — el abort por timeout llega justo cuando el timer iba a
+  // disparar. No es un caso raro: es el camino degradado normal.
+  const cancelarArranquePendiente = useCallback(() => {
+    if (startTimerRef.current) {
+      clearTimeout(startTimerRef.current);
+      startTimerRef.current = null;
+    }
+  }, []);
+
+  // Dedupe por `(inspection_id, seq)` a nivel de componente — no solo el de
+  // `useComandos` (que dedupea la vía EN VIVO del canal). Hace falta acá
+  // porque, con el fix C4 más abajo, `manejarStart` se puede invocar por DOS
+  // caminos distintos (el canal en vivo, vía `useComandos`, Y el resync
+  // contra `/state` al reconectar) — sin este segundo nivel, un `cmd.start`
+  // que llega tarde por el canal justo después de que el resync ya lo
+  // procesó dispararía un ack y una programación duplicados.
+  const procesadosStartRef = useRef<Set<string>>(new Set());
+
   const manejarStart = useCallback(
     (payload: ComandoStartPayload) => {
       if (!session) return;
-      // El ack sale YA, antes de programar nada — ver doc-comment de
-      // `ackComando` arriba.
-      void ackComando(payload.inspection_id, payload.seq, session.token);
+      const clave = `start:${payload.inspection_id}:${payload.seq}`;
+      if (procesadosStartRef.current.has(clave)) return;
+      procesadosStartRef.current.add(clave);
 
-      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+      // Fix post-review (C2, CRÍTICO): el ack ahora dice la verdad sobre si
+      // ESTA cámara puede grabar — ver doc-comment de `ackComando`. Antes se
+      // ackeaba sin mirar `capturaEstado`: una cámara nunca armada, o caída
+      // tras un `track.ended` real, ackeaba igual, el backend contaba ese
+      // ack para el quórum, y el escáner mostraba GRABANDO sin un frame de
+      // esta cámara. `clockListo` (I5) entra acá también: sin el reloj
+      // calibrado, "grabar" sería grabar desincronizado, que para el
+      // criterio de ≤150ms de F3 es tan malo como no grabar.
+      const puedeGrabar = capturaEstado === 'armada' && clockListo;
+      void ackComando(payload.inspection_id, payload.seq, session.token, puedeGrabar);
+
+      cancelarArranquePendiente();
+      if (!puedeGrabar) return;
+
       // Arranque por reloj absoluto (spec §6.1 regla 2): se programa para el
       // instante `start_at` CORREGIDO POR EL OFFSET, no para "ahora". Así
       // todas las cámaras de la estación arrancan juntas aunque el mensaje
       // de Pusher les llegue con latencias distintas. `Math.max(0, …)`
       // porque si el offset+red hicieron que el instante ya haya pasado
-      // (mensaje muy tardío), lo mejor que se puede hacer es arrancar ya.
+      // (mensaje muy tardío, o resync tardío tras reconectar — C4), lo mejor
+      // que se puede hacer es arrancar ya.
       const delayMs = payload.start_at - offsetMs - Date.now();
       startTimerRef.current = setTimeout(() => {
         grabar();
       }, Math.max(0, delayMs));
     },
-    [session, offsetMs, grabar]
+    [session, offsetMs, clockListo, capturaEstado, grabar, cancelarArranquePendiente]
   );
 
   const manejarStop = useCallback(() => {
+    // Fix C1: cancelar SIEMPRE, antes de intentar `detener()` — ver
+    // doc-comment de `cancelarArranquePendiente`.
+    cancelarArranquePendiente();
     detener().catch(() => {});
-  }, [detener]);
+  }, [detener, cancelarArranquePendiente]);
 
   const manejarAbort = useCallback(() => {
-    // La transición de la inspección a `failed` la decide el servidor
+    // Fix C1 (ver doc-comment de `cancelarArranquePendiente`). La
+    // transición de la inspección a `failed` la decide el servidor
     // (CLAUDE.md / spec: "los dispositivos reportan, nunca deciden") — acá
     // solo se corta la captura local, igual que con `cmd.stop`.
+    cancelarArranquePendiente();
     detener().catch(() => {});
-  }, [detener]);
+  }, [detener, cancelarArranquePendiente]);
 
   useComandos(channel, { onStart: manejarStart, onStop: manejarStop, onAbort: manejarAbort });
 
@@ -257,16 +327,104 @@ export default function CamaraPageContent() {
   // en cuanto el canal vuelve a confirmar la suscripción, incluida la
   // primera vez. `yaConectadaRef` detecta el FLANCO (false→true): sin él,
   // cualquier re-render con `connected=true` volvería a pegarle al backend.
+  //
+  // Fix post-review (C4, CRÍTICO): antes esto pedía `/state` y TIRABA la
+  // respuesta (`.catch()` sin `.then()`) — el comentario decía "se
+  // resincroniza contra /state" pero no había ningún código leyendo el
+  // resultado. Es la red de seguridad de todo lo demás: sin esto, una
+  // cámara que se perdió el `cmd.start` no se entera nunca, una que se
+  // perdió el `cmd.abort` graba para siempre (mitigado también por C1, pero
+  // esto cubre el caso de perder el mensaje por estar desconectada, no solo
+  // por la carrera del timer), y una que se perdió el `cmd.stop` no para.
+  //
+  // `active_inspection.start_at`/`.seq` (agregados al backend justo para
+  // esto) dejan reconstruir un `cmd.start` completo: si el status es
+  // `created`/`recording`, se re-procesa como si acabara de llegar —
+  // `manejarStart` re-ackea (o ackea `listo:false` si esta cámara no puede)
+  // y programa `grabar()` para el instante real, clampado a "ya" si ya
+  // pasó (typical tras un resync tardío). Si el status es otra cosa
+  // (`uploading`/`complete`/`incomplete`/`failed`) o no hay inspección en
+  // curso, se llama `manejarStop()` — no-op si esta cámara no estaba
+  // grabando, y la detiene si se había perdido el `cmd.stop`/`cmd.abort`
+  // correspondiente. El dedupe por `(inspection_id, seq)` de
+  // `procesadosStartRef` evita que esto duplique un `cmd.start` que ya se
+  // procesó por el canal en vivo.
   const yaConectadaRef = useRef(false);
   useEffect(() => {
     if (!session || kindMismatch) return;
     if (connected && !yaConectadaRef.current) {
-      fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
-        headers: { 'X-Device-Token': session.token },
-      }).catch(() => {});
+      // I3 (review F3): re-reporta el estado de captura al reconectar, en
+      // el mismo flanco — ver doc-comment del efecto de heartbeat más abajo
+      // para por qué esto solo no alcanza (una cámara que nunca se
+      // desconecta no pasa por acá nunca).
+      if (capturaEstado === 'armada' || capturaEstado === 'caida') {
+        void reportarEstadoCaptura(capturaEstado, session.token);
+      }
+
+      void (async () => {
+        try {
+          const r = await fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
+            headers: { 'X-Device-Token': session.token },
+          });
+          if (!r.ok) return;
+          const body = await r.json();
+          const activa = body.active_inspection as
+            | { id: number; status: string; start_at?: number; seq?: number }
+            | null
+            | undefined;
+
+          // Solo estos dos status significan "debería estar grabando ahora
+          // o en breve" — el resto (o ninguna inspección en curso) significa
+          // "no debería estar grabando".
+          const deberiaEstarGrabando =
+            !!activa &&
+            (activa.status === 'created' || activa.status === 'recording') &&
+            typeof activa.start_at === 'number' &&
+            typeof activa.seq === 'number';
+
+          if (deberiaEstarGrabando && activa) {
+            manejarStart({
+              inspection_id: activa.id,
+              start_at: activa.start_at as number,
+              seq: activa.seq as number,
+            });
+          } else {
+            manejarStop();
+          }
+        } catch {
+          // Sin conexión: nada más accionable — el próximo flanco de
+          // reconexión reintenta.
+        }
+      })();
     }
     yaConectadaRef.current = connected;
-  }, [connected, session, kindMismatch]);
+  }, [connected, session, kindMismatch, capturaEstado, manejarStart, manejarStop]);
+
+  // I3 (review F3): heartbeat liviano del estado de captura. El re-reporte
+  // al reconectar (arriba) no alcanza solo: una cámara armada y QUIETA
+  // durante el almuerzo o el arranque de turno no se desconecta nunca, así
+  // que ese efecto nunca dispara para ella — y como la cámara solo reporta
+  // en TRANSICIONES (armarse/caer/rearmarse, no en cada cambio trivial), su
+  // único reporte pudo haber sido hace más de `CAPTURE_STATE_STALE_AFTER`
+  // (30 min, backend). Sin este heartbeat, el umbral de vigencia marca esa
+  // cámara sana como "sin estado válido" y el semáforo del escáner se pone
+  // en rojo por una razón que no es real — sin ningún remedio salvo recargar
+  // el teléfono, porque no hay otra transición que dispare un reporte.
+  //
+  // 10 minutos: tres veces el margen antes del umbral del backend, y
+  // "liviano" en el sentido literal — un POST chico, sin tocar la captura
+  // en sí. Solo re-reporta si hay algo que reportar (`armada`/`caida`); en
+  // `inactiva`/`armando` no hay estado válido que refrescar.
+  useEffect(() => {
+    if (!session) return undefined;
+    const HEARTBEAT_MS = 10 * 60 * 1000;
+    const id = setInterval(() => {
+      if (capturaEstado === 'armada' || capturaEstado === 'caida') {
+        void reportarEstadoCaptura(capturaEstado, session.token);
+      }
+    }, HEARTBEAT_MS);
+    return () => clearInterval(id);
+  }, [session, capturaEstado]);
 
   if (vinculando) {
     return (
