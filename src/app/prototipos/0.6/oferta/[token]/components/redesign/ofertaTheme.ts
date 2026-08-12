@@ -12,9 +12,15 @@
  */
 
 export const OFERTA_COLORS = {
-  /** Índigo de marca — CTAs primarios, monto héroe, acentos. */
-  primary: '#4F46E5',
-  primaryHover: '#4338CA',
+  /** Azul BaldeCash — CTAs primarios, monto héroe, acentos.
+   *
+   *  Era '#4F46E5' (índigo del mock). Se alinea al azul de marca real, que es
+   *  el que usa el resto del producto. Como este archivo es la fuente única de
+   *  los hex, el cambio se propaga a TODOS los componentes de `redesign/` —
+   *  incluido el flujo upsell, que es justamente lo que se quiere: una sola
+   *  marca en las dos pantallas. */
+  primary: '#4654CD',
+  primaryHover: '#3A46AE',
 
   /** Verde — estados de éxito, Caso 4 (downgrade aprobado). */
   green: '#22C55E',
