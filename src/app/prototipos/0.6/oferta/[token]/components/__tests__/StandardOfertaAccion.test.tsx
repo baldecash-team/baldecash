@@ -195,6 +195,10 @@ describe('StandardOfertaAccion', () => {
     renderView(vencida);
 
     expect(screen.getByText('Esta oferta venció')).toBeInTheDocument();
+    // El subtítulo no puede seguir invitando a aceptar algo que ya no se acepta:
+    // lo contradecía el propio botón de abajo.
+    expect(screen.queryByText(/Queda en firme recién cuando la aceptas/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Escríbenos y la reactivamos/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Rechazar$/i })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /Oferta vencida/i }));

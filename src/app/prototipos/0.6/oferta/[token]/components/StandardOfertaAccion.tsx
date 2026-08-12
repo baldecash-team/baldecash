@@ -26,7 +26,7 @@
  *     TEA/TCEA al pie, en vez de una grilla que destacaba la TEA.
  */
 import { useCallback, useState } from 'react';
-import { ArrowRight, Ban, CheckCircle2, Clock, MessageCircle, XCircle } from 'lucide-react';
+import { ArrowDown, Ban, CheckCircle2, Clock, MessageCircle, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
@@ -206,7 +206,11 @@ export function StandardOfertaAccion({
         </div>
 
         <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-          Revisa las condiciones y decide. Queda en firme recién cuando la aceptas.
+          {/* Vencida, el subtítulo invitaba a aceptar algo que ya no se puede
+              aceptar. Lo contradecía el propio botón de abajo. */}
+          {expired
+            ? 'Estas son las condiciones que se te ofrecieron. Escríbenos y la reactivamos.'
+            : 'Revisa las condiciones y decide. Queda en firme recién cuando la aceptas.'}
         </p>
 
         {/* Código de la solicitud: para tenerlo a mano si contacta soporte. */}
@@ -267,7 +271,10 @@ export function StandardOfertaAccion({
                 ) : null}
               </div>
             </div>
-            <ArrowRight className="h-4 w-4 flex-none" style={{ color: OFERTA_COLORS.primary }} />
+            {/* Hacia ABAJO, no a la derecha: el equipo ofrecido es el card que
+                sigue. Con la flecha horizontal se lee como que hay algo al
+                costado — visto al mirar la pantalla, no en un test. */}
+            <ArrowDown className="h-4 w-4 flex-none" style={{ color: OFERTA_COLORS.primary }} />
             <div className="text-[11.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
               Te ofrecemos
             </div>
