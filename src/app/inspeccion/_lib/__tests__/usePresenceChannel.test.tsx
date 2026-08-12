@@ -56,4 +56,71 @@ describe('usePresenceChannel', () => {
     expect(result.current.connected).toBe(true);
     expect(result.current.error).toBeNull();
   });
+
+  describe('device.capture_state (F3 Task 5 / review de F2 — emitido por el backend)', () => {
+    function conMiembro(deviceId: string, kind: string, label: string | null) {
+      const pusher = FakePusher.instances[0];
+      pusher.channel.members.each.mockImplementation(
+        (cb: (m: { id: string; info?: { kind?: string; label?: string | null } }) => void) => {
+          cb({ id: deviceId, info: { kind, label } });
+        }
+      );
+      return pusher;
+    }
+
+    it('una camara recien conectada, sin reporte de estado todavia, tiene captureState null', () => {
+      const { result } = renderHook(() => usePresenceChannel('est-01', 'tok-01'));
+      conMiembro('dev-cam', 'camara', 'techo');
+
+      act(() => {
+        FakePusher.instances[0].channel.emit('pusher:subscription_succeeded');
+      });
+
+      expect(result.current.members).toEqual([
+        { deviceId: 'dev-cam', kind: 'camara', label: 'techo', captureState: null },
+      ]);
+    });
+
+    it('un device.capture_state actualiza el captureState del miembro que coincide por device_id', () => {
+      const { result } = renderHook(() => usePresenceChannel('est-01', 'tok-01'));
+      const pusher = conMiembro('dev-cam', 'camara', 'techo');
+
+      act(() => {
+        pusher.channel.emit('pusher:subscription_succeeded');
+        pusher.channel.emit('device.capture_state', { device_id: 'dev-cam', estado: 'armada' });
+      });
+
+      expect(result.current.members[0].captureState).toBe('armada');
+    });
+
+    it('una reconexion completa arranca en blanco: no arrastra el ultimo captureState conocido', () => {
+      const { result, rerender } = renderHook(
+        ({ stationId }) => usePresenceChannel(stationId, 'tok-01'),
+        { initialProps: { stationId: 'est-01' } }
+      );
+      const primerPusher = conMiembro('dev-cam', 'camara', 'techo');
+      act(() => {
+        primerPusher.channel.emit('pusher:subscription_succeeded');
+        primerPusher.channel.emit('device.capture_state', { device_id: 'dev-cam', estado: 'armada' });
+      });
+      expect(result.current.members[0].captureState).toBe('armada');
+
+      // Cambiar `stationId` fuerza que el efecto limpie y vuelva a correr —
+      // mismo camino que una reconexion real que recrea el objeto Pusher.
+      rerender({ stationId: 'est-02' });
+      const segundoPusher = FakePusher.instances[FakePusher.instances.length - 1];
+      segundoPusher.channel.members.each.mockImplementation(
+        (cb: (m: { id: string; info?: { kind?: string; label?: string | null } }) => void) => {
+          cb({ id: 'dev-cam', info: { kind: 'camara', label: 'techo' } });
+        }
+      );
+      act(() => {
+        segundoPusher.channel.emit('pusher:subscription_succeeded');
+      });
+
+      // El mismo dispositivo, en la nueva suscripcion, vuelve a "no sabemos
+      // todavia" — no "armada" heredado de la conexion anterior.
+      expect(result.current.members[0].captureState).toBeNull();
+    });
+  });
 });
