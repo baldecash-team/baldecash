@@ -132,6 +132,14 @@ interface NavbarProps {
   institutionLogo?: string;
   /** Institution name for co-branding alt text */
   institutionName?: string;
+  /**
+   * Si es false, oculta el logo institucional y su separador. Default: true.
+   *
+   * Viene de `layout.show_agreement_logo`: hay convenios que no quieren su
+   * marca en la landing. Opcional a proposito — los call sites que no la pasan
+   * siguen mostrando el logo como siempre (BAL-2970).
+   */
+  showInstitutionLogo?: boolean;
   /** Primary brand color hex for contrast calculations */
   primaryColor?: string;
   /** If provided, intercepts clicks on catalog links instead of navigating */
@@ -177,7 +185,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
@@ -329,7 +337,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   className={logoClassName || "h-8 object-contain"}
                 />
               )}
-              {institutionLogo && (
+              {showInstitutionLogo && institutionLogo && (
                 <>
                   <span className="text-[var(--text-faint,#d4d4d4)] text-lg font-light">×</span>
                   <img
@@ -424,7 +432,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   className={logoClassName || "h-8 object-contain"}
                 />
               )}
-              {institutionLogo && (
+              {showInstitutionLogo && institutionLogo && (
                 <>
                   <span className="text-[var(--text-faint,#d4d4d4)] text-lg font-light">×</span>
                   <img

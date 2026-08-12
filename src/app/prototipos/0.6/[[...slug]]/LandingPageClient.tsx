@@ -535,6 +535,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
             footerData={mergedFooterData}
             benefitsData={heroData.benefitsData}
             agreementData={heroData.agreementData}
+            showInstitutionLogo={landingConfig.layout.show_agreement_logo}
             landing={slug}
             previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
             previewKey={previewKey}

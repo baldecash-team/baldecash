@@ -74,6 +74,15 @@ interface HeroSectionProps {
   footerData?: FooterData | null;
   benefitsData?: BenefitsData | null;
   agreementData?: AgreementData | null;
+  /**
+   * Visibilidad del logo institucional en el navbar y el footer de la home.
+   * Viene de `layout.show_agreement_logo`. Default: true (BAL-2970).
+   *
+   * Solo afecta al LOGO: `isConvenio` sigue derivandose de que exista
+   * `agreementData`, asi que las secciones de convenio (hero, FAQ, CTA) se
+   * renderizan igual con el flag apagado.
+   */
+  showInstitutionLogo?: boolean;
   /** Landing slug for dynamic URL building */
   landing?: string;
   /** Offset from top when preview banner is shown (in pixels) */
@@ -105,6 +114,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   footerData,
   benefitsData,
   agreementData,
+  showInstitutionLogo = true,
   landing = 'home',
   previewBannerOffset = 0,
   previewKey,
@@ -240,7 +250,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} primaryColor={primaryColor} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} showInstitutionLogo={showInstitutionLogo} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
@@ -399,7 +409,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* Footer - Institucional con logo doble si es convenio */}
       <div id="footer">
-        <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        <Footer data={footerData} landing={landing} agreementData={agreementData} showInstitutionLogo={showInstitutionLogo} />
       </div>
 
       {/* Quiz Modal - Solo renderizar si hay quiz asociado */}
