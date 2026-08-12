@@ -6,6 +6,7 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { mensajeDeError, mensajeDeRed } from '../_lib/errores';
+import { IdentificarEquipo, type EquipoCatalogo } from '../_components/IdentificarEquipo';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { type PresenceCaptureState, usePresenceChannel } from '../_lib/usePresenceChannel';
 
@@ -119,6 +120,11 @@ export default function EscanerPageContent() {
   // (spec §5) son una fase aparte, no cubierta por este plan — "manual" es
   // uno de los tres caminos legítimos del spec, no un atajo temporal.
   const [serial, setSerial] = useState('');
+  // El equipo CONFIRMADO contra el catálogo de Airtable. Es lo que habilita
+  // INICIAR: el serial escrito no alcanza, porque un serial mal leído (o mal
+  // tipeado) grabaría evidencia contra el equipo equivocado — que es el riesgo
+  // que el spec §5.1 cierra con esta confirmación, no con un OCR mejor.
+  const [equipo, setEquipo] = useState<EquipoCatalogo | null>(null);
   const [sesionEstado, setSesionEstado] = useState<SesionEstado>('inactiva');
   const [sesionError, setSesionError] = useState<string | null>(null);
   // Contador de tomas (F4 Task 5), visible en pantalla mientras se decide
@@ -313,7 +319,14 @@ export default function EscanerPageContent() {
       const r = await fetch(`${API_BASE_URL}/inspections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
-        body: JSON.stringify({ serial: serialTrim, serial_source: 'manual' }),
+        // `airtable_record_id` ata la evidencia al registro del catálogo, no
+        // solo al texto del serial: si mañana alguien corrige el serial en
+        // Airtable, el video sigue apuntando al equipo correcto.
+        body: JSON.stringify({
+          serial: serialTrim,
+          serial_source: 'manual',
+          airtable_record_id: equipo?.record_id ?? null,
+        }),
       });
       if (!r.ok) {
         // Fix de review post-F4-Task-5 (C4, CRÍTICO): un 409
@@ -375,7 +388,7 @@ export default function EscanerPageContent() {
       setSesionError(mensajeDeRed('iniciar la inspección'));
       setSesionEstado('inactiva');
     }
-  }, [session, serial, listo, sesionEstado, abortarPorTimeout, verificarColaCamaras]);
+  }, [session, serial, equipo, listo, sesionEstado, abortarPorTimeout, verificarColaCamaras]);
 
   const finalizarInspeccion = useCallback(async () => {
     if (!session) return;
@@ -754,32 +767,30 @@ export default function EscanerPageContent() {
           </>
         ) : (
           <>
-            <label
-              htmlFor="inspeccion-serial"
-              className="mt-4 block text-xs font-semibold"
-              style={{ color: TOKENS.slate }}
-            >
-              Serial del equipo
-            </label>
-            <input
-              id="inspeccion-serial"
-              type="text"
-              value={serial}
-              onChange={(e) => setSerial(e.target.value)}
-              disabled={sesionEstado === 'iniciando'}
-              placeholder="Ingresá el serial manualmente"
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
-            />
+            {session && (
+              <IdentificarEquipo
+                token={session.token}
+                serial={serial}
+                onSerialChange={setSerial}
+                equipo={equipo}
+                onEquipoChange={setEquipo}
+                deshabilitado={sesionEstado !== 'inactiva'}
+              />
+            )}
             <button
               type="button"
               onClick={() => void iniciarInspeccion()}
-              disabled={!listo || !serial.trim() || sesionEstado !== 'inactiva'}
+              disabled={!listo || !equipo || sesionEstado !== 'inactiva'}
               className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white disabled:opacity-40"
               style={{ background: TOKENS.primary }}
             >
               {sesionEstado === 'iniciando' ? 'INICIANDO…' : 'INICIAR'}
             </button>
+            {!equipo && serial.trim() && sesionEstado === 'inactiva' && (
+              <p className="mt-2 text-center text-xs" style={{ color: TOKENS.slate }}>
+                Confirmá el equipo contra el catálogo antes de grabar.
+              </p>
+            )}
           </>
         )}
 
