@@ -14,8 +14,60 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 // sin aportar cobertura sobre la lógica real de la vista.
 import CamaraPageContent from '../CamaraPageContent';
 import { getDeviceSession, setDeviceSession } from '../../_lib/deviceSession';
+import type { UploadQueueEstado } from '../../_lib/uploadQueue';
 
 jest.mock('pusher-js', () => ({ __esModule: true, default: mockFakePusher }));
+
+/**
+ * `uploadQueue` mockeado por completo (F4 Task 4) — a propósito, NO la cola
+ * real de `_lib/uploadQueue.ts`. Esta vista solo tiene que probar LA
+ * INTEGRACIÓN (qué le manda a `encolar()`, qué hace con lo que `suscribir()`
+ * le reporta), no la mecánica interna de la cola — eso ya lo cubre
+ * `uploadQueue.test.ts` de punta a punta (Task 3). Usar la cola real acá
+ * obligaría a simular upload-url/PUT-a-S3/complete por cada test Y, peor,
+ * el singleton real persiste estado ENTRE tests de este mismo archivo (no
+ * hay forma de resetearlo) — un test dejaría la cola "llena" para el
+ * siguiente. Todas las funciones quedan como `jest.fn()` para poder inspeccionar
+ * cómo las llamó cada test, y `mock` es el prefijo que exige
+ * babel-plugin-jest-hoist para que el factory (hoisteado por encima de los
+ * imports) pueda referenciar código declarado fuera de él.
+ */
+jest.mock('../../_lib/uploadQueue', () => ({
+  __esModule: true,
+  encolar: jest.fn(() => true),
+  suscribir: jest.fn(() => jest.fn()),
+  reintentar: jest.fn(() => 0),
+  descartar: jest.fn(() => true),
+  listarFallidos: jest.fn(() => []),
+  uploadQueue: {
+    estadoActual: jest.fn(() => ({
+      enVuelo: 0,
+      pendientes: 0,
+      fallidos: 0,
+      llena: false,
+      motivoLlena: null,
+    })),
+  },
+}));
+
+import * as uploadQueueMock from '../../_lib/uploadQueue';
+
+/** Estado "vacío" de referencia — mismo shape que devuelve por default el
+ * mock de `uploadQueue.estadoActual()` de arriba. */
+function estadoSubidaVacio(): UploadQueueEstado {
+  return { enVuelo: 0, pendientes: 0, fallidos: 0, llena: false, motivoLlena: null };
+}
+
+/** Toma el callback que la vista pasó al `suscribir()` mockeado (la última
+ * suscripción activa, por si un test remonta el componente) y lo invoca
+ * dentro de `act()` — así se simula, sin la cola real, que el estado de
+ * subida cambió (una subida que arrancó, un fallo, la cola llena). */
+function emitirEstadoSubida(estado: UploadQueueEstado) {
+  const suscribirMock = uploadQueueMock.suscribir as jest.Mock;
+  const llamadas = suscribirMock.mock.calls;
+  const cb = llamadas[llamadas.length - 1][0] as (e: UploadQueueEstado) => void;
+  act(() => cb(estado));
+}
 
 /**
  * Fakes mínimos de `getUserMedia` / `MediaRecorder` para las pruebas de
@@ -217,6 +269,23 @@ describe('CamaraPageContent', () => {
     delete (global as { fetch?: unknown }).fetch;
     delete process.env.NEXT_PUBLIC_PUSHER_KEY;
     delete process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+    // `jest.restoreAllMocks()` de arriba no toca los `jest.fn()` que vienen
+    // del factory de `jest.mock('../../_lib/uploadQueue', …)` (no son spies
+    // de `jest.spyOn`) — sin este `clearAllMocks()`, las llamadas de un test
+    // (cuántas veces se llamó `encolar`, con qué args) se acumularían en el
+    // siguiente. `clearAllMocks` limpia `.mock.calls` pero preserva la
+    // implementación default (`() => true`, `() => jest.fn()`, etc.) — no
+    // hace falta reconfigurarla en cada test que no la necesita.
+    jest.clearAllMocks();
+    // `clearAllMocks` no toca `mockReturnValue`/`mockReturnValueOnce` ya
+    // configurados (eso lo hace `mockReset`, no `mockClear`) — se
+    // restablecen los defaults acá a mano para que un test que los cambia
+    // (p.ej. "cola llena por fallidos") no se filtre al siguiente.
+    (uploadQueueMock.encolar as jest.Mock).mockReturnValue(true);
+    (uploadQueueMock.reintentar as jest.Mock).mockReturnValue(0);
+    (uploadQueueMock.descartar as jest.Mock).mockReturnValue(true);
+    (uploadQueueMock.listarFallidos as jest.Mock).mockReturnValue([]);
+    (uploadQueueMock.uploadQueue.estadoActual as jest.Mock).mockReturnValue(estadoSubidaVacio());
   });
 
   it('C2: con sesion existente y ?p= nuevo en la URL, gana el codigo — limpia el parametro sincronicamente y canjea', async () => {
@@ -1050,6 +1119,235 @@ describe('CamaraPageContent', () => {
         String(u).includes('/devices/estado')
       );
       expect(reportes).toHaveLength(0);
+    });
+  });
+
+  describe('F4 Task 4: la cámara sube en segundo plano', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('al detener (cmd.stop), encola el blob de inmediato y vuelve a ARMADA sin esperar la subida', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+
+      // Vuelve a ARMADA YA — nada de esto espera ninguna subida real: la
+      // cola está mockeada por completo, sin red involucrada.
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+
+      // `detener()` resuelve en un microtask (el `onstop` del
+      // `MediaRecorder` fake corre sincrónicamente dentro de `stop()`, pero
+      // la promesa de `detener()` recién se asienta después) — `waitFor`
+      // deja que ese microtask drene antes de mirar `encolar`.
+      await waitFor(() => {
+        expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1);
+      });
+      const item = (uploadQueueMock.encolar as jest.Mock).mock.calls[0][0];
+      expect(item).toEqual(
+        expect.objectContaining({
+          inspectionId: 42,
+          takeNumber: 1,
+          cameraLabel: 'techo',
+          token: 'tok-01',
+          mimeType: 'video/webm',
+        })
+      );
+      expect(item.blob).toBeInstanceOf(Blob);
+      // `duration_s` del endpoint `.../complete` sale de acá (pendiente que
+      // dejó la Task 3) — no se afirma un valor exacto (depende de cómo
+      // fake-timers modela `Date.now()`), solo que efectivamente viaja.
+      expect(typeof item.durationMs).toBe('number');
+    });
+
+    it('cmd.abort a mitad de una grabación también encola lo que se alcanzó a grabar', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+
+      act(() => {
+        pusher.channel.emit('cmd.abort', { inspection_id: 42, seq: 2 });
+      });
+
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1);
+      });
+      expect((uploadQueueMock.encolar as jest.Mock).mock.calls[0][0]).toEqual(
+        expect.objectContaining({ inspectionId: 42, takeNumber: 1 })
+      );
+    });
+
+    it('REQUISITO CENTRAL: se puede empezar a grabar de nuevo con una subida en vuelo', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+
+      // La cola real, en este punto, tendría ese video "en vuelo" — se
+      // simula acá porque la cola está mockeada.
+      emitirEstadoSubida({ enVuelo: 1, pendientes: 0, fallidos: 0, llena: false, motivoLlena: null });
+
+      // Con esa subida en curso (todavía no resolvió), arranca UNA
+      // INSPECCIÓN DISTINTA — no debe bloquearse ni esperar nada.
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 43, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+      // Y el indicador de la subida anterior sigue ahí, sin que grabar de
+      // nuevo lo haya tapado ni cancelado.
+      expect(screen.getByText(/SUBIENDO/i)).toBeInTheDocument();
+    });
+
+    it('el indicador de subida y el de captura coexisten sin taparse: GRABANDO y una subida en curso a la vez', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+
+      emitirEstadoSubida({ enVuelo: 1, pendientes: 0, fallidos: 0, llena: false, motivoLlena: null });
+
+      // Ninguno de los dos bloques tapa al otro — coexisten en pantalla.
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+      expect(screen.getByText(/SUBIENDO/i)).toBeInTheDocument();
+    });
+
+    it('distingue "llena por fallidos" (accionable) de "llena por subidas en curso" (solo esperar)', async () => {
+      setDeviceSessionCamara();
+      render(<CamaraPageContent />);
+
+      // Llena solo por actividad normal: no hay nada que un operador tenga
+      // que hacer, solo esperar a que drene.
+      emitirEstadoSubida({ enVuelo: 2, pendientes: 0, fallidos: 0, llena: true, motivoLlena: 'subiendo' });
+      expect(screen.getByText(/esperá/i)).toBeInTheDocument();
+      expect(screen.queryByText(/fallaron/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /reintentar/i })).not.toBeInTheDocument();
+
+      // Llena por fallidos: ES accionable — mensaje distinto Y un remedio
+      // (reintentar/descartar) disponible en pantalla.
+      (uploadQueueMock.listarFallidos as jest.Mock).mockReturnValue([
+        { id: 10, item: {} },
+        { id: 11, item: {} },
+      ]);
+      emitirEstadoSubida({ enVuelo: 0, pendientes: 0, fallidos: 2, llena: true, motivoLlena: 'fallidos' });
+      expect(screen.getByText(/fallaron/i)).toBeInTheDocument();
+      expect(screen.queryByText(/esperá/i)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /reintentar/i }));
+      expect(uploadQueueMock.reintentar).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByRole('button', { name: /descartar/i }));
+      expect(uploadQueueMock.descartar).toHaveBeenCalledWith(10);
+      expect(uploadQueueMock.descartar).toHaveBeenCalledWith(11);
+    });
+
+    it('dos cmd.start sobre la MISMA inspección (toma 2) encolan take_number 1 y 2, en ese orden', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+      await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1));
+
+      // Toma 2 sobre la MISMA inspección (session.py, ws2: "una toma nueva
+      // vuelve a emitir cmd.start sobre la MISMA inspección", con un `seq`
+      // nuevo — nunca crea una inspección nueva).
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 3 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 4 });
+      });
+      await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(2));
+
+      const [[primerItem], [segundoItem]] = (uploadQueueMock.encolar as jest.Mock).mock.calls;
+      expect(primerItem).toEqual(expect.objectContaining({ inspectionId: 42, takeNumber: 1 }));
+      expect(segundoItem).toEqual(expect.objectContaining({ inspectionId: 42, takeNumber: 2 }));
+    });
+
+    it('si encolar() rechaza por backpressure, no se pierde en silencio: la vista lo avisa', async () => {
+      (uploadQueueMock.encolar as jest.Mock).mockReturnValueOnce(false);
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/se perdió/i)).toBeInTheDocument();
+      });
     });
   });
 });

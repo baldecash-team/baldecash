@@ -5,10 +5,19 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
-import { useKioskRecorder, type EstadoCaptura } from '../_lib/useKioskRecorder';
+import { useKioskRecorder, type EstadoCaptura, type ResultadoDetener } from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
 import { useServerClock } from '../_lib/useServerClock';
 import { useComandos, type ComandoStartPayload } from '../_lib/useComandos';
+import {
+  descartar,
+  encolar,
+  listarFallidos,
+  reintentar,
+  suscribir,
+  uploadQueue,
+  type UploadQueueEstado,
+} from '../_lib/uploadQueue';
 
 /**
  * Confirma al backend que ESTA cámara recibió un comando (spec §6.1 regla 1:
@@ -182,6 +191,85 @@ export default function CamaraPageContent() {
   const { estado: capturaEstado, error: capturaError, videoRef, armar, grabar, detener } =
     useKioskRecorder();
 
+  // F4 Task 4: estado agregado de la cola de subida (`_lib/uploadQueue.ts`,
+  // Task 3), SOLO para pintarlo — esta vista nunca es dueña de la cola, ni
+  // la muta directamente (spec §8.1: "el progreso se reporta a la UI por
+  // callback"). Lazy init con `uploadQueue.estadoActual()` (el snapshot
+  // síncrono que ese módulo expone justo para esto) en vez de arrancar en
+  // algún estado "vacío" inventado y esperar la primera notificación — el
+  // singleton puede llegar con trabajo pendiente de ANTES de este montaje
+  // (p.ej. HMR en dev, o una subida que quedó en vuelo de una inspección
+  // previa en la misma pestaña).
+  const [uploadEstado, setUploadEstado] = useState<UploadQueueEstado>(() => uploadQueue.estadoActual());
+  useEffect(() => suscribir(setUploadEstado), []);
+
+  // Cuántos videos se perdieron por backpressure de `encolar()` (cola en su
+  // profundidad máxima justo cuando esta cámara intentó encolar uno nuevo).
+  // No es el camino esperado — Task 5 va a evitar que el escáner comande una
+  // toma nueva con la cola llena — pero mientras eso no esté cableado, un
+  // `encolar()` rechazado acá NO debe perderse en silencio: no hay a dónde
+  // reencolarlo (el blob ya no está en ningún lado más que en esta variable
+  // de closure, que se pierde apenas termina el `.then`), así que lo único
+  // que esta vista puede hacer es avisar que pasó, en vez de que la única
+  // señal sea "faltó un video" descubierto horas después en S3. (Se pierde
+  // igual — no hay a dónde reencolar el blob una vez que `encolar()` lo
+  // rechazó — pero al menos no en silencio.)
+  const [subidasPerdidas, setSubidasPerdidas] = useState(0);
+
+  // Contador de tomas POR INSPECCIÓN — no viene en el payload de
+  // `cmd.start`/`cmd.stop`/`cmd.abort` (ver `ComandoStartPayload` en
+  // `useComandos.ts`: solo trae `inspection_id`/`start_at`/`seq`). El
+  // backend (`session.py`, ws2) documenta que una inspección puede tener
+  // VARIAS tomas y que cada toma nueva vuelve a emitir `cmd.start` sobre la
+  // MISMA inspección con un `seq` creciente — nunca crea una inspección
+  // nueva. Esta cámara deriva el `take_number` de esa regla: cada
+  // `cmd.start` no-duplicado que efectivamente programa una grabación
+  // (dentro de `manejarStart`, más abajo) es una toma más para ESE
+  // `inspection_id`. Task 5 (escáner) es quien decide cuándo pedir "toma 2"
+  // — acá solo se cuenta, nunca se decide.
+  const takeCounterRef = useRef<Map<number, number>>(new Map());
+  // La toma que se está grabando/programando AHORA MISMO — lo que
+  // `encolarGrabacion` necesita cuando `detener()` resuelva (async, después
+  // de que `manejarStart` ya terminó de correr) para saber a qué inspección
+  // y qué número de toma pertenece el blob.
+  const activeTakeRef = useRef<{ inspectionId: number; takeNumber: number } | null>(null);
+
+  // El corazón de F4 (spec §8.1): al terminar una grabación, el blob se
+  // ENCOLA — nunca se espera la subida acá. `manejarStop`/`manejarAbort` (más
+  // abajo) llaman a esto en el `.then()` de `detener()`, que ya de por sí es
+  // asíncrono pero CORTO (nada de red, solo el `MediaRecorder` terminando de
+  // flushear) — la cámara vuelve a "armada" apenas eso resuelve, sin
+  // importarle en absoluto cuánto tarde la subida real.
+  const encolarGrabacion = useCallback(
+    (resultado: ResultadoDetener) => {
+      if (!session) return;
+      const take = activeTakeRef.current;
+      // No debería pasar: `detener()` solo resuelve con éxito si hubo una
+      // grabación en curso, y toda grabación en curso pasó por
+      // `manejarStart`, que siempre setea `activeTakeRef` ANTES de llamar
+      // `grabar()` (ver más abajo). Defensivo, no un caso que un test tenga
+      // que ejercitar.
+      if (!take) return;
+      const aceptado = encolar({
+        inspectionId: take.inspectionId,
+        takeNumber: take.takeNumber,
+        // Ver doc-comment de `session.label` en `deviceSession.ts`: puede
+        // ser `null` (dispositivo vinculado sin etiqueta todavía). Mismo
+        // fallback que ya usa el render de más abajo para mostrarlo en
+        // pantalla — no hay una etiqueta "mejor" que inventar acá.
+        cameraLabel: session.label ?? session.kind,
+        blob: resultado.blob,
+        mimeType: resultado.mimeType,
+        token: session.token,
+        durationMs: resultado.duracionMs,
+      });
+      if (!aceptado) {
+        setSubidasPerdidas((n) => n + 1);
+      }
+    },
+    [session]
+  );
+
   // `error: channelError` para no chocar con el `error` de vinculación
   // (código vencido/ya usado) declarado más arriba: son dos problemas
   // distintos y no deben pisarse el mensaje.
@@ -279,6 +367,19 @@ export default function CamaraPageContent() {
       cancelarArranquePendiente();
       if (!puedeGrabar) return;
 
+      // F4 Task 4: una toma más para ESTA inspección — ver el doc-comment de
+      // `takeCounterRef` más arriba sobre por qué se deriva acá y no viene
+      // en el payload. Se setea ANTES de programar `grabar()` (no dentro del
+      // `setTimeout`) para que quede fijo desde YA: si por lo que sea
+      // llegara un `cmd.start` de OTRA inspección antes de que este timer
+      // dispare (no debería, pero `cancelarArranquePendiente` ya cubre ese
+      // caso cancelando el timer viejo), `activeTakeRef` de esta toma no
+      // debe quedar pisado a mitad de camino por una carrera imposible de
+      // ver desde acá.
+      const takeNumber = (takeCounterRef.current.get(payload.inspection_id) ?? 0) + 1;
+      takeCounterRef.current.set(payload.inspection_id, takeNumber);
+      activeTakeRef.current = { inspectionId: payload.inspection_id, takeNumber };
+
       // Arranque por reloj absoluto (spec §6.1 regla 2): se programa para el
       // instante `start_at` CORREGIDO POR EL OFFSET, no para "ahora". Así
       // todas las cámaras de la estación arrancan juntas aunque el mensaje
@@ -298,17 +399,26 @@ export default function CamaraPageContent() {
     // Fix C1: cancelar SIEMPRE, antes de intentar `detener()` — ver
     // doc-comment de `cancelarArranquePendiente`.
     cancelarArranquePendiente();
-    detener().catch(() => {});
-  }, [detener, cancelarArranquePendiente]);
+    // F4 Task 4 (el corazón de la fase): el blob se ENCOLA apenas
+    // `detener()` resuelve — la cámara ya volvió a "armada" dentro de
+    // `detener()` mismo (regla 2 de `useKioskRecorder.ts`), así que para
+    // cuando `encolarGrabacion` corre acá la UI ya está lista para la
+    // próxima orden. Nada de esto espera a la subida real.
+    detener().then(encolarGrabacion).catch(() => {});
+  }, [detener, cancelarArranquePendiente, encolarGrabacion]);
 
   const manejarAbort = useCallback(() => {
     // Fix C1 (ver doc-comment de `cancelarArranquePendiente`). La
     // transición de la inspección a `failed` la decide el servidor
     // (CLAUDE.md / spec: "los dispositivos reportan, nunca deciden") — acá
-    // solo se corta la captura local, igual que con `cmd.stop`.
+    // solo se corta la captura local, igual que con `cmd.stop`. Encola igual
+    // que `manejarStop`: lo que se alcanzó a grabar antes del abort no tiene
+    // por qué perderse — si `detener()` rechaza porque no había grabación en
+    // curso (el abort llegó ANTES de que arrancara), `encolarGrabacion`
+    // simplemente no corre.
     cancelarArranquePendiente();
-    detener().catch(() => {});
-  }, [detener, cancelarArranquePendiente]);
+    detener().then(encolarGrabacion).catch(() => {});
+  }, [detener, cancelarArranquePendiente, encolarGrabacion]);
 
   useComandos(channel, { onStart: manejarStart, onStop: manejarStop, onAbort: manejarAbort });
 
@@ -500,6 +610,36 @@ export default function CamaraPageContent() {
       ? TOKENS.green
       : TOKENS.red;
 
+  // F4 Task 4: texto del indicador de SUBIDA — tercer bloque, independiente
+  // de captura y de canal (spec: "sumá el de subida al lado, no encima").
+  // `motivoLlena` distingue las dos situaciones de "llena" con dos salidas
+  // distintas (mismo orden de prioridad que ya aplica
+  // `uploadQueue.estadoActual()`, ver su doc-comment: "fallidos" es
+  // accionable y gana sobre "subiendo", que solo hay que esperar):
+  // - `'fallidos'`: hay algo que HACER (reintentar/descartar) — se explica
+  //   abajo con los botones.
+  // - `'subiendo'`: no hay nada que hacer, solo esperar a que drene.
+  // Fuera de "llena", el texto igual refleja actividad (`enVuelo`/
+  // `pendientes`) o fallidos sueltos (por debajo de la profundidad máxima,
+  // así que la cola no está "llena" pero igual hay algo pendiente).
+  const uploadTexto =
+    uploadEstado.motivoLlena === 'fallidos'
+      ? 'HAY VIDEOS QUE FALLARON'
+      : uploadEstado.motivoLlena === 'subiendo'
+        ? 'ESPERÁ, ESTÁ DRENANDO'
+        : uploadEstado.fallidos > 0
+          ? `${uploadEstado.fallidos} VIDEO(S) FALLARON`
+          : uploadEstado.enVuelo > 0 || uploadEstado.pendientes > 0
+            ? 'SUBIENDO…'
+            : 'AL DÍA';
+
+  const uploadDotColor =
+    uploadEstado.fallidos > 0
+      ? TOKENS.red
+      : uploadEstado.enVuelo > 0 || uploadEstado.pendientes > 0
+        ? TOKENS.tertiary
+        : TOKENS.green;
+
   return (
     <main className="relative flex min-h-screen flex-col bg-black text-white">
       {/* Preview a pantalla completa: sirve para encuadrar el equipo (spec,
@@ -554,6 +694,56 @@ export default function CamaraPageContent() {
           </div>
           {channelError && (
             <p className="max-w-sm text-xs text-white/60">{channelError.message}</p>
+          )}
+        </div>
+
+        {/* Estado de SUBIDA — F4 Task 4, tercer bloque aparte de captura y
+            canal (spec §8.1: "corre en segundo plano y no bloquea nada").
+            Deliberadamente puede mostrar "SUBIENDO…" mientras el bloque de
+            arriba dice "GRABANDO": son dos carriles paralelos, uno de
+            captura local y otro de red, y ninguno tapa al otro. */}
+        <div className="mb-2 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-3 w-3 rounded-full"
+              style={{ background: uploadDotColor }}
+              aria-hidden
+            />
+            <p className="text-sm uppercase tracking-widest text-white/70">Subida: {uploadTexto}</p>
+          </div>
+          {/* Solo con algo ACCIONABLE (motivoLlena === 'fallidos') se
+              muestran los remedios — "esperá, está drenando" no tiene botón
+              porque no hay nada que un humano pueda apurar. */}
+          {uploadEstado.motivoLlena === 'fallidos' && (
+            <div className="flex flex-col items-center gap-1">
+              <p className="max-w-sm text-xs text-white/60">
+                {uploadEstado.fallidos} video(s) agotaron los reintentos automáticos, sin
+                perderse (siguen en memoria). Reintentar los vuelve a subir; descartar los
+                borra para siempre.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => reintentar()}
+                  className="rounded-lg border border-white/40 px-3 py-1 text-xs font-semibold text-white/80"
+                >
+                  Reintentar subida
+                </button>
+                <button
+                  type="button"
+                  onClick={() => listarFallidos().forEach((f) => descartar(f.id))}
+                  className="rounded-lg border border-white/40 px-3 py-1 text-xs font-semibold text-white/80"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          )}
+          {subidasPerdidas > 0 && (
+            <p className="max-w-sm text-xs text-red-300">
+              Se perdió{subidasPerdidas > 1 ? `n ${subidasPerdidas} videos` : ' 1 video'}: la
+              cola de subida estaba llena cuando esta cámara intentó encolarlo.
+            </p>
           )}
         </div>
       </div>
