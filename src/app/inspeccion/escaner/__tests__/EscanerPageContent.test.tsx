@@ -158,6 +158,24 @@ describe('EscanerPageContent', () => {
       });
     }
 
+    /**
+     * Carga el serial y lo confirma contra el catálogo.
+     *
+     * Desde el spec §5.1, escribir el serial NO habilita INICIAR: lo que
+     * habilita es el equipo confirmado contra Airtable. Un serial mal leído o
+     * mal tipeado grabaría evidencia contra el equipo equivocado, y ese riesgo
+     * se cierra con esta confirmación, no con un OCR más preciso.
+     */
+    async function cargarYConfirmarSerial(valor = 'SN-001') {
+      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
+        target: { value: valor },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^buscar$/i }));
+      await waitFor(() => {
+        expect(screen.getByText(/IdeaPad Slim 3/)).toBeInTheDocument();
+      });
+    }
+
     /** Router mínimo de `fetch` para los endpoints que esta vista llama:
      * `GET /stations/{id}/state`, `POST /inspections` (crear),
      * `POST /inspections/{id}/abort`, `POST /inspections/{id}/stop` (F3
@@ -194,6 +212,32 @@ describe('EscanerPageContent', () => {
           return Promise.resolve({
             ok: true,
             json: async () => ({ inspection_id: 1, start_at: Date.now() + 1500, seq: 1 }),
+          });
+        }
+        // Catálogo de Airtable: desde el spec §5.1, INICIAR no se habilita con
+        // el serial escrito sino con el equipo CONFIRMADO contra el catálogo.
+        if (u.includes('/inspections/catalog/')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              encontrado: true,
+              equipo: {
+                record_id: 'rec123',
+                serial: 'SN-001',
+                marca: 'Lenovo',
+                modelo: 'IdeaPad Slim 3',
+                procesador: 'Intel Core i7',
+                ram_gb: 16,
+                almacenamiento: '1TB SSD',
+                pantalla: 15.6,
+                grado: 'A',
+                tipo: 'Laptop',
+                sku: 'LPLEAL0000606',
+              },
+              candidato: 'SN-001',
+              confianza: null,
+              error: null,
+            }),
           });
         }
         return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
@@ -233,9 +277,7 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(screen.getByText('Faltan cámaras — no se puede escanear')).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
-        target: { value: 'SN-001' },
-      });
+      await cargarYConfirmarSerial();
 
       expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
     });
@@ -298,9 +340,7 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
-        target: { value: 'SN-001' },
-      });
+      await cargarYConfirmarSerial();
 
       fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
 
@@ -343,9 +383,7 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
-        target: { value: 'SN-001' },
-      });
+      await cargarYConfirmarSerial();
 
       fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
 
@@ -382,9 +420,7 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
-        target: { value: 'SN-001' },
-      });
+      await cargarYConfirmarSerial();
       fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
 
       await waitFor(() => {
@@ -582,6 +618,30 @@ describe('EscanerPageContent', () => {
             json: async () => ({ detail: { reason: 'estacion_ocupada', inspection_id: 77 } }),
           });
         }
+        if (u.includes('/inspections/catalog/')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              encontrado: true,
+              equipo: {
+                record_id: 'rec999',
+                serial: 'SN-999',
+                marca: 'Lenovo',
+                modelo: 'IdeaPad Slim 3',
+                procesador: null,
+                ram_gb: null,
+                almacenamiento: null,
+                pantalla: null,
+                grado: null,
+                tipo: null,
+                sku: null,
+              },
+              candidato: 'SN-999',
+              confianza: null,
+              error: null,
+            }),
+          });
+        }
         return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
       }) as unknown as typeof fetch;
 
@@ -591,9 +651,7 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
-        target: { value: 'SN-999' },
-      });
+      await cargarYConfirmarSerial('SN-999');
       fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
 
       // Recupera la inspección 77 — pasa directo a "decidiendo" (las
