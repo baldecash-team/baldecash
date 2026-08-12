@@ -13,12 +13,20 @@
  * Desde 2026-08-11 usa el MISMO card rico del Caso 5 (EquipoRecomendadoCard) y
  * el saludo del upsell, en vez de una pantalla propia con un card de texto:
  * docs/superpowers/specs/2026-08-11-oferta-estandar-look-upsell-design.md.
- * «Aceptar oferta» es el CTA del card; «Rechazar» queda como acción
- * secundaria debajo para que no compitan. «Ver detalle» abre la ficha del
- * equipo en la landing de la solicitud, en pestaña nueva.
+ * «Ver detalle» abre la ficha del equipo en la landing de la solicitud, en
+ * pestaña nueva.
+ *
+ * 2026-08-12 — la pantalla dejó de empujar hacia el «Aceptar»:
+ *   - el card ya no trae CTA; las tres acciones (aceptar / rechazar /
+ *     consultar) van juntas y al mismo peso debajo;
+ *   - «Consultar» (WhatsApp) es nueva y sigue activa con la oferta vencida:
+ *     antes solo aparecía DESPUÉS de rechazar;
+ *   - se muestra de qué equipo se viene cuando la oferta cambia el equipo;
+ *   - los términos se leen en una tarjeta (cuota, inicial, plazo, total) con
+ *     TEA/TCEA al pie, en vez de una grilla que destacaba la TEA.
  */
 import { useCallback, useState } from 'react';
-import { Ban, Clock, XCircle } from 'lucide-react';
+import { ArrowRight, Ban, CheckCircle2, Clock, MessageCircle, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
@@ -35,7 +43,7 @@ import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './redesign/Eq
 import { specsToChips } from './redesign/specsChips';
 import { OfertaEstadoMensaje } from './OfertaEstadoMensaje';
 import { SeleccionConfirmada, type ChosenSummary } from './SeleccionConfirmada';
-import { inicialText } from './equipoCardFormat';
+import { cuotaSuffix, plazoUnit } from './equipoCardFormat';
 import { useCountdown } from './useCountdown';
 
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
@@ -147,6 +155,18 @@ export function StandardOfertaAccion({
 
   const totalTexto = info?.totalAmount ?? info?.totalPrice ?? null;
 
+  // El equipo anterior, para el antes/ahora. Llega null cuando no hay
+  // comparacion que mostrar.
+  const req = offer.requestedProduct;
+
+  // Plazo y frecuencia REALES, con los helpers compartidos de las otras cards
+  // (equipoCardFormat) para no abrir un segundo formato. `termMonths` normaliza
+  // todo a meses: una oferta quincenal de 24 cuotas se leía "12 meses" y el
+  // cliente no reconocía su propio plan; `term` son las cuotas nativas.
+  const frecuencia = (info?.paymentFrequency || 'mensual').toLowerCase();
+  const cuotas = info?.term ?? info?.termMonths ?? null;
+  const plazoTexto = cuotas ? `${cuotas} ${plazoUnit(cuotas, frecuencia)}` : null;
+
   // Card del equipo ofrecido. `specs` viene como dict EAV plano del backend
   // (igual que el Caso 4/5): se estructura y se convierte a chips.
   const equipo: EquipoRecomendadoInfo = {
@@ -154,7 +174,11 @@ export function StandardOfertaAccion({
     brand: info?.productBrand ?? undefined,
     imageUrl: info?.productImageUrl ?? undefined,
     monthly: info?.monthlyPayment ?? 0,
-    term: info?.termMonths ?? undefined,
+    // El card arma su plazo como "en N meses". En una oferta semanal/quincenal
+    // eso choca con la cuota, que es de la frecuencia real: se omite acá y el
+    // plazo correcto lo da la tarjeta de términos.
+    term: frecuencia === 'mensual' ? info?.termMonths ?? undefined : undefined,
+    periodLabel: cuotaSuffix(frecuencia),
     initial:
       info?.initialPayment != null && info.initialPayment > 0
         ? `inicial S/${Math.round(info.initialPayment)}`.trim()
@@ -164,25 +188,25 @@ export function StandardOfertaAccion({
       : undefined,
   };
 
-  const ctaText = expired
-    ? 'Oferta vencida'
-    : loading === 'accept'
-      ? 'Aceptando…'
-      : 'Aceptar oferta';
+  const aceptarTexto = expired ? 'Oferta vencida' : loading === 'accept' ? 'Aceptando…' : 'Aceptar';
 
   return (
     <div className="min-h-screen bg-white">
       <OfertaHeader />
 
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
-        {/* Saludo — mismo del Caso 4/5: nombre completo y "aprobada" en verde. */}
+        {/* Saludo. Decía "tu solicitud ha sido aprobada": no lo está — hay una
+            oferta esperando decisión, y si el cliente la rechaza nunca hubo
+            aprobación. Prometer aprobado y después pedir que acepte es lo que
+            hacía que el rechazo se leyera como que le quitaron algo. */}
         <div className="text-[18px] font-semibold leading-[1.25]">
-          {offer.clientName ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
-          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
+          {offer.clientName ? `${offer.clientName.trim()}, tu ` : 'Tu '}
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.primary }}>oferta</span>
+          {' '}ha sido generada
         </div>
 
         <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-          Tu oferta ha sido generada
+          Revisa las condiciones y decide. Queda en firme recién cuando la aceptas.
         </p>
 
         {/* Código de la solicitud: para tenerlo a mano si contacta soporte. */}
@@ -210,47 +234,111 @@ export function StandardOfertaAccion({
           </div>
         ) : null}
 
+        {/* De lo pedido a lo ofrecido. Solo cuando la oferta CAMBIA de equipo:
+            el backend manda `requested_product` en null si no hay comparación
+            que mostrar (mantiene el equipo, o ya se aceptó). Es una tira, no
+            dos columnas: el equipo ofrecido ya está completo en el card de
+            abajo y repetirlo lo obligaría a comparar dos versiones distintas
+            de lo mismo. Sin esto, el cliente que pidió una laptop y recibe
+            otra no entiende por qué le cambiaron el equipo. */}
+        {req ? (
+          <div
+            className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+            style={{ borderColor: OFERTA_COLORS.border, backgroundColor: OFERTA_COLORS.lilac }}
+          >
+            {req.image_url ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={req.image_url}
+                alt={req.name ?? 'Equipo que pediste'}
+                className="h-10 w-14 flex-none object-contain opacity-60"
+              />
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
+                Pediste
+              </div>
+              <div className="truncate text-[13px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+                {req.name ?? 'Tu equipo'}
+                {req.monthly_price != null ? (
+                  <span className="ml-1.5 line-through" style={{ color: OFERTA_COLORS.textSoft }}>
+                    S/{Math.round(req.monthly_price)}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 flex-none" style={{ color: OFERTA_COLORS.primary }} />
+            <div className="text-[11.5px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+              Te ofrecemos
+            </div>
+          </div>
+        ) : null}
+
+        {/* El card queda informativo: las acciones viven abajo, las tres al
+            mismo nivel. Antes el "Aceptar" era el CTA del card y "Rechazar" un
+            botón suelto más chico — la jerarquía empujaba a aceptar. */}
         <EquipoRecomendadoCard
           equipo={equipo}
           tone="indigo"
           badgeText="TU OFERTA"
-          ctaText={ctaText}
-          subtext="Tu solicitud queda cerrada al aceptarla"
-          onElegir={handleAccept}
           onVerDetalle={detalleUrl ? handleVerDetalle : undefined}
         />
 
-        {/* Datos contractuales que la card no muestra: TEA y total a pagar. */}
-        <div className="grid grid-cols-2 gap-2.5 rounded-lg border px-3.5 py-3" style={{ borderColor: OFERTA_COLORS.border }}>
-          {info?.tea != null ? (
-            <div>
-              <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
-                TEA
+        {/* Terminos. Reemplaza la grilla que destacaba TEA y total: la inicial
+            deja de ser texto incrustado en el plazo y pasa a ser una fila
+            propia, porque es el monto que hay que pagar el primer dia. TEA y
+            TCEA bajan al pie — siguen visibles por transparencia, pero dejan de
+            competir con lo que el cliente necesita para decidir. */}
+        <section
+          aria-label="Términos de tu oferta"
+          className="rounded-xl border"
+          style={{ borderColor: OFERTA_COLORS.border }}
+        >
+          <div className="rounded-t-xl px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[.09em] text-white"
+               style={{ backgroundColor: OFERTA_COLORS.primary }}>
+            Términos de tu oferta
+          </div>
+          <dl className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
+            {info?.monthlyPayment != null ? (
+              <div className="flex items-baseline justify-between px-3.5 py-2.5">
+                <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Cuota</dt>
+                <dd className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
+                  S/{Math.round(info.monthlyPayment)}{cuotaSuffix(frecuencia)}
+                </dd>
               </div>
-              <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                {info.tea}%
+            ) : null}
+            <div className="flex items-baseline justify-between px-3.5 py-2.5">
+              <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Inicial</dt>
+              <dd className="text-[14px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                {info?.initialPayment ? `S/${Math.round(info.initialPayment)}` : 'Sin inicial'}
+                {info?.initialPaymentPercent ? ` (${info.initialPaymentPercent}%)` : ''}
+              </dd>
+            </div>
+            {plazoTexto ? (
+              <div className="flex items-baseline justify-between px-3.5 py-2.5">
+                <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Plazo</dt>
+                <dd className="text-[14px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>{plazoTexto}</dd>
               </div>
+            ) : null}
+            {totalTexto != null ? (
+              <div className="flex items-baseline justify-between px-3.5 py-2.5">
+                <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Total a pagar</dt>
+                <dd className="text-[14px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
+                  S/{Math.round(totalTexto).toLocaleString('es-PE')}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          {(info?.tea != null || info?.tcea != null) ? (
+            <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+              {info?.tea != null ? <>TEA {info.tea}%</> : null}
+              {info?.tea != null && info?.tcea != null ? ' \u00b7 ' : null}
+              {info?.tcea != null ? <>TCEA {info.tcea}%</> : null}
             </div>
           ) : null}
-          {totalTexto != null ? (
-            <div>
-              <div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: OFERTA_COLORS.textSoft }}>
-                Total a pagar
-              </div>
-              <div className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
-                S/{Math.round(totalTexto).toLocaleString('es-PE')}
-              </div>
-            </div>
-          ) : null}
-          {info?.termMonths ? (
-            <div className="col-span-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
-              en {info.termMonths} meses
-              {inicialText(info.initialPayment, info.initialPaymentPercent)}
-            </div>
-          ) : null}
-        </div>
+        </section>
 
-        {/* Error inline (no reemplaza la página: el cliente puede reintentar) */}
+        {/* Error inline (no reemplaza la pagina: el cliente puede reintentar) */}
         {error ? (
           <div
             className="rounded-lg px-3.5 py-2.5 text-[13px]"
@@ -260,17 +348,43 @@ export function StandardOfertaAccion({
           </div>
         ) : null}
 
-        {/* Rechazar: acción secundaria, fuera de la card. */}
-        <button
-          type="button"
-          onClick={handleReject}
-          disabled={disabled}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3 text-[14px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:self-center"
-          style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
-        >
-          <XCircle className="h-5 w-5" />
-          {loading === 'reject' ? 'Rechazando…' : 'Rechazar oferta'}
-        </button>
+        {/* Tres acciones al mismo nivel. "Consultar" es nuevo: antes WhatsApp
+            solo aparecia DESPUES de rechazar, asi que el cliente que dudaba no
+            tenia salida — o aceptaba o rechazaba. Y sigue habilitado con la
+            oferta vencida: si vencio, escribir es justamente lo que hay que
+            hacer. */}
+        <div className="flex flex-col gap-2.5 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleAccept}
+            disabled={disabled}
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-3.5 text-[15px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: OFERTA_COLORS.primary }}
+          >
+            <CheckCircle2 className="h-5 w-5" />
+            {aceptarTexto}
+          </button>
+          <button
+            type="button"
+            onClick={handleReject}
+            disabled={disabled}
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 text-[15px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
+          >
+            <XCircle className="h-5 w-5" />
+            {loading === 'reject' ? 'Rechazando…' : 'Rechazar'}
+          </button>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 text-[15px] font-bold transition-colors hover:bg-neutral-50"
+            style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.primary }}
+          >
+            <MessageCircle className="h-5 w-5" />
+            Consultar
+          </a>
+        </div>
 
         {expired ? (
           <div className="flex items-center gap-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textSoft }}>

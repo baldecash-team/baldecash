@@ -1,12 +1,13 @@
 /**
  * StandardOfertaAccion — vista de la oferta ESTÁNDAR con la card del Caso 5.
  *
- * Cubre lo que introdujo el rediseño (spec 2026-08-11-oferta-estandar-look-upsell):
- * el saludo con "aprobada", la card rica del equipo, el link "Ver detalle" a la
- * ficha en la landing (y su ausencia cuando falta un slug), aceptar y rechazar.
+ * Cubre el rediseño 2026-08-11 (card rica del Caso 5, "Ver detalle" a la ficha
+ * en la landing) y el de 2026-08-12, que sacó el CTA del card y dejó las tres
+ * acciones al mismo nivel, agregó la tira "Pediste → Te ofrecemos" y movió los
+ * términos a una tarjeta con TEA/TCEA al pie.
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { StandardOfertaAccion } from '../StandardOfertaAccion';
@@ -54,11 +55,23 @@ const baseOffer = {
     tcea: 86.34,
     totalAmount: 7176,
     hoursRemaining: 6,
+    term: 24,
+    paymentFrequency: 'mensual',
   },
 } as unknown as OfferView;
 
 const renderView = (offer: OfferView = baseOffer) =>
   render(<StandardOfertaAccion token="tok-123" offer={offer} />);
+
+/** Los términos viven en su propia región: la cuota también aparece en el card
+ *  del equipo, y sin acotar la búsqueda ambas matchean. */
+const terminos = () => within(screen.getByRole('region', { name: /Términos de tu oferta/i }));
+
+/** El texto sale partido en varios nodos (`S/{x}{sufijo}`), así que se busca
+ *  por el textContent del elemento más chico que lo contenga. */
+const porTextoCompleto = (esperado: string) => (_: string, el: Element | null) =>
+  el?.textContent?.replace(/\s+/g, ' ').trim() === esperado &&
+  !Array.from(el.children).some((h) => h.textContent?.includes(esperado));
 
 describe('StandardOfertaAccion', () => {
   beforeEach(() => {
@@ -66,37 +79,97 @@ describe('StandardOfertaAccion', () => {
     rejectOffer.mockReset().mockResolvedValue({});
   });
 
-  it('saluda con el nombre completo y anuncia la oferta', () => {
+  it('anuncia una oferta generada, no una solicitud aprobada', () => {
     renderView();
 
     expect(screen.getByText(/Maria Roxana Alverca Cruz/)).toBeInTheDocument();
-    expect(screen.getByText('aprobada')).toBeInTheDocument();
-    expect(screen.getByText('Tu oferta ha sido generada')).toBeInTheDocument();
+    expect(screen.getByText('oferta')).toBeInTheDocument();
+    // La solicitud NO está aprobada: si el cliente rechaza, nunca lo estuvo.
+    expect(screen.queryByText('aprobada')).not.toBeInTheDocument();
     expect(screen.getByText(/APP-2026-99826442/)).toBeInTheDocument();
   });
 
-  it('muestra el equipo con sus datos contractuales', () => {
+  it('lista los términos con la cuota, la inicial, el plazo y el total', () => {
     renderView();
 
     expect(screen.getByText('Laptop TMP214-55-78NU')).toBeInTheDocument();
-    expect(screen.getByText('75%')).toBeInTheDocument();
-    expect(screen.getByText('S/7,176')).toBeInTheDocument();
+    expect(terminos().getByText(porTextoCompleto('S/299/mes'))).toBeInTheDocument();
+    expect(terminos().getByText('Sin inicial')).toBeInTheDocument();
+    expect(terminos().getByText('24 meses')).toBeInTheDocument();
+    expect(terminos().getByText(porTextoCompleto('S/7,176'))).toBeInTheDocument();
+    // TEA y TCEA bajan al pie: informan, no encabezan.
+    expect(terminos().getByText(porTextoCompleto('TEA 75% · TCEA 86.34%'))).toBeInTheDocument();
   });
 
-  it('acepta la oferta desde el CTA de la card', async () => {
+  it('respeta la frecuencia real en la cuota y en el plazo', () => {
+    const semanal = {
+      ...baseOffer,
+      standardOffer: {
+        ...baseOffer.standardOffer,
+        paymentFrequency: 'semanal',
+        term: 16,
+        termMonths: 4,
+        monthlyPayment: 81,
+      },
+    } as unknown as OfferView;
+
+    renderView(semanal);
+
+    expect(terminos().getByText('16 semanas')).toBeInTheDocument();
+    expect(terminos().getByText(porTextoCompleto('S/81/sem'))).toBeInTheDocument();
+    // Y nunca el plazo normalizado a meses, que es lo que el cliente no reconocía.
+    expect(screen.queryByText('4 meses')).not.toBeInTheDocument();
+  });
+
+  it('acepta desde el unico "Aceptar" de la pantalla', async () => {
     renderView();
 
-    fireEvent.click(screen.getByRole('button', { name: /Aceptar oferta/i }));
+    // El card ya no trae CTA propio: si hubiera dos, esto falla.
+    expect(screen.getAllByRole('button', { name: /^Aceptar$/i })).toHaveLength(1);
 
+    fireEvent.click(screen.getByRole('button', { name: /^Aceptar$/i }));
     await waitFor(() => expect(acceptOffer).toHaveBeenCalledWith('tok-123'));
   });
 
-  it('rechaza la oferta desde el botón secundario', async () => {
+  it('rechaza desde un boton del mismo peso que el de aceptar', async () => {
     renderView();
 
-    fireEvent.click(screen.getByRole('button', { name: /Rechazar oferta/i }));
-
+    fireEvent.click(screen.getByRole('button', { name: /^Rechazar$/i }));
     await waitFor(() => expect(rejectOffer).toHaveBeenCalledWith('tok-123'));
+  });
+
+  it('ofrece consultar por WhatsApp sin tener que rechazar antes', () => {
+    renderView();
+
+    expect(screen.getByRole('link', { name: /Consultar/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('wa.link'),
+    );
+  });
+
+  it('muestra de qué equipo se viene cuando la oferta lo cambia', () => {
+    const conCambio = {
+      ...baseOffer,
+      requestedProduct: {
+        id: 9,
+        variant_id: null,
+        name: 'Laptop HP 15-fd0026la',
+        slug: 'hp-15-fd0026la',
+        image_url: 'https://cdn.baldecash.com/equipos/hp15.png',
+        monthly_price: 210,
+      },
+    } as unknown as OfferView;
+
+    renderView(conCambio);
+
+    expect(screen.getByText('Pediste')).toBeInTheDocument();
+    expect(screen.getByText(/Laptop HP 15-fd0026la/)).toBeInTheDocument();
+  });
+
+  it('no compara nada cuando la oferta mantiene el equipo pedido', () => {
+    renderView();
+
+    expect(screen.queryByText('Pediste')).not.toBeInTheDocument();
   });
 
   it('ofrece "Ver detalle" cuando hay slug de producto y de landing', () => {
@@ -106,17 +179,14 @@ describe('StandardOfertaAccion', () => {
   });
 
   it('no ofrece "Ver detalle" si falta el slug de la landing', () => {
-    const sinLanding = {
-      ...baseOffer,
-      landingSlug: null,
-    } as unknown as OfferView;
+    const sinLanding = { ...baseOffer, landingSlug: null } as unknown as OfferView;
 
     renderView(sinLanding);
 
     expect(screen.queryByRole('button', { name: /Ver detalle/i })).not.toBeInTheDocument();
   });
 
-  it('con la oferta vencida no deja aceptar ni rechazar', () => {
+  it('con la oferta vencida bloquea la decisión pero deja escribir', () => {
     const vencida = {
       ...baseOffer,
       expiresAt: new Date(Date.now() - 3600 * 1000).toISOString(),
@@ -125,9 +195,12 @@ describe('StandardOfertaAccion', () => {
     renderView(vencida);
 
     expect(screen.getByText('Esta oferta venció')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Rechazar oferta/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Rechazar$/i })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /Oferta vencida/i }));
     expect(acceptOffer).not.toHaveBeenCalled();
+
+    // Vencida es justo cuando más falta hace escribir: el enlace sigue vivo.
+    expect(screen.getByRole('link', { name: /Consultar/i })).toBeInTheDocument();
   });
 });

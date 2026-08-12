@@ -162,6 +162,11 @@ export interface StandardOfferInfo {
   /** Horas restantes de vigencia calculadas por el backend (informativo; el
    *  countdown real se deriva de `expiresAt` con useCountdown). */
   hoursRemaining: number | null;
+  /** Plazo REAL (nº de cuotas) y su frecuencia. `termMonths` normaliza todo a
+   *  meses, así que una oferta quincenal de 24 cuotas se veía como "12 meses"
+   *  y el cliente no reconocía su propio plan. */
+  term: number | null;
+  paymentFrequency: string | null;
 }
 
 export interface OfferView {
@@ -294,7 +299,11 @@ export async function getOffer(token: string): Promise<OfferView> {
       // La landing de la solicitud (o la de la oferta si el analista la
       // cambió): con ella se arma el link "Ver detalle" del equipo.
       landingSlug: data.landing_slug ?? null,
-      requestedProduct: null,
+      // El equipo que el cliente pidió, para el antes/después. Antes esto era
+      // `null` fijo: el backend no lo mandaba y el front tampoco lo leía.
+      // Llega null cuando NO hay comparación que mostrar — la oferta mantiene
+      // el equipo, o ya se aceptó y la solicitud pasó a apuntar al ofertado.
+      requestedProduct: data.requested_product ?? null,
       recommended: null,
       applicationCode: data.application_code ?? null,
       clientName: data.client_name ?? null,
@@ -317,6 +326,8 @@ export async function getOffer(token: string): Promise<OfferView> {
         tcea: data.tcea ?? null,
         totalAmount: data.total_amount ?? null,
         hoursRemaining: data.hours_remaining ?? null,
+        term: data.term ?? data.term_months ?? null,
+        paymentFrequency: data.payment_frequency ?? 'mensual',
       },
     };
   }

@@ -85,15 +85,21 @@ export interface EquipoRecomendadoInfo {
   /** Cuota del equipo SOLO (sin accesorios), para mostrarla bajo el nombre.
    *  `monthly` puede ser el combinado (equipo + accesorio del Perfil B). */
   equipoMonthly?: number | null;
+  /** Sufijo de la cuota. El upsell es siempre mensual, pero la oferta estándar
+   *  de celulares puede ser semanal o quincenal y decía "/mes" igual. */
+  periodLabel?: string;
 }
 
 export interface EquipoRecomendadoCardProps {
   equipo: EquipoRecomendadoInfo;
   tone: 'verde' | 'indigo';
   badgeText: string;
-  ctaText: string;
+  /** CTA principal del card. Opcional: cuando la pantalla ya tiene sus propios
+   *  botones de acción (oferta estándar: aceptar/rechazar/consultar al mismo
+   *  nivel), el card se queda solo informativo y no duplica el "Aceptar". */
+  ctaText?: string;
   subtext?: string;
-  onElegir: () => void;
+  onElegir?: () => void;
   /** Acción secundaria "Ver detalle" (botón fantasma). Si no se pasa, no se
    *  muestra ese botón y el CTA "Aceptar" ocupa el ancho como antes. */
   onVerDetalle?: () => void;
@@ -319,7 +325,7 @@ export function EquipoRecomendadoCard({
               >
                 S/{cuotaFormateada}
                 <span className="text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
-                  /mes
+                  {equipo.periodLabel ?? '/mes'}
                 </span>
               </div>
               {plazoTexto ? (
@@ -337,14 +343,16 @@ export function EquipoRecomendadoCard({
               >
                 Ver detalle
               </button>
-              <button
-                type="button"
-                onClick={onElegir}
-                className="flex-1 cursor-pointer rounded-lg px-4 py-2.5 text-[13.5px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97] sm:flex-none"
-                style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
-              >
-                {ctaText}
-              </button>
+              {onElegir ? (
+                <button
+                  type="button"
+                  onClick={onElegir}
+                  className="flex-1 cursor-pointer rounded-lg px-4 py-2.5 text-[13.5px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97] sm:flex-none"
+                  style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
+                >
+                  {ctaText}
+                </button>
+              ) : null}
             </div>
           </div>
         ) : (
@@ -364,18 +372,20 @@ export function EquipoRecomendadoCard({
               >
                 S/{cuotaFormateada}
                 <span className="text-[12.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
-                  /mes
+                  {equipo.periodLabel ?? '/mes'}
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onElegir}
-              className="cursor-pointer rounded-lg px-5 py-3 text-[14px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97]"
-              style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
-            >
-              {ctaText}
-            </button>
+            {onElegir ? (
+              <button
+                type="button"
+                onClick={onElegir}
+                className="cursor-pointer rounded-lg px-5 py-3 text-[14px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.97]"
+                style={{ backgroundColor: t.boton, boxShadow: `0 6px 14px ${t.botonShadow}` }}
+              >
+                {ctaText}
+              </button>
+            ) : null}
           </div>
         )}
       </div>
