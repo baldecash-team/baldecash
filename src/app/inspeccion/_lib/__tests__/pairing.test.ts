@@ -30,7 +30,11 @@ describe('redeemPairingCode', () => {
       json: async () => ({ detail: { reason: 'already_used' } }),
     }) as unknown as typeof fetch;
 
-    await expect(redeemPairingCode('A7K2M9')).rejects.toThrow(/already_used/);
+    // El motivo se traduce a algo accionable: el operador tiene que saber que
+    // un código sirve UNA vez y que la salida es emitir otro. Ver
+    // `mensajeDeVinculacion` — mostrar "already_used" no le dice nada a quien
+    // está parado frente a la estación.
+    await expect(redeemPairingCode('A7K2M9')).rejects.toThrow(/ya se usó/);
     // Una sesión fallida no debe quedar a medias.
     expect(getDeviceSession()).toBeNull();
   });
