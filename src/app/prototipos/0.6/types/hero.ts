@@ -468,6 +468,17 @@ export interface AgreementData {
   institution_name?: string;
   institution_short_name?: string;
   institution_logo?: string;
+  /**
+   * La landing pidió ocultar la marca del convenio (`hide_agreement_logo`).
+   *
+   * Lo marca `LayoutContext` al vaciar `institution_logo`. Sin esta señal, el
+   * fallback de texto del footer se encendería justo por esa ausencia y
+   * imprimiría el nombre de la institución — el efecto que el flag evita.
+   *
+   * El nombre NO se vacía: ConvenioHero, ConvenioFaq y ConvenioTestimonials lo
+   * usan como texto y deben seguir mostrándolo (BAL-2970).
+   */
+  hide_logo?: boolean;
   study_center_id?: number;
   /** Tipo de institución del study_center (university/institute/school/...).
    *  El wizard de convenio auto-setea y bloquea el campo 'institution_type' con este valor. */

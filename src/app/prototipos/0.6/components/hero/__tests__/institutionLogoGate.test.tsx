@@ -96,3 +96,38 @@ describe('Footer — gate del logo institucional', () => {
     expect(container.textContent).toContain('UTP');
   });
 });
+
+/**
+ * Regresion del footer del catalogo (BAL-2970).
+ *
+ * El catalogo llama <Footer agreementData={...} /> SIN pasar
+ * showInstitutionLogo, asi que la prop vale true por default. Al vaciar el
+ * logo en el contexto, el fallback de texto se encendia por esa misma ausencia
+ * e imprimia "UTP" en letras — justo lo que el flag evita.
+ *
+ * La marca `hide_logo` viaja dentro de agreementData, asi que llega a los 21
+ * call sites del Footer sin necesidad de tocarlos.
+ */
+describe('Footer — hide_logo cubre los call sites que no pasan la prop', () => {
+  const APAGADO = {
+    ...AGREEMENT,
+    institution_logo: undefined,  // el contexto lo vacia
+    hide_logo: true,              // y deja la marca
+  };
+
+  it('no imprime el nombre como texto aunque no reciba la prop', () => {
+    const { container } = render(<Footer agreementData={APAGADO} />);
+    expect(container.textContent).not.toContain('UTP');
+  });
+
+  it('tampoco deja el separador suelto', () => {
+    const { container } = render(<Footer agreementData={APAGADO} />);
+    expect(container.textContent).not.toContain('×');
+  });
+
+  it('sin hide_logo, el fallback sigue funcionando (convenios sin logo cargado)', () => {
+    const sinLogo = { ...AGREEMENT, institution_logo: undefined };
+    const { container } = render(<Footer agreementData={sinLogo} />);
+    expect(container.textContent).toContain('UTP');
+  });
+});
