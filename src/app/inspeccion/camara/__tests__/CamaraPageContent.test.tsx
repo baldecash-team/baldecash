@@ -336,6 +336,78 @@ describe('CamaraPageContent', () => {
     });
   });
 
+  describe('publica estado de captura (F3 Task 5 / review de F2)', () => {
+    // El flanco `connected` dispara el resync de `/state` (F3 Task 4) —
+    // sin `fetch` mockeado, ese `catch(() => {})` no alcanza a cubrir un
+    // `fetch` global inexistente en jsdom (ReferenceError, no un rechazo).
+    beforeEach(() => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as unknown as typeof fetch;
+    });
+
+    it('al confirmarse la suscripcion, publica el estado de captura actual por client event', () => {
+      setDeviceSessionCamara();
+      render(<CamaraPageContent />);
+
+      const pusher = mockFakePusher.instances[0];
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+      });
+
+      expect(pusher.channel.trigger).toHaveBeenCalledWith('client-estado-captura', {
+        device_id: 'dev-01',
+        estado: 'inactiva',
+      });
+    });
+
+    it('armar la camara publica el nuevo estado "armada" — el escaner no debe seguir viendola como "sin armar"', async () => {
+      setDeviceSessionCamara();
+      render(<CamaraPageContent />);
+
+      const pusher = mockFakePusher.instances[0];
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+      });
+      pusher.channel.trigger.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+
+      expect(pusher.channel.trigger).toHaveBeenCalledWith('client-estado-captura', {
+        device_id: 'dev-01',
+        estado: 'armada',
+      });
+    });
+
+    it('una cámara caída publica "caida" — el semáforo del escáner debe apagarse', async () => {
+      setDeviceSessionCamara();
+      render(<CamaraPageContent />);
+
+      const pusher = mockFakePusher.instances[0];
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+      });
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+      pusher.channel.trigger.mockClear();
+
+      act(() => {
+        videoTrack.simulateEnded();
+      });
+
+      expect(pusher.channel.trigger).toHaveBeenCalledWith('client-estado-captura', {
+        device_id: 'dev-01',
+        estado: 'caida',
+      });
+    });
+  });
+
   describe('comandos remotos (F3 Task 4)', () => {
     /** Router mínimo de `fetch` para los tres endpoints que esta vista llama
      * en F3: `GET /inspections/time` (useServerClock), `POST

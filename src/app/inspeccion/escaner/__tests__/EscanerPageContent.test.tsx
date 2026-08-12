@@ -146,4 +146,210 @@ describe('EscanerPageContent', () => {
     expect(getDeviceSession()).toBeNull();
     expect(screen.getByText('Escáner no vinculado')).toBeInTheDocument();
   });
+
+  describe('control de grabación (F3 Task 5)', () => {
+    function setDeviceSessionEscaner() {
+      setDeviceSession({
+        deviceId: 'dev-esc',
+        token: 'tok-esc',
+        stationId: 'est-01',
+        kind: 'escaner',
+        label: null,
+      });
+    }
+
+    /** Router mínimo de `fetch` para los endpoints que esta vista llama en
+     * F3 Task 5: `GET /stations/{id}/state`, `POST /inspections` (crear),
+     * `POST /inspections/{id}/abort` y `POST /inspections/{id}/stop`. */
+    function instalarFetchEscaner() {
+      global.fetch = jest.fn((url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.includes('/stations/') && u.endsWith('/state')) {
+          return Promise.resolve({ ok: true, json: async () => ({ camera_labels: ['techo'] }) });
+        }
+        if (u.endsWith('/abort')) {
+          return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'failed' }) });
+        }
+        if (u.endsWith('/stop')) {
+          return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'uploading' }) });
+        }
+        if (u.endsWith('/inspections')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ inspection_id: 1, start_at: Date.now() + 1500, seq: 1 }),
+          });
+        }
+        return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
+      }) as unknown as typeof fetch;
+    }
+
+    /** Deja el canal conectado, suscripto, y a la única cámara esperada
+     * (`techo`) reportando `armada` — la condición de "pre-vuelo listo" tras
+     * la review de F2 (ver `PreVuelo.tsx`, `estaListo`). */
+    function conectarYListo() {
+      const pusher = FakePusher.instances[0];
+      pusher.channel.members.each.mockImplementation(
+        (cb: (m: { id: string; info?: { kind?: string; label?: string | null } }) => void) => {
+          cb({ id: 'dev-cam', info: { kind: 'camara', label: 'techo' } });
+        }
+      );
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+        pusher.channel.emit('client-estado-captura', { device_id: 'dev-cam', estado: 'armada' });
+      });
+      return pusher;
+    }
+
+    it('el boton de INICIAR esta deshabilitado si el pre-vuelo no esta listo', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+
+      // Sin cámaras reportando "armada" (mock de `members.each` sin
+      // configurar, default vacío): el banner sigue en "Faltan cámaras" y
+      // INICIAR debe estar deshabilitado aunque haya un serial cargado.
+      await waitFor(() => {
+        expect(screen.getByText('Faltan cámaras — no se puede escanear')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
+        target: { value: 'SN-001' },
+      });
+
+      expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+    });
+
+    it('con el pre-vuelo listo pero sin serial cargado, INICIAR sigue deshabilitado', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      conectarYListo();
+
+      await waitFor(() => {
+        expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+    });
+
+    it('REGLA CRÍTICA: si no llegan los acks de todas las cámaras a tiempo, la inspección se aborta y se muestra un error visible', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      conectarYListo();
+
+      await waitFor(() => {
+        expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
+        target: { value: 'SN-001' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+
+      // Deliberadamente sin emitir `recording.started`: ninguna cámara
+      // ackeó. El escáner NUNCA debe decir que grabó — a los ~1,5s debe
+      // abortar por su cuenta y mostrarlo, no quedarse esperando para
+      // siempre ni asumir que arrancó.
+      await waitFor(
+        () => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/abort'))
+          ).toBe(true);
+        },
+        { timeout: 3000 }
+      );
+      await waitFor(() => {
+        expect(screen.getByText(/no llegó confirmación/i)).toBeInTheDocument();
+      });
+
+      // Vuelve a un estado operable: el botón se reactiva para reintentar
+      // (no queda "iniciando" colgado para siempre).
+      expect(screen.getByRole('button', { name: /^iniciar$/i })).not.toBeDisabled();
+      expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+    }, 6000);
+
+    it('con los acks completos (recording.started), pasa a estado GRABANDO y aparece el boton de FINALIZAR', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      const pusher = conectarYListo();
+
+      await waitFor(() => {
+        expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
+        target: { value: 'SN-001' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+
+      await waitFor(() => {
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/inspections'))
+        ).toBe(true);
+      });
+
+      // La señal que hace avanzar al escáner es la de la API (Pusher), no
+      // un timer propio — spec §6.1 regla 4.
+      act(() => {
+        pusher.channel.emit('recording.started', { inspection_id: 1 });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: /^finalizar$/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^iniciar$/i })).not.toBeInTheDocument();
+
+      // No debe haber abortado: los acks llegaron a tiempo.
+      expect(
+        (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/abort'))
+      ).toBe(false);
+    });
+
+    it('FINALIZAR llama al endpoint de stop y vuelve a ofrecer INICIAR', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      const pusher = conectarYListo();
+
+      await waitFor(() => {
+        expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
+        target: { value: 'SN-001' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+
+      await waitFor(() => {
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/inspections'))
+        ).toBe(true);
+      });
+      act(() => {
+        pusher.channel.emit('recording.started', { inspection_id: 1 });
+      });
+      await waitFor(() => {
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /^finalizar$/i }));
+
+      await waitFor(() => {
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/stop'))
+        ).toBe(true);
+      });
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeInTheDocument();
+      });
+      expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+    });
+  });
 });

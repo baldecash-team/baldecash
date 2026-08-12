@@ -4,15 +4,58 @@ import { useEffect, useState } from 'react';
 import Pusher, { type PresenceChannel } from 'pusher-js';
 import { API_BASE_URL } from './pairing';
 
+/**
+ * Estados de captura que una cámara puede reportar por el canal (spec §7,
+ * review de F2 — ver doc-comment de `CLIENT_ESTADO_CAPTURA_EVENT` más abajo).
+ * Mismos valores que `EstadoCaptura` de `useKioskRecorder.ts`, pero definidos
+ * acá aparte y no importados de ahí: este módulo es infraestructura de
+ * presencia genérica que usan tanto el escáner como la cámara, y no debe
+ * depender de un hook específico de captura.
+ */
+export type PresenceCaptureState = 'inactiva' | 'armando' | 'armada' | 'grabando' | 'caida';
+
 export interface PresenceMember {
   deviceId: string;
   kind: string;
   label: string | null;
+  /**
+   * `null` = todavía no llegó ningún reporte de esta cámara en esta
+   * suscripción (recién conectada, o el emisor no es una cámara). Antes de
+   * F2 "presente en el canal" equivalía a "sirve"; ahora una cámara puede
+   * estar conectada y sin armar, o caída, y el semáforo NO debe mentir en
+   * verde en esos casos (ver `estaListo` en `PreVuelo.tsx`) — `null` cuenta
+   * como "no sirve", igual que `'inactiva'`/`'caida'`/`'armando'`.
+   */
+  captureState: PresenceCaptureState | null;
 }
 
 interface PusherMemberInfo {
   kind?: string;
   label?: string | null;
+}
+
+/**
+ * Evento de cliente (`client-*`) por el que una cámara publica su estado de
+ * captura a los demás miembros del canal presence (spec §7 / review de F2).
+ *
+ * Por qué un evento de cliente y no `user_info` (la otra opción evaluada):
+ * `user_info` se fija UNA sola vez, al autorizar la suscripción
+ * (`pusher_auth.py`, `authenticate_presence_channel`), y no cambia sin
+ * resuscribirse — pero una cámara vive conectada durante horas y pasa por
+ * `inactiva → armando → armada → grabando → armada → …` repetidas veces sin
+ * volver a suscribirse nunca. Reflejar eso en `user_info` exigiría forzar una
+ * resuscripción por cada cambio de estado (y tocar el backend para aceptar
+ * `user_info` dinámico, que hoy sale de datos fijos del dispositivo). Un
+ * evento de cliente no necesita ninguna de las dos cosas: una vez que el
+ * canal está autorizado, cualquier miembro puede triggerearlo y los demás lo
+ * reciben sin pasar por la API — encaja exacto con "dato que cambia seguido,
+ * dentro de una suscripción que dura horas". Sin cambios de backend.
+ */
+export const CLIENT_ESTADO_CAPTURA_EVENT = 'client-estado-captura';
+
+interface ClientEstadoCapturaPayload {
+  device_id: string;
+  estado: string;
 }
 
 /**
@@ -101,17 +144,38 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
     // `Promise.resolve().then(...)` de sobra.
     const channel = pusher.subscribe(`presence-inspection-${stationId}`) as PresenceChannel;
 
-    const leer = () => {
+    // Estado de captura reportado por cada dispositivo, por `client-*` (ver
+    // `CLIENT_ESTADO_CAPTURA_EVENT`). Vive en el closure de ESTE efecto, no en
+    // un ref a nivel de hook: una resuscripción completa (reconexión) tiene
+    // que arrancar en blanco. No hay forma de saber si un estado reportado
+    // antes de la caída sigue vigente hasta que la cámara lo vuelva a
+    // reportar — asumir que sí es la misma mentira en verde que esto existe
+    // para evitar.
+    const captureStates = new Map<string, PresenceCaptureState>();
+
+    const construirMembers = (): PresenceMember[] => {
       const out: PresenceMember[] = [];
       channel.members.each((m: { id: string; info?: PusherMemberInfo }) => {
         out.push({
           deviceId: m.id,
           kind: m.info?.kind ?? '',
           label: m.info?.label ?? null,
+          captureState: captureStates.get(m.id) ?? null,
         });
       });
-      setMembers(out);
+      return out;
     };
+
+    const leer = () => setMembers(construirMembers());
+
+    channel.bind(CLIENT_ESTADO_CAPTURA_EVENT, (data: unknown) => {
+      const payload = data as ClientEstadoCapturaPayload | null;
+      if (!payload?.device_id || !payload?.estado) return;
+      captureStates.set(payload.device_id, payload.estado as PresenceCaptureState);
+      // No hace falta esperar a `member_added`/`member_removed`: el reporte
+      // de estado en sí es la señal de que hay algo nuevo para mostrar.
+      setMembers(construirMembers());
+    });
 
     channel.bind('pusher:subscription_succeeded', () => {
       setSubscribed(true);

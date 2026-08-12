@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
@@ -13,6 +13,33 @@ interface PairingCode {
   expires_at: string;
   pair_url: string;
 }
+
+/**
+ * Estado local del CONTROL DE GRABACIÓN (F3 Task 5). No confundir con
+ * `InspectionStatus` del backend (`created`/`recording`/…): esto es la
+ * máquina de estados de la VISTA, más chica — el backend sigue siendo la
+ * única fuente de verdad de la inspección en sí (spec §6, "solo la API
+ * transiciona estados").
+ *
+ * - `inactiva`   — nada en curso; puede iniciar si el pre-vuelo está listo.
+ * - `iniciando`  — `POST /inspections` ya salió, esperando los acks de
+ *                  todas las cámaras (`recording.started`) o el timeout.
+ * - `grabando`   — todas las cámaras ackearon a tiempo.
+ */
+type SesionEstado = 'inactiva' | 'iniciando' | 'grabando';
+
+/**
+ * Ventana para que TODAS las cámaras de la estación confirmen el arranque
+ * (spec §6.1 regla 1). Mismo valor que `_START_DELAY_MS` del backend
+ * (`session.py`): las cámaras mandan su ack apenas les llega `cmd.start`,
+ * antes de programar nada (ver doc-comment de `ackComando` en
+ * `CamaraPageContent.tsx`) — para cuando llega el instante de arranque
+ * (`start_at = ahora_servidor + 1,5s`) ya deberían haber ackeado todas. Si a
+ * los 1,5s de haber pedido la inspección no llegó `recording.started`, no
+ * hay ambigüedad posible: alguna cámara no confirmó y NUNCA se asume que
+ * grabó (spec §6.1 regla 1) — se aborta.
+ */
+const ACK_TIMEOUT_MS = 1_500;
 
 function hayCodigoEnUrl(): boolean {
   if (typeof window === 'undefined') return false;
@@ -61,6 +88,21 @@ export default function EscanerPageContent() {
   const [pairing, setPairing] = useState<PairingCode | null>(null);
   const [pairingError, setPairingError] = useState<string | null>(null);
 
+  // Control de grabación (F3 Task 5). `serial` es entrada MANUAL a
+  // propósito: la lectura por cámara/OCR y la confirmación contra Airtable
+  // (spec §5) son una fase aparte, no cubierta por este plan — "manual" es
+  // uno de los tres caminos legítimos del spec, no un atajo temporal.
+  const [serial, setSerial] = useState('');
+  const [sesionEstado, setSesionEstado] = useState<SesionEstado>('inactiva');
+  const [sesionError, setSesionError] = useState<string | null>(null);
+  // El id de la inspección en curso vive en un ref, no en estado: lo
+  // necesitan closures de callbacks/efectos (el handler de `recording.started`,
+  // el timeout de acks) que no deben re-crearse solo porque cambió, y
+  // `finalizarInspeccion` necesita leer el valor MÁS RECIENTE en el momento
+  // del click, no el que tenía cuando se creó el callback.
+  const inspectionIdRef = useRef<number | null>(null);
+  const ackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('p');
     if (!code) return;
@@ -85,7 +127,7 @@ export default function EscanerPageContent() {
 
   // `error: channelError` para no chocar con `vinculoError`/`stateError`/
   // `pairingError`: son problemas distintos y no deben pisarse el mensaje.
-  const { members, connected, error: channelError } = usePresenceChannel(
+  const { members, connected, error: channelError, channel } = usePresenceChannel(
     kindMismatch ? null : (session?.stationId ?? null),
     kindMismatch ? null : (session?.token ?? null)
   );
@@ -117,6 +159,134 @@ export default function EscanerPageContent() {
         setStateError('No se pudo consultar el estado de la estación. Reintentá o revisá la red del escáner.');
       });
   }, [session, kindMismatch]);
+
+  // Movido acá arriba (antes vivía junto al render, después de los early
+  // returns) porque `iniciarInspeccion`, más abajo, es un hook (`useCallback`)
+  // y los hooks no pueden depender de un valor calculado después de un
+  // `return` condicional — los hooks de un componente corren siempre en el
+  // mismo orden, en TODOS los renders. `connected`/`channelError` entran en
+  // la cuenta por el mismo motivo que en el banner (I2): presence queda
+  // stale ante un corte, así que sin esto "listo" podía seguir en verde con
+  // el escáner desconectado.
+  const listo = connected && !channelError && estaListo(labels, members);
+
+  // Ver doc-comment de `ACK_TIMEOUT_MS` sobre el porqué de este valor y por
+  // qué SÍ es un timer sancionado por el spec (regla 1: abortar si no
+  // llegan los acks a tiempo) y no una violación de la regla 4 ("el escáner
+  // avanza solo con señal de la API") — esa regla es sobre AVANZAR
+  // (`grabando` sale únicamente de `recording.started`, más abajo), no
+  // sobre decidir un fracaso cuando nadie confirmó nada.
+  const abortarPorTimeout = useCallback(() => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null) return;
+    inspectionIdRef.current = null;
+    ackTimeoutRef.current = null;
+    setSesionEstado('inactiva');
+    setSesionError(
+      'No llegó confirmación de todas las cámaras a tiempo. Se abortó la inspección — nunca se asume que grabó.'
+    );
+    // Fire-and-forget, mismo criterio que `ackComando` en
+    // `CamaraPageContent.tsx`: la UI ya decidió (spec §6.1 regla 1) — esto
+    // solo informa a la API para que transicione la inspección a `failed`
+    // server-side (la fuente de verdad sigue siendo Aurora). Sin reintento:
+    // no hay nada más accionable acá si falla por red.
+    void fetch(`${API_BASE_URL}/inspections/${id}/abort`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+      body: JSON.stringify({ motivo: 'timeout_ack_camaras' }),
+    }).catch(() => {});
+  }, [session]);
+
+  const iniciarInspeccion = useCallback(async () => {
+    if (!session) return;
+    const serialTrim = serial.trim();
+    if (!listo || !serialTrim || sesionEstado !== 'inactiva') return;
+
+    setSesionError(null);
+    setSesionEstado('iniciando');
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+        body: JSON.stringify({ serial: serialTrim, serial_source: 'manual' }),
+      });
+      if (!r.ok) {
+        setSesionError(`No se pudo iniciar la inspección (http_${r.status})`);
+        setSesionEstado('inactiva');
+        return;
+      }
+      const body = await r.json();
+      inspectionIdRef.current = body.inspection_id;
+      if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
+      ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
+    } catch {
+      setSesionError('No se pudo iniciar la inspección: error de red');
+      setSesionEstado('inactiva');
+    }
+  }, [session, serial, listo, sesionEstado, abortarPorTimeout]);
+
+  const finalizarInspeccion = useCallback(async () => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null) return;
+    setSesionError(null);
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections/${id}/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+      });
+      if (!r.ok) {
+        setSesionError(`No se pudo finalizar la inspección (http_${r.status})`);
+        return;
+      }
+      inspectionIdRef.current = null;
+      setSesionEstado('inactiva');
+      setSerial('');
+    } catch {
+      setSesionError('No se pudo finalizar la inspección: error de red');
+    }
+  }, [session]);
+
+  // `recording.started` es la ÚNICA señal que hace avanzar a `grabando`
+  // (spec §6.1 regla 4: el escáner avanza solo con señal de la API, jamás
+  // con un timer propio) — la emite `POST /inspections/{id}/ack` en el
+  // backend cuando ya ackearon TODAS las cámaras que `camera_labels`
+  // declara (`InspectionService.intentar_marcar_grabando_por_acks`), así que
+  // acá no hace falta contar acks por cámara: un solo evento con
+  // `inspection_id` alcanza. Se descarta cualquier evento que no matchee la
+  // inspección en curso (p. ej. una redelivery tardía de una inspección ya
+  // abortada) comparando contra `inspectionIdRef`, no contra un `seq` propio
+  // — este evento no lleva uno.
+  useEffect(() => {
+    if (!channel) return undefined;
+    const handler = (data: unknown) => {
+      const payload = data as { inspection_id?: number } | null;
+      if (payload?.inspection_id == null) return;
+      if (payload.inspection_id !== inspectionIdRef.current) return;
+      if (ackTimeoutRef.current) {
+        clearTimeout(ackTimeoutRef.current);
+        ackTimeoutRef.current = null;
+      }
+      setSesionEstado('grabando');
+    };
+    channel.bind('recording.started', handler);
+    return () => {
+      // `?.`: el fake de test (`_test-support/fakePusher.ts`) solo
+      // implementa `bind`/`emit`, igual que el `ComandoChannel` de
+      // `useComandos.ts` — mismo criterio ahí.
+      channel.unbind?.('recording.started', handler);
+    };
+  }, [channel]);
+
+  // Limpieza del timeout de acks al desmontar — mismo espíritu que el timer
+  // de arranque de `CamaraPageContent.tsx`: no dejar un `setTimeout` vivo
+  // apuntando a un componente que ya se fue.
+  useEffect(() => {
+    return () => {
+      if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
+    };
+  }, []);
 
   const pedirCodigo = useCallback(
     async (label: string) => {
@@ -214,13 +384,6 @@ export default function EscanerPageContent() {
     );
   }
 
-  // `connected` entra en la cuenta: presence es stale ante un corte —
-  // pusher-js no emite member_removed al perder conexión, así que `members`
-  // conserva la última foto. Sin este `&&`, "Estación lista" quedaba en
-  // verde mientras el escáner estaba desconectado y la única pista era un
-  // "Reconectando…" gris y chico (I2).
-  const listo = connected && !channelError && estaListo(labels, members);
-
   // Precedencia que sostiene la semántica del banner (I1): `channelError`
   // (no sé nada del canal) > `stateError` (no sé qué espera la estación) >
   // `listo`/`faltan cámaras` (sé, y falta esto). Cuando gana un error de
@@ -279,6 +442,73 @@ export default function EscanerPageContent() {
           Reconectando…
         </p>
       )}
+
+      {/*
+        Control de grabación (F3 Task 5). El estado de la inspección en
+        curso tiene que verse grande y claro — el operador no puede tener
+        que adivinar si está grabando (plan, Task 5 Step 4) — por eso
+        "GRABANDO" usa la misma tipografía enorme que el kiosco de cámara
+        (`CamaraPageContent.tsx`), no un texto chico más entre los demás.
+      */}
+      <section className="mt-8 border-t pt-6" style={{ borderColor: TOKENS.line }}>
+        <h2 className="text-sm font-semibold" style={{ color: TOKENS.ink }}>
+          Inspección
+        </h2>
+
+        {sesionEstado === 'grabando' ? (
+          <>
+            <p
+              className="mt-4 text-center text-5xl font-bold"
+              style={{ color: TOKENS.red }}
+            >
+              GRABANDO
+            </p>
+            <button
+              type="button"
+              onClick={() => void finalizarInspeccion()}
+              className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white"
+              style={{ background: TOKENS.primary }}
+            >
+              FINALIZAR
+            </button>
+          </>
+        ) : (
+          <>
+            <label
+              htmlFor="inspeccion-serial"
+              className="mt-4 block text-xs font-semibold"
+              style={{ color: TOKENS.slate }}
+            >
+              Serial del equipo
+            </label>
+            <input
+              id="inspeccion-serial"
+              type="text"
+              value={serial}
+              onChange={(e) => setSerial(e.target.value)}
+              disabled={sesionEstado === 'iniciando'}
+              placeholder="Ingresá el serial manualmente"
+              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+            />
+            <button
+              type="button"
+              onClick={() => void iniciarInspeccion()}
+              disabled={!listo || !serial.trim() || sesionEstado !== 'inactiva'}
+              className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white disabled:opacity-40"
+              style={{ background: TOKENS.primary }}
+            >
+              {sesionEstado === 'iniciando' ? 'INICIANDO…' : 'INICIAR'}
+            </button>
+          </>
+        )}
+
+        {sesionError && (
+          <p className="mt-4 text-center text-sm font-semibold" style={{ color: TOKENS.red }}>
+            {sesionError}
+          </p>
+        )}
+      </section>
 
       <section className="mt-8 border-t pt-6" style={{ borderColor: TOKENS.line }}>
         <h2 className="text-sm font-semibold" style={{ color: TOKENS.ink }}>
