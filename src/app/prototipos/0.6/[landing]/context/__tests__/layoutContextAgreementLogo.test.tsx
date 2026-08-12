@@ -66,21 +66,33 @@ function baseConfig(showAgreementLogo: boolean) {
 }
 
 function Probe() {
-  const { navbarProps } = useLayout();
+  const { navbarProps, agreementData, isLoading } = useLayout();
   return (
     <>
+      <span data-testid="loading">{String(isLoading)}</span>
       <span data-testid="flag">{String(navbarProps?.showInstitutionLogo)}</span>
       <span data-testid="logo">{String(navbarProps?.institutionLogo)}</span>
+      <span data-testid="agreement-logo">{String(agreementData?.institution_logo)}</span>
+      <span data-testid="agreement-name">{String(agreementData?.institution_short_name)}</span>
     </>
   );
 }
 
-function renderProbe() {
-  return render(
+/**
+ * Monta el provider y ESPERA a que el fetch del layout resuelva.
+ *
+ * Sin esta espera `layoutData` sigue en null, `agreementData` es null y las
+ * aserciones sobre el logo pasan por vacio en vez de por correctas — un falso
+ * verde que oculta justo lo que estos tests deben cubrir.
+ */
+async function renderProbe() {
+  const utils = render(
     <LayoutProvider>
       <Probe />
     </LayoutProvider>,
   );
+  await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
+  return utils;
 }
 
 describe('LayoutContext — show_agreement_logo', () => {
@@ -88,13 +100,13 @@ describe('LayoutContext — show_agreement_logo', () => {
 
   it('propaga false cuando el config lo apaga', async () => {
     fetchLandingConfigMock.mockResolvedValue(baseConfig(false));
-    renderProbe();
+    await renderProbe();
     await waitFor(() => expect(screen.getByTestId('flag')).toHaveTextContent('false'));
   });
 
   it('propaga true cuando el config lo deja encendido', async () => {
     fetchLandingConfigMock.mockResolvedValue(baseConfig(true));
-    renderProbe();
+    await renderProbe();
     await waitFor(() => expect(screen.getByTestId('flag')).toHaveTextContent('true'));
   });
 
@@ -104,14 +116,41 @@ describe('LayoutContext — show_agreement_logo', () => {
     const sinClave = baseConfig(true) as Record<string, unknown>;
     delete (sinClave.layout as Record<string, unknown>).show_agreement_logo;
     fetchLandingConfigMock.mockResolvedValue(sinClave);
-    renderProbe();
+    await renderProbe();
     await waitFor(() => expect(screen.getByTestId('flag')).toHaveTextContent('true'));
   });
 
-  // El flag no debe interferir con el dato que ya viajaba.
-  it('sigue exponiendo institutionLogo aunque el flag este apagado', async () => {
+  // ── agreementData: la via que cubre los 21 call sites del Footer ──
+  //
+  // El Footer condiciona por `agreementData?.institution_logo`, no por una
+  // prop. Vaciar el logo en el contexto apaga los 21 sitios de una, sin tener
+  // que editar cada pagina (y sin poder olvidarse de una).
+
+  it('vacia institution_logo de agreementData cuando el flag esta apagado', async () => {
     fetchLandingConfigMock.mockResolvedValue(baseConfig(false));
-    renderProbe();
-    await waitFor(() => expect(screen.getByTestId('logo')).toHaveTextContent(UTP_LOGO));
+    await renderProbe();
+    await waitFor(() => expect(screen.getByTestId('agreement-logo')).toHaveTextContent('undefined'));
+  });
+
+  it('conserva institution_logo cuando el flag esta encendido', async () => {
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(true));
+    await renderProbe();
+    await waitFor(() => expect(screen.getByTestId('agreement-logo')).toHaveTextContent(UTP_LOGO));
+  });
+
+  // El resto del agreement tiene que sobrevivir: el nombre se usa en
+  // ConvenioHero, ConvenioFaq y ConvenioCta como texto, y ahi si va.
+  it('no borra el resto del agreement al apagar el logo', async () => {
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(false));
+    await renderProbe();
+    await waitFor(() => expect(screen.getByTestId('agreement-name')).toHaveTextContent('UTP'));
+  });
+
+  // navbarProps.institutionLogo sale del mismo agreement ya saneado, asi que
+  // los 11 Navbar quedan cubiertos por la misma via.
+  it('vacia tambien institutionLogo de navbarProps', async () => {
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(false));
+    await renderProbe();
+    await waitFor(() => expect(screen.getByTestId('logo')).toHaveTextContent('undefined'));
   });
 });

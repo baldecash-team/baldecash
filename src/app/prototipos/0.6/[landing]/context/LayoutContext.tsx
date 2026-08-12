@@ -190,8 +190,11 @@ export function LayoutProvider({
       dismissible: (promoConfig.dismissible as boolean) ?? true,
     } : null;
 
-    // Agreement data for co-branding (convenio landings)
+    // Agreement data for co-branding (convenio landings).
+    // El logo se omite si `layout.show_agreement_logo` esta apagado; el nombre
+    // se conserva porque el Navbar lo usa como alt text cuando si hay logo.
     const agreement = layoutData.agreement;
+    const institutionLogo = showAgreementLogo ? agreement?.institution_logo : undefined;
 
     const variantLogo = overlayVariant !== null ? OVERLAY_VARIANT_LOGOS[overlayVariant] : undefined;
     const logoResolved = overlayVariant !== null;
@@ -208,7 +211,7 @@ export function LayoutProvider({
       activeSections: (navbarItems || [])
         .filter((item) => item.section)
         .map((item) => item.section as string),
-      institutionLogo: agreement?.institution_logo || undefined,
+      institutionLogo: institutionLogo || undefined,
       institutionName: agreement?.institution_name || undefined,
       showInstitutionLogo: showAgreementLogo,
     };
@@ -321,11 +324,22 @@ export function LayoutProvider({
   }, [footerData]);
 
   // Extract agreement data for convenio pages
+  //
+  // Cuando `layout.show_agreement_logo` esta apagado se vacia el logo ACA, en
+  // el origen, en vez de pasar una prop a cada pagina. El Footer condiciona por
+  // `agreementData?.institution_logo`, asi que esto apaga de una sus 21 call
+  // sites (y los 11 del Navbar, que leen el mismo objeto) sin poder olvidarse
+  // de ninguno.
+  //
+  // Se borra SOLO el logo: el nombre de la institucion se sigue usando como
+  // texto en ConvenioHero, ConvenioFaq y ConvenioCta, y ahi debe seguir.
   const agreementData = useMemo((): AgreementData | null => {
     if (!layoutData) return null;
     const agreement = layoutData.agreement;
-    return agreement || null;
-  }, [layoutData]);
+    if (!agreement) return null;
+    if (showAgreementLogo) return agreement;
+    return { ...agreement, institution_logo: undefined };
+  }, [layoutData, showAgreementLogo]);
 
   const value = useMemo(() => ({
     layoutData,

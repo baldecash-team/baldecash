@@ -75,6 +75,9 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [landingSlug, setLandingSlug] = useState<string>('preview');
   const [floatingCtaConfig, setFloatingCtaConfig] = useState<FloatingCtaConfig | null>(null);
+  // El preview del admin tiene que verse igual que la landing publicada: si el
+  // logo de convenio esta apagado alla, aca tambien (BAL-2970).
+  const [showInstitutionLogo, setShowInstitutionLogo] = useState(true);
 
   // Get ID from path param first, then fall back to query param
   const queryId = searchParams.get('id');
@@ -130,6 +133,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         // Fetch landing config for feature flags (floating CTA, etc.)
         const landingConfig = await fetchLandingConfig(slug);
         setFloatingCtaConfig(landingConfig.features.floating_cta ?? null);
+        setShowInstitutionLogo(landingConfig.layout?.show_agreement_logo !== false);
 
         // Save preview state to context (persists in sessionStorage)
         // This allows navigation to catalog/product/solicitar to maintain preview mode
@@ -425,6 +429,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         footerData={mergedFooterData}
         benefitsData={heroData.benefitsData}
         agreementData={heroData.agreementData}
+        showInstitutionLogo={showInstitutionLogo}
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}
