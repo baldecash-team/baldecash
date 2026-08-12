@@ -52,6 +52,13 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
   const [subscribed, setSubscribed] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [error, setError] = useState<PresenceChannelError | null>(null);
+  // El canal crudo, para quien necesite bindear sus propios eventos de
+  // aplicación encima (F3, `useComandos.ts`: `cmd.start`/`cmd.stop`/
+  // `cmd.abort`). Se expone recién en `pusher:subscription_succeeded` —no
+  // apenas se crea, más abajo— para no violar `react-hooks/set-state-in-effect`
+  // con un `setState` síncrono en el cuerpo del efecto (mismo motivo que ya
+  // documentan `missing_config`/`connection_failed` un poco más abajo).
+  const [channel, setChannel] = useState<PresenceChannel | null>(null);
 
   useEffect(() => {
     if (!stationId || !token) return undefined;
@@ -109,6 +116,7 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
     channel.bind('pusher:subscription_succeeded', () => {
       setSubscribed(true);
       setError(null);
+      setChannel(channel);
       leer();
     });
     // Sin esto, `connected` dependía solo del socket: si `/pusher/auth`
@@ -121,6 +129,10 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
     // `subscription_error`: el estado queda así hasta recargar la página.
     channel.bind('pusher:subscription_error', () => {
       setSubscribed(false);
+      // Un canal sin autorizar no es un canal usable — sin esto,
+      // `useComandos` quedaría bindeado a un canal que nunca va a recibir
+      // nada (el backend rechazó la suscripción).
+      setChannel(null);
       setError({
         reason: 'auth_failed',
         message: 'No se pudo autorizar el canal de la estación (token inválido, estación ajena, o módulo deshabilitado). Recargá la página.',
@@ -137,10 +149,11 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
       pusher.disconnect();
       setSubscribed(false);
       setSocketConnected(false);
+      setChannel(null);
     };
   }, [stationId, token]);
 
   const connected = subscribed && socketConnected;
 
-  return { members, connected, error };
+  return { members, connected, error, channel };
 }

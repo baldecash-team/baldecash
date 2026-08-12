@@ -1,12 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
-import { redeemPairingCode } from '../_lib/pairing';
+import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
 import { useKioskRecorder, type EstadoCaptura } from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
+import { useServerClock } from '../_lib/useServerClock';
+import { useComandos, type ComandoStartPayload } from '../_lib/useComandos';
+
+/**
+ * Confirma al backend que ESTA cámara recibió un comando (spec §6.1 regla 1:
+ * sin ack, la API nunca asume que se grabó). Se manda apenas llega
+ * `cmd.start`, ANTES de programar la grabación — el escáner espera esta
+ * confirmación para saber que el mensaje llegó, no que ya está grabando
+ * (plan F3 Task 4, Step 4).
+ *
+ * Sin reintento a propósito: si falla por red, para cuando uno resolviera el
+ * escáner ya habría decidido por el timeout de 1,5s (spec §10) — no hay nada
+ * más accionable acá que dejar que ese camino haga su trabajo.
+ */
+async function ackComando(inspectionId: number, seq: number, token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/inspections/${inspectionId}/ack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
+      body: JSON.stringify({ seq }),
+    });
+  } catch {
+    // Ver doc-comment de arriba: nada accionable acá.
+  }
+}
 
 function hayCodigoEnUrl(): boolean {
   if (typeof window === 'undefined') return false;
@@ -119,10 +144,84 @@ export default function CamaraPageContent() {
   // `error: channelError` para no chocar con el `error` de vinculación
   // (código vencido/ya usado) declarado más arriba: son dos problemas
   // distintos y no deben pisarse el mensaje.
-  const { connected, error: channelError } = usePresenceChannel(
+  const { connected, error: channelError, channel } = usePresenceChannel(
     kindMismatch ? null : (session?.stationId ?? null),
     kindMismatch ? null : (session?.token ?? null)
   );
+
+  // F3: la cámara obedece comandos remotos (spec §6). `offsetMs` traduce el
+  // `start_at` absoluto del servidor a un instante local — ver doc-comment
+  // de `useServerClock.ts`.
+  const { offsetMs } = useServerClock();
+
+  // El timer del PRÓXIMO arranque programado. Un ref, no estado: no hace
+  // falta re-renderizar por esto, y `manejarStart` necesita poder cancelar
+  // uno anterior si por lo que sea llegara un `cmd.start` nuevo antes de que
+  // el primero disparara (no debería pasar — una inspección emite un solo
+  // `cmd.start` — pero cancelar el viejo es gratis y evita dos `grabar()`
+  // programados a la vez si alguna vez pasara).
+  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const manejarStart = useCallback(
+    (payload: ComandoStartPayload) => {
+      if (!session) return;
+      // El ack sale YA, antes de programar nada — ver doc-comment de
+      // `ackComando` arriba.
+      void ackComando(payload.inspection_id, payload.seq, session.token);
+
+      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+      // Arranque por reloj absoluto (spec §6.1 regla 2): se programa para el
+      // instante `start_at` CORREGIDO POR EL OFFSET, no para "ahora". Así
+      // todas las cámaras de la estación arrancan juntas aunque el mensaje
+      // de Pusher les llegue con latencias distintas. `Math.max(0, …)`
+      // porque si el offset+red hicieron que el instante ya haya pasado
+      // (mensaje muy tardío), lo mejor que se puede hacer es arrancar ya.
+      const delayMs = payload.start_at - offsetMs - Date.now();
+      startTimerRef.current = setTimeout(() => {
+        grabar();
+      }, Math.max(0, delayMs));
+    },
+    [session, offsetMs, grabar]
+  );
+
+  const manejarStop = useCallback(() => {
+    detener().catch(() => {});
+  }, [detener]);
+
+  const manejarAbort = useCallback(() => {
+    // La transición de la inspección a `failed` la decide el servidor
+    // (CLAUDE.md / spec: "los dispositivos reportan, nunca deciden") — acá
+    // solo se corta la captura local, igual que con `cmd.stop`.
+    detener().catch(() => {});
+  }, [detener]);
+
+  useComandos(channel, { onStart: manejarStart, onStop: manejarStop, onAbort: manejarAbort });
+
+  // Timer del arranque programado: se cancela al desmontar para no llamar
+  // `grabar()` sobre un hook que ya se fue (mismo espíritu que el I6 de
+  // `useKioskRecorder.ts`, aplicado acá del lado del timer, no del recorder).
+  useEffect(() => {
+    return () => {
+      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+    };
+  }, []);
+
+  // Al (re)conectar: Pusher no garantiza entrega (spec §6.1 regla 3), así
+  // que una cámara que se cayó pudo perderse un comando mientras estaba sin
+  // canal. Se resincroniza contra `/state` — Aurora, la fuente de verdad —
+  // en cuanto el canal vuelve a confirmar la suscripción, incluida la
+  // primera vez. `yaConectadaRef` detecta el FLANCO (false→true): sin él,
+  // cualquier re-render con `connected=true` volvería a pegarle al backend.
+  const yaConectadaRef = useRef(false);
+  useEffect(() => {
+    if (!session || kindMismatch) return;
+    if (connected && !yaConectadaRef.current) {
+      fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
+        headers: { 'X-Device-Token': session.token },
+      }).catch(() => {});
+    }
+    yaConectadaRef.current = connected;
+  }, [connected, session, kindMismatch]);
 
   if (vinculando) {
     return (

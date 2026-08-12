@@ -335,4 +335,199 @@ describe('CamaraPageContent', () => {
       expect(screen.getByText(/No se pudo autorizar el canal/)).toBeInTheDocument();
     });
   });
+
+  describe('comandos remotos (F3 Task 4)', () => {
+    /** Router mínimo de `fetch` para los tres endpoints que esta vista llama
+     * en F3: `GET /inspections/time` (useServerClock), `POST
+     * /inspections/{id}/ack` y `GET /inspections/stations/{id}/state`
+     * (resync al reconectar). `serverTimeMs` es una función (no un valor
+     * fijo) para poder devolver `Date.now()` en cada muestra y así, sin
+     * red real ni delay artificial, terminar con un RTT/offset ≈ 0 —
+     * suficiente para probar la lógica de programación sin acoplarse a la
+     * fórmula de `useServerClock` (esa ya tiene su propio test dedicado). */
+    function instalarFetchInspeccion(stateResponse: unknown = {
+      camera_labels: ['techo'],
+      devices: [],
+      active_inspection: null,
+    }) {
+      global.fetch = jest.fn((url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.includes('/inspections/time')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ server_time_ms: Date.now() }),
+          });
+        }
+        if (u.includes('/ack')) {
+          return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
+        }
+        if (u.includes('/state')) {
+          return Promise.resolve({ ok: true, json: async () => stateResponse });
+        }
+        return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
+      }) as unknown as typeof fetch;
+    }
+
+    async function armarCamara() {
+      render(<CamaraPageContent />);
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+      // Sin esto, `offsetMs` podría seguir en su valor inicial (0) "por
+      // casualidad" en vez de por haber terminado de muestrear — nos
+      // aseguramos de que las 5 muestras de useServerClock ya salieron
+      // antes de simular el cmd.start.
+      await waitFor(() => {
+        const llamadas = (global.fetch as jest.Mock).mock.calls.filter(([u]) =>
+          String(u).includes('/inspections/time')
+        );
+        expect(llamadas.length).toBe(5);
+      });
+    }
+
+    function conectarCanal() {
+      const pusher = mockFakePusher.instances[0];
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+      });
+      return pusher;
+    }
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('cmd.start con start_at futuro dispara la grabación EN ESE INSTANTE, no al recibirlo', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      const startAt = Date.now() + 1500;
+
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: startAt, seq: 1 });
+      });
+
+      // El ack sale YA, antes de que arranque la grabación — el escáner
+      // espera esto para saber que el mensaje llegó, no que ya está
+      // grabando.
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/inspections/42/ack'),
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ seq: 1 }) })
+      );
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+
+      // Todavía no llegó el instante absoluto: no debe haber empezado a
+      // grabar solo porque llegó el mensaje.
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+
+      // Recién ahora, en el instante `start_at` (corregido por el offset).
+      act(() => {
+        jest.advanceTimersByTime(600);
+      });
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+    });
+
+    it('REGLA CRÍTICA: un cmd.start con el mismo seq entregado dos veces (redelivery de Pusher) no graba dos veces ni ackea dos veces', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      const startAt = Date.now() + 1500;
+      const payload = { inspection_id: 42, start_at: startAt, seq: 1 };
+
+      act(() => {
+        pusher.channel.emit('cmd.start', payload);
+        pusher.channel.emit('cmd.start', { ...payload });
+      });
+
+      const acks = (global.fetch as jest.Mock).mock.calls.filter(([u]) =>
+        String(u).includes('/ack')
+      );
+      expect(acks).toHaveLength(1);
+
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+
+      // Sigue habiendo un solo ack tras el instante de arranque — la
+      // segunda entrega no coló un segundo ack tardío.
+      expect(
+        (global.fetch as jest.Mock).mock.calls.filter(([u]) => String(u).includes('/ack'))
+      ).toHaveLength(1);
+    });
+
+    it('cmd.stop detiene la grabación en curso y vuelve a ARMADA', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      const startAt = Date.now() + 1500;
+      act(() => {
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: startAt, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+    });
+
+    it('al reconectar, consulta GET /inspections/stations/{id}/state para resincronizar', async () => {
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      // Primera conexión: ya debería haber resincronizado una vez.
+      await waitFor(() => {
+        const llamadas = (global.fetch as jest.Mock).mock.calls.filter(([u]) =>
+          String(u).includes('/stations/est-01/state')
+        );
+        expect(llamadas.length).toBe(1);
+      });
+
+      // Se cae la conexión...
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connecting' });
+      });
+
+      // ...y vuelve: pusher-js re-suscribe el canal solo, lo que dispara
+      // `pusher:subscription_succeeded` de nuevo — Pusher no garantiza
+      // entrega mientras estuvo caída, así que hay que resincronizar otra
+      // vez.
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+      });
+
+      await waitFor(() => {
+        const llamadas = (global.fetch as jest.Mock).mock.calls.filter(([u]) =>
+          String(u).includes('/stations/est-01/state')
+        );
+        expect(llamadas.length).toBe(2);
+      });
+    });
+  });
 });
