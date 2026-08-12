@@ -228,7 +228,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // MacBook Neo Citrus no tiene descuento y mostraba el -30% del Silver con un
   // tachado que no era suyo. Un sibling siempre trae su pricing resuelto, asi
   // que "sin descuento" es un dato valido y no un hueco que haya que rellenar.
-  const isSiblingColor = !!selectedColor?.productId;
+  // Hermano es el color que apunta a OTRO producto. Con solo `productId` la
+  // bandera daba true tambien para un producto de un solo color —el API le
+  // manda su propio id en la bolita—, y el card iba a buscar el pricing de un
+  // hermano inexistente: el iPad de home tenia su tachado en `product`, se leia
+  // el del "sibling" (vacio) y la promo al 30% quedaba sin precio antes ni
+  // porcentaje (BAL-2967). Mismo criterio que usa `isSibling` mas abajo.
+  const isSiblingColor =
+    !!selectedColor?.productId && String(selectedColor.productId) !== String(product.id);
   const displayOriginalQuota = isSiblingColor
     ? selectedColor?.originalQuotaMonthly ?? null
     : product.originalQuotaMonthly ?? null;
