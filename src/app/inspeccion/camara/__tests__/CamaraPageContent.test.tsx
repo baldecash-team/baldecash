@@ -512,6 +512,14 @@ describe('CamaraPageContent', () => {
       );
     }
 
+    // F4 Task 5: el reporte de `capture_state` ahora SIEMPRE viaja con el
+    // snapshot de la cola de subida (`uploadQueue.estadoActual()`) pegado —
+    // ver el doc-comment del `useEffect` combinado en `CamaraPageContent`.
+    // Sin ninguna subida en curso (el caso de todos estos tests: la cámara
+    // recién arma, nunca grabó nada) ese snapshot es siempre este mismo
+    // objeto "vacío".
+    const COLA_VACIA = { en_vuelo: 0, pendientes: 0, fallidos: 0, llena: false, motivo_llena: null };
+
     it('no reporta nada mientras esta "inactiva" (antes de armar) — no en cada cambio trivial', () => {
       setDeviceSessionCamara();
       render(<CamaraPageContent />);
@@ -519,7 +527,7 @@ describe('CamaraPageContent', () => {
       expect(llamadasEstado()).toHaveLength(0);
     });
 
-    it('arma la camara: POST /inspections/devices/estado {estado: "armada"} con el token de la sesion', async () => {
+    it('arma la camara: POST /inspections/devices/estado {estado: "armada", cola} con el token de la sesion', async () => {
       setDeviceSessionCamara();
       render(<CamaraPageContent />);
 
@@ -533,7 +541,7 @@ describe('CamaraPageContent', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({ 'X-Device-Token': 'tok-01' }),
-          body: JSON.stringify({ estado: 'armada' }),
+          body: JSON.stringify({ estado: 'armada', cola: COLA_VACIA }),
         })
       );
     });
@@ -556,7 +564,10 @@ describe('CamaraPageContent', () => {
         expect(llamadasEstado()).toHaveLength(1);
       });
       expect(llamadasEstado()[0][1]).toEqual(
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ estado: 'caida' }) })
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ estado: 'caida', cola: COLA_VACIA }),
+        })
       );
     });
 
@@ -581,7 +592,10 @@ describe('CamaraPageContent', () => {
 
       expect(llamadasEstado()).toHaveLength(1);
       expect(llamadasEstado()[0][1]).toEqual(
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ estado: 'armada' }) })
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ estado: 'armada', cola: COLA_VACIA }),
+        })
       );
     });
 

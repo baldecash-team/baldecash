@@ -70,13 +70,35 @@ async function ackComando(inspectionId: number, seq: number, token: string, list
  * Fire-and-forget, mismo criterio que `ackComando`: no hay nada más
  * accionable acá si falla por red — el próximo reporte (o el resync por
  * `/state`) lo corrige solo.
+ *
+ * `cola` (F4 Task 5, opcional): snapshot de `uploadQueue.estadoActual()` de
+ * ESTA cámara. Es la única pieza que sabe si su cola de subida está llena
+ * — el backend no puede inferirlo, es un singleton del navegador — así que
+ * viaja en el MISMO POST que ya reportaba `capture_state` (ver el
+ * doc-comment del `useEffect` que llama a esto con `cola` en
+ * `CamaraPageContent`, más abajo, para cuándo se manda). snake_case en el
+ * body: es el contrato que espera `ReportarEstadoCapturaRequest` en ws2.
  */
-async function reportarEstadoCaptura(estado: EstadoCaptura, token: string): Promise<void> {
+async function reportarEstadoCaptura(
+  estado: EstadoCaptura,
+  token: string,
+  cola?: UploadQueueEstado
+): Promise<void> {
   try {
+    const body: Record<string, unknown> = { estado };
+    if (cola) {
+      body.cola = {
+        en_vuelo: cola.enVuelo,
+        pendientes: cola.pendientes,
+        fallidos: cola.fallidos,
+        llena: cola.llena,
+        motivo_llena: cola.motivoLlena,
+      };
+    }
     await fetch(`${API_BASE_URL}/inspections/devices/estado`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
-      body: JSON.stringify({ estado }),
+      body: JSON.stringify(body),
     });
   } catch {
     // Ver doc-comment de arriba: nada accionable acá.
@@ -292,11 +314,44 @@ export default function CamaraPageContent() {
   // cada cambio trivial (`inactiva`/`armando`/`grabando` no reportan; un
   // rearme ya cae en "armada" porque `armar()` es la misma función que arma
   // por primera vez).
+  //
+  // Un solo `useEffect`/POST para `capturaEstado` Y `cola` (F4 Task 5),
+  // no dos: son el mismo reporte hacia el mismo endpoint, y dispararlos por
+  // separado mandaba dos POST casi simultáneos en la transición a
+  // `armada`/`caida` (uno con `cola` desactualizada, sin ningún beneficio —
+  // ver `dedupeRef` de abajo para el criterio de "cuándo SÍ hay algo nuevo
+  // que reportar"). `cola` viaja SIEMPRE que se reporta `capturaEstado`
+  // (spec F4 Task 5: "el hueco que dejó F4 Task 4" — el escáner necesita
+  // esta información y `uploadQueue` es un singleton del navegador que solo
+  // ESTA cámara puede leer), y también dispara un reporte cuando `llena`/
+  // `motivoLlena` cambian solos con `capturaEstado` ya estable en
+  // `armada`/`caida` — "fallidos" y "subiendo" son dos situaciones
+  // distintas que el escáner necesita poder diferenciar, ver el doc-comment
+  // de `motivoLlena` en `uploadQueue.ts`. Nunca en cada tick de progreso
+  // (`enVuelo`/`pendientes` cambiando de a uno mientras sigue sin estar
+  // llena) — mismo criterio de "transiciones, no cambios triviales" que ya
+  // regía el reporte de `capture_state` antes de esta Task.
+  const dedupeRef = useRef<{
+    estado: EstadoCaptura;
+    llena: boolean;
+    motivo: UploadQueueEstado['motivoLlena'];
+  } | null>(null);
   useEffect(() => {
     if (!session) return;
     if (capturaEstado !== 'armada' && capturaEstado !== 'caida') return;
-    void reportarEstadoCaptura(capturaEstado, session.token);
-  }, [session, capturaEstado]);
+    const anterior = dedupeRef.current;
+    const actual = { estado: capturaEstado, llena: uploadEstado.llena, motivo: uploadEstado.motivoLlena };
+    if (
+      anterior &&
+      anterior.estado === actual.estado &&
+      anterior.llena === actual.llena &&
+      anterior.motivo === actual.motivo
+    ) {
+      return;
+    }
+    dedupeRef.current = actual;
+    void reportarEstadoCaptura(capturaEstado, session.token, uploadEstado);
+  }, [session, capturaEstado, uploadEstado]);
 
   // F3: la cámara obedece comandos remotos (spec §6). `offsetMs` traduce el
   // `start_at` absoluto del servidor a un instante local — ver doc-comment

@@ -15,18 +15,25 @@ interface PairingCode {
 }
 
 /**
- * Estado local del CONTROL DE GRABACIÓN (F3 Task 5). No confundir con
- * `InspectionStatus` del backend (`created`/`recording`/…): esto es la
- * máquina de estados de la VISTA, más chica — el backend sigue siendo la
- * única fuente de verdad de la inspección en sí (spec §6, "solo la API
- * transiciona estados").
+ * Estado local del CONTROL DE GRABACIÓN (F3 Task 5, extendido en F4 Task
+ * 5). No confundir con `InspectionStatus` del backend
+ * (`created`/`recording`/…): esto es la máquina de estados de la VISTA, más
+ * chica — el backend sigue siendo la única fuente de verdad de la
+ * inspección en sí (spec §6, "solo la API transiciona estados").
  *
- * - `inactiva`   — nada en curso; puede iniciar si el pre-vuelo está listo.
- * - `iniciando`  — `POST /inspections` ya salió, esperando los acks de
- *                  todas las cámaras (`recording.started`) o el timeout.
- * - `grabando`   — todas las cámaras ackearon a tiempo.
+ * - `inactiva`    — nada en curso; puede iniciar si el pre-vuelo está listo.
+ * - `iniciando`   — `POST /inspections` ya salió, esperando los acks de
+ *                   todas las cámaras (`recording.started`) o el timeout.
+ * - `grabando`    — todas las cámaras ackearon a tiempo (toma 1) o el
+ *                   servidor ya confirmó `POST /takes` (toma 2+, que NO
+ *                   espera acks — ver doc-comment de `pedirTomaSiguiente`).
+ * - `decidiendo`  — (F4 Task 5) la toma actual ya se detuvo (`POST /stop`
+ *                   ya resolvió) y el operador tiene que elegir: otra toma
+ *                   del mismo equipo, o subir y cerrar. La inspección
+ *                   sigue viva en el backend (`uploading`) mientras se
+ *                   decide — solo la vista está "en pausa" acá.
  */
-type SesionEstado = 'inactiva' | 'iniciando' | 'grabando';
+type SesionEstado = 'inactiva' | 'iniciando' | 'grabando' | 'decidiendo';
 
 /**
  * Ventana para que TODAS las cámaras de la estación confirmen el arranque
@@ -104,6 +111,19 @@ export default function EscanerPageContent() {
   const [serial, setSerial] = useState('');
   const [sesionEstado, setSesionEstado] = useState<SesionEstado>('inactiva');
   const [sesionError, setSesionError] = useState<string | null>(null);
+  // Contador de tomas (F4 Task 5), visible en pantalla mientras se decide
+  // "toma 2" o "subir". Arranca en 1 (la que ya se detuvo) — el servidor es
+  // quien decide el `take_number` real de la próxima (`POST /takes` lo
+  // devuelve, `InspectionService.siguiente_take`); acá solo se refleja lo
+  // que el servidor confirmó, nunca se calcula localmente.
+  const [takeNumber, setTakeNumber] = useState(1);
+  // Bloqueo de "toma 2" por cola de subida llena (F4 Task 5, el hueco que
+  // dejó F4 Task 4): `null` si ninguna cámara reportó estar llena, o
+  // `{ label, motivo }` de la PRIMERA que sí — alcanza con una para
+  // bloquear el botón, no hace falta juntar todas.
+  const [bloqueoCola, setBloqueoCola] = useState<{ label: string; motivo: string | null } | null>(
+    null
+  );
   // El id de la inspección en curso vive en un ref, no en estado: lo
   // necesitan closures de callbacks/efectos (el handler de `recording.started`,
   // el timeout de acks) que no deben re-crearse solo porque cambió, y
@@ -251,6 +271,8 @@ export default function EscanerPageContent() {
       }
       const body = await r.json();
       inspectionIdRef.current = body.inspection_id;
+      setTakeNumber(1);
+      setBloqueoCola(null);
       if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
       ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
     } catch {
@@ -258,6 +280,41 @@ export default function EscanerPageContent() {
       setSesionEstado('inactiva');
     }
   }, [session, serial, listo, sesionEstado, abortarPorTimeout]);
+
+  // F4 Task 5: el hueco que dejó F4 Task 4. La cámara reporta su cola de
+  // subida por REST (`CamaraPageContent.tsx`, mismo endpoint que ya
+  // reportaba `capture_state`) y `GET /state` la expone por dispositivo
+  // (`d.cola`, ver `InspectionStationService._cola_por_device` en ws2). El
+  // escáner es quien COMANDA una toma nueva, así que es quien tiene que
+  // frenar ANTES de pedirla si alguna cámara no puede recibirla — sin esto,
+  // `encolar()` en la cámara la rechazaría en silencio y el video se
+  // perdería de verdad.
+  //
+  // Devuelve la PRIMERA cámara llena que encuentra (alcanza con una para
+  // bloquear) o `null` si ninguna lo está — incluyendo el caso "no se pudo
+  // consultar `/state`" (fail-open: un corte de red del escáner no debe
+  // trabar la inspección para siempre por falta de dato, mismo criterio
+  // fail-open que ya aplica el backend a un reporte de cola vencido).
+  const verificarColaCamaras = useCallback(async (): Promise<
+    { label: string; motivo: string | null } | null
+  > => {
+    if (!session) return null;
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections/stations/${session.stationId}/state`, {
+        headers: { 'X-Device-Token': session.token },
+      });
+      if (!r.ok) return null;
+      const body = await r.json();
+      type ColaReporte = { llena: boolean; motivo_llena: string | null } | null;
+      type DeviceStateItem = { kind: string; label: string | null; cola?: ColaReporte };
+      const devices = (body.devices ?? []) as DeviceStateItem[];
+      const llena = devices.find((d) => d.kind === 'camara' && d.cola?.llena === true);
+      if (!llena) return null;
+      return { label: llena.label ?? 'sin etiqueta', motivo: llena.cola?.motivo_llena ?? null };
+    } catch {
+      return null;
+    }
+  }, [session]);
 
   const finalizarInspeccion = useCallback(async () => {
     if (!session) return;
@@ -273,13 +330,87 @@ export default function EscanerPageContent() {
         setSesionError(`No se pudo finalizar la inspección (http_${r.status})`);
         return;
       }
-      inspectionIdRef.current = null;
-      setSesionEstado('inactiva');
-      setSerial('');
+      // F4 Task 5: ya NO se resetea acá — la toma se detuvo, pero la
+      // inspección sigue viva (`uploading`) hasta que el operador elija
+      // "toma 2" o "subir". El escáner se libera al `stopped` (esta
+      // respuesta), no a la verificación en S3 (spec, plan Task 5 Step 4):
+      // la subida sigue corriendo en segundo plano mientras se decide.
+      setSesionEstado('decidiendo');
+      // Consulta la cola de las cámaras YA, para que el botón "toma 2"
+      // nazca deshabilitado si corresponde en vez de que el operador lo
+      // toque y recién ahí se entere.
+      setBloqueoCola(await verificarColaCamaras());
     } catch {
       setSesionError('No se pudo finalizar la inspección: error de red');
     }
-  }, [session]);
+  }, [session, verificarColaCamaras]);
+
+  // F4 Task 5: «toma 2» — otro ángulo del MISMO equipo, se SUMA a la
+  // evidencia (spec §4.1). `POST /takes` transiciona `uploading` →
+  // `recording` de inmediato en el servidor (`InspectionService.iniciar_toma`)
+  // y NO espera un quórum de acks como la toma 1 — las cámaras ya
+  // demostraron estar armadas y sincronizadas, así que acá no hay
+  // `iniciando` intermedio ni timeout de acks: éxito HTTP => `grabando`.
+  const pedirTomaSiguiente = useCallback(async () => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null || sesionEstado !== 'decidiendo') return;
+
+    setSesionError(null);
+    // Re-verifica la cola justo antes de comandar — la vista pudo llevar
+    // un rato en "decidiendo" (el operador cambiando el equipo) y el
+    // snapshot que trajo `finalizarInspeccion` ya puede estar viejo.
+    const bloqueo = await verificarColaCamaras();
+    setBloqueoCola(bloqueo);
+    if (bloqueo) return;
+
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections/${id}/takes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+      });
+      if (!r.ok) {
+        setSesionError(`No se pudo iniciar la toma siguiente (http_${r.status})`);
+        return;
+      }
+      const body = await r.json();
+      setTakeNumber(body.take_number);
+      setSesionEstado('grabando');
+    } catch {
+      setSesionError('No se pudo iniciar la toma siguiente: error de red');
+    }
+  }, [session, sesionEstado, verificarColaCamaras]);
+
+  // F4 Task 5: «subir» — señal explícita de que no vienen más tomas
+  // (`POST /close` → `InspectionService.solicitar_cierre`). Sin esta
+  // señal, la inspección NUNCA completa por sí sola por más que todos sus
+  // videos verifiquen (`InspectionVideoService.puede_completarse`, ws2) —
+  // es la carrera que esta Task vino a cerrar. Libera al escáner de
+  // inmediato (spec Task 5 Step 4): la subida sigue en segundo plano.
+  const subirInspeccion = useCallback(async () => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null || sesionEstado !== 'decidiendo') return;
+
+    setSesionError(null);
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections/${id}/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+      });
+      if (!r.ok) {
+        setSesionError(`No se pudo subir la inspección (http_${r.status})`);
+        return;
+      }
+      inspectionIdRef.current = null;
+      setSesionEstado('inactiva');
+      setSerial('');
+      setTakeNumber(1);
+      setBloqueoCola(null);
+    } catch {
+      setSesionError('No se pudo subir la inspección: error de red');
+    }
+  }, [session, sesionEstado]);
 
   // `recording.started` es la ÚNICA señal que hace avanzar a `grabando`
   // (spec §6.1 regla 4: el escáner avanza solo con señal de la API, jamás
@@ -496,6 +627,13 @@ export default function EscanerPageContent() {
             >
               GRABANDO
             </p>
+            {/* Contador de tomas (F4 Task 5, plan Step 1: "el contador de
+                tomas se ve en pantalla") — visible también mientras graba,
+                no solo en la pantalla de decisión, para que el operador
+                nunca tenga que recordar en qué toma va. */}
+            <p className="mt-1 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: TOKENS.slate }}>
+              Toma {takeNumber}
+            </p>
             <button
               type="button"
               onClick={() => void finalizarInspeccion()}
@@ -503,6 +641,54 @@ export default function EscanerPageContent() {
               style={{ background: TOKENS.primary }}
             >
               FINALIZAR
+            </button>
+          </>
+        ) : sesionEstado === 'decidiendo' ? (
+          <>
+            {/* F4 Task 5 — el corazón de la Task: al terminar una toma, el
+                operador decide entre otro ángulo del MISMO equipo (se SUMA,
+                spec §4.1) o subir y cerrar. Ninguna de las dos opciones
+                espera a que la subida en curso termine de verificarse en
+                S3 — corre en segundo plano mientras se decide. */}
+            <p className="mt-4 text-center text-2xl font-bold" style={{ color: TOKENS.ink }}>
+              Toma {takeNumber} lista
+            </p>
+            <p className="mt-1 text-center text-xs" style={{ color: TOKENS.slate }}>
+              Subiendo en segundo plano — no hace falta esperar.
+            </p>
+
+            {bloqueoCola && (
+              <p
+                className="mt-4 rounded-xl p-3 text-center text-xs font-semibold"
+                style={{ background: '#FBEDEE', color: TOKENS.red }}
+              >
+                No se puede grabar otra toma todavía: la cola de subida de la cámara{' '}
+                {bloqueoCola.label} está llena
+                {bloqueoCola.motivo === 'fallidos'
+                  ? ' (hay videos que fallaron y necesitan reintentarse en esa cámara)'
+                  : bloqueoCola.motivo === 'subiendo'
+                    ? ' (todavía está subiendo lo anterior)'
+                    : ''}
+                . Esperá a que descargue antes de pedir otra toma.
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => void pedirTomaSiguiente()}
+              disabled={bloqueoCola != null}
+              className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white disabled:opacity-40"
+              style={{ background: TOKENS.primary }}
+            >
+              TOMA {takeNumber + 1}
+            </button>
+            <button
+              type="button"
+              onClick={() => void subirInspeccion()}
+              className="mt-3 w-full rounded-xl border px-6 py-4 text-lg font-bold"
+              style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
+            >
+              SUBIR
             </button>
           </>
         ) : (

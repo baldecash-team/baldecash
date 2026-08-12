@@ -158,13 +158,15 @@ describe('EscanerPageContent', () => {
       });
     }
 
-    /** Router mínimo de `fetch` para los endpoints que esta vista llama en
-     * F3 Task 5: `GET /stations/{id}/state`, `POST /inspections` (crear),
-     * `POST /inspections/{id}/abort` y `POST /inspections/{id}/stop`.
-     * `stateResponse` es override-able para el test de resync — por defecto
-     * no trae `devices`, así que el snapshot de captura no aporta nada y
-     * los tests existentes siguen dependiendo solo del evento en vivo
-     * (`conectarYListo`). */
+    /** Router mínimo de `fetch` para los endpoints que esta vista llama:
+     * `GET /stations/{id}/state`, `POST /inspections` (crear),
+     * `POST /inspections/{id}/abort`, `POST /inspections/{id}/stop` (F3
+     * Task 5) y `POST /inspections/{id}/takes` / `POST /inspections/{id}/close`
+     * (F4 Task 5). `stateResponse` es override-able — para el resync de
+     * captura Y para simular la cola de subida de una cámara (`devices[].cola`,
+     * F4 Task 5): por defecto no trae `devices`, así que ni el snapshot de
+     * captura ni el de cola aportan nada y los tests existentes siguen
+     * dependiendo solo del evento en vivo (`conectarYListo`). */
     function instalarFetchEscaner(stateResponse: unknown = { camera_labels: ['techo'] }) {
       global.fetch = jest.fn((url: RequestInfo | URL) => {
         const u = String(url);
@@ -175,6 +177,17 @@ describe('EscanerPageContent', () => {
           return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'failed' }) });
         }
         if (u.endsWith('/stop')) {
+          return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'uploading' }) });
+        }
+        if (u.endsWith('/takes')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              inspection_id: 1, take_number: 2, start_at: Date.now() + 1500, seq: 3, status: 'recording',
+            }),
+          });
+        }
+        if (u.endsWith('/close')) {
           return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'uploading' }) });
         }
         if (u.endsWith('/inspections')) {
@@ -353,11 +366,10 @@ describe('EscanerPageContent', () => {
       ).toBe(false);
     });
 
-    it('FINALIZAR llama al endpoint de stop y vuelve a ofrecer INICIAR', async () => {
-      setDeviceSessionEscaner();
-      instalarFetchEscaner();
-
-      render(<EscanerPageContent />);
+    /** Lleva la vista hasta GRABANDO (toma 1) y hace click en FINALIZAR —
+     * el punto de partida común de todos los tests de F4 Task 5, de acá
+     * abajo, sobre "toma 2" vs "subir". */
+    async function grabarYFinalizar() {
       const pusher = conectarYListo();
 
       await waitFor(() => {
@@ -387,10 +399,149 @@ describe('EscanerPageContent', () => {
           (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/stop'))
         ).toBe(true);
       });
+
+      return pusher;
+    }
+
+    it('FINALIZAR llama al endpoint de stop y libera el escáner al `stopped`, no a la verificación', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      await grabarYFinalizar();
+
+      // F4 Task 5, plan Step 4: el escáner se libera al `stopped` — la
+      // respuesta de `/stop` ya volvió — sin esperar ninguna verificación
+      // de S3 (que acá ni siquiera está mockeada). "GRABANDO" desaparece
+      // de inmediato.
+      expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+    });
+
+    it('tras finalizar aparecen las dos opciones: otra toma o subir', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      await grabarYFinalizar();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^toma 2$/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: /^subir$/i })).toBeInTheDocument();
+      // Todavía NO vuelve a ofrecer un serial nuevo — la inspección sigue
+      // viva, el operador no terminó de decidir.
+      expect(screen.queryByRole('button', { name: /^iniciar$/i })).not.toBeInTheDocument();
+    });
+
+    it('el contador de tomas se ve en pantalla', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      await grabarYFinalizar();
+
+      await waitFor(() => {
+        expect(screen.getByText(/toma 1/i)).toBeInTheDocument();
+      });
+    });
+
+    it('«toma 2» arranca una grabación nueva con el take_number incrementado, SIN crear otra inspección', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      await grabarYFinalizar();
+      (global.fetch as jest.Mock).mockClear();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^toma 2$/i })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^toma 2$/i }));
+
+      await waitFor(() => {
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/takes'))
+        ).toBe(true);
+      });
+
+      // Vuelve a GRABANDO sin pasar por "iniciando" — `/takes` transiciona
+      // de inmediato en el servidor, sin quórum de acks (a diferencia de la
+      // toma 1).
+      await waitFor(() => {
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+      });
+      expect(screen.getByText(/toma 2/i)).toBeInTheDocument();
+
+      // Nunca se creó una segunda inspección: ningún nuevo POST a
+      // `/inspections` (el único ya había salido en `grabarYFinalizar`,
+      // y se limpió el mock antes de este click).
+      expect(
+        (global.fetch as jest.Mock).mock.calls.some(
+          ([u]: [string]) => String(u).endsWith('/inspections') && !String(u).includes('/1/')
+        )
+      ).toBe(false);
+    });
+
+    it('«subir» cierra la inspección y vuelve a ofrecer INICIAR para la siguiente', async () => {
+      setDeviceSessionEscaner();
+      instalarFetchEscaner();
+
+      render(<EscanerPageContent />);
+      await grabarYFinalizar();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^subir$/i })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^subir$/i }));
+
+      await waitFor(() => {
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/close'))
+        ).toBe(true);
+      });
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeInTheDocument();
       });
-      expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^toma 2$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^subir$/i })).not.toBeInTheDocument();
+    });
+
+    it('con la cola de una cámara llena, no deja pedir "toma 2" y explica por qué', async () => {
+      setDeviceSessionEscaner();
+      // La MISMA respuesta de `/state` sirve para el fetch de labels del
+      // montaje y para la verificación de cola que dispara `finalizarInspeccion`
+      // (y de nuevo `pedirTomaSiguiente`, que revalida antes de comandar) —
+      // ver el doc-comment de `stateResponse` en `instalarFetchEscaner`.
+      instalarFetchEscaner({
+        camera_labels: ['techo'],
+        devices: [
+          {
+            device_id: 'dev-cam', kind: 'camara', label: 'techo', capture_state: 'armada',
+            cola: { en_vuelo: 2, pendientes: 0, fallidos: 0, llena: true, motivo_llena: 'subiendo' },
+          },
+        ],
+      });
+
+      render(<EscanerPageContent />);
+      await grabarYFinalizar();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^toma 2$/i })).toBeDisabled();
+      });
+      expect(screen.getByText(/no se puede grabar otra toma/i)).toBeInTheDocument();
+      expect(screen.getByText(/la cola de subida de la cámara/i).textContent).toMatch(/techo/);
+
+      (global.fetch as jest.Mock).mockClear();
+      fireEvent.click(screen.getByRole('button', { name: /^toma 2$/i }));
+
+      // El click en un botón deshabilitado no dispara nada — pero además,
+      // aunque se forzara el handler, `pedirTomaSiguiente` revalida la cola
+      // ANTES de comandar: nunca debe salir un POST a `/takes` mientras la
+      // cola siga llena.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(
+        (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/takes'))
+      ).toBe(false);
     });
   });
 });
