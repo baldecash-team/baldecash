@@ -325,7 +325,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                 />
                 )}
               </a>
-              {showInstitutionLogo && agreementData?.institution_logo && (
+              {showInstitutionLogo && !agreementData?.hide_logo && agreementData?.institution_logo && (
                 <>
                   <span className="text-neutral-500">×</span>
                   <div className="bg-white rounded-lg px-3 py-1.5">
@@ -341,7 +341,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                   </div>
                 </>
               )}
-              {showInstitutionLogo && agreementData && !agreementData.institution_logo && (agreementData.institution_short_name || agreementData.institution_name) && (
+              {showInstitutionLogo && !agreementData?.hide_logo && agreementData && !agreementData.institution_logo && (agreementData.institution_short_name || agreementData.institution_name) && (
                 <>
                   <span className="text-neutral-500">×</span>
                   <span className="text-neutral-400 font-medium text-sm">

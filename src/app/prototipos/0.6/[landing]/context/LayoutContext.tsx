@@ -338,7 +338,11 @@ export function LayoutProvider({
     const agreement = layoutData.agreement;
     if (!agreement) return null;
     if (showAgreementLogo) return agreement;
-    return { ...agreement, institution_logo: undefined };
+    // `hide_logo` va junto al logo vacio: el footer tiene un fallback de texto
+    // que se enciende cuando NO hay logo, asi que vaciarlo a secas hacia que
+    // imprimiera el nombre de la institucion. Con la marca en el objeto, los 21
+    // call sites del Footer la reciben sin tener que pasarles una prop.
+    return { ...agreement, institution_logo: undefined, hide_logo: true };
   }, [layoutData, showAgreementLogo]);
 
   const value = useMemo(() => ({
