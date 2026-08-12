@@ -30,6 +30,12 @@ interface NavbarProps {
   activeSections?: string[];
   institutionLogo?: string;
   institutionName?: string;
+  /**
+   * Visibilidad del logo institucional, resuelta desde
+   * `layout.show_agreement_logo`. Las paginas secundarias la reenvian al
+   * Navbar y al Footer tal cual (BAL-2970).
+   */
+  showInstitutionLogo?: boolean;
 }
 
 interface LayoutContextValue {
@@ -107,12 +113,18 @@ export function LayoutProvider({
   const [hasError, setHasError] = useState(false);
   const [overlayVariant, setOverlayVariant] = useState<string | null>(null);
   const [deferredPayment, setDeferredPayment] = useState<DeferredPaymentConfig | null>(null);
+  const [showAgreementLogo, setShowAgreementLogo] = useState(true);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
+  // + visibilidad del logo de convenio
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
       setOverlayVariant(cfg.features.overlay_variant || '');
       setDeferredPayment(getDeferredPayment(cfg));
+      // `!== false` y no `=== true`: si el backend no manda la clave el valor
+      // es undefined, y ausencia significa encendido. Al reves, cualquier
+      // landing de convenio sin el ingrediente perderia su logo.
+      setShowAgreementLogo(cfg.layout?.show_agreement_logo !== false);
     });
   }, [landing]);
 
@@ -198,8 +210,9 @@ export function LayoutProvider({
         .map((item) => item.section as string),
       institutionLogo: agreement?.institution_logo || undefined,
       institutionName: agreement?.institution_name || undefined,
+      showInstitutionLogo: showAgreementLogo,
     };
-  }, [layoutData, overlayVariant]);
+  }, [layoutData, overlayVariant, showAgreementLogo]);
 
   // Transform layout data for Footer props
   const footerData = useMemo((): FooterData | null => {
