@@ -187,4 +187,69 @@ describe('useWakeLock', () => {
     // Y sigue siendo usable después: un rechazo puntual no deja el hook roto.
     await waitFor(() => expect(result.current.soportado).toBe(true));
   });
+
+  // Revisión de F2 (I1/I2): dos wake locks colgados encontrados ejecutando
+  // probes. Los dos tests de acá abajo son esos probes convertidos en
+  // regresión permanente.
+
+  it('I1 — REGRESIÓN: si el componente se desmonta con un request() en vuelo, el sentinel que llega tarde se libera solo', async () => {
+    // Control manual de CUÁNDO resuelve `request()` — necesitamos poder
+    // desmontar ANTES de que la promesa se asiente.
+    let resolveRequest!: (sentinel: FakeWakeLockSentinel) => void;
+    request.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        })
+    );
+
+    const { unmount } = renderHook(() => useWakeLock(true));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+
+    // Se desmonta con el `request()` todavía en vuelo — sin la fix, el
+    // cleanup de acá no tiene nada que liberar (`sentinelRef` sigue null) y
+    // cuando la respuesta llegue tarde, nadie más puede tocar este hook.
+    unmount();
+
+    const sentinelTardio = new FakeWakeLockSentinel();
+    resolveRequest(sentinelTardio);
+
+    // Con el bug, este sentinel queda vivo para siempre — 3 ciclos
+    // montar/desmontar medidos = 3 locks pedidos, 0 liberados.
+    await waitFor(() => expect(sentinelTardio.release).toHaveBeenCalledTimes(1));
+  });
+
+  it('I2 — REGRESIÓN: varios visibilitychange seguidos mientras hay un request() en vuelo no piden locks concurrentes', async () => {
+    let resolveRequest!: (sentinel: FakeWakeLockSentinel) => void;
+    request.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        })
+    );
+
+    const { result } = renderHook(() => useWakeLock(true));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+
+    // El primer `request()` sigue sin resolver. Con la guarda vieja
+    // (`!sentinelRef.current`, que recién se llena cuando la promesa
+    // RESUELVE) cada transición a "visible" pedía un lock nuevo — medido:
+    // 4 `visibilitychange` seguidos → 3 requests concurrentes, 2
+    // irrecuperables.
+    act(() => setVisibility('hidden'));
+    act(() => setVisibility('visible'));
+    act(() => setVisibility('hidden'));
+    act(() => setVisibility('visible'));
+
+    expect(request).toHaveBeenCalledTimes(1);
+
+    // Y el único request en vuelo sigue resolviendo normalmente: no se
+    // rompió nada por agregar la guarda.
+    const sentinel = new FakeWakeLockSentinel();
+    act(() => {
+      resolveRequest(sentinel);
+    });
+    await waitFor(() => expect(result.current.activo).toBe(true));
+    expect(request).toHaveBeenCalledTimes(1);
+  });
 });
