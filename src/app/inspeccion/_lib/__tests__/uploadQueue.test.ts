@@ -12,6 +12,13 @@
 import { waitFor } from '@testing-library/react';
 import { UploadQueue, type UploadQueueEstado, type UploadQueueItem } from '../uploadQueue';
 
+/** Estado "vacío" de referencia — sin nada en vuelo/pendiente/fallido, y por
+ * lo tanto nunca `llena`. Evita repetir `llena: false, motivoLlena: null`
+ * en cada assert de un estado que drenó por completo. */
+function estadoVacio(): UploadQueueEstado {
+  return { enVuelo: 0, pendientes: 0, fallidos: 0, llena: false, motivoLlena: null };
+}
+
 function crearBlob(bytes = 1024): Blob {
   return new Blob([new Uint8Array(bytes)], { type: 'video/webm' });
 }
@@ -137,7 +144,7 @@ describe('uploadQueue', () => {
 
     await waitFor(() => {
       const estado = queue.estadoActual();
-      expect(estado).toEqual<UploadQueueEstado>({ enVuelo: 0, pendientes: 0, fallidos: 0 });
+      expect(estado).toEqual<UploadQueueEstado>(estadoVacio());
     });
 
     expect(intentosPut).toBe(2);
@@ -163,6 +170,10 @@ describe('uploadQueue', () => {
         enVuelo: 0,
         pendientes: 0,
         fallidos: 1,
+        // profundidadMaxima=2, una sola entrada fallida: NO llena todavía —
+        // el caso de "llena por fallidos" tiene su propio test más abajo.
+        llena: false,
+        motivoLlena: null,
       });
     });
 
@@ -170,8 +181,8 @@ describe('uploadQueue', () => {
     expect(fallidos).toHaveLength(1);
     // Identidad, no solo igualdad de tamaño: es LITERALMENTE el mismo blob,
     // no uno reconstruido — "sin perder el blob" del spec.
-    expect(fallidos[0].blob).toBe(blobOriginal);
-    expect(fallidos[0].blob.size).toBe(2048);
+    expect(fallidos[0].item.blob).toBe(blobOriginal);
+    expect(fallidos[0].item.blob.size).toBe(2048);
   });
 
   it('REGLA CRÍTICA: la cola sobrevive a un re-render — montar/desmontar un consumidor no cancela un PUT en vuelo', async () => {
@@ -214,11 +225,7 @@ describe('uploadQueue', () => {
     resolverPut();
 
     await waitFor(() => {
-      expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
-        enVuelo: 0,
-        pendientes: 0,
-        fallidos: 0,
-      });
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
     });
   });
 
@@ -239,6 +246,11 @@ describe('uploadQueue', () => {
       enVuelo: 2,
       pendientes: 0,
       fallidos: 0,
+      // Llena, pero por actividad NORMAL (en vuelo) — no hay ningún
+      // `fallido` en el medio, así que no hay nada que un operador tenga
+      // que hacer: drena sola.
+      llena: true,
+      motivoLlena: 'subiendo',
     });
 
     // Y sigue rechazando mientras la profundidad siga llena, no solo la
@@ -267,8 +279,188 @@ describe('uploadQueue', () => {
     await waitFor(() => expect(queue.estadoActual().fallidos).toBe(1));
 
     // El único cupo de profundidad sigue ocupado por el fallido — nadie lo
-    // libera automáticamente en esta Task.
+    // libera automáticamente. Y el estado dice POR QUÉ está llena: hay algo
+    // accionable (reintentar/descartar), no solo "esperá a que drene".
+    expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
+      enVuelo: 0,
+      pendientes: 0,
+      fallidos: 1,
+      llena: true,
+      motivoLlena: 'fallidos',
+    });
     expect(queue.encolar(crearItem({ takeNumber: 2 }))).toBe(false);
+  });
+
+  it('motivoLlena prioriza "fallidos" sobre "subiendo" cuando se dan los dos a la vez', async () => {
+    // profundidadMaxima=2: una entrada queda fallida (agota su único
+    // intento) y la otra se cuelga "en vuelo" para siempre — la cola queda
+    // llena por AMBAS razones a la vez, y el motivo reportado debe ser el
+    // accionable ('fallidos'), no el que solo hay que esperar.
+    let llamadaPut = 0;
+    const fetchImpl = fetchFeliz(async () => {
+      llamadaPut++;
+      if (llamadaPut === 1) return noOk(500); // item1: falla y se agota
+      return new Promise<Response>(() => {}); // item2: cuelga en vuelo
+    });
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 2, maxIntentos: 1 });
+
+    queue.encolar(crearItem({ takeNumber: 1 }));
+    queue.encolar(crearItem({ takeNumber: 2 }));
+
+    await waitFor(() => {
+      const estado = queue.estadoActual();
+      expect(estado.fallidos).toBe(1);
+      expect(estado.enVuelo).toBe(1);
+    });
+
+    expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
+      enVuelo: 1,
+      pendientes: 0,
+      fallidos: 1,
+      llena: true,
+      motivoLlena: 'fallidos',
+    });
+  });
+
+  it('reintentar() destraba la cola: el fallido vuelve a intentar y, si esta vez sube, libera el cupo', async () => {
+    let llamadaPut = 0;
+    // La PRIMERA vez que se intenta subir (item1), el PUT falla — con
+    // maxIntentos=1 eso lo manda derecho a `fallido`. Desde la SEGUNDA
+    // llamada en adelante (el reintento manual), el PUT tiene éxito.
+    const fetchImpl = fetchFeliz(async () => {
+      llamadaPut++;
+      if (llamadaPut === 1) return noOk(500);
+      return ok({});
+    });
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 1, maxIntentos: 1 });
+
+    queue.encolar(crearItem({ takeNumber: 1 }));
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(1));
+
+    // Con la profundidad llena por el fallido, un nuevo item no entra.
+    expect(queue.encolar(crearItem({ takeNumber: 2 }))).toBe(false);
+
+    const [fallido] = queue.listarFallidos();
+    const reencolados = queue.reintentar(fallido.id);
+    expect(reencolados).toBe(1);
+    // El blob nunca se tocó — es el mismo objeto que se había encolado la
+    // primera vez, ahora corriendo de nuevo por el mismo camino.
+    expect(queue.listarFallidos()).toHaveLength(0);
+
+    // El reintento esta vez sube con éxito y libera el cupo por completo.
+    await waitFor(() => {
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
+    });
+
+    // Y con el cupo libre, un item nuevo vuelve a entrar.
+    expect(queue.encolar(crearItem({ takeNumber: 3 }))).toBe(true);
+  });
+
+  it('reintentar() sin id reintenta TODOS los fallidos', async () => {
+    const fetchImpl = fetchFeliz(async () => noOk(500)); // siempre falla
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 2, maxIntentos: 1 });
+
+    queue.encolar(crearItem({ takeNumber: 1 }));
+    queue.encolar(crearItem({ takeNumber: 2 }));
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(2));
+
+    const reencolados = queue.reintentar();
+    expect(reencolados).toBe(2);
+    // Vuelven a fallar (el mock sigue devolviendo 500 siempre) — lo que
+    // importa acá es que AMBOS se reencolaron, no que esta vez sí suban.
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(2));
+  });
+
+  it('reintentar(id) con un id que no matchea ningún fallido no hace nada', async () => {
+    const fetchImpl = fetchFeliz(async () => noOk(500));
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 1, maxIntentos: 1 });
+
+    queue.encolar(crearItem());
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(1));
+
+    expect(queue.reintentar(99999)).toBe(0);
+    expect(queue.estadoActual().fallidos).toBe(1); // sigue ahí, intacto
+  });
+
+  it('descartar() libera el espacio y el blob deja de estar trackeado', async () => {
+    const fetchImpl = fetchFeliz(async () => noOk(500));
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 1, maxIntentos: 1 });
+
+    queue.encolar(crearItem({ takeNumber: 1 }));
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(1));
+    expect(queue.encolar(crearItem({ takeNumber: 2 }))).toBe(false); // llena
+
+    const [fallido] = queue.listarFallidos();
+    expect(queue.descartar(fallido.id)).toBe(true);
+
+    // Se fue de verdad: ni ocupa el cupo ni sigue listado como fallido.
+    expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
+    expect(queue.listarFallidos()).toHaveLength(0);
+
+    // Con el cupo libre, un item nuevo entra sin necesidad de ningún
+    // reintento — la memoria del descartado quedó liberada para siempre,
+    // no reencolada.
+    expect(queue.encolar(crearItem({ takeNumber: 2 }))).toBe(true);
+  });
+
+  it('descartar() con un id que no es un fallido (no existe, o está en vuelo/pendiente) devuelve false', async () => {
+    const fetchImpl = fetchFeliz(() => new Promise<Response>(() => {})); // nunca resuelve
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 1, maxIntentos: 1 });
+
+    queue.encolar(crearItem());
+    await waitFor(() => expect(queue.estadoActual().enVuelo).toBe(1));
+
+    // No hay ningún fallido — ni el id inventado ni "adivinar" el id de la
+    // entrada en vuelo (1, por ser la primera) deben poder descartarla:
+    // `descartar` es solo para fallidos, nunca para algo en curso.
+    expect(queue.descartar(1)).toBe(false);
+    expect(queue.descartar(99999)).toBe(false);
+    expect(queue.estadoActual().enVuelo).toBe(1); // intacta
+  });
+
+  it('escucharOnline: al volver la conectividad, reintenta automáticamente TODOS los fallidos', async () => {
+    let llamadaPut = 0;
+    // Los primeros dos PUT (los dos intentos iniciales, uno por item)
+    // fallan; desde el tercero en adelante (los reintentos disparados por
+    // "online") tienen éxito.
+    const fetchImpl = fetchFeliz(async () => {
+      llamadaPut++;
+      if (llamadaPut <= 2) return noOk(500);
+      return ok({});
+    });
+    const queue = new UploadQueue({
+      fetchImpl,
+      profundidadMaxima: 2,
+      maxIntentos: 1,
+      escucharOnline: true,
+    });
+
+    queue.encolar(crearItem({ takeNumber: 1 }));
+    queue.encolar(crearItem({ takeNumber: 2 }));
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(2));
+
+    // Simula que el navegador recupera la conectividad — el mismo evento
+    // que dispara `window.ononline` / los listeners de `online`.
+    window.dispatchEvent(new Event('online'));
+
+    await waitFor(() => {
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
+    });
+  });
+
+  it('sin escucharOnline (default), el evento online NO reintenta nada', async () => {
+    const fetchImpl = fetchFeliz(async () => noOk(500));
+    // Default: sin `escucharOnline` — ninguna suscripción al evento.
+    const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 1, maxIntentos: 1 });
+
+    queue.encolar(crearItem());
+    await waitFor(() => expect(queue.estadoActual().fallidos).toBe(1));
+
+    window.dispatchEvent(new Event('online'));
+
+    // Nada reacciona: sigue fallido, nadie lo reencoló.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(queue.estadoActual().fallidos).toBe(1);
   });
 
   it('la subida manda content_type/bytes/duration_s derivados del item, no constantes', async () => {

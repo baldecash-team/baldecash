@@ -35,6 +35,20 @@ import { API_BASE_URL } from './pairing';
  * ```
  *
  * La API nunca ve el video: el PUT va directo al `upload_url` firmado.
+ *
+ * **Salida para los fallidos** (review post-Task-3): contar los `fallido`
+ * dentro de la profundidad máxima es correcto — un video fallido sigue
+ * siendo un blob vivo en memoria, no contarlo mentiría sobre la presión
+ * real — pero sin una salida, dos fallos terminales (con la profundidad
+ * default de 2) trababan la cola PARA SIEMPRE: nada volvía a `encolar()`
+ * con éxito hasta recargar la pestaña. `reintentar()` y `descartar()` son
+ * esa salida: el primero vuelve a poner en cola el fallido conservando el
+ * blob (nada se perdió, solo se lo corre de nuevo); el segundo lo saca
+ * definitivamente y libera el cupo cuando el video ya no se puede
+ * recuperar. El singleton, además, reintenta TODOS los fallidos solo
+ * escuchando el evento `online` del navegador — ver `escucharOnline` en
+ * `UploadQueueDeps` para la decisión completa de por qué eso sí y no un
+ * polling propio.
  */
 
 /**
@@ -80,6 +94,26 @@ export interface UploadQueueEstado {
    * blob NO se descarta (`listarFallidos()` lo sigue exponiendo) — spec: "tras
    * N fallos queda marcado fallido sin perder el blob". */
   fallidos: number;
+  /** `true` cuando `encolar()` rechazaría un item AHORA MISMO (profundidad
+   * máxima alcanzada). Existe para que la UI (Task 4/5) pueda mostrar algo
+   * accionable en vez de que el operador vea, sin explicación, que la
+   * cámara dejó de aceptar grabaciones. */
+  llena: boolean;
+  /**
+   * Por qué está llena, cuando `llena` es `true` — son dos situaciones con
+   * dos salidas distintas y la UI necesita poder diferenciarlas:
+   *
+   * - `'fallidos'`: hay al menos un video que agotó sus reintentos ocupando
+   *   el cupo. RECUPERABLE por una acción humana: `reintentar()` o
+   *   `descartar()`. Prioridad sobre `'subiendo'` cuando se dan los dos a la
+   *   vez — es el caso donde SÍ hay algo que hacer, y por eso es el mensaje
+   *   que más importa mostrar.
+   * - `'subiendo'`: llena solo por actividad normal (en vuelo / pendiente).
+   *   Drena sola cuando terminen esas subidas — no hace falta ninguna
+   *   acción, solo esperar.
+   * - `null`: no está llena.
+   */
+  motivoLlena: 'fallidos' | 'subiendo' | null;
 }
 
 export type UploadQueueListener = (estado: UploadQueueEstado) => void;
@@ -104,6 +138,29 @@ export interface UploadQueueDeps {
    * `backoffBaseMs * 2^(N-1)` antes de reintentar (1s, 2s, 4s con el
    * default). Ajustable en tests para no esperar segundos reales. */
   backoffBaseMs?: number;
+  /**
+   * Si `true`, la cola escucha el evento `online` del navegador y reintenta
+   * automáticamente TODOS los fallidos apenas vuelve la conectividad
+   * (`window.addEventListener('online', …)`). Default `false` — a propósito
+   * NO es el default de la clase, para que instanciar una `UploadQueue` en
+   * un test nunca deje un listener global colgado sin que el test lo pida.
+   * El singleton de producción (`uploadQueue`, al final del archivo) lo
+   * prende explícitamente. Sin `window` (SSR) es un no-op silencioso.
+   *
+   * Por qué sí conviene (decisión, no default mudo): el escenario que más
+   * plata en horas de operador cuesta es EXACTAMENTE este — se cae el wifi
+   * unos minutos, los 1-2 videos en vuelo agotan sus reintentos y quedan
+   * `fallidos`, la red vuelve pero la cola sigue trabada porque nadie llamó
+   * `reintentar()`. Sin este flag, la estación queda muerta hasta que un
+   * humano note el problema y reintente a mano (o recargue la pestaña) —
+   * en un kiosco atornillado a una pared, eso puede tardar. El evento
+   * `online` es exactamente la señal correcta para ese caso (a diferencia
+   * de un polling propio, no inventa un timer nuevo ni un ciclo de red
+   * extra) y la operación en sí (`reintentar()` sin argumentos) ya existe y
+   * ya está probada — conectar un event listener a un método que de por sí
+   * hay que tener es la complejidad mínima posible para cerrar el caso.
+   */
+  escucharOnline?: boolean;
 }
 
 export const DEFAULT_PROFUNDIDAD_MAXIMA = 2;
@@ -112,12 +169,23 @@ const DEFAULT_BACKOFF_BASE_MS = 1000;
 
 /**
  * Una entrada trackeada por la cola. `estado` es interno — lo que sale hacia
- * afuera es siempre el agregado de `UploadQueueEstado`, nunca esto.
+ * afuera es siempre el agregado de `UploadQueueEstado`, nunca esto (salvo
+ * `id`, que sí se expone — es la manija que `reintentar()`/`descartar()`
+ * necesitan para apuntar a UN fallido en particular, ver `listarFallidos()`).
  */
 interface Entrada {
+  id: number;
   item: UploadQueueItem;
   estado: 'pendiente' | 'subiendo' | 'fallido';
   intentos: number;
+}
+
+/** Lo que expone `listarFallidos()`: el item con su blob intacto, más el
+ * `id` para poder pedir `reintentar(id)`/`descartar(id)` sobre ESE en
+ * particular (sin id, ambas operaciones actúan sobre todos los fallidos). */
+export interface UploadQueueFallido {
+  id: number;
+  item: UploadQueueItem;
 }
 
 export class UploadQueue {
@@ -137,6 +205,7 @@ export class UploadQueue {
   private readonly profundidadMaxima: number;
   private readonly maxIntentos: number;
   private readonly backoffBaseMs: number;
+  private siguienteId = 1;
 
   constructor(deps: UploadQueueDeps = {}) {
     this.fetchImplInyectado = deps.fetchImpl;
@@ -144,6 +213,17 @@ export class UploadQueue {
     this.profundidadMaxima = deps.profundidadMaxima ?? DEFAULT_PROFUNDIDAD_MAXIMA;
     this.maxIntentos = deps.maxIntentos ?? DEFAULT_MAX_INTENTOS;
     this.backoffBaseMs = deps.backoffBaseMs ?? DEFAULT_BACKOFF_BASE_MS;
+
+    // Ver el doc-comment de `escucharOnline` en `UploadQueueDeps` para la
+    // decisión completa. Guardado detrás de `typeof window` porque este
+    // módulo, aunque tiene 'use client', puede evaluarse en el registro de
+    // módulos de un test (jsdom SÍ tiene `window`) o, en teoría, de un
+    // entorno sin DOM — sin la guarda, construir la cola ahí reventaría.
+    if (deps.escucharOnline && typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.reintentar();
+      });
+    }
   }
 
   /**
@@ -174,7 +254,7 @@ export class UploadQueue {
     if (this.entradas.length >= this.profundidadMaxima) {
       return false;
     }
-    this.entradas.push({ item, estado: 'pendiente', intentos: 0 });
+    this.entradas.push({ id: this.siguienteId++, item, estado: 'pendiente', intentos: 0 });
     this.notificar();
     this.procesar();
     return true;
@@ -206,17 +286,87 @@ export class UploadQueue {
       else if (entrada.estado === 'pendiente') pendientes++;
       else fallidos++;
     }
-    return { enVuelo, pendientes, fallidos };
+    const llena = this.entradas.length >= this.profundidadMaxima;
+    // `'fallidos'` gana sobre `'subiendo'` cuando se dan los dos a la vez —
+    // ver el doc-comment de `motivoLlena` en `UploadQueueEstado`: es el caso
+    // donde SÍ hay una acción humana posible (reintentar/descartar), así que
+    // es el mensaje que la UI debe priorizar mostrar.
+    const motivoLlena: UploadQueueEstado['motivoLlena'] = !llena
+      ? null
+      : fallidos > 0
+        ? 'fallidos'
+        : 'subiendo';
+    return { enVuelo, pendientes, fallidos, llena, motivoLlena };
   }
 
   /**
-   * Items que agotaron los reintentos, con su blob intacto. No hay API de
-   * reintento manual en esta Task (fuera de alcance — Task 4/5 no la piden);
-   * esto existe para que nada dependa de leer el estado interno de la cola
-   * para verificar que el blob sobrevive a un fallo terminal.
+   * Items que agotaron los reintentos, con su blob intacto y el `id` que
+   * `reintentar(id)`/`descartar(id)` necesitan para apuntar a UNO en
+   * particular. Existe para que nada dependa de leer el estado interno de
+   * la cola para verificar que el blob sobrevive a un fallo terminal, y
+   * para que una UI de recuperación (fuera de esta Task) pueda listarlos.
    */
-  listarFallidos(): UploadQueueItem[] {
-    return this.entradas.filter((e) => e.estado === 'fallido').map((e) => e.item);
+  listarFallidos(): UploadQueueFallido[] {
+    return this.entradas
+      .filter((e) => e.estado === 'fallido')
+      .map((e) => ({ id: e.id, item: e.item }));
+  }
+
+  /**
+   * Vuelve a poner en cola uno o todos los fallidos — la salida a la trampa
+   * que documentaba `encolar()`: un fallido ocupa cupo de profundidad para
+   * siempre si nadie hace algo con él. El blob nunca se tocó (sigue en
+   * `entrada.item`, ver `listarFallidos()`), así que reintentar es literal:
+   * se resetean `estado`/`intentos` y se lo vuelve a correr por el mismo
+   * camino que un pendiente nuevo.
+   *
+   * Sin `id`: reintenta TODOS los fallidos — es el caso que dispara
+   * `escucharOnline` (spec: "se cayó la red, fallaron, la red volvió").
+   * Con `id`: apunta a uno solo — para una UI que deja al operador elegir
+   * cuál reintentar y cuál descartar por separado.
+   *
+   * Devuelve cuántos se reencolaron (0 si `id` no matchea ningún fallido, o
+   * si no había fallidos).
+   */
+  reintentar(id?: number): number {
+    let reencolados = 0;
+    for (const entrada of this.entradas) {
+      if (entrada.estado !== 'fallido') continue;
+      if (id != null && entrada.id !== id) continue;
+      entrada.estado = 'pendiente';
+      entrada.intentos = 0;
+      reencolados++;
+    }
+    if (reencolados > 0) {
+      this.notificar();
+      this.procesar();
+    }
+    return reencolados;
+  }
+
+  /**
+   * Saca un fallido definitivamente y libera su cupo de profundidad — la
+   * ÚNICA forma de recuperar memoria de un video que ya no se va a poder
+   * subir (spec de la review: "sin esto no hay forma de recuperar memoria").
+   * Solo actúa sobre fallidos: no hay forma de "descartar" algo en vuelo o
+   * pendiente desde esta Task (cancelar un PUT en curso es un problema
+   * distinto, no pedido acá).
+   *
+   * Devuelve `true` si encontró y sacó el fallido con ese `id`, `false` si
+   * no existe o no está en estado `fallido`.
+   */
+  descartar(id: number): boolean {
+    const idx = this.entradas.findIndex((e) => e.id === id && e.estado === 'fallido');
+    if (idx === -1) return false;
+    this.entradas.splice(idx, 1);
+    this.notificar();
+    // El cupo que libera es de PROFUNDIDAD, no de concurrencia (un fallido
+    // ya no ocupaba un lugar "en vuelo" activo — ver `subirConReintentos`).
+    // `procesar()` acá es defensivo, no estrictamente necesario hoy: no hay
+    // forma de que queden `pendiente` sin arrancar mientras hay cupo, salvo
+    // que se agregue alguna en el futuro. Barato de llamar, no hace daño.
+    this.procesar();
+    return true;
   }
 
   private notificar(): void {
@@ -341,7 +491,7 @@ export class UploadQueue {
  * doc-comment del módulo, arriba, para por qué esto es un requisito y no un
  * detalle de implementación.
  */
-export const uploadQueue = new UploadQueue();
+export const uploadQueue = new UploadQueue({ escucharOnline: true });
 
 export function encolar(item: UploadQueueItem): boolean {
   return uploadQueue.encolar(item);
@@ -349,4 +499,20 @@ export function encolar(item: UploadQueueItem): boolean {
 
 export function suscribir(cb: UploadQueueListener): () => void {
   return uploadQueue.suscribir(cb);
+}
+
+/** Ver `UploadQueue.reintentar` — delega al singleton, mismo criterio que
+ * `encolar`/`suscribir`. */
+export function reintentar(id?: number): number {
+  return uploadQueue.reintentar(id);
+}
+
+/** Ver `UploadQueue.descartar` — delega al singleton. */
+export function descartar(id: number): boolean {
+  return uploadQueue.descartar(id);
+}
+
+/** Ver `UploadQueue.listarFallidos` — delega al singleton. */
+export function listarFallidos(): UploadQueueFallido[] {
+  return uploadQueue.listarFallidos();
 }
