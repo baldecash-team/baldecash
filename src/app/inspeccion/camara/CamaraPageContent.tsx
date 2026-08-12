@@ -124,6 +124,30 @@ function hayDebugEnUrl(): boolean {
 }
 
 /**
+ * Conteo regresivo (3,2,1) que la vista pinta en pantalla al arrancar o
+ * parar una toma. `tipo` distingue arranque de parada — dos cosas distintas,
+ * spec: "el operador tiene que saber cuál está viendo" — la UI del
+ * componente usa esto para elegir color y texto. Declarado a nivel de
+ * módulo (no dentro del componente) porque `iniciarConteo`, más abajo en
+ * `CamaraPageContent`, lo referencia en su firma.
+ */
+interface ConteoVisible {
+  tipo: 'start' | 'stop';
+  numero: 1 | 2 | 3;
+}
+
+/**
+ * Duración del conteo de PARADA — decisión de producto ya tomada: "misma
+ * duración que el inicio" (1,5s, igual al retardo de arranque que el
+ * backend hornea en `start_at`) para que arrancar y parar se sientan
+ * consistentes. A diferencia del arranque, la parada NO tiene un instante
+ * absoluto que el backend calcule y comparta entre cámaras —
+ * `ComandoStopPayload` solo trae `inspection_id`/`seq` (`useComandos.ts`) —
+ * así que este valor es puramente local, nunca derivado de `useServerClock`.
+ */
+const STOP_COUNTDOWN_MS = 1500;
+
+/**
  * Vista de kiosco de una cámara. F1 la vinculaba y mostraba el estado del
  * canal; F2 (acá) suma la captura local: armar la cámara, mostrar el
  * preview y reflejar `EstadoCaptura` (`useKioskRecorder.ts`). Sin
@@ -238,18 +262,6 @@ export default function CamaraPageContent() {
   // rechazó — pero al menos no en silencio.)
   const [subidasPerdidas, setSubidasPerdidas] = useState(0);
 
-  // Contador de tomas POR INSPECCIÓN — no viene en el payload de
-  // `cmd.start`/`cmd.stop`/`cmd.abort` (ver `ComandoStartPayload` en
-  // `useComandos.ts`: solo trae `inspection_id`/`start_at`/`seq`). El
-  // backend (`session.py`, ws2) documenta que una inspección puede tener
-  // VARIAS tomas y que cada toma nueva vuelve a emitir `cmd.start` sobre la
-  // MISMA inspección con un `seq` creciente — nunca crea una inspección
-  // nueva. Esta cámara deriva el `take_number` de esa regla: cada
-  // `cmd.start` no-duplicado que efectivamente programa una grabación
-  // (dentro de `manejarStart`, más abajo) es una toma más para ESE
-  // `inspection_id`. Task 5 (escáner) es quien decide cuándo pedir "toma 2"
-  // — acá solo se cuenta, nunca se decide.
-  const takeCounterRef = useRef<Map<number, number>>(new Map());
   // La toma que se está grabando/programando AHORA MISMO — lo que
   // `encolarGrabacion` necesita cuando `detener()` resuelva (async, después
   // de que `manejarStart` ya terminó de correr) para saber a qué inspección
@@ -363,34 +375,96 @@ export default function CamaraPageContent() {
   // `puedeGrabar` de `manejarStart`, más abajo.
   const { offsetMs, listo: clockListo } = useServerClock();
 
-  // El timer del PRÓXIMO arranque programado. Un ref, no estado: no hace
-  // falta re-renderizar por esto, y `manejarStart` necesita poder cancelar
-  // uno anterior si por lo que sea llegara un `cmd.start` nuevo antes de que
-  // el primero disparara (no debería pasar — una inspección emite un solo
-  // `cmd.start` — pero cancelar el viejo es gratis y evita dos `grabar()`
-  // programados a la vez si alguna vez pasara).
-  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Conteo regresivo (3,2,1) visible en pantalla — ver `ConteoVisible` a
+  // nivel de módulo. Estado, no ref: SÍ tiene que re-renderizar, es lo único
+  // que pinta el número. `null` cuando no hay ningún conteo activo — el
+  // bloque de UI, más abajo en el render, no se monta en absoluto en ese
+  // caso.
+  const [conteo, setConteo] = useState<ConteoVisible | null>(null);
+
+  // El timer del PRÓXIMO tick del conteo. Un ref, no estado: no hace falta
+  // re-renderizar por esto, solo poder cancelarlo. Un solo ref para el
+  // conteo de ARRANQUE y el de PARADA — nunca hay dos corriendo a la vez:
+  // un `cmd.stop`/`cmd.abort` que interrumpe el conteo de arranque lo
+  // cancela antes de que el de parada pudiera existir (ver
+  // `cancelarConteoPendiente`, justo abajo), y al revés no puede pasar —
+  // para parar hace falta estar `grabando`, así que el conteo de arranque de
+  // esa toma ya terminó.
+  const conteoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fix post-review (C1, CRÍTICO): antes `manejarStop`/`manejarAbort` solo
   // llamaban `detener()`, que RECHAZA si todavía no hay grabación en curso
   // (rechazo tragado por un `.catch(() => {})`) — el timer de `manejarStart`
   // nunca se cancelaba. Secuencia verificada por la review: `cmd.start` con
   // `start_at=+1500`, `cmd.abort` a los 500ms, la cámara igual arranca a
-  // grabar a los 1500ms porque nadie tocó `startTimerRef`. Esa grabación no
-  // la para nadie (la inspección ya está `failed`, no va a haber
-  // `cmd.stop`), y el `cmd.start` SIGUIENTE se ackea pero no graba nada
-  // (`grabar()` sale temprano al ver el recorder ocupado) — cámara zombi:
-  // ackea todo, graba nada, y su último `capture_state` reportado sigue
-  // siendo `armada`, así que el semáforo del escáner queda verde. Encima,
-  // `ACK_TIMEOUT_MS` del escáner es EL MISMO valor que `_START_DELAY_MS` del
-  // backend — el abort por timeout llega justo cuando el timer iba a
-  // disparar. No es un caso raro: es el camino degradado normal.
-  const cancelarArranquePendiente = useCallback(() => {
-    if (startTimerRef.current) {
-      clearTimeout(startTimerRef.current);
-      startTimerRef.current = null;
+  // grabar a los 1500ms porque nadie tocó el timer. Esa grabación no la para
+  // nadie (la inspección ya está `failed`, no va a haber `cmd.stop`), y el
+  // `cmd.start` SIGUIENTE se ackea pero no graba nada (`grabar()` sale
+  // temprano al ver el recorder ocupado) — cámara zombi: ackea todo, graba
+  // nada, y su último `capture_state` reportado sigue siendo `armada`, así
+  // que el semáforo del escáner queda verde. Encima, `ACK_TIMEOUT_MS` del
+  // escáner es EL MISMO valor que `_START_DELAY_MS` del backend — el abort
+  // por timeout llega justo cuando el timer iba a disparar. No es un caso
+  // raro: es el camino degradado normal.
+  //
+  // Con el conteo (esta Task), la misma regla se generaliza: CUALQUIER timer
+  // pendiente — el de arranque o el de parada, nunca los dos a la vez — no
+  // puede sobrevivir a un `cmd.stop`/`cmd.abort` que llegue mientras cuenta.
+  // `setConteo(null)` es parte del mismo gesto, no un extra: sin esto, un
+  // abort a mitad de camino dejaría el número pintado en pantalla para
+  // siempre — un contador fantasma es tan mal síntoma como una grabación
+  // fantasma.
+  const cancelarConteoPendiente = useCallback(() => {
+    if (conteoTimerRef.current) {
+      clearTimeout(conteoTimerRef.current);
+      conteoTimerRef.current = null;
     }
+    setConteo(null);
   }, []);
+
+  // Motor del conteo: un tick que se reprograma a sí mismo hasta llegar a
+  // cero. Recibe el instante ABSOLUTO LOCAL al que hay que llegar
+  // (`objetivoLocalMs`) — para el arranque es `start_at` ya corregido por el
+  // offset (ver `manejarStart`, más abajo: ESE es el requisito duro de esta
+  // Task, que el conteo cuente contra el reloj compartido y no contra
+  // cuándo llegó el mensaje a ESTE teléfono); para la parada no hay instante
+  // compartido del servidor, así que es `Date.now() + STOP_COUNTDOWN_MS`
+  // tomado una sola vez al arrancar ese conteo (ver `manejarStop`).
+  //
+  // En cada tick recalcula cuánto falta (`restanteMs`) contra ESE instante
+  // fijo, nunca contra un contador local que se decrementa solo — así un
+  // tick que se disparó un poco tarde (el hilo de JS ocupado con otra cosa)
+  // no acumula deriva: el PRÓXIMO tick igual apunta al instante real. El
+  // número mostrado es una función pura de `restanteMs`: si el mensaje llegó
+  // tarde (ya pasó parte del delay de 1,5s que el backend hornea en
+  // `start_at`) el conteo arranca directo en "2" o en "1", no siempre en
+  // "3" — así, con varias cámaras en la estación y latencias de red
+  // distintas, todas terminan mostrando el MISMO número en el MISMO
+  // instante real.
+  const iniciarConteo = useCallback(
+    (tipo: ConteoVisible['tipo'], objetivoLocalMs: number, alLlegarACero: () => void) => {
+      const tick = () => {
+        const restanteMs = objetivoLocalMs - Date.now();
+        if (restanteMs <= 0) {
+          conteoTimerRef.current = null;
+          setConteo(null);
+          alLlegarACero();
+          return;
+        }
+        const numero: ConteoVisible['numero'] = restanteMs > 1000 ? 3 : restanteMs > 500 ? 2 : 1;
+        setConteo({ tipo, numero });
+        // Próximo cambio de número (o el final): cuando `restanteMs` cruce
+        // el siguiente umbral de 500ms hacia abajo — de ahí sale el "~500ms
+        // cada uno" de la spec, sin depender de un intervalo fijo que
+        // pudiera desalinearse del instante real.
+        const proximoEnMs =
+          restanteMs > 1000 ? restanteMs - 1000 : restanteMs > 500 ? restanteMs - 500 : restanteMs;
+        conteoTimerRef.current = setTimeout(tick, proximoEnMs);
+      };
+      tick();
+    },
+    []
+  );
 
   // Dedupe por `(inspection_id, seq)` a nivel de componente — no solo el de
   // `useComandos` (que dedupea la vía EN VIVO del canal). Hace falta acá
@@ -408,6 +482,26 @@ export default function CamaraPageContent() {
       if (procesadosStartRef.current.has(clave)) return;
       procesadosStartRef.current.add(clave);
 
+      // Fix de review post-F4-Task-5 (CRÍTICO): `take_number` viene del
+      // servidor en el payload (`ComandoStartPayload.take_number`, ver su
+      // doc-comment en `useComandos.ts`) — esta cámara YA NO lo cuenta.
+      // Antes se derivaba contando cuántos `cmd.start` no-duplicados había
+      // recibido para la inspección; como Pusher no garantiza entrega
+      // (spec §6.1 regla 3), una cámara que se pierde uno quedaba
+      // desfasada PARA SIEMPRE y subía cada toma siguiente con el
+      // `take_number` de la ANTERIOR — pisando su objeto en S3 en
+      // silencio. Un `take_number` ausente o inválido es un contrato roto
+      // con el backend: se prefiere que se note (esta cámara no graba,
+      // visible en el ack `listo:false` y en el semáforo del escáner) a
+      // que la cámara adivine un número que puede corromper evidencia.
+      const takeNumberValido = Number.isInteger(payload.take_number) && payload.take_number > 0;
+      if (!takeNumberValido) {
+        console.error(
+          'cmd.start sin take_number válido — contrato roto con el backend, esta cámara no graba',
+          payload
+        );
+      }
+
       // Fix post-review (C2, CRÍTICO): el ack ahora dice la verdad sobre si
       // ESTA cámara puede grabar — ver doc-comment de `ackComando`. Antes se
       // ackeaba sin mirar `capturaEstado`: una cámara nunca armada, o caída
@@ -415,74 +509,102 @@ export default function CamaraPageContent() {
       // ack para el quórum, y el escáner mostraba GRABANDO sin un frame de
       // esta cámara. `clockListo` (I5) entra acá también: sin el reloj
       // calibrado, "grabar" sería grabar desincronizado, que para el
-      // criterio de ≤150ms de F3 es tan malo como no grabar.
-      const puedeGrabar = capturaEstado === 'armada' && clockListo;
+      // criterio de ≤150ms de F3 es tan malo como no grabar. `takeNumberValido`
+      // entra por el mismo motivo que `clockListo`: un contrato roto es
+      // tan malo como un reloj sin calibrar — ninguno de los dos debe
+      // resultar en una grabación.
+      const puedeGrabar = takeNumberValido && capturaEstado === 'armada' && clockListo;
       void ackComando(payload.inspection_id, payload.seq, session.token, puedeGrabar);
 
-      cancelarArranquePendiente();
+      cancelarConteoPendiente();
       if (!puedeGrabar) return;
 
-      // F4 Task 4: una toma más para ESTA inspección — ver el doc-comment de
-      // `takeCounterRef` más arriba sobre por qué se deriva acá y no viene
-      // en el payload. Se setea ANTES de programar `grabar()` (no dentro del
+      // Se setea ANTES de programar el conteo/`grabar()` (no dentro del
       // `setTimeout`) para que quede fijo desde YA: si por lo que sea
-      // llegara un `cmd.start` de OTRA inspección antes de que este timer
-      // dispare (no debería, pero `cancelarArranquePendiente` ya cubre ese
+      // llegara un `cmd.start` de OTRA inspección antes de que el timer
+      // dispare (no debería, pero `cancelarConteoPendiente` ya cubre ese
       // caso cancelando el timer viejo), `activeTakeRef` de esta toma no
       // debe quedar pisado a mitad de camino por una carrera imposible de
       // ver desde acá.
-      const takeNumber = (takeCounterRef.current.get(payload.inspection_id) ?? 0) + 1;
-      takeCounterRef.current.set(payload.inspection_id, takeNumber);
-      activeTakeRef.current = { inspectionId: payload.inspection_id, takeNumber };
+      activeTakeRef.current = { inspectionId: payload.inspection_id, takeNumber: payload.take_number };
 
-      // Arranque por reloj absoluto (spec §6.1 regla 2): se programa para el
-      // instante `start_at` CORREGIDO POR EL OFFSET, no para "ahora". Así
-      // todas las cámaras de la estación arrancan juntas aunque el mensaje
-      // de Pusher les llegue con latencias distintas. `Math.max(0, …)`
-      // porque si el offset+red hicieron que el instante ya haya pasado
-      // (mensaje muy tardío, o resync tardío tras reconectar — C4), lo mejor
-      // que se puede hacer es arrancar ya.
-      const delayMs = payload.start_at - offsetMs - Date.now();
-      startTimerRef.current = setTimeout(() => {
+      // Arranque por reloj absoluto (spec §6.1 regla 2, y el requisito duro
+      // de esta Task): el objetivo es `start_at` CORREGIDO POR EL OFFSET, no
+      // "ahora". Así todas las cámaras de la estación — y, dentro de esta
+      // cámara, el conteo que se pinta en pantalla — apuntan al MISMO
+      // instante real aunque el mensaje de Pusher les haya llegado con
+      // latencias distintas. Contar contra el instante de RECEPCIÓN en vez
+      // de contra `start_at` desincronizaría el conteo entre cámaras sin que
+      // hubiera ningún problema real de fondo.
+      const objetivoLocalMs = payload.start_at - offsetMs;
+      const delayMs = objetivoLocalMs - Date.now();
+      if (delayMs <= 0) {
+        // El instante ya pasó — típicamente una cámara que se reconectó
+        // tarde y resincronizó contra `/state` (C4) bastante después de que
+        // el resto de la estación ya arrancó. Mostrar un conteo acá sería
+        // mentir: contaría hacia un instante que ya ocurrió. Se arranca
+        // directo, sin conteo.
         grabar();
-      }, Math.max(0, delayMs));
+      } else {
+        iniciarConteo('start', objetivoLocalMs, grabar);
+      }
     },
-    [session, offsetMs, clockListo, capturaEstado, grabar, cancelarArranquePendiente]
+    [session, offsetMs, clockListo, capturaEstado, grabar, cancelarConteoPendiente, iniciarConteo]
   );
 
   const manejarStop = useCallback(() => {
-    // Fix C1: cancelar SIEMPRE, antes de intentar `detener()` — ver
-    // doc-comment de `cancelarArranquePendiente`.
-    cancelarArranquePendiente();
-    // F4 Task 4 (el corazón de la fase): el blob se ENCOLA apenas
-    // `detener()` resuelve — la cámara ya volvió a "armada" dentro de
-    // `detener()` mismo (regla 2 de `useKioskRecorder.ts`), así que para
-    // cuando `encolarGrabacion` corre acá la UI ya está lista para la
-    // próxima orden. Nada de esto espera a la subida real.
-    detener().then(encolarGrabacion).catch(() => {});
-  }, [detener, cancelarArranquePendiente, encolarGrabacion]);
+    // Fix C1: cancelar SIEMPRE, antes de nada más — ver doc-comment de
+    // `cancelarConteoPendiente`. Si este `cmd.stop` llegó mientras el conteo
+    // de ARRANQUE todavía corría (la toma nunca llegó a grabar), esto lo
+    // cancela y no queda nada más por hacer: el guard de abajo
+    // (`capturaEstado !== 'grabando'`) corta acá — no tiene sentido arrancar
+    // un conteo de PARADA sobre una grabación que nunca empezó.
+    cancelarConteoPendiente();
+    if (capturaEstado !== 'grabando') return;
+
+    // Decisión de producto ya tomada (esta Task): al parar, la cámara SIGUE
+    // grabando durante el conteo y recién detiene al llegar a cero — esos
+    // segundos extra evitan cortar un movimiento a la mitad.
+    // `STOP_COUNTDOWN_MS` usa la MISMA duración que el arranque para que se
+    // sienta consistente, pero a diferencia del arranque no hay un instante
+    // absoluto compartido por el backend para la parada (ver su
+    // doc-comment) — es un conteo local, tomado una sola vez acá.
+    // `detener()`/`encolarGrabacion` (F4 Task 4, sin cambios) recién corren
+    // cuando el conteo llega a cero — la cámara ya vuelve a "armada" dentro
+    // de `detener()` mismo (regla 2 de `useKioskRecorder.ts`), así que para
+    // cuando `encolarGrabacion` corre la UI ya está lista para la próxima
+    // orden. Nada de esto espera a la subida real.
+    iniciarConteo('stop', Date.now() + STOP_COUNTDOWN_MS, () => {
+      detener().then(encolarGrabacion).catch(() => {});
+    });
+  }, [capturaEstado, cancelarConteoPendiente, iniciarConteo, detener, encolarGrabacion]);
 
   const manejarAbort = useCallback(() => {
-    // Fix C1 (ver doc-comment de `cancelarArranquePendiente`). La
-    // transición de la inspección a `failed` la decide el servidor
-    // (CLAUDE.md / spec: "los dispositivos reportan, nunca deciden") — acá
-    // solo se corta la captura local, igual que con `cmd.stop`. Encola igual
-    // que `manejarStop`: lo que se alcanzó a grabar antes del abort no tiene
-    // por qué perderse — si `detener()` rechaza porque no había grabación en
-    // curso (el abort llegó ANTES de que arrancara), `encolarGrabacion`
-    // simplemente no corre.
-    cancelarArranquePendiente();
+    // Fix C1 (ver doc-comment de `cancelarConteoPendiente`). Deliberadamente
+    // SIN conteo propio — a diferencia de `cmd.stop`, un abort corta YA: si
+    // interrumpe un conteo de PARADA en curso, lo cancela y detiene de
+    // inmediato en vez de esperar a que termine (algo falló, no hay "unos
+    // segundos más" que ganar esperando). La transición de la inspección a
+    // `failed` la decide el servidor (CLAUDE.md / spec: "los dispositivos
+    // reportan, nunca deciden") — acá solo se corta la captura local, igual
+    // que con `cmd.stop`. Encola igual: lo que se alcanzó a grabar antes del
+    // abort no tiene por qué perderse — si `detener()` rechaza porque no
+    // había grabación en curso (el abort llegó ANTES de que arrancara, o
+    // durante el conteo de arranque), `encolarGrabacion` simplemente no
+    // corre.
+    cancelarConteoPendiente();
     detener().then(encolarGrabacion).catch(() => {});
-  }, [detener, cancelarArranquePendiente, encolarGrabacion]);
+  }, [detener, cancelarConteoPendiente, encolarGrabacion]);
 
   useComandos(channel, { onStart: manejarStart, onStop: manejarStop, onAbort: manejarAbort });
 
-  // Timer del arranque programado: se cancela al desmontar para no llamar
-  // `grabar()` sobre un hook que ya se fue (mismo espíritu que el I6 de
-  // `useKioskRecorder.ts`, aplicado acá del lado del timer, no del recorder).
+  // Timer del conteo pendiente (arranque o parada): se cancela al desmontar
+  // para no llamar `grabar()`/`detener()` sobre un hook que ya se fue (mismo
+  // espíritu que el I6 de `useKioskRecorder.ts`, aplicado acá del lado del
+  // timer, no del recorder).
   useEffect(() => {
     return () => {
-      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+      if (conteoTimerRef.current) clearTimeout(conteoTimerRef.current);
     };
   }, []);
 
@@ -534,24 +656,32 @@ export default function CamaraPageContent() {
           if (!r.ok) return;
           const body = await r.json();
           const activa = body.active_inspection as
-            | { id: number; status: string; start_at?: number; seq?: number }
+            | { id: number; status: string; start_at?: number; seq?: number; take_number?: number }
             | null
             | undefined;
 
           // Solo estos dos status significan "debería estar grabando ahora
           // o en breve" — el resto (o ninguna inspección en curso) significa
-          // "no debería estar grabando".
+          // "no debería estar grabando". `take_number` (fix de review
+          // post-F4-Task-5, CRÍTICO) entra en la MISMA guarda que
+          // `start_at`/`seq`: es el mismo problema por otra puerta — sin
+          // él acá, `manejarStart` no tiene de dónde sacarlo (ya no cuenta
+          // `cmd.start` recibidos, ver su doc-comment), así que un resync
+          // sin `take_number` válido debe tratarse igual que uno sin
+          // `start_at`/`seq` — "no sé en qué toma estoy", no "asumo la 1".
           const deberiaEstarGrabando =
             !!activa &&
             (activa.status === 'created' || activa.status === 'recording') &&
             typeof activa.start_at === 'number' &&
-            typeof activa.seq === 'number';
+            typeof activa.seq === 'number' &&
+            typeof activa.take_number === 'number';
 
           if (deberiaEstarGrabando && activa) {
             manejarStart({
               inspection_id: activa.id,
               start_at: activa.start_at as number,
               seq: activa.seq as number,
+              take_number: activa.take_number as number,
             });
           } else {
             manejarStop();
@@ -713,6 +843,37 @@ export default function CamaraPageContent() {
       />
       {/* Scrim para que el texto sea legible sobre cualquier escena de fondo. */}
       <div className="absolute inset-0 bg-black/50" aria-hidden />
+
+      {/* Conteo regresivo (3,2,1) de arranque/parada — el elemento
+          dominante de la pantalla mientras dura (esta pantalla se lee desde
+          varios metros) y desaparece al llegar a cero. Overlay a pantalla
+          completa por encima de TODO lo demás (`z-20`, más alto que el
+          `z-10` del contenido de abajo): mientras cuenta, es lo único que
+          importa mirar. Color y texto distinguen arranque de parada a
+          propósito — son dos cosas distintas y el operador tiene que saber
+          cuál está viendo: verde/"A GRABAR EN" para el arranque,
+          rojo/"SE DETIENE EN" para la parada, el mismo rojo que ya usa
+          "GRABANDO" para que la asociación "está grabando, por terminar"
+          sea inmediata. */}
+      {conteo && (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-black/85"
+          aria-live="assertive"
+        >
+          <p
+            className="text-2xl font-semibold uppercase tracking-widest"
+            style={{ color: conteo.tipo === 'start' ? TOKENS.green : TOKENS.red }}
+          >
+            {conteo.tipo === 'start' ? 'A GRABAR EN' : 'SE DETIENE EN'}
+          </p>
+          <p
+            className="text-[10rem] font-black leading-none"
+            style={{ color: conteo.tipo === 'start' ? TOKENS.green : TOKENS.red }}
+          >
+            {conteo.numero}
+          </p>
+        </div>
+      )}
 
       <div className="relative z-10 flex min-h-screen flex-1 flex-col items-center justify-between p-6 text-center">
         {/* Etiqueta de la cámara: qué cámara es esta cuando hay varias en la

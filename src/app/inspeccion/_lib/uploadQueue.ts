@@ -441,7 +441,19 @@ export class UploadQueue {
 
   /** Un intento: pide la URL firmada, hace el PUT directo a S3, y confirma.
    * Cualquier respuesta no-ok o excepción de red se propaga como error —
-   * `subirConReintentos` decide qué hacer con eso. */
+   * `subirConReintentos` decide qué hacer con eso.
+   *
+   * `POST .../complete` (fix de review post-F4-Task-5, C3, CRÍTICO — dos
+   * rondas): cuando el servidor verifica con `HeadObject` y RECHAZA (un
+   * PUT truncado por un corte de wifi en planta, spec §8: "un dispositivo
+   * no puede declarar nada verificado"), responde con un código de error
+   * (422) — nunca 200. La primera versión de este fix miraba el `status`
+   * del BODY (`res.ok` con `{"status":"failed"}` adentro) para distinguir
+   * los dos casos; eso era parchear el síntoma del lado equivocado — dos
+   * capas en desacuerdo sobre qué significa "éxito" (HTTP 200 vs. body
+   * "failed") es justo lo que hacía perder el blob. Con el contrato HTTP
+   * arreglado del lado del servidor, acá alcanza con la regla general:
+   * `!ok` es fallo, sin condicionales leyendo el body. */
   private async subirUnaVez(item: UploadQueueItem): Promise<void> {
     const apiHeaders = {
       'Content-Type': 'application/json',

@@ -251,36 +251,6 @@ export default function EscanerPageContent() {
     }).catch(() => {});
   }, [session]);
 
-  const iniciarInspeccion = useCallback(async () => {
-    if (!session) return;
-    const serialTrim = serial.trim();
-    if (!listo || !serialTrim || sesionEstado !== 'inactiva') return;
-
-    setSesionError(null);
-    setSesionEstado('iniciando');
-    try {
-      const r = await fetch(`${API_BASE_URL}/inspections`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
-        body: JSON.stringify({ serial: serialTrim, serial_source: 'manual' }),
-      });
-      if (!r.ok) {
-        setSesionError(`No se pudo iniciar la inspección (http_${r.status})`);
-        setSesionEstado('inactiva');
-        return;
-      }
-      const body = await r.json();
-      inspectionIdRef.current = body.inspection_id;
-      setTakeNumber(1);
-      setBloqueoCola(null);
-      if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
-      ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
-    } catch {
-      setSesionError('No se pudo iniciar la inspección: error de red');
-      setSesionEstado('inactiva');
-    }
-  }, [session, serial, listo, sesionEstado, abortarPorTimeout]);
-
   // F4 Task 5: el hueco que dejó F4 Task 4. La cámara reporta su cola de
   // subida por REST (`CamaraPageContent.tsx`, mismo endpoint que ya
   // reportaba `capture_state`) y `GET /state` la expone por dispositivo
@@ -295,6 +265,12 @@ export default function EscanerPageContent() {
   // consultar `/state`" (fail-open: un corte de red del escáner no debe
   // trabar la inspección para siempre por falta de dato, mismo criterio
   // fail-open que ya aplica el backend a un reporte de cola vencido).
+  //
+  // Definido ANTES de `iniciarInspeccion` (fix de review post-Task-5): el
+  // recovery de 409 `estacion_ocupada` en `iniciarInspeccion` también lo
+  // necesita, y un `useCallback` no puede depender de un `const` declarado
+  // más abajo en el cuerpo del componente (TDZ) — `verificarColaCamaras` en
+  // su array de dependencias reventaría al montar.
   const verificarColaCamaras = useCallback(async (): Promise<
     { label: string; motivo: string | null } | null
   > => {
@@ -315,6 +291,81 @@ export default function EscanerPageContent() {
       return null;
     }
   }, [session]);
+
+  const iniciarInspeccion = useCallback(async () => {
+    if (!session) return;
+    const serialTrim = serial.trim();
+    if (!listo || !serialTrim || sesionEstado !== 'inactiva') return;
+
+    setSesionError(null);
+    setSesionEstado('iniciando');
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+        body: JSON.stringify({ serial: serialTrim, serial_source: 'manual' }),
+      });
+      if (!r.ok) {
+        // Fix de review post-F4-Task-5 (C4, CRÍTICO): un 409
+        // `estacion_ocupada` (guarda C3, ws2) trae el `inspection_id` de la
+        // inspección que YA está en curso — típicamente la de un ciclo
+        // anterior que este escáner no llegó a cerrar (recargó la pestaña
+        // en "decidiendo", perdió el estado en memoria). Antes esto se
+        // mostraba como error mudo y el `inspection_id` se descartaba: sin
+        // ÉL no hay forma de retomarla, la estación queda inutilizable
+        // hasta que el barrido la cierre por timeout. Ahora se recupera y
+        // se pasa directo a "decidiendo" — las mismas dos opciones (toma
+        // siguiente / subir) que ya existen para el ciclo normal.
+        if (r.status === 409) {
+          const errorBody = await r.json().catch(() => null);
+          const detalle = errorBody?.detail as
+            | { reason?: string; inspection_id?: number }
+            | undefined;
+          if (detalle?.reason === 'estacion_ocupada' && typeof detalle.inspection_id === 'number') {
+            inspectionIdRef.current = detalle.inspection_id;
+            setBloqueoCola(await verificarColaCamaras());
+            // Best-effort: recupera el `take_number` REAL de la inspección
+            // recuperada desde `/state` (ws2 lo expone en
+            // `active_inspection.take_number`, mismo fix de review) — se
+            // muestra 1 como piso si no está disponible (p.ej. la
+            // inspección recuperada sigue `recording`, sin datos de
+            // arranque resueltos todavía) en vez de dejar el contador sin
+            // pintar nada.
+            try {
+              const rEstado = await fetch(
+                `${API_BASE_URL}/inspections/stations/${session.stationId}/state`,
+                { headers: { 'X-Device-Token': session.token } }
+              );
+              if (rEstado.ok) {
+                const bodyEstado = await rEstado.json();
+                const tomaRecuperada = bodyEstado?.active_inspection?.take_number;
+                if (typeof tomaRecuperada === 'number') setTakeNumber(tomaRecuperada);
+              }
+            } catch {
+              // Nada más accionable: el contador se queda en el piso (1).
+            }
+            setSesionEstado('decidiendo');
+            setSesionError(
+              'Esta estación ya tenía una inspección en curso — se recuperó para continuarla.'
+            );
+            return;
+          }
+        }
+        setSesionError(`No se pudo iniciar la inspección (http_${r.status})`);
+        setSesionEstado('inactiva');
+        return;
+      }
+      const body = await r.json();
+      inspectionIdRef.current = body.inspection_id;
+      setTakeNumber(1);
+      setBloqueoCola(null);
+      if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
+      ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
+    } catch {
+      setSesionError('No se pudo iniciar la inspección: error de red');
+      setSesionEstado('inactiva');
+    }
+  }, [session, serial, listo, sesionEstado, abortarPorTimeout, verificarColaCamaras]);
 
   const finalizarInspeccion = useCallback(async () => {
     if (!session) return;

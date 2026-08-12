@@ -40,7 +40,7 @@ describe('useComandos', () => {
     const onStart = jest.fn();
     renderHook(() => useComandos(channel, { onStart }));
 
-    const payload: ComandoStartPayload = { inspection_id: 1, start_at: 123, seq: 1 };
+    const payload: ComandoStartPayload = { inspection_id: 1, start_at: 123, seq: 1, take_number: 1 };
     channel.emit('cmd.start', payload);
 
     expect(onStart).toHaveBeenCalledTimes(1);
@@ -52,7 +52,7 @@ describe('useComandos', () => {
     const onStart = jest.fn();
     renderHook(() => useComandos(channel, { onStart }));
 
-    const payload: ComandoStartPayload = { inspection_id: 7, start_at: 999, seq: 1 };
+    const payload: ComandoStartPayload = { inspection_id: 7, start_at: 999, seq: 1, take_number: 1 };
     // Pusher redistribuye al reconectar: el mismo mensaje puede llegarle al
     // dispositivo más de una vez.
     channel.emit('cmd.start', payload);
@@ -140,7 +140,7 @@ describe('useComandos', () => {
       initialProps: { channel: channelViejo as ComandoChannel | null },
     });
 
-    const payload: ComandoStartPayload = { inspection_id: 5, start_at: 1, seq: 1 };
+    const payload: ComandoStartPayload = { inspection_id: 5, start_at: 1, seq: 1, take_number: 1 };
     channelViejo.emit('cmd.start', payload);
     expect(onStart).toHaveBeenCalledTimes(1);
 

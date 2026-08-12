@@ -632,7 +632,7 @@ describe('CamaraPageContent', () => {
       const startAt = Date.now() + 1500;
 
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: startAt, seq: 1 });
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: startAt, seq: 1, take_number: 1 });
       });
 
       // El ack sale YA, antes de que arranque la grabación — el escáner
@@ -668,7 +668,7 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       const startAt = Date.now() + 1500;
-      const payload = { inspection_id: 42, start_at: startAt, seq: 1 };
+      const payload = { inspection_id: 42, start_at: startAt, seq: 1, take_number: 1 };
 
       act(() => {
         pusher.channel.emit('cmd.start', payload);
@@ -702,7 +702,7 @@ describe('CamaraPageContent', () => {
       jest.useFakeTimers();
       const startAt = Date.now() + 1500;
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: startAt, seq: 1 });
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: startAt, seq: 1, take_number: 1 });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -711,6 +711,11 @@ describe('CamaraPageContent', () => {
 
       act(() => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+      // Conteo regresivo de parada (`STOP_COUNTDOWN_MS`): la cámara sigue
+      // grabando hasta que llega a cero — recién ahí vuelve a ARMADA.
+      act(() => {
+        jest.advanceTimersByTime(1500);
       });
 
       expect(screen.getByText('ARMADA')).toBeInTheDocument();
@@ -775,7 +780,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
 
       // El abort llega a los 500ms — exactamente el camino degradado normal
@@ -807,7 +814,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(500);
@@ -831,7 +840,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(500);
@@ -850,7 +861,9 @@ describe('CamaraPageContent', () => {
       // nada, aunque el ack sí salía (cámara "zombi": ackea todo, graba
       // nada). Con el fix, no hay grabación huérfana que bloquee esta.
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 43, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 43, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -883,7 +896,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -909,7 +924,9 @@ describe('CamaraPageContent', () => {
       const pusher = conectarCanal();
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -953,7 +970,9 @@ describe('CamaraPageContent', () => {
       const pusher = conectarCanal();
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -990,7 +1009,10 @@ describe('CamaraPageContent', () => {
       instalarFetchInspeccion({
         camera_labels: ['techo'],
         devices: [],
-        active_inspection: { id: 99, serial: 'SN-1', status: 'recording', start_at: Date.now() - 1000, seq: 1 },
+        active_inspection: {
+          id: 99, serial: 'SN-1', status: 'recording',
+          start_at: Date.now() - 1000, seq: 1, take_number: 1,
+        },
       });
 
       const pusher = mockFakePusher.instances[0];
@@ -1019,7 +1041,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1035,13 +1059,28 @@ describe('CamaraPageContent', () => {
         devices: [],
         active_inspection: { id: 42, serial: 'SN-1', status: 'uploading' },
       });
+      // El resync dispara `manejarStop()`, que ahora (conteo regresivo de
+      // parada) no detiene de inmediato — vuelve a fake timers para poder
+      // avanzar ese conteo determinísticamente. El resync en sí es
+      // asíncrono (`await fetch(...)` dentro del efecto), así que hace
+      // falta un `act` async para dejar que ese `fetch` mockeado resuelva
+      // y `manejarStop()` LLEGUE A CORRER antes de avanzar el conteo — si
+      // no, el conteo todavía no arrancó cuando se avanza el timer, y
+      // arranca recién después con el reloj falso ya "gastado".
+      jest.useFakeTimers();
       act(() => {
         pusher.connection.emit('state_change', { current: 'connecting' });
       });
-      act(() => {
+      await act(async () => {
         pusher.connection.emit('state_change', { current: 'connected' });
         pusher.channel.emit('pusher:subscription_succeeded');
+        await Promise.resolve();
+        await Promise.resolve();
       });
+      act(() => {
+        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+      });
+      jest.useRealTimers();
 
       await waitFor(() => {
         expect(screen.getByText('ARMADA')).toBeInTheDocument();
@@ -1149,7 +1188,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1159,9 +1200,15 @@ describe('CamaraPageContent', () => {
       act(() => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
       });
+      // Conteo regresivo de parada: la cámara sigue grabando hasta el
+      // final del conteo — recién ahí `detener()` corre de verdad.
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
 
-      // Vuelve a ARMADA YA — nada de esto espera ninguna subida real: la
-      // cola está mockeada por completo, sin red involucrada.
+      // Vuelve a ARMADA YA (apenas el conteo llega a cero) — nada de esto
+      // espera ninguna subida real: la cola está mockeada por completo,
+      // sin red involucrada.
       expect(screen.getByText('ARMADA')).toBeInTheDocument();
 
       // `detener()` resuelve en un microtask (el `onstop` del
@@ -1196,7 +1243,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1224,13 +1273,18 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
       });
       act(() => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
       });
       expect(screen.getByText('ARMADA')).toBeInTheDocument();
 
@@ -1241,7 +1295,9 @@ describe('CamaraPageContent', () => {
       // Con esa subida en curso (todavía no resolvió), arranca UNA
       // INSPECCIÓN DISTINTA — no debe bloquearse ni esperar nada.
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 43, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 43, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1261,7 +1317,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1304,7 +1362,15 @@ describe('CamaraPageContent', () => {
       expect(uploadQueueMock.descartar).toHaveBeenCalledWith(11);
     });
 
-    it('dos cmd.start sobre la MISMA inspección (toma 2) encolan take_number 1 y 2, en ese orden', async () => {
+    it('dos cmd.start sobre la MISMA inspección (toma 2) encolan el take_number QUE TRAE EL PAYLOAD, 1 y 2', async () => {
+      // Fix de review post-F4-Task-5 (C1, CRÍTICO): `take_number` viaja en
+      // el payload de `cmd.start` — la cámara YA NO lo cuenta (ver
+      // doc-comment de `ComandoStartPayload` en `useComandos.ts`). Este
+      // test, junto con el de "toma se pierde un cmd.start" de acá abajo,
+      // es la mitad front del par punta-a-punta que hubiera atrapado el
+      // bug — la otra mitad es
+      // `test_ciclo_completo_de_dos_tomas_cruza_todo_el_contrato_http` en
+      // ws2 (`tests/api/routers/inspection/test_videos_api.py`).
       setDeviceSessionCamara();
       instalarFetchInspeccion();
       await armarCamara();
@@ -1312,7 +1378,9 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1320,13 +1388,18 @@ describe('CamaraPageContent', () => {
       act(() => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
       });
+      act(() => {
+        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+      });
       await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1));
 
       // Toma 2 sobre la MISMA inspección (session.py, ws2: "una toma nueva
       // vuelve a emitir cmd.start sobre la MISMA inspección", con un `seq`
       // nuevo — nunca crea una inspección nueva).
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 3 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 3, take_number: 2,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
@@ -1334,11 +1407,148 @@ describe('CamaraPageContent', () => {
       act(() => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 4 });
       });
+      act(() => {
+        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+      });
       await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(2));
 
       const [[primerItem], [segundoItem]] = (uploadQueueMock.encolar as jest.Mock).mock.calls;
       expect(primerItem).toEqual(expect.objectContaining({ inspectionId: 42, takeNumber: 1 }));
       expect(segundoItem).toEqual(expect.objectContaining({ inspectionId: 42, takeNumber: 2 }));
+    });
+
+    it('REGLA CRÍTICA (C1): una cámara que se PIERDE un cmd.start sube la toma siguiente con el número correcto, no con el que le tocaría contando', async () => {
+      // Reproduce el bug medido en la review: la cámara se cae (falla el
+      // `track.ended`) justo cuando el servidor comanda la toma 2 — nunca
+      // llega a verla. El backend sigue adelante igual (`POST /takes` no
+      // exige quórum de acks) y comanda la toma 3. Antes del fix, esta
+      // cámara contaba SUS PROPIOS `cmd.start` vistos (1 y "3" contados
+      // como el segundo que ve = 2) y subía la toma 3 con la key de la
+      // toma 2 — pisándola en S3 en silencio. Con el fix, usa el
+      // `take_number` que trae el payload (3), sin importar cuántos se
+      // haya perdido en el medio.
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+
+      jest.useFakeTimers();
+      // Toma 1: graba bien.
+      act(() => {
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+      });
+      await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1));
+
+      // La cámara se cae ANTES de que llegue el cmd.start de la toma 2 —
+      // simulado acá simplemente NO emitiéndolo: la próxima señal que
+      // recibe es directo la de la toma 3.
+      act(() => {
+        videoTrack.simulateEnded();
+      });
+      expect(screen.getByText('CÁMARA CAÍDA')).toBeInTheDocument();
+
+      // El servidor comandó la toma 2 igual (esta cámara nunca la vio) y
+      // ahora comanda la toma 3.
+      act(() => {
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 5, take_number: 3,
+        });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 6 });
+      });
+
+      // Con la cámara caída, `puedeGrabar` es `false` (ackea `listo:false`)
+      // — no llega a encolar nada para la toma 3 tampoco, así que el
+      // conteo de `encolar` se queda en 1. El punto del test no es que
+      // grabe estando caída, sino que cuando SÍ vuelva a poder grabar, use
+      // el número correcto — se verifica rearmando a continuación.
+      expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1);
+
+      // El operador rearma el teléfono. El backend re-resincroniza vía
+      // `/state` (mock `instalarFetchInspeccion`: `active_inspection: null`
+      // acá, así que no hay nada que retomar) — este test se queda en
+      // demostrar que un `cmd.start` CON `take_number` explícito nunca se
+      // confunde con un conteo local, que es la raíz del bug. El próximo
+      // `cmd.start` real (toma 4) prueba que el número sigue viniendo del
+      // payload, no de cuántos vio esta cámara (que vio 2: toma 1 y toma
+      // 3, y el backend le manda 4 — no "3").
+      jest.useRealTimers();
+      fireEvent.click(screen.getByRole('button', { name: /rearmar cámara/i }));
+      await waitFor(() => expect(screen.getByText('ARMADA')).toBeInTheDocument());
+
+      jest.useFakeTimers();
+      act(() => {
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 7, take_number: 4,
+        });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      act(() => {
+        pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 8 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+      });
+      jest.useRealTimers();
+      await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(2));
+
+      const segundo = (uploadQueueMock.encolar as jest.Mock).mock.calls[1][0];
+      // El backend llama a esta toma "4" (se perdió la 2, grabó la 1 y la
+      // 3... salvo que "3" tampoco grabó por estar caída, así que esta es
+      // la SEGUNDA que efectivamente sube). Si la cámara siguiera contando
+      // localmente, la llamaría "2" (su segundo `encolar()` real) — el
+      // punto exacto del bug.
+      expect(segundo.takeNumber).toBe(4);
+    });
+
+    it('un cmd.start sin take_number válido no graba (contrato roto, no se adivina)', async () => {
+      // Coordinador (fix de review post-F4-Task-5): "si el payload no trae
+      // el número, es un contrato roto y conviene que se note" — se
+      // prefiere una cámara que no graba (visible: sigue mostrando ARMADA,
+      // nunca GRABANDO) a que adivine un número que puede pisar evidencia.
+      setDeviceSessionCamara();
+      instalarFetchInspeccion();
+      await armarCamara();
+      const pusher = conectarCanal();
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      jest.useFakeTimers();
+      act(() => {
+        // Payload deliberadamente incompleto (sin `take_number`): el fake
+        // de `channel.emit` no tipa el segundo argumento, así que esto
+        // compila igual — es justo el caso que el fix tiene que blindar
+        // en RUNTIME (contrato roto del lado del backend, o un mensaje
+        // corrupto en tránsito).
+        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+      jest.useRealTimers();
+
+      expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      expect(uploadQueueMock.encolar).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalled();
+
+      consoleError.mockRestore();
     });
 
     it('si encolar() rechaza por backpressure, no se pierde en silencio: la vista lo avisa', async () => {
@@ -1350,13 +1560,18 @@ describe('CamaraPageContent', () => {
 
       jest.useFakeTimers();
       act(() => {
-        pusher.channel.emit('cmd.start', { inspection_id: 42, start_at: Date.now() + 1500, seq: 1 });
+        pusher.channel.emit('cmd.start', {
+          inspection_id: 42, start_at: Date.now() + 1500, seq: 1, take_number: 1,
+        });
       });
       act(() => {
         jest.advanceTimersByTime(1500);
       });
       act(() => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1500); // conteo regresivo de parada
       });
 
       await waitFor(() => {

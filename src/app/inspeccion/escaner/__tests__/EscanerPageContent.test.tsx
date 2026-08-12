@@ -543,5 +543,73 @@ describe('EscanerPageContent', () => {
         (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/takes'))
       ).toBe(false);
     });
+
+    it('C4 (fix de review post-F4-Task-5): un 409 estacion_ocupada recupera el inspection_id en vez de descartarlo — pasa a "decidiendo"', async () => {
+      // El backend manda el `inspection_id` de la inspección YA en curso
+      // justo para esto (guarda C3, ws2: `InspectionStateError`
+      // `estacion_ocupada`) — típicamente porque este mismo escáner
+      // recargó la pestaña en "decidiendo" y perdió el estado en memoria.
+      // Antes, esto se mostraba como error mudo y el id se descartaba: sin
+      // él no había forma de retomarla.
+      setDeviceSessionEscaner();
+      global.fetch = jest.fn((url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.includes('/stations/') && u.endsWith('/state')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              camera_labels: ['techo'],
+              devices: [
+                { device_id: 'dev-cam', kind: 'camara', label: 'techo', capture_state: 'armada' },
+              ],
+              active_inspection: {
+                id: 77, status: 'uploading', start_at: Date.now() - 5000, seq: 2, take_number: 1,
+              },
+            }),
+          });
+        }
+        if (u.endsWith('/inspections')) {
+          return Promise.resolve({
+            ok: false,
+            status: 409,
+            json: async () => ({ detail: { reason: 'estacion_ocupada', inspection_id: 77 } }),
+          });
+        }
+        return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
+      }) as unknown as typeof fetch;
+
+      render(<EscanerPageContent />);
+      conectarYListo();
+
+      await waitFor(() => {
+        expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByLabelText(/serial del equipo/i), {
+        target: { value: 'SN-999' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+
+      // Recupera la inspección 77 — pasa directo a "decidiendo" (las
+      // mismas dos opciones del ciclo normal), no a un error muerto.
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /^toma 2$/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: /^subir$/i })).toBeInTheDocument();
+      expect(screen.getByText(/se recuperó/i)).toBeInTheDocument();
+      // El contador refleja la toma real de la inspección recuperada (1),
+      // recuperado de `/state`, no un valor inventado.
+      expect(screen.getByText(/toma 1/i)).toBeInTheDocument();
+
+      // Y "toma 2" comanda sobre LA MISMA inspección recuperada (77), no
+      // sobre una nueva. El mock no tiene ruta para `/takes` (rechaza) —
+      // alcanza con que el INTENTO apunte al id correcto para probar que
+      // se recuperó, no se descartó.
+      fireEvent.click(screen.getByRole('button', { name: /^toma 2$/i }));
+      await waitFor(() => {
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/77/takes'))
+        ).toBe(true);
+      });
+    });
   });
 });

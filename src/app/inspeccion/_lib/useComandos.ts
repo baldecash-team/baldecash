@@ -29,6 +29,20 @@ export interface ComandoStartPayload {
   /** Epoch ms, absoluto — no relativo a "ahora". */
   start_at: number;
   seq: number;
+  /**
+   * Fix de review post-F4-Task-5 (CRÍTICO): el número de toma que le
+   * corresponde a ESTE `cmd.start`, decidido por el servidor
+   * (`InspectionService.siguiente_take`/`crear`, ws2) — nunca inferido acá.
+   * Antes no viajaba en el payload y la cámara lo adivinaba contando
+   * cuántos `cmd.start` había recibido para la inspección
+   * (`CamaraPageContent.tsx`); como Pusher no garantiza entrega (spec §6.1
+   * regla 3), una cámara que se pierde un `cmd.start` quedaba desfasada
+   * para siempre y subía cada toma siguiente con el `take_number` de la
+   * ANTERIOR — pisando su objeto en S3 sin que nadie se enterara. El
+   * servidor es la única fuente de verdad de este número, igual que ya lo
+   * es de `seq`.
+   */
+  take_number: number;
 }
 
 export interface ComandoStopPayload {

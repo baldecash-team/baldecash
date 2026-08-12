@@ -151,6 +151,87 @@ describe('uploadQueue', () => {
     expect(queue.listarFallidos()).toHaveLength(0);
   });
 
+  it('C3 (fix de review post-F4-Task-5, CRÍTICO): un complete rechazado (HTTP no-ok) reintenta el ciclo completo, no lo trata como éxito', async () => {
+    // El servidor verifica con `HeadObject` (spec §8): "un dispositivo no
+    // puede declarar nada verificado". `POST .../complete` devuelve un
+    // código de error (422) cuando el PUT llegó truncado (un corte de wifi
+    // en planta) — NUNCA 200 con el rechazo escondido en el body (fix de
+    // review, segunda ronda: el contrato HTTP se arregló del lado del
+    // servidor, así que acá alcanza con la regla general `!res.ok`, sin
+    // ningún condicional leyendo el body).
+    let intentosCompletos = 0;
+    const fetchImpl = jest.fn(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/upload-url')) {
+        return ok({ upload_url: 'https://s3.example.com/bucket/key', s3_key: 'key', expires_in: 3600 });
+      }
+      if (typeof url === 'string' && url.includes('/complete')) {
+        intentosCompletos++;
+        // Primer ciclo completo: el servidor rechaza (PUT truncado) — 422.
+        // Segundo ciclo: esta vez el PUT (re-hecho desde cero) llega
+        // íntegro y el servidor verifica — 200.
+        return intentosCompletos === 1
+          ? ({ ok: false, status: 422, json: async () => ({ detail: { reason: 'verification_failed' } }) } as Response)
+          : ok({ status: 'verified' });
+      }
+      // PUT directo a S3 — siempre "exitoso" a nivel HTTP (el punto del
+      // test es que el rechazo viene del CÓDIGO DE ESTADO de `/complete`,
+      // no del PUT).
+      return ok({});
+    }) as unknown as typeof fetch;
+
+    const queue = new UploadQueue({
+      fetchImpl,
+      profundidadMaxima: 2,
+      maxIntentos: 3,
+      backoffBaseMs: 5,
+    });
+
+    const item = crearItem();
+    queue.encolar(item);
+
+    await waitFor(() => {
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
+    });
+
+    // Reintentó el CICLO COMPLETO (URL nueva + PUT nuevo + complete nuevo),
+    // no solo `/complete` — se ve en que `intentosCompletos` llegó a 2 y el
+    // resultado final es "drenó sin fallidos", no "fallido tras agotar
+    // intentos".
+    expect(intentosCompletos).toBe(2);
+    expect(queue.listarFallidos()).toHaveLength(0);
+  });
+
+  it('C3: si el servidor SIEMPRE rechaza (422), el item queda fallido tras agotar intentos — nunca se descarta en silencio', async () => {
+    const fetchImpl = jest.fn(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/upload-url')) {
+        return ok({ upload_url: 'https://s3.example.com/bucket/key', s3_key: 'key', expires_in: 3600 });
+      }
+      if (typeof url === 'string' && url.includes('/complete')) {
+        // Siempre rechaza — 422, nunca 200.
+        return { ok: false, status: 422, json: async () => ({ detail: { reason: 'verification_failed' } }) } as Response;
+      }
+      return ok({});
+    }) as unknown as typeof fetch;
+
+    const blobOriginal = crearBlob(2048);
+    const queue = new UploadQueue({
+      fetchImpl,
+      profundidadMaxima: 2,
+      maxIntentos: 2,
+      backoffBaseMs: 5,
+    });
+
+    queue.encolar(crearItem({ blob: blobOriginal }));
+
+    await waitFor(() => {
+      expect(queue.estadoActual().fallidos).toBe(1);
+    });
+
+    const fallidos = queue.listarFallidos();
+    expect(fallidos).toHaveLength(1);
+    expect(fallidos[0].item.blob).toBe(blobOriginal); // el blob sigue ahí
+  });
+
   it('tras N fallos queda marcado fallido SIN perder el blob', async () => {
     const fetchImpl = fetchFeliz(async () => noOk(500)); // el PUT siempre falla
 
