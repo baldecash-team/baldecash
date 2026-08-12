@@ -234,8 +234,17 @@ export default function CamaraPageContent() {
   // acepta como variable local plana, igual que un `useRef()` directo. Por
   // eso `videoRef` se usa suelto acá y `CapturaEstado` recibe el resto de
   // las funciones/estado sin él.
-  const { estado: capturaEstado, error: capturaError, videoRef, armar, grabar, detener } =
-    useKioskRecorder();
+  const {
+    estado: capturaEstado,
+    error: capturaError,
+    videoRef,
+    armar,
+    grabar,
+    detener,
+    zoom,
+    zoomRango,
+    aplicarZoom,
+  } = useKioskRecorder();
 
   // F4 Task 4: estado agregado de la cola de subida (`_lib/uploadQueue.ts`,
   // Task 3), SOLO para pintarlo — esta vista nunca es dueña de la cola, ni
@@ -843,6 +852,55 @@ export default function CamaraPageContent() {
       />
       {/* Scrim para que el texto sea legible sobre cualquier escena de fondo. */}
       <div className="absolute inset-0 bg-black/50" aria-hidden />
+
+      {/*
+        Zoom de la CÁMARA (no del preview): `aplicarZoom` va al sensor por
+        `applyConstraints`, así que lo que se acerca queda en el video. Un
+        `transform: scale()` sobre el `<video>` se vería igual en pantalla y
+        subiría la toma sin acercar — la etiqueta seguiría ilegible en la
+        evidencia, que es exactamente lo que hay que evitar.
+
+        Solo se muestra si el hardware expone zoom (`zoomRango`): una webcam de
+        laptop normalmente no, y un control que no hace nada es peor que
+        ninguno. Se puede usar MIENTRAS graba, a propósito: acercarse a un
+        detalle sin cortar la toma es el caso normal de una inspección.
+
+        `z-10` lo deja debajo del conteo (`z-20`): mientras cuenta 3·2·1 no hay
+        que estar tocando el encuadre.
+      */}
+      {zoomRango && (capturaEstado === 'armada' || capturaEstado === 'grabando') && (
+        <div className="absolute bottom-6 left-1/2 z-10 flex w-[min(90%,26rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-5 py-3">
+          <button
+            type="button"
+            onClick={() => void aplicarZoom(zoom - zoomRango.step * 5)}
+            disabled={zoom <= zoomRango.min}
+            aria-label="Alejar"
+            className="shrink-0 rounded-full bg-white/15 px-4 py-1 text-2xl font-bold leading-none text-white disabled:opacity-30"
+          >
+            −
+          </button>
+          <input
+            type="range"
+            min={zoomRango.min}
+            max={zoomRango.max}
+            step={zoomRango.step}
+            value={zoom}
+            onChange={(e) => void aplicarZoom(Number(e.target.value))}
+            aria-label="Zoom de la cámara"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/30 accent-white"
+          />
+          <button
+            type="button"
+            onClick={() => void aplicarZoom(zoom + zoomRango.step * 5)}
+            disabled={zoom >= zoomRango.max}
+            aria-label="Acercar"
+            className="shrink-0 rounded-full bg-white/15 px-4 py-1 text-2xl font-bold leading-none text-white disabled:opacity-30"
+          >
+            +
+          </button>
+          <span className="shrink-0 font-mono text-sm text-white/80">{zoom.toFixed(1)}×</span>
+        </div>
+      )}
 
       {/* Conteo regresivo (3,2,1) de arranque/parada — el elemento
           dominante de la pantalla mientras dura (esta pantalla se lee desde
