@@ -468,7 +468,15 @@ export class UploadQueue {
         body: JSON.stringify({ content_type: item.mimeType }),
       }
     );
-    if (!urlRes.ok) throw new Error(`upload-url http_${urlRes.status}`);
+    if (!urlRes.ok) {
+      throw new Error(
+        urlRes.status === 401 || urlRes.status === 403
+          ? 'El servidor no autorizó la subida: este dispositivo perdió su vinculación.'
+          : urlRes.status === 404
+            ? 'El servidor no encontró la inspección: puede haberse cerrado o abortado.'
+            : `El servidor no autorizó la subida (error ${urlRes.status}).`
+      );
+    }
     const { upload_url: uploadUrl } = (await urlRes.json()) as { upload_url: string };
 
     // Directo a S3 — spec §3/§8: "el video nunca pasa por la API". Sin
@@ -478,7 +486,13 @@ export class UploadQueue {
       headers: { 'Content-Type': item.mimeType },
       body: item.blob,
     });
-    if (!putRes.ok) throw new Error(`put http_${putRes.status}`);
+    if (!putRes.ok) {
+      // Falla la transferencia a S3, no la API. Casi siempre es red del
+      // teléfono; el video sigue intacto en la cola y se reintenta.
+      throw new Error(
+        `No se pudo subir el archivo a S3 (error ${putRes.status}). El video sigue guardado y se va a reintentar.`
+      );
+    }
 
     const completeRes = await this.fetchImpl(
       `${this.baseUrl}/inspections/${item.inspectionId}/takes/${item.takeNumber}/videos/${item.cameraLabel}/complete`,
@@ -492,7 +506,17 @@ export class UploadQueue {
         }),
       }
     );
-    if (!completeRes.ok) throw new Error(`complete http_${completeRes.status}`);
+    if (!completeRes.ok) {
+      // 422 acá es el caso importante: el servidor comparó los bytes que
+      // llegaron a S3 contra los declarados y NO coinciden — el archivo subió
+      // truncado. Tiene que reintentarse, nunca darse por bueno: es la
+      // diferencia entre evidencia que falta y evidencia que miente.
+      throw new Error(
+        completeRes.status === 422
+          ? 'El video llegó incompleto a S3 y el servidor lo rechazó. Se va a reintentar con el archivo original.'
+          : `El servidor no pudo confirmar el video (error ${completeRes.status}). Se va a reintentar.`
+      );
+    }
   }
 }
 

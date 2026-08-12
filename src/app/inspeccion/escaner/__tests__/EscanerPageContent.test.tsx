@@ -305,16 +305,23 @@ describe('EscanerPageContent', () => {
       fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
 
       // Deliberadamente sin emitir `recording.started`: ninguna cámara
-      // ackeó. El escáner NUNCA debe decir que grabó — a los ~1,5s debe
-      // abortar por su cuenta y mostrarlo, no quedarse esperando para
-      // siempre ni asumir que arrancó.
+      // ackeó. El escáner NUNCA debe decir que grabó — pasada la ventana de
+      // ack debe abortar por su cuenta y mostrarlo, no quedarse esperando
+      // para siempre ni asumir que arrancó.
+      //
+      // La ventana es `ACK_TIMEOUT_MS` = 5s (antes 1,5s). Se subió porque
+      // valía IGUAL que el delay de arranque del backend, y en hardware real
+      // eso era una carrera: el abort caía justo cuando la cámara arrancaba,
+      // se veía el 3·2·1 junto al mensaje de aborto, y el segundo intento
+      // andaba. El waitFor tiene que darle margen a esa ventana o este test
+      // falla por el reloj, no por la regla que verifica.
       await waitFor(
         () => {
           expect(
             (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/1/abort'))
           ).toBe(true);
         },
-        { timeout: 3000 }
+        { timeout: 8000 }
       );
       await waitFor(() => {
         expect(screen.getByText(/no llegó confirmación/i)).toBeInTheDocument();

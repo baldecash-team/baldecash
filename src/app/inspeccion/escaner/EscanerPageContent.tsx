@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
+import { mensajeDeError, mensajeDeRed } from '../_lib/errores';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { type PresenceCaptureState, usePresenceChannel } from '../_lib/usePresenceChannel';
 
@@ -37,16 +38,25 @@ type SesionEstado = 'inactiva' | 'iniciando' | 'grabando' | 'decidiendo';
 
 /**
  * Ventana para que TODAS las cámaras de la estación confirmen el arranque
- * (spec §6.1 regla 1). Mismo valor que `_START_DELAY_MS` del backend
- * (`session.py`): las cámaras mandan su ack apenas les llega `cmd.start`,
+ * (spec §6.1 regla 1). Las cámaras mandan su ack apenas les llega `cmd.start`,
  * antes de programar nada (ver doc-comment de `ackComando` en
- * `CamaraPageContent.tsx`) — para cuando llega el instante de arranque
- * (`start_at = ahora_servidor + 1,5s`) ya deberían haber ackeado todas. Si a
- * los 1,5s de haber pedido la inspección no llegó `recording.started`, no
- * hay ambigüedad posible: alguna cámara no confirmó y NUNCA se asume que
- * grabó (spec §6.1 regla 1) — se aborta.
+ * `CamaraPageContent.tsx`). Si no llegó `recording.started`, no hay ambigüedad
+ * posible: alguna cámara no confirmó y NUNCA se asume que grabó — se aborta.
+ *
+ * **Tiene que ser MAYOR que `_START_DELAY_MS` del backend (1,5s), no igual.**
+ * Valían lo mismo, y eso hacía una carrera que se perdía sola en hardware real:
+ * el ack no viaja por Pusher sino por REST desde el teléfono, así que su ida y
+ * vuelta (entrega de Pusher + red móvil + request) supera 1,5s con facilidad en
+ * 4G o WiFi cargado. El escáner abortaba en el mismo instante en que la cámara
+ * arrancaba — se veía el 3·2·1 en pantalla junto al mensaje de aborto, y el
+ * segundo intento andaba. Medido en la primera prueba con teléfono, 2026-08-12.
+ *
+ * 5s deja ~3,5s de margen sobre el arranque. El costo de subirlo es que una
+ * cámara realmente caída tarda más en detectarse; el costo de dejarlo corto era
+ * abortar inspecciones que estaban saliendo bien, que es mucho peor: la cámara
+ * ya gastó el gesto del operador y el equipo ya está en posición.
  */
-const ACK_TIMEOUT_MS = 1_500;
+const ACK_TIMEOUT_MS = 5_000;
 
 function hayCodigoEnUrl(): boolean {
   if (typeof window === 'undefined') return false;
@@ -351,7 +361,7 @@ export default function EscanerPageContent() {
             return;
           }
         }
-        setSesionError(`No se pudo iniciar la inspección (http_${r.status})`);
+        setSesionError(await mensajeDeError(r, 'iniciar la inspección'));
         setSesionEstado('inactiva');
         return;
       }
@@ -362,7 +372,7 @@ export default function EscanerPageContent() {
       if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
       ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
     } catch {
-      setSesionError('No se pudo iniciar la inspección: error de red');
+      setSesionError(mensajeDeRed('iniciar la inspección'));
       setSesionEstado('inactiva');
     }
   }, [session, serial, listo, sesionEstado, abortarPorTimeout, verificarColaCamaras]);
@@ -378,7 +388,7 @@ export default function EscanerPageContent() {
         headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
       });
       if (!r.ok) {
-        setSesionError(`No se pudo finalizar la inspección (http_${r.status})`);
+        setSesionError(await mensajeDeError(r, 'finalizar la inspección'));
         return;
       }
       // F4 Task 5: ya NO se resetea acá — la toma se detuvo, pero la
@@ -392,7 +402,7 @@ export default function EscanerPageContent() {
       // toque y recién ahí se entere.
       setBloqueoCola(await verificarColaCamaras());
     } catch {
-      setSesionError('No se pudo finalizar la inspección: error de red');
+      setSesionError(mensajeDeRed('finalizar la inspección'));
     }
   }, [session, verificarColaCamaras]);
 
@@ -421,14 +431,14 @@ export default function EscanerPageContent() {
         headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
       });
       if (!r.ok) {
-        setSesionError(`No se pudo iniciar la toma siguiente (http_${r.status})`);
+        setSesionError(await mensajeDeError(r, 'iniciar la toma siguiente'));
         return;
       }
       const body = await r.json();
       setTakeNumber(body.take_number);
       setSesionEstado('grabando');
     } catch {
-      setSesionError('No se pudo iniciar la toma siguiente: error de red');
+      setSesionError(mensajeDeRed('iniciar la toma siguiente'));
     }
   }, [session, sesionEstado, verificarColaCamaras]);
 
@@ -450,7 +460,7 @@ export default function EscanerPageContent() {
         headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
       });
       if (!r.ok) {
-        setSesionError(`No se pudo subir la inspección (http_${r.status})`);
+        setSesionError(await mensajeDeError(r, 'subir la inspección'));
         return;
       }
       inspectionIdRef.current = null;
@@ -459,7 +469,7 @@ export default function EscanerPageContent() {
       setTakeNumber(1);
       setBloqueoCola(null);
     } catch {
-      setSesionError('No se pudo subir la inspección: error de red');
+      setSesionError(mensajeDeRed('subir la inspección'));
     }
   }, [session, sesionEstado]);
 
@@ -529,13 +539,13 @@ export default function EscanerPageContent() {
           }
         );
         if (!r.ok) {
-          setPairingError(`No se pudo emitir el código (http_${r.status})`);
+          setPairingError(await mensajeDeError(r, 'emitir el código'));
           setPairing(null);
           return;
         }
         setPairing(await r.json());
       } catch {
-        setPairingError('No se pudo emitir el código: error de red');
+        setPairingError(mensajeDeRed('emitir el código'));
         setPairing(null);
       }
     },
