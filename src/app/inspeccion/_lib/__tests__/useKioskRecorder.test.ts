@@ -20,6 +20,28 @@ class FakeMediaStreamTrack extends EventTarget {
     this.readyState = 'ended';
   });
 
+  /** Capacidades de zoom del "hardware". `null` simula un dispositivo que no
+   * expone zoom — una webcam de laptop, el caso más común en desarrollo. */
+  zoomCapability: { min: number; max: number; step: number } | null = null;
+  appliedConstraints: MediaTrackConstraints[] = [];
+  /** Hace fallar `applyConstraints`, como cuando el valor queda fuera de rango
+   * o el track ya terminó. */
+  applyConstraintsFalla = false;
+
+  getCapabilities() {
+    return this.zoomCapability ? { zoom: this.zoomCapability } : {};
+  }
+
+  getSettings() {
+    return this.zoomCapability ? { zoom: this.zoomCapability.min } : {};
+  }
+
+  applyConstraints(c: MediaTrackConstraints) {
+    if (this.applyConstraintsFalla) return Promise.reject(new Error('OverconstrainedError'));
+    this.appliedConstraints.push(c);
+    return Promise.resolve();
+  }
+
   constructor(public kind: 'video' | 'audio') {
     super();
   }
@@ -460,5 +482,115 @@ describe('useKioskRecorder', () => {
     // componente de React no es el gesto humano que la justifica romper.
     expect(videoTrack.stop).not.toHaveBeenCalled();
     expect(audioTrack.stop).not.toHaveBeenCalled();
+  });
+
+  describe('encuadre y zoom', () => {
+    it('pide la relación de aspecto 1.21 como "ideal", nunca "exact"', async () => {
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      const constraints = getUserMedia.mock.calls[0][0].video;
+      expect(constraints.aspectRatio).toEqual({ ideal: 1.21 });
+      // Con `exact`, un dispositivo que no soporte esa relación falla el
+      // getUserMedia entero y la cámara queda SIN ARMAR. Degradar el encuadre
+      // es aceptable; no poder grabar, no.
+      expect(constraints.aspectRatio.exact).toBeUndefined();
+    });
+
+    it('sin zoom en el hardware no expone rango — el control no se muestra', async () => {
+      videoTrack.zoomCapability = null;
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+      expect(result.current.zoomRango).toBeNull();
+    });
+
+    it('lee el rango real del hardware al armar', async () => {
+      videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+      expect(result.current.zoomRango).toEqual({ min: 1, max: 8, step: 0.5 });
+      expect(result.current.zoom).toBe(1);
+    });
+
+    it('el zoom va al SENSOR con applyConstraints, no a un scale del preview', async () => {
+      videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      await act(async () => {
+        await result.current.aplicarZoom(3);
+      });
+
+      // Esta es la diferencia que importa: `applyConstraints` cambia lo que el
+      // sensor entrega, así que el acercamiento QUEDA EN EL VIDEO. Un
+      // `transform: scale()` se vería igual en pantalla y subiría la toma
+      // lejos — la etiqueta seguiría ilegible en la evidencia.
+      expect(videoTrack.appliedConstraints).toEqual([{ advanced: [{ zoom: 3 }] }]);
+      expect(result.current.zoom).toBe(3);
+    });
+
+    it('acota el valor al rango en vez de mandar algo que el hardware rechace', async () => {
+      videoTrack.zoomCapability = { min: 1, max: 4, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      await act(async () => {
+        await result.current.aplicarZoom(99);
+      });
+      expect(result.current.zoom).toBe(4);
+
+      await act(async () => {
+        await result.current.aplicarZoom(-5);
+      });
+      expect(result.current.zoom).toBe(1);
+    });
+
+    it('si applyConstraints falla, el zoom mostrado NO se mueve', async () => {
+      videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      videoTrack.applyConstraintsFalla = true;
+      await act(async () => {
+        await result.current.aplicarZoom(5);
+      });
+
+      // Mostrar un zoom que la cámara no aplicó es peor que no moverlo: el
+      // operador cree que encuadró el detalle y graba el equipo entero.
+      expect(result.current.zoom).toBe(1);
+    });
+
+    it('se puede cambiar el zoom MIENTRAS graba, sin cortar la toma', async () => {
+      videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+      act(() => {
+        result.current.grabar();
+      });
+
+      await act(async () => {
+        await result.current.aplicarZoom(2.5);
+      });
+
+      // Acercarse a un detalle sin cortar es el caso normal de una inspección
+      // — y es lo que hace útil el video como evidencia de un rayón puntual.
+      expect(result.current.estado).toBe('grabando');
+      expect(FakeMediaRecorder.instances[0].state).toBe('recording');
+      expect(result.current.zoom).toBe(2.5);
+    });
   });
 });

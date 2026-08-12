@@ -50,6 +50,12 @@ export interface UseKioskRecorderReturn {
   /** El mimeType negociado en `armar()`, p.ej. `'video/webm;codecs=vp9'`. */
   mimeType: string | null;
   videoRef: RefObject<HTMLVideoElement | null>;
+  /** Zoom actual de la cámara. */
+  zoom: number;
+  /** `null` si el hardware no expone zoom — ahí el control no se muestra. */
+  zoomRango: { min: number; max: number; step: number } | null;
+  /** Aplica zoom al sensor; se puede llamar mientras graba. */
+  aplicarZoom: (valor: number) => Promise<void>;
   /** Pide `getUserMedia`. El único gesto humano de todo el flujo. */
   armar: () => Promise<void>;
   grabar: () => void;
@@ -58,9 +64,25 @@ export interface UseKioskRecorderReturn {
 
 /** Cap de calidad, igual criterio que `useRecorder.ts` (admisión): clips
  * livianos y suficientes para validar evidencia, sin tope de 1080p. */
+/**
+ * Relación de aspecto del encuadre: 1.21, apenas más ancho que alto.
+ *
+ * Es deliberadamente distinta de los defaults (16:9 = 1.78, 4:3 = 1.33) porque
+ * lo que se encuadra es un equipo apoyado sobre una mesa, no una escena: un
+ * 16:9 gasta los costados en mesa vacía y obliga a alejar la cámara, que es
+ * justo lo que hace ilegible una etiqueta o un rayón.
+ *
+ * Va como `ideal`, no `exact`: con `exact`, un dispositivo que no soporte esa
+ * relación falla el `getUserMedia` entero y la cámara queda sin armar. Con
+ * `ideal` el navegador se acerca lo que puede y, si no puede, entrega lo suyo
+ * — degradar el encuadre es aceptable; no poder grabar, no.
+ */
+const ASPECT_RATIO = 1.21;
+
 const VIDEO_CONSTRAINTS = {
   width: { ideal: 1280 },
-  height: { ideal: 720 },
+  height: { ideal: Math.round(1280 / ASPECT_RATIO) },
+  aspectRatio: { ideal: ASPECT_RATIO },
   // La cámara de la estación queda fija mirando el equipo (pared/techo), no
   // a una persona: la trasera es la que sirve. "ideal" degrada en vez de
   // fallar en un desktop de prueba sin cámara trasera.
@@ -129,6 +151,15 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
   const [estado, setEstado] = useState<EstadoCaptura>('inactiva');
   const [error, setError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string | null>(null);
+  // Zoom ÓPTICO/DIGITAL DE LA CÁMARA, no un `transform: scale()` sobre el
+  // preview. La diferencia es todo el punto: el CSS agranda lo que se ve en
+  // pantalla y el video sube igual de lejos, así que la etiqueta seguiría
+  // siendo ilegible en la evidencia. `applyConstraints` cambia lo que el
+  // sensor entrega, y eso sí queda grabado.
+  const [zoomRango, setZoomRango] = useState<{ min: number; max: number; step: number } | null>(
+    null
+  );
+  const [zoom, setZoom] = useState<number>(1);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -218,6 +249,40 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
         track.addEventListener('ended', onTrackEnded);
       });
 
+      // Capacidades de zoom del hardware. TODO este bloque es best-effort y va
+      // envuelto: `getCapabilities` no existe en todos los navegadores (Safari,
+      // Firefox hasta hace poco), y donde existe puede no traer `zoom` — una
+      // webcam de laptop normalmente no tiene.
+      //
+      // El try/catch no es defensivo por si acaso: el zoom es una comodidad y
+      // **grabar es la función**. Si leer las capacidades falla por cualquier
+      // motivo, la cámara tiene que quedar armada igual, sin control de zoom.
+      // Al revés —una excepción acá abortando `armar()`— dejaría la estación
+      // sin poder grabar por un accesorio.
+      try {
+        const [videoTrack] = stream.getVideoTracks?.() ?? [];
+        const caps =
+          typeof videoTrack?.getCapabilities === 'function' ? videoTrack.getCapabilities() : null;
+        // `DoubleRange` de lib.dom no declara `step`, pero la spec de Media
+        // Capture lo define para `zoom` y Chrome lo devuelve.
+        const zoomCap = (
+          caps as MediaTrackCapabilities & {
+            zoom?: { min?: number; max?: number; step?: number };
+          }
+        )?.zoom;
+        if (zoomCap && typeof zoomCap.min === 'number' && typeof zoomCap.max === 'number') {
+          setZoomRango({ min: zoomCap.min, max: zoomCap.max, step: zoomCap.step ?? 0.1 });
+          const actual = (
+            videoTrack.getSettings?.() as MediaTrackSettings & { zoom?: number }
+          )?.zoom;
+          setZoom(typeof actual === 'number' ? actual : zoomCap.min);
+        } else {
+          setZoomRango(null);
+        }
+      } catch {
+        setZoomRango(null);
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play?.().catch(() => {});
@@ -233,6 +298,30 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
       setEstado('inactiva');
     }
   }, [onTrackEnded]);
+
+  /**
+   * Cambia el zoom de la cámara. Se puede llamar MIENTRAS graba: eso es lo
+   * normal en una inspección — el operador arranca con el equipo entero y se
+   * acerca a un detalle sin cortar la toma, que además es lo que hace útil el
+   * video como evidencia de un rayón puntual.
+   *
+   * `applyConstraints` puede rechazar (valor fuera de rango, o el track ya
+   * terminado). Si falla no se toca el estado: mostrar un zoom que la cámara
+   * no aplicó es peor que no moverlo, porque el operador cree que encuadró.
+   */
+  const aplicarZoom = useCallback(async (valor: number) => {
+    const [track] = streamRef.current?.getVideoTracks() ?? [];
+    if (!track || !zoomRango) return;
+    const acotado = Math.min(zoomRango.max, Math.max(zoomRango.min, valor));
+    try {
+      await track.applyConstraints({
+        advanced: [{ zoom: acotado } as MediaTrackConstraintSet & { zoom: number }],
+      });
+      setZoom(acotado);
+    } catch {
+      // Sin cambio de estado a propósito — ver doc-comment.
+    }
+  }, [zoomRango]);
 
   const grabar = useCallback(() => {
     const stream = streamRef.current;
@@ -372,5 +461,5 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     };
   }, []);
 
-  return { estado, error, mimeType, videoRef, armar, grabar, detener };
+  return { estado, error, mimeType, videoRef, armar, grabar, detener, zoom, zoomRango, aplicarZoom };
 }
