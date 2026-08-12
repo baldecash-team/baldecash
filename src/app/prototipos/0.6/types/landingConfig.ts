@@ -9,6 +9,14 @@
 export interface LandingConfigLayout {
   /** Whether the landing exposes a product catalog. */
   has_catalog: boolean;
+  /**
+   * Muestra el logo de la institución del convenio en header y footer.
+   *
+   * El default es `true`: una landing sin el ingrediente `agreement-logo-off`
+   * renderiza igual que antes de que este flag existiera. Existe para los
+   * convenios que no quieren su marca en la landing (BAL-2970).
+   */
+  show_agreement_logo: boolean;
 }
 
 export interface FloatingCtaConfig {
@@ -155,6 +163,7 @@ export const OVERLAY_VARIANT_LOGOS: Record<string, string> = {
 export const DEFAULT_LANDING_CONFIG: LandingConfig = {
   layout: {
     has_catalog: true,
+    show_agreement_logo: true,
   },
   features: {
     has_dni_modal: false,
