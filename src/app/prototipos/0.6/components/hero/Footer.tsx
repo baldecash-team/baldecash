@@ -45,6 +45,15 @@ interface FooterProps {
   data?: FooterData | null;
   landing?: string;
   agreementData?: AgreementData | null;
+  /**
+   * Si es false, oculta el logo institucional Y su fallback de texto.
+   * Default: true.
+   *
+   * Viene de `layout.show_agreement_logo`. Gatea los dos bloques a proposito:
+   * apagar solo el <img> haria que el footer imprima el nombre corto de la
+   * institucion como texto, que es justo lo que el flag evita (BAL-2970).
+   */
+  showInstitutionLogo?: boolean;
   onCatalogClick?: () => void;
   /** Optional logo URL that overrides the company logo (e.g. a co-branded partner lockup). */
   logoOverride?: string;
@@ -54,7 +63,7 @@ interface FooterProps {
   gamerTheme?: 'dark' | 'light';
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick, logoOverride, theme, gamerTheme }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, showInstitutionLogo = true, onCatalogClick, logoOverride, theme, gamerTheme }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
   const isGamer = theme === 'gamer';
@@ -316,7 +325,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                 />
                 )}
               </a>
-              {agreementData?.institution_logo && (
+              {showInstitutionLogo && agreementData?.institution_logo && (
                 <>
                   <span className="text-neutral-500">×</span>
                   <div className="bg-white rounded-lg px-3 py-1.5">
@@ -332,7 +341,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                   </div>
                 </>
               )}
-              {agreementData && !agreementData.institution_logo && (agreementData.institution_short_name || agreementData.institution_name) && (
+              {showInstitutionLogo && agreementData && !agreementData.institution_logo && (agreementData.institution_short_name || agreementData.institution_name) && (
                 <>
                   <span className="text-neutral-500">×</span>
                   <span className="text-neutral-400 font-medium text-sm">
