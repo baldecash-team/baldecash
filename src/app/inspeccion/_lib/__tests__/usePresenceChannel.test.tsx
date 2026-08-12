@@ -57,7 +57,7 @@ describe('usePresenceChannel', () => {
     expect(result.current.error).toBeNull();
   });
 
-  describe('client-estado-captura (F3 Task 5 / review de F2)', () => {
+  describe('device.capture_state (F3 Task 5 / review de F2 — emitido por el backend)', () => {
     function conMiembro(deviceId: string, kind: string, label: string | null) {
       const pusher = FakePusher.instances[0];
       pusher.channel.members.each.mockImplementation(
@@ -81,13 +81,13 @@ describe('usePresenceChannel', () => {
       ]);
     });
 
-    it('un client-estado-captura actualiza el captureState del miembro que coincide por device_id', () => {
+    it('un device.capture_state actualiza el captureState del miembro que coincide por device_id', () => {
       const { result } = renderHook(() => usePresenceChannel('est-01', 'tok-01'));
       const pusher = conMiembro('dev-cam', 'camara', 'techo');
 
       act(() => {
         pusher.channel.emit('pusher:subscription_succeeded');
-        pusher.channel.emit('client-estado-captura', { device_id: 'dev-cam', estado: 'armada' });
+        pusher.channel.emit('device.capture_state', { device_id: 'dev-cam', estado: 'armada' });
       });
 
       expect(result.current.members[0].captureState).toBe('armada');
@@ -101,7 +101,7 @@ describe('usePresenceChannel', () => {
       const primerPusher = conMiembro('dev-cam', 'camara', 'techo');
       act(() => {
         primerPusher.channel.emit('pusher:subscription_succeeded');
-        primerPusher.channel.emit('client-estado-captura', { device_id: 'dev-cam', estado: 'armada' });
+        primerPusher.channel.emit('device.capture_state', { device_id: 'dev-cam', estado: 'armada' });
       });
       expect(result.current.members[0].captureState).toBe('armada');
 

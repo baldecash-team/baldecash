@@ -6,7 +6,7 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
-import { usePresenceChannel } from '../_lib/usePresenceChannel';
+import { type PresenceCaptureState, usePresenceChannel } from '../_lib/usePresenceChannel';
 
 interface PairingCode {
   code: string;
@@ -85,6 +85,15 @@ export default function EscanerPageContent() {
   const [vinculoError, setVinculoError] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
   const [stateError, setStateError] = useState<string | null>(null);
+  // "Snapshot" de `GET /state` — resync de la review de F2/rediseño F3 Task
+  // 5: si el escáner recarga (o nunca vio el `device.capture_state` de
+  // Pusher para una cámara en particular), este mapa cubre ese hueco hasta
+  // que llegue un reporte fresco por el canal. Ver el merge en `members`
+  // más abajo: el valor EN VIVO del canal (`usePresenceChannel`) siempre
+  // gana sobre este snapshot cuando ambos existen — este es solo el piso.
+  const [deviceCaptureStates, setDeviceCaptureStates] = useState<
+    Record<string, PresenceCaptureState | null>
+  >({});
   const [pairing, setPairing] = useState<PairingCode | null>(null);
   const [pairingError, setPairingError] = useState<string | null>(null);
 
@@ -144,6 +153,17 @@ export default function EscanerPageContent() {
       })
       .then((d) => {
         setLabels(d.camera_labels ?? []);
+        // Snapshot de estado de captura por dispositivo — ver doc-comment
+        // de `deviceCaptureStates` más arriba. `d.devices` es la lista
+        // completa de la estación (no solo cámaras), pero solo las cámaras
+        // van a tener `capture_state` no-nulo — el resto simplemente no
+        // aporta nada al merge.
+        type DeviceStateItem = { device_id: string; capture_state?: PresenceCaptureState | null };
+        const snapshot: Record<string, PresenceCaptureState | null> = {};
+        for (const dev of (d.devices ?? []) as DeviceStateItem[]) {
+          snapshot[dev.device_id] = dev.capture_state ?? null;
+        }
+        setDeviceCaptureStates(snapshot);
         // Limpia acá, no con un microtask al arrancar el efecto: así no
         // hace falta ningún setState síncrono en el cuerpo del efecto y el
         // error previo (si lo había) sigue visible hasta que el reintento
@@ -160,6 +180,19 @@ export default function EscanerPageContent() {
       });
   }, [session, kindMismatch]);
 
+  // Merge del estado de captura EN VIVO (canal, `usePresenceChannel`) con el
+  // snapshot de `GET /state` (`deviceCaptureStates`) — resync de la review
+  // de F2 / rediseño F3 Task 5. El canal gana cuando tiene un valor: es más
+  // fresco por definición (llegó DESPUÉS del snapshot, mientras el efecto de
+  // arriba ya se resolvió). El snapshot solo cubre el hueco de "recién until
+  // ahora no pasó nada por el canal para esta cámara" — típicamente el
+  // primer render, o una cámara que reportó mientras el escáner estaba
+  // desconectado.
+  const membersConCaptura = members.map((m) => ({
+    ...m,
+    captureState: m.captureState ?? deviceCaptureStates[m.deviceId] ?? null,
+  }));
+
   // Movido acá arriba (antes vivía junto al render, después de los early
   // returns) porque `iniciarInspeccion`, más abajo, es un hook (`useCallback`)
   // y los hooks no pueden depender de un valor calculado después de un
@@ -168,7 +201,7 @@ export default function EscanerPageContent() {
   // la cuenta por el mismo motivo que en el banner (I2): presence queda
   // stale ante un corte, así que sin esto "listo" podía seguir en verde con
   // el escáner desconectado.
-  const listo = connected && !channelError && estaListo(labels, members);
+  const listo = connected && !channelError && estaListo(labels, membersConCaptura);
 
   // Ver doc-comment de `ACK_TIMEOUT_MS` sobre el porqué de este valor y por
   // qué SÍ es un timer sancionado por el spec (regla 1: abortar si no
@@ -422,7 +455,7 @@ export default function EscanerPageContent() {
       </h1>
 
       <div className="mt-6">
-        <PreVuelo expectedLabels={labels} members={members} />
+        <PreVuelo expectedLabels={labels} members={membersConCaptura} />
       </div>
 
       <p

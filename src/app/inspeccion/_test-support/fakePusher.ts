@@ -30,11 +30,6 @@ class FakeEmitter {
 
 export class FakeChannel extends FakeEmitter {
   members = { each: jest.fn() };
-  // `PresenceChannel.trigger` real de pusher-js: dispara un evento de
-  // cliente (`client-*`) a los demás miembros suscritos. F3 Task 5 lo usa
-  // para que la cámara publique su estado de captura — ver
-  // `CLIENT_ESTADO_CAPTURA_EVENT` en `usePresenceChannel.ts`.
-  trigger = jest.fn(() => true);
 }
 
 export class FakePusher {

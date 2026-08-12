@@ -160,12 +160,16 @@ describe('EscanerPageContent', () => {
 
     /** Router mínimo de `fetch` para los endpoints que esta vista llama en
      * F3 Task 5: `GET /stations/{id}/state`, `POST /inspections` (crear),
-     * `POST /inspections/{id}/abort` y `POST /inspections/{id}/stop`. */
-    function instalarFetchEscaner() {
+     * `POST /inspections/{id}/abort` y `POST /inspections/{id}/stop`.
+     * `stateResponse` es override-able para el test de resync — por defecto
+     * no trae `devices`, así que el snapshot de captura no aporta nada y
+     * los tests existentes siguen dependiendo solo del evento en vivo
+     * (`conectarYListo`). */
+    function instalarFetchEscaner(stateResponse: unknown = { camera_labels: ['techo'] }) {
       global.fetch = jest.fn((url: RequestInfo | URL) => {
         const u = String(url);
         if (u.includes('/stations/') && u.endsWith('/state')) {
-          return Promise.resolve({ ok: true, json: async () => ({ camera_labels: ['techo'] }) });
+          return Promise.resolve({ ok: true, json: async () => stateResponse });
         }
         if (u.endsWith('/abort')) {
           return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'failed' }) });
@@ -196,7 +200,10 @@ describe('EscanerPageContent', () => {
       act(() => {
         pusher.connection.emit('state_change', { current: 'connected' });
         pusher.channel.emit('pusher:subscription_succeeded');
-        pusher.channel.emit('client-estado-captura', { device_id: 'dev-cam', estado: 'armada' });
+        // Emitido por el BACKEND en producción (`station.py`, reemisión de
+        // `POST /inspections/devices/estado`) — acá se simula tal cual
+        // llega por el canal, sin importar quién lo disparó del otro lado.
+        pusher.channel.emit('device.capture_state', { device_id: 'dev-cam', estado: 'armada' });
       });
       return pusher;
     }
@@ -218,6 +225,40 @@ describe('EscanerPageContent', () => {
       });
 
       expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+    });
+
+    it('RESYNC (rediseño post-revisión): el snapshot de GET /state deja el pre-vuelo listo SIN esperar ningun evento en vivo del canal', async () => {
+      setDeviceSessionEscaner();
+      // `/state` ya trae `devices[].capture_state` — lo que reporta el
+      // backend tras `POST /inspections/devices/estado`. El escáner que
+      // recién carga (o se reconecta) lo recupera por REST, sin depender de
+      // haber estado conectado al canal en el momento del reporte.
+      instalarFetchEscaner({
+        camera_labels: ['techo'],
+        devices: [
+          { device_id: 'dev-cam', kind: 'camara', label: 'techo', capture_state: 'armada' },
+        ],
+      });
+
+      render(<EscanerPageContent />);
+      const pusher = FakePusher.instances[0];
+      // El canal SÍ tiene que estar conectado (member presente) — el
+      // snapshot de `/state` cubre el `captureState`, no la presencia en sí.
+      pusher.channel.members.each.mockImplementation(
+        (cb: (m: { id: string; info?: { kind?: string; label?: string | null } }) => void) => {
+          cb({ id: 'dev-cam', info: { kind: 'camara', label: 'techo' } });
+        }
+      );
+      act(() => {
+        pusher.connection.emit('state_change', { current: 'connected' });
+        pusher.channel.emit('pusher:subscription_succeeded');
+        // Deliberadamente SIN emitir `device.capture_state` — es justo lo
+        // que el resync tiene que cubrir.
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+      });
     });
 
     it('con el pre-vuelo listo pero sin serial cargado, INICIAR sigue deshabilitado', async () => {

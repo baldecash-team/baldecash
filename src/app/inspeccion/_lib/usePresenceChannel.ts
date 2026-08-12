@@ -35,25 +35,39 @@ interface PusherMemberInfo {
 }
 
 /**
- * Evento de cliente (`client-*`) por el que una cámara publica su estado de
- * captura a los demás miembros del canal presence (spec §7 / review de F2).
+ * Evento del BACKEND (no de cliente) por el que se avisa el estado de
+ * captura de una cámara a los demás miembros del canal presence (spec §7 /
+ * review de F2).
  *
- * Por qué un evento de cliente y no `user_info` (la otra opción evaluada):
- * `user_info` se fija UNA sola vez, al autorizar la suscripción
- * (`pusher_auth.py`, `authenticate_presence_channel`), y no cambia sin
- * resuscribirse — pero una cámara vive conectada durante horas y pasa por
- * `inactiva → armando → armada → grabando → armada → …` repetidas veces sin
- * volver a suscribirse nunca. Reflejar eso en `user_info` exigiría forzar una
- * resuscripción por cada cambio de estado (y tocar el backend para aceptar
- * `user_info` dinámico, que hoy sale de datos fijos del dispositivo). Un
- * evento de cliente no necesita ninguna de las dos cosas: una vez que el
- * canal está autorizado, cualquier miembro puede triggerearlo y los demás lo
- * reciben sin pasar por la API — encaja exacto con "dato que cambia seguido,
- * dentro de una suscripción que dura horas". Sin cambios de backend.
+ * Historia: la primera versión de esto usaba un evento de CLIENTE
+ * (`client-*`), que la cámara disparaba directo al canal sin pasar por la
+ * API. Se descartó por tres razones (revisión posterior):
+ *
+ * 1. Cambiaba un modo de falla por otro: si "Enable client events" no está
+ *    prendido en el dashboard de Pusher (dependencia invisible, sin
+ *    evidencia de que lo esté), el semáforo queda permanentemente rojo y la
+ *    estación no arranca NUNCA — sin ningún error visible que lo explique.
+ * 2. Rompía el principio del spec §6: "comandos bajan por Pusher,
+ *    confirmaciones suben por REST; Aurora es la fuente de verdad y Pusher
+ *    es solo notificación". Un evento de cliente es la cámara publicando
+ *    directo al canal sin que el servidor se entere — exactamente el patrón
+ *    que el diseño evita en todo lo demás.
+ * 3. Un escáner que recarga (o que no estaba conectado en el momento del
+ *    reporte) nunca se enteraba: el estado solo vivía en mensajes que ya
+ *    pasaron por el canal.
+ *
+ * La versión actual: la cámara reporta por REST
+ * (`POST /inspections/devices/estado`, con su device token) al armarse, al
+ * caer y al rearmarse — no en cada cambio trivial. El backend (`station.py`,
+ * ws2) persiste el reporte y lo REEMITE accá, al canal — mismo patrón que ya
+ * usa para `recording.started`. Server-side también expone el último estado
+ * en `GET /stations/{id}/state` (`devices[].capture_state`), así que un
+ * escáner que recarga lo recupera por REST sin depender de haber estado
+ * conectado al canal — ver el merge en `EscanerPageContent.tsx`.
  */
-export const CLIENT_ESTADO_CAPTURA_EVENT = 'client-estado-captura';
+export const DEVICE_CAPTURE_STATE_EVENT = 'device.capture_state';
 
-interface ClientEstadoCapturaPayload {
+interface DeviceCaptureStatePayload {
   device_id: string;
   estado: string;
 }
@@ -144,13 +158,15 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
     // `Promise.resolve().then(...)` de sobra.
     const channel = pusher.subscribe(`presence-inspection-${stationId}`) as PresenceChannel;
 
-    // Estado de captura reportado por cada dispositivo, por `client-*` (ver
-    // `CLIENT_ESTADO_CAPTURA_EVENT`). Vive en el closure de ESTE efecto, no en
-    // un ref a nivel de hook: una resuscripción completa (reconexión) tiene
-    // que arrancar en blanco. No hay forma de saber si un estado reportado
-    // antes de la caída sigue vigente hasta que la cámara lo vuelva a
-    // reportar — asumir que sí es la misma mentira en verde que esto existe
-    // para evitar.
+    // Estado de captura conocido por dispositivo, alimentado por
+    // `DEVICE_CAPTURE_STATE_EVENT` (emitido por el backend, ver su
+    // doc-comment). Vive en el closure de ESTE efecto, no en un ref a nivel
+    // de hook: una resuscripción completa (reconexión) tiene que arrancar en
+    // blanco — la vida útil de este Map es la de ESTA suscripción, no la del
+    // componente. `GET /state` (consumido por quien llama al hook, no acá:
+    // ver `EscanerPageContent.tsx`) es quien resuelve "reconectar sin haber
+    // visto el evento" — este Map solo refleja lo que pasó por el canal
+    // mientras estuvo vivo.
     const captureStates = new Map<string, PresenceCaptureState>();
 
     const construirMembers = (): PresenceMember[] => {
@@ -168,8 +184,8 @@ export function usePresenceChannel(stationId: string | null, token: string | nul
 
     const leer = () => setMembers(construirMembers());
 
-    channel.bind(CLIENT_ESTADO_CAPTURA_EVENT, (data: unknown) => {
-      const payload = data as ClientEstadoCapturaPayload | null;
+    channel.bind(DEVICE_CAPTURE_STATE_EVENT, (data: unknown) => {
+      const payload = data as DeviceCaptureStatePayload | null;
       if (!payload?.device_id || !payload?.estado) return;
       captureStates.set(payload.device_id, payload.estado as PresenceCaptureState);
       // No hace falta esperar a `member_added`/`member_removed`: el reporte

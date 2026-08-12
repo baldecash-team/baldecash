@@ -336,75 +336,110 @@ describe('CamaraPageContent', () => {
     });
   });
 
-  describe('publica estado de captura (F3 Task 5 / review de F2)', () => {
+  describe('reporta estado de captura por REST (F3 Task 5, rediseño post-revisión)', () => {
     // El flanco `connected` dispara el resync de `/state` (F3 Task 4) —
     // sin `fetch` mockeado, ese `catch(() => {})` no alcanza a cubrir un
     // `fetch` global inexistente en jsdom (ReferenceError, no un rechazo).
+    // El mismo mock sirve para `POST /inspections/devices/estado`: acá no
+    // hace falta distinguir la respuesta por URL, ningún test de este
+    // describe lee el body de la respuesta.
     beforeEach(() => {
       global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as unknown as typeof fetch;
     });
 
-    it('al confirmarse la suscripcion, publica el estado de captura actual por client event', () => {
+    function llamadasEstado() {
+      return (global.fetch as jest.Mock).mock.calls.filter(([u]: [string]) =>
+        String(u).includes('/inspections/devices/estado')
+      );
+    }
+
+    it('no reporta nada mientras esta "inactiva" (antes de armar) — no en cada cambio trivial', () => {
       setDeviceSessionCamara();
       render(<CamaraPageContent />);
 
-      const pusher = mockFakePusher.instances[0];
-      act(() => {
-        pusher.connection.emit('state_change', { current: 'connected' });
-        pusher.channel.emit('pusher:subscription_succeeded');
-      });
-
-      expect(pusher.channel.trigger).toHaveBeenCalledWith('client-estado-captura', {
-        device_id: 'dev-01',
-        estado: 'inactiva',
-      });
+      expect(llamadasEstado()).toHaveLength(0);
     });
 
-    it('armar la camara publica el nuevo estado "armada" — el escaner no debe seguir viendola como "sin armar"', async () => {
+    it('arma la camara: POST /inspections/devices/estado {estado: "armada"} con el token de la sesion', async () => {
       setDeviceSessionCamara();
       render(<CamaraPageContent />);
-
-      const pusher = mockFakePusher.instances[0];
-      act(() => {
-        pusher.connection.emit('state_change', { current: 'connected' });
-        pusher.channel.emit('pusher:subscription_succeeded');
-      });
-      pusher.channel.trigger.mockClear();
 
       fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
       await waitFor(() => {
         expect(screen.getByText('ARMADA')).toBeInTheDocument();
       });
 
-      expect(pusher.channel.trigger).toHaveBeenCalledWith('client-estado-captura', {
-        device_id: 'dev-01',
-        estado: 'armada',
-      });
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/inspections/devices/estado'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ 'X-Device-Token': 'tok-01' }),
+          body: JSON.stringify({ estado: 'armada' }),
+        })
+      );
     });
 
-    it('una cámara caída publica "caida" — el semáforo del escáner debe apagarse', async () => {
+    it('una cámara caída reporta "caida" por REST — el semáforo del escáner debe apagarse', async () => {
       setDeviceSessionCamara();
       render(<CamaraPageContent />);
 
-      const pusher = mockFakePusher.instances[0];
-      act(() => {
-        pusher.connection.emit('state_change', { current: 'connected' });
-        pusher.channel.emit('pusher:subscription_succeeded');
-      });
       fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
       await waitFor(() => {
         expect(screen.getByText('ARMADA')).toBeInTheDocument();
       });
-      pusher.channel.trigger.mockClear();
+      (global.fetch as jest.Mock).mockClear();
 
       act(() => {
         videoTrack.simulateEnded();
       });
 
-      expect(pusher.channel.trigger).toHaveBeenCalledWith('client-estado-captura', {
-        device_id: 'dev-01',
-        estado: 'caida',
+      await waitFor(() => {
+        expect(llamadasEstado()).toHaveLength(1);
       });
+      expect(llamadasEstado()[0][1]).toEqual(
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ estado: 'caida' }) })
+      );
+    });
+
+    it('rearmar tras "caida" vuelve a reportar "armada" (el rearme ES un armado — misma funcion)', async () => {
+      setDeviceSessionCamara();
+      render(<CamaraPageContent />);
+
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+      act(() => {
+        videoTrack.simulateEnded();
+      });
+      expect(screen.getByText(/CAÍDA/)).toBeInTheDocument();
+      (global.fetch as jest.Mock).mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: /rearmar/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+
+      expect(llamadasEstado()).toHaveLength(1);
+      expect(llamadasEstado()[0][1]).toEqual(
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ estado: 'armada' }) })
+      );
+    });
+
+    it('reporta independientemente del canal de Pusher: funciona aunque la suscripcion nunca se confirme', async () => {
+      setDeviceSessionCamara();
+      // Sin conectar el canal a propósito — ni `state_change` ni
+      // `pusher:subscription_succeeded`. El reporte de estado de captura es
+      // un POST normal (spec §6: confirmaciones suben por REST), no
+      // depende de que el canal de Pusher esté vivo.
+      render(<CamaraPageContent />);
+
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+
+      expect(llamadasEstado()).toHaveLength(1);
     });
   });
 

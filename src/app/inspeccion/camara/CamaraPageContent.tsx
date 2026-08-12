@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
-import { CLIENT_ESTADO_CAPTURA_EVENT, usePresenceChannel } from '../_lib/usePresenceChannel';
+import { usePresenceChannel } from '../_lib/usePresenceChannel';
 import { useKioskRecorder, type EstadoCaptura } from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
 import { useServerClock } from '../_lib/useServerClock';
@@ -27,6 +27,31 @@ async function ackComando(inspectionId: number, seq: number, token: string): Pro
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
       body: JSON.stringify({ seq }),
+    });
+  } catch {
+    // Ver doc-comment de arriba: nada accionable acá.
+  }
+}
+
+/**
+ * Reporta el estado de captura al backend (F3 Task 5, review de F2 —
+ * rediseño post-revisión: REST + reemisión desde el servidor, no un evento
+ * de cliente de Pusher — ver el doc-comment de `DEVICE_CAPTURE_STATE_EVENT`
+ * en `usePresenceChannel.ts` para el porqué). El backend persiste el reporte
+ * y lo reemite al canal presence para que el pre-vuelo del escáner actualice
+ * el semáforo en vivo, y lo expone en `GET /stations/{id}/state` para quien
+ * recién se conecta.
+ *
+ * Fire-and-forget, mismo criterio que `ackComando`: no hay nada más
+ * accionable acá si falla por red — el próximo reporte (o el resync por
+ * `/state`) lo corrige solo.
+ */
+async function reportarEstadoCaptura(estado: EstadoCaptura, token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/inspections/devices/estado`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
+      body: JSON.stringify({ estado }),
     });
   } catch {
     // Ver doc-comment de arriba: nada accionable acá.
@@ -149,23 +174,25 @@ export default function CamaraPageContent() {
     kindMismatch ? null : (session?.token ?? null)
   );
 
-  // Review de F2 (F3 Task 5): publica el estado de captura en el canal cada
-  // vez que cambia, para que el pre-vuelo del escáner (`estaListo` en
+  // Review de F2 (F3 Task 5, rediseño post-revisión): reporta el estado de
+  // captura al backend para que el pre-vuelo del escáner (`estaListo` en
   // `PreVuelo.tsx`) no confunda "conectada al canal" con "puede grabar" — ver
-  // el doc-comment de `CLIENT_ESTADO_CAPTURA_EVENT` sobre por qué es un
-  // evento de cliente y no `user_info`. Se manda apenas `channel` está
-  // disponible (recién tras `pusher:subscription_succeeded`, así que la
-  // suscripción ya está autorizada) y de nuevo en cada cambio de
-  // `capturaEstado` — incluida una reconexión, que crea un `channel` nuevo:
-  // el escáner de esa suscripción no sabe nada todavía y necesita el reporte
-  // fresco (ver `usePresenceChannel.ts`, "arranca en blanco").
+  // el doc-comment de `DEVICE_CAPTURE_STATE_EVENT` en `usePresenceChannel.ts`
+  // sobre por qué es REST + reemisión del servidor y no un evento de
+  // cliente. Deliberadamente INDEPENDIENTE de `channel`/`connected`: es un
+  // POST normal, funciona aunque el canal de Pusher esté caído (el reporte
+  // igual queda en el backend, disponible via `/state`, aunque la
+  // reemisión en vivo al canal en ese momento no llegue a nadie).
+  //
+  // Solo en `armada`/`caida` — "al armarse, al caer, y al rearmarse", NO en
+  // cada cambio trivial (`inactiva`/`armando`/`grabando` no reportan; un
+  // rearme ya cae en "armada" porque `armar()` es la misma función que arma
+  // por primera vez).
   useEffect(() => {
-    if (!channel || !session) return;
-    channel.trigger(CLIENT_ESTADO_CAPTURA_EVENT, {
-      device_id: session.deviceId,
-      estado: capturaEstado,
-    });
-  }, [channel, session, capturaEstado]);
+    if (!session) return;
+    if (capturaEstado !== 'armada' && capturaEstado !== 'caida') return;
+    void reportarEstadoCaptura(capturaEstado, session.token);
+  }, [session, capturaEstado]);
 
   // F3: la cámara obedece comandos remotos (spec §6). `offsetMs` traduce el
   // `start_at` absoluto del servidor a un instante local — ver doc-comment
