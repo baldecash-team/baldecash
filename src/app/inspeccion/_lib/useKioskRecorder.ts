@@ -55,6 +55,8 @@ export interface UseKioskRecorderReturn {
   /** `null` si el hardware no expone zoom — ahí el control no se muestra. */
   zoomRango: { min: number; max: number; step: number } | null;
   /** Aplica zoom al sensor; se puede llamar mientras graba. */
+  /** Mensaje si el hardware rechazó el zoom. `null` mientras funcione. */
+  zoomError: string | null;
   aplicarZoom: (valor: number) => Promise<void>;
   /** Pide `getUserMedia`. El único gesto humano de todo el flujo. */
   armar: () => Promise<void>;
@@ -162,6 +164,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     null
   );
   const [zoom, setZoom] = useState<number>(1);
+  const [zoomError, setZoomError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -308,20 +311,36 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
    * video como evidencia de un rayón puntual.
    *
    * `applyConstraints` puede rechazar (valor fuera de rango, o el track ya
-   * terminado). Si falla no se toca el estado: mostrar un zoom que la cámara
-   * no aplicó es peor que no moverlo, porque el operador cree que encuadró.
+   * terminado). Si falla, el zoom mostrado NO se mueve —mostrar un zoom que la
+   * cámara no aplicó es peor que no moverlo, porque el operador cree que
+   * encuadró— pero sí se avisa: un control que no responde y tampoco explica
+   * por qué se lee como que la app está colgada, y el operador lo sigue
+   * arrastrando esperando que reaccione.
+   *
+   * Se prueba primero con `advanced` (lo que soporta Chrome/Android) y, si
+   * rechaza, en el nivel superior de las constraints. Algunas
+   * implementaciones aceptan una forma y no la otra.
    */
   const aplicarZoom = useCallback(async (valor: number) => {
     const [track] = streamRef.current?.getVideoTracks() ?? [];
     if (!track || !zoomRango) return;
     const acotado = Math.min(zoomRango.max, Math.max(zoomRango.min, valor));
+
+    setZoomError(null);
     try {
       await track.applyConstraints({
         advanced: [{ zoom: acotado } as MediaTrackConstraintSet & { zoom: number }],
       });
       setZoom(acotado);
+      return;
     } catch {
-      // Sin cambio de estado a propósito — ver doc-comment.
+      // Segundo intento con la forma plana antes de darlo por perdido.
+    }
+    try {
+      await track.applyConstraints({ zoom: acotado } as MediaTrackConstraints & { zoom: number });
+      setZoom(acotado);
+    } catch {
+      setZoomError('Esta cámara no acepta el zoom por software.');
     }
   }, [zoomRango]);
 
@@ -463,5 +482,17 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     };
   }, []);
 
-  return { estado, error, mimeType, videoRef, armar, grabar, detener, zoom, zoomRango, aplicarZoom };
+  return {
+    estado,
+    error,
+    mimeType,
+    videoRef,
+    armar,
+    grabar,
+    detener,
+    zoom,
+    zoomRango,
+    zoomError,
+    aplicarZoom,
+  };
 }

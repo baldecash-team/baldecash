@@ -557,6 +557,52 @@ describe('useKioskRecorder', () => {
       expect(result.current.zoom).toBe(1);
     });
 
+    it('si `advanced` falla, reintenta con la forma plana antes de rendirse', async () => {
+      // Algunas implementaciones aceptan `{zoom}` en el nivel superior y no
+      // dentro de `advanced`. Sin este segundo intento, el slider se movía y
+      // volvía solo en esos dispositivos.
+      videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      let primeraLlamada = true;
+      videoTrack.applyConstraints = (c: MediaTrackConstraints) => {
+        if (primeraLlamada) {
+          primeraLlamada = false;
+          return Promise.reject(new Error('OverconstrainedError'));
+        }
+        videoTrack.appliedConstraints.push(c);
+        return Promise.resolve();
+      };
+
+      await act(async () => {
+        await result.current.aplicarZoom(3);
+      });
+
+      expect(result.current.zoom).toBe(3);
+      expect(result.current.zoomError).toBeNull();
+      expect(videoTrack.appliedConstraints).toEqual([{ zoom: 3 }]);
+    });
+
+    it('si el hardware rechaza las dos formas, lo AVISA en vez de callarse', async () => {
+      videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      videoTrack.applyConstraintsFalla = true;
+      await act(async () => {
+        await result.current.aplicarZoom(5);
+      });
+
+      // Un control que no responde y tampoco explica por qué se lee como que
+      // la app está colgada, y el operador lo sigue arrastrando.
+      expect(result.current.zoomError).toMatch(/no acepta el zoom/i);
+    });
+
     it('si applyConstraints falla, el zoom mostrado NO se mueve', async () => {
       videoTrack.zoomCapability = { min: 1, max: 8, step: 0.5 };
       const { result } = renderHook(() => useKioskRecorder());
