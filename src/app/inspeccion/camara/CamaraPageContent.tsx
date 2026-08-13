@@ -842,16 +842,40 @@ export default function CamaraPageContent() {
           `videoRef.current.srcObject` de forma síncrona apenas resuelve
           `getUserMedia`, antes de que el estado pase a "armada"; si el
           <video> recién se montara en ese momento, `videoRef.current` sería
-          null cuando `armar()` lo necesita y el preview nunca aparecería. */}
+          null cuando `armar()` lo necesita y el preview nunca aparecería.
+
+          `object-contain`, NO `object-cover`: con `cover` el preview llenaba la
+          pantalla recortando el frame, así que el operador encuadraba contra
+          una imagen distinta de la que se estaba grabando — creía tener margen
+          donde no lo tenía. Con `contain` se ve el cuadro completo tal cual se
+          graba, con bandas a los costados. Ese desperdicio de pantalla es el
+          precio de que encuadrar signifique algo. */}
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-contain"
       />
-      {/* Scrim para que el texto sea legible sobre cualquier escena de fondo. */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden />
+      {/*
+        Scrim SOLO cuando no está grabando.
+
+        Oscurecía el preview entero para que el texto se leyera sobre cualquier
+        escena. El problema es que la pantalla también sirve para encuadrar el
+        equipo, y con el velo encima no se distingue si la etiqueta entra en
+        cuadro o si un rayón se ve — que es exactamente lo que hay que decidir
+        antes de grabar, y ya no se puede corregir después.
+
+        (El velo nunca afectó el VIDEO: `MediaRecorder` graba del stream de la
+        cámara, no del DOM. Era un problema de encuadre, no de evidencia.)
+
+        Mientras graba desaparece por completo y los textos se sostienen solos
+        con su propia sombra. En reposo se mantiene, más suave: ahí no hay nada
+        que encuadrar y el estado tiene que leerse desde varios metros.
+      */}
+      {capturaEstado !== 'grabando' && (
+        <div className="absolute inset-0 bg-black/35 transition-opacity" aria-hidden />
+      )}
 
       {/*
         Zoom de la CÁMARA (no del preview): `aplicarZoom` va al sensor por
@@ -867,9 +891,14 @@ export default function CamaraPageContent() {
 
         `z-10` lo deja debajo del conteo (`z-20`): mientras cuenta 3·2·1 no hay
         que estar tocando el encuadre.
+
+        Va a un cuarto de la altura y no pegado al borde inferior: ahí abajo
+        quedaba tapado por el contenido de estado, y en un teléfono en vertical
+        cae justo donde va la mano que sostiene el aparato — se movía el zoom
+        sin querer al acomodar el encuadre.
       */}
       {zoomRango && (capturaEstado === 'armada' || capturaEstado === 'grabando') && (
-        <div className="absolute bottom-6 left-1/2 z-10 flex w-[min(90%,26rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-5 py-3">
+        <div className="absolute bottom-[28%] left-1/2 z-10 flex w-[min(90%,26rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-5 py-3">
           <button
             type="button"
             onClick={() => void aplicarZoom(zoom - zoomRango.step * 5)}
@@ -933,7 +962,23 @@ export default function CamaraPageContent() {
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-screen flex-1 flex-col items-center justify-between p-6 text-center">
+      {/*
+        `drop-shadow` en vez del velo: sin scrim, el texto blanco sobre una
+        laptop clara se volvía ilegible. La sombra lo sostiene sobre cualquier
+        fondo sin tapar la escena, que es lo que hay que poder ver para
+        encuadrar.
+
+        Mientras graba, además, el contenido se atenúa y deja de recibir
+        clicks: nadie tiene que tocar nada durante una toma — el comando llega
+        por Pusher — y así el preview queda lo más limpio posible. El conteo y
+        el zoom viven fuera de este contenedor, así que siguen visibles y
+        usables.
+      */}
+      <div
+        className={`relative z-10 flex min-h-screen flex-1 flex-col items-center justify-between p-6 text-center [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] transition-opacity ${
+          capturaEstado === 'grabando' ? 'pointer-events-none opacity-70' : ''
+        }`}
+      >
         {/* Etiqueta de la cámara: qué cámara es esta cuando hay varias en la
             misma sala (techo, pared, ...) — spec, plan F2 Task 3. */}
         <p className="mt-2 text-sm uppercase tracking-widest text-white/80">
