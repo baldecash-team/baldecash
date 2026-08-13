@@ -220,6 +220,7 @@ export default function CamaraPageContent() {
     detener,
     zoom,
     zoomRango,
+    zoomError,
     aplicarZoom,
   } = useKioskRecorder();
 
@@ -804,8 +805,13 @@ export default function CamaraPageContent() {
         ? TOKENS.tertiary
         : TOKENS.green;
 
+  // `h-screen` + `overflow-hidden`, no `min-h-screen`: es un kiosco, no una
+  // página. Con `min-h-screen` en el <main> Y en el contenedor de contenido,
+  // las alturas se sumaban y aparecía scroll vertical — en un teléfono en
+  // soporte, un scroll accidental deja el estado fuera de cuadro sin que nadie
+  // se entere.
   return (
-    <main className="relative flex min-h-screen flex-col bg-black text-white">
+    <main className="relative flex h-screen flex-col overflow-hidden bg-black text-white">
       {/* Preview a pantalla completa: sirve para encuadrar el equipo (spec,
           plan F2 Task 3). Montado SIEMPRE que se llega a este branch, sin
           condicionar al estado de captura — `armar()` escribe
@@ -820,31 +826,31 @@ export default function CamaraPageContent() {
           donde no lo tenía. Con `contain` se ve el cuadro completo tal cual se
           graba, con bandas a los costados. Ese desperdicio de pantalla es el
           precio de que encuadrar signifique algo. */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        className="absolute inset-0 h-full w-full object-contain"
-      />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className="max-h-full max-w-full"
+          style={{ aspectRatio: '1 / 1', objectFit: 'contain' }}
+        />
+      </div>
       {/*
-        Scrim SOLO cuando no está grabando.
+        Scrim solo cuando NO graba.
 
-        Oscurecía el preview entero para que el texto se leyera sobre cualquier
-        escena. El problema es que la pantalla también sirve para encuadrar el
-        equipo, y con el velo encima no se distingue si la etiqueta entra en
-        cuadro o si un rayón se ve — que es exactamente lo que hay que decidir
-        antes de grabar, y ya no se puede corregir después.
+        En reposo la pantalla es un cartel: lo que importa es leer el estado
+        desde varios metros, y el velo hace que el texto se sostenga sobre
+        cualquier escena. Mientras graba desaparece, porque ahí la pantalla
+        cambia de función y pasa a ser el encuadre — con el velo encima no se
+        distingue si la etiqueta entra en cuadro o si un rayón se ve, que es lo
+        que hay que decidir antes de grabar y ya no se puede corregir después.
 
         (El velo nunca afectó el VIDEO: `MediaRecorder` graba del stream de la
-        cámara, no del DOM. Era un problema de encuadre, no de evidencia.)
-
-        Mientras graba desaparece por completo y los textos se sostienen solos
-        con su propia sombra. En reposo se mantiene, más suave: ahí no hay nada
-        que encuadrar y el estado tiene que leerse desde varios metros.
+        cámara, no del DOM. Es un problema de encuadre, no de evidencia.)
       */}
       {capturaEstado !== 'grabando' && (
-        <div className="absolute inset-0 bg-black/35 transition-opacity" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 bg-black/35" aria-hidden />
       )}
 
       {/*
@@ -868,7 +874,7 @@ export default function CamaraPageContent() {
         sin querer al acomodar el encuadre.
       */}
       {zoomRango && (capturaEstado === 'armada' || capturaEstado === 'grabando') && (
-        <div className="absolute bottom-[28%] left-1/2 z-10 flex w-[min(90%,26rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-5 py-3">
+        <div className="absolute bottom-28 left-1/2 z-20 flex w-[min(90%,26rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/80 px-5 py-3">
           <button
             type="button"
             onClick={() => void aplicarZoom(zoom - zoomRango.step * 5)}
@@ -901,22 +907,34 @@ export default function CamaraPageContent() {
         </div>
       )}
 
-      {/*
-        `drop-shadow` en vez del velo: sin scrim, el texto blanco sobre una
-        laptop clara se volvía ilegible. La sombra lo sostiene sobre cualquier
-        fondo sin tapar la escena, que es lo que hay que poder ver para
-        encuadrar.
+      {/* El hardware expuso un rango de zoom pero rechaza aplicarlo. Sin este
+          aviso el slider se movía y volvía solo, que se lee como que la app
+          está colgada. */}
+      {zoomError && (
+        <p className="absolute bottom-20 left-1/2 z-20 w-[min(90%,26rem)] -translate-x-1/2 rounded-full bg-black/80 px-4 py-2 text-center text-xs font-semibold text-white/90">
+          {zoomError}
+        </p>
+      )}
 
-        Mientras graba, además, el contenido se atenúa y deja de recibir
-        clicks: nadie tiene que tocar nada durante una toma — el comando llega
-        por Pusher — y así el preview queda lo más limpio posible. El conteo y
-        el zoom viven fuera de este contenedor, así que siguen visibles y
-        usables.
+      {/*
+        La UI vive en las BANDAS NEGRAS que deja el cuadro 1:1, no encima del
+        video.
+
+        Con un preview cuadrado centrado, en cualquier pantalla sobra espacio
+        arriba y abajo (o a los costados en horizontal). Ese espacio ya es
+        negro y no muestra nada: poner ahí el estado y los controles es gratis,
+        y deja el cuadro grabado completamente limpio — sin velo, sin texto
+        encima, sin nada que tape la etiqueta o un rayón justo cuando hay que
+        decidir si el encuadre sirve.
+
+        `justify-between` empuja la etiqueta arriba y el estado del canal abajo,
+        que es exactamente donde caen las bandas.
+
+        `text-shadow` se queda igual: en una pantalla apaisada el cuadro puede
+        llegar a tocar el texto, y ahí la sombra es lo único que lo sostiene.
       */}
       <div
-        className={`relative z-10 flex min-h-screen flex-1 flex-col items-center justify-between p-6 text-center [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] transition-opacity ${
-          capturaEstado === 'grabando' ? 'pointer-events-none opacity-70' : ''
-        }`}
+        className="relative z-10 flex h-full flex-1 flex-col items-center justify-between overflow-hidden p-6 text-center [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]"
       >
         {/* Etiqueta de la cámara: qué cámara es esta cuando hay varias en la
             misma sala (techo, pared, ...) — spec, plan F2 Task 3. */}
