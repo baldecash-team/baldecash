@@ -1059,14 +1059,12 @@ describe('CamaraPageContent', () => {
         devices: [],
         active_inspection: { id: 42, serial: 'SN-1', status: 'uploading' },
       });
-      // El resync dispara `manejarStop()`, que ahora (conteo regresivo de
-      // parada) no detiene de inmediato — vuelve a fake timers para poder
-      // avanzar ese conteo determinísticamente. El resync en sí es
-      // asíncrono (`await fetch(...)` dentro del efecto), así que hace
-      // falta un `act` async para dejar que ese `fetch` mockeado resuelva
-      // y `manejarStop()` LLEGUE A CORRER antes de avanzar el conteo — si
-      // no, el conteo todavía no arrancó cuando se avanza el timer, y
-      // arranca recién después con el reloj falso ya "gastado".
+      // El resync dispara `manejarStop()`, que detiene de inmediato. El
+      // resync en sí es asíncrono (`await fetch(...)` dentro del efecto), así
+      // que hace falta un `act` async para dejar que ese `fetch` mockeado
+      // resuelva y `manejarStop()` LLEGUE A CORRER. Los fake timers y el
+      // avance de abajo quedan como margen para las promesas pendientes de
+      // `detener()`, no para un conteo — ya no hay ninguno.
       jest.useFakeTimers();
       act(() => {
         pusher.connection.emit('state_change', { current: 'connecting' });
@@ -1078,7 +1076,7 @@ describe('CamaraPageContent', () => {
         await Promise.resolve();
       });
       act(() => {
-        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+        jest.advanceTimersByTime(1500); // margen: la parada ya es inmediata
       });
       jest.useRealTimers();
 
@@ -1389,7 +1387,7 @@ describe('CamaraPageContent', () => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
       });
       act(() => {
-        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+        jest.advanceTimersByTime(1500); // margen: la parada ya es inmediata
       });
       await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1));
 
@@ -1408,7 +1406,7 @@ describe('CamaraPageContent', () => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 4 });
       });
       act(() => {
-        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+        jest.advanceTimersByTime(1500); // margen: la parada ya es inmediata
       });
       await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(2));
 
@@ -1446,7 +1444,7 @@ describe('CamaraPageContent', () => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
       });
       act(() => {
-        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+        jest.advanceTimersByTime(1500); // margen: la parada ya es inmediata
       });
       await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(1));
 
@@ -1504,7 +1502,7 @@ describe('CamaraPageContent', () => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 8 });
       });
       act(() => {
-        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+        jest.advanceTimersByTime(1500); // margen: la parada ya es inmediata
       });
       jest.useRealTimers();
       await waitFor(() => expect(uploadQueueMock.encolar).toHaveBeenCalledTimes(2));
@@ -1571,7 +1569,7 @@ describe('CamaraPageContent', () => {
         pusher.channel.emit('cmd.stop', { inspection_id: 42, seq: 2 });
       });
       act(() => {
-        jest.advanceTimersByTime(1500); // conteo regresivo de parada
+        jest.advanceTimersByTime(1500); // margen: la parada ya es inmediata
       });
 
       await waitFor(() => {
