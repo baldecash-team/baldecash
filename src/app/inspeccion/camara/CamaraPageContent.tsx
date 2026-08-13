@@ -123,29 +123,6 @@ function hayDebugEnUrl(): boolean {
   return new URLSearchParams(window.location.search).get('debug') === '1';
 }
 
-/**
- * Conteo regresivo (3,2,1) que la vista pinta en pantalla al arrancar o
- * parar una toma. `tipo` distingue arranque de parada — dos cosas distintas,
- * spec: "el operador tiene que saber cuál está viendo" — la UI del
- * componente usa esto para elegir color y texto. Declarado a nivel de
- * módulo (no dentro del componente) porque `iniciarConteo`, más abajo en
- * `CamaraPageContent`, lo referencia en su firma.
- */
-interface ConteoVisible {
-  tipo: 'start' | 'stop';
-  numero: 1 | 2 | 3;
-}
-
-/**
- * Duración del conteo de PARADA — decisión de producto ya tomada: "misma
- * duración que el inicio" (1,5s, igual al retardo de arranque que el
- * backend hornea en `start_at`) para que arrancar y parar se sientan
- * consistentes. A diferencia del arranque, la parada NO tiene un instante
- * absoluto que el backend calcule y comparta entre cámaras —
- * `ComandoStopPayload` solo trae `inspection_id`/`seq` (`useComandos.ts`) —
- * así que este valor es puramente local, nunca derivado de `useServerClock`.
- */
-const STOP_COUNTDOWN_MS = 1500;
 
 /**
  * Vista de kiosco de una cámara. F1 la vinculaba y mostraba el estado del
@@ -384,14 +361,7 @@ export default function CamaraPageContent() {
   // `puedeGrabar` de `manejarStart`, más abajo.
   const { offsetMs, listo: clockListo } = useServerClock();
 
-  // Conteo regresivo (3,2,1) visible en pantalla — ver `ConteoVisible` a
-  // nivel de módulo. Estado, no ref: SÍ tiene que re-renderizar, es lo único
-  // que pinta el número. `null` cuando no hay ningún conteo activo — el
-  // bloque de UI, más abajo en el render, no se monta en absoluto en ese
-  // caso.
-  const [conteo, setConteo] = useState<ConteoVisible | null>(null);
-
-  // El timer del PRÓXIMO tick del conteo. Un ref, no estado: no hace falta
+  // El timer del arranque programado. Un ref, no estado: no hace falta
   // re-renderizar por esto, solo poder cancelarlo. Un solo ref para el
   // conteo de ARRANQUE y el de PARADA — nunca hay dos corriendo a la vez:
   // un `cmd.stop`/`cmd.abort` que interrumpe el conteo de arranque lo
@@ -416,19 +386,14 @@ export default function CamaraPageContent() {
   // por timeout llega justo cuando el timer iba a disparar. No es un caso
   // raro: es el camino degradado normal.
   //
-  // Con el conteo (esta Task), la misma regla se generaliza: CUALQUIER timer
-  // pendiente — el de arranque o el de parada, nunca los dos a la vez — no
-  // puede sobrevivir a un `cmd.stop`/`cmd.abort` que llegue mientras cuenta.
-  // `setConteo(null)` es parte del mismo gesto, no un extra: sin esto, un
-  // abort a mitad de camino dejaría el número pintado en pantalla para
-  // siempre — un contador fantasma es tan mal síntoma como una grabación
-  // fantasma.
+  // La regla vale para cualquier arranque programado que siga pendiente: no
+  // puede sobrevivir a un `cmd.stop`/`cmd.abort` que llegue antes de que
+  // dispare.
   const cancelarConteoPendiente = useCallback(() => {
     if (conteoTimerRef.current) {
       clearTimeout(conteoTimerRef.current);
       conteoTimerRef.current = null;
     }
-    setConteo(null);
   }, []);
 
   // Motor del conteo: un tick que se reprograma a sí mismo hasta llegar a
@@ -450,27 +415,32 @@ export default function CamaraPageContent() {
   // "3" — así, con varias cámaras en la estación y latencias de red
   // distintas, todas terminan mostrando el MISMO número en el MISMO
   // instante real.
-  const iniciarConteo = useCallback(
-    (tipo: ConteoVisible['tipo'], objetivoLocalMs: number, alLlegarACero: () => void) => {
-      const tick = () => {
-        const restanteMs = objetivoLocalMs - Date.now();
-        if (restanteMs <= 0) {
-          conteoTimerRef.current = null;
-          setConteo(null);
-          alLlegarACero();
-          return;
-        }
-        const numero: ConteoVisible['numero'] = restanteMs > 1000 ? 3 : restanteMs > 500 ? 2 : 1;
-        setConteo({ tipo, numero });
-        // Próximo cambio de número (o el final): cuando `restanteMs` cruce
-        // el siguiente umbral de 500ms hacia abajo — de ahí sale el "~500ms
-        // cada uno" de la spec, sin depender de un intervalo fijo que
-        // pudiera desalinearse del instante real.
-        const proximoEnMs =
-          restanteMs > 1000 ? restanteMs - 1000 : restanteMs > 500 ? restanteMs - 500 : restanteMs;
-        conteoTimerRef.current = setTimeout(tick, proximoEnMs);
-      };
-      tick();
+  /**
+   * Ejecuta una acción en un instante local dado, o ya mismo si ese instante
+   * pasó. Reemplaza al conteo regresivo 3·2·1, que se sacó de la pantalla.
+   *
+   * **La espera del arranque NO es el conteo y sigue existiendo.** El servidor
+   * manda `start_at` 1,5s en el futuro y cada cámara descuenta su propio offset
+   * de reloj: eso es lo que hace que dos teléfonos arranquen juntos, porque
+   * Pusher no entrega simultáneamente. Lo que se quitó es el overlay que lo
+   * mostraba, no la sincronización — sin este retardo, cada cámara arrancaría
+   * cuando le llega el mensaje y el desfase sería el de la red.
+   *
+   * El timer sigue viviendo en `conteoTimerRef` y sigue siendo cancelable: un
+   * abort que no cancele el arranque programado deja la cámara grabando para
+   * siempre con el recorder ocupado, que fue un Critical real de este módulo.
+   */
+  const programarEnInstante = useCallback(
+    (objetivoLocalMs: number, alLlegar: () => void) => {
+      const restanteMs = objetivoLocalMs - Date.now();
+      if (restanteMs <= 0) {
+        alLlegar();
+        return;
+      }
+      conteoTimerRef.current = setTimeout(() => {
+        conteoTimerRef.current = null;
+        alLlegar();
+      }, restanteMs);
     },
     []
   );
@@ -550,43 +520,43 @@ export default function CamaraPageContent() {
       if (delayMs <= 0) {
         // El instante ya pasó — típicamente una cámara que se reconectó
         // tarde y resincronizó contra `/state` (C4) bastante después de que
-        // el resto de la estación ya arrancó. Mostrar un conteo acá sería
-        // mentir: contaría hacia un instante que ya ocurrió. Se arranca
-        // directo, sin conteo.
+        // el resto de la estación ya arrancó. Se arranca directo.
         grabar();
       } else {
-        iniciarConteo('start', objetivoLocalMs, grabar);
+        programarEnInstante(objetivoLocalMs, grabar);
       }
     },
-    [session, offsetMs, clockListo, capturaEstado, grabar, cancelarConteoPendiente, iniciarConteo]
+    [
+      session,
+      offsetMs,
+      clockListo,
+      capturaEstado,
+      grabar,
+      cancelarConteoPendiente,
+      programarEnInstante,
+    ]
   );
 
   const manejarStop = useCallback(() => {
     // Fix C1: cancelar SIEMPRE, antes de nada más — ver doc-comment de
-    // `cancelarConteoPendiente`. Si este `cmd.stop` llegó mientras el conteo
-    // de ARRANQUE todavía corría (la toma nunca llegó a grabar), esto lo
-    // cancela y no queda nada más por hacer: el guard de abajo
-    // (`capturaEstado !== 'grabando'`) corta acá — no tiene sentido arrancar
-    // un conteo de PARADA sobre una grabación que nunca empezó.
+    // `cancelarConteoPendiente`. Si este `cmd.stop` llegó mientras el arranque
+    // programado todavía estaba pendiente (la toma nunca llegó a grabar), esto
+    // lo cancela y no queda nada más por hacer: el guard de abajo
+    // (`capturaEstado !== 'grabando'`) corta acá.
     cancelarConteoPendiente();
     if (capturaEstado !== 'grabando') return;
 
-    // Decisión de producto ya tomada (esta Task): al parar, la cámara SIGUE
-    // grabando durante el conteo y recién detiene al llegar a cero — esos
-    // segundos extra evitan cortar un movimiento a la mitad.
-    // `STOP_COUNTDOWN_MS` usa la MISMA duración que el arranque para que se
-    // sienta consistente, pero a diferencia del arranque no hay un instante
-    // absoluto compartido por el backend para la parada (ver su
-    // doc-comment) — es un conteo local, tomado una sola vez acá.
-    // `detener()`/`encolarGrabacion` (F4 Task 4, sin cambios) recién corren
-    // cuando el conteo llega a cero — la cámara ya vuelve a "armada" dentro
-    // de `detener()` mismo (regla 2 de `useKioskRecorder.ts`), así que para
-    // cuando `encolarGrabacion` corre la UI ya está lista para la próxima
-    // orden. Nada de esto espera a la subida real.
-    iniciarConteo('stop', Date.now() + STOP_COUNTDOWN_MS, () => {
-      detener().then(encolarGrabacion).catch(() => {});
-    });
-  }, [capturaEstado, cancelarConteoPendiente, iniciarConteo, detener, encolarGrabacion]);
+    // Detiene YA. Antes esperaba `STOP_COUNTDOWN_MS` (1,5s) mostrando un conteo
+    // regresivo, con la idea de no cortar un movimiento a la mitad; en la
+    // estación real esa espera se siente como que el botón no respondió, y el
+    // operador ya movió el equipo para cuando la grabación corta de verdad —
+    // esos segundos terminaban siendo metraje de la mesa, no del equipo.
+    //
+    // `detener()` deja la cámara en "armada" (regla 2 de `useKioskRecorder`)
+    // antes de que `encolarGrabacion` corra, así que la UI queda lista para la
+    // próxima orden sin esperar la subida.
+    detener().then(encolarGrabacion).catch(() => {});
+  }, [capturaEstado, cancelarConteoPendiente, detener, encolarGrabacion]);
 
   const manejarAbort = useCallback(() => {
     // Fix C1 (ver doc-comment de `cancelarConteoPendiente`). Deliberadamente
@@ -928,37 +898,6 @@ export default function CamaraPageContent() {
             +
           </button>
           <span className="shrink-0 font-mono text-sm text-white/80">{zoom.toFixed(1)}×</span>
-        </div>
-      )}
-
-      {/* Conteo regresivo (3,2,1) de arranque/parada — el elemento
-          dominante de la pantalla mientras dura (esta pantalla se lee desde
-          varios metros) y desaparece al llegar a cero. Overlay a pantalla
-          completa por encima de TODO lo demás (`z-20`, más alto que el
-          `z-10` del contenido de abajo): mientras cuenta, es lo único que
-          importa mirar. Color y texto distinguen arranque de parada a
-          propósito — son dos cosas distintas y el operador tiene que saber
-          cuál está viendo: verde/"A GRABAR EN" para el arranque,
-          rojo/"SE DETIENE EN" para la parada, el mismo rojo que ya usa
-          "GRABANDO" para que la asociación "está grabando, por terminar"
-          sea inmediata. */}
-      {conteo && (
-        <div
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-black/85"
-          aria-live="assertive"
-        >
-          <p
-            className="text-2xl font-semibold uppercase tracking-widest"
-            style={{ color: conteo.tipo === 'start' ? TOKENS.green : TOKENS.red }}
-          >
-            {conteo.tipo === 'start' ? 'A GRABAR EN' : 'SE DETIENE EN'}
-          </p>
-          <p
-            className="text-[10rem] font-black leading-none"
-            style={{ color: conteo.tipo === 'start' ? TOKENS.green : TOKENS.red }}
-          >
-            {conteo.numero}
-          </p>
         </div>
       )}
 
