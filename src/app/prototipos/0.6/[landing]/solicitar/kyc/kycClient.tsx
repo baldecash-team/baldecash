@@ -19,7 +19,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
-import type { KycStepType } from '@/app/prototipos/0.6/services/landingApi';
+import type { KycStep, KycStepType } from '@/app/prototipos/0.6/services/landingApi';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
@@ -253,7 +253,40 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // token), así que `code` no puede depender solo del query param.
   const code = initialState?.application_code ?? searchParams.get('code') ?? undefined;
 
-  const { kycEnabled, kycSteps, isLoading } = useSolicitarFlow({ slug: landing });
+  const {
+    kycEnabled: landingKycEnabled,
+    kycSteps: landingKycSteps,
+    isLoading: configLoading,
+  } = useSolicitarFlow({ slug: landing });
+
+  /**
+   * Autoridad sobre si el KYC aplica, según la vía de entrada:
+   *
+   * - Por link (`/kyc/[token]`, hay `initialState`): manda el estado
+   *   POR-SOLICITUD que devolvió `resume`. En campañas por invitación (ej.
+   *   Family Farms) la sección `kyc` está APAGADA en la config pública de la
+   *   landing y el backend la destraba por solicitud (invitación
+   *   `admin_grant`): `solicitar-config` reporta `enabled:false` mientras
+   *   `resume` dice `kyc_enabled:true`. Decidir con la config pública mandaba
+   *   al invitado a la confirmación en vez de abrir el flujo de fotos.
+   * - En sesión: manda la config de la landing, como siempre.
+   */
+  const kycEnabled = initialState ? initialState.kyc_enabled : landingKycEnabled;
+  // Por link, los sub-pasos también salen del resume: con la sección apagada
+  // `getKycSteps(config)` viene vacío y el gate expulsaría igual por length 0.
+  // Se filtran tipos desconocidos (el resume tipa `type` como string) para que
+  // `STEP_LABELS[currentStep.type]` y `renderStep` nunca reciban un tipo nuevo
+  // del backend que este cliente aún no sabe pintar.
+  const kycSteps = useMemo<KycStep[]>(() => {
+    if (!initialState) return landingKycSteps;
+    return initialState.steps
+      .filter((s) => s.type in STEP_LABELS)
+      .map((s, i) => ({ type: s.type as KycStepType, enabled: true, order: i + 1 }));
+  }, [initialState, landingKycSteps]);
+  // Por link no hay que esperar la config pública: el resume ya trajo todo lo
+  // que el gate necesita (y la config podría además fallar con 403 en landings
+  // con gate VIP, dejando el spinner eterno).
+  const isLoading = initialState ? false : configLoading;
   const [index, setIndex] = useState(0);
   // Link de pago de la inicial. Null hasta que el veredicto de aprobacion diga
   // que hay algo que cobrar; su presencia es la que habilita el paso `payment`.
