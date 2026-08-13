@@ -278,7 +278,10 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
               <div className="flex-1 overflow-y-auto px-4 pb-2">
                 <div className="space-y-1">
                   {suggestions.map((suggestion) => {
-                    const term = (suggestion.maxTermMonths || 24) as TermMonths;
+                    // El plazo del hook, no el máximo: la cuota que muestra el
+                    // backend corresponde a ese plazo. Mezclarlos daba "S/293
+                    // x 36 meses" cuando la card decía 24 (BAL-2983).
+                    const term = (suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24) as TermMonths;
                     const quota = suggestion.price > 0
                       ? (suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota)
                       : null;

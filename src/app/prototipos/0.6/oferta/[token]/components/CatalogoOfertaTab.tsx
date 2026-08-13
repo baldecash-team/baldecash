@@ -115,7 +115,8 @@ export function CatalogoOfertaTab({
         price: p.price,
         image: p.images?.[0] || p.thumbnail || null,
         // Plazo del hook (backend) — refleja el array de la oferta, no un 24 fijo.
-        maxTermMonths: p.hookTermMonths ?? p.maxTermMonths ?? 24,
+        maxTermMonths: p.maxTermMonths ?? 24,
+        hookTermMonths: p.hookTermMonths ?? null,
         quotaMonthly: p.quotaMonthly ?? null,
       }));
     },

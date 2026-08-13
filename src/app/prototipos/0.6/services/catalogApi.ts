@@ -1508,6 +1508,13 @@ export interface ProductSuggestion {
   price: number;
   image: string | null;
   maxTermMonths: number;
+  /**
+   * Plazo del hook que devuelve el backend — el mismo que muestra la card.
+   * NO siempre coincide con `maxTermMonths`: la cuota del hook corresponde a
+   * este plazo, así que mostrar el máximo junto a esa cuota arma una
+   * combinación que no existe. Preferir este campo sobre `maxTermMonths`.
+   */
+  hookTermMonths: number | null;
   quotaMonthly: number | null;
 }
 
@@ -1556,7 +1563,7 @@ export async function searchProductSuggestions(
       display_name?: string;
       slug: string;
       brand?: { name: string } | string | null;
-      pricing?: { final_price?: number; list_price?: number; available_terms?: number[]; hook?: { monthly_price?: number } } | null;
+      pricing?: { final_price?: number; list_price?: number; available_terms?: number[]; hook?: { monthly_price?: number; term_months?: number } } | null;
       image_url?: string | null;
       images?: string[] | null;
       colors?: { image_url?: string }[] | null;
@@ -1571,6 +1578,7 @@ export async function searchProductSuggestions(
       maxTermMonths: item.pricing?.available_terms?.length
         ? Math.max(...item.pricing.available_terms)
         : 24,
+      hookTermMonths: item.pricing?.hook?.term_months ?? null,
       quotaMonthly: item.pricing?.hook?.monthly_price ?? null,
     }));
   } catch (error) {
