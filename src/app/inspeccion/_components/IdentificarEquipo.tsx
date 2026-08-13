@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { API_BASE_URL } from '../_lib/pairing';
 import { mensajeDeError, mensajeDeRed } from '../_lib/errores';
@@ -64,7 +64,10 @@ export function IdentificarEquipo({
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avisoOcr, setAvisoOcr] = useState<string | null>(null);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
   const inputFotoRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const aplicar = useCallback(
     (data: RespuestaSerial, desdeOcr: boolean) => {
@@ -113,18 +116,14 @@ export function IdentificarEquipo({
     }
   }, [serial, buscando, token, aplicar, onEquipoChange]);
 
-  const leerFoto = useCallback(
-    async (file: File) => {
+  /** Manda una imagen ya en dataURL al OCR. Comparte camino entre la foto
+   * tomada con la webcam y el archivo subido: el backend recibe lo mismo. */
+  const enviarAlOcr = useCallback(
+    async (imagen: string) => {
       setBuscando(true);
       setError(null);
       setAvisoOcr(null);
       try {
-        const imagen = await new Promise<string>((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(String(fr.result));
-          fr.onerror = () => reject(new Error('read'));
-          fr.readAsDataURL(file);
-        });
         const r = await fetch(`${API_BASE_URL}/inspections/read-serial`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
@@ -143,6 +142,92 @@ export function IdentificarEquipo({
     },
     [token, aplicar]
   );
+
+  const leerFoto = useCallback(
+    async (file: File) => {
+      setBuscando(true);
+      try {
+        const imagen = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result));
+          fr.onerror = () => reject(new Error('read'));
+          fr.readAsDataURL(file);
+        });
+        await enviarAlOcr(imagen);
+      } catch {
+        setError('No se pudo leer el archivo de imagen.');
+        setBuscando(false);
+      }
+    },
+    [enviarAlOcr]
+  );
+
+  /**
+   * Abre la webcam del controlador para sacar la foto ahí mismo.
+   *
+   * El `<input capture>` de abajo abre la cámara en un teléfono, pero en
+   * laptop cae al selector de archivos — y el controlador de la estación ES
+   * una laptop. Sin esto, "leer con una foto" obligaba a sacar la foto con
+   * otro aparato, pasarla a la laptop y recién ahí subirla.
+   *
+   * A diferencia de la cámara de grabación, acá SÍ se llama `track.stop()` al
+   * cerrar: este stream vive segundos, no horas, y dejarlo abierto mantiene la
+   * luz de la webcam prendida — que en una laptop compartida se lee como que
+   * la aplicación está grabando cuando no lo está.
+   */
+  const abrirCamara = useCallback(async () => {
+    setError(null);
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } },
+      });
+      streamRef.current = s;
+      setCamaraAbierta(true);
+      // El <video> se monta recién ahora, así que el srcObject se asigna en el
+      // efecto de abajo, no acá.
+    } catch {
+      setError(
+        'No se pudo abrir la cámara. Revisá el permiso en el candado de la barra de direcciones, o subí una foto.'
+      );
+    }
+  }, []);
+
+  const cerrarCamara = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCamaraAbierta(false);
+  }, []);
+
+  const capturar = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    // JPEG con calidad alta: el OCR trabaja sobre texto chico y un JPEG muy
+    // comprimido se come justo los trazos finos que distinguen un 1 de una T.
+    const imagen = canvas.toDataURL('image/jpeg', 0.92);
+    cerrarCamara();
+    await enviarAlOcr(imagen);
+  }, [cerrarCamara, enviarAlOcr]);
+
+  // Asigna el stream al <video> cuando se monta, y libera la cámara si el
+  // componente se desmonta con el visor abierto.
+  useEffect(() => {
+    if (camaraAbierta && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play?.().catch(() => {});
+    }
+  }, [camaraAbierta]);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
 
   return (
     <div>
@@ -201,12 +286,64 @@ export function IdentificarEquipo({
         </button>
       </div>
 
+      {/* Visor de la webcam del controlador. Solo mientras está abierto. */}
+      {camaraAbierta && (
+        <div className="mt-3 rounded-xl border p-3" style={{ borderColor: TOKENS.line }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full rounded-lg bg-black"
+          />
+          <p className="mt-2 text-center text-xs" style={{ color: TOKENS.slate }}>
+            Acercá la etiqueta del serial hasta que se lea nítida.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void capturar()}
+              className="flex-1 rounded-lg px-4 py-2 text-sm font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99]"
+              style={{ background: TOKENS.primary }}
+            >
+              Tomar foto
+            </button>
+            <button
+              type="button"
+              onClick={cerrarCamara}
+              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
+              style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!camaraAbierta && (
+        <button
+          type="button"
+          onClick={() => void abrirCamara()}
+          disabled={deshabilitado || buscando}
+          className="mt-2 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:border-[color:var(--hover-border)] hover:bg-black/[0.04] disabled:opacity-40 disabled:hover:border-[color:var(--rest-border)] disabled:hover:bg-transparent"
+          style={
+            {
+              borderColor: TOKENS.line,
+              color: TOKENS.ink,
+              '--hover-border': TOKENS.primary,
+              '--rest-border': TOKENS.line,
+            } as React.CSSProperties
+          }
+        >
+          📷 Tomar foto del serial
+        </button>
+      )}
+
       {/*
-        `capture="environment"` abre la cámara trasera directo en el teléfono;
-        en laptop cae al selector de archivo, que también sirve para probar con
-        una foto ya tomada. El input está oculto pero es el que hace el trabajo:
-        no se pide `getUserMedia` ni se monta un preview, así que no hay
-        permisos que gestionar ni stream que liberar.
+        Subir un archivo queda como alternativa: sirve para una foto sacada con
+        otro aparato, o cuando la webcam del controlador no enfoca de cerca —
+        que es lo normal en las webcams de laptop, pensadas para una cara a
+        medio metro y no para una etiqueta a diez centímetros.
       */}
       <input
         ref={inputFotoRef}
@@ -223,7 +360,7 @@ export function IdentificarEquipo({
       <button
         type="button"
         onClick={() => inputFotoRef.current?.click()}
-        disabled={deshabilitado || buscando}
+        disabled={deshabilitado || buscando || camaraAbierta}
         className="mt-2 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:border-[color:var(--hover-border)] hover:bg-black/[0.04] disabled:opacity-40 disabled:hover:border-[color:var(--rest-border)] disabled:hover:bg-transparent"
         style={
           {
@@ -234,10 +371,32 @@ export function IdentificarEquipo({
           } as React.CSSProperties
         }
       >
-        📷 Leer serial con una foto
+        🖼️ Subir una imagen
       </button>
 
-      {equipo && (
+      {/*
+        Loader. El OCR va a Textract y consulta Airtable: son un par de segundos
+        en los que la pantalla no cambiaba en nada, y sin señal el operador
+        vuelve a apretar y dispara una segunda lectura.
+      */}
+      {buscando && (
+        <div
+          className="mt-3 flex items-center justify-center gap-3 rounded-xl border p-4"
+          style={{ borderColor: TOKENS.line }}
+          aria-live="polite"
+        >
+          <span
+            className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"
+            style={{ color: TOKENS.primary }}
+            aria-hidden
+          />
+          <span className="text-sm font-semibold" style={{ color: TOKENS.ink }}>
+            Leyendo el serial y buscando el equipo…
+          </span>
+        </div>
+      )}
+
+      {equipo && !buscando && (
         <div
           className="mt-3 rounded-xl border p-3"
           style={{ borderColor: TOKENS.primary, background: '#f8fafc' }}
