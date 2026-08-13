@@ -133,6 +133,11 @@ export default function EscanerPageContent() {
   // devuelve, `InspectionService.siguiente_take`); acá solo se refleja lo
   // que el servidor confirmó, nunca se calcula localmente.
   const [takeNumber, setTakeNumber] = useState(1);
+  // Si la toma que se está decidiendo quedó destacada. Se resetea en cada
+  // toma nueva: la marca es de ESA toma, no de la inspección.
+  const [favorita, setFavorita] = useState(false);
+  const [favoritaEnCurso, setFavoritaEnCurso] = useState(false);
+  const [favoritaError, setFavoritaError] = useState<string | null>(null);
   // Bloqueo de "toma 2" por cola de subida llena (F4 Task 5, el hueco que
   // dejó F4 Task 4): `null` si ninguna cámara reportó estar llena, o
   // `{ label, motivo }` de la PRIMERA que sí — alcanza con una para
@@ -381,6 +386,7 @@ export default function EscanerPageContent() {
       const body = await r.json();
       inspectionIdRef.current = body.inspection_id;
       setTakeNumber(1);
+      setFavorita(false);
       setBloqueoCola(null);
       if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
       ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
@@ -425,6 +431,42 @@ export default function EscanerPageContent() {
   // y NO espera un quórum de acks como la toma 1 — las cámaras ya
   // demostraron estar armadas y sincronizadas, así que acá no hay
   // `iniciando` intermedio ni timeout de acks: éxito HTTP => `grabando`.
+  /**
+   * Destaca o des-destaca la toma que se está decidiendo.
+   *
+   * Optimista al revés: el estado local se actualiza DESPUÉS de que el
+   * servidor confirma, no antes. Una estrella que se pinta y se despinta sola
+   * es peor que un instante de espera — sobre todo acá, donde la marca es la
+   * única señal que va a tener el revisor para saber qué toma mirar primero.
+   */
+  const alternarFavorita = useCallback(async () => {
+    const inspectionId = inspectionIdRef.current;
+    if (!session || !inspectionId || favoritaEnCurso) return;
+
+    setFavoritaEnCurso(true);
+    setFavoritaError(null);
+    const deseado = !favorita;
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/inspections/${inspectionId}/takes/${takeNumber}/favorite`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+          body: JSON.stringify({ favorita: deseado }),
+        }
+      );
+      if (!r.ok) {
+        setFavoritaError(await mensajeDeError(r, 'destacar la toma'));
+        return;
+      }
+      setFavorita(deseado);
+    } catch {
+      setFavoritaError(mensajeDeRed('destacar la toma'));
+    } finally {
+      setFavoritaEnCurso(false);
+    }
+  }, [session, favorita, favoritaEnCurso, takeNumber]);
+
   const pedirTomaSiguiente = useCallback(async () => {
     if (!session) return;
     const id = inspectionIdRef.current;
@@ -449,6 +491,7 @@ export default function EscanerPageContent() {
       }
       const body = await r.json();
       setTakeNumber(body.take_number);
+      setFavorita(false);
       setSesionEstado('grabando');
     } catch {
       setSesionError(mensajeDeRed('iniciar la toma siguiente'));
@@ -480,6 +523,7 @@ export default function EscanerPageContent() {
       setSesionEstado('inactiva');
       setSerial('');
       setTakeNumber(1);
+      setFavorita(false);
       setBloqueoCola(null);
     } catch {
       setSesionError(mensajeDeRed('subir la inspección'));
@@ -730,6 +774,34 @@ export default function EscanerPageContent() {
             <p className="mt-1 text-center text-xs" style={{ color: TOKENS.slate }}>
               Subiendo en segundo plano — no hace falta esperar.
             </p>
+
+            {/*
+              Destacar la toma recién terminada. Se decide acá, con el equipo
+              todavía delante y el recuerdo fresco de qué mostró esa toma —
+              después, en el portal, ya nadie se acuerda cuál fue la que agarró
+              bien el rayón.
+
+              Es un toggle, no una acción de una sola vía: destacar por error y
+              no poder deshacerlo es peor que no destacar.
+            */}
+            <button
+              type="button"
+              onClick={() => void alternarFavorita()}
+              disabled={favoritaEnCurso}
+              className="mt-4 w-full rounded-xl border px-6 py-3 text-base font-bold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+              style={{
+                borderColor: favorita ? TOKENS.primary : TOKENS.line,
+                color: favorita ? TOKENS.primary : TOKENS.ink,
+                background: favorita ? '#EEF0FC' : 'transparent',
+              }}
+            >
+              {favorita ? '★ Toma destacada' : '☆ Destacar esta toma'}
+            </button>
+            {favoritaError && (
+              <p className="mt-2 text-center text-xs font-semibold" style={{ color: TOKENS.red }}>
+                {favoritaError}
+              </p>
+            )}
 
             {bloqueoCola && (
               <p
