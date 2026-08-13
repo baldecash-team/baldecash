@@ -751,7 +751,7 @@ export default function EscanerPageContent() {
               type="button"
               onClick={() => void pedirTomaSiguiente()}
               disabled={bloqueoCola != null}
-              className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white disabled:opacity-40"
+              className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:hover:brightness-100"
               style={{ background: TOKENS.primary }}
             >
               TOMA {takeNumber + 1}
@@ -759,7 +759,7 @@ export default function EscanerPageContent() {
             <button
               type="button"
               onClick={() => void subirInspeccion()}
-              className="mt-3 w-full rounded-xl border px-6 py-4 text-lg font-bold"
+              className="mt-3 w-full rounded-xl border px-6 py-4 text-lg font-bold transition-colors hover:bg-black/[0.04] active:scale-[0.99]"
               style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
             >
               SUBIR
@@ -781,7 +781,7 @@ export default function EscanerPageContent() {
               type="button"
               onClick={() => void iniciarInspeccion()}
               disabled={!listo || !equipo || sesionEstado !== 'inactiva'}
-              className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white disabled:opacity-40"
+              className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:hover:brightness-100"
               style={{ background: TOKENS.primary }}
             >
               {sesionEstado === 'iniciando' ? 'INICIANDO…' : 'INICIAR'}
@@ -810,7 +810,7 @@ export default function EscanerPageContent() {
             <button
               key={label}
               onClick={() => pedirCodigo(label)}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold"
+              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
               style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
             >
               {label}

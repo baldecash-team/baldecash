@@ -186,8 +186,16 @@ export function IdentificarEquipo({
           type="button"
           onClick={() => void buscarPorSerial()}
           disabled={deshabilitado || buscando || !serial.trim()}
-          className="shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-40"
-          style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
+          className="shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-[color:var(--hover-primary)] disabled:opacity-40 disabled:hover:bg-transparent"
+          style={
+            {
+              borderColor: TOKENS.primary,
+              color: TOKENS.primary,
+              // El controlador corre en laptop, con mouse: sin hover no hay
+              // ninguna señal de que algo es clickeable hasta apretarlo.
+              '--hover-primary': `${TOKENS.primary}14`,
+            } as React.CSSProperties
+          }
         >
           {buscando ? '…' : 'Buscar'}
         </button>
@@ -216,8 +224,15 @@ export function IdentificarEquipo({
         type="button"
         onClick={() => inputFotoRef.current?.click()}
         disabled={deshabilitado || buscando}
-        className="mt-2 w-full rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-40"
-        style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+        className="mt-2 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:border-[color:var(--hover-border)] hover:bg-black/[0.04] disabled:opacity-40 disabled:hover:border-[color:var(--rest-border)] disabled:hover:bg-transparent"
+        style={
+          {
+            borderColor: TOKENS.line,
+            color: TOKENS.ink,
+            '--hover-border': TOKENS.primary,
+            '--rest-border': TOKENS.line,
+          } as React.CSSProperties
+        }
       >
         📷 Leer serial con una foto
       </button>
