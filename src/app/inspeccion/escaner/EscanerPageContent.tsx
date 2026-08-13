@@ -467,6 +467,68 @@ export default function EscanerPageContent() {
     }
   }, [session, favorita, favoritaEnCurso, takeNumber]);
 
+  /**
+   * Regraba la toma recién terminada, con el MISMO número. Es lo opuesto a
+   * «toma N+1»: no suma un ángulo, reemplaza uno. Para cuando salió movida o
+   * mal encuadrada y dejarla ahí obligaría al revisor a adivinar cuál de las
+   * dos vale.
+   */
+  const regrabarToma = useCallback(async () => {
+    const inspectionId = inspectionIdRef.current;
+    if (!session || !inspectionId) return;
+
+    setSesionError(null);
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/inspections/${inspectionId}/takes/${takeNumber}/redo`,
+        { method: 'POST', headers: { 'X-Device-Token': session.token } }
+      );
+      if (!r.ok) {
+        setSesionError(await mensajeDeError(r, 'regrabar la toma'));
+        return;
+      }
+      // Vuelve a grabar con el mismo número: la marca de destacada se cae
+      // porque era de la toma que se acaba de descartar.
+      setFavorita(false);
+      setSesionEstado('grabando');
+    } catch {
+      setSesionError(mensajeDeRed('regrabar la toma'));
+    }
+  }, [session, takeNumber]);
+
+  /**
+   * Libera la estación para el equipo siguiente sin cancelar nada: manda el
+   * cierre (los videos ya grabados siguen subiendo en segundo plano) y vuelve
+   * a la pantalla del serial.
+   *
+   * No es «abortar»: lo grabado se conserva y termina de subir solo. Es el
+   * mismo camino que SUBIR, con la diferencia de que además limpia el serial y
+   * el equipo confirmado para no arrastrarlos al equipo que viene.
+   */
+  const reiniciar = useCallback(async () => {
+    const inspectionId = inspectionIdRef.current;
+    if (session && inspectionId) {
+      try {
+        await fetch(`${API_BASE_URL}/inspections/${inspectionId}/close`, {
+          method: 'POST',
+          headers: { 'X-Device-Token': session.token },
+        });
+      } catch {
+        // Si el cierre no sale, la estación se libera igual: el barrido del
+        // servidor reconcilia la inspección por timeout. Dejar al operador
+        // trabado frente al equipo siguiente es peor.
+      }
+    }
+    inspectionIdRef.current = null;
+    setSesionEstado('inactiva');
+    setSesionError(null);
+    setSerial('');
+    setEquipo(null);
+    setFavorita(false);
+    setTakeNumber(1);
+    setBloqueoCola(null);
+  }, [session]);
+
   const pedirTomaSiguiente = useCallback(async () => {
     if (!session) return;
     const id = inspectionIdRef.current;
@@ -835,6 +897,29 @@ export default function EscanerPageContent() {
               style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
             >
               SUBIR
+            </button>
+
+            {/* Regrabar la toma que acaba de salir mal, con el MISMO número.
+                Va en tipografía más chica que TOMA N y SUBIR a propósito: es
+                la excepción, no uno de los dos caminos normales. */}
+            <button
+              type="button"
+              onClick={() => void regrabarToma()}
+              className="mt-3 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
+              style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+            >
+              ↺ Regrabar la toma {takeNumber}
+            </button>
+
+            {/* Salida para el equipo siguiente. Lo grabado se conserva y
+                termina de subir solo — no cancela nada. */}
+            <button
+              type="button"
+              onClick={() => void reiniciar()}
+              className="mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
+              style={{ color: TOKENS.slate }}
+            >
+              Terminar y pasar al equipo siguiente
             </button>
           </>
         ) : (

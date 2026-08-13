@@ -484,7 +484,7 @@ describe('EscanerPageContent', () => {
       await grabarYFinalizar();
 
       await waitFor(() => {
-        expect(screen.getByText(/toma 1/i)).toBeInTheDocument();
+        expect(screen.getByText(/toma 1 lista/i)).toBeInTheDocument();
       });
     });
 
@@ -513,6 +513,8 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(screen.getByText('GRABANDO')).toBeInTheDocument();
       });
+      // En GRABANDO no existe el botón "Regrabar la toma N" (es del estado
+      // "decidiendo"), así que este texto sigue siendo único.
       expect(screen.getByText(/toma 2/i)).toBeInTheDocument();
 
       // Nunca se creó una segunda inspección: ningún nuevo POST a
@@ -663,7 +665,7 @@ describe('EscanerPageContent', () => {
       expect(screen.getByText(/se recuperó/i)).toBeInTheDocument();
       // El contador refleja la toma real de la inspección recuperada (1),
       // recuperado de `/state`, no un valor inventado.
-      expect(screen.getByText(/toma 1/i)).toBeInTheDocument();
+      expect(screen.getByText(/toma 1 lista/i)).toBeInTheDocument();
 
       // Y "toma 2" comanda sobre LA MISMA inspección recuperada (77), no
       // sobre una nueva. El mock no tiene ruta para `/takes` (rechaza) —
