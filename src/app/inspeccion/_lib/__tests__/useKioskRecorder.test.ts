@@ -485,14 +485,16 @@ describe('useKioskRecorder', () => {
   });
 
   describe('encuadre y zoom', () => {
-    it('pide la relación de aspecto 1.21 como "ideal", nunca "exact"', async () => {
+    it('pide la relación de aspecto 1:1 como "ideal", nunca "exact"', async () => {
       const { result } = renderHook(() => useKioskRecorder());
       await act(async () => {
         await result.current.armar();
       });
 
       const constraints = getUserMedia.mock.calls[0][0].video;
-      expect(constraints.aspectRatio).toEqual({ ideal: 1.21 });
+      expect(constraints.aspectRatio).toEqual({ ideal: 1 });
+      // Cuadrado: alto y ancho salen del mismo número.
+      expect(constraints.height.ideal).toBe(constraints.width.ideal);
       // Con `exact`, un dispositivo que no soporte esa relación falla el
       // getUserMedia entero y la cámara queda SIN ARMAR. Degradar el encuadre
       // es aceptable; no poder grabar, no.

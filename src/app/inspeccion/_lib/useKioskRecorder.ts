@@ -65,19 +65,21 @@ export interface UseKioskRecorderReturn {
 /** Cap de calidad, igual criterio que `useRecorder.ts` (admisión): clips
  * livianos y suficientes para validar evidencia, sin tope de 1080p. */
 /**
- * Relación de aspecto del encuadre: 1.21, apenas más ancho que alto.
+ * Relación de aspecto del encuadre: 1:1, cuadrado.
  *
- * Es deliberadamente distinta de los defaults (16:9 = 1.78, 4:3 = 1.33) porque
- * lo que se encuadra es un equipo apoyado sobre una mesa, no una escena: un
- * 16:9 gasta los costados en mesa vacía y obliga a alejar la cámara, que es
- * justo lo que hace ilegible una etiqueta o un rayón.
+ * Deliberadamente distinta de los defaults (16:9 = 1.78, 4:3 = 1.33) porque lo
+ * que se encuadra es un equipo apoyado sobre una mesa, no una escena: un 16:9
+ * gasta los costados en mesa vacía y obliga a alejar la cámara, que es justo lo
+ * que hace ilegible una etiqueta o un rayón. El cuadrado le da el mismo margen
+ * a lo ancho y a lo largo, así que sirve igual para una laptop abierta que para
+ * un celular parado, sin girar el teléfono.
  *
  * Va como `ideal`, no `exact`: con `exact`, un dispositivo que no soporte esa
  * relación falla el `getUserMedia` entero y la cámara queda sin armar. Con
  * `ideal` el navegador se acerca lo que puede y, si no puede, entrega lo suyo
  * — degradar el encuadre es aceptable; no poder grabar, no.
  */
-const ASPECT_RATIO = 1.21;
+const ASPECT_RATIO = 1;
 
 const VIDEO_CONSTRAINTS = {
   width: { ideal: 1280 },
