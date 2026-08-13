@@ -101,6 +101,17 @@ const state = (next: string, idx: number) => ({
   kyc_enabled: true, resume: { enabled: true, ttl_hours: 72 },
 });
 
+// Flujo por link: desde el fix de campañas por invitación (landing con la
+// sección `kyc` apagada + invitación por solicitud), los sub-pasos salen de
+// `initialState.steps` — NO de la config pública de la landing (que en esas
+// campañas dice `enabled:false` y no tiene pasos). Este fixture es lo que
+// devolvería `resume` para una solicitud cuyo único sub-paso es el contrato,
+// alineado con el "Paso 1 de 1" que asertan los tests de la ruta tokenizada.
+const linkState = (next: string, idx: number) => ({
+  ...state(next, idx),
+  steps: [{ type: 'contract', status: 'pending', completed_at: null }],
+});
+
 beforeEach(() => {
   window.localStorage.clear();
   jest.clearAllMocks();
@@ -155,7 +166,7 @@ it('usa el application_code de `initialState` cuando no hay `?code=` en la URL (
   mockKycSteps.mockReturnValue([{ type: 'contract' }]); // 1 sub-paso: alcanza con 1 click para avanzar
   mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
 
-  const initialState = state('contract', 0); // next_step_index=0 → arranca directo en 'contract'
+  const initialState = linkState('contract', 0); // next_step_index=0 → arranca directo en 'contract'
 
   render(<KycClient initialState={initialState as never} resumeToken="tok-abc" />);
 
@@ -357,7 +368,7 @@ describe('onTrack (sink de eventos de la ruta tokenizada)', () => {
 
     render(
       <KycClient
-        initialState={state('contract', 0) as never}
+        initialState={linkState('contract', 0) as never}
         resumeToken="tok-abc"
         onTrack={onTrack}
       />,
@@ -386,7 +397,7 @@ describe('onTrack (sink de eventos de la ruta tokenizada)', () => {
 
     render(
       <KycClient
-        initialState={state('contract', 0) as never}
+        initialState={linkState('contract', 0) as never}
         resumeToken="tok-abc"
         onTrack={onTrack}
       />,
@@ -459,7 +470,7 @@ describe('botón "Continuar en otro momento"', () => {
     window.localStorage.setItem('baldecash-copia-home-wizard-field-document_number', '48509924');
     mockUseSearchParams.mockReturnValue(new URLSearchParams()); // ruta tokenizada: sin ?code=
     mockKycSteps.mockReturnValue([{ type: 'contract' }]);
-    const initialState = state('contract', 0);
+    const initialState = linkState('contract', 0);
 
     render(<KycClient initialState={initialState as never} resumeToken="tok-abc" />);
 
