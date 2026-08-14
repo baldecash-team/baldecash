@@ -331,7 +331,13 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
    * validado contra la solicitud, así que no agrega exposición.
    */
   const [verifiedDni, setVerifiedDni] = useState<string | undefined>();
-  const effectiveDni = verifiedDni ?? wizardDni;
+  // El DNI del canje del token (`/resume/{token}`) manda sobre el de
+  // localStorage: viene de la SOLICITUD (autoritativo), mientras que el del
+  // wizard es lo que quedó en ese navegador — podría ser de otra persona.
+  // Sin esta fuente, quien abría el link de WhatsApp en otro dispositivo no
+  // tenía DNI local y el botón "Verificar identidad" quedaba deshabilitado
+  // para siempre (dniReady=false en DniSelfieStep).
+  const effectiveDni = verifiedDni ?? initialState?.document_number ?? wizardDni;
 
   const rememberVerifiedDni = (dni: string) => {
     setVerifiedDni(dni);
