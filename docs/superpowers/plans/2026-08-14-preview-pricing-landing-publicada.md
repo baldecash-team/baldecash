@@ -6,7 +6,7 @@
 
 **Architecture:** La web ya tiene todo el cableado: `catalogApi.ts` manda `preview_key` al backend y `CatalogoClient` lo propaga a cada llamada. El único corte es que el `previewKey` se obtiene de `preview.isPreviewingLanding(landing)`, que exige haber entrado por `/preview/{id}` — un flujo pensado para landings **no publicadas**. Se agrega una segunda fuente de token, leída de la URL, que convive con la actual sin reemplazarla. Para que sea genérico y no una excepción de pricing, el contexto guarda un preview con `scope` (hoy `"pricing"`, mañana lo que venga) y el catálogo solo pregunta "¿hay un token vigente para esta landing?".
 
-**Tech Stack:** Next.js 14 App Router, React Context, sessionStorage, Vitest, Playwright.
+**Tech Stack:** Next.js 14 App Router, React Context, sessionStorage, **Jest** (no vitest: este repo usa jest, ver package.json), Playwright.
 
 ## Global Constraints
 
@@ -50,16 +50,16 @@ Crear `src/app/prototipos/0.6/hooks/__tests__/usePreviewToken.test.ts`:
 
 ```typescript
 import { renderHook } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// jest: describe/it/expect/beforeEach son globales; jest.mock para los mocks
 import { usePreviewToken } from '../usePreviewToken';
 
 // El hook lee la URL: se simula con la API de Next que usa el proyecto.
-const mockSearchParams = vi.fn(() => new URLSearchParams(''));
-vi.mock('next/navigation', () => ({
+const mockSearchParams = jest.fn(() => new URLSearchParams(''));
+jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams(),
 }));
 
-vi.mock('../../context/PreviewContext', () => ({
+jest.mock('../../context/PreviewContext', () => ({
   usePreview: () => ({
     isPreviewingLanding: () => false,
     previewKey: null,
@@ -121,7 +121,7 @@ describe('usePreviewToken', () => {
 
 - [ ] **Step 2: Correr el test y verificar que falla**
 
-Run: `npx vitest run src/app/prototipos/0.6/hooks/__tests__/usePreviewToken.test.ts`
+Run: `npx jest src/app/prototipos/0.6/hooks/__tests__/usePreviewToken.test.ts`
 Expected: FAIL — `Failed to resolve import "../usePreviewToken"`.
 
 - [ ] **Step 3: Implementar el hook**
@@ -220,7 +220,7 @@ export function usePreviewToken(landingSlug: string): string | null {
 
 - [ ] **Step 4: Correr los tests y verificar que pasan**
 
-Run: `npx vitest run src/app/prototipos/0.6/hooks/__tests__/usePreviewToken.test.ts`
+Run: `npx jest src/app/prototipos/0.6/hooks/__tests__/usePreviewToken.test.ts`
 Expected: PASS — 5 passed.
 
 - [ ] **Step 5: Verificar que los tests detectan una rotura**
