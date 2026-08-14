@@ -31,25 +31,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 export const INITIAL_LOAD_LIMIT = 15;
 export const LOAD_MORE_LIMIT = 8;
 
-/**
- * Slugs de landings cuyo catálogo se sirve desde el endpoint `/products/best-offer`
- * en lugar del `/products` estándar. Este endpoint devuelve cada producto con su
- * mejor oferta disponible aplicada, manteniendo el mismo shape de respuesta.
- */
-const BEST_OFFER_LANDING_SLUGS = new Set<string>([
-  'home',
-  'copia-home',
-]);
-
-/**
- * Devuelve el segmento de endpoint de productos para un landing dado.
- * Para los slugs en BEST_OFFER_LANDING_SLUGS usa `products/best-offer`,
- * para el resto el `products` estándar.
- */
-function getProductsEndpoint(landingSlug: string): string {
-  return BEST_OFFER_LANDING_SLUGS.has(landingSlug) ? 'products/best-offer' : 'products';
-}
-
 // ============================================
 // API Response Types
 // ============================================
@@ -378,7 +359,12 @@ export async function getCatalogProducts(
     if (options.page_size && options.limit === undefined) params.set('page_size', String(options.page_size));
 
     const queryString = params.toString();
-    const url = `${API_BASE_URL}/public/landing/${landingSlug}/${getProductsEndpoint(landingSlug)}${queryString ? `?${queryString}` : ''}`;
+    // `/products` ya aplica el hook best-offer donde corresponde: el backend
+    // consulta `catalog.best_offer_landing_slugs` de system_config
+    // (ws2 catalog.py:504-510, BAL-2874). El front elegia entre los dos
+    // endpoints con una lista quemada de 2 slugs mientras system_config tenia
+    // 33 — redundante y ya desalineada (BAL-3002).
+    const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(url, {
       cache: 'no-store' as const,
