@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 
 import { type GamerTheme, BADGE_COLORS } from './gamerTheme';
+import { gamerDisplayTerm } from './gamerPricing';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { RibbonLabel } from '../catalog/RibbonLabel';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
@@ -358,7 +360,7 @@ export function GamerProductCard({
               marginTop: 8,
             }}
           >
-            en {product.maxTermMonths || 24} meses{product.hookInitialPercent && product.hookInitialPercent > 0 ? ` · inicial ${product.hookInitialPercent}%` : ' · sin inicial'}
+            en {gamerDisplayTerm(product)} meses{product.hookInitialAmount && product.hookInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(product.hookInitialAmount)}` : ' · sin inicial'}
           </p>
         </div>
 
