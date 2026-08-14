@@ -19,7 +19,7 @@
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
 
 const WEB = process.env.E2E_WEB_URL ?? 'http://localhost:3003';
-const API = process.env.E2E_API_URL ?? 'http://localhost:8062';
+const API = process.env.E2E_API_URL ?? 'http://localhost:8064';
 
 // La barra final es obligatoria: sin ella Next redirige de /catalogo a
 // /catalogo/ y descarta el query string, o sea que el token nunca llegaría.

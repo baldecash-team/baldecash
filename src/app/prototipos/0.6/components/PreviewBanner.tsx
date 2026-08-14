@@ -10,6 +10,7 @@ import { usePathname } from 'next/navigation';
 import { Eye, X } from 'lucide-react';
 import { usePreview } from '../context/PreviewContext';
 import { usePreviewToken } from '../hooks/usePreviewToken';
+import { usePreviewAplicado } from '../hooks/usePreviewAplicado';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 interface PreviewBannerProps {
@@ -42,8 +43,13 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
   // El preview de pricing no pasa por PreviewContext: no tiene landingId ni slug
   // guardados, solo el token de la URL. Se reconoce porque hay token para esta
   // landing y el flujo viejo NO la está previsualizando.
+  // Tener token no alcanza: uno vencido devuelve precios REALES sin avisar, y
+  // anunciarlos como propuestos es peor que no anunciar nada. Se confirma
+  // contra el backend, que es el unico que sabe si cotizo con el overlay.
+  const previewAplicado = usePreviewAplicado(landingSlug, previewToken);
+
   const esPreviewDePricing =
-    !!previewToken && !!landingSlug && !isPreviewingLanding(landingSlug) && !propLandingId;
+    previewAplicado === true && !!landingSlug && !isPreviewingLanding(landingSlug) && !propLandingId;
 
   // For admin preview pages that pass landingId directly, always show the banner
   // For regular pages with landingSlug, only show if that specific landing is being previewed
