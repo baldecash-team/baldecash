@@ -94,7 +94,7 @@ import {
   GamerSortDropdown,
   GamerActiveFilters,
 } from './components/gamer';
-import { gamerTermMonths, gamerDisplayTerm, gamerNativeTerm } from './components/gamer/gamerPricing';
+import { gamerTermMonths, gamerDisplayTerm, gamerNativeTerm, gamerInitialLabel } from './components/gamer/gamerPricing';
 
 // Quiz
 import { HelpQuiz } from '@/app/prototipos/0.6/quiz/components/quiz/HelpQuiz';
@@ -303,7 +303,7 @@ export function GamerCatalogoContent() {
   // hookTermMonths/paymentFrequency: el plazo que corresponde a `quotaMonthly`.
   // El mapeo los descartaba y el buscador movil mostraba el plazo maximo junto
   // a la cuota del hook (BAL-3001).
-  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; images: string[]; quotaMonthly: number; maxTermMonths: number; hookTermMonths?: number; paymentFrequency?: string }[]>([]);
+  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; images: string[]; quotaMonthly: number; maxTermMonths: number; hookTermMonths?: number; paymentFrequency?: string; hookInitialAmount?: number }[]>([]);
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const mobileSearchDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Monotonic request id: only the latest in-flight mobile search applies to state.
@@ -1399,7 +1399,7 @@ export function GamerCatalogoContent() {
                               S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: T.textMuted }}>/mes</span>
                             </div>
                             <div style={{ fontSize: 10, color: T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                              x {gamerDisplayTerm(product)} meses
+                              x {gamerDisplayTerm(product)} meses{gamerInitialLabel(product.hookInitialAmount)}
                             </div>
                           </div>
                         </button>
@@ -2349,6 +2349,7 @@ export function GamerCatalogoContent() {
                             brand: p.brand, thumbnail: p.thumbnail, images: p.images || [],
                             quotaMonthly: p.quotaMonthly, maxTermMonths: p.maxTermMonths,
                             hookTermMonths: p.hookTermMonths, paymentFrequency: p.paymentFrequency,
+                            hookInitialAmount: p.hookInitialAmount,
                           })));
                         } else { setMobileSearchResults([]); }
                       } catch {
@@ -2409,7 +2410,7 @@ export function GamerCatalogoContent() {
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 600, color: T.neonCyan, margin: 0, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(p.quotaMonthly)}/mes</p>
-                        <p style={{ fontSize: 10, color: T.textMuted, margin: 0 }}>x {gamerDisplayTerm(p)} meses</p>
+                        <p style={{ fontSize: 10, color: T.textMuted, margin: 0 }}>x {gamerDisplayTerm(p)} meses{gamerInitialLabel(p.hookInitialAmount)}</p>
                       </div>
                     </button>
                   ))}

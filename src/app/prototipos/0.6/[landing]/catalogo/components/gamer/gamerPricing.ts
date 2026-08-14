@@ -1,4 +1,5 @@
 import { termInFrequency } from '@/app/prototipos/0.6/services/catalogApi';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 /**
  * El plazo y la inicial que muestran los componentes de Zona Gamer.
@@ -46,4 +47,18 @@ export function gamerNativeTerm(product: GamerPricingSource): number {
   if (product.paymentFrequency === 'semanal') return months * 4;
   if (product.paymentFrequency === 'quincenal') return months * 2;
   return months;
+}
+
+/**
+ * Sufijo de la inicial para el desplegable del buscador.
+ *
+ * El buscador de Zona Gamer mostraba solo cuota y plazo, sin decir nada de la
+ * inicial — ni el monto ni "sin inicial". El buscador estandar si lo muestra
+ * (NavbarActions.tsx:286-289), asi que el mismo producto se describia distinto
+ * segun donde lo buscaras.
+ */
+export function gamerInitialLabel(initialAmount?: number | null): string {
+  return initialAmount && initialAmount > 0
+    ? ` · inicial S/${formatMoneyNoDecimals(initialAmount)}`
+    : ' · sin inicial';
 }

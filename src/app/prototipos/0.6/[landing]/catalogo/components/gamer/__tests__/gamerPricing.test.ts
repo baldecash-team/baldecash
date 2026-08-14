@@ -1,4 +1,4 @@
-import { gamerTermMonths, gamerDisplayTerm, gamerNativeTerm } from '../gamerPricing';
+import { gamerTermMonths, gamerDisplayTerm, gamerNativeTerm, gamerInitialLabel } from '../gamerPricing';
 
 /**
  * Zona Gamer mostraba `maxTermMonths` junto a la cuota del hook, que
@@ -81,5 +81,32 @@ describe('gamerDisplayTerm — plazo para mostrar', () => {
   // arreglo no debe cambiarles nada.
   it('no altera los productos que hoy tiene zona-gamer', () => {
     expect(gamerDisplayTerm({ hookTermMonths: 36, maxTermMonths: 36, paymentFrequency: 'mensual' })).toBe(36);
+  });
+});
+
+/**
+ * El desplegable del buscador de Zona Gamer mostraba solo cuota y plazo:
+ * no decia nada de la inicial, ni el monto ni "sin inicial". El buscador
+ * estandar si lo muestra (NavbarActions.tsx:286-289), asi que el mismo
+ * producto se describia distinto segun donde lo buscaras.
+ *
+ * `gamerInitialLabel` arma ese sufijo con el formato de la card.
+ */
+describe('gamerInitialLabel — sufijo de la inicial en el buscador', () => {
+  it('muestra el monto cuando el producto tiene inicial', () => {
+    expect(gamerInitialLabel(1250)).toBe(' · inicial S/1,250');
+  });
+
+  it('dice "sin inicial" cuando no tiene', () => {
+    expect(gamerInitialLabel(0)).toBe(' · sin inicial');
+  });
+
+  it('dice "sin inicial" cuando el dato no vino', () => {
+    expect(gamerInitialLabel(undefined)).toBe(' · sin inicial');
+  });
+
+  // Los 24 productos que hoy tiene zona-gamer caen aca.
+  it('los productos actuales de zona-gamer quedan en "sin inicial"', () => {
+    expect(gamerInitialLabel(null)).toBe(' · sin inicial');
   });
 });

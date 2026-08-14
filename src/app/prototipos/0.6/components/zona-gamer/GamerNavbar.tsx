@@ -19,7 +19,7 @@ import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 import { GamerPromoBanner } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/GamerPromoBanner';
-import { gamerDisplayTerm } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/gamerPricing';
+import { gamerDisplayTerm, gamerInitialLabel } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/gamerPricing';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -60,6 +60,8 @@ interface SearchResult {
    */
   hookTermMonths?: number;
   paymentFrequency?: string;
+  /** Monto (S/) de la inicial. El desplegable no decia nada de la inicial. */
+  hookInitialAmount?: number;
 }
 
 export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange, portalButtonText, customerPortalUrl, promoBannerData }: GamerNavbarProps) {
@@ -155,6 +157,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             maxTermMonths: p.maxTermMonths || 24,
             hookTermMonths: p.hookTermMonths,
             paymentFrequency: p.paymentFrequency,
+            hookInitialAmount: p.hookInitialAmount,
           })));
         } else {
           setSearchResults([]);
@@ -533,7 +536,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
                           </div>
                           <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                            x {gamerDisplayTerm(product)} meses
+                            x {gamerDisplayTerm(product)} meses{gamerInitialLabel(product.hookInitialAmount)}
                           </div>
                         </div>
                       </button>
@@ -910,7 +913,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
                           </div>
                           <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                            x {gamerDisplayTerm(product)} meses
+                            x {gamerDisplayTerm(product)} meses{gamerInitialLabel(product.hookInitialAmount)}
                           </div>
                         </div>
                       </button>
