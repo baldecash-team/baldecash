@@ -263,6 +263,15 @@ export function DniSelfieStep({
   const [similarity, setSimilarity] = useState<number | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
 
+  // ── Bypass del check de documento (1 solo intento) ─────────────────────────
+  // Si Textract no encuentra el número en la foto (reflejos, foto lejana: pasa
+  // con documentos reales), al PRIMER fallo se le ofrece confirmar su DNI
+  // tipeándolo. Si coincide con el de la solicitud se salta `verify-dni`, pero
+  // `compare-faces` corre igual — sin eso, dos selfies pasarían como antes.
+  const [docBypass, setDocBypass] = useState(false);
+  const [bypassDni, setBypassDni] = useState('');
+  const [bypassDniError, setBypassDniError] = useState<string | null>(null);
+
   // DNI tipeado acá cuando no llegó por props. Solo dígitos: el backend exige 8.
   // El DNI sale SIEMPRE de la solicitud: del formulario o del canje del token.
   // Ya no hay input, asi que no hay forma de tipearlo mal.
@@ -274,7 +283,10 @@ export function DniSelfieStep({
     setVerifyState('failed');
   };
 
-  const runVerification = async () => {
+  // `opts.skipDocCheck` llega del bypass recién confirmado: el estado
+  // `docBypass` todavía no se refleja en este closure (setState es async).
+  const runVerification = async (opts?: { skipDocCheck?: boolean }) => {
+    const skipDocCheck = opts?.skipDocCheck || docBypass;
     if (!selfieShot || !dniShot || !dniReady) return;
     track('kyc_identity_verify_submit', { application_code: applicationCode });
 
@@ -313,43 +325,48 @@ export function DniSelfieStep({
       // Va ANTES de comparar rostros: `compare-faces` solo mira dos caras, así
       // que dos selfies daban 100% y pasaban. Además corta temprano y ahorra
       // la llamada a Rekognition cuando la foto no sirve.
-      setVerifyState('checking-document');
-      const doc = await verifyDni({
-        image: dniUploadUrl.file_url,
-        documentNumber: effectiveDni,
-        applicationCode,
-      });
+      // Con el bypass confirmado (DNI tipeado == DNI de la solicitud) este
+      // paso se salta — la misma foto volvería a fallar — pero compare-faces
+      // corre igual, que es lo que cierra el hueco de las dos selfies.
+      if (!skipDocCheck) {
+        setVerifyState('checking-document');
+        const doc = await verifyDni({
+          image: dniUploadUrl.file_url,
+          documentNumber: effectiveDni,
+          applicationCode,
+        });
 
-      if (!doc.success || doc.status !== 'verified') {
-        if (doc.success) {
-          // Toda la metadata de Textract, no solo el status: sin `occurrences`
-          // ni `max_confidence` no se puede saber si el umbral esta mal
-          // calibrado o si de verdad la foto era ilegible.
-          track('kyc_document_rejected', {
-            application_code: applicationCode,
-            status: doc.status,
-            occurrences: doc.occurrences,
-            occurrences_total: doc.occurrences_total,
-            min_occurrences: doc.min_occurrences,
-            min_confidence: doc.min_confidence,
-            max_confidence: doc.max_confidence,
-            lines_detected: doc.lines_detected,
-          });
+        if (!doc.success || doc.status !== 'verified') {
+          if (doc.success) {
+            // Toda la metadata de Textract, no solo el status: sin `occurrences`
+            // ni `max_confidence` no se puede saber si el umbral esta mal
+            // calibrado o si de verdad la foto era ilegible.
+            track('kyc_document_rejected', {
+              application_code: applicationCode,
+              status: doc.status,
+              occurrences: doc.occurrences,
+              occurrences_total: doc.occurrences_total,
+              min_occurrences: doc.min_occurrences,
+              min_confidence: doc.min_confidence,
+              max_confidence: doc.max_confidence,
+              lines_detected: doc.lines_detected,
+            });
+          }
+          fail(documentFailure(doc));
+          return;
         }
-        fail(documentFailure(doc));
-        return;
+        track('kyc_document_verified', {
+          application_code: applicationCode,
+          status: doc.status,
+          occurrences: doc.occurrences,
+          occurrences_total: doc.occurrences_total,
+          min_occurrences: doc.min_occurrences,
+          min_confidence: doc.min_confidence,
+          max_confidence: doc.max_confidence,
+          lines_detected: doc.lines_detected,
+        });
+        onDniVerified?.(effectiveDni);
       }
-      track('kyc_document_verified', {
-        application_code: applicationCode,
-        status: doc.status,
-        occurrences: doc.occurrences,
-        occurrences_total: doc.occurrences_total,
-        min_occurrences: doc.min_occurrences,
-        min_confidence: doc.min_confidence,
-        max_confidence: doc.max_confidence,
-        lines_detected: doc.lines_detected,
-      });
-      onDniVerified?.(effectiveDni);
 
       // ── 2. ¿El rostro de la selfie es el del documento? ──────────────────
       setVerifyState('verifying');
@@ -387,11 +404,40 @@ export function DniSelfieStep({
     setDniShot(null);
     setSimilarity(null);
     setVerifyState('idle');
+    // Fotos nuevas = verificación completa de nuevo: el bypass era para ESA
+    // foto que no se pudo leer, no un pase permanente.
+    setDocBypass(false);
+    setBypassDni('');
+    setBypassDniError(null);
     setPhase('selfie');
     // Quien llega acá es justo quien no cumplió alguna condición: el fallo pudo
     // ser la gorra o el contraluz. Volver a la cámara sin repetirlas invita a
     // sacar la misma foto otra vez.
     setSelfieTipsOpen(true);
+  };
+
+  // Fallos que habilitan el bypass: SOLO los del check de documento. Un fallo
+  // de rostros o de red no se puede "confirmar tipeando el DNI".
+  const esFalloDeDocumento = ['documento_no_coincide', 'documento_baja_confianza', 'documento_ilegible']
+    .includes(failure?.reason ?? '');
+
+  const confirmarDniBypass = () => {
+    const typed = bypassDni.replace(/\D/g, '');
+    if (typed.length !== 8) {
+      setBypassDniError('Ingresa los 8 dígitos de tu DNI.');
+      return;
+    }
+    if (typed !== effectiveDni) {
+      setBypassDniError('Ese número no coincide con el DNI de tu solicitud.');
+      return;
+    }
+    setBypassDniError(null);
+    setDocBypass(true);
+    track('kyc_document_check_bypassed', {
+      application_code: applicationCode,
+      reason: failure?.reason ?? 'desconocido',
+    });
+    runVerification({ skipDocCheck: true });
   };
 
   const openCamera = useCallback(
@@ -550,7 +596,7 @@ export function DniSelfieStep({
             */}
             <button
               type="button"
-              onClick={runVerification}
+              onClick={() => runVerification()}
               disabled={!dniReady}
               className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl transition-opacity cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -631,7 +677,7 @@ export function DniSelfieStep({
               <>
                 <button
                   type="button"
-                  onClick={runVerification}
+                  onClick={() => runVerification()}
                   className="w-full bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Reintentar
@@ -644,6 +690,50 @@ export function DniSelfieStep({
                   Repetir fotos
                 </button>
               </>
+            )}
+
+            {/*
+              Bypass del check de documento, al primer fallo de lectura: con
+              DNIs reales el OCR falla seguido (reflejos, foto lejana), y dejar
+              al titular sin salida lo atasca en un loop de "Repetir fotos".
+              Confirmar el número tipeándolo NO verifica la foto — solo prueba
+              que conoce el DNI de la solicitud — así que compare-faces corre
+              igual (cierra el hueco de las dos selfies) y todo queda medido
+              con kyc_document_check_bypassed.
+            */}
+            {esFalloDeDocumento && (
+              <div className="border-t border-neutral-200 pt-4 space-y-2">
+                <p className="text-sm text-neutral-600">
+                  ¿Sí es tu DNI y no logramos leerlo? Confirma tu número de
+                  documento para continuar; igual compararemos tu rostro con la
+                  foto.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={8}
+                  value={bypassDni}
+                  onChange={(e) => {
+                    setBypassDni(e.target.value.replace(/\D/g, '').slice(0, 8));
+                    setBypassDniError(null);
+                  }}
+                  placeholder="Nº de DNI (8 dígitos)"
+                  aria-label="Confirma tu número de DNI"
+                  className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-[15px] text-neutral-800 outline-none focus:border-[#4654CD] focus:ring-2 focus:ring-[#4654CD]/20"
+                />
+                {bypassDniError && (
+                  <p className="text-sm text-red-600" role="alert">{bypassDniError}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={confirmarDniBypass}
+                  disabled={bypassDni.length !== 8}
+                  className="w-full rounded-xl border border-neutral-300 bg-white py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:border-neutral-400 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                >
+                  Confirmar DNI y continuar
+                </button>
+              </div>
             )}
 
             {/*
