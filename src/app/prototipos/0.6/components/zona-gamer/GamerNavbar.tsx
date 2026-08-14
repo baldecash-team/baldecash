@@ -19,6 +19,7 @@ import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 import { GamerPromoBanner } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/GamerPromoBanner';
+import { gamerDisplayTerm } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/gamerPricing';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -52,6 +53,13 @@ interface SearchResult {
   thumbnail: string;
   quotaMonthly: number;
   maxTermMonths: number;
+  /**
+   * Plazo del hook: es el que corresponde a `quotaMonthly`. El mapeo lo
+   * descartaba y el desplegable mostraba el plazo maximo junto a la cuota del
+   * hook — dos plazos distintos en la misma linea (BAL-3001).
+   */
+  hookTermMonths?: number;
+  paymentFrequency?: string;
 }
 
 export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange, portalButtonText, customerPortalUrl, promoBannerData }: GamerNavbarProps) {
@@ -145,6 +153,8 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             thumbnail: p.images?.[0] || p.thumbnail,
             quotaMonthly: p.quotaMonthly,
             maxTermMonths: p.maxTermMonths || 24,
+            hookTermMonths: p.hookTermMonths,
+            paymentFrequency: p.paymentFrequency,
           })));
         } else {
           setSearchResults([]);
@@ -523,7 +533,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
                           </div>
                           <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                            x {product.maxTermMonths} meses
+                            x {gamerDisplayTerm(product)} meses
                           </div>
                         </div>
                       </button>
@@ -900,7 +910,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
                           </div>
                           <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                            x {product.maxTermMonths} meses
+                            x {gamerDisplayTerm(product)} meses
                           </div>
                         </div>
                       </button>
