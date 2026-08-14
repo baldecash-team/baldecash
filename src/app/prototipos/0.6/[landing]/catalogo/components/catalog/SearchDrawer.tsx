@@ -10,7 +10,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { Search, X, Trash2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
+import { searchProductSuggestions, termInFrequency, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -281,9 +281,14 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                     // El plazo del hook, no el máximo: la cuota que muestra el
                     // backend corresponde a ese plazo. Mezclarlos daba "S/293
                     // x 36 meses" cuando la card decía 24 (BAL-2983).
-                    const term = (suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24) as TermMonths;
+                    const termMeses = (suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24) as TermMonths;
+                    // El plazo se muestra en la unidad de la frecuencia (la card
+                    // divide por 4 en semanal, ProductCard.tsx:316-319), pero la
+                    // cuota de respaldo se calcula con los MESES: pasarle 6 a la
+                    // francesa daria una cuota cuatro veces mayor.
+                    const term = termInFrequency(termMeses, suggestion.paymentFrequency) as TermMonths;
                     const quota = suggestion.price > 0
-                      ? (suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota)
+                      ? (suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, termMeses, SELECTED_INITIAL).quota)
                       : null;
                     return (
                       <button
@@ -322,6 +327,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                             </p>
                             <p className="text-[10px] text-[var(--text-muted,#6b7280)]">
                               x {term} meses
+                              {suggestion.hookInitialAmount
+                                ? ` · inicial S/${formatMoney(suggestion.hookInitialAmount)}`
+                                : ' · sin inicial'}
                             </p>
                           </div>
                         )}

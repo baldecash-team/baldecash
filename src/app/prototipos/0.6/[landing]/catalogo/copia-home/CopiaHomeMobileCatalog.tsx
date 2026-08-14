@@ -315,7 +315,15 @@ export function CopiaHomeMobileCatalog() {
                     <div className={styles.price}>
                       <div className={styles.priceLbl}>Cuota mensual</div>
                       <div className={styles.priceNum}>S/{Math.round(p.quotaMonthly)} <span>/mes</span></div>
-                      <div className={styles.priceSub}>{p.maxTermMonths} meses · sin inicial</div>
+                      {/* Plazo del hook + inicial real, igual que la card del
+                          catalogo estandar. Antes decia el plazo maximo y "sin
+                          inicial" hardcodeado (BAL-2998). */}
+                      <div className={styles.priceSub}>
+                        {p.hookTermMonths ?? p.maxTermMonths} meses
+                        {p.hookInitialAmount && p.hookInitialAmount > 0
+                          ? ` · inicial S/${Math.round(p.hookInitialAmount)}`
+                          : ' · sin inicial'}
+                      </div>
                     </div>
                   </div>
                   <div className={styles.prodRight}>

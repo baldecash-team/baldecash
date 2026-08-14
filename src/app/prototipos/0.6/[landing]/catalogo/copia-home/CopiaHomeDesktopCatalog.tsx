@@ -407,7 +407,16 @@ export function CopiaHomeDesktopCatalog() {
                           </div>
                           <div className={styles.dcardPrice}>
                             <div className={styles.num}>S/{Math.round(p.quotaMonthly)} <span>/mes</span></div>
-                            <div className={styles.sub}>{p.maxTermMonths} meses · sin inicial</div>
+                            {/* El plazo del hook, no el maximo: la cuota de arriba
+                                corresponde a ese plazo. Y la inicial estaba
+                                hardcodeada en "sin inicial" — mentia en los 12 de
+                                26 productos que si la tienen (BAL-2998). */}
+                            <div className={styles.sub}>
+                              {p.hookTermMonths ?? p.maxTermMonths} meses
+                              {p.hookInitialAmount && p.hookInitialAmount > 0
+                                ? ` · inicial S/${Math.round(p.hookInitialAmount)}`
+                                : ' · sin inicial'}
+                            </div>
                           </div>
                           <div className={styles.dcardBtns}>
                             <button type="button" className={`${styles.btn} ${styles.btnOutline}`} onClick={() => goDetalle(p)}>
