@@ -279,6 +279,9 @@ export type EventType =
   | 'kyc_contract_view'
   | 'kyc_contract_accepted'
   | 'kyc_documents_uploaded'
+  // Documentos subidos a S3 Y registrados en application_document; distinto
+  // de `kyc_documents_uploaded`, que solo mide la seleccion local.
+  | 'kyc_documents_saved'
   | 'kyc_document_upload_error'
   | 'kyc_completed'
   // "Continuar en otro momento" — pausa elegida por el cliente + link por WhatsApp.

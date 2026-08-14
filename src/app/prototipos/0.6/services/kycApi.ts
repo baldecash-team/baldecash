@@ -156,13 +156,14 @@ export interface KycUploadUrl {
 }
 
 /**
- * Pide una URL presignada de S3 para subir la selfie o el DNI.
+ * Pide una URL presignada de S3 para subir la selfie, el DNI o un documento
+ * del paso `documents` (kind='document', que además acepta application/pdf).
  * Fail-safe: ante error de red o HTTP no-OK devuelve null (el caller decide
  * cómo degradar: mostrar error reintentable, nunca lanzar).
  */
 export async function getKycUploadUrl(
   applicationCode: string,
-  kind: 'selfie' | 'dni',
+  kind: 'selfie' | 'dni' | 'document',
   contentType = 'image/jpeg',
 ): Promise<KycUploadUrl | null> {
   try {
@@ -201,6 +202,54 @@ export async function uploadToS3(
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+export interface KycDocumentFile {
+  key: string;
+  file_name: string;
+  mime_type?: string;
+  size_kb?: number;
+}
+
+/**
+ * Registra en el backend (`application_document`) los archivos del paso
+ * `documents` YA subidos a S3 con `getKycUploadUrl`/`uploadToS3`. Sin este
+ * registro los archivos quedan huérfanos en el bucket y no se pueden cablear
+ * después (revisión en admin, OCR, etc.).
+ *
+ * Exige prueba de titularidad — `documentNumber` (sesión original) o
+ * `resumeToken` (página `/kyc/{token}`) — igual que step-complete.
+ * Fail-safe: ante error devuelve null (el caller muestra error reintentable).
+ */
+export async function registerKycDocuments(
+  applicationCode: string,
+  files: KycDocumentFile[],
+  documentNumber?: string,
+  resumeToken?: string,
+): Promise<{ success: boolean; document_ids: number[] } | null> {
+  const prueba = documentNumber
+    ? { document_number: documentNumber }
+    : resumeToken
+      ? { resume_token: resumeToken }
+      : null;
+  if (!prueba || files.length === 0) return null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/kyc/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_code: applicationCode,
+        files,
+        ...prueba,
+      }),
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as { success: boolean; document_ids: number[] };
+  } catch {
+    return null;
   }
 }
 

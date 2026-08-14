@@ -182,7 +182,18 @@ function renderStep({
         />
       );
     case 'documents':
-      return <DocumentosStep onDone={onDone} onBack={onBack} applicationCode={applicationCode} onTrack={onTrack} />;
+      return (
+        <DocumentosStep
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          // Registrar los documentos escribe en la solicitud: misma prueba de
+          // titularidad que step-complete (DNI en sesión, token por link).
+          documentNumber={documentNumber}
+          resumeToken={resumeToken}
+          onTrack={onTrack}
+        />
+      );
     case 'payment':
       // Solo se llega con veredicto aprobado y cuota inicial impaga, asi que
       // `linkPago` existe; el guard es defensivo.
