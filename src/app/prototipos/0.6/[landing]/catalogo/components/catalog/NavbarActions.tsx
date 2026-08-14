@@ -12,7 +12,7 @@ import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogProduct, CartItem, WishlistItem, TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
-import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
+import { searchProductSuggestions, termInFrequency, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
@@ -270,7 +270,11 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                     // El plazo del hook, no el máximo: la cuota que muestra el
                     // backend corresponde a ese plazo. Mezclarlos daba "S/293
                     // x 36 meses" cuando la card decía 24 (BAL-2983).
-                    const term = (suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24) as TermMonths;
+                    // El plazo viene en meses; la card lo convierte a la unidad
+                    // de la frecuencia (ProductCard.tsx:316-319). Sin esto el
+                    // desplegable decia "24 meses" y la card "6" en semanales.
+                    const termMeses = suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24;
+                    const term = termInFrequency(termMeses, suggestion.paymentFrequency) as TermMonths;
                     const quota = suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota;
                     return (
                       <div className="text-right flex-shrink-0">
@@ -279,6 +283,9 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                         </p>
                         <p className="text-[10px] text-[var(--text-muted,#6b7280)]">
                           x {term} meses
+                          {suggestion.hookInitialAmount
+                            ? ` · inicial S/${formatMoney(suggestion.hookInitialAmount)}`
+                            : ' · sin inicial'}
                         </p>
                       </div>
                     );

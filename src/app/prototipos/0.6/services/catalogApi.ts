@@ -709,7 +709,20 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
         )
       : undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
-    hookInitialAmount: hook.initial_amount != null && hook.initial_amount > 0 ? hook.initial_amount : undefined,
+    // El backend no siempre manda `initial_amount` (verificado: `/products` y
+    // `/products/best-offer` lo devuelven null aun con `initial_percent: 10`).
+    // Cuando falta se deriva del precio con la formula de negocio: la inicial
+    // se redondea al MULTIPLO DE 10 hacia arriba, igual que
+    // `calculateQuotaWithInitial` (catalogo/types/catalog.ts:120). Sin esto los
+    // componentes que leen este campo mostraban "sin inicial" en productos que
+    // si la tienen (BAL-2998).
+    hookInitialAmount: (() => {
+      if (hook.initial_amount != null && hook.initial_amount > 0) return hook.initial_amount;
+      const pct = hook.initial_percent ?? 0;
+      const precio = pricing.final_price ?? pricing.list_price ?? 0;
+      if (pct <= 0 || precio <= 0) return undefined;
+      return Math.ceil((precio * (pct / 100)) / 10) * 10;
+    })(),
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
@@ -1516,6 +1529,31 @@ export interface ProductSuggestion {
    */
   hookTermMonths: number | null;
   quotaMonthly: number | null;
+  /**
+   * Inicial del hook, igual que en la card. `undefined` cuando es 0 — asi el
+   * render distingue "sin inicial" de "no vino el dato" (BAL-2998).
+   */
+  hookInitialPercent?: number;
+  hookInitialAmount?: number;
+  /**
+   * Frecuencia de pago del hook: 'mensual' | 'quincenal' | 'semanal'.
+   * El plazo viene SIEMPRE en meses; hay que convertirlo con
+   * `termInFrequency()` o el desplegable dice 24 donde la card dice 6.
+   */
+  paymentFrequency?: string;
+}
+
+/**
+ * Convierte un plazo en meses a la unidad de su frecuencia de pago.
+ *
+ * Replica lo que hace la card en `ProductCard.tsx:316-319`. Sin esto el
+ * desplegable mostraba "24 meses" donde la card decia "6" para los productos
+ * de pago semanal (BAL-2998).
+ */
+export function termInFrequency(termMonths: number, frequency?: string | null): number {
+  if (frequency === 'semanal') return Math.round(termMonths / 4);
+  if (frequency === 'quincenal') return Math.round(termMonths / 2);
+  return termMonths;
 }
 
 /**
@@ -1563,7 +1601,18 @@ export async function searchProductSuggestions(
       display_name?: string;
       slug: string;
       brand?: { name: string } | string | null;
-      pricing?: { final_price?: number; list_price?: number; available_terms?: number[]; hook?: { monthly_price?: number; term_months?: number } } | null;
+      pricing?: {
+        final_price?: number;
+        list_price?: number;
+        available_terms?: number[];
+        hook?: {
+          monthly_price?: number;
+          term_months?: number;
+          initial_percent?: number;
+          initial_amount?: number;
+          payment_frequency?: string;
+        };
+      } | null;
       image_url?: string | null;
       images?: string[] | null;
       colors?: { image_url?: string }[] | null;
@@ -1580,6 +1629,28 @@ export async function searchProductSuggestions(
         : 24,
       hookTermMonths: item.pricing?.hook?.term_months ?? null,
       quotaMonthly: item.pricing?.hook?.monthly_price ?? null,
+      // Misma normalizacion que la card (catalogApi.ts:711-712): 0 -> undefined.
+      hookInitialPercent: (item.pricing?.hook?.initial_percent ?? 0) > 0
+        ? Math.round(item.pricing!.hook!.initial_percent!)
+        : undefined,
+      // `/products` manda `initial_percent` pero NO `initial_amount` (si lo hace
+      // `/products/best-offer`). Cuando falta, se deriva del precio con la MISMA
+      // formula que la card — `calculateQuotaWithInitial` en
+      // `catalogo/types/catalog.ts:120`:
+      //
+      //   Math.ceil(precio * pct / 100 / 10) * 10
+      //
+      // La inicial se redondea al multiplo de 10 hacia arriba, no es el
+      // porcentaje exacto. Con `round` daba S/525 donde la card decia S/530.
+      hookInitialAmount: (() => {
+        const monto = item.pricing?.hook?.initial_amount ?? 0;
+        if (monto > 0) return monto;
+        const pct = item.pricing?.hook?.initial_percent ?? 0;
+        const precio = item.pricing?.final_price ?? item.pricing?.list_price ?? 0;
+        if (pct <= 0 || precio <= 0) return undefined;
+        return Math.ceil((precio * (pct / 100)) / 10) * 10;
+      })(),
+      paymentFrequency: item.pricing?.hook?.payment_frequency ?? undefined,
     }));
   } catch (error) {
     console.error('[Search API] Error searching products:', error);
