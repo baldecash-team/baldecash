@@ -13,6 +13,7 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { WizardField } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
 import { PrefillData } from '../../../../../services/applicationApi';
@@ -53,6 +54,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   showError = false,
 }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+
+  // Prellenado desde el lead de un socio: solo lectura, igual que el resto de
+  // los campos que llegaron con el lead (ver `useLeadPrefill`).
+  const isLockedFromLead = formData[leadLockKey(field.code)]?.value === 'true';
   const { landing, overlayVariant } = useLayout();
   const prefilledRef = useRef(false);
   const [lockedByModal, setLockedByModal] = useState(false);
@@ -293,7 +298,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       onChange={handleChange}
       error={displayError}
       required={field.required}
-      disabled={field.readonly || lockedByModal}
+      disabled={field.readonly || lockedByModal || isLockedFromLead}
       tooltip={tooltip}
       type="text"
       inputMode={isPassport ? 'text' : 'numeric'}
