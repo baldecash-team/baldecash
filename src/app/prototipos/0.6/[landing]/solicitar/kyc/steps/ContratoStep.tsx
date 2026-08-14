@@ -159,6 +159,39 @@ export function ContratoStep({
     }
   };
 
+  const handleAutorizacionChange = (id: string, value: string | string[]) => {
+    const marcada = value === 'true';
+    setAutorizaciones((prev) => ({ ...prev, [id]: marcada }));
+    // Solo al marcar: desmarcar y volver a marcar no es una autorización nueva,
+    // y emitir en ambos sentidos convertiría el conteo en ruido.
+    if (marcada) {
+      track('kyc_contract_authorization_accepted', {
+        autorizacion: id,
+        application_code: applicationCode,
+      });
+    }
+  };
+
+  /**
+   * La firma: el Continuar con el contrato aceptado y las autorizaciones que le
+   * tocan a este perfil.
+   *
+   * Se emite ADEMÁS de `kyc_contract_accepted` y del `kyc_step_complete` que
+   * manda el wizard — no reemplaza a ninguno. Existe porque ninguno de los dos
+   * dice QUÉ autorizó: uno solo mira el check del contrato y el otro solo el
+   * avance de paso. Sin esto, lo único que quedaba de las autorizaciones era
+   * que el botón se había habilitado.
+   */
+  const handleContinuar = () => {
+    track('kyc_contract_signed', {
+      application_code: applicationCode,
+      autorizaciones: autorizacionesAplicables
+        .filter((a) => autorizaciones[a.id])
+        .map((a) => a.id),
+    });
+    onDone();
+  };
+
   return (
     <div className="w-full space-y-5">
       <div>
@@ -233,9 +266,7 @@ export function ContratoStep({
               id={`autorizacion-${a.id}`}
               label={a.texto}
               value={autorizaciones[a.id] ? 'true' : 'false'}
-              onChange={(value) =>
-                setAutorizaciones((prev) => ({ ...prev, [a.id]: value === 'true' }))
-              }
+              onChange={(value) => handleAutorizacionChange(a.id, value)}
               required
             />
           ))}
@@ -259,7 +290,7 @@ export function ContratoStep({
           // aceptar y bloquear el botón dejaría el KYC trabado esperando algo
           // que solo llega con la aprobación.
           disabled={hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)}
-          onClick={onDone}
+          onClick={handleContinuar}
           className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
         >
           Continuar
