@@ -16,6 +16,7 @@ import type { CatalogDeviceType } from '../[landing]/catalogo/types/catalog';
 
 const categoriaKey = (landing: string) => `baldecash-${landing}-pending-categoria`;
 const couponKey = (landing: string) => `baldecash-${landing}-pending-coupon`;
+const leadLinkKey = (landing: string) => `baldecash-${landing}-pending-alk`;
 
 /**
  * Drops the params parked for a landing (campaign coupon, preselected
@@ -70,6 +71,15 @@ export function captureLandingParams(landingSlug: string): void {
   if (coupon && coupon.trim()) {
     try { localStorage.setItem(couponKey(landingSlug), coupon.trim().toUpperCase()); } catch {}
   }
+
+  // `alk` = código del link de activación. Cuando viene de un socio (A365) el
+  // API ya tiene los datos de esa persona, así que el wizard puede prellenarse
+  // sin pedírselos de nuevo. Se guarda el CÓDIGO, no los datos: los datos se
+  // piden contra él más adelante y nunca viajan por la URL.
+  const alk = params.get('alk');
+  if (alk && alk.trim()) {
+    try { localStorage.setItem(leadLinkKey(landingSlug), alk.trim()); } catch {}
+  }
 }
 
 /**
@@ -104,4 +114,18 @@ export function getPendingCoupon(landingSlug: string): string | null {
 export function clearPendingCoupon(landingSlug: string): void {
   if (typeof window === 'undefined') return;
   try { localStorage.removeItem(couponKey(landingSlug)); } catch {}
+}
+
+/**
+ * Código del link de activación (`alk`) con el que entró el visitante.
+ * No se limpia al consumirlo: el wizard puede montarse varias veces (recarga,
+ * volver atrás) y el prellenado tiene que sobrevivir a eso.
+ */
+export function getLeadLinkCode(landingSlug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(leadLinkKey(landingSlug));
+  } catch {
+    return null;
+  }
 }
