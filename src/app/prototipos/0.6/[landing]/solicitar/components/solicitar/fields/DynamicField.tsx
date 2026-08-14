@@ -11,6 +11,7 @@ import { sanitizeEmailInput } from '../../../../../services/emailValidation';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -75,6 +76,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   }, [forcedValue, value, field.code, updateField, formData]);
 
   const isLockedByMinor = forcedValue != null;
+
+  // Prellenado desde el lead que el socio empujó: solo lectura. Es el dato que
+  // el socio declaró y sobre el que se le liquida; si el postulante lo edita,
+  // el lead y la solicitud dejan de ser la misma persona.
+  const isLockedFromLead = formData[leadLockKey(field.code)]?.value === 'true';
 
   // For convenio landings: auto-populate and lock the institution field
   const isConvenioInstitution = field.code === 'institution' && !!agreementData?.study_center_id;
@@ -153,7 +159,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly || isLockedByMinor || isConvenioInstitution || isConvenioInstitutionType,
+    disabled: field.readonly || isLockedByMinor || isConvenioInstitution || isConvenioInstitutionType || isLockedFromLead,
     tooltip,
     helpText: undefined as string | undefined,
   };

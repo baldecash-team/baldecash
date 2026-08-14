@@ -4,8 +4,13 @@
  * Se testea la lógica pura (`calcularPrellenado`) y la captura del `alk` desde
  * la URL, sin montar React: el resto del hook es un `fetch` y un `useEffect`.
  */
-import { calcularPrellenado } from '../useLeadPrefill';
-import { captureLandingParams, getLeadLinkCode } from '@/app/prototipos/0.6/utils/landingParams';
+import { calcularPrellenado, marcadoresDeBloqueo, leadLockKey } from '../useLeadPrefill';
+import {
+  captureLandingParams,
+  getLeadLinkCode,
+  getPendingCoupon,
+  readCouponParam,
+} from '@/app/prototipos/0.6/utils/landingParams';
 import type { WizardStep } from '../../../../services/wizardApi';
 import type { LeadPrefill } from '@/app/prototipos/0.6/services/leadPrefillApi';
 
@@ -98,5 +103,58 @@ describe('captura del alk', () => {
     captureLandingParams('lead-flujo-normal');
 
     expect(getLeadLinkCode('lead-flujo-normal')).toBeNull();
+  });
+
+  it('captura el cupon escrito como `cupon`, que es el que emite el backend', () => {
+    // Los links de activación (difusiones y socios) traen `cupon`, no `coupon`.
+    conUrl('?alk=C4rsBKad&cupon=A365001');
+
+    captureLandingParams('lead-flujo-normal');
+
+    expect(getPendingCoupon('lead-flujo-normal')).toBe('A365001');
+  });
+});
+
+describe('readCouponParam', () => {
+  it('acepta las dos escrituras y normaliza', () => {
+    expect(readCouponParam('?coupon=univ2026')).toBe('UNIV2026');
+    expect(readCouponParam('?cupon=a365001')).toBe('A365001');
+    expect(readCouponParam('?cupon=%20A365001%20')).toBe('A365001');
+  });
+
+  it('devuelve null cuando no hay cupon', () => {
+    expect(readCouponParam('?utm_source=meta')).toBeNull();
+    expect(readCouponParam('?cupon=')).toBeNull();
+  });
+
+  it('es el guardia que decide si el catalogo descarta el cupon pendiente', () => {
+    // Regresión: el catálogo miraba solo `coupon`, así que con un link de
+    // activación (`cupon`) daba false, borraba el pendiente recién capturado y
+    // el cupón nunca llegaba a aplicarse.
+    expect(!!readCouponParam('?alk=C4rsBKad&cupon=A365001')).toBe(true);
+  });
+});
+
+describe('marcadoresDeBloqueo', () => {
+  it('bloquea exactamente los campos que se prellenaron', () => {
+    const updates = [
+      { fieldId: 'document_number', value: '70123456' },
+      { fieldId: 'email', value: 'ana@ejemplo.com' },
+    ];
+
+    expect(marcadoresDeBloqueo(updates)).toEqual([
+      { fieldId: '_lead_locked_document_number', value: 'true' },
+      { fieldId: '_lead_locked_email', value: 'true' },
+    ]);
+  });
+
+  it('no bloquea nada si no se prellenó nada', () => {
+    // Si la persona ya había escrito todo, `calcularPrellenado` devuelve vacío
+    // y ningún campo debe quedar atrapado.
+    expect(marcadoresDeBloqueo([])).toEqual([]);
+  });
+
+  it('el marcador empieza con `_`, que es lo que el submit descarta', () => {
+    expect(leadLockKey('phone').startsWith('_')).toBe(true);
   });
 });

@@ -54,6 +54,21 @@ export function normalizeCategoria(value: string | null | undefined): CatalogDev
 }
 
 /**
+ * Cupón de la URL, en cualquiera de sus dos escrituras.
+ *
+ * `?coupon=` lo usan los anuncios; `?cupon=` lo emite el backend en todos los
+ * links de activación (difusiones y socios). Vive acá y no inline en cada
+ * lugar porque tener el alias en un solo sitio y no en el otro es exactamente
+ * el bug que hacía que el catálogo descartara el cupón recién capturado.
+ */
+export function readCouponParam(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const raw = params.get('coupon') ?? params.get('cupon');
+  const value = raw?.trim();
+  return value ? value.toUpperCase() : null;
+}
+
+/**
  * Lee `categoria` y `coupon` de la URL actual y los guarda en localStorage
  * (por landing). No-op en SSR.
  */
@@ -67,9 +82,9 @@ export function captureLandingParams(landingSlug: string): void {
     try { localStorage.setItem(categoriaKey(landingSlug), categoria); } catch {}
   }
 
-  const coupon = params.get('coupon') ?? params.get('cupon');
-  if (coupon && coupon.trim()) {
-    try { localStorage.setItem(couponKey(landingSlug), coupon.trim().toUpperCase()); } catch {}
+  const coupon = readCouponParam(window.location.search);
+  if (coupon) {
+    try { localStorage.setItem(couponKey(landingSlug), coupon); } catch {}
   }
 
   // `alk` = código del link de activación. Cuando viene de un socio (A365) el

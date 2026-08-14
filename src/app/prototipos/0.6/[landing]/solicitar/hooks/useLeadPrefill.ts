@@ -12,11 +12,12 @@
  *
  * - **Solo rellena vacíos.** Lo que la persona ya escribió gana siempre, y el
  *   hook puede correr de nuevo (recarga, volver atrás) sin pisarlo.
- * - **El DNI queda editable.** El flujo de captura de leads bloquea el campo,
- *   pero acá el dato lo tipeó un tercero: si el agente se equivocó de dígito,
- *   bloquearlo dejaría a la persona sin salida. Escribirlo igual dispara la
- *   consulta oficial de `DocumentNumberField`, que completa los nombres con la
- *   fuente autoritativa.
+ * - **Lo prellenado queda de solo lectura.** Cada campo completado deja un
+ *   marcador `_lead_locked_{code}` en `formData`, que `DynamicField` y
+ *   `DocumentNumberField` leen para deshabilitarse. Los datos son los que el
+ *   socio declaró y sobre los que se le liquida: si el postulante los edita,
+ *   el lead y la solicitud dejan de ser la misma persona. Los marcadores
+ *   empiezan con `_`, así que el submit los descarta como el resto.
  */
 import { useEffect, useRef } from 'react';
 
@@ -46,6 +47,18 @@ const CODIGOS: Record<keyof LeadPrefill, string[]> = {
 export interface CampoAPrellenar {
   fieldId: string;
   value: string;
+}
+
+/** Marcador que deshabilita un campo prellenado desde el lead del socio. */
+export const leadLockKey = (code: string) => `_lead_locked_${code}`;
+
+/**
+ * Un marcador por campo efectivamente prellenado — nunca por campo candidato.
+ * Es la diferencia entre bloquear lo que trajo el socio y bloquear también lo
+ * que la persona ya había escrito, que quedaría atrapado sin poder corregirlo.
+ */
+export function marcadoresDeBloqueo(updates: CampoAPrellenar[]): CampoAPrellenar[] {
+  return updates.map(u => ({ fieldId: leadLockKey(u.fieldId), value: 'true' }));
 }
 
 /**
@@ -94,7 +107,12 @@ export function useLeadPrefill(landingSlug: string, steps: WizardStep[]): void {
     fetchLeadPrefill(alk).then(lead => {
       if (!vigente || !lead) return;
       const updates = calcularPrellenado(lead, steps, code => (getFieldValue(code) as string) || '');
-      if (updates.length) updateFieldBatch(updates);
+      if (!updates.length) return;
+
+      // El marcador va en el MISMO batch que el valor: en dos llamadas hay un
+      // render intermedio donde el campo ya tiene el dato y todavía se puede
+      // editar.
+      updateFieldBatch([...updates, ...marcadoresDeBloqueo(updates)]);
     });
 
     return () => { vigente = false; };

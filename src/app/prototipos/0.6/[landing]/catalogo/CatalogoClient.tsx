@@ -132,7 +132,7 @@ import { mapQuizAnswersToFilters } from './utils/quizFilters';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { captureLandingParams, consumePendingCategoria, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
+import { captureLandingParams, consumePendingCategoria, clearPendingCoupon, readCouponParam } from '@/app/prototipos/0.6/utils/landingParams';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
@@ -302,7 +302,12 @@ function CatalogoContent() {
   // elimina `?coupon=` del URL después del primer render; si releyéramos
   // searchParams aquí, descartaríamos el cupón recién capturado.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hasCouponParam = useMemo(() => !!searchParams.get('coupon'), []);
+  //
+  // Lee las DOS escrituras (`coupon` y `cupon`). Miraba solo `coupon`, y los
+  // links de activación —difusiones y socios— emiten `cupon`: `capture` lo
+  // guardaba y este efecto lo borraba a continuación, así que el cupón nunca
+  // llegaba a aplicarse.
+  const hasCouponParam = useMemo(() => !!readCouponParam(window.location.search), []);
   useEffect(() => {
     if (hasCouponParam || !isProductContextHydrated) return;
     clearPendingCoupon(landing);
