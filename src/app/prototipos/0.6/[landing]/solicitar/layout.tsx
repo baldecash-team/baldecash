@@ -10,12 +10,17 @@
  * SessionProvider + EventTrackerProvider live in the parent [landing] layout
  * and auto-initialize the session on mount, so tracking already exists
  * before the user reaches the wizard.
+ *
+ * JuicyScorePixel monta acá (y no en el layout de [landing]) porque el pixel
+ * antifraude debe recolectar sobre la página donde el usuario tipea, no sobre
+ * el catálogo. Es no-op mientras no haya token configurado.
  */
 
 import { useParams } from 'next/navigation';
 import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
+import { JuicyScorePixel } from '../../components/tracking/JuicyScorePixel';
 
 export default function WizardPreviewLayout({
   children,
@@ -28,7 +33,10 @@ export default function WizardPreviewLayout({
   return (
     <ProductProvider key={landing} landingSlug={landing}>
       <WizardConfigProvider slug={landing}>
-        <WizardProvider landingSlug={landing}>{children}</WizardProvider>
+        <WizardProvider landingSlug={landing}>
+          <JuicyScorePixel />
+          {children}
+        </WizardProvider>
       </WizardConfigProvider>
     </ProductProvider>
   );

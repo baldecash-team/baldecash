@@ -68,6 +68,13 @@ export interface SubmitApplicationRequest {
   };
   /** Optional coupon code for discount */
   coupon_code?: string;
+  /**
+   * `session_id` del pixel JuicyScore, cuando la integración está activa.
+   * Es lo único que el backend necesita para lanzar el GetScore server-to-server
+   * (etapa 2 de JuicyScore). Se omite del payload si no hay pixel o si no
+   * alcanzó a emitir sesión — el submit nunca depende de esto.
+   */
+  juicyscore_session_id?: string;
   /** Optional files to upload (e.g., DNI, payslips) */
   files?: UploadedFileData[];
 }
@@ -177,6 +184,11 @@ export async function submitApplication(
       form_data: data.form_data,
       product_data: data.product_data,
       coupon_code: data.coupon_code,
+      // Solo viaja cuando el pixel emitió sesión. La clave se omite por completo
+      // en caso contrario, para no cambiar el payload de las landings sin JuicyScore.
+      ...(data.juicyscore_session_id
+        ? { juicyscore_session_id: data.juicyscore_session_id }
+        : {}),
     };
     formData.append('form_data', JSON.stringify(jsonData));
 
