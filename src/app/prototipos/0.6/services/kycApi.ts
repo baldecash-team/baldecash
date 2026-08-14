@@ -306,6 +306,13 @@ export interface KycProgressState {
    * landing tiene gate. Vence con el link y está atado al mismo DNI.
    */
   landing_access_token?: string;
+  /**
+   * DNI del titular, solo en /resume/{token}. El link se abre en cualquier
+   * dispositivo (WhatsApp), donde no existe el localStorage del wizard: sin
+   * este campo, `dni_selfie` no sabía qué número contrastar y el botón
+   * "Verificar identidad" quedaba deshabilitado para siempre.
+   */
+  document_number?: string | null;
 }
 
 export interface KycApiError {
