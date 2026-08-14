@@ -364,6 +364,55 @@ describe('useSubmitApplication', () => {
   });
 
   /**
+   * JuicyScore (antifraude). El `session_id` lo emite el pixel y lo deja en
+   * sessionStorage; el submit solo lo adjunta. Nada de esto puede impedir que la
+   * solicitud se envíe: sin pixel, el campo simplemente no viaja.
+   */
+  describe('JuicyScore session_id', () => {
+    const LANDING = 'test-landing';
+    const STORAGE_KEY = `baldecash-${LANDING}-juicy-session`;
+
+    beforeEach(() => {
+      mockParams.landing = LANDING;
+      sessionStorage.clear();
+    });
+
+    afterEach(() => {
+      sessionStorage.clear();
+    });
+
+    it('adjunta el session_id del pixel cuando existe', async () => {
+      sessionStorage.setItem(STORAGE_KEY, 'w.20260813-abc.A_GS');
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-J1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({ juicyscore_session_id: 'w.20260813-abc.A_GS' })
+      );
+    });
+
+    it('omite el campo cuando el pixel no llegó a emitir sesión', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-J2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      let success = false;
+      await act(async () => {
+        success = await result.current.submit();
+      });
+
+      expect(success).toBe(true);
+      const payload = mockSubmitApplication.mock.calls[0][0] as {
+        juicyscore_session_id?: string;
+      };
+      expect(payload.juicyscore_session_id).toBeUndefined();
+    });
+  });
+
+  /**
    * Landings demo (`*-demo`): mismo wizard, misma pantalla de confirmación,
    * pero sin crear la solicitud en ws2.
    */
