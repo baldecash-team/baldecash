@@ -278,6 +278,9 @@ export type EventType =
   | 'kyc_payment_step_shown'
   | 'kyc_contract_view'
   | 'kyc_contract_accepted'
+  // El check de documento (verify-dni) fallo y el titular confirmo su DNI
+  // tipeandolo: se salta Textract pero compare-faces corre igual.
+  | 'kyc_document_check_bypassed'
   | 'kyc_documents_uploaded'
   // Documentos subidos a S3 Y registrados en application_document; distinto
   // de `kyc_documents_uploaded`, que solo mide la seleccion local.
