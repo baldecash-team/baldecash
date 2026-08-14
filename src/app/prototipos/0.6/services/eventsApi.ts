@@ -278,6 +278,14 @@ export type EventType =
   | 'kyc_payment_step_shown'
   | 'kyc_contract_view'
   | 'kyc_contract_accepted'
+  // Una autorizacion del convenio marcada (`autorizacion` trae su id). Aparte
+  // de `kyc_contract_accepted`, que solo mira el check del contrato: son
+  // permisos distintos sobre el dinero del trabajador.
+  | 'kyc_contract_authorization_accepted'
+  // La firma: el Continuar del paso, con la lista de autorizaciones dadas en
+  // `autorizaciones`. NO reemplaza al `kyc_step_complete` del wizard —ese sigue
+  // midiendo el avance—; este dice QUE se autorizo.
+  | 'kyc_contract_signed'
   // El check de documento (verify-dni) fallo y el titular confirmo su DNI
   // tipeandolo: se salta Textract pero compare-faces corre igual.
   | 'kyc_document_check_bypassed'
