@@ -9,6 +9,8 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { Eye, X } from 'lucide-react';
 import { usePreview } from '../context/PreviewContext';
+import { usePreviewToken } from '../hooks/usePreviewToken';
+import { usePreviewAplicado } from '../hooks/usePreviewAplicado';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 interface PreviewBannerProps {
@@ -28,15 +30,33 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
   const { isPreviewMode, isHydrated, slug: contextSlug, clearPreviewMode, isPreviewingLanding } = usePreview();
   const pathname = usePathname();
 
+  // Token de preview de pricing sobre una landing PUBLICADA (BAL-3008). El hook
+  // se llama siempre —no puede ir después de un early return— y devuelve null
+  // cuando no hay token, así que el banner de siempre no cambia. Sin landingSlug
+  // (páginas de admin que pasan landingId) el token no aplica: se pasa un slug
+  // imposible para que el hook nunca lo dé por válido.
+  const previewToken = usePreviewToken(landingSlug ?? '__sin_landing__');
+
   // Wait for sessionStorage to be read before deciding visibility (avoids hydration mismatch)
   if (!isHydrated) return null;
+
+  // El preview de pricing no pasa por PreviewContext: no tiene landingId ni slug
+  // guardados, solo el token de la URL. Se reconoce porque hay token para esta
+  // landing y el flujo viejo NO la está previsualizando.
+  // Tener token no alcanza: uno vencido devuelve precios REALES sin avisar, y
+  // anunciarlos como propuestos es peor que no anunciar nada. Se confirma
+  // contra el backend, que es el unico que sabe si cotizo con el overlay.
+  const previewAplicado = usePreviewAplicado(landingSlug, previewToken);
+
+  const esPreviewDePricing =
+    previewAplicado === true && !!landingSlug && !isPreviewingLanding(landingSlug) && !propLandingId;
 
   // For admin preview pages that pass landingId directly, always show the banner
   // For regular pages with landingSlug, only show if that specific landing is being previewed
   const shouldShow = propLandingId
     ? true  // Admin preview page with explicit landingId - always show
     : landingSlug
-      ? isPreviewingLanding(landingSlug)  // Regular page - check if this landing is being previewed
+      ? isPreviewingLanding(landingSlug) || esPreviewDePricing  // Regular page - preview de landing o de pricing
       : isPreviewMode;  // Fallback - show if any preview is active (legacy behavior)
 
   // Display landing name: use prop slug, context slug, or fallback to ID
@@ -48,11 +68,20 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
   return (
     <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white text-xs text-center py-1 font-medium flex items-center justify-center gap-2">
       <Eye className="w-3.5 h-3.5" />
-      <span>
-        Modo Preview (Landing: {displayLandingName})
-        {displayText && <span className="ml-1">- {displayText}</span>}
-      </span>
-      {showCloseButton && (
+      {esPreviewDePricing ? (
+        // Sin IDs de lote ni jerga técnica: quien abre el link puede ser alguien
+        // de negocio. Lo que importa es que estos precios no son los que ve el
+        // cliente y que el link se muere solo.
+        <span>
+          Estás viendo precios propuestos que todavía no se aplicaron. Los clientes siguen viendo los precios actuales. Este link vence en 1 hora.
+        </span>
+      ) : (
+        <span>
+          Modo Preview (Landing: {displayLandingName})
+          {displayText && <span className="ml-1">- {displayText}</span>}
+        </span>
+      )}
+      {showCloseButton && !esPreviewDePricing && (
         <button
           onClick={() => {
             clearPreviewMode();

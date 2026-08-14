@@ -207,6 +207,13 @@ export interface ApiCatalogResponse {
   suggestions?: SearchSuggestion[];
   // Automatic search correction info (fuzzy search was applied)
   search_corrected?: SearchCorrected | null;
+  /**
+   * BAL-3008: si el `preview_key` enviado era un token de pricing vigente y el
+   * backend cotizo con los precios propuestos. Un token vencido devuelve
+   * precios reales, y solo el backend sabe la diferencia: sin este dato la web
+   * anunciaria "precios propuestos" sobre los precios de produccion.
+   */
+  pricing_preview_applied?: boolean;
 }
 
 /** Legacy filter options type - kept for backwards compatibility */
