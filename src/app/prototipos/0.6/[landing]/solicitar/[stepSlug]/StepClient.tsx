@@ -34,6 +34,7 @@ import { useProduct } from '../context/ProductContext';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
+import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
@@ -122,6 +123,11 @@ function StepContent() {
     getFieldLabel,
     getAllDynamicOptions,
   } = useWizard();
+
+  // Lead de un socio (A365): si entró por su link, el API ya tiene sus datos.
+  // Va acá y no en cada paso porque `steps` trae los campos de TODOS los pasos:
+  // se completa lo que corresponda aunque el dato viva en un paso posterior.
+  useLeadPrefill(landing, steps);
 
   // Event tracker
   const tracker = useEventTrackerOptional();
