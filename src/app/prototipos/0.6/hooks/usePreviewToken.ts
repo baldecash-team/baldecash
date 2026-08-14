@@ -55,28 +55,40 @@ function leerGuardado(): TokenGuardado | null {
 export function usePreviewToken(landingSlug: string): string | null {
   const searchParams = useSearchParams();
   const preview = usePreview();
-  const [token, setToken] = useState<string | null>(null);
 
   const desdeUrl = searchParams?.get('preview_key') ?? null;
 
+  /**
+   * El token guardado se lee en el primer render, no en un efecto.
+   *
+   * El catalogo dispara su primer fetch de productos apenas monta y despues se
+   * cierra con un ref (hasLoadedRef): si el token llegara un render tarde, ese
+   * fetch ya salio sin preview_key y no se repite nunca. O sea que resolverlo
+   * tarde equivale a no resolverlo. El inicializador de useState corre solo en
+   * el cliente, que es donde existe sessionStorage.
+   */
+  const [guardadoInicial] = useState<TokenGuardado | null>(() =>
+    typeof window === 'undefined' ? null : leerGuardado()
+  );
+
+  // Lo mismo para el token de la URL: se persiste en un efecto (escribir durante
+  // el render seria un efecto secundario), pero el valor que se devuelve sale
+  // directo del parametro, sin esperar a que el efecto corra.
   useEffect(() => {
-    if (desdeUrl) {
-      const guardar: TokenGuardado = {
-        slug: landingSlug,
-        token: desdeUrl,
-        activatedAt: Date.now(),
-      };
-      try {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(guardar));
-      } catch {
-        // Si no se puede persistir, el preview igual funciona en esta pagina.
-      }
-      setToken(desdeUrl);
-      return;
+    if (!desdeUrl) return;
+    const guardar: TokenGuardado = {
+      slug: landingSlug,
+      token: desdeUrl,
+      activatedAt: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(guardar));
+    } catch {
+      // Si no se puede persistir, el preview igual funciona en esta pagina.
     }
-    const guardado = leerGuardado();
-    setToken(guardado?.slug === landingSlug ? guardado.token : null);
   }, [desdeUrl, landingSlug]);
+
+  const token = desdeUrl ?? (guardadoInicial?.slug === landingSlug ? guardadoInicial.token : null);
 
   // El flujo de landings no publicadas sigue mandando: si ese preview esta
   // activo para esta landing, su token gana.

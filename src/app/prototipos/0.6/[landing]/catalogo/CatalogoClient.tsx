@@ -68,7 +68,7 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { usePreviewToken } from '@/app/prototipos/0.6/hooks/usePreviewToken';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
@@ -281,8 +281,13 @@ function CatalogoContent() {
     !!campaignCoupon && !LANDINGS_SIN_BANNER_CUPON.includes(landingId ?? -1);
 
   // Preview mode support
-  const preview = usePreview();
-  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  //
+  // El token puede venir del preview de landings no publicadas (PreviewContext)
+  // o de un ?preview_key= sobre una landing publicada, que es como se ve el
+  // pricing propuesto de un import todavía no aplicado. El hook resuelve las
+  // dos fuentes; acá no interesa cuál fue. Sin token devuelve null, igual que
+  // antes: el catálogo de producción no cambia en nada.
+  const previewKey = usePreviewToken(landing);
   const previewBannerOffset = previewKey ? 24 : 0;
 
   // Si el usuario entra al catálogo sin `?coupon=` en la URL, descartamos
