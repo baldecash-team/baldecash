@@ -127,6 +127,19 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   const giftName = appliedCoupon?.giftName ?? 'Periférico de regalo';
   const giftQuantity = appliedCoupon?.giftQuantity ?? 1;
 
+  // Cupón sin descuento: existe para atribuir la venta a quien la trajo (los
+  // cupones de socio, p. ej.), no para rebajar nada. Mostrarle "-S/0" y
+  // "solo en 1.ª cuota" a alguien es prometerle un beneficio que no existe.
+  // Se mira el valor del cupón Y el monto calculado: el primero solo, en un
+  // cupón porcentual sin producto elegido todavía, daría 0 y escondería un
+  // descuento que sí va a existir.
+  const sinDescuento =
+    !!appliedCoupon &&
+    !isGiftCoupon &&
+    !isReferralCoupon &&
+    (appliedCoupon.discount ?? 0) <= 0 &&
+    getDiscountAmount() <= 0;
+
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
     return (
@@ -159,12 +172,20 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
               </div>
               {isGiftCoupon ? (
                 <p className="text-sm text-green-600">Cantidad asociada: {giftQuantity}</p>
+              ) : sinDescuento ? (
+                // El `label` viene del API y para un cupón de S/0 dice
+                // "Descuento de S/0". Se reemplaza acá y no solo en el backend
+                // para que la pantalla sea correcta sin depender del orden de
+                // los dos despliegues.
+                <p className="text-sm text-green-600">Sin descuento asociado</p>
               ) : (
                 <p className="text-sm text-green-600">{appliedCoupon.label}</p>
               )}
-              {!isGiftCoupon && isLockedCampaign && firstQuotaOnly && (
+              {!isGiftCoupon && isLockedCampaign && (sinDescuento || firstQuotaOnly) && (
                 <p className="text-xs text-green-700/80 mt-1">
-                  Descuento solo en tu primera cuota. No se puede quitar en esta campaña.
+                  {sinDescuento
+                    ? 'No se puede quitar en esta campaña.'
+                    : 'Descuento solo en tu primera cuota. No se puede quitar en esta campaña.'}
                 </p>
               )}
             </div>
@@ -184,7 +205,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   </p>
                   <p className="text-xs text-green-500">S/0</p>
                 </>
-              ) : (
+              ) : sinDescuento ? null : (
                 <>
                   <p className="text-lg font-bold text-green-600">
                     -S/{getDiscountAmount().toFixed(0)}
