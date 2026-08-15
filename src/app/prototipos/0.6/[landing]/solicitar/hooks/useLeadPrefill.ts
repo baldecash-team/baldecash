@@ -16,6 +16,10 @@
  * imponer sobre lo que ponga el lead: es correcto, ahí la institución no la
  * elige nadie.
  *
+ * **Hay landings sin esos campos**, y ahí los dos igual viajan al submit (ver
+ * `AL_SUBMIT_AUNQUE_NO_HAYA_CAMPO`): son datos que el socio ya declaró y que
+ * nadie más va a poder aportar, porque el campo no existe en pantalla.
+ *
  * Dos reglas que definen el comportamiento:
  *
  * - **Solo rellena vacíos.** Lo que la persona ya escribió gana siempre, y el
@@ -73,10 +77,36 @@ const ETIQUETA_DE: Partial<Record<CampoDeLead, keyof LeadPrefill>> = {
   sede_id: 'sede_name',
 };
 
+/**
+ * Datos que viajan al submit **aunque el formulario no declare el campo**.
+ *
+ * El resto del prellenado hace lo contrario: si el form no pide teléfono, no se
+ * manda un `phone` fantasma. Con institución y sede la regla se invierte, y por
+ * un motivo concreto: **hay landings que no tienen esos campos**. Ahí nadie los
+ * va a llenar nunca — no es que la persona los complete a mano, es que no
+ * existen — así que omitirlos significa perder un dato que el socio ya nos dio
+ * y que la solicitud necesita (la institución alimenta el historial académico
+ * del postulante).
+ *
+ * La diferencia con un teléfono es esa: el teléfono lo tiene la persona y se lo
+ * podemos pedir después; la sede que el agente eligió no está en ningún otro
+ * lado.
+ *
+ * Se escriben bajo el código canónico (el primero de `CODIGOS`) y sin marcador
+ * de bloqueo: no hay campo que bloquear.
+ */
+const AL_SUBMIT_AUNQUE_NO_HAYA_CAMPO: CampoDeLead[] = [
+  'institution_type',
+  'institution_id',
+  'sede_id',
+];
+
 export interface CampoAPrellenar {
   fieldId: string;
   value: string;
   label?: string;
+  /** El formulario no declara este campo: va al submit, pero no se renderiza. */
+  hidden?: boolean;
 }
 
 /** Marcador que deshabilita un campo prellenado desde el lead del socio. */
@@ -86,9 +116,14 @@ export const leadLockKey = (code: string) => `_lead_locked_${code}`;
  * Un marcador por campo efectivamente prellenado — nunca por campo candidato.
  * Es la diferencia entre bloquear lo que trajo el socio y bloquear también lo
  * que la persona ya había escrito, que quedaría atrapado sin poder corregirlo.
+ *
+ * Los `hidden` quedan afuera: el formulario no declara ese campo, así que no
+ * hay nada que bloquear y el marcador sería un valor muerto en `formData`.
  */
 export function marcadoresDeBloqueo(updates: CampoAPrellenar[]): CampoAPrellenar[] {
-  return updates.map(u => ({ fieldId: leadLockKey(u.fieldId), value: 'true' }));
+  return updates
+    .filter(u => !u.hidden)
+    .map(u => ({ fieldId: leadLockKey(u.fieldId), value: 'true' }));
 }
 
 /**
@@ -115,8 +150,12 @@ export function calcularPrellenado(
     const value = lead[dato];
     if (value === null || value === undefined || !String(value).trim()) continue;
 
-    const code = candidatos.find(c => declarados.has(c));
-    if (!code) continue;               // el form no pide este dato
+    const declarado = candidatos.find(c => declarados.has(c));
+    // Sin campo declarado, la mayoría de los datos se descartan; institución y
+    // sede no (ver `AL_SUBMIT_AUNQUE_NO_HAYA_CAMPO`).
+    if (!declarado && !AL_SUBMIT_AUNQUE_NO_HAYA_CAMPO.includes(dato)) continue;
+
+    const code = declarado ?? candidatos[0];
     if (valorActual(code)) continue;   // lo que ya hay gana
 
     const etiqueta = ETIQUETA_DE[dato];
@@ -127,6 +166,7 @@ export function calcularPrellenado(
       fieldId: code,
       value: String(value).trim(),
       ...(label ? { label: String(label).trim() } : {}),
+      ...(declarado ? {} : { hidden: true }),
     });
   }
 
@@ -149,7 +189,9 @@ export function calcularPrellenado(
  * molesto pero reversible.
  *
  * Si el formulario no declara `institution_type`, no hay quién la limpie y la
- * institución se prellena igual.
+ * institución se prellena igual. Tampoco corre para una institución `hidden`:
+ * ese campo no se renderiza, así que nadie registra la dependencia que la
+ * borraría — y descartarla ahí sería perder el dato por un riesgo que no existe.
  */
 function sinInstitucionHuerfana(
   updates: CampoAPrellenar[],
@@ -158,8 +200,11 @@ function sinInstitucionHuerfana(
 ): CampoAPrellenar[] {
   const codigoInstitucion = codigoDe.institution_id;
   const formPideTipo = CODIGOS.institution_type.some(c => declarados.has(c));
+  const institucionVisible = updates.some(
+    u => u.fieldId === codigoInstitucion && !u.hidden
+  );
 
-  if (!codigoInstitucion || !formPideTipo || codigoDe.institution_type) {
+  if (!codigoInstitucion || !institucionVisible || !formPideTipo || codigoDe.institution_type) {
     return updates;
   }
   return updates.filter(u => u.fieldId !== codigoInstitucion);

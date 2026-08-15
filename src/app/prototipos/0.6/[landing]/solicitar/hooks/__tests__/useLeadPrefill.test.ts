@@ -94,6 +94,54 @@ describe('calcularPrellenado', () => {
     ]);
   });
 
+  it('manda institucion y sede aunque la landing no tenga esos campos', () => {
+    // El caso real de A365: su landing no declara `sede`. Si el prellenado se
+    // limitara a los campos declarados —como hace con el resto—, la sede que el
+    // agente eligio moriria en el navegador. Van bajo el codigo canonico y
+    // marcados `hidden`: no hay campo que renderizar ni que bloquear.
+    const updates = calcularPrellenado(LEAD_ACADEMICO, pasos('document_number'), vacio);
+
+    expect(updates).toEqual([
+      { fieldId: 'document_number', value: '70123456' },
+      { fieldId: 'institution_type', value: 'university', hidden: true },
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte', hidden: true },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte', hidden: true },
+    ]);
+  });
+
+  it('un campo oculto no lleva marcador de bloqueo', () => {
+    // Bloquear un campo que no se renderiza es un valor muerto en formData.
+    const updates = calcularPrellenado(LEAD_ACADEMICO, pasos('email', 'sede'), vacio);
+
+    expect(marcadoresDeBloqueo(updates).map(m => m.fieldId)).toEqual([
+      '_lead_locked_email',
+      '_lead_locked_sede',
+    ]);
+  });
+
+  it('sin campo `institution`, el tipo faltante ya no la descarta', () => {
+    // La regla de la institucion huerfana existe porque `institution_type`
+    // limpia a `institution`. Si `institution` no se renderiza, nadie registra
+    // esa dependencia: descartarla seria perder el dato por un riesgo inexistente.
+    const sinTipo = { ...LEAD_ACADEMICO, institution_type: null };
+
+    const updates = calcularPrellenado(sinTipo, pasos('institution_type'), vacio);
+
+    expect(updates).toEqual([
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte', hidden: true },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte', hidden: true },
+    ]);
+  });
+
+  it('el resto de los datos si se descartan cuando el form no los pide', () => {
+    // La excepcion es solo para institucion y sede. Un form sin telefono no
+    // debe recibir un `phone` fantasma: ese dato la persona lo tiene y se lo
+    // podemos pedir; la sede que eligio el agente no esta en ningun otro lado.
+    const updates = calcularPrellenado(LEAD, pasos('document_number'), vacio);
+
+    expect(updates).toEqual([{ fieldId: 'document_number', value: '70123456' }]);
+  });
+
   it('un lead sin institucion ni sede no toca esos campos', () => {
     // El backend viejo ni siquiera manda las claves: el hook no puede asumirlas.
     const updates = calcularPrellenado(LEAD, pasos('institution_type', 'institution', 'sede'), vacio);
@@ -119,8 +167,10 @@ describe('calcularPrellenado', () => {
 
     const updates = calcularPrellenado(sinTipo, pasos('institution'), vacio);
 
+    // La institucion va al campo declarado; la sede, oculta al submit.
     expect(updates).toEqual([
       { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte' },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte', hidden: true },
     ]);
   });
 

@@ -529,6 +529,11 @@ describe('lead de socio (A365): institucion y sede llegan al submit', () => {
     { fields: [{ code: 'institution_type' }, { code: 'institution' }, { code: 'sede' }] },
   ] as unknown as WizardStep[];
 
+  /** El caso real de A365: su landing no declara `sede` ni `institution`. */
+  const PASOS_SIN_CAMPOS = [
+    { fields: [{ code: 'document_number' }, { code: 'email' }] },
+  ] as unknown as WizardStep[];
+
   const originales = Object.keys(mockFormData);
 
   afterEach(() => {
@@ -537,8 +542,8 @@ describe('lead de socio (A365): institucion y sede llegan al submit', () => {
     }
   });
 
-  const prellenarComoElHook = () => {
-    const updates = calcularPrellenado(LEAD, PASOS, () => '');
+  const prellenarComoElHook = (pasos: WizardStep[] = PASOS) => {
+    const updates = calcularPrellenado(LEAD, pasos, () => '');
     for (const u of [...updates, ...marcadoresDeBloqueo(updates)]) {
       (mockFormData as Record<string, unknown>)[u.fieldId] = { value: u.value, error: null };
     }
@@ -547,6 +552,29 @@ describe('lead de socio (A365): institucion y sede llegan al submit', () => {
   it('manda institution y sede con el id del catalogo, no el nombre', async () => {
     mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
     prellenarComoElHook();
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockSubmitApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form_data: expect.objectContaining({
+          institution: '812',
+          institution_type: 'university',
+          sede: '45',
+        }),
+      })
+    );
+  });
+
+  it('llegan al submit aunque la landing no tenga los campos', async () => {
+    // El caso de A365: su formulario no declara `sede`. Este es el test que
+    // vale — el de arriba pasaria igual si el prellenado solo funcionara en
+    // landings que ya tienen los campos, que es justo lo que NO sirve aca.
+    mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
+    prellenarComoElHook(PASOS_SIN_CAMPOS);
 
     const { result } = renderHook(() => useSubmitApplication());
     await act(async () => {
