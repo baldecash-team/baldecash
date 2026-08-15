@@ -19,6 +19,29 @@ export interface LeadPrefill {
   last_name: string | null;
   phone: string | null;
   email: string | null;
+
+  /**
+   * Institución y sede que el socio declaró en el push.
+   *
+   * Los `_id` son la fila del catálogo —`study_center` para `institution`,
+   * `agreement_branch` para `sede`—, o sea exactamente lo que esos campos
+   * guardan cuando la persona los elige a mano. Los `_name` vienen para que el
+   * select los muestre sin una segunda vuelta al servidor.
+   *
+   * `institution_type` llega ya traducido al vocabulario del formulario
+   * (`university` | `institute` | `school`), que no es el de `study_center`.
+   * Puede venir `null` con `institution_id` presente: el catálogo tiene tipos
+   * que el formulario no ofrece (ver `useLeadPrefill`).
+   *
+   * Opcionales en el tipo —no solo nullables— porque el backend que los sirve
+   * puede ser anterior al frontend que los lee: durante esa ventana las claves
+   * no vienen en el JSON.
+   */
+  institution_id?: number | null;
+  institution_name?: string | null;
+  institution_type?: string | null;
+  sede_id?: number | null;
+  sede_name?: string | null;
 }
 
 /**
