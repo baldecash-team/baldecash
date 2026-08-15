@@ -31,6 +31,24 @@ import { useLayout } from '../../../../context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { SelectInput } from './SelectInput';
 
+/**
+ * Landings sin convenio que igual ofrecen el selector de sedes, y de qué
+ * convenio salen esas sedes.
+ *
+ * `lead-flujo-normal` es la landing de captación de A365: no es de convenio
+ * —y no puede serlo, porque el convenio impone su institución y acá cada lead
+ * trae la suya— pero sus postulantes son de SENATI y tienen que poder decir en
+ * qué sede estudian. El agente puede mandarla en el push, y cuando no la manda
+ * la elige el postulante de la lista.
+ *
+ * Es un mapa a mano a propósito y no una columna: hoy es un caso, y una
+ * landing acá es una decisión comercial, no un dato que alguien administre.
+ * Si aparece un tercero, conviene mover esto a `landing.sede_agreement_id`.
+ */
+const SEDES_SIN_CONVENIO: Record<string, number> = {
+  'lead-flujo-normal': 16, // SENATI
+};
+
 interface CascadingSelectFieldProps {
   field: WizardField;
   /** Filtered static options from API config */
@@ -50,8 +68,12 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   disabled = false,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
-  const { agreementData } = useLayout();
-  const agreementId = agreementData?.id;
+  const { agreementData, landing } = useLayout();
+  // El convenio de la landing manda; si no tiene, cae al mapa de arriba. Solo
+  // se usa para resolver sedes: `agreementData` sigue en null, así que la
+  // landing no se comporta como de convenio en nada más (branding, footer, y
+  // sobre todo la institución, que acá la trae cada lead).
+  const agreementId = agreementData?.id ?? SEDES_SIN_CONVENIO[landing];
 
   // Un campo prellenado desde el lead del socio trae su propio id y su propia
   // etiqueta, y queda bloqueado: no necesita el catálogo para mostrarse.

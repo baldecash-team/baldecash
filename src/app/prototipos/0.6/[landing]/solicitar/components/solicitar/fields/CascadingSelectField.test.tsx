@@ -11,7 +11,7 @@
  * submit y sobre el que se liquida al socio.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 
 import { CascadingSelectField } from './CascadingSelectField';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
@@ -35,9 +35,10 @@ jest.mock('../../../context/WizardContext', () => ({
 }));
 
 let mockAgreementData: { id: number } | null = null;
+let mockLanding = 'una-landing-cualquiera';
 
 jest.mock('../../../../context/LayoutContext', () => ({
-  useLayout: () => ({ agreementData: mockAgreementData }),
+  useLayout: () => ({ agreementData: mockAgreementData, landing: mockLanding }),
 }));
 
 const mockFetchOptionsFromSource = jest.fn().mockResolvedValue([]);
@@ -80,6 +81,7 @@ beforeEach(() => {
   for (const k of Object.keys(mockFieldValues)) delete mockFieldValues[k];
   for (const k of Object.keys(mockFieldLabels)) delete mockFieldLabels[k];
   mockAgreementData = null;
+  mockLanding = 'una-landing-cualquiera';
   mockFetchOptionsFromSource.mockClear();
 });
 
@@ -119,6 +121,43 @@ describe('CascadingSelectField — gate de agreement-branches', () => {
 
     // `/public/options/agreement-branches` exige `agreement_id`: pedirlo sin
     // convenio es un 422 garantizado.
+    expect(mockFetchOptionsFromSource).not.toHaveBeenCalled();
+  });
+
+  it('muestra la sede vacía y con catálogo en una landing del mapa, sin convenio', async () => {
+    mockLanding = 'lead-flujo-normal';
+    mockFetchOptionsFromSource.mockResolvedValueOnce([
+      { value: 45, label: 'SENATI - Independencia' },
+      { value: 65, label: 'SENATI - San Martín de Porres' },
+    ]);
+
+    render(<CascadingSelectField field={sedeField} staticOptions={[]} />);
+
+    // Visible aunque el lead no haya traído sede: la persona la elige.
+    const input = screen.getByTestId('select-input');
+    expect(input).toHaveAttribute('data-value', '');
+
+    // Y con las sedes de SENATI para elegir, que es lo que la hace usable.
+    expect(mockFetchOptionsFromSource).toHaveBeenCalledWith(
+      'agreement-branches',
+      { agreement_id: 16 }
+    );
+
+    // Arranca deshabilitado mientras carga el catálogo y se habilita al
+    // llegar: sin esto la persona puede abrir un select todavía vacío.
+    await waitFor(() =>
+      expect(screen.getByTestId('select-input')).toHaveAttribute('data-disabled', 'false')
+    );
+  });
+
+  it('el mapa no filtra a otras landings sin convenio', () => {
+    mockLanding = 'otra-landing-sin-convenio';
+
+    const { container } = render(
+      <CascadingSelectField field={sedeField} staticOptions={[]} />
+    );
+
+    expect(container).toBeEmptyDOMElement();
     expect(mockFetchOptionsFromSource).not.toHaveBeenCalled();
   });
 
