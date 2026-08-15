@@ -23,6 +23,16 @@ const LEAD: LeadPrefill = {
   email: 'ana@ejemplo.com',
 };
 
+/** Lead con institución y sede declaradas por el socio. */
+const LEAD_ACADEMICO: LeadPrefill = {
+  ...LEAD,
+  institution_id: 812,
+  institution_name: 'Universidad Privada del Norte',
+  institution_type: 'university',
+  sede_id: 45,
+  sede_name: 'UCV Norte',
+};
+
 const pasos = (...codes: string[]): WizardStep[] =>
   [{ fields: codes.map(code => ({ code })) }] as unknown as WizardStep[];
 
@@ -66,6 +76,126 @@ describe('calcularPrellenado', () => {
     const updates = calcularPrellenado(sinContacto, pasos('document_number', 'phone', 'email'), vacio);
 
     expect(updates).toEqual([{ fieldId: 'document_number', value: '70123456' }]);
+  });
+
+  it('pone el id de institucion y sede con su nombre como etiqueta', () => {
+    // Los dos son selects sobre catálogos: guardan id, muestran nombre. Sin la
+    // etiqueta el campo queda con el id puesto, bloqueado y en blanco.
+    const updates = calcularPrellenado(
+      LEAD_ACADEMICO,
+      pasos('institution_type', 'institution', 'sede'),
+      vacio,
+    );
+
+    expect(updates).toEqual([
+      { fieldId: 'institution_type', value: 'university' },
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte' },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte' },
+    ]);
+  });
+
+  it('manda institucion y sede aunque la landing no tenga esos campos', () => {
+    // El caso real de A365: su landing no declara `sede`. Si el prellenado se
+    // limitara a los campos declarados —como hace con el resto—, la sede que el
+    // agente eligio moriria en el navegador. Van bajo el codigo canonico y
+    // marcados `hidden`: no hay campo que renderizar ni que bloquear.
+    const updates = calcularPrellenado(LEAD_ACADEMICO, pasos('document_number'), vacio);
+
+    expect(updates).toEqual([
+      { fieldId: 'document_number', value: '70123456' },
+      { fieldId: 'institution_type', value: 'university', hidden: true },
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte', hidden: true },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte', hidden: true },
+    ]);
+  });
+
+  it('un campo oculto no lleva marcador de bloqueo', () => {
+    // Bloquear un campo que no se renderiza es un valor muerto en formData.
+    const updates = calcularPrellenado(LEAD_ACADEMICO, pasos('email', 'sede'), vacio);
+
+    expect(marcadoresDeBloqueo(updates).map(m => m.fieldId)).toEqual([
+      '_lead_locked_email',
+      '_lead_locked_sede',
+    ]);
+  });
+
+  it('sin campo `institution`, el tipo faltante ya no la descarta', () => {
+    // La regla de la institucion huerfana existe porque `institution_type`
+    // limpia a `institution`. Si `institution` no se renderiza, nadie registra
+    // esa dependencia: descartarla seria perder el dato por un riesgo inexistente.
+    const sinTipo = { ...LEAD_ACADEMICO, institution_type: null };
+
+    const updates = calcularPrellenado(sinTipo, pasos('institution_type'), vacio);
+
+    expect(updates).toEqual([
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte', hidden: true },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte', hidden: true },
+    ]);
+  });
+
+  it('el resto de los datos si se descartan cuando el form no los pide', () => {
+    // La excepcion es solo para institucion y sede. Un form sin telefono no
+    // debe recibir un `phone` fantasma: ese dato la persona lo tiene y se lo
+    // podemos pedir; la sede que eligio el agente no esta en ningun otro lado.
+    const updates = calcularPrellenado(LEAD, pasos('document_number'), vacio);
+
+    expect(updates).toEqual([{ fieldId: 'document_number', value: '70123456' }]);
+  });
+
+  it('un lead sin institucion ni sede no toca esos campos', () => {
+    // El backend viejo ni siquiera manda las claves: el hook no puede asumirlas.
+    const updates = calcularPrellenado(LEAD, pasos('institution_type', 'institution', 'sede'), vacio);
+
+    expect(updates).toEqual([]);
+  });
+
+  it('sin tipo de institucion no prellena la institucion', () => {
+    // `institution` se limpia cuando cambia `institution_type`. Prellenarla sin
+    // el tipo la deja lista para que el primer toque de la persona la borre —y
+    // como queda bloqueada, vacía y sin arreglo. El backend manda el tipo en
+    // null justo cuando el catálogo trae uno que el formulario no ofrece.
+    const sinTipo = { ...LEAD_ACADEMICO, institution_type: null };
+
+    const updates = calcularPrellenado(sinTipo, pasos('institution_type', 'institution', 'sede'), vacio);
+
+    expect(updates.map(u => u.fieldId)).toEqual(['sede']);
+  });
+
+  it('si el form no pide el tipo, la institucion se prellena igual', () => {
+    // Sin campo `institution_type` no hay quién limpie la institución.
+    const sinTipo = { ...LEAD_ACADEMICO, institution_type: null };
+
+    const updates = calcularPrellenado(sinTipo, pasos('institution'), vacio);
+
+    // La institucion va al campo declarado; la sede, oculta al submit.
+    expect(updates).toEqual([
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte' },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte', hidden: true },
+    ]);
+  });
+
+  it('si la persona ya eligio el tipo, deja la institucion a su cargo', () => {
+    // Mismo callejón sin salida: cambiar el tipo después borraría la
+    // institución bloqueada. La sede no depende de nada, así que sí se pone.
+    const yaEligio = (code: string) => (code === 'institution_type' ? 'institute' : '');
+
+    const updates = calcularPrellenado(
+      LEAD_ACADEMICO,
+      pasos('institution_type', 'institution', 'sede'),
+      yaEligio,
+    );
+
+    expect(updates.map(u => u.fieldId)).toEqual(['sede']);
+  });
+
+  it('reconoce `institucion` y `campus` del form builder', () => {
+    const updates = calcularPrellenado(
+      LEAD_ACADEMICO,
+      pasos('tipo_institucion', 'institucion', 'campus'),
+      vacio,
+    );
+
+    expect(updates.map(u => u.fieldId)).toEqual(['tipo_institucion', 'institucion', 'campus']);
   });
 
   it('no reparte los apellidos en paterno y materno', () => {
