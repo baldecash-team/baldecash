@@ -5,8 +5,11 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSubmitApplication } from '../useSubmitApplication';
+import { calcularPrellenado, marcadoresDeBloqueo } from '../useLeadPrefill';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { readDemoApplication } from '../../utils/demoApplication';
+import type { LeadPrefill } from '@/app/prototipos/0.6/services/leadPrefillApi';
+import type { WizardStep } from '../../../../services/wizardApi';
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -493,5 +496,84 @@ describe('useSubmitApplication', () => {
       expect(mockClearInsurance).toHaveBeenCalled();
       expect(mockClearCoupon).toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * Lo que el link corto del socio prellena tiene que terminar en el submit.
+ *
+ * Es la unica parte de la cadena que ningun otro test cubre: `calcularPrellenado`
+ * prueba que los campos se calculan bien, pero no que sobrevivan al mapeo de
+ * `form_data` — y ahi es donde se caerian sin que nadie se entere, porque los
+ * marcadores de bloqueo viajan en el mismo formData y SI tienen que quedarse
+ * afuera. Se usan las funciones reales del prellenado, no un formData escrito a
+ * mano: si mañana `institution` pasara a llamarse `_institution`, este test lo
+ * ve.
+ */
+describe('lead de socio (A365): institucion y sede llegan al submit', () => {
+  const LEAD: LeadPrefill = {
+    document_type: 'dni',
+    document_number: '70123456',
+    first_name: 'Ana',
+    last_name: 'Quispe',
+    phone: '999888777',
+    email: 'ana@ejemplo.com',
+    institution_id: 812,
+    institution_name: 'Universidad Privada del Norte',
+    institution_type: 'university',
+    sede_id: 45,
+    sede_name: 'UCV Norte',
+  };
+
+  const PASOS = [
+    { fields: [{ code: 'institution_type' }, { code: 'institution' }, { code: 'sede' }] },
+  ] as unknown as WizardStep[];
+
+  const originales = Object.keys(mockFormData);
+
+  afterEach(() => {
+    for (const key of Object.keys(mockFormData)) {
+      if (!originales.includes(key)) delete (mockFormData as Record<string, unknown>)[key];
+    }
+  });
+
+  const prellenarComoElHook = () => {
+    const updates = calcularPrellenado(LEAD, PASOS, () => '');
+    for (const u of [...updates, ...marcadoresDeBloqueo(updates)]) {
+      (mockFormData as Record<string, unknown>)[u.fieldId] = { value: u.value, error: null };
+    }
+  };
+
+  it('manda institution y sede con el id del catalogo, no el nombre', async () => {
+    mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
+    prellenarComoElHook();
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockSubmitApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form_data: expect.objectContaining({
+          institution: '812',
+          institution_type: 'university',
+          sede: '45',
+        }),
+      })
+    );
+  });
+
+  it('los marcadores de bloqueo NO viajan al backend', async () => {
+    mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
+    prellenarComoElHook();
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    const enviado = mockSubmitApplication.mock.calls[0][0].form_data;
+    expect(Object.keys(enviado).some(k => k.startsWith('_'))).toBe(false);
   });
 });
