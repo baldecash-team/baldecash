@@ -28,6 +28,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WizardField, fetchCascadingOptions, fetchOptionsFromSource, fetchOptionsWithSearch, fetchOptionById, CascadingOption } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { SelectInput } from './SelectInput';
 
 interface CascadingSelectFieldProps {
@@ -52,10 +53,21 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   const { agreementData } = useLayout();
   const agreementId = agreementData?.id;
 
+  // Un campo prellenado desde el lead del socio trae su propio id y su propia
+  // etiqueta, y queda bloqueado: no necesita el catálogo para mostrarse.
+  const isLockedFromLead = getFieldValue(leadLockKey(field.code)) === 'true';
+
   // If the field depends on a landing agreement (e.g. "sede") but the current
   // landing has no agreement, hide it silently so it doesn't render as an
   // empty dropdown on non-convenio landings.
-  if (field.options_source === 'agreement-branches' && !agreementId) {
+  //
+  // La excepción es el lead del socio. Ahí la sede NO sale del convenio de la
+  // landing: la eligió el agente al empujar el lead, viaja en `agreement_branch_id`
+  // y el prellenado la escribe con su nombre. Esconderla por no haber convenio
+  // borraría de la pantalla un dato que el socio ya declaró, que se le liquida
+  // y que igual viaja en el submit — el postulante vería menos de lo que se
+  // está registrando a su nombre.
+  if (field.options_source === 'agreement-branches' && !agreementId && !isLockedFromLead) {
     return null;
   }
 
@@ -125,6 +137,13 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // Load initial options for root-level fields with options_source (e.g., department)
   useEffect(() => {
     if (!hasOptionsSource || initialLoadDone.current) {
+      return;
+    }
+
+    // Sin convenio no hay catálogo de sedes que pedir: `/public/options/agreement-branches`
+    // exige `agreement_id` y respondería 422. Se llega acá solo con el valor
+    // prellenado del lead, que ya trae su etiqueta y no necesita opciones.
+    if (field.options_source === 'agreement-branches' && !agreementId) {
       return;
     }
 
