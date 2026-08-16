@@ -10,6 +10,25 @@ import * as Sentry from "@sentry/nextjs";
 // resize. We don't control the third-party script, so we drop its events.
 const THIRD_PARTY_NOISE_PATTERN = /blip-chat-widget|baldecash\.chat\.blip\.ai/i;
 
+// Fixes BALDECASH3-52: los navegadores in-app (Facebook, Instagram) inyectan
+// scripts en el WebView bajo el esquema app://, p.ej.
+// app://navigation_performance_logger_android, que engancha beforeunload y
+// habla con el codigo nativo por postMessage. Cuando ese puente falla lanza
+// desde SU stack, no del nuestro. denyUrls solo mira el ultimo frame, asi que
+// escaneamos todos los frames. Nuestro bundle siempre se sirve por https.
+const INJECTED_WEBVIEW_SCRIPT_PATTERN = /^app:\/\//i;
+
+/** Drops events whose stacktrace touches a third-party or WebView-injected script. */
+export function filterThirdPartyEvent<T extends Sentry.ErrorEvent>(event: T): T | null {
+  const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+  for (const frame of frames) {
+    const url = frame.filename || frame.abs_path || "";
+    if (THIRD_PARTY_NOISE_PATTERN.test(url)) return null;
+    if (INJECTED_WEBVIEW_SCRIPT_PATTERN.test(url)) return null;
+  }
+  return event;
+}
+
 Sentry.init({
   dsn: "https://89b76047709a0b3fe7c9bff6c5b221e7@o4504769499561984.ingest.us.sentry.io/4511120032333824",
 
@@ -30,14 +49,7 @@ Sentry.init({
 
   sendDefaultPii: true,
 
-  beforeSend(event) {
-    const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
-    for (const frame of frames) {
-      const url = frame.filename || frame.abs_path || "";
-      if (THIRD_PARTY_NOISE_PATTERN.test(url)) return null;
-    }
-    return event;
-  },
+  beforeSend: filterThirdPartyEvent,
 
   ignoreErrors: [
     // Instagram / Facebook / TikTok in-app browsers inject scripts that probe
@@ -45,6 +57,15 @@ Sentry.init({
     // Not actionable from our side.
     /window\.webkit\.messageHandlers/i,
     /undefined is not an object \(evaluating 'window\.webkit/i,
+    // Fixes BALDECASH3-4Z, BALDECASH3-38, BALDECASH3-3A, BALDECASH3-4G:
+    // navegadores in-app de Android inyectan scripts en el WebView (autofill,
+    // logging de teclado, puente postMessage nativo) via addJavascriptInterface.
+    // Cuando el objeto Java detras del puente ya fue recolectado o el WebView se
+    // destruyo, la llamada inyectada lanza. Ningun frame es de nuestro bundle:
+    // Sentry solo los ve porque browserApiErrors envuelve addEventListener.
+    // denyUrls no aplica, el script inyectado no tiene filename (<anonymous>).
+    /Java object is gone/i,
+    /Java exception was raised during method invocation/i,
     // Common third-party / noise
     "Non-Error promise rejection captured",
     "Non-Error exception captured",
