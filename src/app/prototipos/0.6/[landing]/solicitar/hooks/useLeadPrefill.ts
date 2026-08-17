@@ -22,8 +22,14 @@
  *
  * Dos reglas que definen el comportamiento:
  *
- * - **Solo rellena vacíos.** Lo que la persona ya escribió gana siempre, y el
- *   hook puede correr de nuevo (recarga, volver atrás) sin pisarlo.
+ * - **Rellena vacíos, y refresca lo que él mismo escribió.** Lo que la persona
+ *   tipeó gana siempre, así que el hook puede correr de nuevo (recarga, volver
+ *   atrás) sin pisarlo. Los campos que quedaron bloqueados son otra cosa: esos
+ *   los puso este prellenado y su fuente de verdad es el lead del socio, así
+ *   que en cada montaje se vuelven a traer del servidor. Sin eso, un dato que
+ *   el socio mandó mal y que corregimos después no llega nunca al navegador
+ *   que ya se lo guardó — y como el campo está bloqueado, la persona tampoco
+ *   lo puede arreglar: el formulario queda trabado.
  * - **Lo prellenado queda de solo lectura.** Cada campo completado deja un
  *   marcador `_lead_locked_{code}` en `formData`, que `DynamicField` y
  *   `DocumentNumberField` leen para deshabilitarse. Los datos son los que el
@@ -134,6 +140,7 @@ export function calcularPrellenado(
   lead: LeadPrefill,
   steps: WizardStep[],
   valorActual: (code: string) => string,
+  estaBloqueado: (code: string) => boolean = () => false,
 ): CampoAPrellenar[] {
   const declarados = new Set<string>();
   for (const step of steps) {
@@ -156,15 +163,31 @@ export function calcularPrellenado(
     if (!declarado && !AL_SUBMIT_AUNQUE_NO_HAYA_CAMPO.includes(dato)) continue;
 
     const code = declarado ?? candidatos[0];
-    if (valorActual(code)) continue;   // lo que ya hay gana
+    const actual = valorActual(code);
+    const nuevo = String(value).trim();
+
+    // Lo que la persona escribió gana. Lo que trajo el lead, no: ese valor es
+    // del socio y el servidor es su fuente de verdad, así que una corrección
+    // allá tiene que llegar al navegador que ya se lo guardó. Sin esto un dato
+    // inválido queda clavado en localStorage —el socio mandó una vez
+    // "947118412 telefono"— y no hay salida: el campo está bloqueado por venir
+    // del lead, así que la persona no lo puede editar, y la validación del
+    // paso no la deja avanzar. Se distinguen por el marcador de bloqueo, que
+    // existe exactamente sobre los campos que puso este prellenado.
+    if (actual && !estaBloqueado(code)) continue;
+
+    // Registrado aunque no haya nada que escribir: la regla de la institución
+    // huérfana pregunta si el tipo quedó puesto por el lead, y un tipo que ya
+    // estaba correcto lo está igual que uno recién escrito.
+    codigoDe[dato] = code;
+    if (actual === nuevo) continue;   // ya está igual: nada que reescribir
 
     const etiqueta = ETIQUETA_DE[dato];
     const label = etiqueta ? lead[etiqueta] : undefined;
 
-    codigoDe[dato] = code;
     updates.push({
       fieldId: code,
-      value: String(value).trim(),
+      value: nuevo,
       ...(label ? { label: String(label).trim() } : {}),
       ...(declarado ? {} : { hidden: true }),
     });
@@ -227,7 +250,12 @@ export function useLeadPrefill(landingSlug: string, steps: WizardStep[]): void {
 
     fetchLeadPrefill(alk).then(lead => {
       if (!vigente || !lead) return;
-      const updates = calcularPrellenado(lead, steps, code => (getFieldValue(code) as string) || '');
+      const updates = calcularPrellenado(
+        lead,
+        steps,
+        code => (getFieldValue(code) as string) || '',
+        code => getFieldValue(leadLockKey(code)) === 'true',
+      );
       if (!updates.length) return;
 
       // El marcador va en el MISMO batch que el valor: en dos llamadas hay un

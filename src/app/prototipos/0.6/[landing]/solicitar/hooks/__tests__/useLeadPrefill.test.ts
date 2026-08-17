@@ -70,6 +70,72 @@ describe('calcularPrellenado', () => {
     expect(updates).toEqual([{ fieldId: 'phone', value: '999888777' }]);
   });
 
+  it('refresca el valor que el propio prellenado dejo bloqueado', () => {
+    // El caso que lo motivó: el socio empujó el celular como
+    // "947118412 telefono", el navegador lo guardó, y corregirlo en el backend
+    // no alcanzaba — el campo está bloqueado justamente por venir del lead, así
+    // que la persona veía "Máximo 9 caracteres" sobre un campo que no podía
+    // editar. Al volver a entrar, el valor del servidor manda.
+    const guardado = (code: string) => (code === 'phone' ? '947118412 telefono' : '');
+    const bloqueado = (code: string) => code === 'phone';
+
+    const updates = calcularPrellenado(LEAD, pasos('phone'), guardado, bloqueado);
+
+    expect(updates).toEqual([{ fieldId: 'phone', value: '999888777' }]);
+  });
+
+  it('lo que la persona escribio gana aunque el lead traiga otra cosa', () => {
+    // Sin marcador de bloqueo el valor es de la persona, no del prellenado.
+    const guardado = (code: string) => (code === 'phone' ? '911222333' : '');
+    const nadaBloqueado = () => false;
+
+    const updates = calcularPrellenado(LEAD, pasos('phone'), guardado, nadaBloqueado);
+
+    expect(updates).toEqual([]);
+  });
+
+  it('un campo bloqueado que ya esta igual no genera escritura', () => {
+    // Reescribirlo sería un re-render por nada en cada montaje del wizard.
+    const guardado = (code: string) => (code === 'phone' ? '999888777' : '');
+    const bloqueado = (code: string) => code === 'phone';
+
+    const updates = calcularPrellenado(LEAD, pasos('phone'), guardado, bloqueado);
+
+    expect(updates).toEqual([]);
+  });
+
+  it('sin saber de bloqueos se comporta como antes', () => {
+    // El cuarto parámetro es opcional: sin él, cualquier valor presente gana.
+    const guardado = (code: string) => (code === 'phone' ? '947118412 telefono' : '');
+
+    expect(calcularPrellenado(LEAD, pasos('phone'), guardado)).toEqual([]);
+  });
+
+  it('el tipo ya puesto por el lead no descarta la institucion refrescada', () => {
+    // La regla de la institución huérfana mira si el tipo quedó a cargo del
+    // lead. Con el tipo ya correcto no hay nada que reescribir, pero sigue
+    // siendo del lead: descartar la institución ahí la dejaría con el valor
+    // viejo, bloqueada y sin arreglo.
+    const guardado = (code: string) => {
+      if (code === 'institution_type') return 'university';
+      if (code === 'institution') return '999';
+      return '';
+    };
+    const bloqueado = (code: string) => code === 'institution_type' || code === 'institution';
+
+    const updates = calcularPrellenado(
+      LEAD_ACADEMICO,
+      pasos('institution_type', 'institution', 'sede'),
+      guardado,
+      bloqueado,
+    );
+
+    expect(updates).toEqual([
+      { fieldId: 'institution', value: '812', label: 'Universidad Privada del Norte' },
+      { fieldId: 'sede', value: '45', label: 'UCV Norte' },
+    ]);
+  });
+
   it('omite los datos que el lead no trajo', () => {
     const sinContacto = { ...LEAD, phone: null, email: '   ' };
 
