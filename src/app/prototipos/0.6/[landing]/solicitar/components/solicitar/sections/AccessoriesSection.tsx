@@ -24,6 +24,7 @@ import type { Accessory, AccessoryCategory } from '../../../types/upsell';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { AccessoriesLoadingScreen } from './AccessoriesLoadingScreen';
 import { useSessionOptional } from '../../../context/SessionContext';
+import { patchTrackingSession } from '@/app/prototipos/0.6/services/sessionApi';
 
 /** Responsive page size: 2 mobile, 4 tablet, 6 desktop */
 function usePageSize() {
@@ -186,6 +187,14 @@ export function AccessoriesSection({
         hasFetchedOnceRef.current = true;
         if (apiAccessories && apiAccessories.length > 0) {
           analytics.track('accessory_variant_assigned', { variant: abVariant, count: apiAccessories.length, ecosistema: ecosistema ?? null });
+          // La variante también va a la fila de la sesión. En el evento solo
+          // no sirve: el resultado del test (¿creó solicitud?, ¿agregó
+          // accesorios?) vive en la sesión y en la solicitud, así que sin esto
+          // no hay forma de comparar A contra B — el experimento consume
+          // tráfico sin poder concluir cuál gana.
+          void patchTrackingSession(session?.sessionUuid ?? null, {
+            ab_accessories_variant: ecosistema ? `${abVariant}:${ecosistema}` : abVariant,
+          });
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
             name: acc.name,

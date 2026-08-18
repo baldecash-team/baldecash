@@ -317,6 +317,12 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         os_version: realOsVersion,
         screen_width: window.screen.width,
         screen_height: window.screen.height,
+        // Se mandan aunque el user agent ya viaje en `session_start`: ahí vive
+        // dentro del payload de un evento, y para separar un navegador
+        // embebido de uno normal —o para emparejar una sesión con su par en
+        // GA4— hace falta en la fila de la sesión.
+        user_agent: navigator.userAgent,
+        entry_url: window.location.href,
         ...utmParams,
         ...referrer,
       };

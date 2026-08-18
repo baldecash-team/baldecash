@@ -13,6 +13,7 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { WizardField } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
+import { useSessionOptional } from '../../../context/SessionContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
@@ -59,6 +60,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // los campos que llegaron con el lead (ver `useLeadPrefill`).
   const isLockedFromLead = formData[leadLockKey(field.code)]?.value === 'true';
   const { landing, overlayVariant } = useLayout();
+  const session = useSessionOptional();
   const prefilledRef = useRef(false);
   const [lockedByModal, setLockedByModal] = useState(false);
 
@@ -223,6 +225,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     onNoPrefillData: handleNoPrefillData,
     debounceMs: 500,
     landingSlug: landing,
+    // Este es el momento en que el visitante se identifica: el documento pasa
+    // también a `session.dni`, sin esperar al submit.
+    sessionUuid: session?.sessionUuid ?? null,
   });
 
   // Whitelist: si el backend responde allowed === false, se bloquea el flujo.

@@ -76,6 +76,23 @@ describe('os_version de la sesión', () => {
     expect(payloadDeSesion().os_version).toBe('16.0.0');
   });
 
+  it('manda el user agent y la URL de entrada, que hoy quedan NULL al 100%', async () => {
+    conClientHints(null);
+
+    render(
+      <SessionProvider landingSlug="home">
+        <div />
+      </SessionProvider>
+    );
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    const payload = payloadDeSesion();
+    expect(payload.user_agent).toBe(navigator.userAgent);
+    // Sin `entry_url` no se sabe por qué página entró el visitante, y es el
+    // atributo que más ayuda a emparejar una sesión con su par en GA4.
+    expect(payload.entry_url).toBe(window.location.href);
+  });
+
   it('sin Client Hints (Safari) cae al user agent y sigue creando la sesión', async () => {
     conClientHints(null);
 
