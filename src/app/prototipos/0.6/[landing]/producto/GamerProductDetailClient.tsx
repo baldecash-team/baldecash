@@ -39,7 +39,6 @@ import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi'
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { CubeGridSpinner, Toast, useToast, useScrollToTop } from '@/app/prototipos/_shared';
-import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
@@ -167,7 +166,6 @@ function DetailContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const { settings, newsletterData, navbarProps, footerData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
-  const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -366,11 +364,12 @@ function DetailContent() {
         if (cancelled) return;
         if (result) {
           setData(result);
-          tracker?.track('product_view', {
+          analytics.trackProductView({
             product_id: result.product.id,
             product_name: result.product.name,
             brand: result.product.brand,
             slug,
+            context: 'ficha',
           });
         } else {
           setError('Producto no encontrado');

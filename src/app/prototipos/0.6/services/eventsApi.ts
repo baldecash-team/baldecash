@@ -308,7 +308,12 @@ export type EventType =
   // una sesión nueva. No se emite en recargas ni al recuperar una sesión ya
   // existente desde localStorage. Lleva el uuid en el payload para poder
   // cruzar la sesión con otras fuentes de datos fuera de este backend.
-  | 'sesion_vinculada';
+  | 'sesion_vinculada'
+  // Control del envío a GA4: se emite en el mismo momento en que se fija el id
+  // de sesión como propiedad de usuario en Google. Va al backend propio, que es
+  // dominio nuestro y nadie bloquea, así que la comparación entre ambos lados
+  // distingue "el evento no se generó" de "se generó pero no llegó a Google".
+  | 'ga_link_sent';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
