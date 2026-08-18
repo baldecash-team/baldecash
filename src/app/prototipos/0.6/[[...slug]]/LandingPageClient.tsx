@@ -12,6 +12,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
 import { DniModal, hasSavedDni, clearVipData, saveVipToken, type WhitelistValidationResult } from '../components/hero/DniModal';
 import { ZonaGamerLanding } from '../components/zona-gamer/ZonaGamerLanding';
+import LeadModalGate from '../components/lead-modal/LeadModalGate';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
@@ -587,6 +588,9 @@ export function LandingPageClient({ slug, initialData, landingConfig }: LandingP
         <Suspense fallback={<HomeSkeleton />}>
           <LandingPageClientInner slug={slug} initialData={initialData} landingConfig={landingConfig} />
         </Suspense>
+        {/* Va aca, fuera del Suspense y del Inner, para cubrir por igual los
+            cuatro renders del index (zona gamer, lead, macbook neo y normal). */}
+        <LeadModalGate landingSlug={slug} config={landingConfig as unknown as Record<string, unknown>} />
       </EventTrackerProvider>
     </SessionProvider>
   );
