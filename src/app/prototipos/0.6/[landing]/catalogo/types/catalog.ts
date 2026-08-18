@@ -232,6 +232,7 @@ export interface FilterState {
   brands: string[];
   quotaRange: [number, number];
   quotaFrequency: QuotaFrequency;
+  priceRange: { min: number | null; max: number | null };
   usage: UsageType[];
   ram: number[];
   ramExpandable: boolean | null;
@@ -265,6 +266,7 @@ export const defaultFilterState: FilterState = {
   brands: [],
   quotaRange: [0, 99999],  // Sentinel: "no filter" — synced to API range on load
   quotaFrequency: 'monthly',
+  priceRange: { min: null, max: null },
   usage: [],
   ram: [],
   ramExpandable: null,

@@ -77,6 +77,14 @@ export const parseFiltersFromParams = (
     }
   }
 
+  // BAL-3080: el backend soporta min_price/max_price; antes se descartaban aca.
+  const minPrice = Number(searchParams.get('min_price'));
+  const maxPrice = Number(searchParams.get('max_price'));
+  filters.priceRange = {
+    min: searchParams.get('min_price') && !isNaN(minPrice) ? minPrice : null,
+    max: searchParams.get('max_price') && !isNaN(maxPrice) ? maxPrice : null,
+  };
+
   // RAM (array de números)
   const ram = searchParams.get('ram');
   if (ram) {
@@ -314,6 +322,10 @@ export const buildParamsFromFilters = (
   if (filters.quotaRange[0] !== refMin || filters.quotaRange[1] !== refMax) {
     params.set('quota', `${filters.quotaRange[0]},${filters.quotaRange[1]}`);
   }
+
+  // Price range (BAL-3080)
+  if (filters.priceRange?.min != null) params.set('min_price', String(filters.priceRange.min));
+  if (filters.priceRange?.max != null) params.set('max_price', String(filters.priceRange.max));
 
   // RAM
   if (filters.ram.length > 0) {
