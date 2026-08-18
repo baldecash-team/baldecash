@@ -454,6 +454,10 @@ function CatalogoContent() {
       apiFilters.max_quota = filters.quotaRange[1];
     }
 
+    // Price range (equipment price, distinct from monthly quota) — BAL-3080
+    if (filters.priceRange?.min != null) apiFilters.min_price = filters.priceRange.min;
+    if (filters.priceRange?.max != null) apiFilters.max_price = filters.priceRange.max;
+
     // Specs filter - map FilterState fields to API specs JSON
     // API format: specs={"ram": [8, 16], "touch_screen": [true], "processor": ["AMD Ryzen 5"]}
     const specs: Record<string, (string | number | boolean)[]> = {};
@@ -578,6 +582,7 @@ function CatalogoContent() {
     filters.tags,
     filters.usage,
     filters.quotaRange,
+    filters.priceRange,
     filters.ram,
     filters.storage,
     filters.storageType,
