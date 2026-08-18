@@ -22,6 +22,8 @@ import React, {
   ReactNode,
 } from 'react';
 import { usePathname } from 'next/navigation';
+import { GA_MEASUREMENT_ID } from '@/lib/ga';
+import { parseErrorSource } from '@/app/prototipos/0.6/analytics/errorSource';
 import { useSession } from './SessionContext';
 import {
   TrackingEvent,
@@ -53,6 +55,14 @@ const SCROLL_THRESHOLDS = [25, 50, 75, 100];
  * (`isNewSession` es false) y tampoco se emite.
  */
 const sesionesVinculadas = new Set<string>();
+
+/**
+ * Ids de sesión que ya se fijaron como propiedad de usuario en GA4.
+ *
+ * Mismo criterio que `sesionesVinculadas`: vive a nivel de módulo para que un
+ * remount del provider no vuelva a fijarla ni duplique el evento de control.
+ */
+const sesionesPuenteadas = new Set<number>();
 
 /**
  * Eventos que, además de ir al backend propio, se publican en el `dataLayer`
@@ -124,6 +134,56 @@ function publicarEnGa4(event: TrackingEvent): void {
     })('event', event.event_type, params);
   } catch {
     // GA4 no disponible: el evento igual viaja al backend propio.
+  }
+}
+
+/**
+ * Fija el id de sesión del backend como propiedad de usuario en GA4.
+ *
+ * Por qué no basta con el evento `sesion_vinculada`: el id lo produce el
+ * servidor, así que hay una carrera. Si cuando el evento sale el id todavía no
+ * llegó al navegador, la sesión entera queda anónima para Google — le pasa a
+ * una de cada cuatro visitas. Como propiedad de usuario, en cambio, el dato se
+ * adjunta a TODOS los eventos siguientes: basta con que llegue uno.
+ *
+ * Se manda por las dos vías porque cubren cosas distintas: `user_properties`
+ * viaja en el payload de cada evento, y `user_id` es el campo nativo del
+ * export a BigQuery (hoy vacío al 100%), que es el más fácil de cruzar.
+ *
+ * Silencioso por diseño, igual que el resto del puente: si gtag falta o falla,
+ * el evento de control igual viaja al backend propio y ahí se ve la diferencia.
+ */
+function fijarSesionEnGa4(sessionDbId: number): void {
+  if (typeof window === 'undefined') return;
+
+  const w = window as Window & {
+    gtag?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
+  };
+  const id = String(sessionDbId);
+
+  try {
+    if (typeof w.gtag === 'function') {
+      w.gtag('set', 'user_properties', { session_db_id: id });
+      if (GA_MEASUREMENT_ID) {
+        w.gtag('config', GA_MEASUREMENT_ID, { user_id: id });
+      }
+      return;
+    }
+
+    // gtag.js carga con `lazyOnload`: si todavía no está, se encola con la
+    // forma de `arguments` que usa el snippet oficial y la procesa al iniciar.
+    w.dataLayer = w.dataLayer || [];
+    const encolar = function (this: void) {
+      // eslint-disable-next-line prefer-rest-params
+      (w.dataLayer as unknown[]).push(arguments);
+    } as (...args: unknown[]) => void;
+    encolar('set', 'user_properties', { session_db_id: id });
+    if (GA_MEASUREMENT_ID) {
+      encolar('config', GA_MEASUREMENT_ID, { user_id: id });
+    }
+  } catch {
+    // GA4 no disponible o bloqueado: lo delata el evento de control.
   }
 }
 
@@ -313,6 +373,36 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
       },
     });
   }, [sessionUuid, isNewSession, sessionId, enqueue]);
+
+  // ------------------------------------------------------------------
+  // Auto: puente con GA4 + evento de control (ga_link_sent)
+  //
+  // Cuelga de `sessionId` (el id numérico del backend) y no de `isNewSession`:
+  // una sesión recuperada de localStorage también tiene que quedar
+  // identificada en GA4, si no las recargas se pierden.
+  //
+  // El evento de control es la contraparte propia del envío a Google. Sin él,
+  // cuando una sesión no aparece en GA4 no se puede distinguir si el evento no
+  // se generó o si se generó y lo bloquearon — dos causas con arreglos
+  // opuestos. El backend propio es dominio nuestro y nadie lo bloquea.
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    if (sessionId == null || sesionesPuenteadas.has(sessionId)) return;
+    sesionesPuenteadas.add(sessionId);
+
+    fijarSesionEnGa4(sessionId);
+
+    enqueue({
+      event_type: 'ga_link_sent',
+      client_ts: Date.now(),
+      page_url: getPageUrl(),
+      element_id: null,
+      properties: {
+        session_db_id: sessionId,
+        ts: Date.now(),
+      },
+    });
+  }, [sessionId, enqueue]);
 
   // ------------------------------------------------------------------
   // Auto: page_enter / page_exit on route changes
@@ -519,7 +609,11 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
         properties: {
           error_type: 'runtime',
           message: event.message?.slice(0, 200),
-          source: event.filename?.slice(-100),
+          // `file` y `release` salen como campos sueltos porque los bundles de
+          // Next.js tienen nombre por hash: la URL sola no ubica el origen sin
+          // cruzarla con el despliegue.
+          ...parseErrorSource(event.filename),
+          page: pathname,
           line: event.lineno,
           col: event.colno,
         },
@@ -552,7 +646,7 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
     };
-  }, [sessionUuid, enqueue]);
+  }, [sessionUuid, enqueue, pathname]);
 
   // ------------------------------------------------------------------
   // Periodic flush timer

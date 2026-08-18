@@ -811,15 +811,17 @@ export function GamerCatalogoContent() {
     if (wishlistToastTimerRef.current) clearTimeout(wishlistToastTimerRef.current);
   }, []);
 
-  const handleProductDetail = useCallback((product: CatalogProduct) => {
-    tracker?.track('product_click', {
+  const handleProductDetail = useCallback((product: CatalogProduct, position?: number) => {
+    analytics.trackProductClick({
       product_id: product.id,
       product_name: product.name,
       brand: product.brand,
       slug: product.slug,
+      context: 'catalogo',
+      position,
     });
     router.push(routes.producto(landing, product.slug));
-  }, [router, landing, tracker]);
+  }, [router, landing, analytics]);
 
   // Helper: find a product by ID in allProducts, or build one from a color sibling.
   // Parity with CatalogoClient normal — needed when a productId comes from wishlist/cart
@@ -1840,16 +1842,19 @@ export function GamerCatalogoContent() {
                     onWishlistToggle={() => handleWishlistToggle(product)}
                     isCompared={isInCompare(product.id)}
                     onCompare={() => handleToggleCompare(product)}
-                    onDetail={() => handleProductDetail(product)}
+                    onDetail={() => handleProductDetail(product, idx + 1)}
                     onSolicitar={() => handleProductSolicitar(product)}
                     isInCart={ALLOW_MULTI_PRODUCT ? isInCart(product.id) : false}
                     isFirstCard={idx === 0}
                     needsPromoSpacer={promoSpacerFlags[idx]}
                     onHoverStart={() => {
-                      tracker?.track('product_hover', {
+                      analytics.trackProductHover({
                         product_id: product.id,
                         product_name: product.name,
                         brand: product.brand,
+                        slug: product.slug,
+                        context: 'catalogo',
+                        position: idx + 1,
                       });
                     }}
                   />

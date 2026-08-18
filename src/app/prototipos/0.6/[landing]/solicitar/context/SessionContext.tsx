@@ -21,6 +21,10 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
+import {
+  getUserAgentData,
+  resolveOsVersion,
+} from '@/app/prototipos/0.6/analytics/clientHints';
 
 // Dynamic storage key based on landing slug
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
@@ -153,7 +157,14 @@ function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {
 }
 
 /**
- * Get OS info from user agent
+ * Get OS info from user agent.
+ *
+ * Respaldo, no fuente de verdad: los navegadores congelaron la versión del
+ * sistema dentro del user agent (*User-Agent Reduction*), así que de acá salen
+ * "Android 10" y "Windows 10" para casi cualquier equipo moderno. La versión
+ * real se pide por Client Hints en `resolveOsVersion`, y este valor solo se usa
+ * cuando no están disponibles — en Safari, que no los implementa, es todo lo
+ * que hay.
  */
 function getOsInfo(): { os: string; osVersion: string } {
   if (typeof window === 'undefined') {
@@ -292,6 +303,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
       const { os, osVersion } = getOsInfo();
       const utmParams = getUtmParams();
       const referrer = getReferrerInfo();
+      // Client Hints: la versión que declara el user agent está congelada.
+      // Nunca lanza — ante cualquier problema devuelve el valor de respaldo.
+      const realOsVersion = await resolveOsVersion(osVersion, getUserAgentData());
 
       const payload = {
         landing_slug: slug,
@@ -300,9 +314,15 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         browser,
         browser_version: browserVersion,
         os,
-        os_version: osVersion,
+        os_version: realOsVersion,
         screen_width: window.screen.width,
         screen_height: window.screen.height,
+        // Se mandan aunque el user agent ya viaje en `session_start`: ahí vive
+        // dentro del payload de un evento, y para separar un navegador
+        // embebido de uno normal —o para emparejar una sesión con su par en
+        // GA4— hace falta en la fila de la sesión.
+        user_agent: navigator.userAgent,
+        entry_url: window.location.href,
         ...utmParams,
         ...referrer,
       };

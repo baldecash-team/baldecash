@@ -133,8 +133,9 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
       } else if (value.trim()) {
         setShowSuggestions(false);
         analytics.trackSearchSubmit({
-          query_length: value.length,
+          query: value,
           has_results: suggestions.length > 0,
+          results_count: suggestions.length,
           location: 'navbar',
         });
         onSubmit?.();
@@ -302,8 +303,9 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                     e.preventDefault();
                     setShowSuggestions(false);
                     analytics.trackSearchSubmit({
-                      query_length: value.length,
+                      query: value,
                       has_results: suggestions.length > 0,
+                      results_count: suggestions.length,
                       location: 'navbar_view_all',
                     });
                     onSubmit?.();
