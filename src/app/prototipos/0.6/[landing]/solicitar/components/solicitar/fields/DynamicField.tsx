@@ -271,6 +271,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           success={!error && !!value}
           defaultYearOffset={dateYearOffset}
           minAge={dateMinAge}
+          dateRange={field.date_range ?? 'past'}
         />
       );
 

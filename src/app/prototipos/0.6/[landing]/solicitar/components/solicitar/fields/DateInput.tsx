@@ -28,6 +28,13 @@ interface DateInputProps {
   required?: boolean;
   minAge?: number; // Edad mínima requerida (0 = sin límite)
   defaultYearOffset?: number; // Offset de años para la vista inicial (ej: -20 para fecha de nacimiento, 0 para fecha actual)
+  /**
+   * Qué fechas habilita el calendario. Viene del banco de preguntas
+   * (form_field.date_range). El default es 'past' porque es el
+   * comportamiento histórico: hasta BAL-3139 el futuro estaba bloqueado
+   * a mano y todos los campos date existentes son de fecha pasada.
+   */
+  dateRange?: 'past' | 'future' | 'any';
 }
 
 const MONTHS = [
@@ -45,6 +52,36 @@ const DAYS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 // Vista del calendario: días, meses, o años
 type CalendarView = 'days' | 'months' | 'years';
 
+export type DateRangeMode = 'past' | 'future' | 'any';
+
+/**
+ * ¿Esta fecha queda fuera del rango permitido?
+ *
+ * Vive fuera del componente para poder probarla sin montar el calendario
+ * (el Popover de NextUI no renderiza en jsdom) y para que las 3 vistas
+ * — días, meses y años — compartan exactamente la misma regla.
+ *
+ * `hoy` es inyectable para que los tests no dependan de la fecha real.
+ */
+export function isBlockedByRange(
+  date: Date,
+  mode: DateRangeMode,
+  hoy: Date = new Date()
+): boolean {
+  if (mode === 'any') return false;
+
+  if (mode === 'past') {
+    const finDeHoy = new Date(hoy);
+    finDeHoy.setHours(23, 59, 59, 999);
+    return date > finDeHoy;
+  }
+
+  // 'future': hoy sigue siendo válido
+  const inicioDeHoy = new Date(hoy);
+  inicioDeHoy.setHours(0, 0, 0, 0);
+  return date < inicioDeHoy;
+}
+
 export const DateInput: React.FC<DateInputProps> = ({
   id,
   label,
@@ -61,6 +98,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   required = true,
   minAge = 0,
   defaultYearOffset = -20,
+  dateRange = 'past',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [calendarView, setCalendarView] = useState<CalendarView>('days');
@@ -73,6 +111,9 @@ export const DateInput: React.FC<DateInputProps> = ({
   const [viewDate, setViewDate] = useState(() => {
     if (value) return parseDateString(value);
     const d = new Date();
+    // Con 'future' el offset histórico (-20) abriría el calendario dos décadas
+    // atrás, con todo deshabilitado y sin pista de hacia dónde navegar.
+    if (dateRange === 'future') return d;
     d.setFullYear(d.getFullYear() + defaultYearOffset);
     return d;
   });
@@ -193,19 +234,26 @@ export const DateInput: React.FC<DateInputProps> = ({
     );
   };
 
-  // Bloquear fechas futuras y fechas que violen la edad mínima
+  // El bloqueo por dirección se aplica en las 3 vistas del calendario (días,
+  // meses y años). Si solo se cubriera la de días, el usuario igual llegaría
+  // a una fecha prohibida navegando por mes o año.
+  const blockedByRange = useCallback(
+    (date: Date) => isBlockedByRange(date, dateRange),
+    [dateRange]
+  );
+
+  // Bloquear según el rango configurado y la edad mínima (reglas independientes)
   const isDayDisabled = (day: number) => {
     const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (date > today) return true;
+    if (blockedByRange(date)) return true;
     if (minAgeCutoff && date > minAgeCutoff) return true;
     return false;
   };
 
   const isYearDisabled = (year: number) => {
-    const currentYear = new Date().getFullYear();
-    if (year > currentYear) return true;
+    // Un año se bloquea solo si TODO el año cae fuera del rango: se miran sus
+    // dos extremos, no un día suelto.
+    if (blockedByRange(new Date(year, 0, 1)) && blockedByRange(new Date(year, 11, 31))) return true;
     // Si el 1 de enero del año es posterior al cutoff, todo el año está deshabilitado
     if (minAgeCutoff && new Date(year, 0, 1) > minAgeCutoff) return true;
     return false;
@@ -213,12 +261,10 @@ export const DateInput: React.FC<DateInputProps> = ({
 
   const isMonthDisabled = (monthIndex: number) => {
     const year = viewDate.getFullYear();
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
 
-    if (year > currentYear) return true;
-    if (year === currentYear && monthIndex > currentMonth) return true;
+    // Igual que con el año: el mes se bloquea solo si ninguno de sus días entra
+    if (blockedByRange(new Date(year, monthIndex, 1)) && blockedByRange(new Date(year, monthIndex, lastDay))) return true;
     // Si el 1er día del mes es posterior al cutoff, todo el mes está deshabilitado
     if (minAgeCutoff && new Date(year, monthIndex, 1) > minAgeCutoff) return true;
     return false;
