@@ -50,6 +50,25 @@ export interface LandingConfigFeatures {
   overlay_variant: string;
   /** ISO date deadline for overlay access. Empty = no deadline. */
   overlay_deadline: string;
+  /**
+   * Permite cambiar el plazo desde la tarjeta de producto de /solicitar.
+   *
+   * El default es `true`: una landing sin el ingrediente `term-selector-off`
+   * renderiza igual que antes de que este flag existiera.
+   *
+   * Existe para el producto de matrícula, donde el plazo se elige en la
+   * calculadora y la cuota ya se calculó contra el simulador: volver a cambiarlo
+   * en /solicitar dejaría la cuota mostrada y la seleccionada en desacuerdo.
+   */
+  can_change_term: boolean;
+  /**
+   * Muestra el ingreso de cupón de descuento en /solicitar.
+   *
+   * El default es `true`, por el mismo motivo que el anterior. Se apaga con el
+   * ingrediente `coupon-off` en las landings que no se activan con promotor en
+   * campo, donde nadie le dicta un código al solicitante.
+   */
+  has_coupon: boolean;
 }
 
 /**
@@ -175,6 +194,8 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     floating_cta: null,
     overlay_variant: '',
     overlay_deadline: '',
+    can_change_term: true,
+    has_coupon: true,
   },
 };
 
