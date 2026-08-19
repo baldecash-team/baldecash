@@ -488,3 +488,48 @@ select:focus-visible {
 .admision-flow [role="button"] {
   cursor: pointer;
 }
+
+/* Confirmación: borde animado del CTA "Validar mi correo". Un anillo cónico gira
+   sobre el borde existente para llamar la atención sin tocar el layout del card.
+   Se pinta en un ::before enmascarado (mask xor) para que solo se vea el contorno.
+   Si el navegador no soporta @property, el ángulo no anima y queda el borde estático. */
+@property --otp-cta-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes otp-cta-rotate {
+  to { --otp-cta-angle: 360deg; }
+}
+
+.otp-cta-animated-border {
+  position: relative;
+}
+
+.otp-cta-animated-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--otp-cta-angle),
+    transparent 0deg,
+    transparent 190deg,
+    color-mix(in srgb, var(--color-primary) 35%, transparent) 265deg,
+    var(--color-primary) 320deg,
+    color-mix(in srgb, var(--color-primary) 25%, #fff) 340deg,
+    var(--color-primary) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: otp-cta-rotate 3s linear infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp-cta-animated-border::before { animation: none; }
+}
