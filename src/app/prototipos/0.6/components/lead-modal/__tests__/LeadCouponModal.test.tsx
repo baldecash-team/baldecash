@@ -340,23 +340,94 @@ describe('LeadCouponModal — botones', () => {
 });
 
 describe('LeadCouponModal — countdown decorativo', () => {
+  const AHORA = new Date('2026-08-19T12:00:00.000Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(AHORA);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function isoEnMs(ms: number): string {
+    return new Date(AHORA.getTime() + ms).toISOString();
+  }
+
   it('sin countdown_enabled, no muestra el contador', () => {
     render(
       <LeadCouponModal
         landingSlug="senati"
-        config={{ ...CONFIG_CUPON, countdown_enabled: false }}
+        config={{ ...CONFIG_CUPON, countdown_enabled: false, countdown_ends_at: isoEnMs(60_000) }}
         onClose={jest.fn()}
       />
     );
     expect(screen.queryByRole('timer')).not.toBeInTheDocument();
   });
 
-  it('con countdown_enabled, cuenta hacia abajo de verdad', () => {
-    jest.useFakeTimers();
+  it('sin countdown_ends_at, no muestra el contador aunque countdown_enabled sea true', () => {
     render(
       <LeadCouponModal
         landingSlug="senati"
-        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_minutes: 1 }}
+        config={{ ...CONFIG_CUPON, countdown_enabled: true }}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+  });
+
+  it('mas de 1 dia: muestra dias, horas y minutos, sin segundos', () => {
+    const DOS_DIAS_18H_45M = (2 * 24 + 18) * 60 * 60 * 1000 + 45 * 60 * 1000;
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(DOS_DIAS_18H_45M) }}
+        onClose={jest.fn()}
+      />
+    );
+    const timer = screen.getByRole('timer');
+    expect(timer.textContent).toMatch(/2/);
+    expect(timer.textContent).toMatch(/18/);
+    expect(timer.textContent).toMatch(/45/);
+    // Sin segundos: no hay patron MM:SS de dos grupos separados por ":".
+    expect(timer.textContent).not.toMatch(/:\d{2}\b.*:\d{2}\b/);
+  });
+
+  it('menos de 1 dia: muestra horas y minutos, sin segundos ni dias', () => {
+    const DIECIOCHO_H_45M = 18 * 60 * 60 * 1000 + 45 * 60 * 1000;
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(DIECIOCHO_H_45M) }}
+        onClose={jest.fn()}
+      />
+    );
+    const timer = screen.getByRole('timer');
+    expect(timer.textContent).toMatch(/18/);
+    expect(timer.textContent).toMatch(/45/);
+  });
+
+  it('menos de 1 hora: muestra MM:SS con segundos, en rojo', () => {
+    const CUARENTAICINCO_M_12S = 45 * 60 * 1000 + 12 * 1000;
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(CUARENTAICINCO_M_12S) }}
+        onClose={jest.fn()}
+      />
+    );
+    const timer = screen.getByRole('timer');
+    expect(timer.textContent).toMatch(/45:12/);
+    // jsdom normaliza el hex a rgb() en el estilo inline computado.
+    expect(timer.innerHTML).toMatch(/rgb\(214,\s*69,\s*80\)/i);
+  });
+
+  it('cuenta hacia abajo de verdad en el rango de segundos', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(60_000) }}
         onClose={jest.fn()}
       />
     );
@@ -364,29 +435,115 @@ describe('LeadCouponModal — countdown decorativo', () => {
     act(() => { jest.advanceTimersByTime(5000); });
     const despues = screen.getByRole('timer').textContent;
     expect(despues).not.toBe(antes);
-    jest.useRealTimers();
   });
 
-  it('al llegar a 00:00 se congela y no bloquea nada', () => {
-    jest.useFakeTimers();
+  it('al llegar a cero, la seccion entera se oculta (no "00:00")', () => {
     render(
       <LeadCouponModal
         landingSlug="senati"
-        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_minutes: 0.02 }}
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(5000) }}
         onClose={jest.fn()}
       />
     );
-    act(() => { jest.advanceTimersByTime(5000); });
-    expect(screen.getByRole('timer').textContent).toMatch(/00:00/);
+    expect(screen.getByRole('timer')).toBeInTheDocument();
 
-    // Sigue de largo: ni se pone en negativo ni se reinicia.
-    act(() => { jest.advanceTimersByTime(5000); });
-    expect(screen.getByRole('timer').textContent).toMatch(/00:00/);
+    // Un tick por `act`: el efecto que reprograma el siguiente setTimeout
+    // necesita flushear entre cada avance para encadenar los ticks.
+    for (let i = 0; i < 6; i++) {
+      act(() => { jest.advanceTimersByTime(1000); });
+    }
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+    expect(screen.queryByText(/00:00/)).not.toBeInTheDocument();
 
-    // El formulario sigue habilitado: el botón de envío no está deshabilitado
-    // por el countdown en cero.
-    expect(screen.getByRole('button', { name: /obtener descuento/i })).toBeEnabled();
+    // Sigue de largo, no reaparece.
+    for (let i = 0; i < 5; i++) {
+      act(() => { jest.advanceTimersByTime(1000); });
+    }
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+  });
+
+  it('si la fecha ya paso al montar, nunca muestra el contador', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(-60_000) }}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+  });
+
+  it('con el countdown vencido, el formulario se sigue enviando normalmente', async () => {
+    mockFetchOk({ success: true, coupon: null });
     jest.useRealTimers();
+    const user = userEvent.setup();
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(-60_000) }}
+        onClose={jest.fn()}
+      />
+    );
+
+    await llenarFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    // El envio no se bloquea por el countdown vencido: llega a la pantalla
+    // de exito igual que con un countdown vigente.
+    expect(await screen.findByText(/ya te registramos|ya está activo/i)).toBeInTheDocument();
+  });
+
+  it('se muestra con panel_content "image" (el bug que este cambio arregla)', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{
+          ...CONFIG_CUPON,
+          panel_content: 'image',
+          image_url: 'https://x.test/foto.jpg',
+          countdown_enabled: true,
+          countdown_ends_at: isoEnMs(60_000),
+        }}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('timer')).toBeInTheDocument();
+  });
+
+  it('se muestra con panel_content "none" (el bug que este cambio arregla)', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{
+          ...CONFIG_CUPON,
+          panel_content: 'none',
+          countdown_enabled: true,
+          countdown_ends_at: isoEnMs(60_000),
+        }}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('timer')).toBeInTheDocument();
+  });
+
+  it('el countdown va antes del primer campo del formulario, no pegado al boton de enviar', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="senati"
+        config={{ ...CONFIG_CUPON, countdown_enabled: true, countdown_ends_at: isoEnMs(60_000) }}
+        onClose={jest.fn()}
+      />
+    );
+    const timer = screen.getByRole('timer');
+    const primerCampo = screen.getByLabelText(/tipo de documento/i);
+    const boton = screen.getByRole('button', { name: /obtener descuento/i });
+
+    // DOCUMENT_POSITION_FOLLOWING (4): "timer" aparece antes que el campo.
+    // eslint-disable-next-line no-bitwise
+    expect(timer.compareDocumentPosition(primerCampo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // eslint-disable-next-line no-bitwise
+    expect(timer.compareDocumentPosition(boton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 

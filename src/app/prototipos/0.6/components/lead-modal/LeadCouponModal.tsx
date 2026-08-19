@@ -35,7 +35,10 @@ export interface LeadModalConfig {
   image_url?: string;
   button_text?: string;
   countdown_enabled?: boolean;
-  countdown_minutes?: number;
+  /** Fecha+hora ISO en la que termina la oferta. Igual para todos los
+   *  visitantes — a diferencia de un contador en minutos, no se reinicia
+   *  cada vez que se abre el modal. */
+  countdown_ends_at?: string;
   panel_position?: PanelPosition;
   panel_content?: PanelContent;
   /** Textos del cupon, que el config publico arma por tipo. El panel los
@@ -112,28 +115,122 @@ function aAppliedCoupon(c: CuponRespuesta): ModalCoupon {
   };
 }
 
+const MS_POR_SEGUNDO = 1000;
+const MS_POR_MINUTO = 60 * MS_POR_SEGUNDO;
+const MS_POR_HORA = 60 * MS_POR_MINUTO;
+const MS_POR_DIA = 24 * MS_POR_HORA;
+
+interface Bloque {
+  valor: string;
+  etiqueta: string;
+}
+
+/** Cuánto falta hasta `endsAt`, sin negativos. */
+function msRestantes(endsAt: string): number {
+  const fin = new Date(endsAt).getTime();
+  if (Number.isNaN(fin)) return 0;
+  return Math.max(0, fin - Date.now());
+}
+
 /**
- * Cuenta regresiva DECORATIVA (Tarea 6). Al llegar a cero se congela en
- * 00:00: no dispara nada, el cupón no vence, el formulario no se cierra ni se
- * bloquea. Reiniciarla o dejarla en negativo delataría que es de mentira.
+ * Cuenta regresiva DECORATIVA (Tarea 6) hacia una fecha tope fija
+ * (`countdown_ends_at`) — igual para todos los visitantes, a diferencia de un
+ * contador en minutos que se reiniciaba cada vez que se abría el modal.
+ *
+ * Unidades adaptativas: dias+horas+minutos (sin segundos) cuando falta mas de
+ * una hora, MM:SS (con segundos, en rojo) en la ultima hora. Sin segundos
+ * cuando faltan dias/horas, el numero no compite por atencion con el
+ * formulario; en la ultima hora los segundos SON la urgencia.
+ *
+ * Al llegar a cero la seccion entera desaparece (return null) — nunca
+ * "00:00": el cupón no vence, el formulario se sigue enviando igual, no se
+ * bloquea nada. Es puramente visual.
  */
-function Countdown({ minutos }: { minutos: number }) {
-  const [restanteMs, setRestanteMs] = useState(() => Math.max(0, Math.round(minutos * 60 * 1000)));
+function Countdown({ endsAt }: { endsAt: string }) {
+  const [restanteMs, setRestanteMs] = useState(() => msRestantes(endsAt));
 
   useEffect(() => {
     if (restanteMs <= 0) return;
-    const t = setTimeout(() => setRestanteMs((ms) => Math.max(0, ms - 1000)), 1000);
+    const t = setTimeout(() => setRestanteMs(msRestantes(endsAt)), MS_POR_SEGUNDO);
     return () => clearTimeout(t);
-  }, [restanteMs]);
+  }, [restanteMs, endsAt]);
 
-  const totalSeg = Math.round(restanteMs / 1000);
-  const mm = String(Math.floor(totalSeg / 60)).padStart(2, '0');
-  const ss = String(totalSeg % 60).padStart(2, '0');
+  if (restanteMs <= 0) return null;
+
+  const enUltimaHora = restanteMs < MS_POR_HORA;
+
+  let bloques: Bloque[];
+  if (enUltimaHora) {
+    const totalSeg = Math.floor(restanteMs / MS_POR_SEGUNDO);
+    const mm = String(Math.floor(totalSeg / 60)).padStart(2, '0');
+    const ss = String(totalSeg % 60).padStart(2, '0');
+    bloques = [{ valor: `${mm}:${ss}`, etiqueta: 'min' }];
+  } else {
+    const dias = Math.floor(restanteMs / MS_POR_DIA);
+    const horas = Math.floor((restanteMs % MS_POR_DIA) / MS_POR_HORA);
+    const minutos = Math.floor((restanteMs % MS_POR_HORA) / MS_POR_MINUTO);
+    // Dos digitos siempre: con "3 9 34" los bloques quedaban de anchos
+    // distintos y el numero saltaba de lugar al bajar de 10.
+    const dd = (n: number) => String(n).padStart(2, '0');
+    const segundos = Math.floor((restanteMs % MS_POR_MINUTO) / MS_POR_SEGUNDO);
+    // Los segundos van SIEMPRE: sin ellos el contador parece congelado y deja
+    // de leerse como una cuenta regresiva.
+    bloques = dias >= 1
+      ? [
+          { valor: dd(dias), etiqueta: 'días' },
+          { valor: dd(horas), etiqueta: 'hrs' },
+          { valor: dd(minutos), etiqueta: 'min' },
+          { valor: dd(segundos), etiqueta: 'seg' },
+        ]
+      : [
+          { valor: dd(horas), etiqueta: 'hrs' },
+          { valor: dd(minutos), etiqueta: 'min' },
+          { valor: dd(segundos), etiqueta: 'seg' },
+        ];
+  }
 
   return (
-    <p role="timer" aria-label="Tiempo restante de la oferta" className="mt-3 text-sm font-semibold text-[var(--aqua,#03DBD0)]">
-      Oferta por tiempo limitado: {mm}:{ss}
-    </p>
+    <div
+      role="timer"
+      aria-label="Tiempo restante de la oferta"
+      className={`mb-5 rounded-[13px] px-4 py-3 ${
+        enUltimaHora ? 'bg-[#FFF1F2]' : 'bg-[var(--mist,#F4F5FB)]'
+      }`}
+    >
+      {/* "Termina en" ARRIBA, no al lado: con tres bloques la linea quedaba
+          apretada y el rotulo competia con los numeros. */}
+      <p
+        className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em]"
+        style={{ color: enUltimaHora ? '#D64550' : 'var(--color-primary, #4654CD)' }}
+      >
+        Termina en
+      </p>
+      <div className="flex items-center gap-2.5">
+        {bloques.map((b, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && !enUltimaHora && (
+              <span aria-hidden="true" className="text-lg font-bold text-[#C9CEE8]">:</span>
+            )}
+            <div className="text-center leading-none">
+              {/* Numeros en el azul de marca; el aqua queda para la etiqueta,
+                  que es lo que el diseño usa como acento. */}
+              <div
+                className="font-['Baloo_2'] text-[26px] font-extrabold"
+                style={{ color: enUltimaHora ? '#D64550' : 'var(--color-primary, #4654CD)' }}
+              >
+                {b.valor}
+              </div>
+              <div
+                className="mt-1 text-[10px] font-semibold uppercase tracking-wide"
+                style={{ color: enUltimaHora ? '#D64550' : 'var(--navy, #151744)' }}
+              >
+                {b.etiqueta}
+              </div>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -267,14 +364,31 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
+      className="lead-modal-overlay fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
       role="presentation"
     >
+      {/* Animaciones del diseño aprobado (`cupon15.html`): el overlay entra
+          con fadeIn y el modal sube con `rise`. Van en <style> y no en clases
+          de Tailwind porque son keyframes propios del componente.
+          `prefers-reduced-motion` las apaga: el modal aparece igual, sin
+          movimiento. */}
+      <style>{`
+        @keyframes leadModalFadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes leadModalRise {
+          from { opacity: 0; transform: translateY(26px) scale(.97) }
+          to { opacity: 1; transform: none }
+        }
+        .lead-modal-overlay { animation: leadModalFadeIn .35s ease both }
+        .lead-modal-dialog { animation: leadModalRise .5s cubic-bezier(.2,.9,.3,1) both }
+        @media (prefers-reduced-motion: reduce) {
+          .lead-modal-overlay, .lead-modal-dialog { animation: none }
+        }
+      `}</style>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="lead-coupon-modal-headline"
-        className={`relative m-auto grid w-full max-w-[880px] overflow-hidden rounded-[26px] bg-white shadow-2xl ${
+        className={`lead-modal-dialog relative m-auto grid w-full max-w-[880px] overflow-hidden rounded-[26px] bg-white shadow-2xl ${
           panelContent === 'none'
             ? 'grid-cols-1'
             : panelPosition === 'left'
@@ -286,7 +400,7 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
           type="button"
           onClick={descartar}
           aria-label="Cerrar"
-          className="absolute right-3.5 top-3.5 z-[6] grid h-[34px] w-[34px] place-items-center rounded-full bg-white/90 text-[#151744] transition hover:bg-white"
+          className="absolute right-3.5 top-3.5 z-[6] grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-full bg-white/90 text-[#151744] transition duration-200 hover:rotate-90 hover:bg-white hover:text-[#4654CD] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#03DBD0]"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
             <path d="M6 18L18 6M6 6l12 12" />
@@ -336,9 +450,6 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                   <p className="max-w-[20ch] text-base text-white/85">
                     {cuponObtenido?.caption ?? config.caption ?? ''}
                   </p>
-                  {config.countdown_enabled && (
-                    <Countdown minutos={config.countdown_minutes ?? 15} />
-                  )}
                 </>
               )}
               {panelContent === 'image' && config.image_url && (
@@ -373,12 +484,27 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
               <h2 id="lead-coupon-modal-headline" className="mb-2 font-['Baloo_2'] text-[28px] font-bold leading-tight tracking-tight">
                 {config.title || '¡Suscríbete y accede a tu cupón!'}
               </h2>
-              {config.description && (
-                <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">{config.description}</p>
+              {/* Texto del diseño aprobado, con el descuento REAL del cupon:
+                  "Dejanos tus datos y activamos tu 15%". El `benefit` lo arma
+                  el backend por tipo — con un periferico dice "tu regalo", no
+                  un porcentaje inventado. Si el admin escribe su propia
+                  descripcion, manda la suya. */}
+              {(config.description || config.benefit) && (
+                <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">
+                  {config.description
+                    || `Déjanos tus datos y activamos ${config.benefit}. Se aplica solo al elegir tu equipo.`}
+                </p>
+              )}
+
+              {config.countdown_enabled && config.countdown_ends_at && (
+                <Countdown endsAt={config.countdown_ends_at} />
               )}
 
               <div className="mb-3.5">
-                <div className="grid grid-cols-[1fr_1.15fr] gap-2.5">
+                {/* En movil cada campo en su fila: lado a lado, el select de tipo y
+                    el numero de documento quedaban demasiado angostos para
+                    leerse y escribirse comodo. */}
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[1fr_1.15fr]">
                   <div>
                     <label htmlFor="lead-modal-doc-type" className="mb-1.5 block text-[12.5px] font-semibold text-[#151744]">
                       Tipo de documento
@@ -509,14 +635,14 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                 type="submit"
                 disabled={enviando}
                 style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
-                className="w-full rounded-[14px] px-4 py-[15px] font-['Baloo_2'] text-lg font-bold text-white transition disabled:opacity-60"
+                className="w-full cursor-pointer rounded-[14px] px-4 py-[15px] font-['Baloo_2'] text-lg font-bold text-white transition duration-200 hover:brightness-110 hover:shadow-lg active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100"
               >
                 {enviando ? 'Enviando...' : config.button_text || 'Obtener descuento'}
               </button>
               <button
                 type="button"
                 onClick={descartar}
-                className="mx-auto mt-4 block cursor-pointer border-0 bg-none text-[13px] text-[#6B7099] underline underline-offset-2"
+                className="mx-auto mt-4 block cursor-pointer border-0 bg-none text-[13px] text-[#6B7099] underline underline-offset-2 transition-colors hover:text-[#151744]"
               >
                 No deseo canjear cupón
               </button>
@@ -552,7 +678,7 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                 type="button"
                 onClick={onClose}
                 style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
-                className="mx-auto block w-full max-w-[260px] rounded-[14px] px-4 py-[15px] font-['Baloo_2'] text-lg font-bold text-white"
+                className="mx-auto block w-full max-w-[260px] cursor-pointer rounded-[14px] px-4 py-[15px] font-['Baloo_2'] text-lg font-bold text-white transition duration-200 hover:brightness-110 hover:shadow-lg active:scale-[.99]"
               >
                 Ver equipos
               </button>
