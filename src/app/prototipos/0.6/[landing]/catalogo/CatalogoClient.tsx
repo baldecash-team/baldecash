@@ -55,6 +55,9 @@ import { EmptyState } from './components/empty';
 import { OnboardingWelcomeModal, OnboardingTour } from './components/onboarding';
 import { useOnboarding } from './hooks/useOnboarding';
 
+// Lead modal (BAL-3125): modal de captura con cupón, mudado al catálogo.
+import LeadModalGate from '@/app/prototipos/0.6/components/lead-modal/LeadModalGate';
+
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
@@ -317,12 +320,24 @@ function CatalogoContent() {
   // VIP countdown banner + overlay variant - fetch landing config
   const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
   const [overlayVariant, setOverlayVariant] = useState('');
+  // Config completa (namespaces extra incluidos) para el modal de captura de
+  // leads (BAL-3125 Tarea 5). Mismo fetch que ya trae vip_countdown/overlay —
+  // extenderlo evita una petición nueva.
+  const [leadModalConfig, setLeadModalConfig] = useState<Record<string, unknown>>({});
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
       setVipCountdownDate(cfg.features.vip_countdown || '');
       setOverlayVariant(cfg.features.overlay_variant || '');
+      setLeadModalConfig(cfg as unknown as Record<string, unknown>);
     });
   }, [landing]);
+
+  // El cupón va PRIMERO, el onboarding DESPUÉS: los dos apuntan al mismo
+  // visitante nuevo y sin coordinarlos se apilan encima. `leadModalSettled`
+  // arranca en false y LeadModalGate avisa cuando ya no tiene nada más que
+  // mostrar (apagado, ya contestado, o recién cerrado).
+  const [leadModalSettled, setLeadModalSettled] = useState(false);
+  const handleLeadModalSettled = useCallback(() => setLeadModalSettled(true), []);
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -2459,9 +2474,20 @@ function CatalogoContent() {
         />
       )}
 
+      {/* Modal de captura de leads con cupón (BAL-3125). Va ANTES que el
+          welcome del onboarding a propósito: los dos targetean el mismo
+          visitante nuevo, y el welcome espera a `leadModalSettled` para no
+          apilarse encima. No se suma a OVERLAY_VARIANTS: eso es para muros
+          de acceso, este modal es opcional y descartable. */}
+      <LeadModalGate
+        landingSlug={landing}
+        config={leadModalConfig}
+        onSettled={handleLeadModalSettled}
+      />
+
       {/* Onboarding - Welcome Modal */}
       <OnboardingWelcomeModal
-        isOpen={onboarding.shouldShowWelcome && !isPageLoading}
+        isOpen={onboarding.shouldShowWelcome && !isPageLoading && leadModalSettled}
         onStartTour={onboarding.startTour}
         onDismiss={onboarding.dismissWelcome}
       />

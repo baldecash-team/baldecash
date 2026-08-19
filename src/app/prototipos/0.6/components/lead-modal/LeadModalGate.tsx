@@ -1,60 +1,70 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import LeadCouponModal from './LeadCouponModal';
+import React, { useEffect, useRef, useState } from 'react';
+import LeadCouponModal, { type LeadModalConfig } from './LeadCouponModal';
 import { getDocumentFromModal } from '../../utils/leadModalStorage';
-
-interface LeadModalConfig {
-  enabled?: boolean;
-  title?: string;
-  description?: string;
-  image_url?: string;
-  button_text?: string;
-  countdown_enabled?: boolean;
-  countdown_minutes?: number;
-}
 
 interface Props {
   landingSlug: string;
   /**
-   * La config ya resuelta de la landing. Viene del server component
-   * (`[[...slug]]/page.tsx`), que la trae junto con el hero, asi que aca no
-   * hace falta ningun fetch.
+   * La config ya resuelta de la landing (namespace `lead_modal`, extendido
+   * en el mismo fetch que ya trae `features`/`layout` en `CatalogoClient`).
+   * No dispara ninguna petición nueva.
    */
   config?: Record<string, unknown>;
+  /**
+   * Se llama UNA vez que ya no hay nada más que este gate vaya a mostrar:
+   * de inmediato si el modal está apagado, sin configurar, o el visitante ya
+   * dejó sus datos antes; o recién cuando el usuario cierra el modal (lo
+   * haya enviado o descartado).
+   *
+   * `CatalogoClient` usa esta señal para no abrir `OnboardingWelcomeModal`
+   * hasta que el cupón termine su turno: los dos apuntan al mismo público
+   * (todo visitante nuevo) y sin coordinarlos se apilan.
+   */
+  onSettled?: () => void;
 }
 
-/** Segundos que espera el modal antes de salir. */
+/** Milisegundos que espera el modal antes de salir. */
 const DEMORA_MS = 3000;
 
 /**
- * Monta el modal de captura en el INDEX de la landing.
+ * Gate del modal de captura de leads — vive en el CATÁLOGO (BAL-3125 Tarea
+ * 5). Antes vivía en el index (`[[...slug]]/LandingPageClient`); se mudó
+ * porque el diseño definitivo ya no aparece ahí, aparece en el catálogo.
  *
- * Vive dentro de `[[...slug]]/LandingPageClient` a proposito: en el arbol de
- * rutas, el index NO pasa por `[landing]/layout.tsx` — esa rama solo cubre las
- * subrutas (catalogo, producto, solicitar, legal). Montarlo alla lo dejaba
- * fuera del index y presente en todo lo demas, que es justo al reves de lo
- * pedido.
- *
- * Por eso tampoco hay guard de pathname: este componente solo existe en el
- * index.
+ * Sin guard de pathname: a diferencia del index (que comparte layout con
+ * subrutas donde el modal NO debía salir), en el catálogo este componente ya
+ * está solo donde corresponde.
  */
-export default function LeadModalGate({ landingSlug, config }: Props) {
+export default function LeadModalGate({ landingSlug, config, onSettled }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [cerrado, setCerrado] = useState(false);
+  const avisado = useRef(false);
 
   const modal = (config?.['lead_modal'] as LeadModalConfig | undefined) ?? undefined;
   const activo = !!modal?.enabled;
+  // Si ya dejo su documento en esta landing, no se lo volvemos a pedir. Es la
+  // misma clave que usa el autoseteo del formulario (BAL-1806).
+  const yaContestado = !!getDocumentFromModal(landingSlug);
+  const nadaQueMostrar = !activo || yaContestado;
 
   useEffect(() => {
-    if (!activo || cerrado) return;
-    // Si ya dejo su documento en esta landing, no se lo volvemos a pedir. Es
-    // la misma clave que usa el autoseteo del formulario (BAL-1806).
-    if (getDocumentFromModal(landingSlug)) return;
-
+    if (nadaQueMostrar || cerrado) return;
     const t = setTimeout(() => setAbierto(true), DEMORA_MS);
     return () => clearTimeout(t);
-  }, [activo, cerrado, landingSlug]);
+  }, [nadaQueMostrar, cerrado]);
+
+  // Avisa una sola vez: de inmediato si no hay nada que mostrar, o cuando el
+  // usuario cierra el modal (ver handleClose). Sin el `ref`, cada re-render
+  // con `nadaQueMostrar` true volvería a llamar onSettled.
+  useEffect(() => {
+    if (avisado.current) return;
+    if (nadaQueMostrar || cerrado) {
+      avisado.current = true;
+      onSettled?.();
+    }
+  }, [nadaQueMostrar, cerrado, onSettled]);
 
   if (!abierto || !modal) return null;
 

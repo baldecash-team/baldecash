@@ -1,72 +1,207 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { saveCouponFromModal, saveDocumentFromModal } from '../../utils/leadModalStorage';
+/**
+ * Modal de captura de leads con cupón — rediseño BAL-3125 (Tareas 4 y 6).
+ *
+ * Portado desde el diseño aprobado `cupon15.html`. Diferencias respecto al
+ * mock que valen la pena anotar:
+ *
+ * - Sin apellidos: un solo campo "Nombre" → `first_name`.
+ * - Checkbox de términos obligatorio: el backend rechaza `terms_accepted:
+ *   false` con 422, así que el front también lo exige antes de llamar.
+ * - Sin botón "Aplicar": al enviar, el cupón se muestra Y se guarda en el
+ *   mismo paso (`saveLeadModalSubmission`). "Ver equipos" solo cierra.
+ * - "No deseo canjear cupón" cierra sin tocar la red ni el storage.
+ * - Los textos del cupón (amount/caption/benefit) SIEMPRE vienen del
+ *   backend — nunca quemados, aunque el diseño trae "15%" escrito a mano.
+ * - El troquelado (`.perf`/`.notch`, `left: 330px` fijo en el CSS original)
+ *   sigue a `panel_position`: con el panel a la derecha, 330px fijo cruzaría
+ *   el formulario.
+ * - Sin `bg-brand-500` (clase de admin2 que no existe acá): el color sale de
+ *   `var(--color-primary, #4654CD)`, como `DniModal.tsx`.
+ */
+
+import React, { useEffect, useRef, useState } from 'react';
+import { saveLeadModalSubmission, type ModalCoupon } from '../../utils/leadModalStorage';
+import { routes } from '../../utils/routes';
+
+export type PanelPosition = 'left' | 'right';
+export type PanelContent = 'coupon' | 'image' | 'none';
+
+export interface LeadModalConfig {
+  enabled?: boolean;
+  title?: string;
+  description?: string;
+  image_url?: string;
+  button_text?: string;
+  countdown_enabled?: boolean;
+  countdown_minutes?: number;
+  panel_position?: PanelPosition;
+  panel_content?: PanelContent;
+  /** Textos del cupon, que el config publico arma por tipo. El panel los
+   *  necesita ANTES de enviar; el codigo del cupon no viaja aca. */
+  amount?: string | null;
+  caption?: string | null;
+  benefit?: string | null;
+  gift_name?: string | null;
+}
 
 interface Props {
   landingSlug: string;
-  config: {
-    title?: string;
-    description?: string;
-    image_url?: string;
-    button_text?: string;
-    countdown_enabled?: boolean;
-    countdown_minutes?: number;
-  };
+  config: LeadModalConfig;
   onClose: () => void;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
-const TIPOS_DOCUMENTO = [
-  { value: 'DNI', label: 'DNI' },
-  { value: 'CE', label: 'Carné de extranjería' },
-  { value: 'PAS', label: 'Pasaporte' },
-];
+/** Logo estándar de la marca, el mismo que usa `constants.ts` (BC.logo) sobre fondo claro. */
+const LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+
+/** Ancho de la franja azul en desktop — el troquelado se calcula sobre este valor. */
+const STUB_WIDTH_PX = 330;
+
+type TipoDocumento = 'DNI' | 'CE' | 'PAS';
+
+interface ReglaDocumento {
+  len: number;
+  numerico: boolean;
+  placeholder: string;
+  mensaje: string;
+}
 
 /**
- * Cuenta regresiva DECORATIVA. Al llegar a cero se queda en 00:00 y no
- * dispara nada: el cupon no vence, el formulario no se cierra y no se
- * bloquea ninguna accion. Existe solo para generar urgencia.
- *
- * Se congela en cero a proposito — dejarla en negativo o reiniciarla haria
- * evidente que es de mentira.
+ * Reglas por tipo de documento. Aplicar la del DNI (8 dígitos numéricos) a
+ * todos rechazaría pasaportes válidos: CE y pasaporte son alfanuméricos y de
+ * largo mínimo 6, no exactamente 8.
  */
-function CuentaRegresiva({ minutos }: { minutos: number }) {
-  const [restante, setRestante] = useState(Math.max(0, Math.round(minutos * 60)));
+const REGLAS: Record<TipoDocumento, ReglaDocumento> = {
+  DNI: { len: 8, numerico: true, placeholder: '12345678', mensaje: 'El DNI tiene 8 dígitos.' },
+  CE: { len: 12, numerico: false, placeholder: '001234567', mensaje: 'Ingresa tu carné de extranjería.' },
+  PAS: { len: 12, numerico: false, placeholder: 'A1234567', mensaje: 'Ingresa tu número de pasaporte.' },
+};
+
+function documentoValido(tipo: TipoDocumento | '', numero: string): boolean {
+  if (!tipo) return false;
+  const regla = REGLAS[tipo];
+  if (regla.numerico) return new RegExp(`^\\d{${regla.len}}$`).test(numero);
+  return numero.length >= 6;
+}
+
+const PHONE_RE = /^9\d{8}$/;
+
+interface CuponRespuesta {
+  code: string;
+  discount: number;
+  label: string;
+  coupon_type?: 'fixed' | 'percent_quotas' | 'free_accessory' | null;
+  quotas_affected?: number | null;
+  amount?: string | null;
+  caption?: string | null;
+  benefit?: string | null;
+  gift_name?: string | null;
+}
+
+function aAppliedCoupon(c: CuponRespuesta): ModalCoupon {
+  return {
+    code: c.code,
+    discount: c.discount,
+    label: c.label,
+    ...(c.coupon_type ? { couponType: c.coupon_type } : {}),
+    ...(c.quotas_affected != null ? { quotasAffected: c.quotas_affected } : {}),
+  };
+}
+
+/**
+ * Cuenta regresiva DECORATIVA (Tarea 6). Al llegar a cero se congela en
+ * 00:00: no dispara nada, el cupón no vence, el formulario no se cierra ni se
+ * bloquea. Reiniciarla o dejarla en negativo delataría que es de mentira.
+ */
+function Countdown({ minutos }: { minutos: number }) {
+  const [restanteMs, setRestanteMs] = useState(() => Math.max(0, Math.round(minutos * 60 * 1000)));
 
   useEffect(() => {
-    if (restante <= 0) return;
-    const t = setTimeout(() => setRestante((s) => Math.max(0, s - 1)), 1000);
+    if (restanteMs <= 0) return;
+    const t = setTimeout(() => setRestanteMs((ms) => Math.max(0, ms - 1000)), 1000);
     return () => clearTimeout(t);
-  }, [restante]);
+  }, [restanteMs]);
 
-  const mm = String(Math.floor(restante / 60)).padStart(2, '0');
-  const ss = String(restante % 60).padStart(2, '0');
+  const totalSeg = Math.round(restanteMs / 1000);
+  const mm = String(Math.floor(totalSeg / 60)).padStart(2, '0');
+  const ss = String(totalSeg % 60).padStart(2, '0');
 
   return (
-    <p className="text-sm font-semibold text-red-600" role="timer" aria-label="Tiempo restante de la oferta">
+    <p role="timer" aria-label="Tiempo restante de la oferta" className="mt-3 text-sm font-semibold text-[var(--aqua,#03DBD0)]">
       Oferta por tiempo limitado: {mm}:{ss}
     </p>
   );
 }
 
 export default function LeadCouponModal({ landingSlug, config, onClose }: Props) {
-  const [documentType, setDocumentType] = useState('DNI');
+  const [documentType, setDocumentType] = useState<TipoDocumento | ''>('');
   const [documentNumber, setDocumentNumber] = useState('');
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cupon, setCupon] = useState<{ code: string; label: string } | null>(null);
+  const [errores, setErrores] = useState<{ doc?: string; name?: string; phone?: string; terms?: string; general?: string }>({});
+  const [cuponObtenido, setCuponObtenido] = useState<CuponRespuesta | null>(null);
+  const [sinCupon, setSinCupon] = useState(false);
+
+  const panelPosition: PanelPosition = config.panel_position === 'right' ? 'right' : 'left';
+  const panelContent: PanelContent = config.panel_content ?? 'coupon';
+
+  // Con el panel a la derecha el troquelado tiene que estar a la derecha
+  // tambien, o cruzaria el formulario (el CSS original trae `left: 330px`
+  // fijo, pensado solo para panel a la izquierda).
+  const stubStyle: React.CSSProperties =
+    panelPosition === 'left' ? { left: 0 } : { right: 0 };
+  const perfStyle: React.CSSProperties =
+    panelPosition === 'left' ? { left: `${STUB_WIDTH_PX}px` } : { right: `${STUB_WIDTH_PX}px`, left: 'auto' };
+  const notchStyle: React.CSSProperties = perfStyle;
+
+  const docNumRef = useRef<HTMLInputElement>(null);
+  const docTypeRef = useRef<HTMLSelectElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const termsRef = useRef<HTMLInputElement>(null);
+
+  function validar(): boolean {
+    const nuevosErrores: typeof errores = {};
+    let primerCampo: HTMLElement | null = null;
+
+    if (!documentoValido(documentType, documentNumber)) {
+      nuevosErrores.doc = documentType
+        ? REGLAS[documentType].mensaje
+        : 'Elige tu tipo de documento.';
+      primerCampo = primerCampo || (documentType ? docNumRef.current : docTypeRef.current);
+    }
+    if (firstName.trim().length < 2) {
+      nuevosErrores.name = 'Escribe tu nombre.';
+      primerCampo = primerCampo || nameRef.current;
+    }
+    if (!PHONE_RE.test(phone)) {
+      nuevosErrores.phone = 'Ingresa los 9 dígitos de tu celular, empezando con 9.';
+      primerCampo = primerCampo || phoneRef.current;
+    }
+    if (!termsAccepted) {
+      nuevosErrores.terms = 'Necesitamos tu aceptación para enviarte el cupón.';
+      primerCampo = primerCampo || termsRef.current;
+    }
+
+    setErrores(nuevosErrores);
+    if (primerCampo) primerCampo.focus();
+    return Object.keys(nuevosErrores).length === 0;
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
+    if (!validar()) return;
+
     setEnviando(true);
-    setError(null);
+    setErrores({});
     try {
-      const r = await fetch(`${API}/newsletter/lead-modal`, {
+      const r = await fetch(`${API_BASE_URL}/newsletter/lead-modal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -74,154 +209,356 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
           document_type: documentType,
           document_number: documentNumber.trim(),
           first_name: firstName.trim(),
-          last_name: lastName.trim(),
           phone: phone.trim(),
+          terms_accepted: true,
         }),
       });
       if (!r.ok) throw new Error(String(r.status));
-      const data = await r.json();
+      const data: { success: boolean; coupon: CuponRespuesta | null } = await r.json();
 
-      // El documento se guarda siempre: sirve para autocompletar la solicitud
-      // aunque la landing no tenga cupon configurado.
-      // Dos argumentos: la clave baldecash-dni-{slug} guarda el numero PELADO
-      // (ver Interfaces). El documentType viaja en el POST, no al storage.
-      saveDocumentFromModal(landingSlug, documentNumber.trim());
+      // Guardar y mostrar pasan en el MISMO paso: no hay botón "Aplicar"
+      // separado. Documento y celular se guardan siempre, tenga o no cupón
+      // esta landing.
+      saveLeadModalSubmission(landingSlug, {
+        documentNumber: documentNumber.trim(),
+        phone: phone.trim(),
+        coupon: data.coupon ? aAppliedCoupon(data.coupon) : null,
+      });
 
       if (data.coupon) {
-        setCupon({ code: data.coupon.code, label: data.coupon.label });
+        setCuponObtenido(data.coupon);
       } else {
-        onClose();
+        setSinCupon(true);
       }
     } catch {
-      setError('No pudimos guardar tus datos. Intenta de nuevo.');
+      setErrores({ general: 'No pudimos guardar tus datos. Intenta de nuevo.' });
     } finally {
       setEnviando(false);
     }
   }
 
-  function aplicar() {
-    if (!cupon) return;
-    // Recien acá el cupón entra al formulario. Separar "obtener" de "aplicar"
-    // deja al usuario ver su código antes de que se use.
-    saveCouponFromModal(landingSlug, {
-      code: cupon.code,
-      discount: 0,
-      label: cupon.label,
-    });
+  /** Cierra sin llamar al backend ni guardar nada — el usuario declinó. */
+  function descartar() {
     onClose();
   }
 
+  function handleDocTypeChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const tipo = e.target.value as TipoDocumento | '';
+    setDocumentType(tipo);
+    setDocumentNumber('');
+    setErrores((prev) => ({ ...prev, doc: undefined }));
+  }
+
+  function handleDocNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const regla = documentType ? REGLAS[documentType] : null;
+    let v = e.target.value;
+    v = regla?.numerico ? v.replace(/\D/g, '') : v.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (regla) v = v.slice(0, regla.len);
+    setDocumentNumber(v);
+    setErrores((prev) => ({ ...prev, doc: undefined }));
+  }
+
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setPhone(e.target.value.replace(/\D/g, '').slice(0, 9));
+    setErrores((prev) => ({ ...prev, phone: undefined }));
+  }
+
+  const mostrandoExito = cuponObtenido !== null || sinCupon;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative flex w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex-1 p-6">
-          {cupon ? (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold">Tu cupón está listo</h3>
-              <p className="rounded-lg bg-gray-100 px-4 py-3 text-center text-xl font-bold tracking-wider">
-                {cupon.code}
-              </p>
-              <button
-                type="button"
-                onClick={aplicar}
-                style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
-                className="w-full rounded-lg px-4 py-3 font-semibold text-white"
-              >
-                Aplicar a mi solicitud
-              </button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lead-coupon-modal-headline"
+        className={`relative m-auto grid w-full max-w-[880px] overflow-hidden rounded-[26px] bg-white shadow-2xl ${
+          panelContent === 'none'
+            ? 'grid-cols-1'
+            : panelPosition === 'left'
+              ? 'md:grid-cols-[minmax(0,330px)_minmax(0,1fr)]'
+              : 'md:grid-cols-[minmax(0,1fr)_minmax(0,330px)]'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={descartar}
+          aria-label="Cerrar"
+          className="absolute right-3.5 top-3.5 z-[6] grid h-[34px] w-[34px] place-items-center rounded-full bg-white/90 text-[#151744] transition hover:bg-white"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {panelContent !== 'none' && (
+          <aside
+            data-testid="modal-stub"
+            style={{
+              ...stubStyle,
+              background: 'linear-gradient(158deg, #151744 0%, #232a6d 50%, #4654CD 100%)',
+              order: panelPosition === 'left' ? 0 : 1,
+            }}
+            // En mobile, 'coupon' se muestra compacto arriba (franja delgada,
+            // como el diseño); 'image' se omite del todo y queda solo el
+            // formulario — mostrar una foto angosta sin espacio no aporta.
+            className={`relative flex-col justify-center overflow-hidden p-6 text-white md:flex md:p-8 ${
+              panelContent === 'coupon' ? 'flex' : 'hidden'
+            }`}
+          >
+            {/* Halo aqua difuso del diseño (`.stub::after`): un circulo de
+                330px desbordando abajo a la derecha. Sin el, el panel queda
+                como un degradado plano. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-[150px] -right-[140px] h-[330px] w-[330px] rounded-full"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(3,219,208,.4), transparent 68%)',
+              }}
+            />
+            <div className="relative z-[2]">
+              {panelContent === 'coupon' && (
+                <>
+                  <p className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.17em] text-[#03DBD0]">
+                    Beneficio exclusivo
+                  </p>
+                  {/* El monto sale de la CONFIG: el panel promete el
+                      descuento antes de que la persona deje sus datos, y el
+                      `amount` de la respuesta llega recien despues de enviar.
+                      Sin esto el panel pintaba un guion justo cuando tiene
+                      que convencer. */}
+                  <p className="mb-3 font-['Baloo_2'] text-[76px] font-extrabold leading-[0.85] tracking-tight">
+                    {cuponObtenido?.amount ?? config.amount ?? ''}
+                  </p>
+                  <p className="max-w-[20ch] text-base text-white/85">
+                    {cuponObtenido?.caption ?? config.caption ?? ''}
+                  </p>
+                  {config.countdown_enabled && (
+                    <Countdown minutos={config.countdown_minutes ?? 15} />
+                  )}
+                </>
+              )}
+              {panelContent === 'image' && config.image_url && (
+                <img
+                  src={config.image_url}
+                  alt=""
+                  data-testid="modal-panel-image"
+                  className="h-full w-full object-cover"
+                />
+              )}
             </div>
-          ) : (
-            <form onSubmit={enviar} className="space-y-3">
-              <h3 className="text-lg font-bold">{config.title || 'Deja tus datos'}</h3>
+          </aside>
+        )}
+
+        {/* Troquelado: solo tiene sentido en el layout de dos columnas de
+            desktop. En mobile el panel va apilado arriba (o no se muestra),
+            así que se oculta — igual que el CSS original (`.perf,.notch{
+            display:none}` bajo max-width:768px). */}
+        {panelContent !== 'none' && (
+          <>
+            <div data-testid="modal-perf" style={perfStyle} className="absolute bottom-0 top-0 z-[4] hidden border-l-2 border-dashed border-[#E4E6F2] md:block" />
+            <div data-testid="modal-notch" style={{ ...notchStyle, top: 0, transform: 'translate(-50%,-50%)' }} className="absolute z-[5] hidden h-[22px] w-[22px] rounded-full bg-white md:block" />
+            <div data-testid="modal-notch" style={{ ...notchStyle, top: '100%', transform: 'translate(-50%,-50%)' }} className="absolute z-[5] hidden h-[22px] w-[22px] rounded-full bg-white md:block" />
+          </>
+        )}
+
+        <div className="p-8" style={{ order: panelPosition === 'left' ? 1 : 0 }}>
+          {!mostrandoExito ? (
+            <form onSubmit={enviar} noValidate>
+              <img src={LOGO_URL} alt="BaldeCash" className="mb-5 block h-[34px] w-auto" />
+
+              <h2 id="lead-coupon-modal-headline" className="mb-2 font-['Baloo_2'] text-[28px] font-bold leading-tight tracking-tight">
+                {config.title || '¡Suscríbete y accede a tu cupón!'}
+              </h2>
               {config.description && (
-                <p className="text-sm text-gray-500">{config.description}</p>
+                <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">{config.description}</p>
               )}
 
-              {/* Countdown DECORATIVO: al llegar a cero no pasa nada — el cupon
-                  no vence, el formulario no se cierra y nada se bloquea. Es
-                  solo para generar urgencia. Por eso se congela en 00:00 en vez
-                  de disparar ningun efecto. */}
-              {config.countdown_enabled && <CuentaRegresiva minutos={config.countdown_minutes ?? 15} />}
-
-              <div className="grid grid-cols-3 gap-2">
-                <select
-                  aria-label="Tipo de documento"
-                  value={documentType}
-                  onChange={(e) => setDocumentType(e.target.value)}
-                  className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
-                >
-                  {TIPOS_DOCUMENTO.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-                <input
-                  aria-label="Número de documento"
-                  value={documentNumber}
-                  onChange={(e) => setDocumentNumber(e.target.value)}
-                  placeholder="Número de documento"
-                  required
-                  className="col-span-2 rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                />
+              <div className="mb-3.5">
+                <div className="grid grid-cols-[1fr_1.15fr] gap-2.5">
+                  <div>
+                    <label htmlFor="lead-modal-doc-type" className="mb-1.5 block text-[12.5px] font-semibold text-[#151744]">
+                      Tipo de documento
+                    </label>
+                    <select
+                      id="lead-modal-doc-type"
+                      ref={docTypeRef}
+                      value={documentType}
+                      onChange={handleDocTypeChange}
+                      className={`w-full rounded-[13px] border-[1.5px] bg-[#F4F5FB] px-[15px] py-[13px] text-[15px] ${errores.doc ? 'border-[#D64550]' : 'border-[#E4E6F2]'}`}
+                    >
+                      <option value="" disabled>Elige</option>
+                      <option value="DNI">DNI</option>
+                      <option value="PAS">Pasaporte</option>
+                      <option value="CE">Carné de extranjería</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="lead-modal-doc-number" className="mb-1.5 block text-[12.5px] font-semibold text-[#151744]">
+                      Número de documento
+                    </label>
+                    <input
+                      id="lead-modal-doc-number"
+                      ref={docNumRef}
+                      type="text"
+                      inputMode={documentType && REGLAS[documentType].numerico ? 'numeric' : 'text'}
+                      value={documentNumber}
+                      onChange={handleDocNumberChange}
+                      placeholder={documentType ? REGLAS[documentType].placeholder : '12345678'}
+                      autoComplete="off"
+                      className={`w-full rounded-[13px] border-[1.5px] bg-[#F4F5FB] px-[15px] py-[13px] text-[15px] ${errores.doc ? 'border-[#D64550]' : 'border-[#E4E6F2]'}`}
+                    />
+                  </div>
+                </div>
+                {errores.doc && <p className="mt-1.5 text-[12.5px] font-medium text-[#D64550]">{errores.doc}</p>}
               </div>
 
-              <input
-                aria-label="Nombres"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Nombres"
-                required
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-              <input
-                aria-label="Apellidos"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Apellidos"
-                required
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-              <input
-                aria-label="Celular"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Celular"
-                required
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
+              <div className="mb-3.5">
+                <label htmlFor="lead-modal-name" className="mb-1.5 block text-[12.5px] font-semibold text-[#151744]">
+                  Nombre
+                </label>
+                <input
+                  id="lead-modal-name"
+                  ref={nameRef}
+                  type="text"
+                  aria-label="Nombre"
+                  value={firstName}
+                  onChange={(e) => { setFirstName(e.target.value); setErrores((prev) => ({ ...prev, name: undefined })); }}
+                  placeholder="Tu nombre"
+                  autoComplete="given-name"
+                  className={`w-full rounded-[13px] border-[1.5px] bg-[#F4F5FB] px-[15px] py-[13px] text-[15px] ${errores.name ? 'border-[#D64550]' : 'border-[#E4E6F2]'}`}
+                />
+                {errores.name && <p className="mt-1.5 text-[12.5px] font-medium text-[#D64550]">{errores.name}</p>}
+              </div>
 
-              {error && <p className="text-xs text-red-600">{error}</p>}
+              <div className="mb-3.5">
+                <label htmlFor="lead-modal-phone" className="mb-1.5 block text-[12.5px] font-semibold text-[#151744]">
+                  Celular
+                </label>
+                <input
+                  id="lead-modal-phone"
+                  ref={phoneRef}
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={9}
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  placeholder="987654321"
+                  autoComplete="tel"
+                  className={`w-full rounded-[13px] border-[1.5px] bg-[#F4F5FB] px-[15px] py-[13px] text-[15px] ${errores.phone ? 'border-[#D64550]' : 'border-[#E4E6F2]'}`}
+                />
+                {errores.phone && <p className="mt-1.5 text-[12.5px] font-medium text-[#D64550]">{errores.phone}</p>}
+              </div>
 
-              {/* El color sale de la variable de la landing, como DniModal.
-                  `bg-brand-500` es de admin2 y aca no existe: el boton quedaba
-                  con fondo transparente y texto blanco, invisible. */}
+              <label className="mb-4 mt-4 flex cursor-pointer items-start gap-2.5">
+                <input
+                  ref={termsRef}
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => { setTermsAccepted(e.target.checked); setErrores((prev) => ({ ...prev, terms: undefined })); }}
+                  className="sr-only"
+                />
+                <span
+                  aria-hidden="true"
+                  className={`mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-md border-[1.5px] transition ${
+                    termsAccepted ? 'border-[#03DBD0] bg-[#03DBD0]' : errores.terms ? 'border-[#D64550] bg-[#FFF6F6]' : 'border-[#E4E6F2] bg-white'
+                  }`}
+                >
+                  {termsAccepted && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0B1230" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-[13px] leading-relaxed text-[#6B7099]">
+                  {/* Las paginas legales son POR LANDING: `routes.legal` es
+                      la misma helper que usa el formulario de solicitud
+                      (solicitarClient) y el pie de pagina. El diseño traia
+                      `href="#"` y la politica de privacidad ni era un link:
+                      es consentimiento legal, tiene que poder leerse. */}
+                  Acepto los{' '}
+                  <a
+                    href={routes.legal(landingSlug, 'terminos-y-condiciones')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[#4654CD] underline underline-offset-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    términos y condiciones
+                  </a>{' '}
+                  y la{' '}
+                  <a
+                    href={routes.legal(landingSlug, 'politica-de-privacidad')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[#4654CD] underline underline-offset-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    política de privacidad
+                  </a>.
+                </span>
+              </label>
+              {errores.terms && <p className="-mt-3 mb-3.5 text-[12.5px] font-medium text-[#D64550]">{errores.terms}</p>}
+
+              {errores.general && <p className="mb-3 text-xs font-medium text-[#D64550]">{errores.general}</p>}
+
               <button
                 type="submit"
                 disabled={enviando}
                 style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
-                className="w-full rounded-lg px-4 py-3 font-semibold text-white disabled:opacity-60"
+                className="w-full rounded-[14px] px-4 py-[15px] font-['Baloo_2'] text-lg font-bold text-white transition disabled:opacity-60"
               >
-                {enviando ? 'Enviando...' : config.button_text || 'Obtener mi cupón'}
+                {enviando ? 'Enviando...' : config.button_text || 'Obtener descuento'}
+              </button>
+              <button
+                type="button"
+                onClick={descartar}
+                className="mx-auto mt-4 block cursor-pointer border-0 bg-none text-[13px] text-[#6B7099] underline underline-offset-2"
+              >
+                No deseo canjear cupón
               </button>
             </form>
+          ) : (
+            <div className="py-4 text-center">
+              <div
+                style={{ background: 'linear-gradient(140deg, #03DBD0, #3FE2D4)' }}
+                className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full"
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0B1230" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              {/* `benefit` y no `amount`: con un periferico, `amount` es
+                  "GRATIS" y el titulo diria "¡Tu GRATIS ya esta activo!".
+                  `benefit` trae "tu regalo" / "tu 15%" ya redactado. */}
+              <h3 className="mb-2 font-['Baloo_2'] text-[26px] font-bold">
+                {cuponObtenido?.benefit
+                  ? `¡${cuponObtenido.benefit.charAt(0).toUpperCase()}${cuponObtenido.benefit.slice(1)} ya está activo!`
+                  : 'Listo, ¡ya te registramos!'}
+              </h3>
+              <p className="mx-auto mb-6 max-w-[38ch] text-[15px] leading-relaxed text-[#6B7099]">
+                {/* "El descuento se aplica" es falso con un periferico: ahi
+                    no hay descuento, hay un regalo. */}
+                {cuponObtenido
+                  ? cuponObtenido.gift_name
+                    ? 'Tu regalo se suma solo cuando elijas tu equipo. No tienes que hacer nada más.'
+                    : 'El descuento se aplica solo cuando elijas tu equipo. No tienes que hacer nada más.'
+                  : 'Ya tenemos tus datos. Explora los equipos disponibles.'}
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
+                className="mx-auto block w-full max-w-[260px] rounded-[14px] px-4 py-[15px] font-['Baloo_2'] text-lg font-bold text-white"
+              >
+                Ver equipos
+              </button>
+            </div>
           )}
         </div>
-
-        {config.image_url && (
-          <div className="hidden w-2/5 md:block">
-            <img src={config.image_url} alt="" className="h-full w-full object-cover" />
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
       </div>
     </div>
   );

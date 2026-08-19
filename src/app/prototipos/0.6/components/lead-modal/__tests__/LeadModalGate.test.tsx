@@ -3,18 +3,27 @@ import { render, screen, act } from '@testing-library/react';
 import LeadModalGate from '../LeadModalGate';
 
 /**
- * El gate se monta en `[[...slug]]/LandingPageClient`, que es el INDEX.
+ * BAL-3125 Tarea 5: el gate se muda al CATÁLOGO (antes vivía en el index).
  *
- * La primera version lo puso en `[landing]/layout.tsx` y el modal no salia
- * nunca: en el arbol de rutas esa rama solo cubre las SUBRUTAS (catalogo,
- * producto, solicitar, legal), y el index se sirve desde el catch-all. Quedaba
- * exactamente al reves de lo pedido, con los tests en verde.
+ * Sin guard de pathname: en el catálogo el componente ya está solo donde
+ * corresponde, así que a diferencia de la primera versión (que vivía en el
+ * index y necesitaba distinguirlo de catálogo/producto/solicitar) esta ya no
+ * necesita leer `usePathname`.
+ *
+ * El cupón va PRIMERO, el onboarding DESPUÉS: los dos targetean "todo
+ * visitante nuevo" y si no se coordinan se apilan. `onSettled` es la señal
+ * que CatalogoClient usa para esperar antes de abrir el welcome modal —
+ * dispara tanto si el modal nunca se mostró (apagado / ya contestado) como
+ * cuando el usuario lo cierra.
  */
 
 jest.mock('../LeadCouponModal', () => ({
   __esModule: true,
-  default: ({ config }: { config: Record<string, unknown> }) => (
-    <div data-testid="modal">{String(config.title)}</div>
+  default: ({ config, onClose }: { config: Record<string, unknown>; onClose: () => void }) => (
+    <div data-testid="modal">
+      {String(config.title)}
+      <button type="button" onClick={onClose}>cerrar-mock</button>
+    </div>
   ),
 }));
 
@@ -31,7 +40,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('LeadModalGate', () => {
+describe('LeadModalGate — mudanza al catálogo', () => {
   it('no muestra nada antes de los 3 segundos', () => {
     render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
 
@@ -45,7 +54,7 @@ describe('LeadModalGate', () => {
 
     act(() => { jest.advanceTimersByTime(3000); });
 
-    expect(screen.getByTestId('modal').textContent).toBe('Deja tus datos');
+    expect(screen.getByTestId('modal').textContent).toContain('Deja tus datos');
   });
 
   it('no sale si el modal esta apagado', () => {
@@ -67,7 +76,6 @@ describe('LeadModalGate', () => {
   });
 
   it('no vuelve a pedir los datos si ya los dejo en esta landing', () => {
-    // Misma clave que el autoseteo del formulario (BAL-1806).
     localStorage.setItem('baldecash-dni-senati', '72345678');
 
     render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
@@ -78,7 +86,6 @@ describe('LeadModalGate', () => {
   });
 
   it('cada landing mira su propio documento', () => {
-    // Dejar el documento en OTRA landing no debe suprimir el modal aca.
     localStorage.setItem('baldecash-dni-home', '72345678');
 
     render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
@@ -86,5 +93,52 @@ describe('LeadModalGate', () => {
     act(() => { jest.advanceTimersByTime(3000); });
 
     expect(screen.getByTestId('modal')).toBeTruthy();
+  });
+});
+
+describe('LeadModalGate — coordinación con el onboarding (onSettled)', () => {
+  it('avisa onSettled de inmediato si el modal esta apagado (nada que esperar)', () => {
+    const onSettled = jest.fn();
+    render(
+      <LeadModalGate
+        landingSlug="senati"
+        config={{ lead_modal: { enabled: false } }}
+        onSettled={onSettled}
+      />
+    );
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  it('avisa onSettled de inmediato si ya dejo sus datos (no hay nada que mostrar)', () => {
+    localStorage.setItem('baldecash-dni-senati', '72345678');
+    const onSettled = jest.fn();
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} onSettled={onSettled} />);
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  it('NO avisa onSettled mientras espera los 3 segundos ni mientras el modal esta abierto', () => {
+    const onSettled = jest.fn();
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} onSettled={onSettled} />);
+
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(screen.getByTestId('modal')).toBeTruthy();
+    expect(onSettled).not.toHaveBeenCalled();
+  });
+
+  it('avisa onSettled recien cuando el usuario cierra el modal de cupon', () => {
+    const onSettled = jest.fn();
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} onSettled={onSettled} />);
+
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(onSettled).not.toHaveBeenCalled();
+
+    act(() => {
+      screen.getByRole('button', { name: 'cerrar-mock' }).click();
+    });
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
   });
 });
