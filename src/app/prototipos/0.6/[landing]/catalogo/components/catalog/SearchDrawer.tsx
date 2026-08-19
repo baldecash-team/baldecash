@@ -154,8 +154,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     e.preventDefault();
     if (value && onSubmit) {
       analytics.trackSearchSubmit({
-        query_length: value.length,
+        query: value,
         has_results: suggestions.length > 0,
+        results_count: suggestions.length,
         location: 'search_drawer',
       });
       onSubmit();
@@ -357,8 +358,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 onPress={() => {
                   if (value && onSubmit) {
                     analytics.trackSearchSubmit({
-                      query_length: value.length,
+                      query: value,
                       has_results: suggestions.length > 0,
+                      results_count: suggestions.length,
                       location: 'search_drawer',
                     });
                     onSubmit();

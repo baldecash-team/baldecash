@@ -16,6 +16,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type { EventType } from '@/app/prototipos/0.6/services/eventsApi';
+import { normalizeSearchQuery } from './searchQuery';
 
 type Primitive = string | number | boolean | null | undefined;
 type Props = Record<string, Primitive | Primitive[]>;
@@ -36,6 +37,36 @@ const OFFER_EVENT_ALIAS: Partial<Record<EventType, EventType>> = {
   search_submit: 'offer_search_submit',
   search_clear: 'offer_search_clear',
 };
+
+/**
+ * Dónde se disparó un evento de producto.
+ *
+ * Sin esto las métricas por producto no son comparables entre sí: una vista de
+ * ficha y una impresión de catálogo son actos distintos contados con el mismo
+ * nombre, y cualquier ranking de modelos que los mezcle está mal.
+ *
+ * El vocabulario es cerrado a propósito — es el que consume analítica del otro
+ * lado, y un valor libre acá se convierte en una categoría huérfana allá.
+ */
+export type ProductContext =
+  | 'catalogo'
+  | 'hero'
+  | 'ficha'
+  | 'similares'
+  | 'resultado_busqueda';
+
+/** Identificación del producto, común a view / click / hover. */
+export interface ProductEventArgs {
+  product_id: string | number;
+  product_name?: string;
+  brand?: string;
+  slug?: string;
+  context: ProductContext;
+  /** Orden dentro de la lista, 1-based. Solo aplica en listados. */
+  position?: number;
+  /** Propiedades extra del call site (financiamiento visible en la card, etc). */
+  extra?: Props;
+}
 
 export type FilterCode =
   | 'brand'
@@ -104,7 +135,12 @@ export interface UseAnalyticsReturn {
 
   // Search
   trackSearchFocus: (args?: { location?: string }) => void;
-  trackSearchSubmit: (args: { query_length: number; has_results?: boolean; location?: string }) => void;
+  trackSearchSubmit: (args: {
+    query: string;
+    has_results?: boolean;
+    results_count?: number;
+    location?: string;
+  }) => void;
   trackSearchClear: (args?: { location?: string }) => void;
   trackSearchSuggestionClick: (args: { original: string; suggested: string }) => void;
   trackSearchDrawer: (args: { open: boolean }) => void;
@@ -112,6 +148,11 @@ export interface UseAnalyticsReturn {
   // Banners
   trackBannerClick: (args: { banner_id?: string; location: string; href?: string; variant?: string }) => void;
   trackBannerHover: (args: { banner_id?: string; location: string; variant?: string }) => void;
+
+  // Producto (view / click / hover) — siempre con `context`
+  trackProductView: (args: ProductEventArgs) => void;
+  trackProductClick: (args: ProductEventArgs) => void;
+  trackProductHover: (args: ProductEventArgs) => void;
 
   // Detalle de producto
   trackCronogramaDownload: (args: { product_id: string; term: number; initial_percent: number }) => void;
@@ -325,10 +366,16 @@ export function useAnalytics(): UseAnalyticsReturn {
   );
 
   const trackSearchSubmit = useCallback<UseAnalyticsReturn['trackSearchSubmit']>(
-    ({ query_length, has_results, location = 'navbar' }) => {
+    ({ query, has_results, results_count, location = 'navbar' }) => {
       track('search_submit', {
-        query_length,
+        // `query_length` se mide sobre lo que el usuario escribió, no sobre el
+        // término ya normalizado: es la serie histórica que ya existe en la base.
+        query_length: query.length,
+        // El saneado (minúsculas, tope de 60, descarte de documento/teléfono)
+        // vive en `normalizeSearchQuery`, no en cada call site.
+        query: normalizeSearchQuery(query) ?? null,
         has_results: has_results ?? null,
+        results_count: results_count ?? null,
         location,
       });
     },
@@ -384,6 +431,49 @@ export function useAnalytics(): UseAnalyticsReturn {
   const trackBannerHover = useCallback<UseAnalyticsReturn['trackBannerHover']>(
     (args) => debouncedBannerHover(args),
     [debouncedBannerHover]
+  );
+
+  // ============================================================================
+  // Producto (view / click / hover)
+  //
+  // Un solo armador para los tres eventos: el payload tiene que ser idéntico
+  // entre ellos para que `context` sirva de eje de comparación. Armado a mano
+  // en cada call site, la primera divergencia rompe el cruce.
+  //
+  // `landing` no va acá: `track` ya lo antepone a todos los eventos.
+  // ============================================================================
+  const buildProductProps = useCallback(
+    ({
+      product_id,
+      product_name,
+      brand,
+      slug,
+      context,
+      position,
+      extra,
+    }: ProductEventArgs): Props => ({
+      product_id: String(product_id),
+      product_name: product_name ?? null,
+      brand: brand ?? null,
+      slug: slug ?? null,
+      context,
+      position: position ?? null,
+      ...(extra ?? {}),
+    }),
+    []
+  );
+
+  const trackProductView = useCallback<UseAnalyticsReturn['trackProductView']>(
+    (args) => track('product_view', buildProductProps(args)),
+    [track, buildProductProps]
+  );
+  const trackProductClick = useCallback<UseAnalyticsReturn['trackProductClick']>(
+    (args) => track('product_click', buildProductProps(args)),
+    [track, buildProductProps]
+  );
+  const trackProductHover = useCallback<UseAnalyticsReturn['trackProductHover']>(
+    (args) => track('product_hover', buildProductProps(args)),
+    [track, buildProductProps]
   );
 
   // ============================================================================
@@ -726,6 +816,9 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackGalleryZoom,
       trackColorSelect,
       trackDetailTabClick,
+      trackProductView,
+      trackProductClick,
+      trackProductHover,
       trackSimilarProductClick,
       trackSimilarProductAddToCart,
       trackSpecSheetDownload,
@@ -794,6 +887,9 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackGalleryZoom,
       trackColorSelect,
       trackDetailTabClick,
+      trackProductView,
+      trackProductClick,
+      trackProductHover,
       trackSimilarProductClick,
       trackSimilarProductAddToCart,
       trackSpecSheetDownload,

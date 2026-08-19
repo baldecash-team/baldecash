@@ -43,7 +43,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 
 // Product context for solicitar flow
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
-import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Import ProductDetail component and API
 import { ProductDetail } from '../components/detail/ProductDetail';
@@ -98,7 +98,7 @@ function ProductDetailContent() {
 
   // Shared state for catalog (wishlist, cart)
   const catalogState = useCatalogSharedState(landing, previewKey);
-  const tracker = useEventTrackerOptional();
+  const analytics = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Toast for feedback
@@ -276,11 +276,12 @@ function ProductDetailContent() {
         const data = await fetchProductDetail(landing, slug);
         if (data) {
           setApiData(data);
-          tracker?.track('product_view', {
+          analytics.trackProductView({
             product_id: data.product.id,
             product_name: data.product.name,
             brand: data.product.brand,
             slug,
+            context: 'ficha',
           });
         } else {
           setApiError(`Producto "${slug}" no disponible`);

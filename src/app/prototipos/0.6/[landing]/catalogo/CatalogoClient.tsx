@@ -1861,18 +1861,22 @@ function CatalogoContent() {
                 isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
                 getDetailHref={(siblingSlug, frecuency) => getDetailUrl(landing, siblingSlug || product.slug, frecuency ? { frecuency } : undefined)}
                 onViewDetail={(siblingSlug, pricing) => {
-                  tracker?.track('product_click', {
+                  analytics.trackProductClick({
                     product_id: product.id,
                     product_name: product.name,
                     brand: product.brand,
                     slug: siblingSlug || product.slug,
-                    // Financiamiento visible en la card al momento del click
-                    term: pricing?.term,             // nº de cuotas en la frecuencia (48 sem / 24 qcn / 36 mes)
-                    term_months: pricing?.termMonths, // plazo en meses, como lo muestra la card
-                    payment_frequency: pricing?.paymentFrequency,
-                    installment: pricing?.installment,
-                    down_payment: pricing?.downPayment,
-                    down_payment_percent: pricing?.downPaymentPercent,
+                    context: 'catalogo',
+                    position: index + 1,
+                    extra: {
+                      // Financiamiento visible en la card al momento del click
+                      term: pricing?.term,             // nº de cuotas en la frecuencia (48 sem / 24 qcn / 36 mes)
+                      term_months: pricing?.termMonths, // plazo en meses, como lo muestra la card
+                      payment_frequency: pricing?.paymentFrequency,
+                      installment: pricing?.installment,
+                      down_payment: pricing?.downPayment,
+                      down_payment_percent: pricing?.downPaymentPercent,
+                    },
                   });
                 }}
                 onMouseEnter={() => {
@@ -1880,10 +1884,13 @@ function CatalogoContent() {
                   if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
                   hoverTimerRef.current = setTimeout(() => {
                     lastHoveredProductRef.current = product.id;
-                    tracker?.track('product_hover', {
+                    analytics.trackProductHover({
                       product_id: product.id,
                       product_name: product.name,
                       brand: product.brand,
+                      slug: product.slug,
+                      context: 'catalogo',
+                      position: index + 1,
                     });
                   }, 500);
                 }}

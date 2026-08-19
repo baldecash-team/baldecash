@@ -15,6 +15,7 @@ import {
   CheckPersonResponse,
   PrefillData,
 } from '../../../services/applicationApi';
+import { patchTrackingSession } from '../../../services/sessionApi';
 
 interface UseCheckPersonOptions {
   /** Callback when prefill data is available */
@@ -27,6 +28,13 @@ interface UseCheckPersonOptions {
   debounceMs?: number;
   /** Slug de la landing a enviar en check-person (para evaluación de whitelist). */
   landingSlug?: string;
+  /**
+   * UUID de la sesión de tracking. Cuando viene, el documento se guarda además
+   * en `session.dni` — este es el momento en que el visitante se identifica, y
+   * sin ese dato no se pueden unir las visitas de una misma persona entre
+   * sesiones distintas.
+   */
+  sessionUuid?: string | null;
 }
 
 interface UseCheckPersonResult {
@@ -71,6 +79,7 @@ export function useCheckPerson(
     onError,
     debounceMs = 300,
     landingSlug,
+    sessionUuid,
   } = options;
 
   const [isChecking, setIsChecking] = useState(false);
@@ -106,6 +115,13 @@ export function useCheckPerson(
         setIsChecking(true);
         setError(null);
 
+        // Se identificó: el documento va a la sesión. No se espera ni se
+        // encadena al check-person — es analítica y no debe demorar el
+        // prellenado del formulario.
+        if (sessionUuid) {
+          void patchTrackingSession(sessionUuid, { dni: cleanNumber });
+        }
+
         try {
           const result = await checkPerson({
             document_type: documentType as 'dni' | 'ce' | 'passport',
@@ -131,7 +147,7 @@ export function useCheckPerson(
         }
       }, debounceMs);
     },
-    [onPrefillReady, onNoPrefillData, onError, debounceMs, landingSlug]
+    [onPrefillReady, onNoPrefillData, onError, debounceMs, landingSlug, sessionUuid]
   );
 
   const reset = useCallback(() => {

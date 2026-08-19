@@ -130,10 +130,16 @@ function WizardPreviewContent() {
   // valida el cupo del lado del servidor, así que este aviso no es la defensa
   // —es para no hacer llenar un formulario que ya no se va a poder mandar.
   const [campanaRecibe, setCampanaRecibe] = useState(true);
+  // Ambos arrancan en `true` para que una landing sin los ingredientes se vea
+  // igual que antes de que estos flags existieran.
+  const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
+  const [muestraCupon, setMuestraCupon] = useState(true);
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
       setHasCatalog(cfg.layout.has_catalog);
       setCampanaRecibe(campanaAbierta(cfg));
+      setPuedeCambiarPlazo(cfg.features.can_change_term);
+      setMuestraCupon(cfg.features.has_coupon);
     });
   }, [landing]);
 
@@ -456,7 +462,14 @@ function WizardPreviewContent() {
                     {productsToShow.length === 1 ? 'Producto seleccionado' : `${productsToShow.length} productos seleccionados`}
                   </span>
                 </div>
-                {/* Term selector dropdown - Always show selector */}
+                {/* Selector de plazo.
+                    Se oculta cuando la landing declara que el plazo no se puede
+                    cambiar acá: en el producto de matrícula la cuota ya se
+                    calculó contra el simulador con el plazo elegido en la
+                    calculadora, y volver a cambiarlo dejaría la cuota mostrada y
+                    la seleccionada en desacuerdo. El plazo sigue visible en la
+                    fila del producto, así que ocultarlo no esconde el dato. */}
+                {puedeCambiarPlazo && (
                 <div className="flex items-center gap-2">
                   {needsTermUnification && (
                     <span className="text-xs text-amber-700">Unificar plazo:</span>
@@ -487,6 +500,7 @@ function WizardPreviewContent() {
                     frequency={needsTermUnification ? undefined : productsToShow[0]?.paymentFrequency}
                   />
                 </div>
+                )}
               </div>
 
               {/* Warning banner for unequal terms */}
@@ -808,13 +822,19 @@ function WizardPreviewContent() {
           </div>
         </div>
 
-        {/* Cupón de Descuento */}
+        {/* Cupón de Descuento.
+            Se oculta en las landings que no se activan con promotor en campo:
+            sin alguien que le dicte un código al solicitante, el campo solo
+            agrega un paso vacío. La landing que exige cupón lo muestra igual,
+            porque ahí sin código no se puede enviar la solicitud. */}
+        {(muestraCupon || isCouponRequired) && (
         <div id="coupon-section" className={`mb-8 transition-all duration-300 rounded-xl ${couponError ? 'ring-2 ring-red-500/30' : ''}`}>
           <CouponInput isRequired={isCouponRequired} />
           {couponError && !appliedCoupon && (
             <p className="text-xs text-red-500 mt-2 ml-1">{couponError}</p>
           )}
         </div>
+        )}
 
         {/* Unavailable products banner */}
         {hasUnavailableProducts && (

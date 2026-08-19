@@ -44,10 +44,21 @@ const calculateAmortization = (principal: number, annualRate: number, months: nu
   return schedule;
 };
 
-// Valores por defecto para datos financieros (usados si el backend no los provee)
+// Valores por defecto para datos financieros (usados si el backend no los provee).
+//
+// TEA y TCEA arrancan en 0, NO en una tasa de ejemplo. Antes eran 49.36 y
+// 52.18: cuando el backend no mandaba la TCEA, el guard de mas abajo no
+// sobrescribia y el modal publicaba ese 52.18% como si fuera la tasa real del
+// producto. Paso con los equipos sin intereses, donde el mismo modal decia
+// «TEA 0%» arriba y «TCEA 52.18%» al lado, y ademas «precio S/1,750 / total a
+// pagar S/1,728» -- una TCEA positiva sobre un flujo en el que el cliente
+// paga MENOS que el precio (BAL-3135).
+//
+// La TCEA es informacion regulada por SBS: ante la duda va 0, no un numero
+// de ejemplo.
 const DEFAULT_FINANCIAL_DATA = {
-  tea: 49.36,
-  tcea: 52.18,
+  tea: 0,
+  tcea: 0,
   comisionDesembolso: 0,
   seguroDesgravamen: 0,
   seguroMultiriesgo: 0,
@@ -94,14 +105,21 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   };
 
   // Override TEA/TCEA from selected option if available (backend returns per term+initial%)
+  //
+  // Cuando la celda existe pero su tasa viene null, se muestra 0 -- NO se deja
+  // el valor previo. El backend manda `tcea: null` en dos casos legitimos: el
+  // producto no cobra intereses, o el total de las cuotas no llega a cubrir el
+  // precio (con TEA 0 y el floor de la cuota, 24 x S/72 = S/1,728 sobre
+  // S/1,750). En ambos «sin costo efectivo» es 0, no la tasa de otro producto.
+  //
+  // Si no hay celda seleccionada no se toca nada: es un estado de carga, no un
+  // producto sin tasas (BAL-3135).
   const planForRates = paymentPlans.find(p => p.term === selectedTerm) ?? paymentPlans[0];
   const selectedOption = planForRates?.options.find(o => o.initialPercent === selectedInitialPercent) ?? planForRates?.options[0];
-  const effectiveTea = selectedOption?.teaIrr ?? selectedOption?.tea;
-  if (effectiveTea != null) {
-    FINANCIAL_DATA.tea = effectiveTea;
-  }
-  if (selectedOption?.tcea != null) {
-    FINANCIAL_DATA.tcea = selectedOption.tcea;
+  if (selectedOption) {
+    const effectiveTea = selectedOption.teaIrr ?? selectedOption.tea;
+    FINANCIAL_DATA.tea = effectiveTea ?? 0;
+    FINANCIAL_DATA.tcea = selectedOption.tcea ?? 0;
   }
 
   const [showAll, setShowAll] = useState(false);
