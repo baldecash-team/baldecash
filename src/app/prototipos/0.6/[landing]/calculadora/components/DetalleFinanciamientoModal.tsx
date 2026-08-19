@@ -6,15 +6,18 @@
  * Muestra el desglose, el cronograma y las condiciones. Todo lo numérico sale de
  * la simulación del backend; acá no se calcula nada.
  *
- * La disposición sigue el maquetado: en escritorio los detalles y el cronograma
- * van lado a lado, y el cronograma se parte en dos tablas para que doce cuotas
- * no obliguen a desplazarse. En móvil todo se apila y el cronograma vuelve a ser
- * una sola tabla.
+ * La disposición sigue el maquetado entregado por producto: dos columnas en
+ * escritorio —detalles y cronograma—, el total a pagar en un recuadro propio con
+ * filete de acento, las tres cláusulas en tres columnas y la nota de fechas en
+ * otro recuadro al pie.
+ *
+ * El cronograma va en UNA sola columna. Se había partido en dos, pero el
+ * maquetado lo muestra entero.
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import type { CuotaCronograma, SimulacionFinanciamiento } from '../api/simuladorApi';
+import type { SimulacionFinanciamiento } from '../api/simuladorApi';
 import type { MontosMatricula } from '../types/calculadora';
 import { formatearSoles, formatearTasa } from '../types/calculadora';
 
@@ -25,13 +28,29 @@ interface Props {
   montos: MontosMatricula;
 }
 
+const MESES_ABREVIADOS = [
+  'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+  'jul', 'ago', 'set', 'oct', 'nov', 'dic',
+];
+
+/** Formato del maquetado: "19 set 2026", no "19/09/2026". */
+function formatearFecha(iso: string): string {
+  if (!iso) return '—';
+  const partes = iso.split('-');
+  if (partes.length !== 3) return iso;
+  const [anio, mes, dia] = partes;
+  const indice = Number.parseInt(mes, 10) - 1;
+  const nombreMes = MESES_ABREVIADOS[indice] ?? mes;
+  return `${Number.parseInt(dia, 10)} ${nombreMes} ${anio}`;
+}
+
 function Fila({ etiqueta, valor, destacado }: { etiqueta: string; valor: string; destacado?: boolean }) {
   return (
     <tr className="border-b border-neutral-100 last:border-0">
-      <td className="py-2 pr-4 text-sm text-neutral-600">{etiqueta}</td>
+      <td className="py-2.5 pr-4 text-neutral-600">{etiqueta}</td>
       <td
-        className={`py-2 text-right text-sm ${
-          destacado ? 'font-semibold text-neutral-800' : 'text-neutral-800'
+        className={`py-2.5 text-right ${
+          destacado ? 'font-extrabold text-[var(--color-primary)]' : 'font-semibold text-neutral-800'
         }`}
       >
         {valor}
@@ -40,42 +59,11 @@ function Fila({ etiqueta, valor, destacado }: { etiqueta: string; valor: string;
   );
 }
 
-function TablaCronograma({ cuotas }: { cuotas: CuotaCronograma[] }) {
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500">
-          <th className="py-2 font-medium">Fecha</th>
-          <th className="py-2 text-right font-medium">Cuota</th>
-        </tr>
-      </thead>
-      <tbody>
-        {cuotas.map((cuota) => (
-          <tr key={cuota.numero} className="border-b border-neutral-100 last:border-0">
-            <td className="py-2 text-neutral-600">{formatearFecha(cuota.fechaVencimiento)}</td>
-            <td className="py-2 text-right text-neutral-800">{formatearSoles(cuota.total)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function formatearFecha(iso: string): string {
-  if (!iso) return '—';
-  const partes = iso.split('-');
-  if (partes.length !== 3) return iso;
-  const [anio, mes, dia] = partes;
-  return `${dia}/${mes}/${anio}`;
-}
-
 function Clausula({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div>
-      <strong className="block text-xs font-semibold uppercase tracking-wide text-neutral-500">
-        {titulo}
-      </strong>
-      <p className="mt-1 text-xs leading-relaxed text-neutral-600">{children}</p>
+      <strong className="mb-1.5 block text-[0.8rem] font-bold text-neutral-800">{titulo}</strong>
+      <p className="text-[0.76rem] leading-relaxed text-neutral-500">{children}</p>
     </div>
   );
 }
@@ -96,37 +84,33 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
     };
   }, [abierto, onCerrar]);
 
-  // El cronograma se parte al medio para las dos tablas de escritorio. Cuando el
-  // total es impar, la primera columna se queda con la cuota de más.
-  const [mitadIzquierda, mitadDerecha] = useMemo(() => {
-    const cuotas = simulacion?.cronograma ?? [];
-    const corte = Math.ceil(cuotas.length / 2);
-    return [cuotas.slice(0, corte), cuotas.slice(corte)];
-  }, [simulacion]);
-
   if (!abierto) return null;
 
-  const hayCronograma = (simulacion?.cronograma.length ?? 0) > 0;
+  const cronograma = simulacion?.cronograma ?? [];
+  const primerVencimiento = cronograma[0]?.fechaVencimiento;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-900/50 p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-900/40 p-0 sm:p-4"
       onClick={onCerrar}
       role="presentation"
     >
       <div
-        className="w-full sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl bg-white shadow-xl"
+        className="flex w-full sm:max-w-[880px] max-h-[88vh] flex-col overflow-hidden rounded-t-2xl sm:rounded-[18px] bg-white shadow-[0_20px_60px_rgba(20,22,50,0.3)]"
         onClick={(evento) => evento.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-detalle-financiamiento"
       >
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-neutral-100 bg-white px-5 py-4">
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[#eef0f8] px-6 pb-5 pt-6 sm:px-8">
           <div>
-            <h3 id="titulo-detalle-financiamiento" className="text-base font-semibold text-neutral-800">
+            <h3
+              id="titulo-detalle-financiamiento"
+              className="text-xl font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]"
+            >
               Detalle de tu financiamiento
             </h3>
-            <p className="mt-0.5 text-xs text-neutral-500">
+            <p className="mt-0.5 text-[0.8rem] text-neutral-500">
               {simulacion
                 ? `${formatearSoles(simulacion.montoFinanciado)} en ${simulacion.plazoMeses} cuotas mensuales`
                 : '—'}
@@ -136,20 +120,19 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar detalle"
-            className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-[var(--color-primary)] cursor-pointer"
+            className="shrink-0 rounded-full bg-neutral-100 p-2 text-neutral-500 transition-colors hover:bg-neutral-200 hover:text-neutral-700 cursor-pointer"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </header>
 
-        <div className="px-5 py-4">
-          {/* Detalles y cronograma lado a lado en escritorio, apilados en móvil. */}
-          <div className="grid gap-6 md:grid-cols-2">
+        <div className="overflow-y-auto px-6 py-6 sm:px-8">
+          <div className="grid gap-8 md:grid-cols-2 md:gap-10">
             <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              <h4 className="mb-3 text-[1.05rem] font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]">
                 Detalles
               </h4>
-              <table className="w-full">
+              <table className="w-full border-collapse text-[0.84rem]">
                 <tbody>
                   <Fila etiqueta="Monto de matrícula" valor={formatearSoles(montos.matricula)} />
                   <Fila etiqueta="Monto primera cuota" valor={formatearSoles(montos.primeraCuota)} />
@@ -167,37 +150,52 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
                   <Fila etiqueta="TCEA" valor={formatearTasa(simulacion?.tcea)} />
                 </tbody>
               </table>
-              <p className="mt-3 text-sm font-semibold text-neutral-800">
-                *Cantidad total a pagar:{' '}
-                <span className="text-[var(--color-primary)]">
-                  {formatearSoles(simulacion?.totalAPagar)}
-                </span>
+
+              <p className="mt-4 rounded-[10px] border-l-4 border-[#05DAD3] bg-[#eef0ff] px-4 py-3 text-[0.88rem] font-bold text-neutral-800">
+                *Cantidad total a pagar: {formatearSoles(simulacion?.totalAPagar)}
               </p>
             </section>
 
             <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              <h4 className="mb-3 text-[1.05rem] font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]">
                 Cronograma
               </h4>
-              {hayCronograma ? (
-                <>
-                  {/* Móvil: una sola tabla. */}
-                  <div className="md:hidden">
-                    <TablaCronograma cuotas={simulacion!.cronograma} />
-                  </div>
-                  {/* Escritorio: partido en dos para no alargar el modal. */}
-                  <div className="hidden gap-4 md:grid md:grid-cols-2">
-                    <TablaCronograma cuotas={mitadIzquierda} />
-                    {mitadDerecha.length > 0 && <TablaCronograma cuotas={mitadDerecha} />}
-                  </div>
-                </>
+
+              {primerVencimiento && (
+                <p className="mb-2.5 text-[0.74rem] leading-relaxed text-neutral-500">
+                  Calculado con desembolso hoy. Tu primera cuota vence el{' '}
+                  {formatearFecha(primerVencimiento)}.
+                </p>
+              )}
+
+              {cronograma.length > 0 ? (
+                <table className="w-full border-collapse text-[0.79rem]">
+                  <thead>
+                    <tr className="border-b border-neutral-200 text-left text-[0.7rem] uppercase tracking-wide text-neutral-500">
+                      <th className="py-2 font-medium">Fecha</th>
+                      <th className="py-2 text-right font-medium">Cuota</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cronograma.map((cuota) => (
+                      <tr key={cuota.numero} className="border-b border-neutral-100 last:border-0">
+                        <td className="py-2.5 text-neutral-600">
+                          {formatearFecha(cuota.fechaVencimiento)}
+                        </td>
+                        <td className="py-2.5 text-right font-bold text-neutral-800">
+                          {formatearSoles(cuota.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <p className="text-sm text-neutral-500">—</p>
               )}
             </section>
           </div>
 
-          <div className="mt-6 grid gap-4 border-t border-neutral-100 pt-4 md:grid-cols-3">
+          <div className="mt-7 grid gap-6 border-t border-[#eef0f8] pt-6 md:grid-cols-3">
             <Clausula titulo="Cláusulas de penalidad">
               Ante el retraso de pago de una cuota, existirá un interés moratorio de S/ 1 por cada día
               de atraso en el que incurra el cliente.
@@ -212,7 +210,7 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
             </Clausula>
           </div>
 
-          <p className="mt-4 border-t border-neutral-100 pt-4 text-xs leading-relaxed text-neutral-500">
+          <p className="mt-4 rounded-[10px] bg-[#eef0ff] px-3.5 py-3 text-[0.74rem] leading-relaxed text-[#3a3f9e]">
             Las fechas son referenciales y se calculan desde hoy. El cronograma definitivo se genera
             con la fecha real en que BaldeCash pague tu matrícula a la universidad.
           </p>
