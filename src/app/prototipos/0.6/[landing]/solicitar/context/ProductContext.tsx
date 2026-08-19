@@ -21,7 +21,13 @@ import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 
 // Dynamic storage keys based on landing slug
-const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+//
+// `getStorageKey` se exporta porque la calculadora de matrícula escribe el
+// producto seleccionado ANTES de entrar a /solicitar: no pasa por catálogo ni
+// por el detalle de producto, así que arma el SelectedProduct por su cuenta.
+// Se exporta el builder en vez de repetir el string para que el formato de la
+// clave viva en un solo lugar.
+export const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
 const getInsuranceKey = (landing: string) => `baldecash-${landing}-solicitar-selected-insurance`;

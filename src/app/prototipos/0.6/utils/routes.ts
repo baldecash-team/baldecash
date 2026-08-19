@@ -29,6 +29,27 @@ export function catalogo(landing: string, query?: string): string {
   return query ? `${base}?${query}` : base;
 }
 
+/**
+ * Selección de institución: /{landing}/universidad
+ *
+ * Primera pantalla del producto de matrícula. Reemplaza al catálogo: acá no se
+ * elige un equipo sino la institución, y de ahí se pasa a la calculadora.
+ */
+export function universidad(landing: string): string {
+  return `${BASE_PATH}/${landing}/universidad`;
+}
+
+/**
+ * Calculadora de matrícula: /{landing}/calculadora
+ *
+ * Hermana de `catalogo`, no parte de `solicitar`. El recorrido del producto de
+ * matrícula no pasa por catálogo ni por el detalle de producto: la calculadora
+ * arma el financiamiento y entrega directo a /solicitar.
+ */
+export function calculadora(landing: string): string {
+  return `${BASE_PATH}/${landing}/calculadora`;
+}
+
 /** Product detail: /{landing}/producto/{slug} */
 export function producto(landing: string, slug: string, query?: string): string {
   const base = `${BASE_PATH}/${landing}/producto/${slug}`;
@@ -171,6 +192,8 @@ export const routes = {
   home,
   landingHome,
   catalogo,
+  universidad,
+  calculadora,
   producto,
   productoPreview,
   solicitar,
