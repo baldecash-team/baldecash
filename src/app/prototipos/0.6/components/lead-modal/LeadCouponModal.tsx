@@ -362,9 +362,19 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
 
   const mostrandoExito = cuponObtenido !== null || sinCupon;
 
+  // El overlay va en z-[1000001], por encima de TODO lo demas del sitio.
+  //
+  // El chat de Blip se monta en el <body> con z-index 1000000 (medido en
+  // produccion) y su boton flotante quedaba ENCIMA de este modal. Con z-50
+  // ademas empataba con el <nav> del catalogo, que tambien es z-50: entre
+  // iguales gana el orden del DOM, asi que se veia bien de casualidad.
+  //
+  // Este modal bloquea la pantalla hasta que la persona decida, igual que
+  // DniModal (z-[10002], el mas alto del sitio hasta ahora). La diferencia es
+  // que ninguno de esos supera al chat; este si, a proposito.
   return (
     <div
-      className="lead-modal-overlay fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
+      className="lead-modal-overlay fixed inset-0 z-[1000001] flex items-center justify-center overflow-y-auto bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
       role="presentation"
     >
       {/* Animaciones del diseño aprobado (`cupon15.html`): el overlay entra

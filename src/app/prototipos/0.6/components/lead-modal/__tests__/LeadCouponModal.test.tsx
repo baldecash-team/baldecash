@@ -631,3 +631,24 @@ describe('links legales', () => {
 });
 
 
+
+describe('z-index del overlay', () => {
+  it('se monta por encima del chat de Blip', () => {
+    // El chat se monta en el <body> con z-index 1000000 (medido en
+    // produccion) y su boton flotante quedaba ENCIMA del modal. El DOM lo
+    // tenia todo bien y los tests pasaban: solo se ve mirando la pantalla.
+    //
+    // Sin esta asercion, el proximo que "normalice" el z-index a z-50
+    // reintroduce el bug sin enterarse.
+    const { container } = render(
+      <LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={() => {}} />
+    );
+
+    const overlay = container.querySelector('.lead-modal-overlay');
+    expect(overlay).toBeTruthy();
+    expect(overlay?.className).toContain('z-[1000001]');
+    // z-50 empataba con el <nav> del catalogo: entre iguales decide el orden
+    // del DOM, que no es una garantia.
+    expect(overlay?.className).not.toContain('z-50');
+  });
+});
