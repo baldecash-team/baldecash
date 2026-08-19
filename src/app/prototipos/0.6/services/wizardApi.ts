@@ -101,6 +101,8 @@ export interface WizardField {
   min_value?: number | null;
   max_value?: number | null;
   step?: number | null;
+  /** Para campos date: qué fechas habilita el calendario. Ausente = 'past'. */
+  date_range?: 'past' | 'future' | 'any' | null;
   pattern?: string | null;
   mask?: string | null;
   input_mode?: string | null;
