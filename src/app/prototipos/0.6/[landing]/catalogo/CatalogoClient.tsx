@@ -323,7 +323,10 @@ function CatalogoContent() {
   // Config completa (namespaces extra incluidos) para el modal de captura de
   // leads (BAL-3125 Tarea 5). Mismo fetch que ya trae vip_countdown/overlay —
   // extenderlo evita una petición nueva.
-  const [leadModalConfig, setLeadModalConfig] = useState<Record<string, unknown>>({});
+  // `undefined` = todavia no respondio el fetch. Con `{}` el gate no podia
+  // distinguirlo de "llego y el modal esta apagado", avisaba de inmediato, y
+  // el welcome se abria antes de que el cupon tuviera su turno.
+  const [leadModalConfig, setLeadModalConfig] = useState<Record<string, unknown> | undefined>(undefined);
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
       setVipCountdownDate(cfg.features.vip_countdown || '');

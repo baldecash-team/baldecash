@@ -142,3 +142,51 @@ describe('LeadModalGate — coordinación con el onboarding (onSettled)', () => 
     expect(onSettled).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('la config todavia no llego (carrera con el fetch)', () => {
+  it('NO avisa onSettled mientras la config esta sin resolver', () => {
+    // `CatalogoClient` arranca con {} y llena la config cuando responde
+    // `fetchLandingConfig`. Con {} el gate creia "no hay nada que mostrar" y
+    // avisaba de inmediato — y el aviso es IRREVERSIBLE (avisado.current).
+    // El welcome se abria, y al llegar la config el cupon se montaba ENCIMA:
+    // justo la superposicion que este ticket resuelve.
+    const onSettled = jest.fn();
+    render(<LeadModalGate landingSlug="senati" config={undefined} onSettled={onSettled} />);
+
+    act(() => { jest.advanceTimersByTime(5000); });
+
+    expect(onSettled).not.toHaveBeenCalled();
+  });
+
+  it('avisa recien cuando la config llega y el modal esta apagado', () => {
+    const onSettled = jest.fn();
+    const { rerender } = render(
+      <LeadModalGate landingSlug="senati" config={undefined} onSettled={onSettled} />
+    );
+    expect(onSettled).not.toHaveBeenCalled();
+
+    rerender(
+      <LeadModalGate
+        landingSlug="senati"
+        config={{ lead_modal: { enabled: false } }}
+        onSettled={onSettled}
+      />
+    );
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  it('si la config llega con el modal activo, el welcome sigue esperando', () => {
+    const onSettled = jest.fn();
+    const { rerender } = render(
+      <LeadModalGate landingSlug="senati" config={undefined} onSettled={onSettled} />
+    );
+
+    rerender(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} onSettled={onSettled} />);
+    act(() => { jest.advanceTimersByTime(3000); });
+
+    expect(screen.getByTestId('modal')).toBeTruthy();
+    expect(onSettled).not.toHaveBeenCalled();
+  });
+});
+

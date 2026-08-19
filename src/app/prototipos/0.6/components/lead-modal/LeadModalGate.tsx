@@ -42,18 +42,24 @@ export default function LeadModalGate({ landingSlug, config, onSettled }: Props)
   const [cerrado, setCerrado] = useState(false);
   const avisado = useRef(false);
 
+  // `undefined` significa "la config todavia no llego": `CatalogoClient` la
+  // pide por red y hasta que responda no se puede afirmar nada. Distinguirlo
+  // de "llego y el modal esta apagado" es lo que evita avisar de mas: el
+  // aviso es IRREVERSIBLE (ver `avisado`), asi que hacerlo antes de tiempo
+  // abria el welcome del onboarding y despues el cupon se montaba ENCIMA.
+  const configResuelta = config !== undefined;
   const modal = (config?.['lead_modal'] as LeadModalConfig | undefined) ?? undefined;
   const activo = !!modal?.enabled;
   // Si ya dejo su documento en esta landing, no se lo volvemos a pedir. Es la
   // misma clave que usa el autoseteo del formulario (BAL-1806).
   const yaContestado = !!getDocumentFromModal(landingSlug);
-  const nadaQueMostrar = !activo || yaContestado;
+  const nadaQueMostrar = configResuelta && (!activo || yaContestado);
 
   useEffect(() => {
-    if (nadaQueMostrar || cerrado) return;
+    if (!configResuelta || nadaQueMostrar || cerrado) return;
     const t = setTimeout(() => setAbierto(true), DEMORA_MS);
     return () => clearTimeout(t);
-  }, [nadaQueMostrar, cerrado]);
+  }, [configResuelta, nadaQueMostrar, cerrado]);
 
   // Avisa una sola vez: de inmediato si no hay nada que mostrar, o cuando el
   // usuario cierra el modal (ver handleClose). Sin el `ref`, cada re-render
