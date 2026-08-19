@@ -44,11 +44,31 @@ export interface ResultadoDetener {
   duracionMs: number;
 }
 
+/**
+ * Lo que la cámara entrega de verdad, leído de `track.getSettings()` al
+ * armar, más el bitrate que se derivó de eso.
+ *
+ * Existe para poder VERIFICARLO en el teléfono real: pedir 1920 no garantiza
+ * 1920 (medido: tres videos de producción salieron en 1280×1280, 1058×1280 y
+ * 720×1280 pidiendo 1280), y sin esto la única forma de saber con qué se
+ * grabó era bajar el video de S3 y parsearlo. La vista de cámara lo muestra
+ * detrás de `?debug=1`.
+ */
+export interface AjustesCaptura {
+  ancho: number | null;
+  alto: number | null;
+  fps: number | null;
+  /** Bits por segundo que se le van a pedir al `MediaRecorder`. */
+  bitrate: number;
+}
+
 export interface UseKioskRecorderReturn {
   estado: EstadoCaptura;
   error: string | null;
   /** El mimeType negociado en `armar()`, p.ej. `'video/webm;codecs=vp9'`. */
   mimeType: string | null;
+  /** Resolución/fps reales de la cámara y bitrate derivado. `null` sin armar. */
+  ajustes: AjustesCaptura | null;
   videoRef: RefObject<HTMLVideoElement | null>;
   /** Zoom actual de la cámara. */
   zoom: number;
@@ -64,8 +84,6 @@ export interface UseKioskRecorderReturn {
   detener: () => Promise<ResultadoDetener>;
 }
 
-/** Cap de calidad, igual criterio que `useRecorder.ts` (admisión): clips
- * livianos y suficientes para validar evidencia, sin tope de 1080p. */
 /**
  * Relación de aspecto del encuadre: 1:1, cuadrado.
  *
@@ -83,16 +101,73 @@ export interface UseKioskRecorderReturn {
  */
 const ASPECT_RATIO = 1;
 
+/**
+ * Lado del encuadre pedido, en píxeles.
+ *
+ * Era 1280 (1.6 MP). Se subió a 1920 (3.7 MP en cuadrado, 2.1 MP si el
+ * dispositivo degrada a 16:9) porque lo que hay que poder leer en la
+ * evidencia es una etiqueta de serie o un rayón fino, y a 1280 el operador
+ * tenía que acercar la cámara —o usar el zoom— para que se distinguieran.
+ *
+ * Sigue siendo `ideal`: lo que el dispositivo entregue de verdad puede ser
+ * menos, y esa resolución REAL es la que manda el bitrate (ver
+ * `calcularBitrate`). Medido sobre los videos de producción del 12 y 19 de
+ * agosto: pidiendo 1280 los teléfonos devolvieron 1280×1280, 1058×1280 y
+ * 720×1280 — o sea que ni el lado ni la relación 1:1 están garantizados y no
+ * se puede asumir el valor pedido en ningún cálculo posterior.
+ */
+const VIDEO_LADO_IDEAL = 1920;
+
 const VIDEO_CONSTRAINTS = {
-  width: { ideal: 1280 },
-  height: { ideal: Math.round(1280 / ASPECT_RATIO) },
+  width: { ideal: VIDEO_LADO_IDEAL },
+  height: { ideal: Math.round(VIDEO_LADO_IDEAL / ASPECT_RATIO) },
   aspectRatio: { ideal: ASPECT_RATIO },
   // La cámara de la estación queda fija mirando el equipo (pared/techo), no
   // a una persona: la trasera es la que sirve. "ideal" degrada en vez de
   // fallar en un desktop de prueba sin cámara trasera.
   facingMode: { ideal: 'environment' },
 } as const;
-const VIDEO_BITS_PER_SECOND = 2_000_000;
+
+/**
+ * Bits por píxel y por frame con los que se calcula el bitrate.
+ *
+ * El valor viejo era un bitrate FIJO de 2 Mbps, y ahí estaba el techo real de
+ * la calidad: medidos los videos de producción, los tres salieron en 2.23,
+ * 2.35 y 2.57 Mbps — es decir, el encoder venía pegado contra la tapa que le
+ * poníamos nosotros, no contra el límite del teléfono. Un iPhone grabando con
+ * su app nativa usa 8-10 Mbps a 1080p: la diferencia que se ve a ojo es
+ * principalmente esta.
+ *
+ * Se calcula en vez de fijarse porque las cámaras de las estaciones son
+ * heterogéneas y ya se vio que degradan la resolución de formas distintas.
+ * Un bitrate fijo alto sobre una cámara que entrega 720p infla el archivo sin
+ * ganar nada (y el archivo se paga en tiempo de subida por equipo, que es
+ * justo lo que la estación intenta ahorrar); uno fijo bajo desperdicia la
+ * cámara buena. 0.12 bpp da calidad de evidencia en H.264 —el codec del
+ * iPhone, que es la plataforma con la que se va a grabar— y de sobra en VP9.
+ */
+const BITS_POR_PIXEL_POR_FRAME = 0.12;
+/** Piso: por debajo de esto la evidencia deja de servir aunque la cámara sea mala. */
+const BITRATE_MIN = 2_500_000;
+/** Techo: 1 min ≈ 60 MB por cámara. Más que esto lo paga la subida, no la vista. */
+const BITRATE_MAX = 8_000_000;
+/** Sin `frameRate` en los settings, asumir 30 (lo típico de `getUserMedia`). */
+const FPS_ASUMIDO = 30;
+/** Si el dispositivo no informa resolución, no se puede calcular: valor medio. */
+const BITRATE_FALLBACK = 6_000_000;
+
+/**
+ * Bitrate a partir de lo que la cámara entrega DE VERDAD (`getSettings()`),
+ * nunca de lo que se pidió en las constraints — ver `VIDEO_LADO_IDEAL`.
+ */
+export function calcularBitrate(settings: MediaTrackSettings | null | undefined): number {
+  const ancho = settings?.width;
+  const alto = settings?.height;
+  if (!ancho || !alto) return BITRATE_FALLBACK;
+  const fps = settings?.frameRate && settings.frameRate > 0 ? settings.frameRate : FPS_ASUMIDO;
+  const bruto = ancho * alto * fps * BITS_POR_PIXEL_POR_FRAME;
+  return Math.round(Math.min(BITRATE_MAX, Math.max(BITRATE_MIN, bruto)));
+}
 
 /**
  * C3: cuánto esperar a que `onstop`/`onerror` disparen tras `recorder.stop()`
@@ -108,6 +183,14 @@ const DETENER_TIMEOUT_MS = 5_000;
  * Android/Chrome es la plataforma primaria (spec §7); los MP4 quedan de
  * fallback para iOS/Safari. `null` si ninguno matchea: el `MediaRecorder` se
  * crea sin `mimeType` y el navegador elige — nunca se fuerza un default.
+ *
+ * El orden NO hay que tocarlo para grabar en iPhone: Safari devuelve `false`
+ * para todos los WebM (no los sabe grabar) y cae solo en `video/mp4`, que es
+ * H.264 con encoder por hardware — el mejor camino en iOS, y la razón por la
+ * que subir bitrate y resolución ahí no cuesta batería como costaría un VP9
+ * por software. Los videos de producción medidos hasta hoy son todos
+ * VP9/WebM, o sea que las cámaras que se usaron fueron Android/Chrome pese a
+ * que alguna estuviera etiquetada "iphone".
  */
 const MIME_CANDIDATES = [
   'video/webm;codecs=vp9,opus',
@@ -165,6 +248,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
   );
   const [zoom, setZoom] = useState<number>(1);
   const [zoomError, setZoomError] = useState<string | null>(null);
+  const [ajustes, setAjustes] = useState<AjustesCaptura | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -180,6 +264,11 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
   );
   const startedAtRef = useRef<number>(0);
   const mimeTypeRef = useRef<string | null>(null);
+  // Se calcula UNA vez, al armar, y se lee en cada `grabar()`. Va en un ref y
+  // no en el estado por el mismo motivo que `mimeTypeRef`: F3 llama a
+  // `grabar()` desde un handler de Pusher, donde el estado de React puede
+  // estar una render atrás.
+  const bitrateRef = useRef<number>(BITRATE_FALLBACK);
 
   // Se dispara con un `track.ended` real (llamada entrante, otra app
   // tomando la cámara, Siri) — nunca lo llama este hook. Es la señal de que
@@ -253,6 +342,28 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
       stream.getTracks().forEach((track) => {
         track.addEventListener('ended', onTrackEnded);
       });
+
+      // Resolución REAL entregada — nunca la pedida. De acá sale el bitrate:
+      // ver `calcularBitrate` y el doc de `VIDEO_LADO_IDEAL`. Envuelto por el
+      // mismo motivo que el bloque de zoom de abajo: `getSettings` es
+      // best-effort y **grabar es la función**; si esto falla se graba igual
+      // con el bitrate de fallback.
+      try {
+        const [videoTrack] = stream.getVideoTracks?.() ?? [];
+        const settings =
+          typeof videoTrack?.getSettings === 'function' ? videoTrack.getSettings() : null;
+        const bitrate = calcularBitrate(settings);
+        bitrateRef.current = bitrate;
+        setAjustes({
+          ancho: settings?.width ?? null,
+          alto: settings?.height ?? null,
+          fps: settings?.frameRate ?? null,
+          bitrate,
+        });
+      } catch {
+        bitrateRef.current = BITRATE_FALLBACK;
+        setAjustes({ ancho: null, alto: null, fps: null, bitrate: BITRATE_FALLBACK });
+      }
 
       // Capacidades de zoom del hardware. TODO este bloque es best-effort y va
       // envuelto: `getCapabilities` no existe en todos los navegadores (Safari,
@@ -367,7 +478,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     // `ondataavailable` — no un ref a nivel de hook. Ver interfaz
     // `ActiveRecording` arriba.
     const chunks: Blob[] = [];
-    const options: MediaRecorderOptions = { videoBitsPerSecond: VIDEO_BITS_PER_SECOND };
+    const options: MediaRecorderOptions = { videoBitsPerSecond: bitrateRef.current };
     if (mimeTypeRef.current) options.mimeType = mimeTypeRef.current;
 
     // Nuevo `MediaRecorder` por grabación, SIEMPRE sobre el mismo `stream` —
@@ -486,6 +597,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     estado,
     error,
     mimeType,
+    ajustes,
     videoRef,
     armar,
     grabar,

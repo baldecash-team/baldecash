@@ -32,8 +32,20 @@ class FakeMediaStreamTrack extends EventTarget {
     return this.zoomCapability ? { zoom: this.zoomCapability } : {};
   }
 
+  /** Lo que la cámara entrega DE VERDAD. Es lo que manda el bitrate — y lo
+   * que en producción salió distinto de lo pedido en los tres videos
+   * medidos (1280×1280, 1058×1280, 720×1280 pidiendo 1280). */
+  resolucion: { width?: number; height?: number; frameRate?: number } | null = {
+    width: 1920,
+    height: 1920,
+    frameRate: 30,
+  };
+
   getSettings() {
-    return this.zoomCapability ? { zoom: this.zoomCapability.min } : {};
+    return {
+      ...(this.resolucion ?? {}),
+      ...(this.zoomCapability ? { zoom: this.zoomCapability.min } : {}),
+    };
   }
 
   applyConstraints(c: MediaTrackConstraints) {
@@ -482,6 +494,83 @@ describe('useKioskRecorder', () => {
     // componente de React no es el gesto humano que la justifica romper.
     expect(videoTrack.stop).not.toHaveBeenCalled();
     expect(audioTrack.stop).not.toHaveBeenCalled();
+  });
+
+  describe('calidad de la grabación', () => {
+    it('pide 1920 de lado como "ideal" — el techo viejo de 1280 hacía ilegible una etiqueta', async () => {
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      const constraints = getUserMedia.mock.calls[0][0].video;
+      expect(constraints.width).toEqual({ ideal: 1920 });
+      expect(constraints.height).toEqual({ ideal: 1920 });
+    });
+
+    it('deriva el bitrate de la resolución REAL, no de la pedida', async () => {
+      // La cámara degrada a 720×1280 — pasó en producción pidiendo 1280.
+      videoTrack.resolucion = { width: 720, height: 1280, frameRate: 30 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      // 720*1280*30*0.12 = 3.32 Mbps, no los 8 que corresponderían a 1920².
+      expect(result.current.ajustes).toEqual({
+        ancho: 720,
+        alto: 1280,
+        fps: 30,
+        bitrate: 3_317_760,
+      });
+
+      act(() => {
+        result.current.grabar();
+      });
+      expect(FakeMediaRecorder.instances[0].options?.videoBitsPerSecond).toBe(3_317_760);
+    });
+
+    it('sube el bitrate muy por encima de los 2 Mbps viejos cuando la cámara da resolución', async () => {
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+      act(() => {
+        result.current.grabar();
+      });
+
+      // 1920² a 30 fps pide 13.3 Mbps: se recorta al techo de 8, que es lo que
+      // paga la subida por equipo. Lo que importa del test: nunca vuelve a 2.
+      const bitrate = FakeMediaRecorder.instances[0].options?.videoBitsPerSecond ?? 0;
+      expect(bitrate).toBe(8_000_000);
+      expect(bitrate).toBeGreaterThan(2_000_000);
+    });
+
+    it('sin resolución informada usa el fallback y graba igual', async () => {
+      videoTrack.resolucion = null;
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+
+      expect(result.current.estado).toBe('armada');
+      expect(result.current.ajustes).toEqual({
+        ancho: null,
+        alto: null,
+        fps: null,
+        bitrate: 6_000_000,
+      });
+    });
+
+    it('respeta el piso: una cámara pobre no baja de 2.5 Mbps', async () => {
+      videoTrack.resolucion = { width: 640, height: 480, frameRate: 15 };
+      const { result } = renderHook(() => useKioskRecorder());
+      await act(async () => {
+        await result.current.armar();
+      });
+      // 640*480*15*0.12 = 553 kbps → se levanta al piso.
+      expect(result.current.ajustes?.bitrate).toBe(2_500_000);
+    });
   });
 
   describe('encuadre y zoom', () => {
