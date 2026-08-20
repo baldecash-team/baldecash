@@ -13,7 +13,11 @@ import {
 } from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
 import { useServerClock } from '../_lib/useServerClock';
-import { useComandos, type ComandoStartPayload } from '../_lib/useComandos';
+import {
+  useComandos,
+  type ComandoPhotoPayload,
+  type ComandoStartPayload,
+} from '../_lib/useComandos';
 import {
   descartar,
   encolar,
@@ -223,6 +227,7 @@ export default function CamaraPageContent() {
     videoRef,
     armar,
     grabar,
+    capturarFoto,
     detener,
     zoom,
     zoomRango,
@@ -582,7 +587,72 @@ export default function CamaraPageContent() {
     detener().then(encolarGrabacion).catch(() => {});
   }, [detener, cancelarConteoPendiente, encolarGrabacion]);
 
-  useComandos(channel, { onStart: manejarStart, onStop: manejarStop, onAbort: manejarAbort });
+  /**
+   * Dispara una foto sobre la toma en curso.
+   *
+   * Tres decisiones que no se ven en el código:
+   *
+   * 1. **No usa `programarEnInstante`.** Ese timer vive en
+   *    `conteoTimerRef`, que es de UN solo arranque programado: una foto
+   *    disparada mientras un `cmd.start` espera su instante pisaría el
+   *    timer del video y la toma no arrancaría nunca. La foto lleva su
+   *    propio `setTimeout`, sin ref compartido.
+   * 2. **No ackea ni cancela nada.** El escáner no espera un ack de foto —
+   *    espera la verificación en S3, que es una confirmación más fuerte y
+   *    llega igual (`media.verified`).
+   * 3. **No toca `activeTakeRef` ni el estado de captura.** La foto no
+   *    abre ni cierra una toma; si moviera el estado, el pre-vuelo del
+   *    escáner vería la estación caerse por un disparo.
+   */
+  const manejarPhoto = useCallback(
+    (payload: ComandoPhotoPayload) => {
+      if (!session) return;
+
+      const sacar = () => {
+        void capturarFoto()
+          .then((foto) => {
+            const aceptado = encolar({
+              inspectionId: payload.inspection_id,
+              takeNumber: payload.take_number,
+              photoNumber: payload.photo_number,
+              cameraLabel: session.label ?? session.kind,
+              blob: foto.blob,
+              thumbBlob: foto.thumbBlob,
+              mimeType: foto.mimeType,
+              token: session.token,
+            });
+            if (!aceptado) setSubidasPerdidas((n) => n + 1);
+          })
+          .catch(() => {
+            // Sin foto no hay nada que encolar. El escáner se entera por
+            // ausencia: nunca le va a llegar el `media.verified` de esta
+            // cámara y su espera termina en "faltó una cámara", que es
+            // exactamente lo que pasó.
+            setSubidasPerdidas((n) => n + 1);
+          });
+      };
+
+      // Mismo criterio que el arranque del video: el objetivo es el instante
+      // ABSOLUTO corregido por el offset, no "ahora", para que todas las
+      // cámaras congelen el mismo momento aunque Pusher les haya llegado con
+      // latencias distintas.
+      const objetivoLocalMs = payload.capture_at - offsetMs;
+      const restanteMs = objetivoLocalMs - Date.now();
+      if (restanteMs <= 0) {
+        sacar();
+      } else {
+        setTimeout(sacar, restanteMs);
+      }
+    },
+    [session, offsetMs, capturarFoto]
+  );
+
+  useComandos(channel, {
+    onStart: manejarStart,
+    onPhoto: manejarPhoto,
+    onStop: manejarStop,
+    onAbort: manejarAbort,
+  });
 
   // Timer del conteo pendiente (arranque o parada): se cancela al desmontar
   // para no llamar `grabar()`/`detener()` sobre un hook que ya se fue (mismo

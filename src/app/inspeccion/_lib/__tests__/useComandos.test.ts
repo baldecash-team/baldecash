@@ -151,3 +151,52 @@ describe('useComandos', () => {
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('useComandos — cmd.photo', () => {
+  const foto = (take: number, numero: number) => ({
+    inspection_id: 7,
+    take_number: take,
+    photo_number: numero,
+    capture_at: 1_700_000_000_000,
+  });
+
+  it('llama a onPhoto con el payload recibido', () => {
+    const channel = new FakeChannel();
+    const onPhoto = jest.fn();
+    renderHook(() => useComandos(channel, { onPhoto }));
+
+    channel.emit('cmd.photo', foto(1, 1));
+
+    expect(onPhoto).toHaveBeenCalledTimes(1);
+    expect(onPhoto).toHaveBeenCalledWith(foto(1, 1));
+  });
+
+  it('una redelivery de la MISMA foto no dispara dos capturas', () => {
+    // Pusher entrega at-least-once y redistribuye al reconectar. Sin dedupe,
+    // la camara sacaria dos fotos y subiria la segunda sobre la primera,
+    // pisando el mismo objeto en S3.
+    const channel = new FakeChannel();
+    const onPhoto = jest.fn();
+    renderHook(() => useComandos(channel, { onPhoto }));
+
+    channel.emit('cmd.photo', foto(1, 1));
+    channel.emit('cmd.photo', foto(1, 1));
+
+    expect(onPhoto).toHaveBeenCalledTimes(1);
+  });
+
+  it('la foto 1 de OTRA toma si dispara: el numero se reinicia por toma', () => {
+    // El dedupe no puede ser por `photo_number` a secas: el servidor
+    // reinicia la numeracion en cada toma, asi que `f1` de la toma 2 es una
+    // foto distinta de `f1` de la toma 1 — y si se dedupeara, esa foto no
+    // se sacaria nunca.
+    const channel = new FakeChannel();
+    const onPhoto = jest.fn();
+    renderHook(() => useComandos(channel, { onPhoto }));
+
+    channel.emit('cmd.photo', foto(1, 1));
+    channel.emit('cmd.photo', foto(2, 1));
+
+    expect(onPhoto).toHaveBeenCalledTimes(2);
+  });
+});

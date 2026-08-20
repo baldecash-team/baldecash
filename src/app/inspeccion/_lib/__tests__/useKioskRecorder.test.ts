@@ -731,3 +731,101 @@ describe('useKioskRecorder', () => {
     });
   });
 });
+
+describe('useKioskRecorder — capturarFoto()', () => {
+  let drawImage: jest.Mock;
+  let takePhoto: jest.Mock;
+
+  /** Elemento de video "vivo": lo que el canvas dibuja. En la vista real lo
+   * monta `CamaraPageContent`; acá se ata al ref a mano. */
+  function atarVideo(result: { current: { videoRef: { current: unknown } } }) {
+    result.current.videoRef.current = {
+      videoWidth: 1920,
+      videoHeight: 1920,
+    } as unknown as HTMLVideoElement;
+  }
+
+  beforeEach(() => {
+    drawImage = jest.fn();
+    Object.defineProperty(window.HTMLCanvasElement.prototype, 'getContext', {
+      configurable: true,
+      value: jest.fn(() => ({ drawImage })),
+    });
+    Object.defineProperty(window.HTMLCanvasElement.prototype, 'toBlob', {
+      configurable: true,
+      value: jest.fn((cb: (b: Blob) => void, type?: string) => {
+        cb(new Blob(['img'], { type: type ?? 'image/jpeg' }));
+      }),
+    });
+
+    takePhoto = jest.fn().mockResolvedValue(new Blob(['sensor'], { type: 'image/jpeg' }));
+    (global as unknown as { ImageCapture: unknown }).ImageCapture = jest
+      .fn()
+      .mockImplementation(() => ({ takePhoto }));
+  });
+
+  it('mientras GRABA saca la foto del canvas, sin tocar el MediaRecorder', async () => {
+    // Es la regla que protege la evidencia: `ImageCapture.takePhoto()`
+    // reconfigura el track y glitchea el video que se esta grabando — y ese
+    // video no se puede volver a grabar.
+    const { result } = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await result.current.armar();
+    });
+    atarVideo(result as never);
+    act(() => {
+      result.current.grabar();
+    });
+    const recorder = FakeMediaRecorder.instances.at(-1)!;
+
+    let foto!: { blob: Blob; thumbBlob: Blob };
+    await act(async () => {
+      foto = await result.current.capturarFoto();
+    });
+
+    expect(takePhoto).not.toHaveBeenCalled();
+    expect(drawImage).toHaveBeenCalled();
+    expect(foto.blob.size).toBeGreaterThan(0);
+    expect(foto.thumbBlob.size).toBeGreaterThan(0);
+    // El video sigue grabando: sacar una foto no detiene la toma.
+    expect(recorder.state).toBe('recording');
+    expect(recorder.stop).not.toHaveBeenCalled();
+    expect(result.current.estado).toBe('grabando');
+  });
+
+  it('en modo foto (ARMADA) usa el sensor a resolucion plena', async () => {
+    const { result } = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await result.current.armar();
+    });
+    atarVideo(result as never);
+
+    let foto!: { blob: Blob };
+    await act(async () => {
+      foto = await result.current.capturarFoto();
+    });
+
+    expect(takePhoto).toHaveBeenCalled();
+    expect(foto.blob.size).toBeGreaterThan(0);
+  });
+
+  it('si el sensor falla, la foto sale igual por canvas', async () => {
+    // iOS Safari no tiene `ImageCapture`, y en Android puede rechazar. Una
+    // foto degradada es aceptable; quedarse sin foto no.
+    takePhoto.mockRejectedValue(new Error('NotSupportedError'));
+    const { result } = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await result.current.armar();
+    });
+    atarVideo(result as never);
+
+    let foto!: { blob: Blob };
+    await act(async () => {
+      foto = await result.current.capturarFoto();
+    });
+
+    expect(drawImage).toHaveBeenCalled();
+    expect(foto.blob.size).toBeGreaterThan(0);
+    expect(result.current.estado).toBe('armada');
+  });
+});

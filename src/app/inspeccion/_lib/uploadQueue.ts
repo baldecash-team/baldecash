@@ -78,6 +78,20 @@ export interface UploadQueueItem {
    * `useKioskRecorder`, debería empezar a pasarla.
    */
   durationMs?: number;
+  /**
+   * Presente SOLO en una foto: 1..N dentro de la toma. Es lo que decide a
+   * qué endpoints le habla esta entrada — con él va por `/photos/{n}/…`,
+   * sin él por `/videos/…`. Lo asigna el servidor y llega en el
+   * `cmd.photo`; la cámara nunca lo inventa.
+   */
+  photoNumber?: number;
+  /**
+   * Miniatura de la foto. Sube en el MISMO ciclo que la foto, antes de
+   * confirmar: el backend no da por verificada una foto sin su vista
+   * previa (es lo que el controlador muestra para decidir), así que
+   * confirmar sin ella dejaría la foto en un limbo — subida y nunca válida.
+   */
+  thumbBlob?: Blob;
 }
 
 /** Estado agregado que se reporta hacia la UI por callback (spec §8.1: "el
@@ -454,14 +468,28 @@ export class UploadQueue {
    * "failed") es justo lo que hacía perder el blob. Con el contrato HTTP
    * arreglado del lado del servidor, acá alcanza con la regla general:
    * `!ok` es fallo, sin condicionales leyendo el body. */
+  /**
+   * Prefijo de recurso de esta entrada. Una foto lleva su número en la ruta
+   * (`/photos/3/techo`); un video no tiene numeración dentro de la toma
+   * (`/videos/techo`) porque hay uno solo por cámara.
+   */
+  private rutaDe(item: UploadQueueItem): string {
+    const base = `${this.baseUrl}/inspections/${item.inspectionId}/takes/${item.takeNumber}`;
+    return item.photoNumber != null
+      ? `${base}/photos/${item.photoNumber}/${item.cameraLabel}`
+      : `${base}/videos/${item.cameraLabel}`;
+  }
+
   private async subirUnaVez(item: UploadQueueItem): Promise<void> {
     const apiHeaders = {
       'Content-Type': 'application/json',
       'X-Device-Token': item.token,
     };
+    const ruta = this.rutaDe(item);
+    const esFoto = item.photoNumber != null;
 
     const urlRes = await this.fetchImpl(
-      `${this.baseUrl}/inspections/${item.inspectionId}/takes/${item.takeNumber}/videos/${item.cameraLabel}/upload-url`,
+      `${ruta}/upload-url`,
       {
         method: 'POST',
         headers: apiHeaders,
@@ -477,7 +505,8 @@ export class UploadQueue {
             : `El servidor no autorizó la subida (error ${urlRes.status}).`
       );
     }
-    const { upload_url: uploadUrl } = (await urlRes.json()) as { upload_url: string };
+    const { upload_url: uploadUrl, thumb_upload_url: thumbUploadUrl } =
+      (await urlRes.json()) as { upload_url: string; thumb_upload_url?: string };
 
     // Directo a S3 — spec §3/§8: "el video nunca pasa por la API". Sin
     // `X-Device-Token`: la autorización ya está en la firma de la URL.
@@ -494,16 +523,39 @@ export class UploadQueue {
       );
     }
 
+    // La miniatura va DESPUÉS de la foto y ANTES del complete, en el mismo
+    // ciclo de reintentos: si falla, esta subida entera se reintenta. El
+    // backend no verifica una foto sin miniatura, así que confirmar acá
+    // dejaría la foto subida pero nunca válida — y el controlador esperando
+    // una vista previa que no va a llegar.
+    if (esFoto && item.thumbBlob && thumbUploadUrl) {
+      const thumbRes = await this.fetchImpl(thumbUploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': item.thumbBlob.type || item.mimeType },
+        body: item.thumbBlob,
+      });
+      if (!thumbRes.ok) {
+        throw new Error(
+          `No se pudo subir la vista previa a S3 (error ${thumbRes.status}). La foto sigue guardada y se va a reintentar.`
+        );
+      }
+    }
+
     const completeRes = await this.fetchImpl(
-      `${this.baseUrl}/inspections/${item.inspectionId}/takes/${item.takeNumber}/videos/${item.cameraLabel}/complete`,
+      `${ruta}/complete`,
       {
         method: 'POST',
         headers: apiHeaders,
-        body: JSON.stringify({
-          bytes: item.blob.size,
-          duration_s: item.durationMs != null ? Math.round(item.durationMs / 1000) : 0,
-          content_type: item.mimeType,
-        }),
+        body: JSON.stringify(
+          esFoto
+            ? { bytes: item.blob.size, content_type: item.mimeType }
+            : {
+                bytes: item.blob.size,
+                duration_s:
+                  item.durationMs != null ? Math.round(item.durationMs / 1000) : 0,
+                content_type: item.mimeType,
+              }
+        ),
       }
     );
     if (!completeRes.ok) {
