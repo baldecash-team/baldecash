@@ -189,6 +189,10 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
     initialInstallments: 1,
     image: '',
     paymentFrequency: 'mensual',
+    // Este producto no está en el catálogo y su cuota ya la resolvió el
+    // simulador con el plazo elegido. Sin esta marca, el asistente le pide
+    // planes al catálogo y le pisa la cuota con la del producto publicado.
+    outOfCatalog: true,
   };
 
   try {
