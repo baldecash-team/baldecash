@@ -178,7 +178,7 @@ function WizardPreviewContent() {
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, puedeCambiarPlazo } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
 
   // Get wizard config for dynamic first step
   const { config, steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
@@ -525,6 +525,7 @@ function WizardPreviewContent() {
                   const isUnavailable = activeUnavailableIds.includes(product.id);
                   return (
                   <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''} ${isUnavailable ? 'opacity-50' : ''}`}>
+                    {mostrarImagenProducto && (
                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
                       <img
                         src={product.image}
@@ -532,6 +533,7 @@ function WizardPreviewContent() {
                         className="w-full h-full object-contain"
                       />
                     </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wider">
                         {product.brand}

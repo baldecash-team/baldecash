@@ -80,6 +80,16 @@ interface LayoutContextValue {
    * tapaba una de tres, y el selector reaparecía apenas la persona avanzaba.
    */
   puedeCambiarPlazo: boolean;
+  /**
+   * Si la imagen del producto se muestra durante el recorrido de solicitud.
+   *
+   * Vive acá y no en cada pantalla porque la imagen se dibuja en cuatro
+   * lugares: la portada de solicitar y tres bloques de la barra de producto
+   * seleccionado. Con la decisión repartida, apagarla en una y olvidarse de
+   * otra es cuestión de tiempo, que es exactamente lo que pasó con el selector
+   * de plazo.
+   */
+  mostrarImagenProducto: boolean;
 }
 
 /**
@@ -131,12 +141,15 @@ export function LayoutProvider({
   const [calculadora, setCalculadora] = useState<CalculadoraConfig | null>(null);
   const [showAgreementLogo, setShowAgreementLogo] = useState(true);
   const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
+  const [mostrarImagenProducto, setMostrarImagenProducto] = useState(true);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
-      setOverlayVariant(cfg.features.overlay_variant || '');
+      // Encadenamiento opcional: una landing sin ingredientes de este grupo no
+      // trae el espacio de nombres, y sin esto el contexto entero se cae.
+      setOverlayVariant(cfg.features?.overlay_variant || '');
       setDeferredPayment(getDeferredPayment(cfg));
       setCalculadora(getCalculadora(cfg));
       // `!== false` y no `=== true`: si el backend no manda la clave el valor
@@ -146,6 +159,10 @@ export function LayoutProvider({
       // Mismo criterio que el logo: ausencia significa encendido. Con `=== true`
       // cualquier landing sin el ingrediente perdería su selector de plazo.
       setPuedeCambiarPlazo(cfg.features?.can_change_term !== false);
+      // Mismo criterio que arriba: ausencia significa encendido. El preset es
+      // nuevo, así que ninguna landing existente trae la clave; comparar contra
+      // verdadero les borraría la imagen a todas de golpe.
+      setMostrarImagenProducto(cfg.features?.show_product_image !== false);
     });
   }, [landing]);
 
@@ -388,7 +405,8 @@ export function LayoutProvider({
     deferredPayment,
     calculadora,
     puedeCambiarPlazo,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo]);
+    mostrarImagenProducto,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto]);
 
   return (
     <LayoutContext.Provider value={value}>
