@@ -5,7 +5,12 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { usePresenceChannel } from '../_lib/usePresenceChannel';
-import { useKioskRecorder, type EstadoCaptura, type ResultadoDetener } from '../_lib/useKioskRecorder';
+import {
+  useKioskRecorder,
+  type AjustesCaptura,
+  type EstadoCaptura,
+  type ResultadoDetener,
+} from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
 import { useServerClock } from '../_lib/useServerClock';
 import { useComandos, type ComandoStartPayload } from '../_lib/useComandos';
@@ -214,6 +219,7 @@ export default function CamaraPageContent() {
   const {
     estado: capturaEstado,
     error: capturaError,
+    ajustes: capturaAjustes,
     videoRef,
     armar,
     grabar,
@@ -951,6 +957,7 @@ export default function CamaraPageContent() {
             armar={armar}
             grabar={grabar}
             detener={detener}
+            ajustes={capturaAjustes}
             debug={debug}
           />
         </div>
@@ -1052,6 +1059,8 @@ interface CapturaEstadoProps {
   armar: () => Promise<void>;
   grabar: () => void;
   detener: () => Promise<{ blob: Blob; mimeType: string; duracionMs: number }>;
+  /** Resolución/fps reales y bitrate derivado; se pinta solo con `?debug=1`. */
+  ajustes: AjustesCaptura | null;
   /** `true` solo con `?debug=1` en la URL — gatea los botones de prueba. */
   debug: boolean;
 }
@@ -1060,7 +1069,15 @@ interface CapturaEstadoProps {
 // hook — ver el comentario de arriba de `useKioskRecorder()` en
 // `CamaraPageContent`: ese objeto trae `videoRef` adentro, y
 // `react-hooks/refs` no deja pasar un ref río abajo metido en un prop.
-function CapturaEstado({ estado, error, armar, grabar, detener, debug }: CapturaEstadoProps) {
+function CapturaEstado({
+  estado,
+  error,
+  armar,
+  grabar,
+  detener,
+  ajustes,
+  debug,
+}: CapturaEstadoProps) {
   const [ultimaPrueba, setUltimaPrueba] = useState<{
     pesoKB: number;
     duracionMs: number;
@@ -1106,6 +1123,20 @@ function CapturaEstado({ estado, error, armar, grabar, detener, debug }: Captura
           {/* Temporal, detrás del gate `debug` — ver doc-comment de arriba. */}
           {debug && (
             <>
+              {/* Con qué se está grabando DE VERDAD. Pedir 1920 no garantiza
+                  1920 y el bitrate sale de lo que la cámara entregó, así que
+                  sin esto la única forma de saberlo era bajar el video de S3
+                  y parsearlo — que es exactamente como se descubrió que el
+                  techo de 2 Mbps era nuestro y no del teléfono. */}
+              {ajustes && (
+                <p className="text-xs text-white/50">
+                  {ajustes.ancho && ajustes.alto
+                    ? `${ajustes.ancho}×${ajustes.alto}`
+                    : 'resolución n/d'}
+                  {ajustes.fps ? ` · ${Math.round(ajustes.fps)} fps` : ''} ·{' '}
+                  {(ajustes.bitrate / 1e6).toFixed(1)} Mbps
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => grabar()}
