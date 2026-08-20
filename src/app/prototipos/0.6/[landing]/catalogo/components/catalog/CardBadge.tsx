@@ -16,9 +16,18 @@
 
 import React from 'react';
 
-/** Escala compartida. Cambiar acá cambia TODOS los badges de la card. */
+/**
+ * Escala compartida. Cambiar acá cambia TODOS los badges de la card.
+ *
+ * `self-start` no es decorativo: los badges se apilan dentro de un contenedor
+ * flex en columna, y ahí el `align-items` por defecto es `stretch`. Sin esto,
+ * cada badge se estiraba al ancho del MAS LARGO de la pila --medido: «Oferta»
+ * salia con los mismos 83px que «Semi Nuevo», con el color relleno hasta el
+ * borde--. `inline-flex` por si solo no alcanza: como hijo de un flex, el que
+ * manda es el contenedor.
+ */
 export const CARD_BADGE_CLASS =
-  'inline-flex items-center px-2.5 py-1 rounded-md shadow-sm text-xs font-bold leading-none whitespace-nowrap';
+  'inline-flex self-start items-center px-2.5 py-1 rounded-md shadow-sm text-xs font-bold leading-none whitespace-nowrap';
 
 interface CardBadgeProps {
   children: React.ReactNode;
