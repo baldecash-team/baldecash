@@ -61,6 +61,17 @@ export interface LandingConfigFeatures {
    * en /solicitar dejaría la cuota mostrada y la seleccionada en desacuerdo.
    */
   can_change_term: boolean;
+
+  /**
+   * Si la imagen del producto se muestra en el recorrido de solicitud.
+   *
+   * El default es `true`: una landing sin el ingrediente `product-image-off`
+   * se ve igual que antes de que este flag existiera.
+   *
+   * Existe para el producto de matrícula, donde lo que se financia no es un
+   * equipo sino una inscripción: la imagen no aporta información y confunde.
+   */
+  show_product_image: boolean;
   /**
    * Muestra el ingreso de cupón de descuento en /solicitar.
    *
@@ -322,6 +333,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     overlay_variant: '',
     overlay_deadline: '',
     can_change_term: true,
+    show_product_image: true,
     has_coupon: true,
   },
 };
