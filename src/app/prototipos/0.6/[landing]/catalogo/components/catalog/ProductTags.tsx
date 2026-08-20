@@ -7,16 +7,24 @@
 
 import React from 'react';
 import { ProductTagType, productTagsConfig } from '../../types/catalog';
+import type { LabelFilter } from '../../../../types/filters';
 import { CardBadge } from './CardBadge';
 
 interface ProductTagsProps {
   tags: ProductTagType[];
   maxTags?: number;
+  /**
+   * Catálogo de etiquetas del facet — fuente del texto y el color (BAL-3204).
+   * `productTagsConfig` queda como respaldo para cuando el facet todavía no
+   * cargó: sin él la tarjeta se quedaría sin etiquetas al primer render.
+   */
+  labels?: LabelFilter[] | null;
 }
 
 export const ProductTags: React.FC<ProductTagsProps> = ({
   tags,
   maxTags = 4,
+  labels = null,
 }) => {
   const displayTags = tags.slice(0, maxTags);
 
@@ -30,9 +38,14 @@ export const ProductTags: React.FC<ProductTagsProps> = ({
     <div className="flex flex-col gap-1">
       {displayTags.map((tagType) => {
         const tag = productTagsConfig[tagType];
+        // El facet (BD) manda; el config del front solo cubre el hueco.
+        const fromDb = labels?.find((l) => l.code === tagType);
+        const label = fromDb?.name || tag?.label;
+        const bgColor = fromDb?.color || tag?.bgColor;
+        if (!label || !bgColor) return null;
         return (
-          <CardBadge key={tagType} backgroundColor={tag.bgColor} color={tag.color}>
-            {tag.label}
+          <CardBadge key={tagType} backgroundColor={bgColor} color={tag?.color}>
+            {label}
           </CardBadge>
         );
       })}
