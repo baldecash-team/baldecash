@@ -33,6 +33,15 @@ export function getMatriculaKey(landing: string): string {
  * códigos tienen que coincidir exactos con los del banco, porque es lo único
  * que los liga.
  */
+/**
+ * Tipo de producto del riel de préstamo en efectivo.
+ *
+ * Además de identificar el producto, apaga accesorios y seguros por
+ * compatibilidad: un préstamo no lleva periféricos ni seguro por rango de
+ * precio.
+ */
+export const TIPO_EFECTIVO = 'efectivo';
+
 export const CLAVE_MONTO_MATRICULA = 'enrollment_amount';
 export const CLAVE_MONTO_PRIMERA_CUOTA = 'first_fee_amount';
 
@@ -143,6 +152,8 @@ function guardarDatosMatricula(landing: string, datos: DatosMatricula): void {
 export interface ParametrosEntrega {
   landing: string;
   productoId: number;
+  /** Variante del producto. Sin ella la solicitud queda con dos tasas distintas. */
+  varianteId: number;
   productoSlug: string;
   productoNombre: string;
   montos: MontosMatricula;
@@ -162,6 +173,7 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
   const {
     landing,
     productoId,
+    varianteId,
     productoSlug,
     productoNombre,
     montos,
@@ -175,10 +187,12 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
 
   const producto: SelectedProduct = {
     id: String(productoId),
+    variantId: String(varianteId),
     slug: productoSlug,
     name: productoNombre,
     shortName: productoNombre,
     brand: 'BaldeCash',
+    type: TIPO_EFECTIVO,
     price: total,
     monthlyPayment: cuotaMensual,
     months: plazoMeses,
