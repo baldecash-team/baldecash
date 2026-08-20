@@ -2,11 +2,19 @@
  * Helpers de condición de producto.
  *
  * Importante: el VALOR de BD sigue siendo "reacondicionada"/"reacondicionado"
- * (y "refurbished"). Aquí solo se centraliza la DETECCIÓN y la ETIQUETA VISIBLE,
- * que de cara al usuario se muestra como "Semi nuevo".
+ * (y "refurbished"). Aquí solo se centraliza la DETECCIÓN y la ETIQUETA VISIBLE.
+ *
+ * El texto lo manda la BD: sale del facet `conditions[]` de
+ * `GET /{slug}/products/filters`, que a su vez lee `product_condition_catalog`.
+ * Editar esa fila cambia la web sin desplegar (BAL-3204).
  */
 
-/** Texto visible al usuario para la condición reacondicionada. */
+/**
+ * Texto de respaldo para la condición reacondicionada.
+ *
+ * Solo se usa si el facet no resolvió la condición (p. ej. la card se pinta
+ * antes de que carguen los filtros). Con facet disponible manda la BD.
+ */
 export const REFURBISHED_DISPLAY_LABEL = 'Semi nuevo';
 
 /** ¿El código de condición corresponde a un reacondicionado? (match contra el valor crudo de BD) */
@@ -16,13 +24,16 @@ export function isRefurbishedCondition(condition?: string | null): boolean {
 }
 
 /**
- * Etiqueta visible para una condición. Para reacondicionados fuerza
- * "Semi nuevo"; para el resto usa el label provisto (p. ej. del facet) o uno
- * derivado del código.
+ * Etiqueta visible para una condición.
+ *
+ * Prioridad: el label del facet (BD) > el respaldo del reacondicionado >
+ * uno derivado del código. Antes esta función forzaba "Semi nuevo" y
+ * descartaba lo que mandaba el backend, así que cambiar el texto en BD no
+ * tenía efecto en la web (BAL-3204).
  */
 export function conditionDisplayLabel(condition?: string | null, fallbackLabel?: string | null): string {
-  if (isRefurbishedCondition(condition)) return REFURBISHED_DISPLAY_LABEL;
   if (fallbackLabel) return fallbackLabel;
+  if (isRefurbishedCondition(condition)) return REFURBISHED_DISPLAY_LABEL;
   const c = condition?.trim();
   if (!c) return '';
   return c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ');
