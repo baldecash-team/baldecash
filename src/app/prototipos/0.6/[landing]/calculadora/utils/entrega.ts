@@ -17,6 +17,7 @@
 
 import type { SelectedProduct } from '../../solicitar/context/ProductContext';
 import { getStorageKey } from '../../solicitar/context/ProductContext';
+import type { TipoInstitucion } from '../../universidad/types/instituciones';
 import type { MontosMatricula } from '../types/calculadora';
 import { totalAFinanciar } from '../types/calculadora';
 
@@ -104,6 +105,14 @@ export interface DatosMatricula {
   /** Identificador del centro de estudios elegido en la pantalla de institución. */
   institucionId: number | null;
   institucionNombre: string | null;
+  /**
+   * Tipo del centro de estudios (`university` | `institute` | `school`).
+   *
+   * Opcional porque hay recorridos a medio andar guardados de antes de que
+   * existiera: sin tipo, el paso académico deja el campo editable en vez de
+   * bloquearlo con un valor inventado.
+   */
+  institucionTipo?: TipoInstitucion | null;
   montoMatricula: number;
   montoPrimeraCuota: number;
   plazoMeses: number;
@@ -129,7 +138,8 @@ export function leerDatosMatricula(landing: string): DatosMatricula | null {
 export function guardarInstitucion(
   landing: string,
   institucionId: number,
-  institucionNombre: string
+  institucionNombre: string,
+  institucionTipo: TipoInstitucion
 ): void {
   const previo = leerDatosMatricula(landing);
   guardarDatosMatricula(landing, {
@@ -138,6 +148,7 @@ export function guardarInstitucion(
     plazoMeses: previo?.plazoMeses ?? 0,
     institucionId,
     institucionNombre,
+    institucionTipo,
   });
 }
 
@@ -161,6 +172,7 @@ export interface ParametrosEntrega {
   cuotaMensual: number;
   institucionId: number | null;
   institucionNombre: string | null;
+  institucionTipo: TipoInstitucion | null;
 }
 
 /**
@@ -181,6 +193,7 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
     cuotaMensual,
     institucionId,
     institucionNombre,
+    institucionTipo,
   } = parametros;
 
   const total = totalAFinanciar(montos);
@@ -219,6 +232,7 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
   guardarDatosMatricula(landing, {
     institucionId,
     institucionNombre,
+    institucionTipo,
     montoMatricula: montos.matricula,
     montoPrimeraCuota: montos.primeraCuota,
     plazoMeses,

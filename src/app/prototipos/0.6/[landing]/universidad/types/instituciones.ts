@@ -13,18 +13,29 @@
  * de tipo escuela y no tienen nada que ver.
  */
 
+/**
+ * Tipo de centro de estudios.
+ *
+ * Son los mismos valores que el banco de preguntas usa en las opciones del
+ * campo `institution_type`, y los mismos que expone el convenio de una landing.
+ * Tienen que coincidir 1:1: el paso académico los compara sin traducir.
+ */
+export type TipoInstitucion = 'university' | 'institute' | 'school';
+
 export interface InstitucionOfrecida {
   /** Identificador en la tabla de centros de estudio. */
   id: number;
   nombre: string;
+  /** Con qué tipo queda marcado el paso académico al elegirla. */
+  tipo: TipoInstitucion;
   /** `false` muestra la tarjeta en gris, sin poder seleccionarla. */
   disponible: boolean;
 }
 
 export const INSTITUCIONES: InstitucionOfrecida[] = [
-  { id: 409, nombre: 'Universidad César Vallejo', disponible: true },
-  { id: 551, nombre: 'Senati', disponible: false },
-  { id: 418, nombre: 'UPN', disponible: false },
+  { id: 409, nombre: 'Universidad César Vallejo', tipo: 'university', disponible: true },
+  { id: 551, nombre: 'Senati', tipo: 'institute', disponible: false },
+  { id: 418, nombre: 'UPN', tipo: 'university', disponible: false },
 ];
 
 /** Las disponibles hoy, para armar el aviso sin repetir la lista a mano. */

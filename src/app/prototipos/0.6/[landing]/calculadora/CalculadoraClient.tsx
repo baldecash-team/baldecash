@@ -20,7 +20,6 @@ import React, {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Landmark, Info, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
@@ -30,7 +29,9 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { routes } from '../../utils/routes';
 import { simularCalculadora, type SimulacionFinanciamiento } from './api/simuladorApi';
 import { DetalleFinanciamientoModal } from './components/DetalleFinanciamientoModal';
-import { entregarASolicitar, getMatriculaKey, type DatosMatricula } from './utils/entrega';
+import { entregarASolicitar } from './utils/entrega';
+import { useDatosMatricula } from './utils/useDatosMatricula';
+import type { TipoInstitucion } from '../universidad/types/instituciones';
 import {
   MONTOS_VACIOS,
   formatearSoles,
@@ -54,14 +55,13 @@ const PRODUCTO_SLUG = 'prestamo-matricula-1186';
 /** Milisegundos de espera antes de simular, para no pedir en cada tecla. */
 const ESPERA_SIMULACION_MS = 450;
 
-/**
- * El dato guardado no cambia mientras la página vive: lo escribió la pantalla
- * anterior. No hay a qué suscribirse, pero `useSyncExternalStore` exige la
- * función igual.
- */
-const sinSuscripcion = () => () => {};
+interface InstitucionElegida {
+  id: number | null;
+  nombre: string | null;
+  tipo: TipoInstitucion | null;
+}
 
-const INSTITUCION_VACIA = { id: null, nombre: null } as const;
+const INSTITUCION_VACIA: InstitucionElegida = { id: null, nombre: null, tipo: null };
 
 export function CalculadoraClient() {
   const router = useRouter();
@@ -95,34 +95,19 @@ export function CalculadoraClient() {
 
   /**
    * La institución la eligió la pantalla anterior y viaja por almacenamiento
-   * local. Se lee con `useSyncExternalStore` y no con un efecto: devuelve una
-   * instantánea distinta en servidor y en cliente, así que React resuelve la
-   * hidratación sin desajuste y sin renders en cascada.
-   *
-   * La instantánea devuelve la cadena cruda, no el objeto: tiene que ser
-   * referencialmente estable entre llamadas o el componente entra en bucle.
+   * local. La lectura vive en un hook aparte porque el paso académico del
+   * formulario lee lo mismo para bloquear el campo de institución.
    */
-  const matriculaCruda = useSyncExternalStore(
-    sinSuscripcion,
-    () => {
-      try {
-        return localStorage.getItem(getMatriculaKey(landing));
-      } catch {
-        return null;
-      }
-    },
-    () => null
-  );
+  const datosMatricula = useDatosMatricula(landing);
 
-  const institucion = useMemo<{ id: number | null; nombre: string | null }>(() => {
-    if (!matriculaCruda) return INSTITUCION_VACIA;
-    try {
-      const datos = JSON.parse(matriculaCruda) as DatosMatricula;
-      return { id: datos.institucionId ?? null, nombre: datos.institucionNombre ?? null };
-    } catch {
-      return INSTITUCION_VACIA;
-    }
-  }, [matriculaCruda]);
+  const institucion = useMemo<InstitucionElegida>(() => {
+    if (!datosMatricula) return INSTITUCION_VACIA;
+    return {
+      id: datosMatricula.institucionId ?? null,
+      nombre: datosMatricula.institucionNombre ?? null,
+      tipo: datosMatricula.institucionTipo ?? null,
+    };
+  }, [datosMatricula]);
 
   /**
    * Guarda de institución.
@@ -131,8 +116,8 @@ export function CalculadoraClient() {
    * a una universidad concreta. Se devuelve a la pantalla de selección, igual que
    * el paso de solicitar devuelve al catálogo cuando se limpia el almacenamiento.
    *
-   * `matriculaCruda` es `null` durante el render de servidor, así que se espera a
-   * estar en el navegador para no redirigir sobre una instantánea vacía.
+   * La instantánea es `null` durante el render de servidor, así que se espera a
+   * estar en el navegador para no redirigir sobre una lectura vacía.
    */
   const sinInstitucion = typeof window !== 'undefined' && institucion.id === null;
 
@@ -196,6 +181,7 @@ export function CalculadoraClient() {
       cuotaMensual: simulacion.cuotaMensual,
       institucionId: institucion.id,
       institucionNombre: institucion.nombre,
+      institucionTipo: institucion.tipo,
     });
 
     if (!guardado) {
