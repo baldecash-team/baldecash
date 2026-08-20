@@ -12,6 +12,7 @@ import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
+import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -33,7 +34,7 @@ interface DynamicFieldProps {
 
 export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
-  const { agreementData } = useLayout();
+  const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
 
   // Get current value and error
@@ -107,6 +108,44 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     }
   }, [isConvenioInstitutionType, agreementData, getFieldValue, updateField, field.options]);
 
+  // Producto de matrícula: la institución NO se elige acá. Se eligió en la
+  // primera pantalla del recorrido (`/{landing}/universidad`), es la que define
+  // el convenio con el que se simuló la cuota, y volver a pedirla en el paso
+  // académico invita a contestar otra cosa. Se rellena y se bloquea.
+  //
+  // El convenio de la landing manda sobre esto: si la landing tiene uno, la
+  // institución sale de ahí y este bloque no interviene.
+  const datosMatricula = useDatosMatricula(landing);
+
+  const isMatriculaInstitution =
+    field.code === 'institution' &&
+    !isConvenioInstitution &&
+    !!datosMatricula?.institucionId;
+  useEffect(() => {
+    if (!isMatriculaInstitution) return;
+    const studyCenterId = String(datosMatricula!.institucionId);
+    const label = datosMatricula!.institucionNombre || '';
+    if (getFieldValue('institution') !== studyCenterId) {
+      updateField('institution', studyCenterId, label);
+    }
+  }, [isMatriculaInstitution, datosMatricula, getFieldValue, updateField]);
+
+  // El tipo se deriva de la institución elegida, no se pregunta. Los valores
+  // (university/institute/school) son los mismos que usan las opciones del
+  // campo, así que entran sin traducir.
+  const isMatriculaInstitutionType =
+    field.code === 'institution_type' &&
+    !isConvenioInstitutionType &&
+    !!datosMatricula?.institucionTipo;
+  useEffect(() => {
+    if (!isMatriculaInstitutionType) return;
+    const typeValue = datosMatricula!.institucionTipo!;
+    const typeLabel = field.options?.find((o) => String(o.value) === typeValue)?.label ?? typeValue;
+    if (getFieldValue('institution_type') !== typeValue) {
+      updateField('institution_type', typeValue, typeLabel);
+    }
+  }, [isMatriculaInstitutionType, datosMatricula, getFieldValue, updateField, field.options]);
+
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
     let options = filterFieldOptions(field, formValues);
@@ -159,7 +198,14 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly || isLockedByMinor || isConvenioInstitution || isConvenioInstitutionType || isLockedFromLead,
+    disabled:
+      field.readonly ||
+      isLockedByMinor ||
+      isConvenioInstitution ||
+      isConvenioInstitutionType ||
+      isMatriculaInstitution ||
+      isMatriculaInstitutionType ||
+      isLockedFromLead,
     tooltip,
     helpText: undefined as string | undefined,
   };

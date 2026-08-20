@@ -12,6 +12,8 @@ import {
   CLAVE_MONTO_MATRICULA,
   CLAVE_MONTO_PRIMERA_CUOTA,
   entregarASolicitar,
+  guardarInstitucion,
+  leerDatosMatricula,
   type ParametrosEntrega,
 } from './entrega';
 
@@ -135,6 +137,7 @@ describe('entregarASolicitar', () => {
       cuotaMensual: 373.98,
       institucionId: 7,
       institucionNombre: 'Universidad',
+      institucionTipo: 'university',
       ...extra,
     });
   }
@@ -191,5 +194,52 @@ describe('entregarASolicitar', () => {
     const guardado = JSON.parse(localStorage.getItem(getStorageKey(LANDING))!);
     expect(guardado.variantId).toBe('1411');
     expect(guardado.type).toBe('efectivo');
+  });
+});
+
+/**
+ * La institución elegida en la primera pantalla.
+ *
+ * Viaja hasta el paso académico del formulario, que la usa para rellenar y
+ * bloquear el campo de institución. Si acá se pierde el tipo, ese campo queda
+ * editable y la solicitud puede terminar declarando otra institución que la que
+ * fijó el precio.
+ */
+describe('guardarInstitucion', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('guarda id, nombre y tipo de la institución elegida', () => {
+    guardarInstitucion(LANDING, 409, 'Universidad César Vallejo', 'university');
+
+    const datos = leerDatosMatricula(LANDING)!;
+    expect(datos.institucionId).toBe(409);
+    expect(datos.institucionNombre).toBe('Universidad César Vallejo');
+    expect(datos.institucionTipo).toBe('university');
+  });
+
+  it('cambiar de institución no borra lo ya cargado en la calculadora', () => {
+    guardarInstitucion(LANDING, 409, 'Universidad César Vallejo', 'university');
+    entregarASolicitar({
+      landing: LANDING,
+      productoId: 1585,
+      varianteId: 1411,
+      productoSlug: 'prestamo-matricula-1186',
+      productoNombre: 'Financiamiento de Matrícula',
+      montos: { matricula: 800, primeraCuota: 150 },
+      plazoMeses: 3,
+      cuotaMensual: 373.98,
+      institucionId: 409,
+      institucionNombre: 'Universidad César Vallejo',
+      institucionTipo: 'university',
+    });
+
+    guardarInstitucion(LANDING, 551, 'Senati', 'institute');
+
+    const datos = leerDatosMatricula(LANDING)!;
+    expect(datos.institucionTipo).toBe('institute');
+    expect(datos.montoMatricula).toBe(800);
+    expect(datos.plazoMeses).toBe(3);
   });
 });

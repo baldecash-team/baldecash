@@ -14,7 +14,6 @@
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { WizardField } from '../../../../../services/wizardApi';
 
 // Mock the WizardContext
@@ -30,6 +29,17 @@ jest.mock('../../../context/WizardContext', () => ({
     updateField: mockUpdateField,
     formData: mockFormData,
   }),
+}));
+
+// El componente vive dentro del layout de la landing y del rastreo de campos.
+// Acá se prueba el mapeo de tipos, así que ambos se sustituyen por lo mínimo:
+// sin esto `useLayout` revienta por falta de proveedor y no se renderiza nada.
+jest.mock('../../../../context/LayoutContext', () => ({
+  useLayout: () => ({ agreementData: null, landing: 'una-landing-cualquiera' }),
+}));
+
+jest.mock('../../../hooks/useFieldTracking', () => ({
+  useFieldTracking: () => ({ onFieldFocus: jest.fn(), onFieldBlur: jest.fn() }),
 }));
 
 // Mock the field components
@@ -82,6 +92,14 @@ jest.mock('./SelectInput', () => ({
           </option>
         ))}
       </select>
+    </div>
+  ),
+}));
+
+jest.mock('./CascadingSelectField', () => ({
+  CascadingSelectField: ({ field, searchable }: { field: { code: string; label: string }; searchable?: boolean }) => (
+    <div data-testid="cascading-select" data-searchable={searchable ? 'true' : 'false'}>
+      <label>{field.label}</label>
     </div>
   ),
 }));
@@ -288,7 +306,9 @@ describe('DynamicField', () => {
   });
 
   describe('Type Mapping - Select and Autocomplete', () => {
-    it('renders SelectInput for type="select"', () => {
+    // Un `select` estatico sigue la misma regla visual que un `radio`: con dos
+    // o tres opciones se dibujan como botones, no como desplegable.
+    it('renders SegmentedControl for a 2-option type="select"', () => {
       const field = createField({
         type: 'select',
         label: 'Departamento',
@@ -299,11 +319,10 @@ describe('DynamicField', () => {
       });
       render(<DynamicField field={field} />);
 
-      expect(screen.getByTestId('select-input')).toBeInTheDocument();
-      expect(screen.getByTestId('select-input')).toHaveAttribute('data-searchable', 'false');
+      expect(screen.getByTestId('segmented-control')).toBeInTheDocument();
     });
 
-    it('renders SelectInput with searchable=true for type="autocomplete"', () => {
+    it('renders a searchable CascadingSelectField for type="autocomplete"', () => {
       const field = createField({
         type: 'autocomplete',
         label: 'Distrito',
@@ -315,8 +334,8 @@ describe('DynamicField', () => {
       });
       render(<DynamicField field={field} />);
 
-      expect(screen.getByTestId('select-input')).toBeInTheDocument();
-      expect(screen.getByTestId('select-input')).toHaveAttribute('data-searchable', 'true');
+      expect(screen.getByTestId('cascading-select')).toBeInTheDocument();
+      expect(screen.getByTestId('cascading-select')).toHaveAttribute('data-searchable', 'true');
     });
   });
 
@@ -345,7 +364,7 @@ describe('DynamicField', () => {
 
   describe('Type Mapping - Fallback', () => {
     it('renders TextInput for unknown type', () => {
-      // @ts-ignore - Testing unknown type
+      // @ts-expect-error - Testing unknown type
       const field = createField({ type: 'unknown_type', label: 'Unknown' });
       render(<DynamicField field={field} />);
 
@@ -353,15 +372,22 @@ describe('DynamicField', () => {
     });
   });
 
+  /**
+   * Quien decide QUE campos se dibujan es el paso (`DynamicWizardStep`): filtra
+   * por `hidden` y por dependencias antes de montar nada. Este componente solo
+   * elige COMO se dibuja lo que le llega, y por eso no vuelve a evaluar la
+   * visibilidad; el unico caso que no dibuja es el tipo `hidden`, que existe
+   * para guardar un valor sin pedirlo.
+   */
   describe('Visibility', () => {
-    it('does not render when field is hidden', () => {
-      const field = createField({ hidden: true, label: 'Hidden Field' });
+    it('renders nothing for type="hidden"', () => {
+      const field = createField({ type: 'hidden', label: 'Campo oculto' });
       const { container } = render(<DynamicField field={field} />);
 
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render when conditional visibility is false', () => {
+    it('dibuja el campo aunque su dependencia no se cumpla: filtrar es del paso', () => {
       const field = createField({
         label: 'Conditional Field',
         dependency_groups: [
@@ -379,9 +405,8 @@ describe('DynamicField', () => {
         ],
       });
 
-      // formData doesn't have show_extra = 'yes', so field should be hidden
-      const { container } = render(<DynamicField field={field} />);
-      expect(container).toBeEmptyDOMElement();
+      render(<DynamicField field={field} />);
+      expect(screen.getByTestId('text-input')).toBeInTheDocument();
     });
   });
 

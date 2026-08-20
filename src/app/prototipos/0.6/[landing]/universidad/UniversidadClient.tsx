@@ -42,7 +42,7 @@ export function UniversidadClient() {
   const alElegir = useCallback(
     (institucion: InstitucionOfrecida) => {
       if (!institucion.disponible) return;
-      guardarInstitucion(landing, institucion.id, institucion.nombre);
+      guardarInstitucion(landing, institucion.id, institucion.nombre, institucion.tipo);
       router.push(routes.calculadora(landing));
     },
     [landing, router]
