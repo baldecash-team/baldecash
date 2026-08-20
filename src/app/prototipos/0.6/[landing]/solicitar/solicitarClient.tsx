@@ -130,18 +130,20 @@ function WizardPreviewContent() {
   // valida el cupo del lado del servidor, así que este aviso no es la defensa
   // —es para no hacer llenar un formulario que ya no se va a poder mandar.
   const [campanaRecibe, setCampanaRecibe] = useState(true);
-  // Ambos arrancan en `true` para que una landing sin los ingredientes se vea
-  // igual que antes de que estos flags existieran.
-  const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
+  // Arranca en `true` para que una landing sin el ingrediente se vea igual que
+  // antes de que el flag existiera.
   const [muestraCupon, setMuestraCupon] = useState(true);
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
       setHasCatalog(cfg.layout.has_catalog);
       setCampanaRecibe(campanaAbierta(cfg));
-      setPuedeCambiarPlazo(cfg.features.can_change_term);
       setMuestraCupon(cfg.features.has_coupon);
     });
   }, [landing]);
+
+  // El selector de plazo se decide en el contexto de la landing y no acá: se
+  // dibuja en tres pantallas y antes solo esta consultaba la configuración, así
+  // que el ingrediente tapaba una de tres.
 
   const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded, isLoadingAccessories } = useProduct();
 
@@ -176,7 +178,7 @@ function WizardPreviewContent() {
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, puedeCambiarPlazo } = useLayout();
 
   // Get wizard config for dynamic first step
   const { config, steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
