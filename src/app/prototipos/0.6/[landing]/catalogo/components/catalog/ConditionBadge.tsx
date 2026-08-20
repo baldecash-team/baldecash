@@ -44,7 +44,8 @@ export const ConditionBadge: React.FC<ConditionBadgeProps> = ({ conditionCode, c
 
   const facet = conditions?.find((c) => c.value?.toLowerCase() === code);
 
-  // Para reacondicionados se muestra "Semi nuevo"; el resto usa el label del facet.
+  // El texto y el color los manda el facet (BD). Las constantes de este archivo
+  // solo cubren el caso en que el facet todavía no resolvió la condición.
   const label = conditionDisplayLabel(code, facet?.label);
   const color = facet?.color || FALLBACK_COLOR;
 

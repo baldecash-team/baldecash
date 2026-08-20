@@ -1843,6 +1843,7 @@ function CatalogoContent() {
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
                 conditions={apiFilters?.conditions}
+                labels={apiFilters?.labels}
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
                 addToCartDisabled={!isProductContextHydrated || onboarding.shouldShowWelcome}
                 onAddToCart={(cartItem: CartItem) => {
