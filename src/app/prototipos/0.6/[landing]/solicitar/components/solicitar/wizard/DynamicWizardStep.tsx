@@ -11,6 +11,7 @@ import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from 
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
 
 const MONTH_NAMES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -73,6 +74,33 @@ const GRID_COL_MOBILE_CLASSES: Record<number, string> = {
   12: 'col-span-12',
 };
 
+/**
+ * Si hay que destapar los campos personales aunque el lookup del documento no
+ * haya contestado.
+ *
+ * Esos campos (nombres, apellidos, fecha, Sexo) llegan escondidos y los destapa
+ * el lookup: con DNI el buro los devuelve, y cuando no encuentra a la persona
+ * el `not_found` los muestra vacios para que los escriba. Quien entra por el
+ * link corto del socio con un documento que no es DNI se queda fuera de las dos
+ * ramas si el lookup no llega a correr -- el numero viene prellenado y
+ * bloqueado, asi que nunca lo tipea, y el buro no responde por CE. El paso
+ * entonces se dibuja sin Sexo, y como los nombres si vinieron del lead el
+ * formulario se ve completo: la solicitud entra sin ese dato y nadie lo nota.
+ *
+ * Acotado a esa entrada a proposito: el documento tiene que venir del lead
+ * (marcador `_lead_locked_`) y no ser DNI. Quien llega por su cuenta, o con
+ * DNI, sigue dependiendo del lookup como hasta ahora.
+ */
+export function destaparPorLeadSinBuro(
+  formValues: Record<string, string | string[]>,
+  docFieldCode: string,
+  docTypeFieldCode: string,
+): boolean {
+  const vinoDelLead = formValues[leadLockKey(docFieldCode)] === 'true';
+  const tipo = String(formValues[docTypeFieldCode] ?? '').trim().toLowerCase();
+  return vinoDelLead && tipo !== '' && tipo !== 'dni';
+}
+
 export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   step,
   showErrors = false,
@@ -119,6 +147,16 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return map;
   }, [step.fields]);
 
+  // Con que campo declara cada disparador el tipo de documento. La forma legacy
+  // lo nombra en `document_type_field`; la nueva lo omite y rige la convencion.
+  const docTypeFieldDe = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const field of step.fields) {
+      map[field.code] = field.prefill_config?.document_type_field || 'document_type';
+    }
+    return map;
+  }, [step.fields]);
+
   // Compute visibility for all fields
   const fieldVisibility = useMemo(() => {
     const vis: Record<string, boolean> = {};
@@ -129,7 +167,16 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       if (field.hidden && docFieldCode) {
         // Prefill-dependent fields: show only when DNI lookup returned no data
         const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
-        if (prefillStatus === 'not_found') {
+        // Vale para cualquier estado del lookup, no solo mientras no contesta:
+        // si dependiera del estado, el campo pasaria de visible a oculto en
+        // cuanto el lookup respondiera, y el efecto de limpieza de mas abajo
+        // borraria lo que la persona acabara de elegir.
+        const destapadoPorLead = destaparPorLeadSinBuro(
+          formValues,
+          docFieldCode,
+          docTypeFieldDe[docFieldCode] || 'document_type',
+        );
+        if (destapadoPorLead || prefillStatus === 'not_found') {
           vis[field.code] = true;
         } else if (prefillStatus === 'found') {
           const isEmpty = formValues[`_prefill_empty_${field.code}`] === 'true';
@@ -145,7 +192,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       }
     }
     return vis;
-  }, [step.fields, formValues, prefillFieldToDocField]);
+  }, [step.fields, formValues, prefillFieldToDocField, docTypeFieldDe]);
 
   // Clear field values when they become hidden
   const prevVisibilityRef = useRef<Record<string, boolean>>({});
