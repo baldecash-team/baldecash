@@ -166,6 +166,16 @@ function hayDebugEnUrl(): boolean {
  * para el porqué. Gracias a eso, el `useState(() => getDeviceSession())`
  * de abajo es seguro: no hay HTML de servidor con el que discrepar.
  */
+/**
+ * Cuánto se queda en pantalla el aviso de "sacando foto".
+ *
+ * El disparo en sí es casi instantáneo (un `drawImage` sobre un stream que ya
+ * está vivo), así que sin un mínimo el aviso aparecería y desaparecería en el
+ * mismo frame y el operador no vería nada. 1,2 s es lo que tarda en levantar
+ * la vista del equipo a la pantalla.
+ */
+const FOTO_AVISO_MS = 1_200;
+
 export default function CamaraPageContent() {
   // Lazy init: `getDeviceSession()` es síncrono (lee `localStorage`), así
   // que el estado arranca con el valor real desde el primer render en vez
@@ -264,6 +274,19 @@ export default function CamaraPageContent() {
   // `encolarGrabacion` necesita cuando `detener()` resuelva (async, después
   // de que `manejarStart` ya terminó de correr) para saber a qué inspección
   // y qué número de toma pertenece el blob.
+  /**
+   * Aviso local de "estoy sacando una foto". Es SOLO de esta pantalla: no se
+   * reporta como `capture_state` al backend a propósito.
+   *
+   * El estado de captura que viaja (`armada`/`grabando`/`caida`) es el que
+   * lee el pre-vuelo del escáner para decidir si la estación está lista. Un
+   * estado nuevo ahí haría que la estación se viera caída cada vez que
+   * alguien saca una foto, que es exactamente lo contrario de lo que pasa:
+   * la cámara está perfecta, solo disparó.
+   */
+  const [sacandoFoto, setSacandoFoto] = useState(false);
+  const avisoFotoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const activeTakeRef = useRef<{ inspectionId: number; takeNumber: number } | null>(null);
 
   // El corazón de F4 (spec §8.1): al terminar una grabación, el blob se
@@ -608,6 +631,16 @@ export default function CamaraPageContent() {
     (payload: ComandoPhotoPayload) => {
       if (!session) return;
 
+      // Se enciende al RECIBIR el comando, no al disparar: entre el comando y
+      // el instante de captura hay un delay de sincronía (`capture_at`), y es
+      // justo el momento en que el operador tiene que quedarse quieto.
+      setSacandoFoto(true);
+      if (avisoFotoTimerRef.current) clearTimeout(avisoFotoTimerRef.current);
+      avisoFotoTimerRef.current = setTimeout(() => {
+        avisoFotoTimerRef.current = null;
+        setSacandoFoto(false);
+      }, FOTO_AVISO_MS + Math.max(0, payload.capture_at - offsetMs - Date.now()));
+
       const sacar = () => {
         void capturarFoto()
           .then((foto) => {
@@ -646,6 +679,14 @@ export default function CamaraPageContent() {
     },
     [session, offsetMs, capturarFoto]
   );
+
+  // No dejar un timer vivo apuntando a un componente que ya se fue — mismo
+  // espíritu que la limpieza del timer de arranque.
+  useEffect(() => {
+    return () => {
+      if (avisoFotoTimerRef.current) clearTimeout(avisoFotoTimerRef.current);
+    };
+  }, []);
 
   useComandos(channel, {
     onStart: manejarStart,
@@ -1023,6 +1064,7 @@ export default function CamaraPageContent() {
         <div className="flex flex-col items-center gap-6">
           <CapturaEstado
             estado={capturaEstado}
+            sacandoFoto={sacandoFoto}
             error={capturaError}
             armar={armar}
             grabar={grabar}
@@ -1125,6 +1167,12 @@ export default function CamaraPageContent() {
  */
 interface CapturaEstadoProps {
   estado: EstadoCaptura;
+  /**
+   * Aviso local de disparo en curso. Va aparte de `estado` a proposito: el
+   * estado de captura es el que viaja al backend y lee el pre-vuelo del
+   * escaner, y sacar una foto no cambia lo que esa camara puede hacer.
+   */
+  sacandoFoto: boolean;
   error: string | null;
   armar: () => Promise<void>;
   grabar: () => void;
@@ -1141,6 +1189,7 @@ interface CapturaEstadoProps {
 // `react-hooks/refs` no deja pasar un ref río abajo metido en un prop.
 function CapturaEstado({
   estado,
+  sacandoFoto,
   error,
   armar,
   grabar,
@@ -1165,6 +1214,27 @@ function CapturaEstado({
       })
       .catch(() => {});
   };
+
+  // El aviso de foto se pinta ANTES del switch: mientras dura, es lo único
+  // que importa en pantalla. Gana también sobre GRABANDO — la toma sigue
+  // corriendo (el cartel de abajo lo sigue diciendo), pero lo que el operador
+  // necesita saber en ese segundo y medio es que se está tomando la foto y
+  // que no mueva el equipo.
+  if (sacandoFoto && (estado === 'armada' || estado === 'grabando')) {
+    return (
+      <>
+        <p className="text-6xl font-bold" aria-live="polite">
+          📸 FOTO
+        </p>
+        <p className="mt-2 text-sm text-white/70">No muevas el equipo</p>
+        {estado === 'grabando' && (
+          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-white/50">
+            La grabación sigue
+          </p>
+        )}
+      </>
+    );
+  }
 
   switch (estado) {
     case 'inactiva':
