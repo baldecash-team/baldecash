@@ -25,6 +25,71 @@ export function getMatriculaKey(landing: string): string {
   return `baldecash-${landing}-matricula-datos`;
 }
 
+/**
+ * Códigos de los campos del formulario que reciben los importes.
+ *
+ * Están dados de alta en el banco de preguntas como campos ocultos del paso
+ * académico: no se dibujan ni se piden, su valor lo pone esta función. Los
+ * códigos tienen que coincidir exactos con los del banco, porque es lo único
+ * que los liga.
+ */
+export const CLAVE_MONTO_MATRICULA = 'enrollment_amount';
+export const CLAVE_MONTO_PRIMERA_CUOTA = 'first_fee_amount';
+
+/** Clave única donde el formulario guarda y restaura TODO su estado. */
+function getFormularioKey(landing: string): string {
+  return `baldecash-wizard-${landing}-data`;
+}
+
+/**
+ * Deja los dos importes donde el formulario los va a encontrar.
+ *
+ * El formulario NO lee las claves propias de la calculadora: restaura su estado
+ * desde una sola clave, con la forma `{codigo: {value}}`, y lo hace UNA vez al
+ * montarse. Por eso esto corre antes de navegar: escrito después, el valor no
+ * entra hasta que la persona recargue.
+ *
+ * Se fusiona en vez de reemplazar. Esa clave guarda todo lo que la persona ya
+ * cargó; escribir un objeto nuevo le borraría el formulario entero.
+ *
+ * A diferencia del modal de captación, acá la calculadora SÍ manda: si vuelve
+ * atrás y cambia los montos, los nuevos pisan a los viejos. Un importe anterior
+ * que sobreviva es peor que ninguno, porque viaja como si fuera el elegido.
+ */
+export function sembrarImportesEnFormulario(
+  landing: string,
+  montos: MontosMatricula
+): void {
+  const clave = getFormularioKey(landing);
+
+  let data: Record<string, { value?: unknown }> = {};
+  try {
+    const crudo = localStorage.getItem(clave);
+    if (crudo) data = JSON.parse(crudo) as Record<string, { value?: unknown }>;
+  } catch {
+    // Contenido corrupto: se arranca limpio antes que perder los importes.
+    data = {};
+  }
+
+  // El formulario guarda todo como texto, así que el importe viaja como cadena
+  // y conserva sus decimales.
+  data[CLAVE_MONTO_MATRICULA] = {
+    ...(data[CLAVE_MONTO_MATRICULA] ?? {}),
+    value: String(montos.matricula),
+  };
+  data[CLAVE_MONTO_PRIMERA_CUOTA] = {
+    ...(data[CLAVE_MONTO_PRIMERA_CUOTA] ?? {}),
+    value: String(montos.primeraCuota),
+  };
+
+  try {
+    localStorage.setItem(clave, JSON.stringify(data));
+  } catch {
+    // Sin almacenamiento los importes no viajan, pero el resto del recorrido
+    // sigue: el formulario los pedirá si están visibles.
+  }
+}
+
 /** Lo que la calculadora deja para que el formulario lo recupere. */
 export interface DatosMatricula {
   /** Identificador del centro de estudios elegido en la pantalla de institución. */
@@ -140,6 +205,11 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
     montoPrimeraCuota: montos.primeraCuota,
     plazoMeses,
   });
+
+  // Los dos importes van además al estado del formulario, que es lo único que
+  // viaja con la solicitud. La clave de arriba la lee esta pantalla; esta otra,
+  // el asistente.
+  sembrarImportesEnFormulario(landing, montos);
 
   return producto;
 }
