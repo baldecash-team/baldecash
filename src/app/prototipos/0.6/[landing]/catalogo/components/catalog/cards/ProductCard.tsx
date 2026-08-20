@@ -61,6 +61,7 @@ import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { RibbonLabel } from '../RibbonLabel';
 import { ConditionBadge } from '../ConditionBadge';
+import { CardBadge } from '../CardBadge';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ConditionFilter } from '../../../../../types/filters';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
@@ -622,9 +623,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
                 )}
                 {showGrade && (
-                  <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  <CardBadge backgroundColor="rgba(0,0,0,0.7)">
                     Grado {product.grade}
-                  </span>
+                  </CardBadge>
                 )}
                 {hasTopLeftTags && <ProductTags tags={product.tags} />}
               </div>
