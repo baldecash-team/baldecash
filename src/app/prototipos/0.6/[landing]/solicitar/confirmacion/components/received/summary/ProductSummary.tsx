@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
@@ -25,6 +26,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
   const params = useParams();
   const landingSlug = (params?.landing as string) || '';
+  const { mostrarImagenProducto } = useLayout();
 
   // Truncar (a favor del usuario) es lo de siempre, salvo donde la cuota tiene
   // centavos reales: en Family Farms el cierre del flujo mostraba S/15 sobre un
@@ -117,6 +119,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                 className={`flex items-start gap-4 ${idx > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}
               >
                 {/* Product Image */}
+                {mostrarImagenProducto && (
                 <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.image ? (
                     <Image
@@ -130,6 +133,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                     <Package className="w-8 h-8 text-neutral-300" />
                   )}
                 </div>
+                )}
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
