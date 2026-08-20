@@ -16,7 +16,7 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
-import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, type DeferredPaymentConfig } from '@/app/prototipos/0.6/types/landingConfig';
+import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { isDarkLanding, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
 
 interface NavbarProps {
@@ -65,6 +65,12 @@ interface LayoutContextValue {
   overlayVariant: string | null;
   /** Pago diferido de la landing (null si no está habilitado). */
   deferredPayment: DeferredPaymentConfig | null;
+  /**
+   * Configuración de la calculadora de efectivo, o null si esta landing no la
+   * tiene. Vive acá por el mismo motivo que el selector de plazo: la decisión
+   * es de la landing, no de la pantalla que la dibuja.
+   */
+  calculadora: CalculadoraConfig | null;
   /**
    * Si el plazo se puede cambiar desde el resumen del producto.
    *
@@ -122,6 +128,7 @@ export function LayoutProvider({
   const [hasError, setHasError] = useState(false);
   const [overlayVariant, setOverlayVariant] = useState<string | null>(null);
   const [deferredPayment, setDeferredPayment] = useState<DeferredPaymentConfig | null>(null);
+  const [calculadora, setCalculadora] = useState<CalculadoraConfig | null>(null);
   const [showAgreementLogo, setShowAgreementLogo] = useState(true);
   const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
 
@@ -131,6 +138,7 @@ export function LayoutProvider({
     fetchLandingConfig(landing).then(cfg => {
       setOverlayVariant(cfg.features.overlay_variant || '');
       setDeferredPayment(getDeferredPayment(cfg));
+      setCalculadora(getCalculadora(cfg));
       // `!== false` y no `=== true`: si el backend no manda la clave el valor
       // es undefined, y ausencia significa encendido. Al reves, cualquier
       // landing de convenio sin el ingrediente perderia su logo.
@@ -378,8 +386,9 @@ export function LayoutProvider({
     newsletterData,
     overlayVariant,
     deferredPayment,
+    calculadora,
     puedeCambiarPlazo,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, puedeCambiarPlazo]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo]);
 
   return (
     <LayoutContext.Provider value={value}>
