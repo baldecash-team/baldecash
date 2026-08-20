@@ -1631,9 +1631,11 @@ describe('CamaraPageContent', () => {
       });
     });
 
-    it('sacar una foto no saca a la camara de ARMADA', async () => {
-      // La foto no abre ni cierra una toma: si la vista cambiara de estado, el
-      // pre-vuelo del escaner veria la estacion caerse por un disparo.
+    it('mientras saca la foto lo dice en pantalla, en vez de seguir en ARMADA', async () => {
+      // El disparo es casi instantaneo, asi que sin un aviso propio el
+      // operador no tiene forma de saber que la foto salio: la pantalla
+      // seguiria diciendo ARMADA de punta a punta y el unico feedback seria
+      // el escaner, que esta del otro lado de la mesa.
       instalarFetchInspeccion();
       setDeviceSessionCamara();
       await armarCamara();
@@ -1649,10 +1651,70 @@ describe('CamaraPageContent', () => {
         });
       });
 
+      expect(screen.getByText(/FOTO/)).toBeInTheDocument();
+      expect(screen.queryByText('ARMADA')).not.toBeInTheDocument();
+    });
+
+    it('el aviso de foto se apaga solo y la camara vuelve a ARMADA', async () => {
+      instalarFetchInspeccion();
+      setDeviceSessionCamara();
+      await armarCamara();
+      conectarCanal();
+
+      const pusher = mockFakePusher.instances[0];
+      await act(async () => {
+        pusher.channel.emit('cmd.photo', {
+          inspection_id: 7,
+          take_number: 1,
+          photo_number: 1,
+          capture_at: Date.now(),
+        });
+      });
+      expect(screen.queryByText('ARMADA')).not.toBeInTheDocument();
+
+      await waitFor(
+        () => {
+          expect(screen.getByText('ARMADA')).toBeInTheDocument();
+        },
+        { timeout: 4000 }
+      );
+    }, 8000);
+
+    it('sacar una foto no cambia el estado de captura que reporta al backend', async () => {
+      // Lo que importa no es lo que dice la pantalla (eso ahora avisa el
+      // disparo, a proposito) sino lo que VIAJA: `capture_state` es lo que lee
+      // el pre-vuelo del escaner para decidir si la estacion esta lista. Si un
+      // disparo lo moviera, la estacion se veria caerse cada vez que alguien
+      // saca una foto.
+      instalarFetchInspeccion();
+      setDeviceSessionCamara();
+      await armarCamara();
+      conectarCanal();
+
+      const estadosAntes = (global.fetch as jest.Mock).mock.calls
+        .filter(([u]: [string]) => String(u).includes('/devices/estado'))
+        .map(([, init]: [string, RequestInit]) => JSON.parse(String(init.body)).estado);
+
+      const pusher = mockFakePusher.instances[0];
+      await act(async () => {
+        pusher.channel.emit('cmd.photo', {
+          inspection_id: 7,
+          take_number: 1,
+          photo_number: 1,
+          capture_at: Date.now(),
+        });
+      });
+
       await waitFor(() => {
         expect(uploadQueueMock.encolar as jest.Mock).toHaveBeenCalled();
       });
-      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+
+      const estadosDespues = (global.fetch as jest.Mock).mock.calls
+        .filter(([u]: [string]) => String(u).includes('/devices/estado'))
+        .map(([, init]: [string, RequestInit]) => JSON.parse(String(init.body)).estado);
+      // Ningun estado NUEVO, y si hubo alguno reportado, sigue siendo 'armada'.
+      expect(estadosDespues.slice(estadosAntes.length)).toEqual([]);
+      expect(estadosDespues.every((e: string) => e === 'armada')).toBe(true);
     });
   });
 });
