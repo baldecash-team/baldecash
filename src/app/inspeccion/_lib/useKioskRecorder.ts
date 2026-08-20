@@ -54,6 +54,20 @@ export interface ResultadoDetener {
  * grabó era bajar el video de S3 y parsearlo. La vista de cámara lo muestra
  * detrás de `?debug=1`.
  */
+/** Lo que devuelve un disparo de foto: la imagen y su miniatura. */
+export interface ResultadoFoto {
+  blob: Blob;
+  /**
+   * Vista previa chica para el controlador. Sale del mismo canvas que la
+   * foto, así que no cuesta un segundo disparo ni una decodificación
+   * aparte — y va junta con la foto en el mismo par de PUT prefirmados.
+   */
+  thumbBlob: Blob;
+  mimeType: string;
+  ancho: number;
+  alto: number;
+}
+
 export interface AjustesCaptura {
   ancho: number | null;
   alto: number | null;
@@ -81,6 +95,11 @@ export interface UseKioskRecorderReturn {
   /** Pide `getUserMedia`. El único gesto humano de todo el flujo. */
   armar: () => Promise<void>;
   grabar: () => void;
+  /**
+   * Saca una foto SIN interrumpir nada. Se puede llamar mientras graba: ahí
+   * la imagen sale del canvas justamente para no tocar el `MediaRecorder`.
+   */
+  capturarFoto: () => Promise<ResultadoFoto>;
   detener: () => Promise<ResultadoDetener>;
 }
 
@@ -176,6 +195,19 @@ export function calcularBitrate(settings: MediaTrackSettings | null | undefined)
  * este timeout, la promesa de `detener()` queda colgada para siempre — y F4
  * la va a esperar para subir el video.
  */
+/**
+ * Calidad del JPEG de la foto. 0.92 es alto a propósito: lo que se
+ * fotografía es una etiqueta de serial o un rayón fino, y el artefacto de
+ * compresión se come exactamente ese detalle — que es la única razón por la
+ * que existe la foto.
+ */
+const FOTO_CALIDAD = 0.92;
+/** Calidad de la miniatura: se mira a 200px en el controlador, no necesita más. */
+const THUMB_CALIDAD = 0.7;
+/** Lado máximo de la miniatura. Suficiente para decidir repetir/destacar. */
+const THUMB_LADO = 320;
+const FOTO_MIME = 'image/jpeg';
+
 const DETENER_TIMEOUT_MS = 5_000;
 
 /**
@@ -512,6 +544,78 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     setEstado('grabando');
   }, []);
 
+  /**
+   * Dibuja el frame actual del `<video>` en un canvas y lo devuelve como
+   * JPEG. Es el camino SEGURO: no toca el track ni el `MediaRecorder`, así
+   * que se puede usar con el video grabando.
+   */
+  const capturarPorCanvas = useCallback(
+    (ladoMaximo?: number, calidad: number = FOTO_CALIDAD): Promise<Blob> => {
+      const video = videoRef.current;
+      const anchoNativo = video?.videoWidth ?? 0;
+      const altoNativo = video?.videoHeight ?? 0;
+      if (!video || !anchoNativo || !altoNativo) {
+        return Promise.reject(new Error('La cámara no está entregando imagen.'));
+      }
+
+      const escala = ladoMaximo
+        ? Math.min(1, ladoMaximo / Math.max(anchoNativo, altoNativo))
+        : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(anchoNativo * escala);
+      canvas.height = Math.round(altoNativo * escala);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return Promise.reject(new Error('No se pudo preparar la imagen.'));
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      return new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error('No se pudo generar la imagen.'))),
+          FOTO_MIME,
+          calidad
+        );
+      });
+    },
+    []
+  );
+
+  const capturarFoto = useCallback(async (): Promise<ResultadoFoto> => {
+    const video = videoRef.current;
+    const ancho = video?.videoWidth ?? 0;
+    const alto = video?.videoHeight ?? 0;
+
+    // La miniatura SIEMPRE sale del canvas, tanto si la foto vino del sensor
+    // como si no: es una reducción del mismo encuadre y cuesta un `drawImage`.
+    // Se pide primero para que un fallo acá no deje una foto grande subida
+    // sin vista previa — el backend no la da por verificada sin miniatura.
+    const thumbBlob = await capturarPorCanvas(THUMB_LADO, THUMB_CALIDAD);
+
+    // `ImageCapture` da la resolución del sensor (varios MP), que es la
+    // diferencia entre leer o no leer una etiqueta de serial. Pero
+    // reconfigura el track: mientras el `MediaRecorder` corre, eso glitchea
+    // un video que después nadie puede volver a grabar. Con el video
+    // grabando, el canvas no se negocia.
+    const grabando = estado === 'grabando';
+    const ImageCaptureCtor = (
+      globalThis as unknown as { ImageCapture?: new (track: MediaStreamTrack) => { takePhoto: () => Promise<Blob> } }
+    ).ImageCapture;
+    const [videoTrack] = streamRef.current?.getVideoTracks?.() ?? [];
+
+    if (!grabando && ImageCaptureCtor && videoTrack) {
+      try {
+        const blob = await new ImageCaptureCtor(videoTrack).takePhoto();
+        return { blob, thumbBlob, mimeType: blob.type || FOTO_MIME, ancho, alto };
+      } catch {
+        // iOS Safari no lo tiene y Android puede rechazarlo. Una foto
+        // degradada es aceptable; quedarse sin foto, no — el operador ya
+        // gastó el gesto y el equipo ya está en posición.
+      }
+    }
+
+    const blob = await capturarPorCanvas();
+    return { blob, thumbBlob, mimeType: blob.type || FOTO_MIME, ancho, alto };
+  }, [capturarPorCanvas, estado]);
+
   const detener = useCallback((): Promise<ResultadoDetener> => {
     return new Promise((resolve, reject) => {
       const active = activeRecordingRef.current;
@@ -601,6 +705,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     videoRef,
     armar,
     grabar,
+    capturarFoto,
     detener,
     zoom,
     zoomRango,

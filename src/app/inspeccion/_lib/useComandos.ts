@@ -45,6 +45,26 @@ export interface ComandoStartPayload {
   take_number: number;
 }
 
+/**
+ * Una foto disparada sobre la toma EN CURSO — con el video grabando o sin
+ * él. No transiciona nada: no abre ni cierra una toma, solo pide una imagen
+ * en este instante.
+ */
+export interface ComandoPhotoPayload {
+  inspection_id: number;
+  take_number: number;
+  /**
+   * Lo decide el servidor (`InspectionService.siguiente_foto`, ws2), nunca
+   * la cámara — mismo motivo que `take_number` en `cmd.start`: Pusher no
+   * garantiza entrega (spec §6.1 regla 3), así que una cámara que se pierde
+   * un `cmd.photo` y contara por su cuenta subiría la foto siguiente con la
+   * key de la anterior y la pisaría en S3 sin que nadie se entere.
+   */
+  photo_number: number;
+  /** Epoch ms, absoluto: el instante en que TODAS las cámaras disparan. */
+  capture_at: number;
+}
+
 export interface ComandoStopPayload {
   inspection_id: number;
   seq: number;
@@ -57,6 +77,7 @@ export interface ComandoAbortPayload {
 
 export interface UseComandosOpciones {
   onStart?: (payload: ComandoStartPayload) => void;
+  onPhoto?: (payload: ComandoPhotoPayload) => void;
   onStop?: (payload: ComandoStopPayload) => void;
   onAbort?: (payload: ComandoAbortPayload) => void;
 }
@@ -80,13 +101,14 @@ interface ConPayload {
 
 export function useComandos(
   channel: ComandoChannel | null,
-  { onStart, onStop, onAbort }: UseComandosOpciones
+  { onStart, onPhoto, onStop, onAbort }: UseComandosOpciones
 ): void {
   // Refs para los callbacks: el efecto de abajo solo debe re-bindear cuando
   // CAMBIA el `channel` en sí (una identidad estable durante toda la vida de
   // la suscripción) — no en cada render solo porque el padre pasó una
   // función nueva por identidad, algo muy común con closures inline en JSX.
   const onStartRef = useRef(onStart);
+  const onPhotoRef = useRef(onPhoto);
   const onStopRef = useRef(onStop);
   const onAbortRef = useRef(onAbort);
   // Actualizar el `.current` de un ref es un efecto colateral, no algo para
@@ -97,6 +119,7 @@ export function useComandos(
   // render) los refs ya están al día.
   useEffect(() => {
     onStartRef.current = onStart;
+    onPhotoRef.current = onPhoto;
     onStopRef.current = onStop;
     onAbortRef.current = onAbort;
   });
@@ -125,17 +148,32 @@ export function useComandos(
 
     const handleStart = (data: unknown) =>
       despachar<ComandoStartPayload>('start', data, onStartRef.current);
+    // La foto NO puede dedupearse con `despachar`: su clave es
+    // `tipo:inspection_id:seq`, y `cmd.photo` no lleva `seq` — el servidor
+    // reinicia `photo_number` en cada toma, así que la foto 1 de la toma 2
+    // es una foto distinta de la foto 1 de la toma 1. Sin el
+    // `take_number` en la clave, esa segunda foto quedaría dedupeada
+    // contra la primera y no se sacaría nunca.
+    const handlePhoto = (data: unknown) => {
+      const payload = data as ComandoPhotoPayload;
+      const clave = `photo:${payload.inspection_id}:${payload.take_number}:${payload.photo_number}`;
+      if (vistosRef.current.has(clave)) return;
+      vistosRef.current.add(clave);
+      onPhotoRef.current?.(payload);
+    };
     const handleStop = (data: unknown) =>
       despachar<ComandoStopPayload>('stop', data, onStopRef.current);
     const handleAbort = (data: unknown) =>
       despachar<ComandoAbortPayload>('abort', data, onAbortRef.current);
 
     channel.bind('cmd.start', handleStart);
+    channel.bind('cmd.photo', handlePhoto);
     channel.bind('cmd.stop', handleStop);
     channel.bind('cmd.abort', handleAbort);
 
     return () => {
       channel.unbind?.('cmd.start', handleStart);
+      channel.unbind?.('cmd.photo', handlePhoto);
       channel.unbind?.('cmd.stop', handleStop);
       channel.unbind?.('cmd.abort', handleAbort);
     };

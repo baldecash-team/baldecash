@@ -35,7 +35,33 @@ interface PairingCode {
  *                   sigue viva en el backend (`uploading`) mientras se
  *                   decide — solo la vista está "en pausa" acá.
  */
-type SesionEstado = 'inactiva' | 'iniciando' | 'grabando' | 'decidiendo';
+type SesionEstado =
+  | 'inactiva'
+  | 'iniciando'
+  | 'grabando'
+  | 'decidiendo'
+  /** Modo foto: la inspección está abierta y esperando disparos. */
+  | 'fotografiando';
+
+/** Qué se captura al iniciar. Lo elige el operador después de confirmar el
+ * serial: hay equipos que se documentan grabando y otros con dos fotos de
+ * detalle, y arrancar siempre grabando obligaba a tirar un video que nadie
+ * iba a mirar. */
+type ModoCaptura = 'video' | 'foto';
+
+/**
+ * Dónde está la foto que se acaba de disparar.
+ *
+ * - `'ninguna'`   — no hay foto en juego.
+ * - `'subiendo'`  — disparada; faltan cámaras por confirmar contra S3.
+ * - `'decidiendo'`— TODAS confirmaron: recién acá se muestran las
+ *                   miniaturas y se habilita repetir/destacar/otra.
+ *
+ * El paso por `'subiendo'` no es cosmético: decidir sobre una foto que
+ * todavía no está en S3 es decidir sobre nada, y "repetir" una foto que en
+ * realidad subió bien tira evidencia buena.
+ */
+type FotoEstado = 'ninguna' | 'subiendo' | 'decidiendo';
 
 /**
  * Ventana para que TODAS las cámaras de la estación confirmen el arranque
@@ -135,6 +161,15 @@ export default function EscanerPageContent() {
   const [takeNumber, setTakeNumber] = useState(1);
   // Si la toma que se está decidiendo quedó destacada. Se resetea en cada
   // toma nueva: la marca es de ESA toma, no de la inspección.
+  const [modoCaptura, setModoCaptura] = useState<ModoCaptura>('video');
+  const [fotoEstado, setFotoEstado] = useState<FotoEstado>('ninguna');
+  const [fotoNumber, setFotoNumber] = useState(0);
+  // Miniatura por etiqueta de cámara, tal como llega en `media.verified`.
+  // Es también el contador de "cuántas cámaras confirmaron": cuando cubre
+  // todas las de `labels`, la foto está lista.
+  const [miniaturas, setMiniaturas] = useState<Record<string, string>>({});
+  const [fotoFavorita, setFotoFavorita] = useState(false);
+  const [fotoError, setFotoError] = useState<string | null>(null);
   const [favorita, setFavorita] = useState(false);
   const [favoritaEnCurso, setFavoritaEnCurso] = useState(false);
   const [favoritaError, setFavoritaError] = useState<string | null>(null);
@@ -331,6 +366,7 @@ export default function EscanerPageContent() {
           serial: serialTrim,
           serial_source: 'manual',
           airtable_record_id: equipo?.record_id ?? null,
+          modo: modoCaptura,
         }),
       });
       if (!r.ok) {
@@ -388,13 +424,132 @@ export default function EscanerPageContent() {
       setTakeNumber(1);
       setFavorita(false);
       setBloqueoCola(null);
+      // En modo foto NO se comandó ningún video, así que no hay acks que
+      // esperar: armar el timeout acá abortaría sola la inspección a los 5
+      // segundos, con las cámaras armadas y sin nada que confirmar.
+      if (body.modo === 'foto') {
+        setFotoEstado('ninguna');
+        setFotoNumber(0);
+        setMiniaturas({});
+        setSesionEstado('fotografiando');
+        return;
+      }
       if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current);
       ackTimeoutRef.current = setTimeout(abortarPorTimeout, ACK_TIMEOUT_MS);
     } catch {
       setSesionError(mensajeDeRed('iniciar la inspección'));
       setSesionEstado('inactiva');
     }
-  }, [session, serial, equipo, listo, sesionEstado, abortarPorTimeout, verificarColaCamaras]);
+  }, [
+    session,
+    serial,
+    equipo,
+    listo,
+    sesionEstado,
+    modoCaptura,
+    abortarPorTimeout,
+    verificarColaCamaras,
+  ]);
+
+  /**
+   * Dispara una foto sincronizada en todas las cámaras.
+   *
+   * Se puede llamar en dos momentos y hace lo mismo en los dos: en modo
+   * foto (`fotografiando`) y CON EL VIDEO GRABANDO. Ese segundo caso es el
+   * que obliga a no tocar `sesionEstado` acá — la toma sigue viva, y una
+   * foto que la sacara de `grabando` cortaría la grabación en la pantalla
+   * aunque la cámara siguiera grabando de verdad.
+   *
+   * El `photo_number` viene del servidor, nunca se calcula acá: es la misma
+   * regla que ya rige `take_number`.
+   */
+  const dispararFoto = useCallback(async () => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null) return;
+
+    setFotoError(null);
+    setMiniaturas({});
+    setFotoFavorita(false);
+    setFotoEstado('subiendo');
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections/${id}/takes/${takeNumber}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+      });
+      if (!r.ok) {
+        setFotoError(await mensajeDeError(r, 'tomar la foto'));
+        setFotoEstado('ninguna');
+        return;
+      }
+      const body = await r.json();
+      setFotoNumber(body.photo_number);
+    } catch {
+      setFotoError(mensajeDeRed('tomar la foto'));
+      setFotoEstado('ninguna');
+    }
+  }, [session, takeNumber]);
+
+  /**
+   * Repite la foto que se está decidiendo, con el MISMO número: la anterior
+   * se descarta y el PUT nuevo pisa su objeto en S3. Para la que salió
+   * movida o con la etiqueta ilegible — dejarla ahí obligaría al revisor a
+   * elegir entre dos versiones de lo mismo.
+   */
+  const repetirFoto = useCallback(async () => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null || fotoNumber === 0) return;
+
+    setFotoError(null);
+    setMiniaturas({});
+    setFotoFavorita(false);
+    setFotoEstado('subiendo');
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/inspections/${id}/takes/${takeNumber}/photos/${fotoNumber}/redo`,
+        { method: 'POST', headers: { 'X-Device-Token': session.token } }
+      );
+      if (!r.ok) {
+        setFotoError(await mensajeDeError(r, 'repetir la foto'));
+        setFotoEstado('decidiendo');
+      }
+    } catch {
+      setFotoError(mensajeDeRed('repetir la foto'));
+      setFotoEstado('decidiendo');
+    }
+  }, [session, takeNumber, fotoNumber]);
+
+  /**
+   * Destaca la foto que se está decidiendo. Igual que con la toma, el estado
+   * local se actualiza DESPUÉS de que el servidor confirma: una estrella que
+   * se pinta y se despinta sola es peor que un instante de espera.
+   */
+  const alternarFavoritaFoto = useCallback(async () => {
+    if (!session) return;
+    const id = inspectionIdRef.current;
+    if (id == null || fotoNumber === 0) return;
+
+    const deseado = !fotoFavorita;
+    setFotoError(null);
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/inspections/${id}/takes/${takeNumber}/photos/${fotoNumber}/favorite`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+          body: JSON.stringify({ favorita: deseado }),
+        }
+      );
+      if (!r.ok) {
+        setFotoError(await mensajeDeError(r, 'destacar la foto'));
+        return;
+      }
+      setFotoFavorita(deseado);
+    } catch {
+      setFotoError(mensajeDeRed('destacar la foto'));
+    }
+  }, [session, takeNumber, fotoNumber, fotoFavorita]);
 
   const finalizarInspeccion = useCallback(async () => {
     if (!session) return;
@@ -527,12 +682,17 @@ export default function EscanerPageContent() {
     setFavorita(false);
     setTakeNumber(1);
     setBloqueoCola(null);
+    setModoCaptura('video');
+    setFotoEstado('ninguna');
+    setFotoNumber(0);
+    setMiniaturas({});
+    setFotoError(null);
   }, [session]);
 
   const pedirTomaSiguiente = useCallback(async () => {
     if (!session) return;
     const id = inspectionIdRef.current;
-    if (id == null || sesionEstado !== 'decidiendo') return;
+    if (id == null || (sesionEstado !== 'decidiendo' && sesionEstado !== 'fotografiando')) return;
 
     setSesionError(null);
     // Re-verifica la cola justo antes de comandar — la vista pudo llevar
@@ -569,7 +729,7 @@ export default function EscanerPageContent() {
   const subirInspeccion = useCallback(async () => {
     if (!session) return;
     const id = inspectionIdRef.current;
-    if (id == null || sesionEstado !== 'decidiendo') return;
+    if (id == null || (sesionEstado !== 'decidiendo' && sesionEstado !== 'fotografiando')) return;
 
     setSesionError(null);
     try {
@@ -587,6 +747,10 @@ export default function EscanerPageContent() {
       setTakeNumber(1);
       setFavorita(false);
       setBloqueoCola(null);
+      setModoCaptura('video');
+      setFotoEstado('ninguna');
+      setFotoNumber(0);
+      setMiniaturas({});
     } catch {
       setSesionError(mensajeDeRed('subir la inspección'));
     }
@@ -622,6 +786,48 @@ export default function EscanerPageContent() {
       channel.unbind?.('recording.started', handler);
     };
   }, [channel]);
+
+  /**
+   * `media.verified` — la señal que destraba la pantalla de decisión.
+   *
+   * La emite el backend en el `complete` de cada cámara, DESPUÉS de que
+   * `HeadObject` confirmó que la foto y su miniatura están en S3. El
+   * escáner espera una por cada etiqueta de `camera_labels`: mientras
+   * falte alguna, la foto está a medio subir y decidir sobre ella no
+   * significa nada.
+   *
+   * Se descartan los eventos de otra inspección o de otra foto (una
+   * redelivery tardía de la foto anterior, por ejemplo) comparando contra
+   * `inspectionIdRef` y `fotoNumber` — sin eso, la confirmación de la foto
+   * que el operador acaba de descartar con "repetir" destrabaría la
+   * pantalla mostrando la miniatura vieja.
+   */
+  useEffect(() => {
+    if (!channel) return undefined;
+    const handler = (data: unknown) => {
+      const payload = data as {
+        inspection_id?: number;
+        photo_number?: number;
+        camera_label?: string;
+        thumb_url?: string;
+      } | null;
+      if (!payload?.camera_label || payload.inspection_id !== inspectionIdRef.current) return;
+      if (payload.photo_number !== fotoNumber) return;
+      setMiniaturas((previas) => {
+        const siguientes = { ...previas, [payload.camera_label!]: payload.thumb_url ?? '' };
+        // `labels` sale de `GET /state`: es el servidor quien dice cuántas
+        // cámaras tiene la estación, nunca se asume un número acá.
+        if (labels.length > 0 && labels.every((l) => l in siguientes)) {
+          setFotoEstado('decidiendo');
+        }
+        return siguientes;
+      });
+    };
+    channel.bind('media.verified', handler);
+    return () => {
+      channel.unbind?.('media.verified', handler);
+    };
+  }, [channel, labels, fotoNumber]);
 
   // Limpieza del timeout de acks al desmontar — mismo espíritu que el timer
   // de arranque de `CamaraPageContent.tsx`: no dejar un `setTimeout` vivo
@@ -814,13 +1020,156 @@ export default function EscanerPageContent() {
             <p className="mt-1 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: TOKENS.slate }}>
               Toma {takeNumber}
             </p>
+            {/* Obturador: dispara una foto SIN cortar la toma. Es el caso
+                que más pide el operador — el video ya está corriendo y
+                aparece el detalle que hay que dejar en alta resolución. Va
+                arriba de FINALIZAR porque se usa varias veces por toma,
+                mientras que FINALIZAR se usa una sola. */}
+            <button
+              type="button"
+              onClick={() => void dispararFoto()}
+              disabled={fotoEstado === 'subiendo'}
+              className="mt-6 w-full rounded-xl border-2 px-6 py-4 text-lg font-bold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+              style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
+            >
+              {fotoEstado === 'subiendo' ? 'SUBIENDO LA FOTO…' : '◉ CAPTURAR FOTO'}
+            </button>
+            {fotoError && (
+              <p className="mt-2 text-center text-xs font-semibold" style={{ color: TOKENS.red }}>
+                {fotoError}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => void finalizarInspeccion()}
-              className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white"
+              className="mt-3 w-full rounded-xl px-6 py-4 text-lg font-bold text-white"
               style={{ background: TOKENS.primary }}
             >
               FINALIZAR
+            </button>
+          </>
+        ) : sesionEstado === 'fotografiando' ? (
+          <>
+            {/* Modo foto. La pantalla tiene tres caras y una sola de las tres
+                se ve a la vez: lista para disparar, subiendo, o decidiendo
+                sobre lo que se acaba de sacar. */}
+            <p className="mt-4 text-center text-2xl font-bold" style={{ color: TOKENS.ink }}>
+              {fotoEstado === 'decidiendo' ? `Foto ${fotoNumber} lista` : 'Modo foto'}
+            </p>
+            <p className="mt-1 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: TOKENS.slate }}>
+              Toma {takeNumber}
+            </p>
+
+            {fotoEstado === 'subiendo' && (
+              <p className="mt-4 text-center text-sm font-semibold" style={{ color: TOKENS.slate }}>
+                Subiendo la foto… esperá la confirmación de todas las cámaras.
+              </p>
+            )}
+
+            {/* Las miniaturas son lo que hace útil al menú: sin verlas,
+                "repetir" es una apuesta. Aparecen recién cuando TODAS las
+                cámaras confirmaron contra S3. */}
+            {fotoEstado === 'decidiendo' && (
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                {Object.entries(miniaturas).map(([label, url]) => (
+                  <figure key={label} className="text-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`Foto ${fotoNumber} — ${label}`}
+                      className="h-32 w-32 rounded-lg object-cover"
+                      style={{ background: '#EEE' }}
+                    />
+                    <figcaption className="mt-1 text-[11px] font-semibold uppercase" style={{ color: TOKENS.slate }}>
+                      {label}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
+
+            {fotoError && (
+              <p className="mt-3 text-center text-xs font-semibold" style={{ color: TOKENS.red }}>
+                {fotoError}
+              </p>
+            )}
+
+            {fotoEstado === 'decidiendo' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void alternarFavoritaFoto()}
+                  className="mt-4 w-full rounded-xl border px-6 py-3 text-base font-bold transition-colors hover:bg-black/[0.04]"
+                  style={{
+                    borderColor: fotoFavorita ? TOKENS.primary : TOKENS.line,
+                    color: fotoFavorita ? TOKENS.primary : TOKENS.ink,
+                    background: fotoFavorita ? '#EEF0FC' : 'transparent',
+                  }}
+                >
+                  {fotoFavorita ? '★ Foto destacada' : '☆ Destacar esta foto'}
+                </button>
+                {/* «Otra foto» SUMA a la misma toma; «Repetir» PISA esta. Se
+                    separan en tamaño, no solo en texto: son la acción normal
+                    y la excepción, y el operador las toca con guantes. */}
+                <button
+                  type="button"
+                  onClick={() => void dispararFoto()}
+                  className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99]"
+                  style={{ background: TOKENS.primary }}
+                >
+                  ◉ OTRA FOTO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void repetirFoto()}
+                  className="mt-3 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
+                  style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+                >
+                  ↺ Repetir la foto {fotoNumber}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void dispararFoto()}
+                disabled={fotoEstado === 'subiendo'}
+                className="mt-6 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99] disabled:opacity-40"
+                style={{ background: TOKENS.primary }}
+              >
+                {fotoEstado === 'subiendo' ? 'SUBIENDO…' : '◉ CAPTURAR FOTO'}
+              </button>
+            )}
+
+            {/* Cambiar a video: `POST /takes` arranca una toma nueva sobre la
+                MISMA inspección — las fotos ya sacadas se conservan. Es el
+                mismo endpoint que «toma siguiente», porque es exactamente lo
+                mismo: otra toma del mismo equipo, esta vez grabada. */}
+            <button
+              type="button"
+              onClick={() => void pedirTomaSiguiente()}
+              disabled={fotoEstado === 'subiendo' || bloqueoCola != null}
+              className="mt-3 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+              style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+            >
+              ▶ Cambiar a video
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void subirInspeccion()}
+              disabled={fotoEstado === 'subiendo'}
+              className="mt-3 w-full rounded-xl border px-6 py-4 text-lg font-bold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+              style={{ borderColor: TOKENS.primary, color: TOKENS.primary }}
+            >
+              SUBIR
+            </button>
+            <button
+              type="button"
+              onClick={() => void reiniciar()}
+              className="mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
+              style={{ color: TOKENS.slate }}
+            >
+              Terminar y pasar al equipo siguiente
             </button>
           </>
         ) : sesionEstado === 'decidiendo' ? (
@@ -899,6 +1248,24 @@ export default function EscanerPageContent() {
               SUBIR
             </button>
 
+            {/* Cambiar a foto sobre la MISMA toma: la foto se suma a la
+                evidencia que ya tiene el video recién grabado, sin abrir una
+                toma nueva ni cerrar nada. */}
+            <button
+              type="button"
+              onClick={() => {
+                setModoCaptura('foto');
+                setFotoEstado('ninguna');
+                setFotoNumber(0);
+                setMiniaturas({});
+                setSesionEstado('fotografiando');
+              }}
+              className="mt-3 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-black/[0.04]"
+              style={{ borderColor: TOKENS.line, color: TOKENS.ink }}
+            >
+              ◉ Cambiar a foto
+            </button>
+
             {/* Regrabar la toma que acaba de salir mal, con el MISMO número.
                 Va en tipografía más chica que TOMA N y SUBIR a propósito: es
                 la excepción, no uno de los dos caminos normales. */}
@@ -934,6 +1301,28 @@ export default function EscanerPageContent() {
                 deshabilitado={sesionEstado !== 'inactiva'}
               />
             )}
+            {/* Qué se va a capturar. Dos opciones, así que es un
+                segmentado y no un select: el operador lo toca con guantes y
+                tiene que ver las dos a la vez, no abrir una lista. */}
+            <div className="mt-4 flex gap-2" role="group" aria-label="Modo de captura">
+              {(['video', 'foto'] as const).map((modo) => (
+                <button
+                  key={modo}
+                  type="button"
+                  onClick={() => setModoCaptura(modo)}
+                  disabled={sesionEstado !== 'inactiva'}
+                  aria-pressed={modoCaptura === modo}
+                  className="flex-1 rounded-xl border px-4 py-3 text-base font-bold capitalize transition-colors disabled:opacity-40"
+                  style={{
+                    borderColor: modoCaptura === modo ? TOKENS.primary : TOKENS.line,
+                    color: modoCaptura === modo ? TOKENS.primary : TOKENS.ink,
+                    background: modoCaptura === modo ? '#EEF0FC' : 'transparent',
+                  }}
+                >
+                  {modo}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => void iniciarInspeccion()}

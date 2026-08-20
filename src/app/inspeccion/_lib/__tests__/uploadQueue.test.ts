@@ -631,3 +631,106 @@ describe('uploadQueue — singleton exportado', () => {
     }
   });
 });
+
+describe('UploadQueue — fotos', () => {
+  function fetchFoto() {
+    const llamadas: Array<{ url: string; method: string; body?: unknown }> = [];
+    const impl = jest.fn(async (url: string, init?: RequestInit) => {
+      llamadas.push({ url, method: init?.method ?? 'GET', body: init?.body });
+      if (url.includes('/upload-url')) {
+        return ok({
+          upload_url: 'https://s3.example.com/foto.jpeg',
+          s3_key: 'k/foto.jpeg',
+          thumb_upload_url: 'https://s3.example.com/foto-thumb.jpeg',
+          thumb_s3_key: 'k/foto-thumb.jpeg',
+          expires_in: 3600,
+        });
+      }
+      return ok({ status: 'verified' });
+    });
+    return { impl, llamadas };
+  }
+
+  function itemFoto(overrides: Partial<UploadQueueItem> = {}): UploadQueueItem {
+    return {
+      inspectionId: 9,
+      takeNumber: 2,
+      cameraLabel: 'techo',
+      blob: new Blob([new Uint8Array(2048)], { type: 'image/jpeg' }),
+      mimeType: 'image/jpeg',
+      token: 'device-token',
+      photoNumber: 3,
+      thumbBlob: new Blob([new Uint8Array(128)], { type: 'image/jpeg' }),
+      ...overrides,
+    };
+  }
+
+  it('usa los endpoints de foto y sube la imagen Y su miniatura', async () => {
+    const { impl, llamadas } = fetchFoto();
+    const cola = new UploadQueue({ fetchImpl: impl as unknown as typeof fetch });
+
+    cola.encolar(itemFoto());
+
+    await waitFor(() => expect(impl).toHaveBeenCalledTimes(4));
+    const urls = llamadas.map((l) => l.url);
+    expect(urls[0]).toContain('/takes/2/photos/3/techo/upload-url');
+    // Dos PUT a S3: la foto y la miniatura.
+    const puts = llamadas.filter((l) => l.method === 'PUT').map((l) => l.url);
+    expect(puts).toEqual([
+      'https://s3.example.com/foto.jpeg',
+      'https://s3.example.com/foto-thumb.jpeg',
+    ]);
+    expect(urls[3]).toContain('/takes/2/photos/3/techo/complete');
+  });
+
+  it('no manda duration_s al confirmar una foto', async () => {
+    // Una foto no dura. El endpoint de foto no lo acepta, y mandarlo seria
+    // pedirle al servidor que guarde un dato inventado.
+    const { impl, llamadas } = fetchFoto();
+    const cola = new UploadQueue({ fetchImpl: impl as unknown as typeof fetch });
+
+    cola.encolar(itemFoto());
+
+    await waitFor(() => expect(impl).toHaveBeenCalledTimes(4));
+    const complete = llamadas.find((l) => l.url.includes('/complete'))!;
+    expect(JSON.parse(complete.body as string)).toEqual({
+      bytes: 2048,
+      content_type: 'image/jpeg',
+    });
+  });
+
+  it('si la miniatura no sube, la foto se reintenta entera', async () => {
+    // El backend no da por verificada una foto sin miniatura, asi que
+    // confirmar acá dejaria la foto en un limbo: subida pero nunca valida.
+    let putsHechos = 0;
+    const impl = jest.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes('/upload-url')) {
+        return ok({
+          upload_url: 'https://s3.example.com/foto.jpeg',
+          thumb_upload_url: 'https://s3.example.com/foto-thumb.jpeg',
+          s3_key: 'k', thumb_s3_key: 'kt', expires_in: 3600,
+        });
+      }
+      if ((init?.method ?? 'GET') === 'PUT') {
+        putsHechos++;
+        return url.includes('thumb') ? noOk(500) : ok();
+      }
+      return ok({ status: 'verified' });
+    });
+    const cola = new UploadQueue({
+      fetchImpl: impl as unknown as typeof fetch,
+      maxIntentos: 2,
+      backoffBaseMs: 1,
+    });
+
+    let fallidos = 0;
+    cola.suscribir((e) => {
+      fallidos = e.fallidos;
+    });
+    cola.encolar(itemFoto());
+
+    await waitFor(() => expect(fallidos).toBe(1));
+    expect(putsHechos).toBeGreaterThanOrEqual(4);
+    expect(impl.mock.calls.every(([u]) => !String(u).includes('/complete'))).toBe(true);
+  });
+});

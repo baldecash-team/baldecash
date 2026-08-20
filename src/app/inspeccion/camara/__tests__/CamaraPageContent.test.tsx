@@ -1577,4 +1577,82 @@ describe('CamaraPageContent', () => {
       });
     });
   });
+
+  describe('cmd.photo — foto disparada desde el controlador', () => {
+    beforeEach(() => {
+      // jsdom no decodifica video ni rasteriza canvas: se stubea lo mínimo
+      // para que `capturarFoto()` tenga un frame que dibujar.
+      Object.defineProperty(window.HTMLVideoElement.prototype, 'videoWidth', {
+        configurable: true,
+        get: () => 1920,
+      });
+      Object.defineProperty(window.HTMLVideoElement.prototype, 'videoHeight', {
+        configurable: true,
+        get: () => 1920,
+      });
+      Object.defineProperty(window.HTMLCanvasElement.prototype, 'getContext', {
+        configurable: true,
+        value: jest.fn(() => ({ drawImage: jest.fn() })),
+      });
+      Object.defineProperty(window.HTMLCanvasElement.prototype, 'toBlob', {
+        configurable: true,
+        value: jest.fn((cb: (b: Blob) => void, type?: string) => {
+          cb(new Blob(['img'], { type: type ?? 'image/jpeg' }));
+        }),
+      });
+    });
+
+    it('encola la foto con el numero que mando el servidor y su miniatura', async () => {
+      instalarFetchInspeccion();
+      setDeviceSessionCamara();
+      await armarCamara();
+      conectarCanal();
+
+      const pusher = mockFakePusher.instances[0];
+      await act(async () => {
+        pusher.channel.emit('cmd.photo', {
+          inspection_id: 7,
+          take_number: 1,
+          photo_number: 2,
+          capture_at: Date.now(),
+        });
+      });
+
+      await waitFor(() => {
+        expect(uploadQueueMock.encolar as jest.Mock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            inspectionId: 7,
+            takeNumber: 1,
+            photoNumber: 2,
+            cameraLabel: 'techo',
+            thumbBlob: expect.any(Blob),
+          })
+        );
+      });
+    });
+
+    it('sacar una foto no saca a la camara de ARMADA', async () => {
+      // La foto no abre ni cierra una toma: si la vista cambiara de estado, el
+      // pre-vuelo del escaner veria la estacion caerse por un disparo.
+      instalarFetchInspeccion();
+      setDeviceSessionCamara();
+      await armarCamara();
+      conectarCanal();
+
+      const pusher = mockFakePusher.instances[0];
+      await act(async () => {
+        pusher.channel.emit('cmd.photo', {
+          inspection_id: 7,
+          take_number: 1,
+          photo_number: 1,
+          capture_at: Date.now(),
+        });
+      });
+
+      await waitFor(() => {
+        expect(uploadQueueMock.encolar as jest.Mock).toHaveBeenCalled();
+      });
+      expect(screen.getByText('ARMADA')).toBeInTheDocument();
+    });
+  });
 });

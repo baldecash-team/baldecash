@@ -185,7 +185,10 @@ describe('EscanerPageContent', () => {
      * F4 Task 5): por defecto no trae `devices`, así que ni el snapshot de
      * captura ni el de cola aportan nada y los tests existentes siguen
      * dependiendo solo del evento en vivo (`conectarYListo`). */
-    function instalarFetchEscaner(stateResponse: unknown = { camera_labels: ['techo'] }) {
+    function instalarFetchEscaner(
+      stateResponse: unknown = { camera_labels: ['techo'] },
+      modoCreacion: 'video' | 'foto' = 'video'
+    ) {
       global.fetch = jest.fn((url: RequestInfo | URL) => {
         const u = String(url);
         if (u.includes('/stations/') && u.endsWith('/state')) {
@@ -208,10 +211,33 @@ describe('EscanerPageContent', () => {
         if (u.endsWith('/close')) {
           return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'uploading' }) });
         }
+        if (u.endsWith('/photos')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              inspection_id: 1, take_number: 1, photo_number: 1,
+              capture_at: Date.now() + 600,
+            }),
+          });
+        }
+        if (u.includes('/photos/') && u.endsWith('/redo')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              inspection_id: 1, take_number: 1, photo_number: 1,
+              capture_at: Date.now() + 600, fotos_descartadas: 1,
+            }),
+          });
+        }
+        if (u.includes('/photos/') && u.endsWith('/favorite')) {
+          return Promise.resolve({ ok: true, json: async () => ({ favorita: true }) });
+        }
         if (u.endsWith('/inspections')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ inspection_id: 1, start_at: Date.now() + 1500, seq: 1 }),
+            json: async () => ({
+              inspection_id: 1, start_at: Date.now() + 1500, seq: 1, modo: modoCreacion,
+            }),
           });
         }
         // Catálogo de Airtable: desde el spec §5.1, INICIAR no se habilita con
@@ -675,6 +701,131 @@ describe('EscanerPageContent', () => {
       await waitFor(() => {
         expect(
           (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/77/takes'))
+        ).toBe(true);
+      });
+    });
+  
+
+    describe('fotos desde el controlador', () => {
+      /** Simula que TODAS las camaras confirmaron la foto contra S3. Es la
+       * senal que destraba la pantalla: el escaner no deja decidir hasta
+       * tenerla, porque decidir sobre una foto que no subio no significa
+       * nada. */
+      function verificarFoto(pusher: ReturnType<typeof conectarYListo>, photoNumber = 1) {
+        act(() => {
+          pusher.channel.emit('media.verified', {
+            inspection_id: 1,
+            take_number: 1,
+            photo_number: photoNumber,
+            camera_label: 'techo',
+            thumb_url: 'https://s3.fake/t1-techo-f1-thumb.jpeg',
+          });
+        });
+      }
+
+      async function iniciarEnModoFoto() {
+        setDeviceSessionEscaner();
+        instalarFetchEscaner({ camera_labels: ['techo'] }, 'foto');
+        render(<EscanerPageContent />);
+        const pusher = conectarYListo();
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial();
+        fireEvent.click(screen.getByRole('button', { name: /^foto$/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+        return pusher;
+      }
+
+      it('en modo foto, INICIAR no espera acks ni pasa a GRABANDO', async () => {
+        // El modo foto no comanda ningun video, asi que no hay acks que
+        // esperar: si la vista los esperara, abortaria sola a los 5s.
+        const pusher = await iniciarEnModoFoto();
+
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /capturar foto/i })).toBeInTheDocument();
+        });
+        expect(screen.queryByText('GRABANDO')).not.toBeInTheDocument();
+        expect(pusher).toBeTruthy();
+      });
+
+      it('tras disparar, no deja decidir hasta que la foto verifico en S3', async () => {
+        const pusher = await iniciarEnModoFoto();
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /capturar foto/i })).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /capturar foto/i }));
+
+        // Mientras sube: nada que decidir todavia.
+        await waitFor(() => {
+          expect(screen.getByText(/subiendo la foto/i)).toBeInTheDocument();
+        });
+        expect(screen.queryByRole('button', { name: /repetir/i })).not.toBeInTheDocument();
+
+        // El `photo_number` lo trae la respuesta del POST. Se espera a que
+        // llegue antes de simular la confirmacion: en produccion no hay
+        // carrera posible (el disparo se programa 600 ms en el futuro y la
+        // subida tarda mucho mas), pero en el test las dos cosas pasan en el
+        // mismo tick.
+        await act(async () => {
+          await Promise.resolve();
+        });
+
+        verificarFoto(pusher);
+
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /repetir/i })).toBeInTheDocument();
+        });
+        expect(screen.getByRole('button', { name: /otra foto/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /destacar/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /cambiar a video/i })).toBeInTheDocument();
+        // La miniatura es lo que hace util al menu: sin verla, "repetir" es
+        // una apuesta.
+        expect(screen.getByAltText(/foto 1 — techo/i)).toBeInTheDocument();
+      });
+
+      it('durante la grabacion se puede disparar una foto sin cortar el video', async () => {
+        setDeviceSessionEscaner();
+        instalarFetchEscaner();
+        render(<EscanerPageContent />);
+        const pusher = conectarYListo();
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial();
+        fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+        // La vista solo avanza a GRABANDO si el evento matchea la inspeccion
+        // que ya registro — hay que dejar resolver el POST antes de emitirlo.
+        await waitFor(() => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) =>
+              String(u).endsWith('/inspections')
+            )
+          ).toBe(true);
+        });
+        act(() => {
+          pusher.channel.emit('recording.started', { inspection_id: 1 });
+        });
+        await waitFor(() => {
+          expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /capturar foto/i }));
+
+        await waitFor(() => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) =>
+              String(u).endsWith('/takes/1/photos')
+            )
+          ).toBe(true);
+        });
+        // La toma sigue viva: la foto no la detiene.
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        expect(
+          (global.fetch as jest.Mock).mock.calls.every(
+            ([u]: [string]) => !String(u).endsWith('/stop')
+          )
         ).toBe(true);
       });
     });
