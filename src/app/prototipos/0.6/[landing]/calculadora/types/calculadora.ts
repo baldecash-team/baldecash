@@ -40,6 +40,44 @@ export function redondearSoles(valor: number): number {
   return Math.round((valor + Number.EPSILON) * 100) / 100;
 }
 
+/**
+ * Sanea lo que se teclea en un campo de importe.
+ *
+ * Los campos son de texto y no numéricos: un campo numérico responde a la rueda
+ * del ratón mientras tiene el foco, así que desplazar la página con el puntero
+ * encima cambia el importe sin que la persona lo advierta. El daño es
+ * silencioso, porque la cuota se vuelve a simular con el monto nuevo y la
+ * pantalla queda coherente consigo misma.
+ *
+ * A cambio, el filtrado deja de hacerlo el navegador y pasa a ser nuestro.
+ *
+ * Devuelve el texto tal como debe quedar en el campo, NO un número: quien está
+ * escribiendo 350.50 pasa por "350." antes de llegar, y reescribirle el campo a
+ * la mitad es peor que dejarlo. El número se obtiene aparte, y de un estado
+ * intermedio se obtiene NaN, que la pantalla ya trata como "todavía no hay
+ * monto".
+ */
+export function sanearMontoEscrito(texto: string): string {
+  // La coma se lee como separador decimal en vez de descartarse: acá se escribe
+  // indistintamente con coma o con punto, y descartarla convertiría 350,50 en
+  // 35050 — cien veces el importe, en un campo cuyo valor termina en un contrato.
+  const conPuntoDecimal = texto.replace(/,/g, '.');
+  const soloDigitosYPunto = conPuntoDecimal.replace(/[^\d.]/g, '');
+
+  const primerPunto = soloDigitosYPunto.indexOf('.');
+  if (primerPunto === -1) return soloDigitosYPunto;
+
+  // Manda el primer separador; los siguientes se descartan pero sus dígitos se
+  // conservan, para no perder lo que la persona ya escribió.
+  const parteEntera = soloDigitosYPunto.slice(0, primerPunto);
+  const parteDecimal = soloDigitosYPunto
+    .slice(primerPunto + 1)
+    .replace(/\./g, '')
+    .slice(0, 2);
+
+  return `${parteEntera}.${parteDecimal}`;
+}
+
 /** Hay algo para simular cuando la suma es mayor a cero. */
 export function montosValidos(montos: MontosMatricula): boolean {
   return totalAFinanciar(montos) > 0;

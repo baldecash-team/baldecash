@@ -35,10 +35,10 @@ import {
   MONTOS_VACIOS,
   formatearSoles,
   montosValidos,
-  redondearSoles,
   totalAFinanciar,
   type MontosMatricula,
 } from './types/calculadora';
+import { CampoMonto } from './components/CampoMonto';
 
 /**
  * Textos del producto en pantalla.
@@ -62,37 +62,6 @@ const ESPERA_SIMULACION_MS = 450;
 const sinSuscripcion = () => () => {};
 
 const INSTITUCION_VACIA = { id: null, nombre: null } as const;
-
-interface CampoMontoProps {
-  etiqueta: string;
-  valor: number;
-  placeholder: string;
-  onCambio: (valor: number) => void;
-}
-
-function CampoMonto({ etiqueta, valor, placeholder, onCambio }: CampoMontoProps) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-neutral-700">{etiqueta}</span>
-      <div className="flex items-center rounded-xl border border-neutral-200 bg-white px-3 transition-colors focus-within:border-[var(--color-primary)]">
-        <span className="mr-2 text-sm font-semibold text-[var(--color-primary)]">S/</span>
-        <input
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step="0.01"
-          placeholder={placeholder}
-          value={valor === 0 ? '' : valor}
-          onChange={(evento) => {
-            const numero = Number.parseFloat(evento.target.value);
-            onCambio(Number.isFinite(numero) && numero >= 0 ? redondearSoles(numero) : 0);
-          }}
-          className="w-full bg-transparent py-3 text-base text-neutral-800 outline-none placeholder:text-neutral-400"
-        />
-      </div>
-    </label>
-  );
-}
 
 export function CalculadoraClient() {
   const router = useRouter();
