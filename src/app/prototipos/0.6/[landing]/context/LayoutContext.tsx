@@ -65,6 +65,15 @@ interface LayoutContextValue {
   overlayVariant: string | null;
   /** Pago diferido de la landing (null si no está habilitado). */
   deferredPayment: DeferredPaymentConfig | null;
+  /**
+   * Si el plazo se puede cambiar desde el resumen del producto.
+   *
+   * Vive acá y no en cada pantalla porque el selector se dibuja en tres —la
+   * portada de solicitar, cada paso del formulario y complementos— y antes solo
+   * la primera consultaba la configuración. El resultado era que el ingrediente
+   * tapaba una de tres, y el selector reaparecía apenas la persona avanzaba.
+   */
+  puedeCambiarPlazo: boolean;
 }
 
 /**
@@ -114,6 +123,7 @@ export function LayoutProvider({
   const [overlayVariant, setOverlayVariant] = useState<string | null>(null);
   const [deferredPayment, setDeferredPayment] = useState<DeferredPaymentConfig | null>(null);
   const [showAgreementLogo, setShowAgreementLogo] = useState(true);
+  const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -125,6 +135,9 @@ export function LayoutProvider({
       // es undefined, y ausencia significa encendido. Al reves, cualquier
       // landing de convenio sin el ingrediente perderia su logo.
       setShowAgreementLogo(cfg.layout?.show_agreement_logo !== false);
+      // Mismo criterio que el logo: ausencia significa encendido. Con `=== true`
+      // cualquier landing sin el ingrediente perdería su selector de plazo.
+      setPuedeCambiarPlazo(cfg.features?.can_change_term !== false);
     });
   }, [landing]);
 
@@ -365,7 +378,8 @@ export function LayoutProvider({
     newsletterData,
     overlayVariant,
     deferredPayment,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment]);
+    puedeCambiarPlazo,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, puedeCambiarPlazo]);
 
   return (
     <LayoutContext.Provider value={value}>

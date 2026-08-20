@@ -29,7 +29,7 @@ interface SelectedProductBarProps {
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
-  const { landingId } = useLayout();
+  const { landingId, puedeCambiarPlazo } = useLayout();
   const params = useParams();
   const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
@@ -336,6 +336,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       </div>
                     </div>
                     {/* Term Selector - Mobile */}
+                    {puedeCambiarPlazo && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
@@ -347,6 +348,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         labels={termLabels}
                       />
                     </div>
+                    )}
                     {hasInitialPayment && !isGamer && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
                         <span className="text-xs text-neutral-500">Inicial total</span>
@@ -392,6 +394,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               </span>
             </div>
             {/* Term Selector - Desktop */}
+            {puedeCambiarPlazo && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
@@ -402,6 +405,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 labels={termLabels}
               />
             </div>
+            )}
           </div>
 
           {/* Products List */}
