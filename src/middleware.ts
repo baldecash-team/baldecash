@@ -13,6 +13,7 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/terminos-y-condiciones': '/home/legal/terminos-y-condiciones',
   '/politica-de-privacidad': '/home/legal/politica-de-privacidad',
   '/politica-de-privacidad-baldecash': '/home/legal/politica-de-privacidad',
+  '/libro-reclamaciones': '/home/legal/libro-reclamaciones',
   '/isat': 'https://beneficios.baldecash.com/isat',
   '/colegios': 'https://baldecash-colegios-financiamientos.lovable.app/',
   '/coar': 'https://baldecash-coar.lovable.app/',
