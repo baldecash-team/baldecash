@@ -581,11 +581,12 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
 
   // Determine tags from BD labels + automatic derivations
   const labels = apiProduct.labels || [];
-  const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
   const badgeLabels = labels.filter(l => l.label_type !== 'ribbon');
-  const tags: ProductTagType[] = badgeLabels
-    .filter(l => validTagTypes.has(l.code))
-    .map(l => l.code as ProductTagType);
+  // Cualquier etiqueta activa de la base llega a la tarjeta (BAL-3212). Antes se
+  // filtraba contra una lista fija de códigos, así que una etiqueta nueva creada
+  // en el admin salía en el filtro pero nunca en la tarjeta. El texto y el color
+  // los resuelve `ProductTags` con el catálogo del facet.
+  const tags: ProductTagType[] = badgeLabels.map(l => l.code as ProductTagType);
   // Automatic: is_featured → recomendado (if not already from labels)
   if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
   // Automatic: discount → oferta (if not already from labels)

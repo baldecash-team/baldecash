@@ -14,6 +14,8 @@ interface TagsFilterProps {
   showCounts?: boolean;
 }
 
+// Respaldo para etiquetas que no traen color desde la base. El color del facet
+// tiene prioridad sobre esta tabla (BAL-3212).
 const tagColors: Record<string, { bg: string; text: string; border: string }> = {
   nuevo: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300' },
   premium: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
@@ -74,9 +76,13 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
             const isSelected = selectedTags.includes(opt.value as ProductTagType);
             const hardcoded = tagColors[opt.value];
 
-            // For tags with a dynamic color from API (e.g. nvidia), use it inline.
-            // En nvidia forzamos el estilo gris por defecto (abajo) para que no desentonen.
-            if (!hardcoded && opt.color && !isNvidia) {
+            // El color de la base manda (BAL-3212): si el facet trae color, se pinta
+            // con él aunque la etiqueta figure en `tagColors`. Antes la tabla fija
+            // ganaba y editar `product_label.background_color` no movía el chip,
+            // aunque la tarjeta sí cambiaba (BAL-3204). `tagColors` queda solo como
+            // respaldo para etiquetas sin color en la base.
+            // En nvidia se sigue forzando el gris de abajo, por diseño.
+            if (opt.color && !isNvidia) {
               const { r, g, b } = hexToRgb(opt.color);
               return (
                 <Chip
