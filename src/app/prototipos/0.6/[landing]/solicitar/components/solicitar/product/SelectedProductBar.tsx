@@ -29,7 +29,7 @@ interface SelectedProductBarProps {
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
-  const { landingId } = useLayout();
+  const { landingId, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
   const params = useParams();
   const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
@@ -132,6 +132,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             className="w-full px-4 py-3 flex items-center gap-3 cursor-pointer"
           >
             {/* Product Thumbnail */}
+            {mostrarImagenProducto && (
             <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
               {allProducts.length > 1 ? (
                 <div className="w-full h-full flex items-center justify-center bg-[var(--color-primary)]/10">
@@ -149,6 +150,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 <Package className="w-6 h-6 text-neutral-400" />
               )}
             </div>
+            )}
 
             {/* Product Info */}
             <div className="flex-1 text-left min-w-0">
@@ -200,6 +202,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   <div className="space-y-3">
                     {allProducts.map((product, index) => (
                       <div key={`${product.id}-${index}`} className={`flex gap-4 ${index > 0 ? 'pt-3 border-t border-neutral-100' : ''}`}>
+                        {mostrarImagenProducto && (
                         <div className="w-20 h-20 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                           {product.image ? (
                             <Image
@@ -213,6 +216,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             <Package className="w-10 h-10 text-neutral-300" />
                           )}
                         </div>
+                        )}
 
                         {/* Full Details */}
                         <div className="flex-1 min-w-0">
@@ -336,6 +340,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       </div>
                     </div>
                     {/* Term Selector - Mobile */}
+                    {puedeCambiarPlazo && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
@@ -347,6 +352,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         labels={termLabels}
                       />
                     </div>
+                    )}
                     {hasInitialPayment && !isGamer && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
                         <span className="text-xs text-neutral-500">Inicial total</span>
@@ -392,6 +398,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               </span>
             </div>
             {/* Term Selector - Desktop */}
+            {puedeCambiarPlazo && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
@@ -402,6 +409,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 labels={termLabels}
               />
             </div>
+            )}
           </div>
 
           {/* Products List */}
@@ -409,6 +417,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             {allProducts.map((product, index) => (
               <div key={`${product.id}-${index}`} className={`flex items-center gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
                 {/* Product Image */}
+                {mostrarImagenProducto && (
                 <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.image ? (
                     <Image
@@ -422,6 +431,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <Package className="w-8 h-8 text-neutral-300" />
                   )}
                 </div>
+                )}
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">

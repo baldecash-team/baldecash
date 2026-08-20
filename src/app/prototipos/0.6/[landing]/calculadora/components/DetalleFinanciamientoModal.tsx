@@ -63,7 +63,7 @@ function Clausula({ titulo, children }: { titulo: string; children: React.ReactN
   return (
     <div>
       <strong className="mb-1.5 block text-[0.8rem] font-bold text-neutral-800">{titulo}</strong>
-      <p className="text-[0.76rem] leading-relaxed text-neutral-500">{children}</p>
+      <div className="text-[0.76rem] leading-relaxed text-neutral-500">{children}</div>
     </div>
   );
 }
@@ -88,6 +88,7 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
 
   const cronograma = simulacion?.cronograma ?? [];
   const primerVencimiento = cronograma[0]?.fechaVencimiento;
+  const comisionDesglose = simulacion?.comisionDesglose ?? [];
 
   return (
     <div
@@ -197,11 +198,29 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
 
           <div className="mt-7 grid gap-6 border-t border-[#eef0f8] pt-6 md:grid-cols-3">
             <Clausula titulo="Cláusulas de penalidad">
-              Ante el retraso de pago de una cuota, existirá un interés moratorio de S/ 1 por cada día
-              de atraso en el que incurra el cliente.
+              Ante el retraso de pago de una cuota, existirá un interés moratorio de{' '}
+              {formatearSoles(simulacion?.moraDiaria)} por cada día de atraso en el que incurra el
+              cliente.
             </Clausula>
             <Clausula titulo="Gastos incluidos en la cuota">
-              La cuota mensual incluye las comisiones operativas del financiamiento.
+              {comisionDesglose.length > 0 ? (
+                <>
+                  La cuota mensual incluye {formatearSoles(simulacion?.comisionMensual)} de
+                  comisiones operativas:
+                  <ul className="mt-1.5 space-y-0.5">
+                    {comisionDesglose.map((concepto) => (
+                      <li key={concepto.concepto} className="flex justify-between gap-3">
+                        <span>{concepto.concepto}</span>
+                        <span className="font-semibold text-neutral-700">
+                          {formatearSoles(concepto.monto)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                'La cuota mensual incluye las comisiones operativas del financiamiento.'
+              )}
             </Clausula>
             <Clausula titulo="Pagos anticipados">
               El cliente tendrá derecho a pagar por adelantado sus cuotas sin ningún tipo de

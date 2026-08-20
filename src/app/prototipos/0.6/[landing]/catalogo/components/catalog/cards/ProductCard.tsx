@@ -61,8 +61,9 @@ import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { RibbonLabel } from '../RibbonLabel';
 import { ConditionBadge } from '../ConditionBadge';
+import { CardBadge } from '../CardBadge';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
-import type { ConditionFilter } from '../../../../../types/filters';
+import type { ConditionFilter, LabelFilter } from '../../../../../types/filters';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
@@ -125,6 +126,8 @@ interface ProductCardProps {
   campaignCoupon?: AppliedCoupon | null;
   /** Catálogo de condiciones del facet — estilo (label/icon/color) del badge de condición */
   conditions?: ConditionFilter[] | null;
+  /** Catálogo de etiquetas del facet — texto y color de los tags del producto (BAL-3204) */
+  labels?: LabelFilter[] | null;
   /**
    * Modo oferta (BAL-1785): cuando se pasa `onCtaClick`, el botón principal
    * muestra `ctaLabel` (ej. "Elegir este equipo") y llama a `onCtaClick` en vez
@@ -179,6 +182,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   needsPromoSpacer = false,
   campaignCoupon = null,
   conditions = null,
+  labels = null,
   addToCartDisabled = false,
   hideStateBadges = false,
 }) => {
@@ -622,11 +626,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
                 )}
                 {showGrade && (
-                  <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  <CardBadge backgroundColor="rgba(0,0,0,0.7)">
                     Grado {product.grade}
-                  </span>
+                  </CardBadge>
                 )}
-                {hasTopLeftTags && <ProductTags tags={product.tags} />}
+                {hasTopLeftTags && <ProductTags tags={product.tags} labels={labels} />}
               </div>
             )}
             {/* Badge NVIDIA derivado del spec GPU + ribbons de partners (no-NVIDIA) — bottom-left */}

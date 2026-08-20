@@ -250,8 +250,8 @@ function OtpValidationCta({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="mb-6 sm:mb-8 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5
-                 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+      className="otp-cta-animated-border mb-6 sm:mb-8 rounded-2xl border border-[var(--color-primary)]/20
+                 bg-[var(--color-primary)]/5 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
     >
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">

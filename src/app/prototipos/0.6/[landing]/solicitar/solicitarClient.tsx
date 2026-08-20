@@ -130,18 +130,20 @@ function WizardPreviewContent() {
   // valida el cupo del lado del servidor, así que este aviso no es la defensa
   // —es para no hacer llenar un formulario que ya no se va a poder mandar.
   const [campanaRecibe, setCampanaRecibe] = useState(true);
-  // Ambos arrancan en `true` para que una landing sin los ingredientes se vea
-  // igual que antes de que estos flags existieran.
-  const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
+  // Arranca en `true` para que una landing sin el ingrediente se vea igual que
+  // antes de que el flag existiera.
   const [muestraCupon, setMuestraCupon] = useState(true);
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
       setHasCatalog(cfg.layout.has_catalog);
       setCampanaRecibe(campanaAbierta(cfg));
-      setPuedeCambiarPlazo(cfg.features.can_change_term);
       setMuestraCupon(cfg.features.has_coupon);
     });
   }, [landing]);
+
+  // El selector de plazo se decide en el contexto de la landing y no acá: se
+  // dibuja en tres pantallas y antes solo esta consultaba la configuración, así
+  // que el ingrediente tapaba una de tres.
 
   const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded, isLoadingAccessories } = useProduct();
 
@@ -176,7 +178,7 @@ function WizardPreviewContent() {
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
 
   // Get wizard config for dynamic first step
   const { config, steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
@@ -523,6 +525,7 @@ function WizardPreviewContent() {
                   const isUnavailable = activeUnavailableIds.includes(product.id);
                   return (
                   <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''} ${isUnavailable ? 'opacity-50' : ''}`}>
+                    {mostrarImagenProducto && (
                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
                       <img
                         src={product.image}
@@ -530,6 +533,7 @@ function WizardPreviewContent() {
                         className="w-full h-full object-contain"
                       />
                     </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wider">
                         {product.brand}

@@ -12,6 +12,11 @@ import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent 
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { getLandingAccessories, getLandingInsurances, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
+import {
+  necesitaPlanesDePago,
+  admiteRecalculoDeCuota,
+  soloLosDelCatalogo,
+} from './productoFueraDeCatalogo';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSessionOptional } from './SessionContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -124,6 +129,10 @@ export interface SelectedProduct {
   paymentFrequency?: string;
   // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
   comboId?: number;
+  // El producto NO viene del catálogo: lo armó una calculadora, con su cuota ya
+  // resuelta contra el simulador. No se le piden planes, no se valida su
+  // disponibilidad y su cuota no se recalcula. Ver `productoFueraDeCatalogo`.
+  outOfCatalog?: boolean;
 }
 
 export type { Accessory, InsurancePlan };
@@ -676,6 +685,11 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const unifiedFrequency = frequencies.size === 1;
 
     const updatedProducts = products.map(p => {
+      // Un producto fuera del catálogo conserva la cuota con la que llegó: la
+      // resolvió el simulador con el plazo que la persona eligió, y la grilla
+      // del catálogo no describe este financiamiento.
+      if (!admiteRecalculoDeCuota(p)) return p;
+
       // When frequencies are unified, the incoming `term` is the raw value
       // (e.g. 48 weeks). When mixed, it represents months.
       const plan = p.paymentPlans?.find(pl => {
@@ -856,9 +870,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    */
   const syncMissingPaymentPlans = useCallback(async () => {
     const products = getAllProducts();
-    const productsWithoutPlans = products.filter(
-      p => !p.paymentPlans || p.paymentPlans.length === 0
-    );
+    const productsWithoutPlans = products.filter(necesitaPlanesDePago);
 
     if (productsWithoutPlans.length === 0) return;
 
@@ -956,7 +968,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    * Runs after hydration, sharing the same flow as syncMissingPaymentPlans.
    */
   const validateProductsAvailability = useCallback(async () => {
-    const products = getAllProducts();
+    // Los que no vienen del catálogo quedan afuera: la consulta los devolvería
+    // como no disponibles justamente porque están fuera a propósito, y eso
+    // bloquearía el botón de continuar de un recorrido válido.
+    const products = soloLosDelCatalogo(getAllProducts());
     if (products.length === 0) {
       setIsValidatingAvailability(false);
       return;
@@ -1005,6 +1020,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const updateProductInitial = useCallback((productId: string, newInitialPercent: number) => {
     const updateProduct = (product: SelectedProduct): SelectedProduct => {
       if (product.id !== productId) return product;
+
+      // Mismo motivo que al cambiar el plazo: su cuota no sale de esta grilla.
+      if (!admiteRecalculoDeCuota(product)) return product;
 
       // Try to use paymentPlans data first
       const plan = product.paymentPlans?.find(p => p.term === product.months);
@@ -1060,9 +1078,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (!isHydrated || hasSyncedRef.current || isSyncingPaymentPlans) return;
 
     const products = getAllProducts();
-    const hasProductsWithoutPlans = products.some(
-      p => !p.paymentPlans || p.paymentPlans.length === 0
-    );
+    const hasProductsWithoutPlans = products.some(necesitaPlanesDePago);
 
     if (hasProductsWithoutPlans && products.length > 0) {
       hasSyncedRef.current = true;

@@ -16,6 +16,7 @@
 import React from 'react';
 import type { ConditionFilter } from '../../../../types/filters';
 import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
+import { CardBadge } from './CardBadge';
 
 // Códigos tratados como "nuevo" → no se pinta badge.
 const NEW_CONDITION_CODES = new Set(['nueva', 'nuevo', 'new']);
@@ -43,19 +44,14 @@ export const ConditionBadge: React.FC<ConditionBadgeProps> = ({ conditionCode, c
 
   const facet = conditions?.find((c) => c.value?.toLowerCase() === code);
 
-  // Para reacondicionados se muestra "Semi nuevo"; el resto usa el label del facet.
+  // El texto y el color los manda el facet (BD). Las constantes de este archivo
+  // solo cubren el caso en que el facet todavía no resolvió la condición.
   const label = conditionDisplayLabel(code, facet?.label);
   const color = facet?.color || FALLBACK_COLOR;
 
   // Sin ícono: solo texto. Los íconos flotantes son cosa del banner de promoción.
-  return (
-    <span
-      className="inline-flex items-center px-2 py-0.5 rounded-md shadow-sm"
-      style={{ backgroundColor: color, color: '#ffffff' }}
-    >
-      <span className="text-[10px] font-bold leading-none">{label}</span>
-    </span>
-  );
+  // El tamaño sale de CardBadge para no desalinearse con los badges vecinos.
+  return <CardBadge backgroundColor={color}>{label}</CardBadge>;
 };
 
 export default ConditionBadge;

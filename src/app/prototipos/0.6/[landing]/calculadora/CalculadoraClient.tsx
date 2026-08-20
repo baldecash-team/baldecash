@@ -28,33 +28,28 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { routes } from '../../utils/routes';
-import { simularFinanciamiento, type SimulacionFinanciamiento } from './api/simuladorApi';
+import { simularCalculadora, type SimulacionFinanciamiento } from './api/simuladorApi';
 import { DetalleFinanciamientoModal } from './components/DetalleFinanciamientoModal';
 import { entregarASolicitar, getMatriculaKey, type DatosMatricula } from './utils/entrega';
 import {
   MONTOS_VACIOS,
-  PLAZOS_MESES,
-  PLAZO_POR_DEFECTO,
   formatearSoles,
   montosValidos,
-  redondearSoles,
   totalAFinanciar,
   type MontosMatricula,
-  type PlazoMeses,
 } from './types/calculadora';
+import { CampoMonto } from './components/CampoMonto';
 
 /**
- * Producto de matrícula en webservice2.
+ * Textos del producto en pantalla.
  *
- * Es un producto único y genérico: el mismo sirve para todas las instituciones,
- * porque lo que cambia entre ellas son los valores, no el producto. Su precio de
- * lista no se usa para calcular: el monto lo define quien solicita.
+ * El identificador, la variante y el tipo ya NO viven acá: los resuelve la
+ * configuración de la landing, junto con el rango del monto, los plazos, la
+ * tasa y la comisión. Lo que queda es copia visible, que no es configuración de
+ * negocio: cambiarla es un cambio de texto, no de condiciones.
  */
-const PRODUCTO_MATRICULA = {
-  id: 1585,
-  slug: 'prestamo-matricula-1186',
-  nombre: 'Financiamiento de Matrícula',
-};
+const PRODUCTO_NOMBRE = 'Financiamiento de Matrícula';
+const PRODUCTO_SLUG = 'prestamo-matricula-1186';
 
 /** Milisegundos de espera antes de simular, para no pedir en cada tecla. */
 const ESPERA_SIMULACION_MS = 450;
@@ -68,45 +63,22 @@ const sinSuscripcion = () => () => {};
 
 const INSTITUCION_VACIA = { id: null, nombre: null } as const;
 
-interface CampoMontoProps {
-  etiqueta: string;
-  valor: number;
-  placeholder: string;
-  onCambio: (valor: number) => void;
-}
-
-function CampoMonto({ etiqueta, valor, placeholder, onCambio }: CampoMontoProps) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-neutral-700">{etiqueta}</span>
-      <div className="flex items-center rounded-xl border border-neutral-200 bg-white px-3 transition-colors focus-within:border-[var(--color-primary)]">
-        <span className="mr-2 text-sm font-semibold text-[var(--color-primary)]">S/</span>
-        <input
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step="0.01"
-          placeholder={placeholder}
-          value={valor === 0 ? '' : valor}
-          onChange={(evento) => {
-            const numero = Number.parseFloat(evento.target.value);
-            onCambio(Number.isFinite(numero) && numero >= 0 ? redondearSoles(numero) : 0);
-          }}
-          className="w-full bg-transparent py-3 text-base text-neutral-800 outline-none placeholder:text-neutral-400"
-        />
-      </div>
-    </label>
-  );
-}
-
 export function CalculadoraClient() {
   const router = useRouter();
   const parametros = useParams();
   const landing = (parametros?.landing as string) || 'home';
-  const { navbarProps, footerData, agreementData } = useLayout();
+  const { navbarProps, footerData, agreementData, calculadora } = useLayout();
 
   const [montos, setMontos] = useState<MontosMatricula>(MONTOS_VACIOS);
-  const [plazo, setPlazo] = useState<PlazoMeses>(PLAZO_POR_DEFECTO);
+  /**
+   * El plazo elegido, o null mientras la persona no toca nada.
+   *
+   * Los plazos ofrecidos los define la landing, y llegan después del primer
+   * render. Por eso el elegido se deriva en vez de fijarse con un valor por
+   * omisión: si la configuración cambia y el plazo elegido deja de existir, cae
+   * al primero disponible en lugar de simular una combinación sin celda.
+   */
+  const [plazoElegido, setPlazoElegido] = useState<number | null>(null);
   const [simulacion, setSimulacion] = useState<SimulacionFinanciamiento | null>(null);
   const [simulando, setSimulando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +88,10 @@ export function CalculadoraClient() {
 
   const total = useMemo(() => totalAFinanciar(montos), [montos]);
   const hayMontos = montosValidos(montos);
+
+  const plazos = calculadora?.terms ?? [];
+  const plazo =
+    plazoElegido !== null && plazos.includes(plazoElegido) ? plazoElegido : plazos[0] ?? null;
 
   /**
    * La institución la eligió la pantalla anterior y viaja por almacenamiento
@@ -169,7 +145,7 @@ export function CalculadoraClient() {
   useEffect(() => {
     // Sin montos no se simula. No se limpia el estado acá: lo que se muestra se
     // deriva más abajo, así el efecto no dispara renders en cascada.
-    if (!hayMontos) return;
+    if (!hayMontos || plazo === null) return;
 
     const temporizador = setTimeout(() => {
       abortRef.current?.abort();
@@ -179,7 +155,7 @@ export function CalculadoraClient() {
       setSimulando(true);
       setError(null);
 
-      simularFinanciamiento(total, plazo, landing, controlador.signal)
+      simularCalculadora(total, plazo, landing, controlador.signal)
         .then((resultado) => {
           setSimulacion(resultado);
           setSimulando(false);
@@ -203,16 +179,18 @@ export function CalculadoraClient() {
   const simulacionVisible = hayMontos ? simulacion : null;
   const errorVisible = hayMontos ? error : null;
 
-  const puedeContinuar = hayMontos && !simulando && !!simulacionVisible && !errorVisible;
+  const puedeContinuar =
+    hayMontos && !simulando && !!simulacionVisible && !errorVisible && !!calculadora;
 
   const alContinuar = useCallback(() => {
-    if (!puedeContinuar || !simulacion) return;
+    if (!puedeContinuar || !simulacion || !calculadora) return;
 
     const guardado = entregarASolicitar({
       landing,
-      productoId: PRODUCTO_MATRICULA.id,
-      productoSlug: PRODUCTO_MATRICULA.slug,
-      productoNombre: PRODUCTO_MATRICULA.nombre,
+      productoId: calculadora.productId,
+      varianteId: calculadora.variantId,
+      productoSlug: PRODUCTO_SLUG,
+      productoNombre: PRODUCTO_NOMBRE,
       montos,
       plazoMeses: simulacion.plazoMeses,
       cuotaMensual: simulacion.cuotaMensual,
@@ -226,11 +204,21 @@ export function CalculadoraClient() {
     }
 
     router.push(routes.solicitar(landing));
-  }, [puedeContinuar, simulacion, landing, montos, institucion, router]);
+  }, [puedeContinuar, simulacion, calculadora, landing, montos, institucion, router]);
 
   // Mientras la guarda redirige no se pinta nada: evita el parpadeo de la
   // pantalla vacía y el título sin universidad.
   if (sinInstitucion) return null;
+
+  /**
+   * Guarda de configuración.
+   *
+   * La calculadora es un ingrediente de la landing: sin su configuración no hay
+   * producto sobre el que registrar la solicitud, ni plazos que ofrecer. No se
+   * dibuja un control que después no puede entregar una cuota. Cubre también el
+   * lapso previo a que llegue la configuración, que es null en el primer render.
+   */
+  if (!calculadora) return null;
 
   const titulo = institucion.nombre
     ? `Financiamiento de Matrícula — ${institucion.nombre}`
@@ -311,13 +299,13 @@ export function CalculadoraClient() {
             <section className="rounded-xl border border-neutral-200 bg-white p-5">
               <h2 className="mb-4 text-base font-semibold text-neutral-800">¿En cuántos meses pagas?</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {PLAZOS_MESES.map((opcion) => {
+                {plazos.map((opcion) => {
                   const activo = opcion === plazo;
                   return (
                     <button
                       key={opcion}
                       type="button"
-                      onClick={() => setPlazo(opcion)}
+                      onClick={() => setPlazoElegido(opcion)}
                       aria-pressed={activo}
                       className={`rounded-xl border px-3 py-3 text-center font-semibold text-sm transition-colors cursor-pointer ${
                         activo

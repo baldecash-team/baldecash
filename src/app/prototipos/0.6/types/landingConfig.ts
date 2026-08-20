@@ -61,6 +61,17 @@ export interface LandingConfigFeatures {
    * en /solicitar dejaría la cuota mostrada y la seleccionada en desacuerdo.
    */
   can_change_term: boolean;
+
+  /**
+   * Si la imagen del producto se muestra en el recorrido de solicitud.
+   *
+   * El default es `true`: una landing sin el ingrediente `product-image-off`
+   * se ve igual que antes de que este flag existiera.
+   *
+   * Existe para el producto de matrícula, donde lo que se financia no es un
+   * equipo sino una inscripción: la imagen no aporta información y confunde.
+   */
+  show_product_image: boolean;
   /**
    * Muestra el ingreso de cupón de descuento en /solicitar.
    *
@@ -113,6 +124,133 @@ export function getDeferredPayment(config: LandingConfig): DeferredPaymentConfig
         ? raw.deferred_months
         : 0,
     source: typeof raw.source === 'string' ? raw.source : undefined,
+  };
+}
+
+/**
+ * Configuracion de la calculadora de efectivo (namespace `calculadora`).
+ *
+ * La landing lo emite SIEMPRE, con `enabled: false` cuando no aplica, asi que
+ * el componente nunca tiene que distinguir ausencia de apagado.
+ *
+ * Nada de esto se decide en el navegador: producto, variante, rango del monto,
+ * plazos, tasa y comision son datos del backend. Los plazos ademas se derivan
+ * de las celdas de precio, de modo que no puede ofrecerse una combinacion sin
+ * celda —esa caeria a la regla global y registraria la solicitud con otra tasa.
+ */
+export interface CalculadoraAmountRange {
+  min: number;
+  max: number;
+  /**
+   * Salto del monto. El backend valida que el monto sea multiplo exacto del
+   * salto, asi que un salto mayor a 1 rechaza cualquier importe con decimales.
+   */
+  step: number;
+}
+
+/** Un concepto del desglose de la comision periodica, para el texto legal. */
+export interface CalculadoraCommissionConcept {
+  concept: string;
+  amount: number;
+}
+
+export interface CalculadoraConfig {
+  /** Producto riel sobre el que se registra la solicitud. */
+  productId: number;
+  /**
+   * Variante del producto. Obligatoria: omitirla deja la solicitud con una tasa
+   * en el backend nuevo y otra distinta en el legado, para el mismo prestamo.
+   */
+  variantId: number;
+  amount: CalculadoraAmountRange;
+  /** Plazos ofrecidos, derivados de las celdas de precio y ordenados. */
+  terms: number[];
+  commissionBreakdown: CalculadoraCommissionConcept[];
+  /** Interes moratorio en soles por dia de atraso. */
+  dailyLateFee: number;
+}
+
+function toPositiveInt(value: unknown): number | null {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
+}
+
+/** Los plazos salen de `planes`, que el backend deriva de las celdas de precio. */
+function readCalculadoraTerms(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return [];
+  const terms = raw
+    .map((plan) => toPositiveInt((plan as Record<string, unknown> | null)?.plazo))
+    .filter((plazo): plazo is number => plazo !== null);
+  return Array.from(new Set(terms)).sort((a, b) => a - b);
+}
+
+function readCalculadoraAmountRange(raw: unknown): CalculadoraAmountRange | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const { min, max, step } = raw as Record<string, unknown>;
+
+  const maximo = typeof max === 'number' ? max : Number(max);
+  if (!Number.isFinite(maximo) || maximo <= 0) return null;
+
+  const minimo = typeof min === 'number' ? min : Number(min);
+  const salto = typeof step === 'number' ? step : Number(step);
+
+  return {
+    min: Number.isFinite(minimo) && minimo > 0 ? minimo : 0,
+    max: maximo,
+    // Un salto invalido cae en 1, que no rechaza nada: la validacion firme la
+    // hace el backend, y un default alto aca bloquearia importes con centimos.
+    step: Number.isFinite(salto) && salto > 0 ? salto : 1,
+  };
+}
+
+function readCalculadoraCommissionBreakdown(raw: unknown): CalculadoraCommissionConcept[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      const fila = item as Record<string, unknown> | null;
+      const concept = typeof fila?.concepto === 'string' ? fila.concepto.trim() : '';
+      const amount = typeof fila?.monto === 'number' ? fila.monto : Number(fila?.monto);
+      return concept && Number.isFinite(amount) ? { concept, amount } : null;
+    })
+    .filter((item): item is CalculadoraCommissionConcept => item !== null);
+}
+
+/**
+ * Extrae el namespace `calculadora` de un LandingConfig resuelto.
+ *
+ * Devuelve null —y con eso apaga la calculadora— ante cualquier configuracion
+ * con la que no se podria completar una solicitud: apagada, ausente, sin
+ * producto, sin variante, sin plazos, o con un rango de monto imposible.
+ * Mostrar un control que despues no puede entregar una cuota es peor que no
+ * mostrarlo.
+ *
+ * La clave del producto es `efectivo_product_id`. `product_id` no existe en la
+ * respuesta, y leerla devolveria indefinido.
+ */
+export function getCalculadora(config: LandingConfig): CalculadoraConfig | null {
+  const raw = (config as Record<string, unknown>)['calculadora'] as
+    | Record<string, unknown>
+    | undefined;
+  if (!raw || raw.enabled !== true) return null;
+
+  const productId = toPositiveInt(raw.efectivo_product_id);
+  const variantId = toPositiveInt(raw.variant_id);
+  if (productId === null || variantId === null) return null;
+
+  const terms = readCalculadoraTerms(raw.planes);
+  if (terms.length === 0) return null;
+
+  const amount = readCalculadoraAmountRange(raw.monto);
+  if (amount === null) return null;
+
+  return {
+    productId,
+    variantId,
+    amount,
+    terms,
+    commissionBreakdown: readCalculadoraCommissionBreakdown(raw.comision_desglose),
+    dailyLateFee:
+      typeof raw.mora_diaria === 'number' && raw.mora_diaria > 0 ? raw.mora_diaria : 0,
   };
 }
 
@@ -195,6 +333,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     overlay_variant: '',
     overlay_deadline: '',
     can_change_term: true,
+    show_product_image: true,
     has_coupon: true,
   },
 };
