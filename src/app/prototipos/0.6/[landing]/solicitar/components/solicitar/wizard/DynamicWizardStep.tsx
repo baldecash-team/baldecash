@@ -19,13 +19,51 @@ const MONTH_NAMES = [
 ];
 
 /**
- * Primera fecha de pago a mostrar. Base: el mes siguiente. Si la landing es
- * diferida (`extraMonths` = deferred_payment.deferred_months), se corre esa
- * cantidad de meses adicionales, con rollover de año.
+ * Cuántos meses corre el legacy el primer vencimiento, según el día elegido y
+ * el día del mes en que se arma el cronograma.
+ *
+ * Espejo de `generar_fechas_mensuales_fijo` (webservice,
+ * `SolicitudController.php`): cada día del catálogo tiene su propio corte, y
+ * pasado ese corte el primer pago se va un mes más para dejarle colchón a la
+ * persona. Antes acá se asumía «mes siguiente» siempre, y en la segunda
+ * quincena el aviso prometía un mes antes de lo que el legacy iba a cobrar
+ * (día 3 y día 10 son los únicos con corte a dos meses).
+ *
+ * Lo que NO se replica a propósito: el corrimiento a lunes cuando el
+ * vencimiento cae fin de semana. Eso mueve días, no el mes, y este aviso es
+ * una referencia del mes de cobro.
  */
-function getFirstPaymentDate(selectedDay: number, extraMonths: number = 0): string {
+export function monthsAheadForPaymentDay(selectedDay: number, todayDay: number): number {
+  switch (selectedDay) {
+    case 3:
+      return todayDay >= 14 ? 2 : 1;
+    case 10:
+      return todayDay >= 21 ? 2 : 1;
+    case 18:
+      return 1;
+    case 25:
+      return todayDay >= 6 ? 1 : 0;
+    case 30:
+      return 1;
+    default:
+      // Días sin regla propia en el legacy: se quedan en el mes en curso y solo
+      // saltan al siguiente si ese vencimiento ya pasó (el `isPast()` del loop).
+      return selectedDay <= todayDay ? 1 : 0;
+  }
+}
+
+/**
+ * Primera fecha de pago a mostrar. Es una referencia: el cronograma real lo
+ * arma el legacy recién al aprobar, y con el `now()` de ese momento — si la
+ * aprobación cruza un corte, la fecha se corre.
+ *
+ * Cuando la landing es diferida se suma **un** mes, que es lo que agrega el
+ * legacy (`$fecha_inicial->addMonth()` para `is_diferido`), sin importar el
+ * `deferred_months` de la config.
+ */
+function getFirstPaymentDate(selectedDay: number, isDeferred: boolean = false): string {
   const today = new Date();
-  const monthsAhead = 1 + Math.max(0, extraMonths);
+  const monthsAhead = monthsAheadForPaymentDay(selectedDay, today.getDate()) + (isDeferred ? 1 : 0);
   const total = today.getMonth() + monthsAhead;
   const targetMonth = ((total % 12) + 12) % 12;
   const targetYear = today.getFullYear() + Math.floor(total / 12);
@@ -109,8 +147,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   const { getFieldValue, updateField, formData } = useWizard();
   const { deferredPayment } = useLayout();
 
-  // Meses adicionales a sumar al primer pago cuando la landing es diferida.
-  const deferredMonths = deferredPayment?.enabled ? deferredPayment.deferred_months : 0;
+  // El legacy corre un mes el primer pago cuando la landing es diferida.
+  const isDeferred = Boolean(deferredPayment?.enabled);
 
   // Initialize fields with default_value from API (only if field has no value yet)
   useEffect(() => {
@@ -256,7 +294,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
                   <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
                   <p className="text-sm text-neutral-700">
-                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue), deferredMonths)}</span>
+                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue), isDeferred)}</span>
                   </p>
                 </div>
               </div>
