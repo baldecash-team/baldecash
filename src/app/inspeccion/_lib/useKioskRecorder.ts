@@ -64,6 +64,7 @@ export interface ResultadoFoto {
    */
   thumbBlob: Blob;
   mimeType: string;
+  /** Lado de la foto. Siempre 1:1, así que `ancho === alto`. */
   ancho: number;
   alto: number;
 }
@@ -98,6 +99,10 @@ export interface UseKioskRecorderReturn {
   /**
    * Saca una foto SIN interrumpir nada. Se puede llamar mientras graba: ahí
    * la imagen sale del canvas justamente para no tocar el `MediaRecorder`.
+   *
+   * Sale siempre 1:1 —recortada al centro— venga del canvas o del sensor:
+   * el encuadre que el operador ve es cuadrado, y la evidencia tiene que ser
+   * eso mismo.
    */
   capturarFoto: () => Promise<ResultadoFoto>;
   detener: () => Promise<ResultadoDetener>;
@@ -238,6 +243,72 @@ function negotiateMimeType(): string | null {
     if (MediaRecorder.isTypeSupported(candidate)) return candidate;
   }
   return null;
+}
+
+/** Exporta un canvas ya dibujado como JPEG. */
+function canvasABlob(canvas: HTMLCanvasElement, calidad: number): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('No se pudo generar la imagen.'))),
+      FOTO_MIME,
+      calidad
+    );
+  });
+}
+
+/**
+ * Recorta una foto ya codificada a un cuadrado centrado.
+ *
+ * Es el complemento de `capturarPorCanvas` para la foto que viene del sensor
+ * (`ImageCapture.takePhoto()`), que llega en el formato de la cámara y no en
+ * el encuadre 1:1 del preview. Se decodifica con `createImageBitmap` en vez
+ * de un `<img>` + `onload` porque no toca el DOM ni el layout, corre fuera
+ * del hilo principal y evita el parpadeo de un elemento montado al vuelo en
+ * una pantalla que es, literalmente, el encuadre.
+ *
+ * Tira si no se puede recortar (navegador sin `createImageBitmap`, imagen
+ * ilegible): el que llama cae al canvas, que ya sale cuadrado. Subir una foto
+ * con otra forma sería peor que subirla con menos resolución — la evidencia
+ * tiene que ser comparable entre equipos y coincidir con lo que se encuadró.
+ */
+async function recortarCuadrado(foto: Blob): Promise<{ blob: Blob; lado: number }> {
+  const crearBitmap = (
+    globalThis as unknown as { createImageBitmap?: (b: Blob) => Promise<ImageBitmap> }
+  ).createImageBitmap;
+  if (typeof crearBitmap !== 'function') {
+    throw new Error('Este navegador no puede recortar la foto.');
+  }
+
+  const bitmap = await crearBitmap(foto);
+  try {
+    const lado = Math.min(bitmap.width, bitmap.height);
+    if (!lado) throw new Error('La foto llegó vacía.');
+    // Ya es cuadrada: no se vuelve a codificar (recomprimir un JPEG solo
+    // suma artefactos justo en el detalle fino que hay que poder leer).
+    if (bitmap.width === bitmap.height) return { blob: foto, lado };
+
+    const canvas = document.createElement('canvas');
+    canvas.width = lado;
+    canvas.height = lado;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No se pudo preparar la imagen.');
+    ctx.drawImage(
+      bitmap,
+      Math.round((bitmap.width - lado) / 2),
+      Math.round((bitmap.height - lado) / 2),
+      lado,
+      lado,
+      0,
+      0,
+      lado,
+      lado
+    );
+    return { blob: await canvasABlob(canvas, FOTO_CALIDAD), lado };
+  } finally {
+    // El bitmap decodificado son varios MB de RAM; en un kiosco que saca
+    // fotos todo el día, no cerrarlo se acumula hasta que la pestaña muere.
+    bitmap.close?.();
+  }
 }
 
 /** Nombres de error de `getUserMedia` que indican un problema puntual del
@@ -545,9 +616,15 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
   }, []);
 
   /**
-   * Dibuja el frame actual del `<video>` en un canvas y lo devuelve como
-   * JPEG. Es el camino SEGURO: no toca el track ni el `MediaRecorder`, así
-   * que se puede usar con el video grabando.
+   * Dibuja el frame actual del `<video>` en un canvas CUADRADO y lo devuelve
+   * como JPEG. Es el camino SEGURO: no toca el track ni el `MediaRecorder`,
+   * así que se puede usar con el video grabando.
+   *
+   * Recorta al centro en vez de deformar: la cámara puede no respetar el 1:1
+   * que se le pide (ver `ASPECT_RATIO`), y en producción salieron 1058×1280 y
+   * 720×1280 pidiendo el cuadrado. Estirar el frame a un cuadrado arruinaría
+   * la única razón por la que existe la foto —leer una etiqueta, medir un
+   * rayón—, así que se descarta el sobrante de los dos lados largos.
    */
   const capturarPorCanvas = useCallback(
     (ladoMaximo?: number, calidad: number = FOTO_CALIDAD): Promise<Blob> => {
@@ -558,31 +635,35 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
         return Promise.reject(new Error('La cámara no está entregando imagen.'));
       }
 
-      const escala = ladoMaximo
-        ? Math.min(1, ladoMaximo / Math.max(anchoNativo, altoNativo))
-        : 1;
+      const ladoFuente = Math.min(anchoNativo, altoNativo);
+      const ladoSalida = ladoMaximo ? Math.min(ladoFuente, ladoMaximo) : ladoFuente;
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(anchoNativo * escala);
-      canvas.height = Math.round(altoNativo * escala);
+      canvas.width = ladoSalida;
+      canvas.height = ladoSalida;
       const ctx = canvas.getContext('2d');
       if (!ctx) return Promise.reject(new Error('No se pudo preparar la imagen.'));
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(
+        video,
+        Math.round((anchoNativo - ladoFuente) / 2),
+        Math.round((altoNativo - ladoFuente) / 2),
+        ladoFuente,
+        ladoFuente,
+        0,
+        0,
+        ladoSalida,
+        ladoSalida
+      );
 
-      return new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error('No se pudo generar la imagen.'))),
-          FOTO_MIME,
-          calidad
-        );
-      });
+      return canvasABlob(canvas, calidad);
     },
     []
   );
 
   const capturarFoto = useCallback(async (): Promise<ResultadoFoto> => {
     const video = videoRef.current;
-    const ancho = video?.videoWidth ?? 0;
-    const alto = video?.videoHeight ?? 0;
+    // Lado del cuadrado que sale del canvas: el corto del frame, porque el
+    // largo se recorta (ver `capturarPorCanvas`).
+    const ladoCanvas = Math.min(video?.videoWidth ?? 0, video?.videoHeight ?? 0);
 
     // La miniatura SIEMPRE sale del canvas, tanto si la foto vino del sensor
     // como si no: es una reducción del mismo encuadre y cuesta un `drawImage`.
@@ -603,8 +684,15 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
 
     if (!grabando && ImageCaptureCtor && videoTrack) {
       try {
-        const blob = await new ImageCaptureCtor(videoTrack).takePhoto();
-        return { blob, thumbBlob, mimeType: blob.type || FOTO_MIME, ancho, alto };
+        const sensor = await new ImageCaptureCtor(videoTrack).takePhoto();
+        // El sensor entrega SU formato (4:3 típico), no el encuadre 1:1 del
+        // preview: sin este recorte la foto de "modo foto" se subía apaisada
+        // —con mesa a los costados— mientras la de "modo video" salía
+        // cuadrada, y ninguna de las dos coincidía con lo que el operador vio
+        // al encuadrar. Si el recorte no se puede hacer, cae al canvas de
+        // abajo (que ya es cuadrado) en vez de subir otra forma.
+        const { blob, lado } = await recortarCuadrado(sensor);
+        return { blob, thumbBlob, mimeType: blob.type || FOTO_MIME, ancho: lado, alto: lado };
       } catch {
         // iOS Safari no lo tiene y Android puede rechazarlo. Una foto
         // degradada es aceptable; quedarse sin foto, no — el operador ya
@@ -613,7 +701,13 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     }
 
     const blob = await capturarPorCanvas();
-    return { blob, thumbBlob, mimeType: blob.type || FOTO_MIME, ancho, alto };
+    return {
+      blob,
+      thumbBlob,
+      mimeType: blob.type || FOTO_MIME,
+      ancho: ladoCanvas,
+      alto: ladoCanvas,
+    };
   }, [capturarPorCanvas, estado]);
 
   const detener = useCallback((): Promise<ResultadoDetener> => {
