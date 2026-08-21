@@ -27,6 +27,8 @@ import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTracke
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 import { DEFAULT_LANDING_CONFIG, OVERLAY_VARIANT_LOGOS, type LandingConfig } from '../types/landingConfig';
 import { FloatingCtaButton } from '../components/FloatingCtaButton';
+import { ReferralBanner } from '../components/referral/ReferralBanner';
+import type { ReferralBanner as ReferralBannerData } from '../services/referralBannerApi';
 
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
@@ -40,6 +42,12 @@ interface LandingPageClientProps {
   initialData?: HeroData | null;
   /** Resolved landing config preset (layout/features flags). Server-side fetched. */
   landingConfig?: LandingConfig;
+  /**
+   * Promotora que refirió la visita, ya resuelta server-side. `null` en el
+   * 99% del tráfico: sólo llega con valor cuando el link trae `?promotor=` y
+   * el token de `utm_term` coincide (ver `services/referralBannerApi`).
+   */
+  referralBanner?: ReferralBannerData | null;
 }
 
 interface HeroData {
@@ -580,10 +588,17 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
 }
 
 // Main export with Suspense wrapper + tracking providers
-export function LandingPageClient({ slug, initialData, landingConfig }: LandingPageClientProps) {
+export function LandingPageClient({ slug, initialData, landingConfig, referralBanner }: LandingPageClientProps) {
   return (
     <SessionProvider landingSlug={slug}>
       <EventTrackerProvider>
+        {/*
+          La franja va DENTRO de los providers a propósito: así su evento de
+          impresión viaja con el mismo `session_uuid` que el resto de la visita
+          y se puede cruzar con la conversión. Fuera del árbol quedaría como un
+          evento huérfano, sin sesión a la cual atribuirlo.
+        */}
+        {referralBanner && <ReferralBanner data={referralBanner} landingSlug={slug} />}
         <Suspense fallback={<HomeSkeleton />}>
           <LandingPageClientInner slug={slug} initialData={initialData} landingConfig={landingConfig} />
         </Suspense>

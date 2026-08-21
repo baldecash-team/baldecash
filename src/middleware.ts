@@ -100,6 +100,62 @@ const RENAMED_LANDING_SLUGS: Record<string, string> = {
   'convenio-ucv-landing': 'ucv',
 };
 
+/**
+ * Rutas que NO son landings y por lo tanto no se reescriben a /prototipos/0.6.
+ * Se usa tanto en el rewrite normal como en el de la franja de referido: sin
+ * compartirla, un `?promotor=` sobre /seguros mandaría esa página al catch-all
+ * de landings y devolvería 404.
+ */
+function esRutaInterna(pathname: string): boolean {
+  return (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    // pathname.startsWith('/monitoring') || // tunnel Sentry desactivado
+    pathname.startsWith('/prototipos') ||
+    pathname.startsWith('/sentry-example-page') ||
+    pathname.startsWith('/seguros') ||
+    pathname.startsWith('/multiasistencia') ||
+    // Estación de inspección: vive en la raíz, NO bajo /prototipos/0.6. Sin
+    // esta línea el rewrite la manda al catch-all [[...slug]] de landings y
+    // toda la vinculación por QR devuelve 404 en produccion.
+    pathname.startsWith('/inspeccion') ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/favicon.ico'
+  );
+}
+
+/**
+ * Segmento interno de la landing con franja de referido.
+ * Ver `app/prototipos/0.6/referido/[slug]/page.tsx` para el porqué de la ruta
+ * gemela: mantiene estática la landing normal y deja el render por request sólo
+ * para las visitas que llegan por un link de activación.
+ */
+const REFERIDO_SEGMENT = 'referido';
+
+/**
+ * Slug de la landing si el path es la RAÍZ de una landing; `null` si no.
+ *
+ * Sólo la raíz: `/upn` sí, `/upn/catalogo` no. La franja se pinta en la página
+ * a la que apunta el link del flyer, no en todo el recorrido posterior.
+ * `trailingSlash: true` hace que los paths lleguen como `/upn/`, de ahí la
+ * normalización.
+ */
+function landingRootSlug(pathname: string, basePath: string): string | null {
+  let resto = pathname;
+  if (basePath) {
+    if (resto !== basePath && !resto.startsWith(`${basePath}/`)) return null;
+    resto = resto.slice(basePath.length);
+  }
+  resto = resto.replace(/\/+$/, '');
+  if (resto === '') return 'home';
+  const segmentos = resto.split('/').filter(Boolean);
+  if (segmentos.length !== 1) return null;
+  // `/referido` como landing chocaría con el segmento interno; se deja pasar por
+  // la ruta normal.
+  return segmentos[0] === REFERIDO_SEGMENT ? null : segmentos[0];
+}
+
 export function middleware(request: NextRequest) {
   // Maintenance mode: redirect everything to Webflow
   if (process.env.MAINTENANCE_MODE === 'true') {
@@ -132,6 +188,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
+  // Link de activación: la landing se sirve desde la ruta gemela dinámica, que
+  // resuelve la promotora server-side y pinta la franja ya en el HTML. El resto
+  // del tráfico ni se entera y sigue saliendo estático del CDN.
+  //
+  // Va ANTES del rewrite normal en los dos modos (producción y `basePath` de
+  // desarrollo) para que la franja se pueda probar en local sin desplegar.
+  // `esRutaInterna` sólo aplica en producción: en desarrollo TODO cuelga de
+  // /prototipos/0.6, así que ahí el filtro lo hace `landingRootSlug`, que exige
+  // exactamente un segmento después del basePath.
+  const puedeLlevarFranja = isProduction ? !esRutaInterna(pathname) : true;
+  if (request.nextUrl.searchParams.has('promotor') && puedeLlevarFranja) {
+    const slug = landingRootSlug(pathname, isProduction ? '' : APP_BASE_PATH);
+    if (slug) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/prototipos/0.6/${REFERIDO_SEGMENT}/${slug}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   // Production mode: rewrite clean URLs to internal paths
   if (isProduction) {
     // Root → home landing
@@ -142,22 +217,7 @@ export function middleware(request: NextRequest) {
     }
 
     // Skip internal Next.js paths and API routes
-    if (
-      pathname.startsWith('/_next') ||
-      pathname.startsWith('/api') ||
-      // pathname.startsWith('/monitoring') || // tunnel Sentry desactivado
-      pathname.startsWith('/prototipos') ||
-      pathname.startsWith('/sentry-example-page') ||
-      pathname.startsWith('/seguros') ||
-      pathname.startsWith('/multiasistencia') ||
-      // Estación de inspección: vive en la raíz, NO bajo /prototipos/0.6. Sin
-      // esta línea el rewrite de abajo la manda al catch-all [[...slug]] de
-      // landings y toda la vinculación por QR devuelve 404 en produccion.
-      pathname.startsWith('/inspeccion') ||
-      pathname === '/robots.txt' ||
-      pathname === '/sitemap.xml' ||
-      pathname === '/favicon.ico'
-    ) {
+    if (esRutaInterna(pathname)) {
       return NextResponse.next();
     }
 
