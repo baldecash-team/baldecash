@@ -58,6 +58,9 @@ interface HeroData {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Marca de la institucion de las landings SIN convenio: viaja aparte de
+  // `agreementData` para no prenderles el layout de convenio.
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
   primaryColor?: string;
   secondaryColor?: string;
   slug?: string;
@@ -429,6 +432,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         footerData={mergedFooterData}
         benefitsData={heroData.benefitsData}
         agreementData={heroData.agreementData}
+        institutionBranding={heroData.institutionBranding}
         showInstitutionLogo={showInstitutionLogo}
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}

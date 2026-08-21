@@ -75,6 +75,15 @@ interface HeroSectionProps {
   benefitsData?: BenefitsData | null;
   agreementData?: AgreementData | null;
   /**
+   * Marca de la institucion de referencia de una landing que NO es de convenio
+   * (`lead-flujo-normal` -> SENATI).
+   *
+   * Deliberadamente separada de `agreementData`: `isConvenio` se deriva de esa
+   * otra, y pasarla por ahi le prenderia el hero, el FAQ y el CTA de convenio
+   * a una landing que no lo es. Esto solo alimenta el logo.
+   */
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
+  /**
    * Visibilidad del logo institucional en el navbar y el footer de la home.
    * Viene de `layout.show_agreement_logo`. Default: true (BAL-2970).
    *
@@ -114,6 +123,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   footerData,
   benefitsData,
   agreementData,
+  institutionBranding,
   showInstitutionLogo = true,
   landing = 'home',
   previewBannerOffset = 0,
@@ -216,7 +226,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   };
 
   // Determine if this is a convenio landing
+  //
+  // Ojo: `institutionBranding` NO entra en esta cuenta. Una landing sin
+  // convenio que muestra el logo de su institucion de referencia sigue sin ser
+  // de convenio: si entrara aca, le apareceria el hero, el FAQ y el CTA de
+  // convenio, que es el efecto que la separacion evita.
   const isConvenio = !!agreementData;
+
+  // El logo que se pinta en el navbar y en el footer. El convenio manda; el
+  // branding suelto es el fallback de las landings que no lo tienen.
+  const institutionLogoResuelto =
+    agreementData?.institution_logo || institutionBranding?.institution_logo;
+  const institutionNameResuelto =
+    agreementData?.institution_name || institutionBranding?.institution_name;
 
   // section_view tracking via IntersectionObserver
   const tracker = useEventTrackerOptional();
@@ -250,7 +272,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} showInstitutionLogo={showInstitutionLogo} primaryColor={primaryColor} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={institutionLogoResuelto} institutionName={institutionNameResuelto} showInstitutionLogo={showInstitutionLogo} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
@@ -409,7 +431,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* Footer - Institucional con logo doble si es convenio */}
       <div id="footer">
-        <Footer data={footerData} landing={landing} agreementData={agreementData} showInstitutionLogo={showInstitutionLogo} />
+        <Footer data={footerData} landing={landing} agreementData={agreementData} institutionBranding={institutionBranding} showInstitutionLogo={showInstitutionLogo} />
       </div>
 
       {/* Quiz Modal - Solo renderizar si hay quiz asociado */}

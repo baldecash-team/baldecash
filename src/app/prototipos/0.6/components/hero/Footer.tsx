@@ -54,6 +54,15 @@ interface FooterProps {
    * institucion como texto, que es justo lo que el flag evita (BAL-2970).
    */
   showInstitutionLogo?: boolean;
+  /**
+   * Marca de la institucion de referencia de una landing SIN convenio
+   * (`lead-flujo-normal` -> SENATI). Solo se mira cuando no hay
+   * `agreementData`: el convenio manda.
+   *
+   * Es una prop propia y no un `agreementData` armado a mano porque ese objeto
+   * es el que decide, aguas arriba, que una landing se pinte como de convenio.
+   */
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
   onCatalogClick?: () => void;
   /** Optional logo URL that overrides the company logo (e.g. a co-branded partner lockup). */
   logoOverride?: string;
@@ -63,7 +72,7 @@ interface FooterProps {
   gamerTheme?: 'dark' | 'light';
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, showInstitutionLogo = true, onCatalogClick, logoOverride, theme, gamerTheme }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, institutionBranding, showInstitutionLogo = true, onCatalogClick, logoOverride, theme, gamerTheme }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
   const isGamer = theme === 'gamer';
@@ -325,13 +334,13 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
                 />
                 )}
               </a>
-              {showInstitutionLogo && !agreementData?.hide_logo && agreementData?.institution_logo && (
+              {showInstitutionLogo && !agreementData?.hide_logo && (agreementData?.institution_logo || institutionBranding?.institution_logo) && (
                 <>
                   <span className="text-neutral-500">×</span>
                   <div className="bg-white rounded-lg px-3 py-1.5">
                     <img
-                      src={agreementData.institution_logo}
-                      alt={agreementData.institution_name || 'Institución'}
+                      src={agreementData?.institution_logo || institutionBranding?.institution_logo}
+                      alt={agreementData?.institution_name || institutionBranding?.institution_name || 'Institución'}
                       className="h-5 object-contain max-w-[140px]"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
