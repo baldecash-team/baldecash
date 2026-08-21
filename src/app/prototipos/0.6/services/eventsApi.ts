@@ -313,7 +313,17 @@ export type EventType =
   // de sesión como propiedad de usuario en Google. Va al backend propio, que es
   // dominio nuestro y nadie bloquea, así que la comparación entre ambos lados
   // distingue "el evento no se generó" de "se generó pero no llegó a Google".
-  | 'ga_link_sent';
+  | 'ga_link_sent'
+  // Franja "Haz sido referido por Marco": la promotora que trajo la visita
+  // desde un link de activación. `shown` se emite SOLO cuando la franja
+  // efectivamente se renderiza — los casos negativos (sin promotor, código
+  // inexistente, promotora inactiva, token que no coincide) no muestran nada y
+  // tampoco emiten evento, así que las impresiones son impresiones de verdad.
+  // Properties: promoter_code, landing_slug, reason (ok | sin_telefono) y
+  // has_whatsapp. Nunca el nombre ni el teléfono: el backend los rechaza.
+  | 'referral_banner_shown'
+  | 'referral_banner_whatsapp_click'
+  | 'referral_banner_dismiss';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
