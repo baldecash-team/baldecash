@@ -232,7 +232,14 @@ export function LayoutProvider({
     // El logo se omite si `layout.show_agreement_logo` esta apagado; el nombre
     // se conserva porque el Navbar lo usa como alt text cuando si hay logo.
     const agreement = layoutData.agreement;
-    const institutionLogo = showAgreementLogo ? agreement?.institution_logo : undefined;
+    // El convenio manda; el branding suelto es el fallback de las landings que
+    // NO son de convenio y aun asi tienen una institucion de referencia
+    // (`lead-flujo-normal` -> SENATI). El backend nunca manda los dos: cuando
+    // hay convenio propio, `institution_branding` viene en null.
+    const branding = layoutData.institution_branding;
+    const institutionLogo = showAgreementLogo
+      ? (agreement?.institution_logo || branding?.institution_logo)
+      : undefined;
 
     const variantLogo = overlayVariant !== null ? OVERLAY_VARIANT_LOGOS[overlayVariant] : undefined;
     const logoResolved = overlayVariant !== null;
@@ -250,7 +257,7 @@ export function LayoutProvider({
         .filter((item) => item.section)
         .map((item) => item.section as string),
       institutionLogo: institutionLogo || undefined,
-      institutionName: agreement?.institution_name || undefined,
+      institutionName: agreement?.institution_name || branding?.institution_name || undefined,
       showInstitutionLogo: showAgreementLogo,
     };
   }, [layoutData, overlayVariant, showAgreementLogo]);

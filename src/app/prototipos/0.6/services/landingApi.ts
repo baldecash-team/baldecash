@@ -378,6 +378,18 @@ export interface LandingLayoutResponse {
     study_center_id?: number;
     institution_type?: string;
   } | null;
+  /**
+   * Marca de la institución de una landing que NO es de convenio.
+   *
+   * Viene aparte de `agreement` a propósito: `isConvenio = !!agreementData`
+   * (HeroSection) prende el hero, el FAQ y el CTA de convenio, y estas
+   * landings solo quieren el logo en el navbar y el footer. Meterlo en
+   * `agreement` les cambiaría la página entera.
+   */
+  institution_branding?: {
+    institution_logo?: string;
+    institution_name?: string;
+  } | null;
   settings?: Record<string, string> | null;
 }
 
@@ -529,6 +541,9 @@ export function transformLandingData(data: LandingHeroResponse): {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Marca de la institucion de las landings SIN convenio (ver arriba,
+  // donde se arma): separada de `agreementData` a proposito.
+  institutionBranding: { institution_logo?: string; institution_name?: string } | null;
   landingType?: string;
   bannerImages: BannerImage[];
   leadFormConfig: LeadFormConfig | null;
@@ -1038,6 +1053,17 @@ export function transformLandingData(data: LandingHeroResponse): {
     institution_logo: (agreementRaw.institution_logo as string) || undefined,
   } : null;
 
+  // Marca de la institucion de las landings SIN convenio (`lead-flujo-normal`
+  // -> SENATI). NO se fusiona con `agreementData` a proposito: HeroSection
+  // decide `isConvenio = !!agreementData` y le cambiaria el hero, el FAQ y el
+  // CTA a una landing que no es de convenio. Viaja como su propia cosa y solo
+  // alimenta el logo del navbar y del footer.
+  const brandingRaw = landingData.institution_branding as Record<string, unknown> | null | undefined;
+  const institutionBranding = brandingRaw ? {
+    institution_logo: (brandingRaw.institution_logo as string) || undefined,
+    institution_name: (brandingRaw.institution_name as string) || undefined,
+  } : null;
+
   // Replace {convenioName} template variable with institution short name
   const convenioName = agreementData?.institution_short_name || agreementData?.institution_name || '';
   if (convenioName) {
@@ -1070,6 +1096,7 @@ export function transformLandingData(data: LandingHeroResponse): {
     footerData,
     benefitsData,
     agreementData,
+    institutionBranding,
     landingType,
     bannerImages,
     leadFormConfig,
@@ -1106,6 +1133,9 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Igual que en `transformLandingData`: la marca institucional de las landings
+  // sin convenio viaja aparte para no prenderles el layout de convenio.
+  institutionBranding: { institution_logo?: string; institution_name?: string } | null;
   landingType?: string;
   bannerImages: BannerImage[];
   leadFormConfig: LeadFormConfig | null;

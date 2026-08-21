@@ -71,6 +71,9 @@ interface HeroData {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Marca de la institucion de las landings SIN convenio: viaja aparte de
+  // `agreementData` para no prenderles el layout de convenio.
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
   landingType?: string;
   bannerImages?: BannerImage[];
   leadFormConfig?: LeadFormConfig | null;
@@ -543,6 +546,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
             footerData={mergedFooterData}
             benefitsData={heroData.benefitsData}
             agreementData={heroData.agreementData}
+            institutionBranding={heroData.institutionBranding}
             showInstitutionLogo={landingConfig.layout.show_agreement_logo}
             landing={slug}
             previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
