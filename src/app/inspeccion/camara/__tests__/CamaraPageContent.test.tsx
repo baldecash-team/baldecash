@@ -407,6 +407,33 @@ describe('CamaraPageContent', () => {
       expect(screen.queryByRole('button', { name: /grabar \(prueba\)/i })).not.toBeInTheDocument();
     });
 
+    it('la cuadricula de encuadre aparece recien con imagen, sobre el MISMO cuadrado que el preview', async () => {
+      setDeviceSessionCamara();
+
+      render(<CamaraPageContent />);
+
+      // Sin cámara armada la pantalla es un cartel: una cuadrícula sobre el
+      // negro no ayuda a encuadrar nada.
+      expect(screen.queryByTestId('cuadricula-encuadre')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /armar cámara/i }));
+      await waitFor(() => {
+        expect(screen.getByText('ARMADA')).toBeInTheDocument();
+      });
+
+      const cuadro = screen.getByTestId('cuadricula-encuadre').firstElementChild as HTMLElement;
+      const video = document.querySelector('video') as HTMLVideoElement;
+      // El invariante: los dos cuadros salen del MISMO cálculo. Si se
+      // separan, las líneas marcan los tercios de otra cosa que la que se
+      // captura — peor que no tener cuadrícula.
+      expect(video.className).toContain('w-[min(100vw,100vh)]');
+      expect(video.className).toContain('aspect-square');
+      expect(cuadro.className).toContain('w-[min(100vw,100vh)]');
+      expect(cuadro.className).toContain('aspect-square');
+      // Regla de los tercios: 2 líneas verticales + 2 horizontales.
+      expect(cuadro.children).toHaveLength(4);
+    });
+
     it('sin ?debug=1, los botones temporales de prueba no estan en el DOM; con ?debug=1, si', async () => {
       setDeviceSessionCamara();
 

@@ -176,6 +176,56 @@ function hayDebugEnUrl(): boolean {
  */
 const FOTO_AVISO_MS = 1_200;
 
+/**
+ * El cuadro de captura en pantalla: el cuadrado más grande que entra.
+ *
+ * Lo comparten el `<video>` del preview y la cuadrícula, y por eso es una
+ * constante y no dos clases escritas por separado: si los dos cuadros no
+ * salen del MISMO cálculo, las líneas dejan de marcar los tercios de lo que
+ * se captura y pasan a mentir — que es peor que no tener cuadrícula.
+ *
+ * `vw`/`vh` y no porcentajes porque el `<main>` es `h-screen` (100vh) y ocupa
+ * el ancho de la ventana: son las mismas unidades con las que está armado el
+ * layout del kiosco.
+ */
+const CUADRO_ENCUADRE = 'aspect-square w-[min(100vw,100vh)]';
+
+/** Dónde caen las líneas de la regla de los tercios, en % del lado. */
+const TERCIOS = [100 / 3, 200 / 3] as const;
+
+/**
+ * Cuadrícula de encuadre: los tercios sobre el cuadro que se va a capturar.
+ *
+ * Las líneas van blancas con una sombra negra encima y no de un solo color:
+ * el fondo es lo que haya sobre la mesa —un equipo negro, una caja blanca—,
+ * y cualquier color plano desaparece contra la mitad de los casos. Finas
+ * (1px) y al 30%: tienen que poder ignorarse mientras se mira un rayón, que
+ * es lo que hay que juzgar antes de disparar.
+ *
+ * El borde del cuadrado marca dónde termina la foto. Con una cámara que sí
+ * respeta el 1:1 coincide con el borde de la imagen; con una que no, deja
+ * ver cuánto del preview es banda y no evidencia.
+ */
+function CuadriculaEncuadre() {
+  const linea = 'absolute bg-white/30 [box-shadow:0_0_2px_rgba(0,0,0,0.45)]';
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+      aria-hidden
+      data-testid="cuadricula-encuadre"
+    >
+      <div className={`relative border border-white/20 ${CUADRO_ENCUADRE}`}>
+        {TERCIOS.map((pct) => (
+          <div key={`v-${pct}`} className={`${linea} inset-y-0 w-px`} style={{ left: `${pct}%` }} />
+        ))}
+        {TERCIOS.map((pct) => (
+          <div key={`h-${pct}`} className={`${linea} inset-x-0 h-px`} style={{ top: `${pct}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function CamaraPageContent() {
   // Lazy init: `getDeviceSession()` es síncrono (lee `localStorage`), así
   // que el estado arranca con el valor real desde el primer render en vez
@@ -942,15 +992,21 @@ export default function CamaraPageContent() {
           una imagen distinta de la que se estaba grabando — creía tener margen
           donde no lo tenía. Con `contain` se ve el cuadro completo tal cual se
           graba, con bandas a los costados. Ese desperdicio de pantalla es el
-          precio de que encuadrar signifique algo. */}
+          precio de que encuadrar signifique algo.
+
+          El lado sale de `min(100vw, 100vh)` —el cuadrado más grande que entra
+          en la pantalla— y no del tamaño intrínseco del stream: así el cuadro
+          del preview es EXACTAMENTE el mismo que el de la cuadrícula, que se
+          dibuja aparte (va por encima del velo). Con el alto intrínseco, una
+          cámara que entrega menos píxeles que la pantalla dejaba el video más
+          chico que la cuadrícula y las líneas caían fuera de la imagen. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
-          className="max-h-full max-w-full"
-          style={{ aspectRatio: '1 / 1', objectFit: 'contain' }}
+          className={`object-contain ${CUADRO_ENCUADRE}`}
         />
       </div>
       {/*
@@ -969,6 +1025,27 @@ export default function CamaraPageContent() {
       {capturaEstado !== 'grabando' && (
         <div className="pointer-events-none absolute inset-0 bg-black/35" aria-hidden />
       )}
+
+      {/*
+        Cuadrícula de encuadre (regla de los tercios) sobre el cuadro que se
+        va a capturar.
+
+        Lo que se fotografía es un objeto apoyado en una mesa y la foto es la
+        evidencia de un rayón o de una etiqueta: sin referencia, cada operador
+        encuadra distinto y el equipo termina descentrado o cortado, y eso
+        recién se ve cuando la foto ya está en S3 y el equipo ya se fue. Las
+        líneas dan el centro y los tercios de un vistazo, que es lo que hace
+        falta para dejar el equipo donde tiene que estar.
+
+        Va DESPUÉS del velo a propósito: el velo se pinta en reposo —justo
+        cuando se encuadra, antes de disparar— y unas líneas por debajo de él
+        quedan lavadas hasta desaparecer sobre una escena clara.
+
+        Solo con imagen en pantalla (`armada`/`grabando`): una cuadrícula
+        sobre el negro de una cámara sin armar o caída no ayuda a encuadrar
+        nada y ensucia un cartel que se lee a varios metros.
+      */}
+      {(capturaEstado === 'armada' || capturaEstado === 'grabando') && <CuadriculaEncuadre />}
 
       {/*
         Zoom de la CÁMARA (no del preview): `aplicarZoom` va al sensor por
