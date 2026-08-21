@@ -8,7 +8,7 @@
  *
  * La disposición sigue el maquetado entregado por producto: dos columnas en
  * escritorio —detalles y cronograma—, el total a pagar en un recuadro propio con
- * filete de acento, las tres cláusulas en tres columnas y la nota de fechas en
+ * filete de acento, las cláusulas en dos columnas y la nota de fechas en
  * otro recuadro al pie.
  *
  * El cronograma va en UNA sola columna. Se había partido en dos, pero el
@@ -196,7 +196,7 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
             </section>
           </div>
 
-          <div className="mt-7 grid gap-6 border-t border-[#eef0f8] pt-6 md:grid-cols-3">
+          <div className="mt-7 grid gap-6 border-t border-[#eef0f8] pt-6 md:grid-cols-2">
             <Clausula titulo="Cláusulas de penalidad">
               Ante el retraso de pago de una cuota, existirá un interés moratorio de{' '}
               {formatearSoles(simulacion?.moraDiaria)} por cada día de atraso en el que incurra el
@@ -221,11 +221,6 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
               ) : (
                 'La cuota mensual incluye las comisiones operativas del financiamiento.'
               )}
-            </Clausula>
-            <Clausula titulo="Pagos anticipados">
-              El cliente tendrá derecho a pagar por adelantado sus cuotas sin ningún tipo de
-              penalidad. Si el cliente paga todas las cuotas restantes en una sola transacción,
-              accederá a un descuento de 20% sobre el valor de las cuotas.
             </Clausula>
           </div>
 
