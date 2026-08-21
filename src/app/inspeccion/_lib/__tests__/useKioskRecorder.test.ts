@@ -735,21 +735,34 @@ describe('useKioskRecorder', () => {
 describe('useKioskRecorder — capturarFoto()', () => {
   let drawImage: jest.Mock;
   let takePhoto: jest.Mock;
+  /** Los canvas que el hook creó, en orden: primero la miniatura, después la
+   * foto. Sirven para mirar el TAMAÑO con el que salió cada imagen. */
+  let canvases: HTMLCanvasElement[];
+  /** Lo que devuelve `createImageBitmap` sobre la foto del sensor. */
+  let bitmap: { width: number; height: number; close: jest.Mock };
 
   /** Elemento de video "vivo": lo que el canvas dibuja. En la vista real lo
    * monta `CamaraPageContent`; acá se ata al ref a mano. */
-  function atarVideo(result: { current: { videoRef: { current: unknown } } }) {
+  function atarVideo(
+    result: { current: { videoRef: { current: unknown } } },
+    videoWidth = 1920,
+    videoHeight = 1920
+  ) {
     result.current.videoRef.current = {
-      videoWidth: 1920,
-      videoHeight: 1920,
+      videoWidth,
+      videoHeight,
     } as unknown as HTMLVideoElement;
   }
 
   beforeEach(() => {
     drawImage = jest.fn();
+    canvases = [];
     Object.defineProperty(window.HTMLCanvasElement.prototype, 'getContext', {
       configurable: true,
-      value: jest.fn(() => ({ drawImage })),
+      value: jest.fn(function (this: HTMLCanvasElement) {
+        canvases.push(this);
+        return { drawImage };
+      }),
     });
     Object.defineProperty(window.HTMLCanvasElement.prototype, 'toBlob', {
       configurable: true,
@@ -762,6 +775,14 @@ describe('useKioskRecorder — capturarFoto()', () => {
     (global as unknown as { ImageCapture: unknown }).ImageCapture = jest
       .fn()
       .mockImplementation(() => ({ takePhoto }));
+    bitmap = { width: 3024, height: 3024, close: jest.fn() };
+    (global as unknown as { createImageBitmap: unknown }).createImageBitmap = jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(bitmap));
+  });
+
+  afterEach(() => {
+    delete (global as unknown as { createImageBitmap?: unknown }).createImageBitmap;
   });
 
   it('mientras GRABA saca la foto del canvas, sin tocar el MediaRecorder', async () => {
@@ -807,6 +828,96 @@ describe('useKioskRecorder — capturarFoto()', () => {
 
     expect(takePhoto).toHaveBeenCalled();
     expect(foto.blob.size).toBeGreaterThan(0);
+  });
+
+  it('recorta la foto del canvas a 1:1 aunque la camara entregue un cuadro alargado', async () => {
+    // El preview es cuadrado (`aspectRatio: 1/1` en la vista), pero la camara
+    // NO garantiza 1:1 — en produccion salieron 1058×1280 y 720×1280 pidiendo
+    // el cuadrado. Sin recorte, lo que se subia tenia otra forma que lo que el
+    // operador vio al encuadrar.
+    const { result } = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await result.current.armar();
+    });
+    atarVideo(result as never, 1058, 1280);
+    act(() => {
+      result.current.grabar();
+    });
+
+    let foto!: { blob: Blob; ancho: number; alto: number };
+    await act(async () => {
+      foto = await result.current.capturarFoto();
+    });
+
+    // Primero la miniatura, despues la foto: las dos cuadradas.
+    const [canvasThumb, canvasFoto] = canvases;
+    expect(canvasThumb.width).toBe(canvasThumb.height);
+    expect(canvasFoto.width).toBe(1058);
+    expect(canvasFoto.height).toBe(1058);
+    // Recorte CENTRADO: se descartan 111px arriba y 111px abajo.
+    expect(drawImage).toHaveBeenLastCalledWith(
+      result.current.videoRef.current,
+      0,
+      111,
+      1058,
+      1058,
+      0,
+      0,
+      1058,
+      1058
+    );
+    expect(foto.ancho).toBe(1058);
+    expect(foto.alto).toBe(1058);
+  });
+
+  it('recorta a 1:1 la foto del sensor, que llega en el formato de la camara', async () => {
+    // `ImageCapture.takePhoto()` da el sensor completo (4:3 tipico), no el
+    // encuadre del preview: sin recortar, la foto de "modo foto" se subia
+    // apaisada mientras la de "modo video" salia cuadrada.
+    bitmap = { width: 4032, height: 3024, close: jest.fn() };
+    const { result } = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await result.current.armar();
+    });
+    atarVideo(result as never);
+
+    let foto!: { blob: Blob; ancho: number; alto: number };
+    await act(async () => {
+      foto = await result.current.capturarFoto();
+    });
+
+    expect(takePhoto).toHaveBeenCalled();
+    const canvasFoto = canvases.at(-1)!;
+    expect(canvasFoto.width).toBe(3024);
+    expect(canvasFoto.height).toBe(3024);
+    expect(drawImage).toHaveBeenLastCalledWith(bitmap, 504, 0, 3024, 3024, 0, 0, 3024, 3024);
+    expect(foto.ancho).toBe(3024);
+    expect(foto.alto).toBe(3024);
+    // El bitmap decodificado ocupa memoria hasta que se cierra, y en un
+    // kiosco que saca fotos todo el dia eso se acumula.
+    expect(bitmap.close).toHaveBeenCalled();
+  });
+
+  it('si no se puede recortar la foto del sensor, cae al canvas (que ya es cuadrado)', async () => {
+    // iOS Safari viejo no trae `createImageBitmap`. Antes que subir una foto
+    // con otra forma que la del encuadre, se prefiere la del canvas.
+    delete (global as unknown as { createImageBitmap?: unknown }).createImageBitmap;
+    const { result } = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await result.current.armar();
+    });
+    atarVideo(result as never, 1058, 1280);
+
+    let foto!: { blob: Blob; ancho: number; alto: number };
+    await act(async () => {
+      foto = await result.current.capturarFoto();
+    });
+
+    expect(takePhoto).toHaveBeenCalled();
+    expect(canvases.at(-1)!.width).toBe(1058);
+    expect(canvases.at(-1)!.height).toBe(1058);
+    expect(foto.ancho).toBe(1058);
+    expect(foto.alto).toBe(1058);
   });
 
   it('si el sensor falla, la foto sale igual por canvas', async () => {
