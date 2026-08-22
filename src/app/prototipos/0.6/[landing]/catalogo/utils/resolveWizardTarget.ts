@@ -1,38 +1,29 @@
-import type { CatalogProduct, ProductColor } from '../types/catalog';
+import type { CatalogProduct } from '../types/catalog';
+import { mergeColorSibling } from './mergeColorSibling';
 
-const mergeSibling = (parent: CatalogProduct, sibling: ProductColor, productId: string): CatalogProduct => ({
-  ...parent,
-  id: productId,
-  slug: sibling.slug || parent.slug,
-  displayName: sibling.displayName || parent.displayName,
-  name: sibling.displayName || parent.name,
-  price: sibling.price ?? parent.price,
-  quotaMonthly: sibling.quotaMonthly ?? parent.quotaMonthly,
-  originalQuotaMonthly: sibling.originalQuotaMonthly ?? parent.originalQuotaMonthly,
-  discount: sibling.discount ?? parent.discount,
-  specs: sibling.specs ?? parent.specs,
-  thumbnail: sibling.imageUrl || sibling.images?.[0] || parent.thumbnail,
-  images: sibling.images || (sibling.imageUrl ? [sibling.imageUrl] : parent.images),
-});
-
+/**
+ * Devuelve la card que el usuario toco, resolviendo el color elegido si lo hay.
+ *
+ * `product.id` NO identifica una card: el suelto y cada uno de sus combos son
+ * cards distintas de la misma landing con el MISMO id, y solo se distinguen por
+ * el slug (`{base}` vs `{base}-combo-{id}`) y el `landing_product_id`. Buscar
+ * por id en la lista del catalogo devuelve la primera card, que suele ser la del
+ * combo: eso era BAL-3270, con "Lo quiero" en el iPad suelto abriendo el combo
+ * con lapiz y case.
+ *
+ * Por eso aca no se busca nada por id. El color elegido siempre sale de
+ * `clickedCard.colors` (ver `ProductCard`: `selectedColor` se busca en
+ * `product.colors`), asi que la card tocada tiene toda la informacion necesaria
+ * y no hace falta mirar el resto del catalogo.
+ */
 export function resolveWizardTarget(
   clickedCard: CatalogProduct,
   activeProductId: string,
-  catalogProducts: CatalogProduct[],
 ): CatalogProduct {
-  // Un producto puede tener varias cards en la misma landing (el suelto y cada
-  // uno de sus combos) y todas comparten `id`. Buscar por `id` devolveria la
-  // primera de la lista, no la que el usuario toco: BAL-3270, donde "Lo quiero"
-  // en el iPad suelto abria el combo con lapiz y case.
   if (activeProductId === clickedCard.id) return clickedCard;
 
-  const direct = catalogProducts.find((p) => p.id === activeProductId);
-  if (direct) return direct;
-
-  for (const parent of catalogProducts) {
-    const sibling = parent.colors?.find((c) => c.productId === activeProductId);
-    if (sibling) return mergeSibling(parent, sibling, activeProductId);
-  }
+  const sibling = clickedCard.colors?.find((c) => c.productId === activeProductId);
+  if (sibling) return mergeColorSibling(clickedCard, sibling, activeProductId);
 
   return clickedCard;
 }
