@@ -51,8 +51,13 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
       backdrop="blur"
       placement="center"
       classNames={{
-        wrapper: 'z-[100]',
-        backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
+        // z-[9999] y no z-[100]: los botones flotantes del catálogo
+        // ("¿Necesitas ayuda?", comparar) viven en z-[100], así que empataban
+        // con el modal y quedaban ENCIMA del backdrop —se veían nítidos sobre
+        // la página atenuada—. Es el nivel que ya usan Cronograma,
+        // Certificaciones y SimilarProducts en el detalle.
+        wrapper: 'z-[9999]',
+        backdrop: 'bg-black/50 backdrop-blur-sm z-[9998]',
         base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200 mx-4',
         body: 'p-0',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
