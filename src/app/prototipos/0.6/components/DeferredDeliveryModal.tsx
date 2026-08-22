@@ -12,8 +12,8 @@ import React from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { Truck, CalendarClock } from 'lucide-react';
 import {
-  formatDeferredFrom,
-  formatDeferredDays,
+  formatShippingDate,
+  formatLocationTimes,
   type DeferredDelivery,
 } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
@@ -35,10 +35,12 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
   deferredDelivery,
   productName,
 }) => {
-  const range = formatDeferredFrom(deferredDelivery?.estimatedFrom ?? null);
-  const daysText = formatDeferredDays(
-    deferredDelivery?.daysMin ?? null,
-    deferredDelivery?.daysMax ?? null,
+  const shippingDate = formatShippingDate(deferredDelivery?.estimatedFrom ?? null);
+  const locationTimes = formatLocationTimes(
+    deferredDelivery?.limaDaysMin ?? null,
+    deferredDelivery?.limaDaysMax ?? null,
+    deferredDelivery?.provinciaDaysMin ?? null,
+    deferredDelivery?.provinciaDaysMax ?? null,
   );
 
   return (
@@ -79,15 +81,17 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
             Te llegará en la fecha estimada:
           </p>
 
-          {/* Fecha estimada */}
+          {/* Fecha de envío + tiempos por ubicación */}
           <div className="flex items-center gap-3 bg-[rgba(var(--color-primary-rgb),0.05)] border border-[rgba(var(--color-primary-rgb),0.15)] rounded-xl px-4 py-3 mb-6">
             <CalendarClock className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0" />
             <div>
-              {range && (
-                <p className="text-base font-bold text-neutral-800 leading-tight">{range}</p>
+              {shippingDate && (
+                <p className="text-base font-bold text-neutral-800 leading-tight">
+                  Se envía desde {shippingDate}
+                </p>
               )}
-              {daysText && (
-                <p className="text-xs text-neutral-500">Aprox. {daysText} hábiles</p>
+              {locationTimes && (
+                <p className="text-xs text-neutral-500 mt-0.5">{locationTimes}</p>
               )}
             </div>
           </div>
