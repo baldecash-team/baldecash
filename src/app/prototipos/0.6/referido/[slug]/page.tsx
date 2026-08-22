@@ -8,13 +8,14 @@
  * render por request — cambiar el TTFB de la página que convierte para pintarle
  * una franja al 1% de las visitas es exactamente lo que el diseño quería evitar.
  *
- * En su lugar, el middleware manda acá SÓLO las URLs que traen `?promotor=`.
+ * En su lugar, el middleware manda acá SÓLO las URLs cuyo `utm_term` trae un
+ * `__promo_`, que son las que vienen de un link de activación.
  * El tráfico orgánico nunca toca este archivo y sigue saliendo del CDN; el
  * referido paga un render y a cambio recibe la franja ya en el HTML, sin el
  * salto de layout de resolverla después de pintar.
  *
  * La URL del navegador no cambia: el middleware reescribe, no redirige. Quien
- * abre `/upn?promotor=jperez&...` sigue viendo `/upn?promotor=jperez&...`.
+ * abre `/wiener?utm_term=punto_x__promo_cmtgbr__act_y` sigue viendo eso mismo.
  */
 
 import type { Metadata } from 'next';
@@ -43,7 +44,7 @@ export default async function LandingConReferidoPage({ params, searchParams }: P
     fetchLandingConfig(slug),
     // Nunca lanza: ante cualquier problema devuelve null y la landing carga
     // sin franja. Ver `referralBannerApi`.
-    fetchReferralBanner(primerValor(query.promotor), primerValor(query.utm_term)),
+    fetchReferralBanner(primerValor(query.utm_term)),
   ]);
 
   return (
@@ -65,9 +66,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description:
       meta?.meta_description ||
       'Financiamiento de laptops para estudiantes. Sin historial crediticio.',
-    // La variante con `?promotor=` no se indexa: es la misma landing con el
+    // La variante con referido no se indexa: es la misma landing con el
     // teléfono de una promotora encima, y no tiene por qué terminar en un
-    // resultado de búsqueda. La versión limpia (`/upn`) se sigue indexando
+    // resultado de búsqueda. La versión limpia (`/wiener`) se sigue indexando
     // normal desde `[[...slug]]`.
     robots: { index: false, follow: true },
   };

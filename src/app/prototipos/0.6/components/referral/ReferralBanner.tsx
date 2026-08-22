@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Franja "Haz sido referido por Marco".
+ * Franja "Has sido referido por Marco".
  *
  * Aparece arriba de todo cuando la landing se abre con un link de activación
- * (`?promotor=` + el token en `utm_term`). Los datos llegan resueltos desde el
+ * (el `__promo_{token}` del `utm_term`). Los datos llegan resueltos desde el
  * server component — acá no se consulta nada: el teléfono no debe pedirse desde
  * el navegador después de pintar.
  *
@@ -19,8 +19,8 @@
  * - Sin teléfono usable no se arma el botón. Un `wa.me` sin destinatario válido
  *   abre WhatsApp en blanco y es peor que no tener el botón.
  *
- * Sobre "Haz sido referido": es el copy pedido y así queda. La ortografía
- * estándar sería "Has sido referido" (del verbo *haber*); "haz" es de *hacer*.
+ * El copy dice "Has sido referido", del verbo *haber*. La primera versión del
+ * spec pedía "Haz", que es de *hacer*; la v2 lo corrigió.
  */
 
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
@@ -34,14 +34,14 @@ const TEXTO = '#f2fbfa';
 const CHIP_FONDO = '#03dbd0';
 const CHIP_TEXTO = '#04302e';
 
-function claveDescarte(promoterCode: string | null): string {
-  return `baldecash-referral-banner-dismissed-${promoterCode ?? 'anon'}`;
+function claveDescarte(promoterToken: string): string {
+  return `baldecash-referral-banner-dismissed-${promoterToken}`;
 }
 
-function leerDescarte(promoterCode: string | null): boolean {
+function leerDescarte(promoterToken: string): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return window.sessionStorage.getItem(claveDescarte(promoterCode)) === '1';
+    return window.sessionStorage.getItem(claveDescarte(promoterToken)) === '1';
   } catch {
     // sessionStorage tira en algunos WebView y en modo privado de WebKit.
     return false;
@@ -66,10 +66,10 @@ function suscribir(cb: () => void): () => void {
   };
 }
 
-function guardarDescarte(promoterCode: string | null): void {
+function guardarDescarte(promoterToken: string): void {
   if (typeof window !== 'undefined') {
     try {
-      window.sessionStorage.setItem(claveDescarte(promoterCode), '1');
+      window.sessionStorage.setItem(claveDescarte(promoterToken), '1');
     } catch {
       // Sin storage el descarte dura lo que dure la página. Es aceptable.
     }
@@ -101,7 +101,7 @@ interface ReferralBannerProps {
 
 export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   const tracker = useEventTrackerOptional();
-  const { firstName, phoneDisplay, whatsappUrl, promoterCode, reason } = data;
+  const { firstName, phoneDisplay, whatsappUrl, promoterToken, reason } = data;
 
   // El snapshot del servidor es "no descartado" a propósito: la franja tiene que
   // venir en el HTML. Renderizarla recién en el cliente la haría aparecer a los
@@ -109,7 +109,7 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   // CTA — que es exactamente lo que este diseño evita.
   const descartado = useSyncExternalStore(
     suscribir,
-    () => leerDescarte(promoterCode),
+    () => leerDescarte(promoterToken),
     () => false,
   );
   const eventoEmitido = useRef(false);
@@ -121,31 +121,31 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   // traer el valor del servidor.
   useEffect(() => {
     if (descartado || eventoEmitido.current || !tracker) return;
-    if (leerDescarte(promoterCode)) return;
+    if (leerDescarte(promoterToken)) return;
     eventoEmitido.current = true;
     tracker.track('referral_banner_shown', {
-      promoter_code: promoterCode,
+      promoter_token: promoterToken,
       landing_slug: landingSlug,
       reason,
       has_whatsapp: Boolean(whatsappUrl),
     });
-  }, [descartado, tracker, promoterCode, landingSlug, reason, whatsappUrl]);
+  }, [descartado, tracker, promoterToken, landingSlug, reason, whatsappUrl]);
 
   const handleDescartar = useCallback(() => {
-    guardarDescarte(promoterCode);
+    guardarDescarte(promoterToken);
     tracker?.track('referral_banner_dismiss', {
-      promoter_code: promoterCode,
+      promoter_token: promoterToken,
       landing_slug: landingSlug,
       has_whatsapp: Boolean(whatsappUrl),
     });
-  }, [promoterCode, landingSlug, whatsappUrl, tracker]);
+  }, [promoterToken, landingSlug, whatsappUrl, tracker]);
 
   const handleWhatsApp = useCallback(() => {
     tracker?.track('referral_banner_whatsapp_click', {
-      promoter_code: promoterCode,
+      promoter_token: promoterToken,
       landing_slug: landingSlug,
     });
-  }, [promoterCode, landingSlug, tracker]);
+  }, [promoterToken, landingSlug, tracker]);
 
   if (descartado) return null;
 
@@ -162,7 +162,7 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
             Te refirió <strong className="font-semibold">{firstName}</strong>
           </span>
           <span className="hidden sm:inline">
-            Haz sido referido por <strong className="font-semibold">{firstName}</strong>.
+            Has sido referido por <strong className="font-semibold">{firstName}</strong>.
             {whatsappUrl ? ' Si tienes dudas, escríbele:' : ''}
           </span>
         </p>

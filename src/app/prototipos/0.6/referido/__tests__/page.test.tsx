@@ -21,10 +21,10 @@ jest.mock('../../[[...slug]]/LandingPageClient', () => ({
 const fetchHeroData = jest.fn(async () => ({ landingId: 1 }));
 const fetchLandingConfig = jest.fn(async () => ({ layout: {}, features: {} }));
 const fetchReferralBanner = jest.fn(async () => ({
-  firstName: 'Marco',
+  firstName: 'Marcela',
   phoneDisplay: '999 888 777',
   whatsappUrl: 'https://wa.me/51999888777',
-  promoterCode: 'jperez',
+  promoterToken: '4a2eji',
   reason: 'ok',
 }));
 
@@ -47,7 +47,7 @@ describe('ruta gemela de referido', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('renderiza el mismo LandingPageClient que la ruta normal', async () => {
-    const el = await LandingConReferidoPage(props('upn', { promotor: 'jperez' }));
+    const el = await LandingConReferidoPage(props('upn', { utm_term: 'punto_x__promo_4a2eji' }));
     // El tracking de sesión vive dentro de este componente: cambiarlo por otro
     // apagaría la atribución de las visitas referidas sin romper nada visible.
     expect(el.type).toBe(LandingPageClient);
@@ -56,28 +56,28 @@ describe('ruta gemela de referido', () => {
 
   it('le pasa la franja ya resuelta server-side', async () => {
     const el = await LandingConReferidoPage(
-      props('upn', { promotor: 'jperez', utm_term: 'punto_x__promo_4a2eji' }),
+      props('upn', { utm_term: 'punto_x__promo_4a2eji' }),
     );
-    expect(el.props.referralBanner?.firstName).toBe('Marco');
-    expect(fetchReferralBanner).toHaveBeenCalledWith('jperez', 'punto_x__promo_4a2eji');
+    expect(el.props.referralBanner?.firstName).toBe('Marcela');
+    expect(fetchReferralBanner).toHaveBeenCalledWith('punto_x__promo_4a2eji');
   });
 
   it('toma el primer valor cuando un parametro llega repetido', async () => {
     await LandingConReferidoPage(
-      props('upn', { promotor: ['jperez', 'otro'], utm_term: 'punto_x__promo_4a2eji' }),
+      props('upn', { utm_term: ['punto_x__promo_4a2eji', 'otro'] }),
     );
-    expect(fetchReferralBanner).toHaveBeenCalledWith('jperez', 'punto_x__promo_4a2eji');
+    expect(fetchReferralBanner).toHaveBeenCalledWith('punto_x__promo_4a2eji');
   });
 
   it('sigue renderizando la landing aunque no haya franja', async () => {
     fetchReferralBanner.mockResolvedValueOnce(null as never);
-    const el = await LandingConReferidoPage(props('upn', { promotor: 'inventado' }));
+    const el = await LandingConReferidoPage(props('upn', { utm_term: 'punto_x__promo_inventado' }));
     expect(el.type).toBe(LandingPageClient);
     expect(el.props.referralBanner).toBeNull();
   });
 
   it('pide los mismos datos de landing que la ruta normal', async () => {
-    await LandingConReferidoPage(props('senati', { promotor: 'jperez' }));
+    await LandingConReferidoPage(props('senati', { utm_term: 'punto_x__promo_4a2eji' }));
     expect(fetchHeroData).toHaveBeenCalledWith('senati');
     expect(fetchLandingConfig).toHaveBeenCalledWith('senati');
   });

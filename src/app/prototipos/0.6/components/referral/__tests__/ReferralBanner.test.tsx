@@ -22,7 +22,7 @@ const COMPLETO: ReferralBannerData = {
   firstName: 'Marco',
   phoneDisplay: '999 888 777',
   whatsappUrl: 'https://wa.me/51999888777?text=Hola%20Marco',
-  promoterCode: 'jperez',
+  promoterToken: '4a2eji',
   reason: 'ok',
 };
 
@@ -41,7 +41,7 @@ beforeEach(() => {
 describe('ReferralBanner · qué se muestra', () => {
   it('muestra el primer nombre y el botón de WhatsApp', () => {
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
-    expect(screen.getByText(/Haz sido referido por/)).toBeInTheDocument();
+    expect(screen.getByText(/Has sido referido por/)).toBeInTheDocument();
     expect(screen.getAllByText('Marco').length).toBeGreaterThan(0);
     expect(screen.getByTestId('referral-banner-whatsapp')).toHaveAttribute(
       'href',
@@ -72,12 +72,12 @@ describe('ReferralBanner · descarte', () => {
     fireEvent.click(screen.getByTestId('referral-banner-dismiss'));
     expect(screen.queryByTestId('referral-banner')).not.toBeInTheDocument();
     expect(
-      window.sessionStorage.getItem('baldecash-referral-banner-dismissed-jperez'),
+      window.sessionStorage.getItem('baldecash-referral-banner-dismissed-4a2eji'),
     ).toBe('1');
   });
 
   it('no se vuelve a mostrar en la misma sesión con la misma promotora', () => {
-    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-jperez', '1');
+    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-4a2eji', '1');
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
     expect(screen.queryByTestId('referral-banner')).not.toBeInTheDocument();
   });
@@ -85,9 +85,9 @@ describe('ReferralBanner · descarte', () => {
   it('SÍ se muestra si el link es de otra promotora', () => {
     // El descarte es por promotora a propósito: dos flyers distintos en la
     // misma sesión son dos avisos distintos.
-    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-jperez', '1');
+    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-4a2eji', '1');
     render(
-      <ReferralBanner data={{ ...COMPLETO, promoterCode: 'mrodriguez' }} landingSlug="upn" />,
+      <ReferralBanner data={{ ...COMPLETO, promoterToken: 'zzz999' }} landingSlug="upn" />,
     );
     expect(screen.getByTestId('referral-banner')).toBeInTheDocument();
   });
@@ -107,7 +107,7 @@ describe('ReferralBanner · eventos', () => {
   it('emite la impresión con las propiedades que separan los dos casos', () => {
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
     expect(track).toHaveBeenCalledWith('referral_banner_shown', {
-      promoter_code: 'jperez',
+      promoter_token: '4a2eji',
       landing_slug: 'upn',
       reason: 'ok',
       has_whatsapp: true,
@@ -119,7 +119,7 @@ describe('ReferralBanner · eventos', () => {
     // funciona" cuando la mitad de las impresiones no tenían botón que clickear.
     render(<ReferralBanner data={SIN_TELEFONO} landingSlug="upn" />);
     expect(track).toHaveBeenCalledWith('referral_banner_shown', {
-      promoter_code: 'jperez',
+      promoter_token: '4a2eji',
       landing_slug: 'upn',
       reason: 'sin_telefono',
       has_whatsapp: false,
@@ -127,7 +127,7 @@ describe('ReferralBanner · eventos', () => {
   });
 
   it('NO emite impresión si la franja venía descartada', () => {
-    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-jperez', '1');
+    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-4a2eji', '1');
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
     expect(track).not.toHaveBeenCalledWith(
       'referral_banner_shown',
@@ -146,13 +146,13 @@ describe('ReferralBanner · eventos', () => {
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
     fireEvent.click(screen.getByTestId('referral-banner-whatsapp'));
     expect(track).toHaveBeenCalledWith('referral_banner_whatsapp_click', {
-      promoter_code: 'jperez',
+      promoter_token: '4a2eji',
       landing_slug: 'upn',
     });
 
     fireEvent.click(screen.getByTestId('referral-banner-dismiss'));
     expect(track).toHaveBeenCalledWith('referral_banner_dismiss', {
-      promoter_code: 'jperez',
+      promoter_token: '4a2eji',
       landing_slug: 'upn',
       has_whatsapp: true,
     });
@@ -167,6 +167,7 @@ describe('ReferralBanner · eventos', () => {
     for (const [, props] of track.mock.calls) {
       const claves = Object.keys(props ?? {});
       expect(claves).not.toContain('nombre');
+      expect(claves).not.toContain('promoter_code');
       expect(claves).not.toContain('name');
       expect(claves).not.toContain('phone_value');
       const valores = JSON.stringify(props ?? {});
