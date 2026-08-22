@@ -162,6 +162,7 @@ const getUpsellUrl = (landing: string) => {
 // v0.6.1: Use typed constants for CartItem compatibility
 import type { TermMonths, InitialPaymentPercent } from './types/catalog';
 import { resolveWizardTarget } from './utils/resolveWizardTarget';
+import { mergeColorSibling } from './utils/mergeColorSibling';
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
@@ -934,6 +935,10 @@ function CatalogoContent() {
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
   // Reacondicionado: aviso de confirmación al dar "Lo quiero" en un card reacondicionado
+  // Guarda la card tocada, no su id: si se rebuscara por id al confirmar, el
+  // producto con combos devolveria la primera card de la lista y no la tocada
+  // (BAL-3270). Vale el riesgo de que el objeto quede viejo si `catalogProducts`
+  // se remapea con el modal abierto — es preferible correcto a fresco.
   const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
@@ -1464,22 +1469,7 @@ function CatalogoContent() {
     // Search through color siblings of loaded products
     for (const parent of catalogProducts) {
       const sibling = parent.colors?.find((c) => c.productId === productId);
-      if (sibling) {
-        return {
-          ...parent,
-          id: productId,
-          slug: sibling.slug || parent.slug,
-          displayName: sibling.displayName || parent.displayName,
-          name: sibling.displayName || parent.name,
-          price: sibling.price ?? parent.price,
-          quotaMonthly: sibling.quotaMonthly ?? parent.quotaMonthly,
-          originalQuotaMonthly: sibling.originalQuotaMonthly ?? parent.originalQuotaMonthly,
-          discount: sibling.discount ?? parent.discount,
-          specs: sibling.specs ?? parent.specs,
-          thumbnail: sibling.imageUrl || (sibling.images?.[0]) || parent.thumbnail,
-          images: sibling.images || (sibling.imageUrl ? [sibling.imageUrl] : parent.images),
-        };
-      }
+      if (sibling) return mergeColorSibling(parent, sibling, productId);
     }
     return null;
   }, [catalogProducts]);
@@ -1511,16 +1501,16 @@ function CatalogoContent() {
       // El id NO identifica la card: el suelto y cada combo del producto son
       // cards distintas con el MISMO id, y `findProductOrSibling` devolvia la
       // primera de la lista — la del combo (BAL-3270).
-      const target = resolveWizardTarget(product, cartItem.productId, catalogProducts);
+      const target = resolveWizardTarget(product, cartItem.productId);
       selectProductForWizard(target, cartItem);
       router.push(getWizardUrl(landing));
       return;
     }
     // Multi-product mode: open cart selection modal
     setSelectedVariantForCart(cartItem);
-    const target = resolveWizardTarget(product, cartItem.productId, catalogProducts);
+    const target = resolveWizardTarget(product, cartItem.productId);
     handleOpenCartModal(target);
-  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, catalogProducts, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
