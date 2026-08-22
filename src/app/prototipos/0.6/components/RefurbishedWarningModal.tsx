@@ -85,8 +85,10 @@ export const RefurbishedWarningModal: React.FC<RefurbishedWarningModalProps> = (
       backdrop="blur"
       placement="center"
       classNames={{
-        wrapper: 'z-[100]',
-        backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
+        // z-[9999]: mismo caso que DeferredDeliveryModal — los flotantes del
+        // catálogo están en z-[100] y quedaban por encima del backdrop.
+        wrapper: 'z-[9999]',
+        backdrop: 'bg-black/50 backdrop-blur-sm z-[9998]',
         base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200 mx-4',
         body: 'p-0',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',

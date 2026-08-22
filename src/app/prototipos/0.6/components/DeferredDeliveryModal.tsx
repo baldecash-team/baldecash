@@ -12,8 +12,8 @@ import React from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { Truck, CalendarClock } from 'lucide-react';
 import {
-  formatDeferredFrom,
-  formatDeferredDays,
+  formatShippingDate,
+  formatLocationTimes,
   type DeferredDelivery,
 } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
@@ -35,10 +35,12 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
   deferredDelivery,
   productName,
 }) => {
-  const range = formatDeferredFrom(deferredDelivery?.estimatedFrom ?? null);
-  const daysText = formatDeferredDays(
-    deferredDelivery?.daysMin ?? null,
-    deferredDelivery?.daysMax ?? null,
+  const shippingDate = formatShippingDate(deferredDelivery?.estimatedFrom ?? null);
+  const locationTimes = formatLocationTimes(
+    deferredDelivery?.limaDaysMin ?? null,
+    deferredDelivery?.limaDaysMax ?? null,
+    deferredDelivery?.provinciaDaysMin ?? null,
+    deferredDelivery?.provinciaDaysMax ?? null,
   );
 
   return (
@@ -49,8 +51,13 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
       backdrop="blur"
       placement="center"
       classNames={{
-        wrapper: 'z-[100]',
-        backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
+        // z-[9999] y no z-[100]: los botones flotantes del catálogo
+        // ("¿Necesitas ayuda?", comparar) viven en z-[100], así que empataban
+        // con el modal y quedaban ENCIMA del backdrop —se veían nítidos sobre
+        // la página atenuada—. Es el nivel que ya usan Cronograma,
+        // Certificaciones y SimilarProducts en el detalle.
+        wrapper: 'z-[9999]',
+        backdrop: 'bg-black/50 backdrop-blur-sm z-[9998]',
         base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200 mx-4',
         body: 'p-0',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
@@ -79,15 +86,17 @@ export const DeferredDeliveryModal: React.FC<DeferredDeliveryModalProps> = ({
             Te llegará en la fecha estimada:
           </p>
 
-          {/* Fecha estimada */}
+          {/* Fecha de envío + tiempos por ubicación */}
           <div className="flex items-center gap-3 bg-[rgba(var(--color-primary-rgb),0.05)] border border-[rgba(var(--color-primary-rgb),0.15)] rounded-xl px-4 py-3 mb-6">
             <CalendarClock className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0" />
             <div>
-              {range && (
-                <p className="text-base font-bold text-neutral-800 leading-tight">{range}</p>
+              {shippingDate && (
+                <p className="text-base font-bold text-neutral-800 leading-tight">
+                  Se envía desde {shippingDate}
+                </p>
               )}
-              {daysText && (
-                <p className="text-xs text-neutral-500">Aprox. {daysText} hábiles</p>
+              {locationTimes && (
+                <p className="text-xs text-neutral-500 mt-0.5">{locationTimes}</p>
               )}
             </div>
           </div>

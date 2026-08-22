@@ -21,6 +21,12 @@ export interface DeferredDelivery {
   estimatedFrom: string | null;
   /** date ISO (YYYY-MM-DD) = hoy + daysMax */
   estimatedTo: string | null;
+  /** Días hábiles estimados para Lima. */
+  limaDaysMin: number | null;
+  limaDaysMax: number | null;
+  /** Días hábiles estimados para provincia. */
+  provinciaDaysMin: number | null;
+  provinciaDaysMax: number | null;
 }
 
 /** Valor por defecto para productos sin tag de entrega diferida. */
@@ -30,6 +36,10 @@ export const NO_DEFERRED_DELIVERY: DeferredDelivery = {
   daysMax: null,
   estimatedFrom: null,
   estimatedTo: null,
+  limaDaysMin: null,
+  limaDaysMax: null,
+  provinciaDaysMin: null,
+  provinciaDaysMax: null,
 };
 
 /**
@@ -49,6 +59,14 @@ export interface ApiDeferredDelivery {
   estimatedFrom?: string | null;
   estimated_to?: string | null;
   estimatedTo?: string | null;
+  lima_days_min?: number | null;
+  limaDaysMin?: number | null;
+  lima_days_max?: number | null;
+  limaDaysMax?: number | null;
+  provincia_days_min?: number | null;
+  provinciaDaysMin?: number | null;
+  provincia_days_max?: number | null;
+  provinciaDaysMax?: number | null;
 }
 
 /**
@@ -68,6 +86,10 @@ export function mapApiDeferredDelivery(
     daysMax: raw.days_max ?? raw.daysMax ?? null,
     estimatedFrom: raw.estimated_from ?? raw.estimatedFrom ?? null,
     estimatedTo: raw.estimated_to ?? raw.estimatedTo ?? null,
+    limaDaysMin: raw.lima_days_min ?? raw.limaDaysMin ?? null,
+    limaDaysMax: raw.lima_days_max ?? raw.limaDaysMax ?? null,
+    provinciaDaysMin: raw.provincia_days_min ?? raw.provinciaDaysMin ?? null,
+    provinciaDaysMax: raw.provincia_days_max ?? raw.provinciaDaysMax ?? null,
   };
 }
 
@@ -129,4 +151,46 @@ export function formatDeferredDays(
   }
   const d = (daysMin ?? daysMax) as number;
   return `${d} ${d === 1 ? 'día' : 'días'}`;
+}
+
+// Días de la semana en español. El índice coincide con Date.getUTCDay().
+const WEEKDAYS = [
+  'domingo', 'lunes', 'martes', 'miércoles',
+  'jueves', 'viernes', 'sábado',
+];
+
+/**
+ * Formatea una fecha ISO a "miércoles 26/08".
+ *
+ * El día de la semana se DERIVA de la fecha, nunca se guarda como texto: si se
+ * guardara, una fecha editada dejaría el día desfasado y eso se nota más que
+ * una fecha mal puesta.
+ *
+ * Se construye en UTC a propósito — `new Date('2026-08-26')` se interpreta como
+ * medianoche UTC y en Perú (UTC-5) retrocedería al día anterior.
+ */
+export function formatShippingDate(iso: string | null): string {
+  if (!iso) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return '';
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  const weekday = WEEKDAYS[d.getUTCDay()];
+  if (!weekday) return '';
+  return `${weekday} ${m[3]}/${m[2]}`;
+}
+
+/**
+ * Texto de tiempos por ubicación: "Lima 3-5 días hábiles · Provincia 5-9 días".
+ * Devuelve vacío si falta cualquiera de los cuatro valores.
+ */
+export function formatLocationTimes(
+  limaMin: number | null,
+  limaMax: number | null,
+  provMin: number | null,
+  provMax: number | null,
+): string {
+  if (limaMin == null || limaMax == null || provMin == null || provMax == null) {
+    return '';
+  }
+  return `Lima ${limaMin}-${limaMax} días hábiles · Provincia ${provMin}-${provMax} días`;
 }
