@@ -134,6 +134,54 @@ function esRutaInterna(pathname: string): boolean {
 const REFERIDO_SEGMENT = 'referido';
 
 /**
+ * `true` si el `utm_term` trae el token de una promotora.
+ *
+ * La llave del banner es el `__promo_{token}`, NO el parámetro `promotor=`:
+ * `acthub_persona.ws2_promotor_code` está vacía en las 271 filas, así que el hub
+ * omite `promotor=` y disparar por él dejaría la franja muda. El token en cambio
+ * viaja en los 95 links cortos ya emitidos.
+ */
+function traeTokenDePromotora(url: URL): boolean {
+  const utmTerm = url.searchParams.get('utm_term');
+  return !!utmTerm && /__promo_[a-z0-9]+/.test(utmTerm);
+}
+
+/**
+ * Rate limit por IP para la franja de referido.
+ *
+ * NO es higiene general: es la única barrera real. `tokenOpaco` es un hash
+ * público sin secreto sobre un id de rango chico (hoy 529-1189), así que quien
+ * tenga el algoritmo —está en el repo del hub— genera los tokens válidos y
+ * podría cosechar los teléfonos del equipo de campo pidiendo la landing con un
+ * token distinto cada vez. Cada uno es un MISS de CDN, o sea que llegan todos.
+ *
+ * Al exceder el límite NO se devuelve 429: se deja pasar la petición por la
+ * ruta ESTÁTICA, sin franja. El cosechador recibe una landing normal y un
+ * visitante real nunca lo nota, mientras que un 429 sobre la página de más
+ * tráfico del negocio sería un daño mayor que el que se quiere evitar.
+ *
+ * En memoria y por instancia: con varias regiones el límite efectivo es un
+ * múltiplo de éste. Alcanza para frenar un barrido; si hiciera falta algo
+ * exacto, va en el WAF, no acá.
+ */
+const RL_VENTANA_MS = 60_000;
+const RL_MAX_POR_VENTANA = 20;
+const RL_MAX_IPS = 5_000;
+const visitasPorIp = new Map<string, number[]>();
+
+function dentroDelLimite(ip: string): boolean {
+  const ahora = Date.now();
+  const desde = ahora - RL_VENTANA_MS;
+  const previas = (visitasPorIp.get(ip) ?? []).filter((t) => t > desde);
+  previas.push(ahora);
+  // Purga cruda para que el Map no crezca sin fin: es un contador de
+  // conveniencia, no un registro.
+  if (visitasPorIp.size > RL_MAX_IPS) visitasPorIp.clear();
+  visitasPorIp.set(ip, previas);
+  return previas.length <= RL_MAX_POR_VENTANA;
+}
+
+/**
  * Slug de la landing si el path es la RAÍZ de una landing; `null` si no.
  *
  * Sólo la raíz: `/upn` sí, `/upn/catalogo` no. La franja se pinta en la página
@@ -198,9 +246,13 @@ export function middleware(request: NextRequest) {
   // /prototipos/0.6, así que ahí el filtro lo hace `landingRootSlug`, que exige
   // exactamente un segmento después del basePath.
   const puedeLlevarFranja = isProduction ? !esRutaInterna(pathname) : true;
-  if (request.nextUrl.searchParams.has('promotor') && puedeLlevarFranja) {
+  if (traeTokenDePromotora(request.nextUrl) && puedeLlevarFranja) {
     const slug = landingRootSlug(pathname, isProduction ? '' : APP_BASE_PATH);
-    if (slug) {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || 'desconocida';
+    // Pasado el límite se cae a la ruta estática: landing normal, sin franja.
+    if (slug && dentroDelLimite(ip)) {
       const url = request.nextUrl.clone();
       url.pathname = `/prototipos/0.6/${REFERIDO_SEGMENT}/${slug}`;
       return NextResponse.rewrite(url);

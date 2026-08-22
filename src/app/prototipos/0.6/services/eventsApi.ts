@@ -314,13 +314,15 @@ export type EventType =
   // dominio nuestro y nadie bloquea, así que la comparación entre ambos lados
   // distingue "el evento no se generó" de "se generó pero no llegó a Google".
   | 'ga_link_sent'
-  // Franja "Haz sido referido por Marco": la promotora que trajo la visita
+  // Franja "Has sido referido por Marcela": la promotora que trajo la visita
   // desde un link de activación. `shown` se emite SOLO cuando la franja
-  // efectivamente se renderiza — los casos negativos (sin promotor, código
-  // inexistente, promotora inactiva, token que no coincide) no muestran nada y
+  // efectivamente se renderiza — los casos negativos (sin utm_term, sin
+  // __promo_, token que no matchea, promotora inactiva) no muestran nada y
   // tampoco emiten evento, así que las impresiones son impresiones de verdad.
-  // Properties: promoter_code, landing_slug, reason (ok | sin_telefono) y
-  // has_whatsapp. Nunca el nombre ni el teléfono: el backend los rechaza.
+  // Properties: promoter_token, landing_slug, reason (ok | sin_telefono) y
+  // has_whatsapp. `promoter_token` es el `__promo_{token}` del utm_term: agrupa
+  // por promotora sin guardar quién es. Nunca el nombre ni el teléfono: el
+  // backend los rechaza y descartaría el evento entero.
   | 'referral_banner_shown'
   | 'referral_banner_whatsapp_click'
   | 'referral_banner_dismiss';

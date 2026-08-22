@@ -1,11 +1,18 @@
 /**
  * Banner de referido — resuelve quién trajo la visita.
  *
- * Se llama desde el server component de la landing cuando la URL trae
- * `?promotor=`. El dato vive en la Postgres analítica (`acthub_persona`, el
- * espejo de Airtable del hub de activaciones) y lo expone ws2:
+ * Se llama desde el server component de la landing cuando la URL trae un
+ * `utm_term` con `__promo_`. El dato vive en la Postgres analítica
+ * (`acthub_persona`, el espejo de Airtable del hub de activaciones) y lo
+ * expone ws2:
  *
- *     GET /public/referido/promotor?promotor={code}&utm_term={utm_term}
+ *     GET /public/referido/promotor?utm_term={utm_term}
+ *
+ * La llave es el `__promo_{token}` del `utm_term`, NO el `promotor={code}`:
+ * `ws2_promotor_code` está vacía en las 271 filas de `acthub_persona`, así que
+ * el hub omite ese parámetro y usarlo de llave dejaría el banner mudo. El token
+ * en cambio viaja en los 95 links cortos ya emitidos, así que la franja
+ * funciona en los QR ya impresos sin regenerar nada.
  *
  * Tres decisiones que no son negociables acá:
  *
@@ -38,8 +45,8 @@ export interface ReferralBanner {
   phoneDisplay: string | null;
   /** Link `wa.me` con el mensaje precargado. `null` ⇒ franja sin botón. */
   whatsappUrl: string | null;
-  /** `Promoter.code`; viaja como propiedad del evento, no se muestra. */
-  promoterCode: string | null;
+  /** El `__promo_{token}` del `utm_term`; agrupa el evento sin decir quién es. */
+  promoterToken: string;
   /** `ok` o `sin_telefono`: las dos formas en que la franja se muestra. */
   reason: string;
 }
@@ -47,33 +54,35 @@ export interface ReferralBanner {
 interface ReferralBannerApiResponse {
   show: boolean;
   reason: string;
-  promoter_code: string | null;
   first_name: string | null;
   phone_display: string | null;
   whatsapp_url: string | null;
 }
 
+/** El `{token}` de `__promo_{token}`, que es la llave. */
+export function extraerTokenPromo(utmTerm: string | null | undefined): string | null {
+  if (!utmTerm) return null;
+  return /__promo_([a-z0-9]+)/.exec(utmTerm)?.[1] ?? null;
+}
+
 /**
  * Devuelve los datos de la franja, o `null` si no hay que renderizarla.
  *
- * `null` cubre todos los casos negativos sin distinguirlos: sin `promotor` en la
- * URL, código que no existe, promotora dada de baja, token que no coincide, o el
- * API caído. Ninguno muestra un placeholder — nunca "Referido por —".
+ * `null` cubre todos los casos negativos sin distinguirlos: sin `utm_term`, sin
+ * `__promo_`, token que no matchea a nadie, promotora dada de baja, o el API
+ * caído. Ninguno muestra un placeholder — nunca "Referido por —".
  */
 export async function fetchReferralBanner(
-  promotor: string | null | undefined,
   utmTerm: string | null | undefined,
 ): Promise<ReferralBanner | null> {
-  if (!promotor) return null;
-
-  // Sin el token del `utm_term` el endpoint responde `show: false` sin tocar la
-  // base; se corta acá igual para no gastar ni el round-trip.
-  if (!utmTerm || !utmTerm.includes('promo_')) return null;
+  // Sin el token el endpoint responde `show: false` sin tocar la base; se corta
+  // acá igual para no gastar ni el round-trip. Es la mayoría del tráfico.
+  const token = extraerTokenPromo(utmTerm);
+  if (!token) return null;
 
   const url =
     `${API_BASE_URL}/public/referido/promotor` +
-    `?promotor=${encodeURIComponent(promotor)}` +
-    `&utm_term=${encodeURIComponent(utmTerm)}`;
+    `?utm_term=${encodeURIComponent(utmTerm as string)}`;
 
   try {
     const response = await fetch(url, {
@@ -89,7 +98,7 @@ export async function fetchReferralBanner(
       firstName: data.first_name,
       phoneDisplay: data.phone_display ?? null,
       whatsappUrl: data.whatsapp_url ?? null,
-      promoterCode: data.promoter_code ?? null,
+      promoterToken: token,
       reason: data.reason,
     };
   } catch (error) {

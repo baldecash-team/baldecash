@@ -20,10 +20,9 @@ const UTM_TERM = 'punto_upn__promo_4a2eji__act_8x7idb';
 const RESPUESTA_OK = {
   show: true,
   reason: 'ok',
-  promoter_code: 'jperez',
-  first_name: 'Marco',
+  first_name: 'Marcela',
   phone_display: '999 888 777',
-  whatsapp_url: 'https://wa.me/51999888777?text=Hola%20Marco',
+  whatsapp_url: 'https://wa.me/51999888777?text=Hola%20Marcela',
 };
 
 function mockFetch(impl: jest.Mock) {
@@ -44,17 +43,16 @@ afterEach(() => {
 });
 
 describe('fetchReferralBanner · cortes antes de la red', () => {
-  it('sin promotor no llama al API', async () => {
+  it('sin utm_term no llama al API', async () => {
     const f = mockFetch(jest.fn());
-    await expect(fetchReferralBanner(null, UTM_TERM)).resolves.toBeNull();
+    await expect(fetchReferralBanner(null)).resolves.toBeNull();
     expect(f).not.toHaveBeenCalled();
   });
 
   it('sin el token en utm_term tampoco llama al API', async () => {
-    // El `?promotor=` suelto es justo la forma de un intento de enumeración: no
-    // vale ni el round-trip.
+    // Es la mayoría del tráfico: cortar acá evita un round-trip por pageview.
     const f = mockFetch(jest.fn());
-    await expect(fetchReferralBanner('jperez', 'punto_upn__act_8x7idb')).resolves.toBeNull();
+    await expect(fetchReferralBanner('punto_upn__act_8x7idb')).resolves.toBeNull();
     expect(f).not.toHaveBeenCalled();
   });
 });
@@ -62,26 +60,25 @@ describe('fetchReferralBanner · cortes antes de la red', () => {
 describe('fetchReferralBanner · respuesta del API', () => {
   it('mapea el caso completo', async () => {
     mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
-    await expect(fetchReferralBanner('jperez', UTM_TERM)).resolves.toEqual({
-      firstName: 'Marco',
+    await expect(fetchReferralBanner(UTM_TERM)).resolves.toEqual({
+      firstName: 'Marcela',
       phoneDisplay: '999 888 777',
-      whatsappUrl: 'https://wa.me/51999888777?text=Hola%20Marco',
-      promoterCode: 'jperez',
+      whatsappUrl: 'https://wa.me/51999888777?text=Hola%20Marcela',
+      promoterToken: '4a2eji',
       reason: 'ok',
     });
   });
 
-  it('manda promotor y utm_term codificados', async () => {
+  it('manda el utm_term codificado', async () => {
     const f = mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
-    await fetchReferralBanner('jperez', 'punto_upn-breña__promo_4a2eji');
+    await fetchReferralBanner('punto_upn-breña__promo_4a2eji');
     const url = String(f.mock.calls[0][0]);
-    expect(url).toContain('promotor=jperez');
     expect(url).toContain(encodeURIComponent('punto_upn-breña__promo_4a2eji'));
   });
 
   it('show: false devuelve null', async () => {
     mockFetch(jest.fn(() => respuesta({ ...RESPUESTA_OK, show: false })));
-    await expect(fetchReferralBanner('jperez', UTM_TERM)).resolves.toBeNull();
+    await expect(fetchReferralBanner(UTM_TERM)).resolves.toBeNull();
   });
 
   it('sin teléfono devuelve la franja sin link', async () => {
@@ -95,8 +92,8 @@ describe('fetchReferralBanner · respuesta del API', () => {
         }),
       ),
     );
-    const r = await fetchReferralBanner('jperez', UTM_TERM);
-    expect(r?.firstName).toBe('Marco');
+    const r = await fetchReferralBanner(UTM_TERM);
+    expect(r?.firstName).toBe('Marcela');
     expect(r?.whatsappUrl).toBeNull();
   });
 });
@@ -104,26 +101,26 @@ describe('fetchReferralBanner · respuesta del API', () => {
 describe('fetchReferralBanner · degradación', () => {
   it('un 500 del API no lanza: devuelve null', async () => {
     mockFetch(jest.fn(() => respuesta({}, false)));
-    await expect(fetchReferralBanner('jperez', UTM_TERM)).resolves.toBeNull();
+    await expect(fetchReferralBanner(UTM_TERM)).resolves.toBeNull();
   });
 
   it('un timeout no lanza: devuelve null', async () => {
     mockFetch(jest.fn(() => Promise.reject(new Error('TimeoutError'))));
-    await expect(fetchReferralBanner('jperez', UTM_TERM)).resolves.toBeNull();
+    await expect(fetchReferralBanner(UTM_TERM)).resolves.toBeNull();
   });
 
   it('un body corrupto no lanza: devuelve null', async () => {
     mockFetch(
       jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.reject(new Error('bad json')) })),
     );
-    await expect(fetchReferralBanner('jperez', UTM_TERM)).resolves.toBeNull();
+    await expect(fetchReferralBanner(UTM_TERM)).resolves.toBeNull();
   });
 
   it('pide la respuesta cacheada una hora y con timeout propio', async () => {
     // Sin `revalidate` esto es una consulta a Aurora por pageview en la página
     // de más tráfico del negocio; sin `signal` no hay techo de espera.
     const f = mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
-    await fetchReferralBanner('jperez', UTM_TERM);
+    await fetchReferralBanner(UTM_TERM);
     const opciones = f.mock.calls[0][1];
     expect(opciones.next.revalidate).toBe(3600);
     expect(opciones.signal).toBeDefined();
