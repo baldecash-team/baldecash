@@ -161,6 +161,7 @@ const getUpsellUrl = (landing: string) => {
 
 // v0.6.1: Use typed constants for CartItem compatibility
 import type { TermMonths, InitialPaymentPercent } from './types/catalog';
+import { resolveWizardTarget } from './utils/resolveWizardTarget';
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
@@ -1507,16 +1508,19 @@ function CatalogoContent() {
 
     if (!ALLOW_MULTI_PRODUCT) {
       // Single-product mode: go directly to solicitar
-      const target = findProductOrSibling(cartItem.productId) || product;
+      // El id NO identifica la card: el suelto y cada combo del producto son
+      // cards distintas con el MISMO id, y `findProductOrSibling` devolvia la
+      // primera de la lista — la del combo (BAL-3270).
+      const target = resolveWizardTarget(product, cartItem.productId, catalogProducts);
       selectProductForWizard(target, cartItem);
       router.push(getWizardUrl(landing));
       return;
     }
     // Multi-product mode: open cart selection modal
     setSelectedVariantForCart(cartItem);
-    const target = findProductOrSibling(cartItem.productId) || product;
+    const target = resolveWizardTarget(product, cartItem.productId, catalogProducts);
     handleOpenCartModal(target);
-  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, catalogProducts, selectProductForWizard, router, landing, handleOpenCartModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
