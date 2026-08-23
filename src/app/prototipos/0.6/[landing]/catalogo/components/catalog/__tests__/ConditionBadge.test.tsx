@@ -70,8 +70,11 @@ describe('ConditionBadge — el texto lo manda el facet', () => {
   it('sin facet cae al respaldo, no se queda sin texto', () => {
     // La card puede pintarse antes de que carguen los filtros. Ahí manda la
     // constante del código, y por eso sigue existiendo.
+    //
+    // Dice lo mismo que la BD en producción: cuando decía "Semi nuevo" la card
+    // cambiaba de texto al llegar el facet (BAL-3228).
     render(<ConditionBadge conditionCode="reacondicionada" conditions={null} />);
 
-    expect(screen.getByText('Semi nuevo')).toBeInTheDocument();
+    expect(screen.getByText('Reacondicionado')).toBeInTheDocument();
   });
 });

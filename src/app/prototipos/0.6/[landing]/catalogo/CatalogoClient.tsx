@@ -161,6 +161,10 @@ const getUpsellUrl = (landing: string) => {
 
 // v0.6.1: Use typed constants for CartItem compatibility
 import type { TermMonths, InitialPaymentPercent } from './types/catalog';
+import { resolveWizardTarget } from './utils/resolveWizardTarget';
+import { resolveSavedItemDetail } from './utils/resolveSavedItemDetail';
+import type { SavedItem } from './utils/resolveSavedItemDetail';
+import { mergeColorSibling } from './utils/mergeColorSibling';
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
@@ -933,6 +937,10 @@ function CatalogoContent() {
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
   // Reacondicionado: aviso de confirmación al dar "Lo quiero" en un card reacondicionado
+  // Guarda la card tocada, no su id: si se rebuscara por id al confirmar, el
+  // producto con combos devolveria la primera card de la lista y no la tocada
+  // (BAL-3270). Vale el riesgo de que el objeto quede viejo si `catalogProducts`
+  // se remapea con el modal abierto — es preferible correcto a fresco.
   const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
@@ -1463,25 +1471,20 @@ function CatalogoContent() {
     // Search through color siblings of loaded products
     for (const parent of catalogProducts) {
       const sibling = parent.colors?.find((c) => c.productId === productId);
-      if (sibling) {
-        return {
-          ...parent,
-          id: productId,
-          slug: sibling.slug || parent.slug,
-          displayName: sibling.displayName || parent.displayName,
-          name: sibling.displayName || parent.name,
-          price: sibling.price ?? parent.price,
-          quotaMonthly: sibling.quotaMonthly ?? parent.quotaMonthly,
-          originalQuotaMonthly: sibling.originalQuotaMonthly ?? parent.originalQuotaMonthly,
-          discount: sibling.discount ?? parent.discount,
-          specs: sibling.specs ?? parent.specs,
-          thumbnail: sibling.imageUrl || (sibling.images?.[0]) || parent.thumbnail,
-          images: sibling.images || (sibling.imageUrl ? [sibling.imageUrl] : parent.images),
-        };
-      }
+      if (sibling) return mergeColorSibling(parent, sibling, productId);
     }
     return null;
   }, [catalogProducts]);
+
+  // Resuelve a que detalle lleva un item de favoritos/carrito. La card guardada
+  // se busca por SLUG (la identidad real de una card); el lookup por id queda
+  // de respaldo por si ese slug ya no existe. Ver `resolveSavedItemDetail`.
+  const resolveSavedDetail = useCallback((item: SavedItem | undefined, productId: string) => {
+    const cardGuardada = item?.slug
+      ? catalogProducts.find((p) => p.slug === item.slug) ?? null
+      : null;
+    return resolveSavedItemDetail(item, cardGuardada, findProductOrSibling(productId));
+  }, [catalogProducts, findProductOrSibling]);
 
   // "Lo quiero" del card: dispara analítica y navega/abre el modal de carrito.
   // Extraído del handler inline para poder diferirlo tras el aviso de reacondicionado.
@@ -1507,16 +1510,19 @@ function CatalogoContent() {
 
     if (!ALLOW_MULTI_PRODUCT) {
       // Single-product mode: go directly to solicitar
-      const target = findProductOrSibling(cartItem.productId) || product;
+      // El id NO identifica la card: el suelto y cada combo del producto son
+      // cards distintas con el MISMO id, y `findProductOrSibling` devolvia la
+      // primera de la lista — la del combo (BAL-3270).
+      const target = resolveWizardTarget(product, cartItem.productId);
       selectProductForWizard(target, cartItem);
       router.push(getWizardUrl(landing));
       return;
     }
     // Multi-product mode: open cart selection modal
     setSelectedVariantForCart(cartItem);
-    const target = findProductOrSibling(cartItem.productId) || product;
+    const target = resolveWizardTarget(product, cartItem.productId);
     handleOpenCartModal(target);
-  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
@@ -1729,13 +1735,8 @@ function CatalogoContent() {
         onWishlistClear={() => clearWishlistItems()}
         onWishlistViewProduct={(productId) => {
           const item = wishlistItems.find((w) => w.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            // Product not in catalog (e.g., deactivated) — use slug from stored item
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
+          const destino = resolveSavedDetail(item, productId);
+          if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         cartItems={cartItems}
         onCartRemove={handleRemoveFromCart}
@@ -1743,13 +1744,8 @@ function CatalogoContent() {
         onCartContinue={handleCartContinue}
         onCartViewProduct={(productId) => {
           const item = cartItems.find((c) => c.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            // Product not in catalog (e.g., deactivated) — use slug from stored item
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
+          const destino = resolveSavedDetail(item, productId);
+          if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         isCartOverLimit={isOverLimit}
         isSearchActive={isSearchDrawerOpen || searchQuery.length > 0}
@@ -2101,12 +2097,8 @@ function CatalogoContent() {
           onViewProduct={(productId) => {
             setIsCartDrawerOpen(false);
             const item = cartItems.find((c) => c.productId === productId);
-            const product = findProductOrSibling(productId);
-            if (product) {
-              router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-            } else if (item?.slug) {
-              router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-            }
+            const destino = resolveSavedDetail(item, productId);
+            if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
           }}
           config={catalogSecondaryNavbarConfig?.cart}
           unavailableIds={unavailableCartIds}
@@ -2133,12 +2125,8 @@ function CatalogoContent() {
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
           const item = wishlistItems.find((w) => w.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
+          const destino = resolveSavedDetail(item, productId);
+          if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         onAddToCompare={handleToggleCompare}
         onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {

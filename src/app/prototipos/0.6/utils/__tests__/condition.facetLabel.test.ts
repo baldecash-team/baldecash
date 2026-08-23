@@ -5,7 +5,7 @@
  * reacondicionado y descartaba el label del facet, así que editar
  * `product_condition_catalog` no cambiaba nada en la web.
  */
-import { conditionDisplayLabel, conditionDisplayLabelFor, REFURBISHED_DISPLAY_LABEL } from '../condition';
+import { conditionDisplayLabel, REFURBISHED_DISPLAY_LABEL } from '../condition';
 
 describe('conditionDisplayLabel — el facet manda', () => {
   it('usa el texto del facet para reacondicionados', () => {
@@ -17,8 +17,10 @@ describe('conditionDisplayLabel — el facet manda', () => {
   });
 
   it('cae al respaldo cuando el facet no trae label', () => {
+    // El respaldo dice lo mismo que la BD en producción, para que la card no
+    // cambie de texto al llegar el facet (BAL-3228).
     expect(conditionDisplayLabel('reacondicionada')).toBe(REFURBISHED_DISPLAY_LABEL);
-    expect(conditionDisplayLabel('reacondicionada', null)).toBe('Semi nuevo');
+    expect(conditionDisplayLabel('reacondicionada', null)).toBe('Reacondicionado');
   });
 
   it('sigue usando el facet para las demás condiciones', () => {
@@ -34,16 +36,7 @@ describe('conditionDisplayLabel — el facet manda', () => {
   });
 });
 
-describe('conditionDisplayLabelFor — la campaña le gana a la base', () => {
-  it('Family Farms mantiene su etiqueta aunque la base diga otra cosa', () => {
-    expect(conditionDisplayLabelFor('familyfarm', 'reacondicionada', 'Semi nuevo')).toBe('Reacondicionado');
-  });
-
-  it('sin variante de campaña manda el facet', () => {
-    expect(conditionDisplayLabelFor(null, 'reacondicionada', 'Reacondicionado')).toBe('Reacondicionado');
-  });
-
-  it('una variante que no redefine nada deja pasar el facet', () => {
-    expect(conditionDisplayLabelFor('otracampana', 'reacondicionada', 'Segunda mano')).toBe('Segunda mano');
-  });
-});
+// El override por campaña (`conditionDisplayLabelFor`) se quitó: forzaba
+// "Reacondicionado" en Family Farms, que es exactamente lo que ya dice la BD,
+// y su único efecto posible era ignorar en silencio lo que se editara desde
+// Pricing → Etiquetas (BAL-3228). Ahora todas las landings leen el mismo facet.

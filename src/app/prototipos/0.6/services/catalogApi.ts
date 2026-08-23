@@ -1058,145 +1058,6 @@ function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
   };
 }
 
-// ============================================
-// Direct Catalog Endpoint (no landing required)
-// ============================================
-
-/**
- * Response types for /public/catalog/products
- */
-export interface DirectApiProduct {
-  id: number;
-  sku: string;
-  name: string;
-  display_name?: string;
-  short_name?: string;
-  slug: string;
-  type: string | null;
-  condition: string | null;
-  grade?: string | null;
-  short_description?: string;
-  brand: {
-    slug: string | null;
-    name: string | null;
-    logo_url: string | null;
-  };
-  category: {
-    slug: string;
-    name: string;
-  } | null;
-  price: number;
-  is_featured: boolean;
-  stock_available: number;
-  specs: Record<string, string | number | boolean>;
-  colors: { id: string; name: string; hex: string }[];
-  images: string[];
-  thumbnail_url?: string;
-  micro_url?: string;
-  labels: string[];
-}
-
-export interface DirectCatalogResponse {
-  products: DirectApiProduct[];
-  total: number;
-}
-
-/**
- * Fetch all products directly (no landing context needed).
- * Uses GET /public/catalog/products which returns all active/visible products.
- */
-export async function getDirectCatalogProducts(): Promise<DirectCatalogResponse | null> {
-  try {
-    const url = `${API_BASE_URL}/public/catalog/products`;
-
-    const response = await fetch(url, {
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      let errorDetail = '';
-      try {
-        const errorBody = await response.json();
-        errorDetail = JSON.stringify(errorBody);
-      } catch {
-        errorDetail = response.statusText;
-      }
-      console.error(`[Catalog API Direct] Error ${response.status}:`, errorDetail);
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('[Catalog API Direct] Error fetching products:', error);
-    return null;
-  }
-}
-
-/**
- * Map a direct API product to frontend CatalogProduct.
- * Uses real specs from the EAV model when available.
- */
-export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct): CatalogProduct {
-  const specs = apiProduct.specs || {};
-  const price = apiProduct.price || 0;
-
-  // Calculate quotas using real French amortization formula (TEA 75%, 24 months default)
-  const quotaMonthly = price > 0 ? calculateQuotaForTerm(price, 24) : 0;
-  const quotaBiweekly = Math.floor(quotaMonthly / 2);
-  const quotaWeekly = Math.floor(quotaMonthly / 4);
-
-  // Determine tags from BD labels + automatic derivations
-  const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
-  const tags: ProductTagType[] = apiProduct.labels.filter(l => validTagTypes.has(l)) as ProductTagType[];
-  if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
-
-  // Map real specs from EAV to ProductSpecs structure
-  const productSpecs = createSpecsFromEav(specs, apiProduct.type || 'laptop');
-
-  // Map colors to ProductColor format (deduplicate by hex)
-  const seenHex = new Set<string>();
-  const colors: ProductColor[] = [];
-  for (const c of apiProduct.colors) {
-    if (!seenHex.has(c.hex)) {
-      seenHex.add(c.hex);
-      colors.push({ id: c.id, name: c.name, hex: c.hex });
-    }
-  }
-
-  return {
-    id: String(apiProduct.id),
-    slug: apiProduct.slug || `product-${apiProduct.id}`,
-    name: apiProduct.name,
-    displayName: apiProduct.display_name || apiProduct.short_name || apiProduct.name,
-    brand: (apiProduct.brand.name || 'Sin marca').toLowerCase(),
-    brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1') || undefined,
-    thumbnail: apiProduct.thumbnail_url || apiProduct.images[0] || '/images/products/placeholder.jpg',
-    images: apiProduct.images.length > 0 ? apiProduct.images : ['/images/products/placeholder.jpg'],
-    colors: colors.length > 0 ? colors : undefined,
-    deviceType: mapDeviceType(apiProduct.type || 'laptop'),
-    price,
-    originalPrice: undefined,
-    discount: undefined,
-    quotaMonthly,
-    quotaBiweekly,
-    quotaWeekly,
-    maxTermMonths: 24,
-    gama: inferGamaTier(price),
-    condition: mapCondition(apiProduct.condition || 'nuevo'),
-    conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
-    grade: apiProduct.grade ?? undefined,
-    stock: apiProduct.stock_available > 0 ? 'available' as StockStatus : 'out_of_stock' as StockStatus,
-    stockQuantity: apiProduct.stock_available,
-    usage: inferUsage(apiProduct.type || 'laptop', apiProduct.name),
-    isFeatured: apiProduct.is_featured,
-    isNew: apiProduct.labels.includes('nuevo'),
-    tags,
-    specs: productSpecs,
-    rawSpecs: Object.keys(specs).length > 0 ? specs : undefined,
-    createdAt: new Date().toISOString(),
-  };
-}
-
 /**
  * Create ProductSpecs from real EAV spec values.
  * Maps flat spec dict (e.g. { processor: "AMD Ryzen 5", ram: 16 }) to structured ProductSpecs.
@@ -1438,61 +1299,85 @@ export async function fetchCatalogData(
 }
 
 /**
- * Fetch products directly without landing context.
- * Returns products mapped to frontend format.
+ * Fetch products by their IDs
+ * Useful for getting wishlist/cart products
  */
-export async function fetchDirectCatalogData(): Promise<{
-  products: CatalogProduct[];
-  total: number;
-} | null> {
-  const response = await getDirectCatalogProducts();
+/** Tope duro del API: `limit` > 500 responde 422. */
+const LIMIT_MAX = 500;
 
-  if (!response || response.products.length === 0) {
+/**
+ * Trae TODAS las cards de esos productos en la landing.
+ *
+ * Un producto puede tener varias cards —el suelto y una por cada combo— y todas
+ * comparten `id`. Pedir un slot por id devolvia la respuesta truncada, siempre
+ * con la primera card. Verificado contra prod: `product_ids=518,491&limit=2`
+ * devuelve 2 de 5.
+ *
+ * Devuelve `null` si el API fallo, para que quien llame pueda distinguir "no
+ * pude preguntar" de "no hay nada". Confundirlos hace que un 5xx se lea como
+ * "todo el carrito esta muerto".
+ *
+ * CARDS_POR_PRODUCTO es solo una pista para resolverlo en un request; la
+ * correccion real es releer con `total` cuando `has_more` lo indica.
+ */
+export async function fetchAllCardsByIds(
+  landingSlug: string,
+  productIds: string[],
+  previewKey?: string | null
+): Promise<CatalogProduct[] | null> {
+  const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+  if (numericIds.length === 0) return [];
+
+  const CARDS_POR_PRODUCTO = 3;
+  const pedir = (limit: number) => getCatalogProducts(landingSlug, {
+    filters: { product_ids: numericIds },
+    limit: Math.min(limit, LIMIT_MAX),
+    previewKey,
+  });
+
+  try {
+    const response = await pedir(numericIds.length * CARDS_POR_PRODUCTO);
+    if (!response || !response.items) return null;
+
+    const truncada = response.has_more === true
+      || (typeof response.total === 'number' && response.total > response.items.length);
+
+    if (truncada) {
+      const completa = await pedir(typeof response.total === 'number' ? response.total : LIMIT_MAX);
+      if (completa?.items?.length) {
+        return completa.items.map(mapApiProductToCatalogProduct);
+      }
+    }
+
+    return response.items.map(mapApiProductToCatalogProduct);
+  } catch (error) {
+    console.error('[Catalog API] Error fetching all cards by IDs:', error);
     return null;
   }
-
-  return {
-    products: response.products.map(mapDirectApiProductToCatalogProduct),
-    total: response.total,
-  };
 }
 
 /**
- * Fetch products by their IDs
- * Useful for getting wishlist/cart products
+ * Trae UNA card por producto: la primera que devuelve la landing.
+ *
+ * Es lo que esperan el comparador, la wishlist y el carrito, que renderizan una
+ * fila por id. Ojo: cual card sea "la primera" es arbitrario cuando el producto
+ * tiene combos — el `id` no identifica una card. Quien necesite la card exacta
+ * tiene que resolver por slug, no por aca (BAL-3277).
  */
 export async function fetchProductsByIds(
   landingSlug: string,
   productIds: string[],
   previewKey?: string | null
 ): Promise<CatalogProduct[]> {
-  if (!productIds || productIds.length === 0) {
-    return [];
-  }
+  const todas = await fetchAllCardsByIds(landingSlug, productIds, previewKey);
+  if (!todas) return [];
 
-  try {
-    // Convert string IDs to numbers
-    const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-
-    if (numericIds.length === 0) {
-      return [];
-    }
-
-    const response = await getCatalogProducts(landingSlug, {
-      filters: { product_ids: numericIds },
-      limit: numericIds.length,
-      previewKey,
-    });
-
-    if (!response || !response.items) {
-      return [];
-    }
-
-    return response.items.map(mapApiProductToCatalogProduct);
-  } catch (error) {
-    console.error('[Catalog API] Error fetching products by IDs:', error);
-    return [];
-  }
+  const vistas = new Set<string>();
+  return todas.filter((p) => {
+    if (vistas.has(p.id)) return false;
+    vistas.add(p.id);
+    return true;
+  });
 }
 
 // ============================================

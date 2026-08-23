@@ -14,8 +14,13 @@
  *
  * Solo se usa si el facet no resolvió la condición (p. ej. la card se pinta
  * antes de que carguen los filtros). Con facet disponible manda la BD.
+ *
+ * Dice lo mismo que `product_condition_catalog` en producción. Cuando decía
+ * "Semi nuevo" y la BD "Reacondicionado", la card podía pintarse un instante
+ * con un texto y cambiar al otro al llegar el facet (BAL-3228). No se elimina:
+ * sin respaldo se caería al código crudo de BD, "Reacondicionada".
  */
-export const REFURBISHED_DISPLAY_LABEL = 'Semi nuevo';
+export const REFURBISHED_DISPLAY_LABEL = 'Reacondicionado';
 
 /** ¿El código de condición corresponde a un reacondicionado? (match contra el valor crudo de BD) */
 export function isRefurbishedCondition(condition?: string | null): boolean {
@@ -40,43 +45,16 @@ export function conditionDisplayLabel(condition?: string | null, fallbackLabel?:
 }
 
 /**
- * Etiqueta del reacondicionado para las campañas que la nombran distinto.
- * Family Farms vende equipos reacondicionados y los llama por su nombre: su
- * material y el diseño de sus landings dicen "Reacondicionado", no "Semi nuevo".
- * La clave es la variante de overlay de la landing (`features.overlay_variant`).
- */
-const OVERLAY_REFURBISHED_LABELS: Record<string, string> = {
-  familyfarm: 'Reacondicionado',
-};
-
-/**
- * Como `conditionDisplayLabel`, pero respetando la etiqueta propia de la campaña
- * cuando la variante de overlay define una. Sin variante, o con una que no
- * redefine nada, devuelve exactamente lo mismo que `conditionDisplayLabel`.
- */
-export function conditionDisplayLabelFor(
-  overlayVariant?: string | null,
-  condition?: string | null,
-  fallbackLabel?: string | null,
-): string {
-  if (isRefurbishedCondition(condition) && overlayVariant) {
-    const override = OVERLAY_REFURBISHED_LABELS[overlayVariant];
-    if (override) return override;
-  }
-  return conditionDisplayLabel(condition, fallbackLabel);
-}
-
-/**
  * Variantes de overlay cuyas tarjetas de catálogo no repiten el estado del equipo.
  *
  * Family Farms ya lo dice dos veces antes de llegar al chip: el banner
  * "REACONDICIONADO" encabeza la tarjeta y el selector A/B/C de la ficha abre el
- * grado con su propio diseño (BAL-2812). Los chips "Semi nuevo" y "Grado X"
- * sobre la foto son la misma información dicha por tercera vez, encima con la
- * etiqueta estándar que la campaña no usa.
+ * grado con su propio diseño (BAL-2812). Los chips de condición y grado sobre
+ * la foto son la misma información dicha por tercera vez.
  *
  * Va por variante de overlay y no por slug, igual que el resto de la campaña,
- * para que una landing nueva lo herede sin deploy.
+ * para que una landing nueva lo herede sin deploy. Cuando se decida por landing
+ * desde el admin, esta constante se reemplaza por el preset (BAL-3262).
  */
 const OVERLAY_VARIANTS_WITHOUT_STATE_BADGES = new Set(['familyfarm']);
 
