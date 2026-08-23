@@ -26,7 +26,7 @@
  *     TEA/TCEA al pie, en vez de una grilla que destacaba la TEA.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, Ban, CheckCircle2, Clock, MessageCircle, Package, XCircle } from 'lucide-react';
+import { ArrowDown, Ban, Check, CheckCircle2, Clock, MessageCircle, Package, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
@@ -612,19 +612,30 @@ export function StandardOfertaAccion({
                     a.includedFree ? '' : 'cursor-pointer'
                   }`}
                   onClick={a.includedFree ? undefined : () => toggleAddon(a.id)}
-                  style={kept ? undefined : { opacity: 0.55 }}
                 >
                   {/* El regalo del combo no lleva casilla: no cuesta nada y no
-                      se puede sacar por separado. */}
+                      se puede sacar por separado.
+
+                      Misma casilla que los términos del formulario de solicitud
+                      (`solicitar/.../CheckboxField`): cuadro de 20px con borde,
+                      y al marcar se rellena con el color de marca y sale el
+                      check en blanco. La nativa se veía de otro sistema. */}
                   {a.includedFree ? null : (
-                    <input
-                      type="checkbox"
-                      checked={kept}
-                      onChange={() => toggleAddon(a.id)}
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={kept}
                       aria-label={`Incluir ${a.name}`}
-                      className="h-[18px] w-[18px] flex-none cursor-pointer accent-[#4F46E5]"
-                    />
+                      onClick={(e) => { e.stopPropagation(); toggleAddon(a.id); }}
+                      className="flex h-5 w-5 flex-none cursor-pointer items-center justify-center rounded border-2 transition-all"
+                      style={
+                        kept
+                          ? { backgroundColor: OFERTA_COLORS.primary, borderColor: OFERTA_COLORS.primary }
+                          : { backgroundColor: '#fff', borderColor: '#D4D4D8' }
+                      }
+                    >
+                      {kept ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
+                    </button>
                   )}
                   <div
                     className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-lg"
@@ -667,10 +678,7 @@ export function StandardOfertaAccion({
                   ) : (
                     <span
                       className="whitespace-nowrap text-[13.5px] font-bold"
-                      style={{
-                        color: kept ? OFERTA_COLORS.textStrong : OFERTA_COLORS.textSoft,
-                        textDecoration: kept ? undefined : 'line-through',
-                      }}
+                      style={{ color: OFERTA_COLORS.textStrong }}
                     >
                       +S/{Math.round(a.monthlyDelta)}
                       <span className="text-[11.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
