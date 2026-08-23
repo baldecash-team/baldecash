@@ -7,8 +7,8 @@ export const LANDING_IDS = {
   ZONA_GAMER: 136,
   NVIDIA: 168,
   /**
-   * Landing de equipos seminuevos. ID PROVISIONAL — reemplazar por el real
-   * cuando lo asigne el admin. Es el único lugar donde vive este número.
+   * Landing de equipos seminuevos/reacondicionados (BAL-3288).
+   * El slug es editable en el admin: la detección va siempre por este id.
    */
-  SEMINUEVOS: 999,
+  SEMINUEVOS: 241,
 } as const;
