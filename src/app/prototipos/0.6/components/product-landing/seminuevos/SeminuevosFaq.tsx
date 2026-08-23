@@ -50,7 +50,7 @@ export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
                 >
                   <span className="font-semibold text-[15px]">{item.question}</span>
                   <IconChevron
-                    className={`w-5 h-5 shrink-0 transition-transform duration-250 ${open ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
                   />
                 </button>
 
