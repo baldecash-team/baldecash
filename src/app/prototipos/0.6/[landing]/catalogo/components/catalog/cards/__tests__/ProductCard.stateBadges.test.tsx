@@ -55,11 +55,6 @@ jest.mock('../../ProductTags', () => ({
   ProductTags: ({ tags }: { tags: string[] }) => <span>{tags.join(',')}</span>,
 }));
 
-// El producto de prueba es reacondicionado: es la única condición que pinta badge.
-jest.mock('@/app/prototipos/0.6/components/RefurbishedWarningModal', () => ({
-  isRefurbishedCondition: () => true,
-}));
-
 beforeAll(() => {
   window.matchMedia = window.matchMedia || ((query: string) => ({
     matches: false,
@@ -93,6 +88,10 @@ function buildRefurbishedProduct(overrides: Partial<CatalogProduct> = {}): Catal
     gama: 'economica',
     condition: 'reacondicionado',
     conditionCode: 'reacondicionada',
+    // El backend ya resuelve el badge (BAL-3261): `showCondition` en
+    // ProductCard depende de este texto, no de derivar el código.
+    conditionLabelText: 'Reacondicionado',
+    conditionLabelColor: '#0099FF',
     grade: 'A',
     stock: 'available',
     stockQuantity: 5,

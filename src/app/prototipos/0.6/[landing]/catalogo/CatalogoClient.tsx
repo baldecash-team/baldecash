@@ -1838,7 +1838,6 @@ function CatalogoContent() {
                 hideColors={!(product.colors && product.colors.length >= 1)}
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
-                conditions={apiFilters?.conditions}
                 labels={apiFilters?.labels}
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
                 addToCartDisabled={!isProductContextHydrated || onboarding.shouldShowWelcome}

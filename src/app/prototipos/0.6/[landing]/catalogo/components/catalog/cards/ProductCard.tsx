@@ -62,8 +62,7 @@ import { ProductTags } from '../ProductTags';
 import { RibbonLabel } from '../RibbonLabel';
 import { ConditionBadge } from '../ConditionBadge';
 import { CardBadge } from '../CardBadge';
-import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
-import type { ConditionFilter, LabelFilter } from '../../../../../types/filters';
+import type { LabelFilter } from '../../../../../types/filters';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
@@ -124,8 +123,6 @@ interface ProductCardProps {
   needsPromoSpacer?: boolean;
   /** Cupón de campaña URL — muestra oferta de 1.ª cuota y precio de lista tachado */
   campaignCoupon?: AppliedCoupon | null;
-  /** Catálogo de condiciones del facet — estilo (label/icon/color) del badge de condición */
-  conditions?: ConditionFilter[] | null;
   /** Catálogo de etiquetas del facet — texto y color de los tags del producto (BAL-3204) */
   labels?: LabelFilter[] | null;
   /**
@@ -181,7 +178,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   hideColors = true,
   needsPromoSpacer = false,
   campaignCoupon = null,
-  conditions = null,
   labels = null,
   addToCartDisabled = false,
   hideStateBadges = false,
@@ -435,13 +431,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const PromoBannerIcon = promoTemplate?.bannerIcon ? PROMO_BANNER_ICONS[promoTemplate.bannerIcon] : null;
   const isTopBarBanner = promoTemplate?.bannerStyle === 'top_bar' || !promoTemplate?.bannerStyle;
 
-  // Condición cruda para el badge: prioriza el código del API (nueva/reacondicionada/open_box);
-  // cae al enum normalizado para mock data sin conditionCode.
-  const conditionCode = product.conditionCode || product.condition;
-  // El badge se muestra SOLO para reacondicionados (no para nuevos ni open_box).
+  // Qué condición amerita badge lo decide el backend (BAL-3261,
+  // `catalog_rules.condition_badges`): si no manda texto, esta card no lleva
+  // badge. La card ya no repite esa regla comparando códigos de condición.
   // Condición y grado se ocultan juntos: describen el mismo estado del equipo, y
   // la campaña que suprime uno suprime el par.
-  const showCondition = !hideStateBadges && isRefurbishedCondition(conditionCode);
+  const showCondition = !hideStateBadges && !!product.conditionLabelText;
   const showGrade = !hideStateBadges && !!product.grade;
   const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
 
@@ -623,7 +618,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {(showCondition || showGrade || hasTopLeftTags) && (
               <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
                 {showCondition && (
-                  <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
+                  <ConditionBadge
+                    conditionLabelText={product.conditionLabelText}
+                    conditionLabelColor={product.conditionLabelColor}
+                  />
                 )}
                 {showGrade && (
                   <CardBadge backgroundColor="rgba(0,0,0,0.7)">
