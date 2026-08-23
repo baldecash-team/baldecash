@@ -126,8 +126,16 @@ export function StandardOfertaAccion({
   // que abrir el link muestre lo mismo que se le prometió al cliente.
   const [selTerm, setSelTerm] = useState<number | null>(null);
   const [selInitial, setSelInitial] = useState<number | null>(null);
-  const curTerm = selTerm ?? info?.termMonths ?? terms[0] ?? null;
-  const curInitial = selInitial ?? info?.initialPaymentPercent ?? initials[0] ?? null;
+  // El plazo de la oferta es el default, salvo que el backend no lo ofrezca
+  // (excluye el plazo que la solicitud ya tiene): ahí arranca en el primero
+  // disponible, para que el chip activo y las cifras cuenten lo mismo.
+  const defaultTerm = info?.termMonths ?? null;
+  const curTerm =
+    selTerm ?? (defaultTerm != null && terms.includes(defaultTerm) ? defaultTerm : terms[0] ?? defaultTerm);
+  const defaultInitial = info?.initialPaymentPercent ?? null;
+  const curInitial =
+    selInitial
+    ?? (defaultInitial != null && initials.includes(defaultInitial) ? defaultInitial : initials[0] ?? defaultInitial);
   const selected = useMemo(
     () => options.find((o) => o.termMonths === curTerm && o.initialPercent === curInitial) ?? null,
     [options, curTerm, curInitial],
@@ -161,6 +169,16 @@ export function StandardOfertaAccion({
   const togglables = useMemo(() => addons.filter((a) => !a.includedFree), [addons]);
   const [dropped, setDropped] = useState<number[]>([]);
   const isKept = useCallback((id: number) => !dropped.includes(id), [dropped]);
+  // Con 18 accesorios, desmarcar uno por uno no es una opción razonable.
+  const todosMarcados = togglables.length > 0 && dropped.length === 0;
+  const toggleTodos = useCallback(() => {
+    setDropped((prev) => (prev.length === 0 ? togglables.map((a) => a.id) : []));
+    analytics.track('offer_standard_addon_toggle', {
+      offer_code: offer.offerCode,
+      bulk: true,
+    });
+  }, [togglables, analytics, offer.offerCode]);
+
   const toggleAddon = useCallback((id: number) => {
     setDropped((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     analytics.track('offer_standard_addon_toggle', { offer_code: offer.offerCode, addon_id: id });
@@ -570,10 +588,19 @@ export function StandardOfertaAccion({
             style={{ borderColor: OFERTA_COLORS.border }}
           >
             <div
-              className="rounded-t-xl px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[.09em] text-white"
+              className="flex items-center justify-between gap-3 rounded-t-xl px-3.5 py-1.5 text-white"
               style={{ backgroundColor: OFERTA_COLORS.primary }}
             >
-              Incluye
+              <span className="text-[10px] font-bold uppercase tracking-[.09em]">Incluye</span>
+              {togglables.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={toggleTodos}
+                  className="cursor-pointer rounded-md px-2 py-0.5 text-[11px] font-bold underline-offset-2 transition-opacity hover:opacity-80"
+                >
+                  {todosMarcados ? 'Quitar todos' : 'Marcar todos'}
+                </button>
+              ) : null}
             </div>
             <ul className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
               {addons.map((a) => {
