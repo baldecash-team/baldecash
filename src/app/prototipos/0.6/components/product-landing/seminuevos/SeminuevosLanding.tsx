@@ -33,6 +33,12 @@ export interface SeminuevosLandingProps {
    */
   logoUrl?: string;
   primaryColor?: string;
+  /**
+   * URL del botón flotante de WhatsApp. Viene de BD (heroData.ctaData.buttons
+   * .whatsapp.url, el mismo componente `cta` que usa el resto de landings).
+   * Si no llega, SeminuevosWhatsapp cae a su propio valor por defecto.
+   */
+  whatsappUrl?: string;
 }
 
 export default function SeminuevosLanding({
@@ -43,6 +49,7 @@ export default function SeminuevosLanding({
   faqData,
   logoUrl,
   primaryColor,
+  whatsappUrl,
 }: SeminuevosLandingProps) {
   return (
     <div className={`${baloo.variable} seminuevos-landing min-h-screen antialiased`}>
@@ -81,7 +88,7 @@ export default function SeminuevosLanding({
         <Footer data={footerData} landing={landing} />
       </div>
 
-      <SeminuevosWhatsapp />
+      <SeminuevosWhatsapp href={whatsappUrl} />
     </div>
   );
 }

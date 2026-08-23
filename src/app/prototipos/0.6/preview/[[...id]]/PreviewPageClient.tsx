@@ -417,6 +417,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
           faqData={mergedFaq}
           logoUrl={heroData.logoUrl}
           primaryColor={heroData.primaryColor}
+          whatsappUrl={mergedCta?.buttons.whatsapp.url}
         />
       </div>
     );

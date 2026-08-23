@@ -502,6 +502,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           faqData={mergedFaq}
           logoUrl={heroData.logoUrl}
           primaryColor={heroData.primaryColor}
+          whatsappUrl={heroData.ctaData?.buttons.whatsapp.url}
         />
       </div>
     );
