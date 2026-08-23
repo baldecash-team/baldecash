@@ -409,13 +409,18 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
           '--color-secondary': heroData.secondaryColor || '#03DBD0',
         } as React.CSSProperties}
       >
-        <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
         <SeminuevosLanding
           footerData={mergedFooterData}
           landing={landingSlug}
           previewBannerOffset={24}
           promoBannerData={heroData.promoBannerData}
           faqData={mergedFaq}
+          navbarItems={mergedNavbarItems}
+          megamenuItems={heroData.megamenuItems}
+          logoUrl={heroData.logoUrl}
+          customerPortalUrl={heroData.customerPortalUrl}
+          portalButtonText={heroData.portalButtonText}
+          primaryColor={heroData.primaryColor}
         />
       </div>
     );

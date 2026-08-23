@@ -42,6 +42,7 @@ import type { PromoBannerData } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { getReadableColorOnWhite, getContrastTextColor } from '@/app/prototipos/0.6/utils/colorContrast';
+import { LANDING_IDS } from '../../utils/landingIds';
 
 // Helper function to build internal URLs with optional query params
 const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
@@ -126,6 +127,13 @@ interface NavbarProps {
   megamenuItems?: MegaMenuItemData[];
   /** Landing slug for dynamic URL building (e.g., 'home', 'laptops-estudiantes') */
   landing?: string;
+  /**
+   * Landing id para detección de variantes. Opcional a propósito: los call sites
+   * que no la pasan renderizan el navbar exactamente como siempre.
+   * Solo la pasan el index y el preview — por eso el CTA de catálogo no aparece
+   * dentro del catálogo ni del detalle.
+   */
+  landingId?: number;
   /** Offset from top when preview banner is shown (in pixels) */
   previewBannerOffset?: number;
   /** Institution logo for co-branding (convenio landings) */
@@ -185,7 +193,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', landingId, previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
@@ -281,6 +289,11 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
     item.is_visible !== false &&
     (!item.section || activeSections.includes(item.section))
   );
+
+  // CTA "Ver catálogo" de la landing de seminuevos. Solo en el home: las
+  // subpáginas no pasan landingId, así que acá queda undefined.
+  const showCatalogCta = landingId === LANDING_IDS.SEMINUEVOS;
+
   const tracker = useEventTrackerOptional();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
@@ -544,6 +557,22 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
             {/* Desktop CTA */}
             {!minimal && (
               <div className="hidden lg:flex items-center gap-3">
+                {showCatalogCta && (
+                  <a
+                    data-testid="navbar-cta-catalogo"
+                    href={routes.catalogo(landing)}
+                    className="inline-flex items-center rounded-[30px] px-[18px] py-2.5 text-white font-semibold text-[14px] whitespace-nowrap"
+                    style={{ background: 'linear-gradient(135deg,#5a63e0,#03DBD0)' }}
+                    onClick={() => {
+                      tracker?.track('cta_click', {
+                        cta_name: 'ver_catalogo_seminuevos',
+                        location: 'navbar',
+                      });
+                    }}
+                  >
+                    Ver catálogo
+                  </a>
+                )}
                 <Button
                   as="a"
                   href={customerPortalUrl}
@@ -745,7 +774,24 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     )}
                   </div>
                 ))}
-                <div className="pt-4 border-t border-[var(--border-soft,#f5f5f5)]">
+                <div className="pt-4 border-t border-[var(--border-soft,#f5f5f5)] space-y-3">
+                  {showCatalogCta && (
+                    <a
+                      data-testid="navbar-cta-catalogo-mobile"
+                      href={routes.catalogo(landing)}
+                      className="flex items-center justify-center w-full rounded-[30px] px-[18px] py-2.5 text-white font-semibold text-[14px] whitespace-nowrap"
+                      style={{ background: 'linear-gradient(135deg,#5a63e0,#03DBD0)' }}
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        tracker?.track('cta_click', {
+                          cta_name: 'ver_catalogo_seminuevos',
+                          location: 'navbar_mobile',
+                        });
+                      }}
+                    >
+                      Ver catálogo
+                    </a>
+                  )}
                   <Button
                     as="a"
                     href={customerPortalUrl}

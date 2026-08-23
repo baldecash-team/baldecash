@@ -5,6 +5,14 @@ jest.mock('../../../hero/Footer', () => ({
   Footer: () => <footer data-testid="footer-compartido" />,
 }));
 
+// El Navbar real exige PreviewProvider (usePreview) y trae mucho peso propio
+// (megamenu, tracker, ResizeObserver de altura) que no aporta a este test de
+// orquestador. Se mockea igual que el Footer — su montaje real ya está cubierto
+// por Navbar.seminuevosCta.test.tsx.
+jest.mock('../../../hero/Navbar', () => ({
+  Navbar: () => <nav data-testid="navbar-mock" />,
+}));
+
 // El Inspector (montado dentro del orquestador) usa scrollIntoView al cambiar
 // de tab; jsdom no lo implementa. Mismo polyfill que SeminuevosInspector.test.tsx.
 beforeAll(() => {
@@ -12,8 +20,9 @@ beforeAll(() => {
 });
 
 describe('SeminuevosLanding', () => {
-  it('renderiza el hero y el footer compartido', () => {
+  it('renderiza el navbar, el hero y el footer compartido', () => {
     render(<SeminuevosLanding landing="seminuevos" />);
+    expect(screen.getByTestId('navbar-mock')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /Equipos seminuevos en cuotas sin intereses/i })
     ).toBeInTheDocument();
