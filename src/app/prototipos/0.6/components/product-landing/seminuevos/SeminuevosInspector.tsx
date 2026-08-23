@@ -34,7 +34,11 @@ export function SeminuevosInspector() {
   const titleBase = quees.title.replace(quees.titleAccent, '').trim();
 
   return (
-    <section className="px-[22px] py-12 bg-white">
+    <section
+      id="que-es"
+      className="px-[22px] py-12 bg-white"
+      style={{ scrollMarginTop: 'var(--header-total-height, 6.5rem)' }}
+    >
       <div className="max-w-[720px] mx-auto">
         <h2
           className="font-extrabold text-center"
@@ -51,9 +55,12 @@ export function SeminuevosInspector() {
           className="mt-7 bg-white rounded-[20px] text-left"
           style={{ boxShadow: 'var(--sombra)', border: '1px solid #f0f1f4' }}
         >
-          {/* Pills de grado + imagen */}
-          <div className="flex items-center gap-3 p-5">
-            <div className="flex flex-col gap-2 shrink-0">
+          {/* Pills de grado + imagen.
+              Mobile: pills en fila horizontal, arriba de la imagen (a pedido
+              del dueño de producto, para no quitarle ancho a la img principal).
+              Desde sm: layout original en columna, al costado. */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-5">
+            <div className="flex flex-row sm:flex-col gap-2 shrink-0">
               {GRADOS.map((g) => {
                 const on = g === grado;
                 return (
@@ -62,7 +69,7 @@ export function SeminuevosInspector() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => setGrado(g)}
-                    className={`min-h-11 rounded-[22px] px-4 text-[13.5px] font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2 ${
+                    className={`min-h-11 flex-1 sm:flex-initial rounded-[22px] px-4 text-[13.5px] font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2 ${
                       on ? 'hover:brightness-110' : 'hover:bg-[#e3e6fa]'
                     }`}
                     style={{
