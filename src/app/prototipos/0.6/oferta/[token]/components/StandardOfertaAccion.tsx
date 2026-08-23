@@ -163,13 +163,17 @@ export function StandardOfertaAccion({
     options.length === 0
     || (curTerm === info?.termMonths && curInitial === info?.initialPaymentPercent);
 
-  // Los add-ons vienen marcados: es lo que el gestor ofreció y lo que refleja
-  // la cuota. El cliente desmarca lo que no quiere. Los regalos de combo no se
-  // pueden desmarcar — no cuestan nada y vienen atados al combo.
+  // Los add-ons arrancan SIN marcar: el cliente suma lo que quiere, en vez de
+  // encontrarse todo puesto y tener que sacarlo. La cuota que ve al abrir es la
+  // de su equipo solo, y cada casilla la va subiendo.
+  //
+  // Los regalos de combo no llevan casilla — no cuestan nada y vienen atados al
+  // combo, así que no entran en esto.
   const togglables = useMemo(() => addons.filter((a) => !a.includedFree), [addons]);
-  const [dropped, setDropped] = useState<number[]>([]);
+  // `dropped` = lo NO elegido. Arranca con todo adentro, de ahí el initializer.
+  const [dropped, setDropped] = useState<number[]>(() => togglables.map((a) => a.id));
   const isKept = useCallback((id: number) => !dropped.includes(id), [dropped]);
-  // Con 18 accesorios, desmarcar uno por uno no es una opción razonable.
+  // Con 18 accesorios, marcarlos uno por uno no es una opción razonable.
   const todosMarcados = togglables.length > 0 && dropped.length === 0;
   const toggleTodos = useCallback(() => {
     setDropped((prev) => (prev.length === 0 ? togglables.map((a) => a.id) : []));
@@ -583,7 +587,7 @@ export function StandardOfertaAccion({
             equipo sin saber de dónde salía. */}
         {addons.length ? (
           <section
-            aria-label="Lo que incluye tu oferta"
+            aria-label="Accesorios y seguros que puedes agregar"
             className="rounded-xl border"
             style={{ borderColor: OFERTA_COLORS.border }}
           >
@@ -591,7 +595,11 @@ export function StandardOfertaAccion({
               className="flex items-center justify-between gap-3 rounded-t-xl px-3.5 py-1.5 text-white"
               style={{ backgroundColor: OFERTA_COLORS.primary }}
             >
-              <span className="text-[10px] font-bold uppercase tracking-[.09em]">Incluye</span>
+              {/* No dice "Incluye": no está incluido hasta que el cliente lo
+                  marque. */}
+              <span className="text-[10px] font-bold uppercase tracking-[.09em]">
+                Puedes agregar
+              </span>
               {togglables.length > 1 ? (
                 <button
                   type="button"
@@ -693,9 +701,8 @@ export function StandardOfertaAccion({
             {showAddonAmounts && togglables.length > 0 ? (
               <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
                 {dropped.length === togglables.length
-                  ? 'Te quedas solo con el equipo.'
-                  : `Suman S/${Math.round(keptDelta)}${cuotaSuffix(frecuencia)} a tu cuota.`}
-                {' '}Desmarca lo que no quieras y la cuota se ajusta.
+                  ? 'Marca lo que quieras sumar y la cuota se ajusta.'
+                  : `Sumaste S/${Math.round(keptDelta)}${cuotaSuffix(frecuencia)} a tu cuota.`}
               </div>
             ) : null}
           </section>
