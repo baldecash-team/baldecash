@@ -8,6 +8,8 @@ beforeAll(() => {
   // tab activa dentro del strip (ver comentario en el componente: reemplazó
   // a scrollIntoView porque ese scrolleaba la página entera, no solo el strip).
   Element.prototype.scrollTo = jest.fn();
+  // ResizeObserver (que el componente usa para detectar el desborde del strip)
+  // lo stubea jest.setup.js, igual que matchMedia.
 });
 
 describe('SeminuevosInspector', () => {

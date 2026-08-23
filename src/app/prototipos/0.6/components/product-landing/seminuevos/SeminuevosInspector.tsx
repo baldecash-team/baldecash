@@ -26,9 +26,43 @@ export function SeminuevosInspector() {
     strip.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
   }, [pieza]);
 
+  // Con 8 piezas en móvil solo entran ~4 tabs y la barra de scroll está oculta,
+  // así que nada delata que la lista sigue. Se difumina el borde del lado que
+  // tiene contenido fuera de vista; cuando el strip entra completo (desktop),
+  // no se difumina ningún lado.
+  const [desborde, setDesborde] = useState({ izq: false, der: false });
+
+  useEffect(() => {
+    const strip = tabsRef.current;
+    if (!strip) return;
+
+    const medir = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = strip;
+      setDesborde({
+        izq: scrollLeft > 1,
+        der: scrollLeft + clientWidth < scrollWidth - 1,
+      });
+    };
+
+    medir();
+    strip.addEventListener('scroll', medir, { passive: true });
+    // El ancho disponible cambia al rotar el teléfono o redimensionar.
+    const ro = new ResizeObserver(medir);
+    ro.observe(strip);
+    return () => {
+      strip.removeEventListener('scroll', medir);
+      ro.disconnect();
+    };
+  }, []);
+
   const total = PIEZAS.length;
   const prev = () => setPieza((p) => (p - 1 + total) % total);
   const next = () => setPieza((p) => (p + 1) % total);
+
+  // Máscara: transparente en el borde con contenido oculto, opaco si no hay nada más.
+  const bordeIzq = desborde.izq ? 'transparent 0, black 24px' : 'black 0';
+  const bordeDer = desborde.der ? 'black calc(100% - 24px), transparent 100%' : 'black 100%';
+  const mascara = `linear-gradient(to right, ${bordeIzq}, ${bordeDer})`;
 
   const piezaActual = PIEZAS[pieza];
   const titleBase = quees.title.replace(quees.titleAccent, '').trim();
@@ -103,6 +137,7 @@ export function SeminuevosInspector() {
           <div
             ref={tabsRef}
             className="flex gap-2 overflow-x-auto px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ maskImage: mascara, WebkitMaskImage: mascara }}
           >
             {PIEZAS.map((p, i) => {
               const on = i === pieza;
