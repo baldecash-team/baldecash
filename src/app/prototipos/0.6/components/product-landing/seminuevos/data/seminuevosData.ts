@@ -22,7 +22,9 @@ export function piezaSlug(pieza: string): string {
   return pieza
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    // Escapes, no los caracteres combinantes literales: son invisibles en el
+    // fuente y frágiles ante cambios de encoding.
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-');
 }
 
