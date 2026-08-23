@@ -214,6 +214,9 @@ export type EventType =
   | 'offer_standard_reject_click'
   | 'offer_standard_rejected'
   | 'offer_standard_decision_error'
+  // El cliente arma su cuota eligiendo entre los rangos de la oferta.
+  | 'offer_standard_term_change'
+  | 'offer_standard_initial_change'
   // Ver la ficha del equipo en la landing, desde la card de la oferta estándar
   | 'offer_standard_detail_click'
   // Cobertura del funnel de oferta (6 pasos + interacciones) — BAL-2236:

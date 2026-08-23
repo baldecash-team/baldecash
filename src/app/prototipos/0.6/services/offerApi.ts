@@ -135,6 +135,33 @@ export interface ExclusiveOffer {
   } | null;
 }
 
+/** Accesorio o seguro que viaja dentro de una oferta estándar. El monto de la
+ *  oferta ya los incluye, así que la vista tiene que desglosarlos. */
+export interface StandardOfferAddon {
+  id: number;
+  productId: number | null;
+  name: string;
+  imageUrl: string | null;
+  price: number;
+  /** Cuota mensual que aporta este ítem. Null si el backend no la tiene. */
+  monthly: number | null;
+  /** Regalo de un combo: se muestra como "Incluido gratis", sin cuota. */
+  includedFree: boolean;
+}
+
+/** Una combinación de plazo/inicial que el cliente puede elegir en el link.
+ *  El backend resuelve las cifras de cada una con el mismo pricing que usó
+ *  para crear la oferta, así que lo que se muestra es lo que se contrata. */
+export interface StandardOfferOption {
+  termMonths: number;
+  initialPercent: number;
+  initialPayment: number;
+  monthlyPayment: number;
+  tea: number | null;
+  tcea: number | null;
+  totalAmount: number | null;
+}
+
 /** Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
  *  decide aceptar o rechazar (no hay catálogo/selección de equipo). */
 export interface StandardOfferInfo {
@@ -167,6 +194,18 @@ export interface StandardOfferInfo {
    *  y el cliente no reconocía su propio plan. */
   term: number | null;
   paymentFrequency: string | null;
+  /** Modalidad: 'upsell' es la "Oferta con Accesorios" de admin2 (equipo +
+   *  periféricos/seguros); el resto son ofertas de equipo. */
+  offerType: string | null;
+  /** Accesorios y seguros incluidos en la oferta (vacío en las de equipo). */
+  accessories: StandardOfferAddon[];
+  insurances: StandardOfferAddon[];
+  /** Cuota mensual que aportan los add-ons. La cuota del equipo solo es
+   *  `monthlyPayment - addonsMonthlyPayment`. */
+  addonsMonthlyPayment: number;
+  /** Combinaciones de plazo/inicial entre las que el cliente elige. Vacío = la
+   *  oferta tiene una sola combinación y no hay nada que elegir. */
+  options: StandardOfferOption[];
 }
 
 export interface OfferView {
@@ -237,6 +276,42 @@ async function parseError(res: Response): Promise<OfferApiError> {
     /* respuesta sin JSON */
   }
   return new OfferApiError(reason, message, res.status);
+}
+
+/** Accesorios/seguros de la oferta estándar (snake_case → camelCase). Tolera
+ *  que el backend no mande la lista (ofertas viejas). */
+function mapStandardAddons(raw: unknown): StandardOfferAddon[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    const a = item as Record<string, unknown>;
+    return {
+      id: Number(a.id),
+      productId: a.product_id != null ? Number(a.product_id) : null,
+      name: String(a.name ?? 'Accesorio'),
+      imageUrl: (a.image_url as string | null) ?? null,
+      price: Number(a.price ?? 0),
+      monthly: a.monthly_payment != null ? Number(a.monthly_payment) : null,
+      includedFree: a.included_free === true,
+    };
+  });
+}
+
+/** Grilla de plazo/inicial de la oferta estándar. Tolera que no venga
+ *  (ofertas sin rangos / backend viejo). */
+function mapStandardOptions(raw: unknown): StandardOfferOption[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    const o = item as Record<string, unknown>;
+    return {
+      termMonths: Number(o.term_months),
+      initialPercent: Number(o.initial_payment_percent ?? 0),
+      initialPayment: Number(o.initial_payment ?? 0),
+      monthlyPayment: Number(o.monthly_payment ?? 0),
+      tea: o.tea != null ? Number(o.tea) : null,
+      tcea: o.tcea != null ? Number(o.tcea) : null,
+      totalAmount: o.total_amount != null ? Number(o.total_amount) : null,
+    };
+  });
 }
 
 /** GET /public/offer/{token} — datos de "Tu oferta". */
@@ -328,6 +403,11 @@ export async function getOffer(token: string): Promise<OfferView> {
         hoursRemaining: data.hours_remaining ?? null,
         term: data.term ?? data.term_months ?? null,
         paymentFrequency: data.payment_frequency ?? 'mensual',
+        offerType: data.offer_type ?? null,
+        accessories: mapStandardAddons(data.accessories),
+        insurances: mapStandardAddons(data.insurances),
+        addonsMonthlyPayment: data.addons_monthly_payment ?? 0,
+        options: mapStandardOptions(data.options),
       },
     };
   }
@@ -530,10 +610,17 @@ export interface OfferDecisionResult {
 /** POST /public/offer/{token}/accept — acepta la oferta ESTÁNDAR vinculada al
  *  token (única vía de aceptación, F-6B: ya no se acepta desde el admin).
  *  Idempotente: una segunda llamada devuelve el estado final sin reaplicar. */
-export async function acceptOffer(token: string): Promise<OfferDecisionResult> {
+export async function acceptOffer(
+  token: string,
+  choice?: { term: number; initialPercent: number },
+): Promise<OfferDecisionResult> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/accept`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    // Sin elección se manda `{}`: el backend deja la combinación por defecto.
+    body: JSON.stringify(
+      choice ? { term: choice.term, initial_percent: choice.initialPercent } : {},
+    ),
   });
   if (!res.ok) throw await parseError(res);
   const data = await res.json();
