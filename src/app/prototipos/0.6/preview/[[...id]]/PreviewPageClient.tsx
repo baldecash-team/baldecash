@@ -14,6 +14,7 @@ import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { PreviewBanner } from '../../components/PreviewBanner';
 import MacBookNeoLanding from '../../components/product-landing/MacBookNeoLanding';
+import SeminuevosLanding from '../../components/product-landing/seminuevos/SeminuevosLanding';
 import { LeadLanding } from '../../components/lead/LeadLanding';
 import { SessionProvider } from '../../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTrackerContext';
@@ -395,6 +396,27 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
         <MacBookNeoLanding footerData={mergedFooterData} landing={landingSlug} previewBannerOffset={24} promoBannerData={heroData.promoBannerData} />
         <FloatingCtaButton config={floatingCtaConfig} />
+      </div>
+    );
+  }
+
+  // Landing de equipos seminuevos.
+  if (heroData.landingId === LANDING_IDS.SEMINUEVOS) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData.primaryColor || '#4654CD',
+          '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
+        <SeminuevosLanding
+          footerData={mergedFooterData}
+          landing={landingSlug}
+          previewBannerOffset={24}
+          promoBannerData={heroData.promoBannerData}
+          faqData={mergedFaq}
+        />
       </div>
     );
   }
