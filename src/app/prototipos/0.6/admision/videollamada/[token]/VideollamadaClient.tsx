@@ -114,10 +114,15 @@ export function VideollamadaClient({ token }: { token: string }) {
   const conectando = estado === 'cargando';
 
   return (
-    <main className="min-h-screen bg-white px-4 py-8 font-sans">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-        <header>
-          <h1 className="text-xl font-semibold text-[#4654CD]">
+    /*
+      `100dvh` y no `100vh`: en mobile la barra del navegador entra y sale, y
+      `vh` la ignora — la pagina queda mas alta que la pantalla y aparece
+      scroll. `dvh` sigue el alto real disponible.
+    */
+    <main className="flex h-[100dvh] flex-col bg-white px-3 py-4 font-sans sm:px-4 sm:py-8">
+      <div className="mx-auto flex w-full max-w-4xl min-h-0 flex-1 flex-col gap-3">
+        <header className="shrink-0">
+          <h1 className="text-lg font-semibold text-[#4654CD] sm:text-xl">
             Videollamada con tu asesor
           </h1>
           {conectando && (
@@ -138,12 +143,16 @@ export function VideollamadaClient({ token }: { token: string }) {
           className={
             estado === 'terminada' || estado === 'error'
               ? 'hidden'
-              : 'h-[70vh] w-full overflow-hidden rounded-xl bg-black'
+              // `flex-1` para ocupar todo lo que sobra en vez de un alto fijo:
+              // con `70vh` quedaba un tercio de pantalla en blanco abajo en
+              // mobile. `min-h-0` deja que el hijo flex pueda encogerse — sin
+              // eso desborda y vuelve el scroll.
+              : 'min-h-0 w-full flex-1 overflow-hidden rounded-xl bg-black'
           }
         />
 
         {estado === 'terminada' && (
-          <div className="rounded-xl border border-gray-200 p-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-gray-200 p-6 text-center">
             <p className="text-gray-800">Saliste de la videollamada.</p>
             <button
               type="button"
@@ -156,7 +165,7 @@ export function VideollamadaClient({ token }: { token: string }) {
         )}
 
         {estado === 'error' && (
-          <div className="rounded-xl border border-gray-200 p-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-gray-200 p-6 text-center">
             <p className="text-gray-800">{error}</p>
             <button
               type="button"
