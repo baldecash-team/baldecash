@@ -22,7 +22,11 @@ export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
   };
 
   return (
-    <section id="faq" className="px-[22px] py-12" style={{ background: '#fff' }}>
+    <section
+      id="faq"
+      className="px-[22px] py-12"
+      style={{ background: '#fff', scrollMarginTop: 'var(--header-total-height, 6.5rem)' }}
+    >
       <div className="max-w-[720px] mx-auto">
         <h2 className="font-extrabold text-center" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
           {stripHtml(data?.title) || faq.title}
@@ -62,7 +66,7 @@ export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
                   style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
                 >
                   <div className="overflow-hidden">
-                    <p className="px-4 pb-4 text-[14px]" style={{ color: '#5b5c6b', lineHeight: 1.6 }}>
+                    <p className="p-4 text-[14px]" style={{ color: '#5b5c6b', lineHeight: 1.6 }}>
                       {stripHtml(item.answer)}
                     </p>
                   </div>
