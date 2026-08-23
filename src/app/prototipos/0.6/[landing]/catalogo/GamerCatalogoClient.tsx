@@ -101,6 +101,7 @@ import { HelpQuiz } from '@/app/prototipos/0.6/quiz/components/quiz/HelpQuiz';
 import type { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/quiz';
 import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { mapQuizAnswersToFilters } from './utils/quizFilters';
+import { resolveSavedItemDetail } from './utils/resolveSavedItemDetail';
 
 // ============================================
 // Main export
@@ -2557,14 +2558,15 @@ export function GamerCatalogoContent() {
         onClearAll={() => clearWishlist()}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
-          const prod = findProductOrSibling(productId);
-          if (prod) {
-            router.push(routes.producto(landing, prod.slug));
-            return;
-          }
-          // Fall back to the slug stored in the wishlist item if the product is no longer in the catalog
+          // El slug guardado identifica la card exacta; el lookup por id devuelve
+          // la primera card del producto y el suelto y sus combos comparten
+          // `id` (BAL-3272). Se conserva la URL sin params de esta pantalla.
           const item = wishlist.find((w) => w.productId === productId);
-          if (item?.slug) router.push(routes.producto(landing, item.slug));
+          const cardGuardada = item?.slug
+            ? allProducts.find((p: CatalogProduct) => p.slug === item.slug) ?? null
+            : null;
+          const destino = resolveSavedItemDetail(item, cardGuardada, findProductOrSibling(productId));
+          if (destino) router.push(routes.producto(landing, destino.slug));
         }}
         onAddToCompare={(productId) => {
           const prod = findProductOrSibling(productId);
