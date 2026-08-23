@@ -24,7 +24,11 @@ export function SeminuevosAbout() {
   const titleBase = about.title.replace(about.titleAccent, '').trim();
 
   return (
-    <section className="px-[22px] py-12" style={{ background: '#fff' }}>
+    <section
+      id="nosotros"
+      className="px-[22px] py-12"
+      style={{ background: '#fff', scrollMarginTop: 'var(--header-total-height, 6.5rem)' }}
+    >
       <div className="max-w-[720px] mx-auto">
         <h2 className="font-extrabold text-center" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
           {titleBase} <span style={{ color: 'var(--azul)' }}>{about.titleAccent}</span>
@@ -43,14 +47,21 @@ export function SeminuevosAbout() {
           />
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <span className="text-[13px]" style={{ color: 'var(--tenue)' }}>{about.sbsLabel}</span>
+        <div className="mt-6 flex items-center justify-center gap-2">
           <span
-            className="inline-flex items-center gap-2 rounded-[12px] px-3 py-2"
+            className="shrink-0 text-[11px] sm:text-[13px]"
+            style={{ color: 'var(--tenue)' }}
+          >
+            {about.sbsLabel}
+          </span>
+          <span
+            className="inline-flex items-center gap-1.5 min-w-0 rounded-[12px] px-2.5 py-2 sm:gap-2 sm:px-3"
             style={{ background: 'var(--lavanda)', color: 'var(--navy)' }}
           >
-            <IconEscudo className="w-4 h-4" />
-            <span className="text-[12.5px] font-semibold">{about.sbsText}</span>
+            <IconEscudo className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 truncate text-[11px] font-semibold sm:text-[12.5px]">
+              {about.sbsText}
+            </span>
           </span>
         </div>
 
