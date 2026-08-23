@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import type { CtaData, AgreementData, HeroContent, CtaQuickLink } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { safeExternalUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 const AVATAR_COLORS = [
@@ -66,7 +67,10 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
 
   const institutionShortName = agreementData.institution_short_name || agreementData.institution_name || '';
   const discountPct = agreementData.discount_percentage ? parseFloat(agreementData.discount_percentage) : 0;
-  const whatsappUrl = ctaData?.buttons.whatsapp.url || '';
+  // El campo es texto libre editable desde el admin y va directo a window.open:
+  // sin validar el esquema, un `javascript:...` guardado en BD se ejecutaría
+  // en el navegador del visitante al hacer clic (BAL-3292).
+  const whatsappUrl = safeExternalUrl(ctaData?.buttons.whatsapp.url);
 
   // Quick links from config (editable from admin)
   const quickLinks: CtaQuickLink[] = ctaData?.quickLinks || [];
