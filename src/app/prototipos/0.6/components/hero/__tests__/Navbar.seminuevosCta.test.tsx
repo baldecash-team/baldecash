@@ -32,3 +32,19 @@ describe('Navbar — CTA de la landing de seminuevos', () => {
     expect(cta).toHaveAttribute('href', expect.stringContaining('/seminuevos/catalogo'));
   });
 });
+
+describe('Navbar — hidePortalButton', () => {
+  it('muestra "Zona Estudiantes" por default (retrocompatibilidad)', () => {
+    renderNavbar(<Navbar landing="home" />);
+    expect(screen.getAllByText('Zona Estudiantes').length).toBeGreaterThan(0);
+  });
+
+  it('oculta "Zona Estudiantes" cuando hidePortalButton es true (seminuevos no tiene portal propio)', () => {
+    renderNavbar(
+      <Navbar landing="seminuevos" landingId={LANDING_IDS.SEMINUEVOS} hidePortalButton />
+    );
+    expect(screen.queryByText('Zona Estudiantes')).not.toBeInTheDocument();
+    // El CTA de catálogo sigue presente: hidePortalButton solo apaga el portal.
+    expect(screen.getByTestId('navbar-cta-catalogo')).toBeInTheDocument();
+  });
+});

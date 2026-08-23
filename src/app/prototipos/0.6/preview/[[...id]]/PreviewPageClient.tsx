@@ -415,11 +415,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
           previewBannerOffset={24}
           promoBannerData={heroData.promoBannerData}
           faqData={mergedFaq}
-          navbarItems={mergedNavbarItems}
-          megamenuItems={heroData.megamenuItems}
           logoUrl={heroData.logoUrl}
-          customerPortalUrl={heroData.customerPortalUrl}
-          portalButtonText={heroData.portalButtonText}
           primaryColor={heroData.primaryColor}
         />
       </div>

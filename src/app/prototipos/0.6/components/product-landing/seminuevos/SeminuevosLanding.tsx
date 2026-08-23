@@ -13,25 +13,6 @@ import { routes } from '../../../utils/routes';
 import { LANDING_IDS } from '../../../utils/landingIds';
 import type { FooterData, PromoBannerData, FaqData } from '../../../types/hero';
 
-interface NavbarItemData {
-  label: string;
-  href: string;
-  section: string | null;
-  has_megamenu?: boolean;
-  badge_text?: string | null;
-  badge_color?: string | null;
-  megamenu_items?: MegaMenuItemData[];
-  is_visible?: boolean;
-}
-
-interface MegaMenuItemData {
-  label: string;
-  href: string;
-  icon: string;
-  description: string;
-  is_visible?: boolean;
-}
-
 const baloo = Baloo_2({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
@@ -45,11 +26,12 @@ export interface SeminuevosLandingProps {
   previewBannerOffset?: number;
   promoBannerData?: PromoBannerData | null;
   faqData?: FaqData | null;
-  navbarItems?: NavbarItemData[];
-  megamenuItems?: MegaMenuItemData[];
+  /**
+   * Logo institucional/de marca que muestra el navbar. Viene de BD
+   * (heroData.logoUrl) — el resto del menú (items, megamenu, portal de
+   * clientes) no aplica a esta landing: no se gestiona desde el admin.
+   */
   logoUrl?: string;
-  customerPortalUrl?: string;
-  portalButtonText?: string;
   primaryColor?: string;
 }
 
@@ -59,11 +41,7 @@ export default function SeminuevosLanding({
   previewBannerOffset,
   promoBannerData,
   faqData,
-  navbarItems = [],
-  megamenuItems = [],
   logoUrl,
-  customerPortalUrl,
-  portalButtonText,
   primaryColor,
 }: SeminuevosLandingProps) {
   return (
@@ -84,14 +62,11 @@ export default function SeminuevosLanding({
       <Navbar
         landing={landing}
         landingId={LANDING_IDS.SEMINUEVOS}
-        navbarItems={navbarItems}
-        megamenuItems={megamenuItems}
         logoUrl={logoUrl}
-        customerPortalUrl={customerPortalUrl}
-        portalButtonText={portalButtonText}
         primaryColor={primaryColor}
         promoBannerData={promoBannerData}
         previewBannerOffset={previewBannerOffset}
+        hidePortalButton
       />
 
       <main style={{ paddingTop: 'var(--header-total-height, 6.5rem)' }}>

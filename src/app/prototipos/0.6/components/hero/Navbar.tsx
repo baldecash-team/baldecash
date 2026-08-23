@@ -106,6 +106,12 @@ interface NavbarItemData {
 
 interface NavbarProps {
   hidePromoBanner?: boolean;
+  /**
+   * Oculta el botón "Zona Estudiantes" (desktop y mobile). Opcional a propósito:
+   * los call sites que no la pasan lo siguen mostrando como siempre.
+   * Lo usa la landing de seminuevos, que no tiene portal de clientes propio.
+   */
+  hidePortalButton?: boolean;
   fullWidth?: boolean;
   minimal?: boolean;
   logoOnly?: boolean;
@@ -193,7 +199,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', landingId, previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePortalButton = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', landingId, previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
@@ -573,32 +579,34 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     Ver catálogo
                   </a>
                 )}
-                <Button
-                  as="a"
-                  href={customerPortalUrl}
-                  target="_blank"
-                  variant="bordered"
-                  radius="lg"
-                  className="font-medium cursor-pointer transition-colors"
-                  style={{
-                    borderColor: readablePrimary,
-                    color: readablePrimary,
-                  }}
-                  onPress={() => {
-                    tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_desktop' });
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
-                    e.currentTarget.style.color = hoverTextColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '';
-                    e.currentTarget.style.color = readablePrimary;
-                  }}
-                  startContent={<User className="w-4 h-4" />}
-                >
-                  {portalButtonText || 'Zona Estudiantes'}
-                </Button>
+                {!hidePortalButton && (
+                  <Button
+                    as="a"
+                    href={customerPortalUrl}
+                    target="_blank"
+                    variant="bordered"
+                    radius="lg"
+                    className="font-medium cursor-pointer transition-colors"
+                    style={{
+                      borderColor: readablePrimary,
+                      color: readablePrimary,
+                    }}
+                    onPress={() => {
+                      tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_desktop' });
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
+                      e.currentTarget.style.color = hoverTextColor;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '';
+                      e.currentTarget.style.color = readablePrimary;
+                    }}
+                    startContent={<User className="w-4 h-4" />}
+                  >
+                    {portalButtonText || 'Zona Estudiantes'}
+                  </Button>
+                )}
               </div>
             )}
 
@@ -792,32 +800,34 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                       Ver catálogo
                     </a>
                   )}
-                  <Button
-                    as="a"
-                    href={customerPortalUrl}
-                    target="_blank"
-                    variant="bordered"
-                    radius="lg"
-                    className="w-full font-medium cursor-pointer transition-colors"
-                    style={{
-                      borderColor: readablePrimary,
-                      color: readablePrimary,
-                    }}
-                    onPress={() => {
-                      tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_mobile' });
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
-                      e.currentTarget.style.color = hoverTextColor;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '';
-                      e.currentTarget.style.color = readablePrimary;
-                    }}
-                    startContent={<User className="w-4 h-4" />}
-                  >
-                    {portalButtonText || 'Zona Estudiantes'}
-                  </Button>
+                  {!hidePortalButton && (
+                    <Button
+                      as="a"
+                      href={customerPortalUrl}
+                      target="_blank"
+                      variant="bordered"
+                      radius="lg"
+                      className="w-full font-medium cursor-pointer transition-colors"
+                      style={{
+                        borderColor: readablePrimary,
+                        color: readablePrimary,
+                      }}
+                      onPress={() => {
+                        tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_mobile' });
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
+                        e.currentTarget.style.color = hoverTextColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.color = readablePrimary;
+                      }}
+                      startContent={<User className="w-4 h-4" />}
+                    >
+                      {portalButtonText || 'Zona Estudiantes'}
+                    </Button>
+                  )}
                 </div>
               </div>
             </motion.div>
