@@ -22,6 +22,7 @@ export function SeminuevosWhatsapp({ href }: SeminuevosWhatsappProps) {
   const safeHref = safeExternalUrl(href, whatsapp.href);
   return (
     <a
+      data-testid="floating-whatsapp"
       href={safeHref}
       target="_blank"
       rel="noopener noreferrer"
