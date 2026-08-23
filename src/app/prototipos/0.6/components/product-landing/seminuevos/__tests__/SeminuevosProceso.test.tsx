@@ -33,7 +33,7 @@ describe('SeminuevosProceso', () => {
     expect(screen.getByText('Explora el catálogo')).toBeInTheDocument();
     expect(screen.getByText('Encuentra el modelo que más te guste')).toBeInTheDocument();
     expect(screen.getByText('Selecciona el modelo ideal')).toBeInTheDocument();
-    expect(screen.getByText('Elige el grado y cuota que más se te acomode')).toBeInTheDocument();
+    expect(screen.getByText('Elige el grado y cuota que más te convenga')).toBeInTheDocument();
     expect(screen.getByText('Completa tus datos')).toBeInTheDocument();
     expect(screen.getByText('Llena un formulario de 2 minutos')).toBeInTheDocument();
   });
