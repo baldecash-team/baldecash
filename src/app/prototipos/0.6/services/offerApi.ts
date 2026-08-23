@@ -143,8 +143,13 @@ export interface StandardOfferAddon {
   name: string;
   imageUrl: string | null;
   price: number;
-  /** Cuota mensual que aporta este ítem. Null si el backend no la tiene. */
+  /** Cuota mensual que aporta este ítem. Null si el backend no la tiene.
+   *  OJO: es precio/plazo sin interés, el dato crudo de la solicitud. */
   monthly: number | null;
+  /** Lo que este ítem cuesta DENTRO de esta oferta (cuota con él menos cuota
+   *  sin él, al mismo TEA). Es lo que baja la cuota si se desmarca, así que es
+   *  el número que hay que mostrar y con el que hay que sumar. */
+  monthlyDelta: number;
   /** Regalo de un combo: se muestra como "Incluido gratis", sin cuota. */
   includedFree: boolean;
 }
@@ -291,6 +296,7 @@ function mapStandardAddons(raw: unknown): StandardOfferAddon[] {
       imageUrl: (a.image_url as string | null) ?? null,
       price: Number(a.price ?? 0),
       monthly: a.monthly_payment != null ? Number(a.monthly_payment) : null,
+      monthlyDelta: Number(a.monthly_delta ?? a.monthly_payment ?? 0),
       includedFree: a.included_free === true,
     };
   });
@@ -610,17 +616,52 @@ export interface OfferDecisionResult {
 /** POST /public/offer/{token}/accept — acepta la oferta ESTÁNDAR vinculada al
  *  token (única vía de aceptación, F-6B: ya no se acepta desde el admin).
  *  Idempotente: una segunda llamada devuelve el estado final sin reaplicar. */
+/** POST /public/offer/{token}/quote — cifras EXACTAS de una selección, sin
+ *  aceptar. La cuota se redondea al entero, así que restarle a la cuota total
+ *  lo que aporta cada accesorio no da lo mismo que rearmar el financiamiento
+ *  sobre el monto que queda: se iba hasta un sol contra lo que se contrata.
+ *  Es una lectura — no consume el link. */
+export async function quoteOffer(
+  token: string,
+  selection: { addonIds?: number[]; term?: number; initialPercent?: number },
+): Promise<StandardOfferOption> {
+  const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/quote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...(selection.addonIds ? { addon_ids: selection.addonIds } : {}),
+      ...(selection.term != null ? { term: selection.term } : {}),
+      ...(selection.initialPercent != null ? { initial_percent: selection.initialPercent } : {}),
+    }),
+  });
+  if (!res.ok) throw await parseError(res);
+  const d = await res.json();
+  return {
+    termMonths: Number(d.term_months),
+    initialPercent: Number(d.initial_payment_percent ?? 0),
+    initialPayment: Number(d.initial_payment ?? 0),
+    monthlyPayment: Number(d.monthly_payment ?? 0),
+    tea: d.tea != null ? Number(d.tea) : null,
+    tcea: d.tcea != null ? Number(d.tcea) : null,
+    totalAmount: d.total_amount != null ? Number(d.total_amount) : null,
+  };
+}
+
 export async function acceptOffer(
   token: string,
   choice?: { term: number; initialPercent: number },
+  /** `id` de los accesorios/seguros que el cliente se queda. `undefined` = no
+   *  eligió y la oferta queda como la armó el gestor. */
+  addonIds?: number[],
 ): Promise<OfferDecisionResult> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/accept`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // Sin elección se manda `{}`: el backend deja la combinación por defecto.
-    body: JSON.stringify(
-      choice ? { term: choice.term, initial_percent: choice.initialPercent } : {},
-    ),
+    // Sin elección se manda `{}`: el backend deja todo como lo armó el gestor.
+    body: JSON.stringify({
+      ...(choice ? { term: choice.term, initial_percent: choice.initialPercent } : {}),
+      ...(addonIds ? { addon_ids: addonIds } : {}),
+    }),
   });
   if (!res.ok) throw await parseError(res);
   const data = await res.json();

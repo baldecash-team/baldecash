@@ -25,14 +25,16 @@
  *   - los términos se leen en una tarjeta (cuota, inicial, plazo, total) con
  *     TEA/TCEA al pie, en vez de una grilla que destacaba la TEA.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDown, Ban, CheckCircle2, Clock, MessageCircle, Package, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
+  quoteOffer,
   rejectOffer,
   OfferApiError,
   type OfferView,
+  type StandardOfferOption,
 } from '../../../services/offerApi';
 import { createSpecsFromEav } from '../../../services/catalogApi';
 import { routes } from '../../../utils/routes';
@@ -153,6 +155,65 @@ export function StandardOfertaAccion({
     options.length === 0
     || (curTerm === info?.termMonths && curInitial === info?.initialPaymentPercent);
 
+  // Los add-ons vienen marcados: es lo que el gestor ofreció y lo que refleja
+  // la cuota. El cliente desmarca lo que no quiere. Los regalos de combo no se
+  // pueden desmarcar — no cuestan nada y vienen atados al combo.
+  const togglables = useMemo(() => addons.filter((a) => !a.includedFree), [addons]);
+  const [dropped, setDropped] = useState<number[]>([]);
+  const isKept = useCallback((id: number) => !dropped.includes(id), [dropped]);
+  const toggleAddon = useCallback((id: number) => {
+    setDropped((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    analytics.track('offer_standard_addon_toggle', { offer_code: offer.offerCode, addon_id: id });
+  }, [analytics, offer.offerCode]);
+
+  // Cuota del equipo solo: la total menos TODOS los deltas. Sobre esa base se
+  // suman los que quedan marcados, así el número de arriba y las filas de
+  // abajo siempre cuentan la misma historia.
+  const equipoMonthly =
+    shownMonthly != null
+      ? shownMonthly - addons.reduce((sum, a) => sum + a.monthlyDelta, 0)
+      : null;
+  const keptDelta = togglables
+    .filter((a) => isKept(a.id))
+    .reduce((sum, a) => sum + a.monthlyDelta, 0);
+  // Estimación local, para que el número reaccione al instante al marcar.
+  const estimado =
+    equipoMonthly != null && shownMonthly != null
+      ? (dropped.length ? equipoMonthly + keptDelta : shownMonthly)
+      : shownMonthly;
+
+  // Cotización EXACTA del backend. La estimación de arriba se va hasta un sol
+  // contra lo que realmente se contrata (la cuota se redondea al entero), así
+  // que apenas llega esta, manda ella: el cliente no puede ver un número y
+  // firmar otro.
+  const [quoted, setQuoted] = useState<{ key: string; option: StandardOfferOption } | null>(null);
+  const selectionKey = `${curTerm}|${curInitial}|${dropped.slice().sort().join(',')}`;
+  useEffect(() => {
+    if (!togglables.length || !dropped.length) {
+      setQuoted(null);
+      return;
+    }
+    let cancelled = false;
+    quoteOffer(token, {
+      addonIds: addons.filter((a) => isKept(a.id)).map((a) => a.id),
+      ...(options.length && curTerm != null ? { term: curTerm } : {}),
+      ...(options.length && curInitial != null ? { initialPercent: curInitial } : {}),
+    })
+      .then((q) => { if (!cancelled) setQuoted({ key: selectionKey, option: q }); })
+      // Si la cotización falla, se sigue mostrando la estimación: es mejor un
+      // número aproximado que un guion. El backend recalcula al aceptar igual.
+      .catch(() => { if (!cancelled) setQuoted(null); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionKey, token]);
+
+  // Todas las cifras de la tarjeta salen de la misma fuente: si hay
+  // cotización vigente manda ella. Antes solo la cuota reaccionaba y "Total a
+  // pagar" seguía mostrando el monto con TODOS los accesorios, contradiciendo
+  // la cuota de arriba.
+  const vigente = quoted && quoted.key === selectionKey ? quoted.option : null;
+  const cuotaConSeleccion = vigente ? vigente.monthlyPayment : estimado;
+
   // Vencida en vivo (el usuario dejó la pestaña abierta hasta que expiró) o ya
   // había vencido al cargar. En ambos casos: botones deshabilitados.
   const expired = countdown?.expired === true;
@@ -171,6 +232,9 @@ export function StandardOfertaAccion({
         options.length && curTerm != null && curInitial != null
           ? { term: curTerm, initialPercent: curInitial }
           : undefined,
+        // Solo si hay algo que elegir: sin add-ons no se manda nada y el
+        // backend deja la oferta intacta.
+        togglables.length ? addons.filter((a) => isKept(a.id)).map((a) => a.id) : undefined,
       );
       analytics.track('offer_standard_accepted', {
         offer_code: offer.offerCode,
@@ -187,7 +251,10 @@ export function StandardOfertaAccion({
     } finally {
       setLoading(null);
     }
-  }, [disabled, token, offer.offerCode, analytics, onConverted, options.length, curTerm, curInitial]);
+  }, [
+    disabled, token, offer.offerCode, analytics, onConverted,
+    options.length, curTerm, curInitial, togglables.length, addons, isKept,
+  ]);
 
   const handleReject = useCallback(async () => {
     if (disabled) return;
@@ -228,7 +295,7 @@ export function StandardOfertaAccion({
   if (decision === 'accepted') {
     const chosen: ChosenSummary = {
       name: info?.productName || 'Tu equipo',
-      monthly: shownMonthly ?? undefined,
+      monthly: cuotaConSeleccion ?? shownMonthly ?? undefined,
       termMonths: curTerm ?? info?.termMonths ?? undefined,
       initialAmount: shownInitialPayment ?? undefined,
       initial: shownInitialPercent ?? undefined,
@@ -252,7 +319,8 @@ export function StandardOfertaAccion({
     );
   }
 
-  const totalTexto = selected?.totalAmount ?? info?.totalAmount ?? info?.totalPrice ?? null;
+  const totalTexto =
+    vigente?.totalAmount ?? selected?.totalAmount ?? info?.totalAmount ?? info?.totalPrice ?? null;
 
   // El equipo anterior, para el antes/ahora. Llega null cuando no hay
   // comparacion que mostrar.
@@ -275,7 +343,7 @@ export function StandardOfertaAccion({
     name: info?.productName || 'Tu equipo',
     brand: info?.productBrand ?? undefined,
     imageUrl: info?.productImageUrl ?? undefined,
-    monthly: shownMonthly ?? 0,
+    monthly: cuotaConSeleccion ?? shownMonthly ?? 0,
     // El card arma su plazo como "en N meses". En una oferta semanal/quincenal
     // eso choca con la cuota, que es de la frecuencia real: se omite acá y el
     // plazo correcto lo da la tarjeta de términos.
@@ -453,15 +521,19 @@ export function StandardOfertaAccion({
               <div className="flex items-baseline justify-between px-3.5 py-2.5">
                 <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Cuota</dt>
                 <dd className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
-                  S/{Math.round(shownMonthly)}{cuotaSuffix(frecuencia)}
+                  S/{Math.round(cuotaConSeleccion ?? shownMonthly)}{cuotaSuffix(frecuencia)}
                 </dd>
               </div>
             ) : null}
             <div className="flex items-baseline justify-between px-3.5 py-2.5">
               <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Inicial</dt>
               <dd className="text-[14px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
-                {shownInitialPayment ? `S/${Math.round(shownInitialPayment)}` : 'Sin inicial'}
-                {shownInitialPercent ? ` (${shownInitialPercent}%)` : ''}
+                {(vigente?.initialPayment ?? shownInitialPayment)
+                  ? `S/${Math.round(vigente?.initialPayment ?? shownInitialPayment!)}`
+                  : 'Sin inicial'}
+                {(vigente?.initialPercent ?? shownInitialPercent)
+                  ? ` (${vigente?.initialPercent ?? shownInitialPercent}%)`
+                  : ''}
               </dd>
             </div>
             {plazoTexto ? (
@@ -479,11 +551,11 @@ export function StandardOfertaAccion({
               </div>
             ) : null}
           </dl>
-          {(shownTea != null || shownTcea != null) ? (
+          {((vigente?.tea ?? shownTea) != null || (vigente?.tcea ?? shownTcea) != null) ? (
             <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
-              {shownTea != null ? <>TEA {shownTea}%</> : null}
-              {shownTea != null && shownTcea != null ? ' \u00b7 ' : null}
-              {shownTcea != null ? <>TCEA {shownTcea}%</> : null}
+              {(vigente?.tea ?? shownTea) != null ? <>TEA {vigente?.tea ?? shownTea}%</> : null}
+              {(vigente?.tea ?? shownTea) != null && (vigente?.tcea ?? shownTcea) != null ? ' \u00b7 ' : null}
+              {(vigente?.tcea ?? shownTcea) != null ? <>TCEA {vigente?.tcea ?? shownTcea}%</> : null}
             </div>
           ) : null}
         </section>
@@ -504,8 +576,29 @@ export function StandardOfertaAccion({
               Incluye
             </div>
             <ul className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
-              {addons.map((a) => (
-                <li key={a.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
+              {addons.map((a) => {
+                const kept = a.includedFree || isKept(a.id);
+                return (
+                <li
+                  key={a.id}
+                  className={`flex items-center gap-2.5 px-3.5 py-2.5 ${
+                    a.includedFree ? '' : 'cursor-pointer'
+                  }`}
+                  onClick={a.includedFree ? undefined : () => toggleAddon(a.id)}
+                  style={kept ? undefined : { opacity: 0.55 }}
+                >
+                  {/* El regalo del combo no lleva casilla: no cuesta nada y no
+                      se puede sacar por separado. */}
+                  {a.includedFree ? null : (
+                    <input
+                      type="checkbox"
+                      checked={kept}
+                      onChange={() => toggleAddon(a.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Incluir ${a.name}`}
+                      className="h-[18px] w-[18px] flex-none cursor-pointer accent-[#4F46E5]"
+                    />
+                  )}
                   <div
                     className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-lg"
                     style={{ backgroundColor: OFERTA_COLORS.grayBg }}
@@ -537,7 +630,7 @@ export function StandardOfertaAccion({
                     >
                       Incluido gratis
                     </span>
-                  ) : !showAddonAmounts || a.monthly == null ? (
+                  ) : !showAddonAmounts ? (
                     <span
                       className="whitespace-nowrap text-[12px] font-semibold"
                       style={{ color: OFERTA_COLORS.textSoft }}
@@ -547,21 +640,27 @@ export function StandardOfertaAccion({
                   ) : (
                     <span
                       className="whitespace-nowrap text-[13.5px] font-bold"
-                      style={{ color: OFERTA_COLORS.textStrong }}
+                      style={{
+                        color: kept ? OFERTA_COLORS.textStrong : OFERTA_COLORS.textSoft,
+                        textDecoration: kept ? undefined : 'line-through',
+                      }}
                     >
-                      +S/{Math.round(a.monthly)}
+                      +S/{Math.round(a.monthlyDelta)}
                       <span className="text-[11.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
                         {cuotaSuffix(frecuencia)}
                       </span>
                     </span>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
-            {showAddonAmounts && (info?.addonsMonthlyPayment ?? 0) > 0 ? (
+            {showAddonAmounts && togglables.length > 0 ? (
               <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
-                Los accesorios suman S/{Math.round(info!.addonsMonthlyPayment)}
-                {cuotaSuffix(frecuencia)} a tu cuota.
+                {dropped.length === togglables.length
+                  ? 'Te quedas solo con el equipo.'
+                  : `Suman S/${Math.round(keptDelta)}${cuotaSuffix(frecuencia)} a tu cuota.`}
+                {' '}Desmarca lo que no quieras y la cuota se ajusta.
               </div>
             ) : null}
           </section>
