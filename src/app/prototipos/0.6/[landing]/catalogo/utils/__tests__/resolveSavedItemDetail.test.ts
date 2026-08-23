@@ -9,52 +9,71 @@
  * `ProductDetailClient` ya resuelve esto al derecho; esto alinea al catalogo.
  */
 import { resolveSavedItemDetail } from '../resolveSavedItemDetail';
-import type { CatalogProduct } from '../../types/catalog';
+import type { SavedItem } from '../resolveSavedItemDetail';
+import type { CatalogProduct, CartItem, WishlistItem } from '../../types/catalog';
 
-const guardado = {
-  productId: '518',
-  slug: 'ipad-11-pulgadas-wi-fi-tbapme0000835',
-  months: 24,
-  initialPercent: 0,
-};
+const SUELTO = 'ipad-11-pulgadas-wi-fi-tbapme0000835';
+const COMBO = 'ipad-11-pulgadas-wi-fi-tbapme0000835-combo-166';
 
+const guardado: SavedItem = { productId: '518', slug: SUELTO, months: 24, initialPercent: 0 };
+
+const card = (slug: string) => ({ id: '518', slug } as unknown as CatalogProduct);
 // Lo que devuelve `findProductOrSibling('518')`: la primera card del producto.
-const cardDelCombo = {
-  id: '518',
-  slug: 'ipad-11-pulgadas-wi-fi-tbapme0000835-combo-166',
-} as unknown as CatalogProduct;
+const cardDelCombo = card(COMBO);
+const cardGuardada = card(SUELTO);
 
 describe('resolveSavedItemDetail', () => {
-  it('usa el slug guardado en el item aunque el lookup por id devuelva otra card del mismo producto', () => {
-    expect(resolveSavedItemDetail(guardado, cardDelCombo)).toEqual({
-      slug: 'ipad-11-pulgadas-wi-fi-tbapme0000835',
+  it('usa el slug guardado aunque el lookup por id devuelva otra card del mismo producto', () => {
+    expect(resolveSavedItemDetail(guardado, cardGuardada, cardDelCombo)).toEqual({
+      slug: SUELTO,
       params: { term: 24, initial: 0 },
     });
   });
 
   it('conserva el plazo y la inicial que el usuario tenia elegidos', () => {
-    const item = { ...guardado, months: 36, initialPercent: 20 };
+    const item: SavedItem = { ...guardado, months: 12, initialPercent: 20 };
 
-    expect(resolveSavedItemDetail(item, cardDelCombo)?.params).toEqual({ term: 36, initial: 20 });
+    expect(resolveSavedItemDetail(item, cardGuardada, cardDelCombo)?.params)
+      .toEqual({ term: 12, initial: 20 });
   });
 
-  it('cae al lookup por id cuando el item guardado no tiene slug', () => {
-    const sinSlug = { productId: '518', months: 24, initialPercent: 0 };
-
-    expect(resolveSavedItemDetail(sinSlug, cardDelCombo)).toEqual({
-      slug: 'ipad-11-pulgadas-wi-fi-tbapme0000835-combo-166',
+  it('cae a la card viva cuando el slug guardado ya no existe en el catalogo', () => {
+    // El combo que el usuario habia guardado se archivo. Mandarlo a su slug
+    // seria un 404, y `unavailableWishlistIds` no lo detecta porque valida por
+    // productId, no por slug.
+    expect(resolveSavedItemDetail(guardado, null, cardDelCombo)).toEqual({
+      slug: COMBO,
       params: { term: 24, initial: 0 },
     });
   });
 
-  it('devuelve null cuando no hay item guardado ni card en el catalogo', () => {
-    expect(resolveSavedItemDetail(undefined, null)).toBeNull();
-  });
-
-  it('usa el slug guardado aunque el producto ya no este en el catalogo', () => {
-    expect(resolveSavedItemDetail(guardado, null)).toEqual({
-      slug: 'ipad-11-pulgadas-wi-fi-tbapme0000835',
+  it('usa el slug guardado cuando el producto entero ya no esta en el catalogo', () => {
+    expect(resolveSavedItemDetail(guardado, null, null)).toEqual({
+      slug: SUELTO,
       params: { term: 24, initial: 0 },
     });
+  });
+
+  it('no manda plazo ni inicial cuando no hay item guardado', () => {
+    expect(resolveSavedItemDetail(undefined, null, cardDelCombo)).toEqual({ slug: COMBO });
+  });
+
+  it('trata un slug vacio como ausente', () => {
+    const vacio: SavedItem = { ...guardado, slug: '' };
+
+    expect(resolveSavedItemDetail(vacio, null, cardDelCombo)?.slug).toBe(COMBO);
+  });
+
+  it('devuelve null cuando no hay nada que resolver', () => {
+    expect(resolveSavedItemDetail(undefined, null, null)).toBeNull();
+    expect(resolveSavedItemDetail({ ...guardado, slug: undefined }, null, null)).toBeNull();
+  });
+
+  it('acepta tanto WishlistItem como CartItem', () => {
+    const w = {} as WishlistItem;
+    const c = {} as CartItem;
+    const comoSaved: SavedItem[] = [w, c];
+
+    expect(comoSaved).toHaveLength(2);
   });
 });
