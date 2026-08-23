@@ -124,8 +124,11 @@ Orden de render en `SeminuevosLanding`:
 | 6 | Footer + suscripción | **BD** (`footerData`) | — |
 | 7 | WhatsApp flotante | Config de empresa | — |
 
-Las secciones 3 a 6 van envueltas en `LazySection` (`IntersectionObserver` con `rootMargin: '200px'`),
-igual que NVIDIA y MacBook Neo.
+**Sobre la carga diferida:** NVIDIA y MacBook Neo envuelven sus secciones en un `LazySection`
+(`IntersectionObserver` con `rootMargin: '200px'`) porque tienen media pesada. Acá las cinco
+secciones son livianas y los slots ya usan `loading="lazy"`, así que se omite: agregaría
+complejidad y ruido en los tests sin beneficio medible. Si al medir en el navegador el scroll
+se siente pesado, se copia el patrón de `NvidiaLanding.tsx:21-46`.
 
 ### 5.1 Hero
 
@@ -303,6 +306,20 @@ Estilo: gradiente `linear-gradient(135deg, #5a63e0, #03DBD0)`, `border-radius: 3
 
 Todo lo demás del Navbar queda **intacto**: items de BD, mega-menú, buscador, carrito, banner
 promocional y la publicación de `--header-total-height` / `--promo-banner-height`.
+
+### 6.3 Quién monta el Navbar
+
+Dato verificado al planificar: en el index, el Navbar lo monta **`HeroSection.tsx:253`** — y esta
+landing **no pasa por `HeroSection`**. Por eso NVIDIA tiene su propio `<header>` inline
+(`NvidiaLanding.tsx:155`).
+
+Entonces `SeminuevosLanding` **monta su propio `<Navbar>`**, al que `LandingPageClient` le reenvía
+los datos que ya tiene en `heroData` (`navbarItems` vía `mergedNavbarItems`, `megamenuItems`,
+`logoUrl`, `customerPortalUrl`, `portalButtonText`, `primaryColor`). Sigue siendo el componente
+compartido: no se duplica nada, solo se monta desde otro lugar.
+
+El `<main>` debe respetar `--header-total-height`, que el Navbar publica con un `ResizeObserver`;
+si no, el hero queda tapado.
 
 **Por qué así y no un header propio:** el catálogo y el detalle genéricos —que sí vamos a usar— ya
 montan este Navbar, así que heredan el header sin trabajo extra. Un header propio obligaría a duplicar
