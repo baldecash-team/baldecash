@@ -45,8 +45,8 @@ export function VideollamadaClient({ token }: { token: string }) {
       // cancelado: no distingue el motivo a propósito. Acá tampoco.
       setError(
         res.error.code === 'http_404'
-          ? 'Este enlace no es válido o ya venció. Pedile uno nuevo a tu asesor.'
-          : 'No pudimos conectarte a la videollamada. Probá de nuevo en un momento.'
+          ? 'Este enlace no es válido o ya venció. Pídele uno nuevo a tu asesor.'
+          : 'No pudimos conectarte a la videollamada. Inténtalo de nuevo en un momento.'
       );
       setEstado('error');
       return;
@@ -87,7 +87,7 @@ export function VideollamadaClient({ token }: { token: string }) {
         // un fallo de facturación se ve igual que un problema de red.
         const motivo = ev?.errorMsg || ev?.error?.type || 'desconocido';
         console.error('[videollamada] Daily rechazo la conexion:', motivo);
-        setError('No pudimos conectarte a la videollamada. Avisale a tu asesor.');
+        setError('No pudimos conectarte a la videollamada. Avísale a tu asesor.');
         setEstado('error');
       });
 
