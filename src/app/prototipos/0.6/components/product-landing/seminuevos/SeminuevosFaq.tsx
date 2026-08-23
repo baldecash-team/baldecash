@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { FaqData } from '../../../types/hero';
 import { faq } from './data/seminuevosData';
 import { IconChevron } from './icons/SeminuevosIcons';
+import { stripHtml } from './stripHtml';
 
 export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
@@ -24,12 +25,12 @@ export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
     <section id="faq" className="px-[22px] py-12" style={{ background: '#fff' }}>
       <div className="max-w-[720px] mx-auto">
         <h2 className="font-extrabold text-center" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
-          {data?.title || faq.title}
+          {stripHtml(data?.title) || faq.title}
         </h2>
 
         {data?.subtitle && (
           <p className="mt-3 text-center" style={{ color: '#5b5c6b', fontSize: '15px' }}>
-            {data.subtitle}
+            {stripHtml(data.subtitle)}
           </p>
         )}
 
@@ -46,9 +47,9 @@ export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
                   type="button"
                   aria-expanded={open}
                   onClick={() => toggle(item.id)}
-                  className="w-full flex items-center justify-between gap-3 text-left p-4"
+                  className="w-full min-h-11 flex items-center justify-between gap-3 text-left p-4 cursor-pointer transition-colors hover:bg-[var(--lavanda)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
                 >
-                  <span className="font-semibold text-[15px]">{item.question}</span>
+                  <span className="font-semibold text-[15px]">{stripHtml(item.question)}</span>
                   <IconChevron
                     className={`w-5 h-5 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
                   />
@@ -62,7 +63,7 @@ export function SeminuevosFaq({ data }: { data?: FaqData | null }) {
                 >
                   <div className="overflow-hidden">
                     <p className="px-4 pb-4 text-[14px]" style={{ color: '#5b5c6b', lineHeight: 1.6 }}>
-                      {item.answer}
+                      {stripHtml(item.answer)}
                     </p>
                   </div>
                 </div>
