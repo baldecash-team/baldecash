@@ -7,6 +7,7 @@ import { SeminuevosInspector } from './SeminuevosInspector';
 import { SeminuevosProceso } from './SeminuevosProceso';
 import { SeminuevosAbout } from './SeminuevosAbout';
 import { SeminuevosFaq } from './SeminuevosFaq';
+import { SeminuevosWhatsapp } from './SeminuevosWhatsapp';
 import { routes } from '../../../utils/routes';
 import type { FooterData, PromoBannerData, FaqData } from '../../../types/hero';
 
@@ -56,6 +57,8 @@ export default function SeminuevosLanding({
       <div id="footer">
         <Footer data={footerData} landing={landing} />
       </div>
+
+      <SeminuevosWhatsapp />
     </div>
   );
 }
