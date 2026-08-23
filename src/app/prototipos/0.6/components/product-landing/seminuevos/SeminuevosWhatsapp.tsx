@@ -2,7 +2,7 @@
 
 import { whatsapp } from './data/seminuevosData';
 import { IconWhatsapp } from './icons/SeminuevosIcons';
-import { safeExternalUrl } from './safeExternalUrl';
+import { safeExternalUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 
 export interface SeminuevosWhatsappProps {
   /**

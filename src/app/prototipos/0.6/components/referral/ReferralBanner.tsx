@@ -26,6 +26,7 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 import type { ReferralBanner as ReferralBannerData } from '../../services/referralBannerApi';
+import { safeExternalUrl } from '../../utils/safeExternalUrl';
 
 /** Sage de la paleta de marca: información amable, no una alerta. */
 const FONDO = '#006b65';
@@ -101,7 +102,10 @@ interface ReferralBannerProps {
 
 export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   const tracker = useEventTrackerOptional();
-  const { firstName, phoneDisplay, whatsappUrl, promoterCode, reason } = data;
+  const { firstName, phoneDisplay, whatsappUrl: rawWhatsappUrl, promoterCode, reason } = data;
+  // La URL viene del backend y va directo a un href: se valida el esquema para
+  // que un `javascript:...` no se ejecute al hacer clic (BAL-3292).
+  const whatsappUrl = safeExternalUrl(rawWhatsappUrl);
 
   // El snapshot del servidor es "no descartado" a propósito: la franja tiene que
   // venir en el HTML. Renderizarla recién en el cliente la haría aparecer a los

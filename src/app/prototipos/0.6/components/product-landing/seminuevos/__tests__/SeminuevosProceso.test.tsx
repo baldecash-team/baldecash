@@ -17,13 +17,12 @@ describe('SeminuevosProceso', () => {
 
   it('omite el ícono si el paso trae uno desconocido, sin tumbar la sección', () => {
     const original = [...proceso.pasos];
-    // @ts-expect-error — forzamos un icon inexistente para probar la degradación.
+    // Forzamos un icon inexistente para probar la degradación.
     proceso.pasos = [{ icon: 'inexistente', titulo: 'Paso raro', subtitulo: 'Sin ícono' }];
     try {
       expect(() => render(<SeminuevosProceso catalogUrl="/x" />)).not.toThrow();
       expect(screen.getByText('Paso raro')).toBeInTheDocument();
     } finally {
-      // @ts-expect-error — restauramos la data real.
       proceso.pasos = original;
     }
   });

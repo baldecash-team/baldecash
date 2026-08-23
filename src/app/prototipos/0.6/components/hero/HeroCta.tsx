@@ -11,6 +11,7 @@ import { Laptop, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { HeroCtaProps } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { safeExternalUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const WhatsAppIcon = () => (
@@ -61,7 +62,10 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
   };
 
   const catalogUrl = transformLink(data?.buttons.catalog.url, 'catalogo');
-  const whatsappUrl = data?.buttons.whatsapp.url || '';
+  // El campo es texto libre editable desde el admin y va directo a window.open:
+  // sin validar el esquema, un `javascript:...` guardado en BD se ejecutaría
+  // en el navegador del visitante al hacer clic (BAL-3292).
+  const whatsappUrl = safeExternalUrl(data?.buttons.whatsapp.url);
 
   const handleWhatsApp = () => {
     analytics.trackHeroCtaClick({
