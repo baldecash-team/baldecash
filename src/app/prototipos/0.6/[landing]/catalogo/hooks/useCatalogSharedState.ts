@@ -17,6 +17,7 @@ import type {
   InitialPaymentPercent,
 } from '../types/catalog';
 import { migrateCartData, migrateWishlistData } from '../types/catalog';
+import { findUnavailableIds } from '../utils/findUnavailableIds';
 
 // Dynamic storage keys based on landing slug
 const getWishlistKey = (landing: string) => `baldecash-${landing}-wishlist`;
@@ -428,9 +429,9 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
 
     fetchProductsByIds(landingSlug, uniqueIds, previewKey)
       .then(activeProducts => {
-        const activeIds = new Set(activeProducts.map(p => p.id));
-        setUnavailableCartIds(cart.map(c => c.productId).filter(id => !activeIds.has(id)));
-        setUnavailableWishlistIds(wishlist.map(w => w.productId).filter(id => !activeIds.has(id)));
+        const cardsVivas = activeProducts.map(p => ({ id: p.id, slug: p.slug }));
+        setUnavailableCartIds(findUnavailableIds(cart, cardsVivas));
+        setUnavailableWishlistIds(findUnavailableIds(wishlist, cardsVivas));
       })
       .catch(() => {
         // If API fails, don't block — backend is the final barrier

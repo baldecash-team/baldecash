@@ -1319,14 +1319,33 @@ export async function fetchProductsByIds(
       return [];
     }
 
-    const response = await getCatalogProducts(landingSlug, {
+    // Un producto puede tener VARIAS cards en la misma landing: el suelto y una
+    // por cada combo. Pedir `limit: numericIds.length` daba un solo slot por id
+    // y la respuesta llegaba truncada, siempre con la primera card — la del
+    // combo. Sin todas las cards no se puede saber si el slug que el usuario
+    // guardo sigue vivo (BAL-3277).
+    //
+    // CARDS_POR_PRODUCTO es solo una pista para resolverlo en un request; la
+    // correccion real es el refetch con `total`, que el API ya devuelve.
+    const CARDS_POR_PRODUCTO = 3;
+
+    const pedir = (limit: number) => getCatalogProducts(landingSlug, {
       filters: { product_ids: numericIds },
-      limit: numericIds.length,
+      limit,
       previewKey,
     });
 
+    const response = await pedir(numericIds.length * CARDS_POR_PRODUCTO);
+
     if (!response || !response.items) {
       return [];
+    }
+
+    if (response.total > response.items.length) {
+      const completa = await pedir(response.total);
+      if (completa?.items?.length) {
+        return completa.items.map(mapApiProductToCatalogProduct);
+      }
     }
 
     return response.items.map(mapApiProductToCatalogProduct);
