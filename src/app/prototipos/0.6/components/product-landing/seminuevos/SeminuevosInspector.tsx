@@ -11,10 +11,19 @@ export function SeminuevosInspector() {
   const tabsRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
 
-  // Centra la tab activa en el strip. El prototipo lo hacía recalculando
-  // scrollLeft porque reescribía el DOM entero; con estado de React alcanza esto.
+  // Centra la tab activa DENTRO del strip horizontal, sin tocar el scroll de
+  // la página. scrollIntoView({ block: 'nearest' }) buscaba el ancestro con
+  // overflow vertical más cercano; como el strip solo tiene overflow-x, ese
+  // ancestro terminaba siendo el documento y la página entera saltaba ~400px
+  // al montar (el <h1> del hero quedaba tapado por el navbar). Se calcula el
+  // scrollLeft a mano para mover únicamente el contenedor de las tabs.
   useEffect(() => {
-    activeTabRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    const strip = tabsRef.current;
+    const tab = activeTabRef.current;
+    if (!strip || !tab) return;
+    const target =
+      tab.offsetLeft - strip.clientWidth / 2 + tab.clientWidth / 2;
+    strip.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
   }, [pieza]);
 
   const total = PIEZAS.length;
@@ -53,7 +62,9 @@ export function SeminuevosInspector() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => setGrado(g)}
-                    className="rounded-[22px] px-4 py-2 text-[13.5px] font-semibold transition-colors"
+                    className={`min-h-11 rounded-[22px] px-4 text-[13.5px] font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2 ${
+                      on ? 'hover:brightness-110' : 'hover:bg-[#e3e6fa]'
+                    }`}
                     style={{
                       background: on ? 'var(--navy)' : 'var(--lavanda)',
                       color: on ? '#fff' : 'var(--navy)',
@@ -95,7 +106,9 @@ export function SeminuevosInspector() {
                   ref={on ? activeTabRef : undefined}
                   aria-pressed={on}
                   onClick={() => setPieza(i)}
-                  className="shrink-0 rounded-[20px] px-3.5 py-2 text-[13px] font-semibold transition-colors"
+                  className={`shrink-0 min-h-11 flex items-center rounded-[20px] px-3.5 text-[13px] font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2 ${
+                    on ? 'hover:brightness-110' : 'hover:bg-[#e8e9ee]'
+                  }`}
                   style={{
                     background: on ? 'var(--azul)' : '#f4f5f8',
                     color: on ? '#fff' : '#5b5c6b',
@@ -109,16 +122,26 @@ export function SeminuevosInspector() {
 
           {/* Navegación */}
           <div
-            className="flex items-center justify-between px-5 py-3"
+            className="flex items-center justify-between px-2 py-1"
             style={{ borderTop: '1px solid var(--borde)' }}
           >
-            <button type="button" onClick={prev} className="text-[13.5px] font-semibold" style={{ color: 'var(--azul)' }}>
+            <button
+              type="button"
+              onClick={prev}
+              className="min-h-11 px-3 rounded-[10px] text-[13.5px] font-semibold cursor-pointer transition-colors hover:bg-[var(--lavanda)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
+              style={{ color: 'var(--azul)' }}
+            >
               ‹ Anterior
             </button>
             <span data-testid="insp-counter" className="text-[13px]" style={{ color: 'var(--tenue)' }}>
               {pieza + 1} / {total}
             </span>
-            <button type="button" onClick={next} className="text-[13.5px] font-semibold" style={{ color: 'var(--azul)' }}>
+            <button
+              type="button"
+              onClick={next}
+              className="min-h-11 px-3 rounded-[10px] text-[13.5px] font-semibold cursor-pointer transition-colors hover:bg-[var(--lavanda)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
+              style={{ color: 'var(--azul)' }}
+            >
               Siguiente ›
             </button>
           </div>

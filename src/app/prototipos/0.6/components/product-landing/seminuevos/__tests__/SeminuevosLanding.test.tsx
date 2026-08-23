@@ -13,10 +13,12 @@ jest.mock('../../../hero/Navbar', () => ({
   Navbar: () => <nav data-testid="navbar-mock" />,
 }));
 
-// El Inspector (montado dentro del orquestador) usa scrollIntoView al cambiar
-// de tab; jsdom no lo implementa. Mismo polyfill que SeminuevosInspector.test.tsx.
+// El Inspector (montado dentro del orquestador) centra la tab activa al
+// cambiar de pieza usando scrollTo sobre el strip; jsdom no lo implementa.
+// Mismo polyfill que SeminuevosInspector.test.tsx.
 beforeAll(() => {
   Element.prototype.scrollIntoView = jest.fn();
+  Element.prototype.scrollTo = jest.fn();
 });
 
 describe('SeminuevosLanding', () => {

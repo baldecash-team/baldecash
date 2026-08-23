@@ -4,6 +4,10 @@ import { SeminuevosInspector } from '../SeminuevosInspector';
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = jest.fn();
+  // jsdom no implementa scrollTo; SeminuevosInspector lo usa para centrar la
+  // tab activa dentro del strip (ver comentario en el componente: reemplazó
+  // a scrollIntoView porque ese scrolleaba la página entera, no solo el strip).
+  Element.prototype.scrollTo = jest.fn();
 });
 
 describe('SeminuevosInspector', () => {
