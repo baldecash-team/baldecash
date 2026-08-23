@@ -5,6 +5,7 @@ import { Footer } from '../../hero/Footer';
 import { SeminuevosHero } from './SeminuevosHero';
 import { SeminuevosInspector } from './SeminuevosInspector';
 import { SeminuevosProceso } from './SeminuevosProceso';
+import { SeminuevosAbout } from './SeminuevosAbout';
 import { routes } from '../../../utils/routes';
 import type { FooterData, PromoBannerData, FaqData } from '../../../types/hero';
 
@@ -46,6 +47,7 @@ export default function SeminuevosLanding({
         <SeminuevosHero catalogUrl={routes.catalogo(landing)} />
         <SeminuevosInspector />
         <SeminuevosProceso catalogUrl={routes.catalogo(landing)} />
+        <SeminuevosAbout />
       </main>
 
       <div id="footer">
