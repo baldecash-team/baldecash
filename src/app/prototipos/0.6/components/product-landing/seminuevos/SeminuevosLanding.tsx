@@ -6,6 +6,7 @@ import { SeminuevosHero } from './SeminuevosHero';
 import { SeminuevosInspector } from './SeminuevosInspector';
 import { SeminuevosProceso } from './SeminuevosProceso';
 import { SeminuevosAbout } from './SeminuevosAbout';
+import { SeminuevosFaq } from './SeminuevosFaq';
 import { routes } from '../../../utils/routes';
 import type { FooterData, PromoBannerData, FaqData } from '../../../types/hero';
 
@@ -27,6 +28,7 @@ export interface SeminuevosLandingProps {
 export default function SeminuevosLanding({
   footerData,
   landing = 'seminuevos',
+  faqData,
 }: SeminuevosLandingProps) {
   return (
     <div className={`${baloo.variable} seminuevos-landing min-h-screen antialiased`}>
@@ -48,6 +50,7 @@ export default function SeminuevosLanding({
         <SeminuevosInspector />
         <SeminuevosProceso catalogUrl={routes.catalogo(landing)} />
         <SeminuevosAbout />
+        <SeminuevosFaq data={faqData} />
       </main>
 
       <div id="footer">
