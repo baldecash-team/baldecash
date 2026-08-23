@@ -18,7 +18,9 @@ export function SeminuevosProceso({ catalogUrl }: { catalogUrl: string }) {
 
         <div className="mt-7 flex flex-col gap-3">
           {proceso.pasos.map((paso) => {
-            const Icon = ICONS[paso.icon as keyof typeof ICONS];
+            // Un `icon` desconocido deja el paso sin ícono, en vez de tumbar la
+            // sección entera con "Element type is invalid".
+            const Icon = ICONS[paso.icon as keyof typeof ICONS] ?? null;
             return (
               <div
                 key={paso.titulo}
@@ -29,7 +31,7 @@ export function SeminuevosProceso({ catalogUrl }: { catalogUrl: string }) {
                   className="shrink-0 w-12 h-12 rounded-[13px] grid place-items-center"
                   style={{ background: 'var(--lavanda)', color: 'var(--azul)' }}
                 >
-                  <Icon className="w-6 h-6" />
+                  {Icon && <Icon className="w-6 h-6" />}
                 </div>
                 <div>
                   <p className="font-bold text-[16px]">{paso.titulo}</p>
