@@ -1302,38 +1302,82 @@ export async function fetchCatalogData(
  * Fetch products by their IDs
  * Useful for getting wishlist/cart products
  */
+/** Tope duro del API: `limit` > 500 responde 422. */
+const LIMIT_MAX = 500;
+
+/**
+ * Trae TODAS las cards de esos productos en la landing.
+ *
+ * Un producto puede tener varias cards —el suelto y una por cada combo— y todas
+ * comparten `id`. Pedir un slot por id devolvia la respuesta truncada, siempre
+ * con la primera card. Verificado contra prod: `product_ids=518,491&limit=2`
+ * devuelve 2 de 5.
+ *
+ * Devuelve `null` si el API fallo, para que quien llame pueda distinguir "no
+ * pude preguntar" de "no hay nada". Confundirlos hace que un 5xx se lea como
+ * "todo el carrito esta muerto".
+ *
+ * CARDS_POR_PRODUCTO es solo una pista para resolverlo en un request; la
+ * correccion real es releer con `total` cuando `has_more` lo indica.
+ */
+export async function fetchAllCardsByIds(
+  landingSlug: string,
+  productIds: string[],
+  previewKey?: string | null
+): Promise<CatalogProduct[] | null> {
+  const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+  if (numericIds.length === 0) return [];
+
+  const CARDS_POR_PRODUCTO = 3;
+  const pedir = (limit: number) => getCatalogProducts(landingSlug, {
+    filters: { product_ids: numericIds },
+    limit: Math.min(limit, LIMIT_MAX),
+    previewKey,
+  });
+
+  try {
+    const response = await pedir(numericIds.length * CARDS_POR_PRODUCTO);
+    if (!response || !response.items) return null;
+
+    const truncada = response.has_more === true
+      || (typeof response.total === 'number' && response.total > response.items.length);
+
+    if (truncada) {
+      const completa = await pedir(typeof response.total === 'number' ? response.total : LIMIT_MAX);
+      if (completa?.items?.length) {
+        return completa.items.map(mapApiProductToCatalogProduct);
+      }
+    }
+
+    return response.items.map(mapApiProductToCatalogProduct);
+  } catch (error) {
+    console.error('[Catalog API] Error fetching all cards by IDs:', error);
+    return null;
+  }
+}
+
+/**
+ * Trae UNA card por producto: la primera que devuelve la landing.
+ *
+ * Es lo que esperan el comparador, la wishlist y el carrito, que renderizan una
+ * fila por id. Ojo: cual card sea "la primera" es arbitrario cuando el producto
+ * tiene combos — el `id` no identifica una card. Quien necesite la card exacta
+ * tiene que resolver por slug, no por aca (BAL-3277).
+ */
 export async function fetchProductsByIds(
   landingSlug: string,
   productIds: string[],
   previewKey?: string | null
 ): Promise<CatalogProduct[]> {
-  if (!productIds || productIds.length === 0) {
-    return [];
-  }
+  const todas = await fetchAllCardsByIds(landingSlug, productIds, previewKey);
+  if (!todas) return [];
 
-  try {
-    // Convert string IDs to numbers
-    const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-
-    if (numericIds.length === 0) {
-      return [];
-    }
-
-    const response = await getCatalogProducts(landingSlug, {
-      filters: { product_ids: numericIds },
-      limit: numericIds.length,
-      previewKey,
-    });
-
-    if (!response || !response.items) {
-      return [];
-    }
-
-    return response.items.map(mapApiProductToCatalogProduct);
-  } catch (error) {
-    console.error('[Catalog API] Error fetching products by IDs:', error);
-    return [];
-  }
+  const vistas = new Set<string>();
+  return todas.filter((p) => {
+    if (vistas.has(p.id)) return false;
+    vistas.add(p.id);
+    return true;
+  });
 }
 
 // ============================================
