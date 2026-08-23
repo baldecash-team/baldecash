@@ -33,6 +33,7 @@ import type { ReferralBanner as ReferralBannerData } from '../services/referralB
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
 import NvidiaLanding from '../components/product-landing/NvidiaLanding';
+import SeminuevosLanding from '../components/product-landing/seminuevos/SeminuevosLanding';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { LeadLanding } from '../components/lead/LeadLanding';
 import type { BannerImage, LeadFormConfig, LeadProductsConfig } from '../types/hero';
@@ -491,6 +492,29 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
         <NvidiaLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} promoBannerData={heroData?.promoBannerData} />
         {/* Sin FloatingCtaButton (Guía de becas) en la landing NVIDIA: no corresponde aquí. */}
+      </div>
+    );
+  }
+
+  // Landing de equipos seminuevos — patrón NVIDIA: HOME especializado, detección por landingId.
+  if (heroData?.landingId === LANDING_IDS.SEMINUEVOS) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData?.primaryColor || '#4654CD',
+          '--color-secondary': heroData?.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <SeminuevosLanding
+          footerData={mergedFooterData}
+          landing={slug}
+          previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+          promoBannerData={heroData?.promoBannerData}
+          faqData={mergedFaq}
+          logoUrl={heroData.logoUrl}
+          primaryColor={heroData.primaryColor}
+          whatsappUrl={heroData.ctaData?.buttons.whatsapp.url}
+        />
       </div>
     );
   }
