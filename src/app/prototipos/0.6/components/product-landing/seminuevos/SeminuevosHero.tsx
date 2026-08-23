@@ -1,0 +1,95 @@
+'use client';
+
+import { MediaSlot } from './MediaSlot';
+import { hero } from './data/seminuevosData';
+
+/** Las 4 laptops decorativas del prototipo: color, posición y rotación. */
+const LAPTOPS = [
+  { fill: '#d9dbe2', className: 'w-[150px] top-[8%] left-1/2 -translate-x-1/2 rotate-[-3deg]' },
+  { fill: '#e6c3cc', className: 'w-[120px] top-[26%] right-[4%] rotate-[8deg]' },
+  { fill: '#d9d987', className: 'w-[120px] bottom-[24%] left-[3%] rotate-[-8deg]' },
+  { fill: '#6b6fce', className: 'w-[130px] bottom-[6%] left-1/2 -translate-x-1/2 rotate-[4deg]' },
+];
+
+function LaptopShape({ fill, className }: { fill: string; className: string }) {
+  return (
+    <svg
+      data-testid="hero-laptop"
+      viewBox="0 0 120 84"
+      aria-hidden="true"
+      className={`absolute pointer-events-none ${className}`}
+      style={{ filter: 'drop-shadow(0 16px 22px rgba(20,25,60,.18))' }}
+    >
+      <rect x="14" y="6" width="92" height="58" rx="6" fill={fill} />
+      <circle cx="60" cy="35" r="8" fill="#ffffff" opacity=".35" />
+      <rect x="4" y="66" width="112" height="9" rx="4.5" fill={fill} opacity=".85" />
+    </svg>
+  );
+}
+
+export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
+  return (
+    <section
+      className="relative overflow-hidden flex flex-col justify-center px-[22px] py-[18px] text-center"
+      style={{
+        background: 'linear-gradient(180deg,#fdfdff,#e9ebf3)',
+        // El prototipo restaba 65px (su header). Acá se resta la altura real que
+        // publica el Navbar, que varía si hay banner promocional.
+        minHeight: 'calc(100svh - var(--header-total-height, 6.5rem))',
+      }}
+    >
+      {hero.bannerUrl ? (
+        <MediaSlot
+          src={hero.bannerUrl}
+          alt="Equipos seminuevos BaldeCash"
+          className="absolute inset-0 h-full !rounded-none"
+        />
+      ) : (
+        LAPTOPS.map((l, i) => <LaptopShape key={i} {...l} />)
+      )}
+
+      <div
+        className="relative z-[2] w-full max-w-[600px] mx-auto py-10"
+        style={{
+          background:
+            'radial-gradient(ellipse at center,rgba(255,255,255,.85) 55%,rgba(255,255,255,0))',
+        }}
+      >
+        <p
+          className="text-[13px] font-semibold uppercase tracking-[2px] mb-2"
+          style={{ color: 'var(--aqua)' }}
+        >
+          {hero.eyebrow}
+        </p>
+
+        <h1
+          className="font-extrabold leading-[1.06] tracking-[-1px]"
+          style={{ fontSize: 'clamp(30px,8vw,50px)' }}
+        >
+          {hero.title}
+        </h1>
+
+        <p
+          className="mt-3 font-medium"
+          style={{ fontSize: 'clamp(16px,4.4vw,20px)', color: '#5b5c6b' }}
+        >
+          {hero.subtitle}
+        </p>
+
+        <a
+          href={catalogUrl}
+          className="inline-flex items-center gap-2 mt-7 rounded-[30px] px-6 py-3 text-white font-semibold text-[15px]"
+          style={{
+            background: 'linear-gradient(135deg,#5a63e0,#03DBD0)',
+            boxShadow: '0 10px 24px rgba(90,99,224,.35)',
+          }}
+        >
+          {hero.ctaLabel}
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </a>
+      </div>
+    </section>
+  );
+}

@@ -2,6 +2,8 @@
 
 import { Baloo_2 } from 'next/font/google';
 import { Footer } from '../../hero/Footer';
+import { SeminuevosHero } from './SeminuevosHero';
+import { routes } from '../../../utils/routes';
 import type { FooterData, PromoBannerData, FaqData } from '../../../types/hero';
 
 const baloo = Baloo_2({
@@ -39,7 +41,7 @@ export default function SeminuevosLanding({
       `}</style>
 
       <main>
-        <p data-testid="seminuevos-placeholder">Landing seminuevos</p>
+        <SeminuevosHero catalogUrl={routes.catalogo(landing)} />
       </main>
 
       <div id="footer">
