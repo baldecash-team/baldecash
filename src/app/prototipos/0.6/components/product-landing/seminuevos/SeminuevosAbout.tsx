@@ -47,7 +47,9 @@ export function SeminuevosAbout() {
           />
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2">
+        {/* En móvil el label va ARRIBA del sello: al costado, el nombre completo
+            de la SBS no entra y quedaba truncado. Desde sm vuelven a la misma fila. */}
+        <div className="mt-6 flex flex-col items-center justify-center gap-1.5 sm:flex-row sm:gap-2">
           <span
             className="shrink-0 text-[11px] sm:text-[13px]"
             style={{ color: 'var(--tenue)' }}
@@ -55,11 +57,11 @@ export function SeminuevosAbout() {
             {about.sbsLabel}
           </span>
           <span
-            className="inline-flex items-center gap-1.5 min-w-0 rounded-[12px] px-2.5 py-2 sm:gap-2 sm:px-3"
+            className="inline-flex items-center gap-1.5 rounded-[12px] px-2.5 py-2 sm:gap-2 sm:px-3"
             style={{ background: 'var(--lavanda)', color: 'var(--navy)' }}
           >
             <IconEscudo className="w-4 h-4 shrink-0" />
-            <span className="min-w-0 truncate text-[11px] font-semibold sm:text-[12.5px]">
+            <span className="text-[11px] font-semibold sm:text-[12.5px]">
               {about.sbsText}
             </span>
           </span>
