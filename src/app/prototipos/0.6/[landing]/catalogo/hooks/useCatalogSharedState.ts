@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+import { fetchAllCardsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type {
   CartItem,
@@ -427,14 +427,19 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
     hasValidatedRef.current = true;
     const uniqueIds = [...new Set(allIds)];
 
-    fetchProductsByIds(landingSlug, uniqueIds, previewKey)
+    fetchAllCardsByIds(landingSlug, uniqueIds, previewKey)
       .then(activeProducts => {
+        // `null` = no se pudo preguntar. Tratarlo como "no hay nada vivo"
+        // marcaria TODO el carrito como no disponible y bloquearia el checkout
+        // por un 5xx. Ante la duda no se marca nada: el backend es la barrera
+        // final.
+        if (activeProducts === null) return;
+
         const cardsVivas = activeProducts.map(p => ({ id: p.id, slug: p.slug }));
         setUnavailableCartIds(findUnavailableIds(cart, cardsVivas));
         setUnavailableWishlistIds(findUnavailableIds(wishlist, cardsVivas));
       })
       .catch(() => {
-        // If API fails, don't block — backend is the final barrier
         setUnavailableCartIds([]);
         setUnavailableWishlistIds([]);
       });

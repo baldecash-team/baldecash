@@ -36,9 +36,10 @@ export function resolveSavedItemDetail(
   if (item?.slug && cardGuardada) return { slug: item.slug, params };
 
   // 2. El slug guardado ya no existe en el catalogo — un combo archivado, por
-  //    ejemplo. Mandarlo igual seria un 404, y nadie lo detecta antes:
-  //    `unavailableWishlistIds` valida por productId, no por slug. Mejor la
-  //    card viva del producto que una pagina rota.
+  //    ejemplo. Mejor la card viva del producto que una pagina rota. Desde
+  //    BAL-3277 `unavailableWishlistIds` ya detecta este caso y el item sale
+  //    marcado; esto queda como segunda linea, para cuando el usuario llega
+  //    igual (la deteccion es asincrona y puede no haber respondido).
   if (cardPorId) return { slug: cardPorId.slug, params };
 
   // 3. El producto entero salio del catalogo. Queda el slug guardado.
