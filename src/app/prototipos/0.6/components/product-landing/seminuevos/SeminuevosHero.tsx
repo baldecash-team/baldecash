@@ -57,7 +57,12 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
       >
         <p
           className="text-[13px] font-semibold uppercase tracking-[2px] mb-2"
-          style={{ color: 'var(--aqua)' }}
+          // Aqua oscurecido solo para este texto: --aqua (#03DBD0) da 1.7:1 sobre
+          // el fondo claro del hero, muy por debajo del mínimo de 4.5:1. Este tono
+          // supera 5:1 incluso contra el borde más oscuro del degradé. El token
+          // --aqua no se toca: en el resto de la landing se usa como fondo, no
+          // como texto, y ahí sí tiene contraste de sobra.
+          style={{ color: '#046F69' }}
         >
           {hero.eyebrow}
         </p>
@@ -78,7 +83,7 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
 
         <a
           href={catalogUrl}
-          className="inline-flex items-center gap-2 mt-7 rounded-[30px] px-6 py-3 text-white font-semibold text-[15px]"
+          className="inline-flex items-center gap-2 min-h-11 mt-7 rounded-[30px] px-6 py-3 text-white font-semibold text-[15px] cursor-pointer transition-[filter,box-shadow] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
           style={{
             background: 'linear-gradient(135deg,#5a63e0,#03DBD0)',
             boxShadow: '0 10px 24px rgba(90,99,224,.35)',

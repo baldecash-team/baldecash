@@ -65,7 +65,7 @@ export function SeminuevosAbout() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${RED_LABELS[r.red]}: ${r.handle}`}
-                className="inline-flex items-center gap-2 rounded-[26px] px-3.5 py-2 transition-colors"
+                className="inline-flex items-center gap-2 min-h-11 rounded-[26px] px-3.5 py-2 cursor-pointer transition-colors hover:bg-[#e8e9ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
                 style={{ background: '#f4f5f8', color: 'var(--navy)' }}
               >
                 <Icon className="w-4 h-4" />

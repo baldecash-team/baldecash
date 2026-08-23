@@ -62,7 +62,7 @@ export function SeminuevosProceso({ catalogUrl }: { catalogUrl: string }) {
         <div className="mt-7 text-center">
           <a
             href={catalogUrl}
-            className="inline-block rounded-[30px] px-7 py-3 text-white font-semibold text-[15px]"
+            className="inline-flex items-center justify-center min-h-11 rounded-[30px] px-7 py-3 text-white font-semibold text-[15px] cursor-pointer transition-[filter,box-shadow] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
             style={{
               background: 'linear-gradient(135deg,#5a63e0,#03DBD0)',
               boxShadow: '0 10px 24px rgba(90,99,224,.35)',
