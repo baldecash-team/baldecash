@@ -2,6 +2,7 @@
 
 import { whatsapp } from './data/seminuevosData';
 import { IconWhatsapp } from './icons/SeminuevosIcons';
+import { safeExternalUrl } from './safeExternalUrl';
 
 export interface SeminuevosWhatsappProps {
   /**
@@ -9,14 +10,19 @@ export interface SeminuevosWhatsappProps {
    * la landing (config.buttons.whatsapp.url). Si no llega (landing sin ese
    * componente configurado, o falla la carga), cae al número fijo de
    * data/seminuevosData.ts para que el botón nunca quede roto.
+   *
+   * También se valida el esquema (safeExternalUrl): solo http/https. Un
+   * valor guardado en BD como `javascript:...` cae al fallback en vez de
+   * ejecutarse al hacer clic.
    */
   href?: string;
 }
 
 export function SeminuevosWhatsapp({ href }: SeminuevosWhatsappProps) {
+  const safeHref = safeExternalUrl(href, whatsapp.href);
   return (
     <a
-      href={href || whatsapp.href}
+      href={safeHref}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={whatsapp.ariaLabel}
