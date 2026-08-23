@@ -55,7 +55,7 @@ export const proceso = {
   titleAccent: 'proceso?',
   pasos: [
     { icon: 'lupa', titulo: 'Explora el catálogo', subtitulo: 'Encuentra el modelo que más te guste' },
-    { icon: 'etiqueta', titulo: 'Selecciona el modelo ideal', subtitulo: 'Elige el grado y cuota que más se te acomode' },
+    { icon: 'etiqueta', titulo: 'Selecciona el modelo ideal', subtitulo: 'Elige el grado y cuota que más te convenga' },
     { icon: 'documento', titulo: 'Completa tus datos', subtitulo: 'Llena un formulario de 2 minutos' },
   ],
   bannerAprobacion: {
@@ -84,6 +84,19 @@ export const about = {
 };
 
 export const faq = { title: 'Preguntas frecuentes' };
+
+/**
+ * Items del menú de navegación, hardcodeados a pedido del dueño de producto
+ * (no se gestionan desde el admin como el resto de landings). Cada uno
+ * apunta al id de una sección de esta misma página — ver SeminuevosLanding,
+ * que intercepta el click y hace scroll suave.
+ */
+export const navItems = [
+  { label: '¿Qué es?', sectionId: 'que-es' },
+  { label: 'Proceso', sectionId: 'proceso' },
+  { label: 'Nosotros', sectionId: 'nosotros' },
+  { label: 'Preguntas', sectionId: 'faq' },
+] as const;
 
 export const whatsapp = {
   href: 'https://wa.me/51958823053',

@@ -10,7 +10,11 @@ export function SeminuevosProceso({ catalogUrl }: { catalogUrl: string }) {
   const { lead, strong, tail } = proceso.bannerAprobacion;
 
   return (
-    <section className="px-[22px] py-12" style={{ background: '#fff' }}>
+    <section
+      id="proceso"
+      className="px-[22px] py-12"
+      style={{ background: '#fff', scrollMarginTop: 'var(--header-total-height, 6.5rem)' }}
+    >
       <div className="max-w-[720px] mx-auto">
         <h2 className="font-extrabold text-center" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
           {titleBase} <span style={{ color: 'var(--azul)' }}>{proceso.titleAccent}</span>

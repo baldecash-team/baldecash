@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Baloo_2 } from 'next/font/google';
 import { Navbar } from '../../hero/Navbar';
 import { Footer } from '../../hero/Footer';
@@ -11,7 +12,53 @@ import { SeminuevosFaq } from './SeminuevosFaq';
 import { SeminuevosWhatsapp } from './SeminuevosWhatsapp';
 import { routes } from '../../../utils/routes';
 import { LANDING_IDS } from '../../../utils/landingIds';
+import { navItems } from './data/seminuevosData';
 import type { FooterData, PromoBannerData, FaqData } from '../../../types/hero';
+
+const SECTION_IDS = navItems.map((item) => item.sectionId);
+
+/**
+ * Intercepta los clics del menú de navegación para hacer scroll suave a las
+ * secciones de esta misma página.
+ *
+ * El Navbar compartido arma el href de cada item como `{heroUrl}#seccion`
+ * (heroUrl = /prototipos/0.6/{landing}) y solo intercepta el click con
+ * preventDefault si `window.location.pathname` coincide con esa ruta. En
+ * `/preview/{id}` el pathname es distinto del heroUrl de la landing, así
+ * que esa comparación falla y el click navegaría de verdad fuera del
+ * preview en vez de scrollear. No se puede tocar Navbar.tsx (lo comparten
+ * todas las landings), así que se agrega acá una segunda capa de
+ * intercepción por delegación en document, que solo mira el hash del href
+ * (no la ruta completa) y por eso funciona igual en la landing real y en
+ * el preview.
+ */
+function useSectionScroll() {
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented) return; // el Navbar ya lo resolvió (misma ruta): no duplicar el scroll
+      const anchor = (e.target as HTMLElement).closest('a[href*="#"]');
+      if (!anchor) return;
+      const hash = anchor.getAttribute('href')?.split('#')[1];
+      if (!hash || !SECTION_IDS.includes(hash as (typeof SECTION_IDS)[number])) return;
+      const el = document.getElementById(hash);
+      if (!el) return;
+      e.preventDefault();
+      const scroll = () =>
+        el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
+      // En mobile el click también cierra el menú hamburguesa (colapso animado
+      // por Framer Motion). Si el scroll suave arranca en el mismo tick, ese
+      // cambio de layout lo corta a mitad de camino y la página se queda
+      // donde estaba. Un frame de margen alcanza para que el layout del menú
+      // se asiente antes de empezar el scroll.
+      requestAnimationFrame(() => requestAnimationFrame(scroll));
+    };
+
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
+}
 
 const baloo = Baloo_2({
   subsets: ['latin'],
@@ -51,6 +98,8 @@ export default function SeminuevosLanding({
   primaryColor,
   whatsappUrl,
 }: SeminuevosLandingProps) {
+  useSectionScroll();
+
   return (
     <div className={`${baloo.variable} seminuevos-landing min-h-screen antialiased`}>
       <style>{`
@@ -74,6 +123,11 @@ export default function SeminuevosLanding({
         promoBannerData={promoBannerData}
         previewBannerOffset={previewBannerOffset}
         hidePortalButton
+        navbarItems={navItems.map((item) => ({
+          label: item.label,
+          href: `#${item.sectionId}`,
+          section: null,
+        }))}
       />
 
       <main style={{ paddingTop: 'var(--header-total-height, 6.5rem)' }}>
