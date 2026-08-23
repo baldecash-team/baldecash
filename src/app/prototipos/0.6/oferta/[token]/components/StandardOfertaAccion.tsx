@@ -25,8 +25,8 @@
  *   - los términos se leen en una tarjeta (cuota, inicial, plazo, total) con
  *     TEA/TCEA al pie, en vez de una grilla que destacaba la TEA.
  */
-import { useCallback, useState } from 'react';
-import { ArrowDown, Ban, CheckCircle2, Clock, MessageCircle, XCircle } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { ArrowDown, Ban, CheckCircle2, Clock, MessageCircle, Package, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
@@ -48,6 +48,50 @@ import { useCountdown } from './useCountdown';
 
 const WHATSAPP_URL = 'https://wa.link/osgxjf';
 
+/** Fila de chips de un eje del menú (plazo o inicial). */
+function OpcionesFila({
+  etiqueta,
+  valores,
+  actual,
+  formato,
+  onElegir,
+}: {
+  etiqueta: string;
+  valores: number[];
+  actual: number | null;
+  formato: (valor: number) => string;
+  onElegir: (valor: number) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[11.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+        {etiqueta}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {valores.map((valor) => {
+          const activo = valor === actual;
+          return (
+            <button
+              key={valor}
+              type="button"
+              aria-pressed={activo}
+              onClick={() => onElegir(valor)}
+              className="cursor-pointer rounded-lg border-[1.5px] px-3 py-1.5 text-[13px] font-bold transition-all duration-150 active:scale-[.97]"
+              style={
+                activo
+                  ? { borderColor: OFERTA_COLORS.primary, backgroundColor: OFERTA_COLORS.primary, color: '#fff' }
+                  : { borderColor: OFERTA_COLORS.border, backgroundColor: '#fff', color: OFERTA_COLORS.textMid }
+              }
+            >
+              {formato(valor)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function StandardOfertaAccion({
   token,
   offer,
@@ -65,6 +109,50 @@ export function StandardOfertaAccion({
   const [decision, setDecision] = useState<'accepted' | 'rejected' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Rangos de plazo/inicial. Vacío = oferta de una sola combinación: todo lo
+  // que sigue degrada a la vista de siempre.
+  const options = useMemo(() => info?.options ?? [], [info?.options]);
+  const terms = useMemo(
+    () => [...new Set(options.map((o) => o.termMonths))].sort((a, b) => a - b),
+    [options],
+  );
+  const initials = useMemo(
+    () => [...new Set(options.map((o) => o.initialPercent))].sort((a, b) => a - b),
+    [options],
+  );
+  // Arranca en la combinación que armó el gestor (la que trae la oferta), para
+  // que abrir el link muestre lo mismo que se le prometió al cliente.
+  const [selTerm, setSelTerm] = useState<number | null>(null);
+  const [selInitial, setSelInitial] = useState<number | null>(null);
+  const curTerm = selTerm ?? info?.termMonths ?? terms[0] ?? null;
+  const curInitial = selInitial ?? info?.initialPaymentPercent ?? initials[0] ?? null;
+  const selected = useMemo(
+    () => options.find((o) => o.termMonths === curTerm && o.initialPercent === curInitial) ?? null,
+    [options, curTerm, curInitial],
+  );
+
+  // Cifras que se muestran: las de la combinación elegida cuando hay menú.
+  const shownMonthly = selected?.monthlyPayment ?? info?.monthlyPayment ?? null;
+  const shownInitialPayment = selected?.initialPayment ?? info?.initialPayment ?? null;
+  const shownInitialPercent = selected?.initialPercent ?? info?.initialPaymentPercent ?? null;
+  const shownTea = selected?.tea ?? info?.tea ?? null;
+  const shownTcea = selected?.tcea ?? info?.tcea ?? null;
+
+  // Accesorios/seguros de la "Oferta con Accesorios": su cuota ya está dentro
+  // de `monthlyPayment`, así que sin desglose el cliente ve una cuota más alta
+  // que la de su equipo sin ninguna explicación.
+  const addons = useMemo(
+    () => [...(info?.accessories ?? []), ...(info?.insurances ?? [])],
+    [info?.accessories, info?.insurances],
+  );
+  // El desglose por ítem corresponde a la combinación con la que se creó la
+  // oferta. Si el cliente elige otro plazo/inicial la cuota se reparte
+  // distinto: se sigue listando cada accesorio (los recibe igual) pero sin un
+  // `+S/x/mes` que sería falso.
+  const showAddonAmounts =
+    options.length === 0
+    || (curTerm === info?.termMonths && curInitial === info?.initialPaymentPercent);
+
   // Vencida en vivo (el usuario dejó la pestaña abierta hasta que expiró) o ya
   // había vencido al cargar. En ambos casos: botones deshabilitados.
   const expired = countdown?.expired === true;
@@ -76,8 +164,19 @@ export function StandardOfertaAccion({
     setError(null);
     analytics.track('offer_standard_accept_click', { offer_code: offer.offerCode });
     try {
-      await acceptOffer(token);
-      analytics.track('offer_standard_accepted', { offer_code: offer.offerCode });
+      await acceptOffer(
+        token,
+        // Solo cuando hay menú: sin rangos el backend rechazaría una elección
+        // (`no_options`) y además no hay nada que elegir.
+        options.length && curTerm != null && curInitial != null
+          ? { term: curTerm, initialPercent: curInitial }
+          : undefined,
+      );
+      analytics.track('offer_standard_accepted', {
+        offer_code: offer.offerCode,
+        term_months: curTerm,
+        initial_percent: curInitial,
+      });
       onConverted?.();
       setDecision('accepted');
     } catch (err) {
@@ -88,7 +187,7 @@ export function StandardOfertaAccion({
     } finally {
       setLoading(null);
     }
-  }, [disabled, token, offer.offerCode, analytics, onConverted]);
+  }, [disabled, token, offer.offerCode, analytics, onConverted, options.length, curTerm, curInitial]);
 
   const handleReject = useCallback(async () => {
     if (disabled) return;
@@ -129,10 +228,10 @@ export function StandardOfertaAccion({
   if (decision === 'accepted') {
     const chosen: ChosenSummary = {
       name: info?.productName || 'Tu equipo',
-      monthly: info?.monthlyPayment ?? undefined,
-      termMonths: info?.termMonths ?? undefined,
-      initialAmount: info?.initialPayment ?? undefined,
-      initial: info?.initialPaymentPercent ?? undefined,
+      monthly: shownMonthly ?? undefined,
+      termMonths: curTerm ?? info?.termMonths ?? undefined,
+      initialAmount: shownInitialPayment ?? undefined,
+      initial: shownInitialPercent ?? undefined,
       userName: offer.clientName ?? undefined,
       offerCode: offer.offerCode,
       previous: null,
@@ -153,7 +252,7 @@ export function StandardOfertaAccion({
     );
   }
 
-  const totalTexto = info?.totalAmount ?? info?.totalPrice ?? null;
+  const totalTexto = selected?.totalAmount ?? info?.totalAmount ?? info?.totalPrice ?? null;
 
   // El equipo anterior, para el antes/ahora. Llega null cuando no hay
   // comparacion que mostrar.
@@ -164,7 +263,10 @@ export function StandardOfertaAccion({
   // todo a meses: una oferta quincenal de 24 cuotas se leía "12 meses" y el
   // cliente no reconocía su propio plan; `term` son las cuotas nativas.
   const frecuencia = (info?.paymentFrequency || 'mensual').toLowerCase();
-  const cuotas = info?.term ?? info?.termMonths ?? null;
+  // Con menú, el plazo elegido manda. Los rangos son siempre mensuales
+  // (`normalize_client_options` trabaja en meses), así que `curTerm` ya es el
+  // número de cuotas; sin menú se respeta el plazo nativo de la oferta.
+  const cuotas = (options.length ? curTerm : null) ?? info?.term ?? info?.termMonths ?? null;
   const plazoTexto = cuotas ? `${cuotas} ${plazoUnit(cuotas, frecuencia)}` : null;
 
   // Card del equipo ofrecido. `specs` viene como dict EAV plano del backend
@@ -173,15 +275,15 @@ export function StandardOfertaAccion({
     name: info?.productName || 'Tu equipo',
     brand: info?.productBrand ?? undefined,
     imageUrl: info?.productImageUrl ?? undefined,
-    monthly: info?.monthlyPayment ?? 0,
+    monthly: shownMonthly ?? 0,
     // El card arma su plazo como "en N meses". En una oferta semanal/quincenal
     // eso choca con la cuota, que es de la frecuencia real: se omite acá y el
     // plazo correcto lo da la tarjeta de términos.
-    term: frecuencia === 'mensual' ? info?.termMonths ?? undefined : undefined,
+    term: frecuencia === 'mensual' ? (curTerm ?? info?.termMonths ?? undefined) : undefined,
     periodLabel: cuotaSuffix(frecuencia),
     initial:
-      info?.initialPayment != null && info.initialPayment > 0
-        ? `inicial S/${Math.round(info.initialPayment)}`.trim()
+      shownInitialPayment != null && shownInitialPayment > 0
+        ? `inicial S/${Math.round(shownInitialPayment)}`.trim()
         : undefined,
     specs: info?.productSpecs
       ? specsToChips(createSpecsFromEav(info.productSpecs, 'laptop'))
@@ -291,6 +393,47 @@ export function StandardOfertaAccion({
           onVerDetalle={detalleUrl ? handleVerDetalle : undefined}
         />
 
+        {/* Elección de plazo/inicial. Solo aparece el eje con más de una
+            opción — un solo plazo no es una decisión. */}
+        {options.length > 1 ? (
+          <div
+            className="flex flex-col gap-3 rounded-xl border p-3.5"
+            style={{ borderColor: OFERTA_COLORS.border, backgroundColor: OFERTA_COLORS.grayBg }}
+          >
+            <div className="text-[13px] font-bold" style={{ color: OFERTA_COLORS.textStrong }}>
+              Arma tu cuota
+            </div>
+            {terms.length > 1 ? (
+              <OpcionesFila
+                etiqueta="Plazo"
+                valores={terms}
+                actual={curTerm}
+                formato={(t) => `${t} meses`}
+                onElegir={(t) => {
+                  setSelTerm(t);
+                  analytics.track('offer_standard_term_change', {
+                    offer_code: offer.offerCode, term_months: t,
+                  });
+                }}
+              />
+            ) : null}
+            {initials.length > 1 ? (
+              <OpcionesFila
+                etiqueta="Inicial"
+                valores={initials}
+                actual={curInitial}
+                formato={(i) => (i > 0 ? `${i}%` : 'Sin inicial')}
+                onElegir={(i) => {
+                  setSelInitial(i);
+                  analytics.track('offer_standard_initial_change', {
+                    offer_code: offer.offerCode, initial_percent: i,
+                  });
+                }}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Terminos. Reemplaza la grilla que destacaba TEA y total: la inicial
             deja de ser texto incrustado en el plazo y pasa a ser una fila
             propia, porque es el monto que hay que pagar el primer dia. TEA y
@@ -306,19 +449,19 @@ export function StandardOfertaAccion({
             Términos de tu oferta
           </div>
           <dl className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
-            {info?.monthlyPayment != null ? (
+            {shownMonthly != null ? (
               <div className="flex items-baseline justify-between px-3.5 py-2.5">
                 <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Cuota</dt>
                 <dd className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
-                  S/{Math.round(info.monthlyPayment)}{cuotaSuffix(frecuencia)}
+                  S/{Math.round(shownMonthly)}{cuotaSuffix(frecuencia)}
                 </dd>
               </div>
             ) : null}
             <div className="flex items-baseline justify-between px-3.5 py-2.5">
               <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Inicial</dt>
               <dd className="text-[14px] font-semibold" style={{ color: OFERTA_COLORS.textStrong }}>
-                {info?.initialPayment ? `S/${Math.round(info.initialPayment)}` : 'Sin inicial'}
-                {info?.initialPaymentPercent ? ` (${info.initialPaymentPercent}%)` : ''}
+                {shownInitialPayment ? `S/${Math.round(shownInitialPayment)}` : 'Sin inicial'}
+                {shownInitialPercent ? ` (${shownInitialPercent}%)` : ''}
               </dd>
             </div>
             {plazoTexto ? (
@@ -336,14 +479,93 @@ export function StandardOfertaAccion({
               </div>
             ) : null}
           </dl>
-          {(info?.tea != null || info?.tcea != null) ? (
+          {(shownTea != null || shownTcea != null) ? (
             <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
-              {info?.tea != null ? <>TEA {info.tea}%</> : null}
-              {info?.tea != null && info?.tcea != null ? ' \u00b7 ' : null}
-              {info?.tcea != null ? <>TCEA {info.tcea}%</> : null}
+              {shownTea != null ? <>TEA {shownTea}%</> : null}
+              {shownTea != null && shownTcea != null ? ' \u00b7 ' : null}
+              {shownTcea != null ? <>TCEA {shownTcea}%</> : null}
             </div>
           ) : null}
         </section>
+
+        {/* Accesorios y seguros de la oferta. Su cuota ya está sumada arriba:
+            sin esta lista el cliente veía una cuota más alta que la de su
+            equipo sin saber de dónde salía. */}
+        {addons.length ? (
+          <section
+            aria-label="Lo que incluye tu oferta"
+            className="rounded-xl border"
+            style={{ borderColor: OFERTA_COLORS.border }}
+          >
+            <div
+              className="rounded-t-xl px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[.09em] text-white"
+              style={{ backgroundColor: OFERTA_COLORS.primary }}
+            >
+              Incluye
+            </div>
+            <ul className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
+              {addons.map((a) => (
+                <li key={a.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
+                  <div
+                    className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-lg"
+                    style={{ backgroundColor: OFERTA_COLORS.grayBg }}
+                  >
+                    {a.imageUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={a.imageUrl} alt={a.name} className="h-full w-full object-contain" />
+                    ) : (
+                      <Package className="h-5 w-5" style={{ color: OFERTA_COLORS.textSoft }} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="truncate text-[13.5px] font-semibold"
+                      style={{ color: OFERTA_COLORS.textStrong }}
+                    >
+                      {a.name}
+                    </div>
+                    {!a.includedFree && showAddonAmounts && a.price > 0 ? (
+                      <div className="text-[11.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                        S/{Math.round(a.price).toLocaleString('es-PE')} al contado
+                      </div>
+                    ) : null}
+                  </div>
+                  {a.includedFree ? (
+                    <span
+                      className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px] font-bold"
+                      style={{ backgroundColor: OFERTA_COLORS.greenBadgeBg, color: OFERTA_COLORS.greenDark }}
+                    >
+                      Incluido gratis
+                    </span>
+                  ) : !showAddonAmounts || a.monthly == null ? (
+                    <span
+                      className="whitespace-nowrap text-[12px] font-semibold"
+                      style={{ color: OFERTA_COLORS.textSoft }}
+                    >
+                      Incluido
+                    </span>
+                  ) : (
+                    <span
+                      className="whitespace-nowrap text-[13.5px] font-bold"
+                      style={{ color: OFERTA_COLORS.textStrong }}
+                    >
+                      +S/{Math.round(a.monthly)}
+                      <span className="text-[11.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+                        {cuotaSuffix(frecuencia)}
+                      </span>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {showAddonAmounts && (info?.addonsMonthlyPayment ?? 0) > 0 ? (
+              <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                Los accesorios suman S/{Math.round(info!.addonsMonthlyPayment)}
+                {cuotaSuffix(frecuencia)} a tu cuota.
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         {/* Error inline (no reemplaza la pagina: el cliente puede reintentar) */}
         {error ? (
