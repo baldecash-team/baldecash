@@ -187,6 +187,15 @@ const DEFAULT_BACKOFF_BASE_MS = 1000;
  * `id`, que sí se expone — es la manija que `reintentar()`/`descartar()`
  * necesitan para apuntar a UN fallido en particular, ver `listarFallidos()`).
  */
+/**
+ * La subida ya no tiene destino: la toma se regrabó o la inspección se cerró
+ * mientras el archivo viajaba. Terminal por definición — no es un fallo que
+ * pueda salir bien en el próximo intento, es una subida que dejó de
+ * corresponder. Se distingue de un `Error` común porque el ciclo de reintentos
+ * la trata al revés: descarta en vez de insistir.
+ */
+class SubidaObsoleta extends Error {}
+
 interface Entrada {
   id: number;
   item: UploadQueueItem;
@@ -427,7 +436,17 @@ export class UploadQueue {
         this.notificar();
         this.procesar();
         return;
-      } catch {
+      } catch (error) {
+        // La subida perdió su destino (ver `SubidaObsoleta`). Sale de la cola
+        // como sale una exitosa —no como `fallido`— porque `fallido` es una
+        // invitación a reintentar, y acá reintentar es exactamente lo que no
+        // hay que hacer: no falló nada, el operador cambió de idea.
+        if (error instanceof SubidaObsoleta) {
+          this.entradas = this.entradas.filter((e) => e !== entrada);
+          this.notificar();
+          this.procesar();
+          return;
+        }
         if (entrada.intentos >= this.maxIntentos) {
           entrada.estado = 'fallido';
           this.notificar();
@@ -559,6 +578,20 @@ export class UploadQueue {
       }
     );
     if (!completeRes.ok) {
+      // 404: el servidor ya no tiene dónde poner esto. O el escáner mandó
+      // regrabar la toma (el redo BORRA las filas de video de esa toma), o la
+      // inspección se cerró. Reintentar acá no es inofensivo: el ciclo de
+      // reintento arranca pidiendo una URL de subida nueva —que el servidor
+      // concede, porque la regrabación creó su propia fila— y la key de S3 de
+      // una toma no cambia entre grabación y regrabación (`t{take}-{label}`).
+      // O sea que el reintento subiría el video VIEJO encima del nuevo y lo
+      // confirmaría como bueno: la evidencia terminaría siendo justo la toma
+      // que el operador mandó descartar.
+      if (completeRes.status === 404) {
+        throw new SubidaObsoleta(
+          'La toma se regrabó o la inspección se cerró mientras esto subía: se descarta.'
+        );
+      }
       // 422 acá es el caso importante: el servidor comparó los bytes que
       // llegaron a S3 contra los declarados y NO coinciden — el archivo subió
       // truncado. Tiene que reintentarse, nunca darse por bueno: es la
