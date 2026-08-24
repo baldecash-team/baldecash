@@ -301,6 +301,26 @@ export function CopiaHomeMobileCatalog() {
             return (
               <div key={p.id} className={`${styles.card} ${styles.prod}`}>
                 <CopiaHomePromoBanner promotion={p.promotion} style={{ margin: '-18px -18px 14px' }} />
+                {/*
+                  «Seminuevo» está escrito a mano y la condición se deriva acá
+                  (`isRefurbishedCondition`), en vez de usar el
+                  `conditionLabelText` que resuelve el backend. La BD dice
+                  «Reacondicionado»: esta pantalla muestra otra palabra, y solo
+                  cambia editando código.
+
+                  Es deliberado, no un olvido de BAL-3261. La familia
+                  `copia-home` (este archivo, su desktop y las dos fichas de
+                  producto) tiene 12 sitios así, y se dejan todos como están
+                  porque `copia-home` es una landing de PRUEBA INTERNA del
+                  equipo: ningún cliente la ve. Monta solo con
+                  `isCopiaHomeLanding(landing) && isMobile` —las `renueva-*` NO
+                  entran acá, pese a que existe una `isCopiaHomeStyleLanding`
+                  más amplia que aquí no se usa—.
+
+                  Si algún día esta variante sirve de base para una landing
+                  real, hay que migrar los 12 a `conditionLabelText` /
+                  `conditionLabelColor`, como hace `ConditionBadge.tsx`.
+                */}
                 {refurbished && !p.promotion?.template && <span className={styles.prodBadge}>Seminuevo</span>}
                 <div className={styles.prodH}>
                   <div className={styles.prodLeft}>

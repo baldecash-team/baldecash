@@ -129,6 +129,13 @@ export interface ApiCatalogProduct {
   slug: string;
   type: string;
   condition: string;
+  /**
+   * Badge de condición ya resuelto por el backend (BAL-3261). `null` cuando
+   * esa condición no amerita badge (la condición "nueva" se excluye a
+   * propósito). El front ya no deriva esta regla, solo la pinta.
+   */
+  condition_label_text?: string | null;
+  condition_label_color?: string | null;
   grade?: string | null;
   short_description?: string;
   brand: ApiBrand;
@@ -714,6 +721,10 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
+    // Badge resuelto por el backend (BAL-3261): se copia tal cual, sin
+    // derivar nada acá. `null`/`undefined` = sin badge para esta card.
+    conditionLabelText: apiProduct.condition_label_text ?? undefined,
+    conditionLabelColor: apiProduct.condition_label_color ?? undefined,
     grade: apiProduct.grade ?? undefined,
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response

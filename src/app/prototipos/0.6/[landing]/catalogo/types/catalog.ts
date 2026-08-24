@@ -724,8 +724,16 @@ export interface CatalogProduct {
   variantId?: string;
   gama: GamaTier;
   condition: ProductCondition;
-  /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Conserva el valor sin normalizar para el badge de condición y el match contra el facet. */
+  /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Se conserva para lógica que aún compara condiciones (ej. el modal de aviso de reacondicionado); el badge visual ya no lo usa. */
   conditionCode?: string;
+  /**
+   * Badge de condición ya resuelto por el backend (BAL-3261,
+   * `catalog_rules.condition_badges`). `null` = esta card no lleva badge
+   * (la condición "nueva" se excluye a propósito). El front ya no decide
+   * qué condición amerita badge: solo pinta lo que llega.
+   */
+  conditionLabelText?: string | null;
+  conditionLabelColor?: string | null;
   /** Grado de reacondicionamiento (A/B/C/D) si el producto es un grado; si no, undefined. */
   grade?: string;
   stock: StockStatus;
