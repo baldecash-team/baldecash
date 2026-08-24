@@ -301,6 +301,8 @@ export async function saveFormStep(
  * Application status response type
  */
 export interface ApplicationStatusResponse {
+  /** Ver `ApplicationStatusData.reference`: el numero que se le muestra al cliente. */
+  reference?: string | null;
   code: string;
   status: string;
   submitted_at: string | null;

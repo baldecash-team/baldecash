@@ -189,7 +189,8 @@ function buildReceivedData(
     : undefined;
 
   return {
-    applicationId: applicationData?.code || applicationCode,
+    applicationId:
+      applicationData?.reference || applicationData?.code || applicationCode,
     userName,
     submittedAt: applicationData?.submitted_at
       ? new Date(applicationData.submitted_at)
