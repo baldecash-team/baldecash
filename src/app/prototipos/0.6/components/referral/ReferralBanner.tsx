@@ -229,7 +229,23 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
       style={{ backgroundColor: FONDO, color: TEXTO }}
     >
       <div className="mx-auto flex min-h-[44px] max-w-7xl items-center gap-2 px-3 py-2 sm:px-6">
-        <p className="flex-1 text-[13px] leading-tight sm:text-sm">
+        {/*
+          Contrapeso del botón de cerrar.
+
+          El texto se centra dentro de su caja, pero esa caja es el espacio que
+          SOBRA a la izquierda del botón: sin este hueco del mismo ancho, la
+          frase queda corrida hacia la izquierda la mitad del botón. Sólo aplica
+          cuando el botón es lo único que hay a la derecha — con el chip de
+          WhatsApp el ancho es variable y no hay contrapeso estático que sirva,
+          así que ahí el texto se centra en lo que le queda y ya.
+        */}
+        {!whatsappUrl && (
+          <span aria-hidden className="shrink-0 p-1">
+            <span className="block h-4 w-4" />
+          </span>
+        )}
+
+        <p className="flex-1 text-center text-[13px] leading-tight sm:text-sm">
           {/* Móvil: versión corta, para que entre en una línea. */}
           <span className="sm:hidden">
             Te refirió <strong className="font-semibold">{firstName}</strong>
