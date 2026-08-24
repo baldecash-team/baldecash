@@ -83,6 +83,22 @@ export function montosValidos(montos: MontosMatricula): boolean {
   return totalAFinanciar(montos) > 0;
 }
 
+/**
+ * Indica si lo cargado supera el máximo que financia la landing.
+ *
+ * Se mide sobre la SUMA y no sobre cada importe. Los dos son independientes y
+ * ninguno puede ser negativo, así que un campo por encima del tope ya hace que
+ * la suma lo supere: una sola regla cubre los dos casos, y evita tener el mismo
+ * número comprobado en dos lugares que después se desincronizan. Además es la
+ * suma lo que se financia y lo que el backend valida.
+ *
+ * Un tope en cero o ausente significa "sin tope": la configuración de la landing
+ * es la única fuente del número, y no se reemplaza acá por uno inventado.
+ */
+export function excedeTope(montos: MontosMatricula, topeMaximo: number): boolean {
+  return topeMaximo > 0 && totalAFinanciar(montos) > topeMaximo;
+}
+
 /** Formatea un monto en soles para mostrar. */
 export function formatearSoles(valor: number | null | undefined): string {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return '—';

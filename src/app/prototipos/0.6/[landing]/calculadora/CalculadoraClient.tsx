@@ -34,6 +34,7 @@ import { useDatosMatricula } from './utils/useDatosMatricula';
 import type { TipoInstitucion } from '../universidad/types/instituciones';
 import {
   MONTOS_VACIOS,
+  excedeTope,
   formatearSoles,
   montosValidos,
   totalAFinanciar,
@@ -89,6 +90,14 @@ export function CalculadoraClient() {
   const total = useMemo(() => totalAFinanciar(montos), [montos]);
   const hayMontos = montosValidos(montos);
 
+  /**
+   * Máximo que financia la landing. Sale de la configuración, nunca de una
+   * constante acá: el mismo número lo valida el backend contra esa misma fuente,
+   * y tenerlo escrito en dos lados garantiza que algún día digan cosas distintas.
+   */
+  const topeMaximo = calculadora?.amount.max ?? 0;
+  const excedido = excedeTope(montos, topeMaximo);
+
   const plazos = calculadora?.terms ?? [];
   const plazo =
     plazoElegido !== null && plazos.includes(plazoElegido) ? plazoElegido : plazos[0] ?? null;
@@ -128,9 +137,23 @@ export function CalculadoraClient() {
   // Simula con retardo: el monto se escribe dígito a dígito y no tiene sentido
   // pedir una simulación por cada tecla.
   useEffect(() => {
-    // Sin montos no se simula. No se limpia el estado acá: lo que se muestra se
-    // deriva más abajo, así el efecto no dispara renders en cascada.
-    if (!hayMontos || plazo === null) return;
+    // Sin montos no se simula. Tampoco por encima del tope: esa combinación ya
+    // se sabe rechazada, y pedirla igual gasta una llamada para volver con un
+    // 422 que en pantalla se leería como una falla pasajera.
+    //
+    // El estado no se limpia acá: lo que se muestra se deriva más abajo, así el
+    // efecto no dispara renders en cascada. Lo que sí se cancela es la petición
+    // en vuelo, porque su respuesta llegaría tarde para un monto que ya no es el
+    // de la pantalla — y eso es hablarle a un sistema externo, no mover estado.
+    //
+    // Cancelar deja `simulando` en true, porque el aborto no pasa por el camino
+    // que lo baja. No se corrige seteándolo desde acá: el indicador de carga
+    // también se deriva, y así queda apagado sin tocar estado.
+    if (!hayMontos || plazo === null || excedido) {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      return;
+    }
 
     const temporizador = setTimeout(() => {
       abortRef.current?.abort();
@@ -154,18 +177,26 @@ export function CalculadoraClient() {
     }, ESPERA_SIMULACION_MS);
 
     return () => clearTimeout(temporizador);
-  }, [total, plazo, landing, hayMontos]);
+  }, [total, plazo, landing, hayMontos, excedido]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
   // Lo que se muestra se deriva de si hay montos, en vez de limpiarse dentro del
   // efecto. Si el solicitante borra los montos, el resultado anterior queda en
   // estado pero deja de mostrarse, y vuelve solo cuando hay algo que simular.
-  const simulacionVisible = hayMontos ? simulacion : null;
-  const errorVisible = hayMontos ? error : null;
+  //
+  // Por encima del tope vale lo mismo, y por una razón más fuerte: una cuota
+  // calculada para 1400 al lado de un total de 4000 es una cifra que no le
+  // corresponde a nada de lo que hay en pantalla.
+  const mostrarResultado = hayMontos && !excedido;
+  const simulacionVisible = mostrarResultado ? simulacion : null;
+  const errorVisible = mostrarResultado ? error : null;
+  // Cancelar una simulación no baja la bandera —el aborto sale por otro camino—,
+  // así que el indicador de carga se deriva igual que el resto.
+  const simulandoVisible = mostrarResultado && simulando;
 
   const puedeContinuar =
-    hayMontos && !simulando && !!simulacionVisible && !errorVisible && !!calculadora;
+    mostrarResultado && !simulandoVisible && !!simulacionVisible && !errorVisible && !!calculadora;
 
   const alContinuar = useCallback(() => {
     if (!puedeContinuar || !simulacion || !calculadora) return;
@@ -265,10 +296,35 @@ export function CalculadoraClient() {
                   onCambio={(valor) => setMontos((previo) => ({ ...previo, primeraCuota: valor }))}
                 />
 
-                <div className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3">
-                  <span className="text-sm font-medium text-neutral-700">Monto total a financiar</span>
-                  <span className="text-lg font-bold text-neutral-800">{formatearSoles(total)}</span>
+                <div
+                  className={`flex items-center justify-between rounded-xl px-4 py-3 ${
+                    excedido ? 'bg-red-50' : 'bg-neutral-50'
+                  }`}
+                >
+                  <span
+                    className={`text-sm font-medium ${
+                      excedido ? 'text-red-700' : 'text-neutral-700'
+                    }`}
+                  >
+                    Monto total a financiar
+                  </span>
+                  <span
+                    className={`text-lg font-bold ${excedido ? 'text-red-700' : 'text-neutral-800'}`}
+                  >
+                    {formatearSoles(total)}
+                  </span>
                 </div>
+
+                {excedido && (
+                  <p className="flex gap-2 text-xs leading-relaxed text-red-700" role="alert">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      El total supera el máximo de
+                      <strong className="font-semibold"> {formatearSoles(topeMaximo)} </strong>
+                      que podemos financiar. Ajusta los montos para continuar.
+                    </span>
+                  </p>
+                )}
               </div>
 
               <p className="mt-4 flex gap-2 text-xs leading-relaxed text-neutral-500">
@@ -311,14 +367,22 @@ export function CalculadoraClient() {
             <div className="rounded-xl border border-neutral-200 bg-white p-5">
               <p className="text-center text-sm text-neutral-600">Tu cuota mensual</p>
               <p className="mt-1 text-center text-4xl font-bold text-[var(--color-primary)] font-['Baloo_2',_sans-serif]">
-                {simulando ? (
+                {simulandoVisible ? (
                   <Loader2 className="mx-auto h-9 w-9 animate-spin text-[var(--color-primary)] opacity-60" />
                 ) : (
                   formatearSoles(simulacionVisible?.cuotaMensual ?? 0)
                 )}
               </p>
-              <p className="mt-1 text-center text-xs text-neutral-500">
-                {hayMontos ? `durante ${plazo} meses` : 'Ingresa un monto para calcular tu cuota'}
+              <p
+                className={`mt-1 text-center text-xs ${
+                  excedido ? 'font-medium text-red-700' : 'text-neutral-500'
+                }`}
+              >
+                {excedido
+                  ? `Financiamos hasta ${formatearSoles(topeMaximo)}`
+                  : hayMontos
+                    ? `durante ${plazo} meses`
+                    : 'Ingresa un monto para calcular tu cuota'}
               </p>
 
               <dl className="mt-5 space-y-2 border-t border-neutral-100 pt-4">
