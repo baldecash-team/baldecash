@@ -199,6 +199,20 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
+/**
+ * Dónde arranca el stack fijo (promo + navbar).
+ *
+ * Además del banner de preview, hay que descontar la franja de referido: vive en
+ * el flujo del documento, arriba de todo, y como el promo y el navbar son `fixed`
+ * desde `top: 0` la tapaban entera. La franja publica cuánto de ella sigue
+ * visible en `--referral-banner-offset` (ver `components/referral/ReferralBanner`),
+ * y el valor llega a 0 solo cuando termina de salir con el scroll o la cierran,
+ * así que el header sube de nuevo sin dejar ninguna banda vacía.
+ */
+function topDelHeader(px: number): string {
+  return `calc(${px}px + var(--referral-banner-offset, 0px))`;
+}
+
 export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePortalButton = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', landingId, previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
@@ -344,7 +358,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
     return (
       <nav
         className="fixed left-0 right-0 z-50 bg-[var(--surface,#fff)] shadow-sm"
-        style={{ top: previewBannerOffset }}
+        style={{ top: topDelHeader(previewBannerOffset) }}
       >
         <div className={logoContainerClassName ?? (fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8")}>
           <div className="flex items-center justify-between h-16">
@@ -387,7 +401,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
           ref={promoBannerRef}
           className="fixed left-0 right-0 z-[60] text-white text-center py-1.5 sm:py-2.5 px-4 text-xs sm:text-sm"
           style={{
-            top: previewBannerOffset,
+            top: topDelHeader(previewBannerOffset),
             paddingTop: `calc(0.375rem + env(safe-area-inset-top))`,
             background: `linear-gradient(to right, var(--color-primary, #4654CD), color-mix(in srgb, var(--color-primary, #4654CD) 85%, white))`,
           }}
@@ -438,7 +452,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
 
       <nav
         className="fixed left-0 right-0 z-50 bg-[var(--surface,#fff)] shadow-sm transition-all duration-200"
-        style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (promoBannerHeight + previewBannerOffset) : previewBannerOffset }}
+        style={{ top: topDelHeader(showPromo && !hidePromoBanner && hasPromoBannerContent ? (promoBannerHeight + previewBannerOffset) : previewBannerOffset) }}
       >
         <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">

@@ -12,6 +12,14 @@
  *
  * - NO es `sticky`. Una franja fija le roba altura permanente al viewport móvil,
  *   y la mayor parte del tráfico entra por celular desde el QR.
+ *
+ *   Eso tiene una consecuencia que costó ver: el navbar y el banner promocional
+ *   SÍ son `fixed` y arrancan en `top: 0`, así que tapaban esta franja por
+ *   completo. Estaba en el HTML, con el nombre correcto, y no se veía nunca.
+ *   Por eso `--referral-banner-offset`: la franja publica cuánto de ella queda
+ *   por debajo del borde superior del viewport, el header fijo arranca ahí, y
+ *   el valor llega solo a 0 cuando la franja termina de salir con el scroll.
+ *   La franja se va, el header sube, y nada queda robando altura.
  * - El descarte se recuerda en `sessionStorage`, no en `localStorage`: si el
  *   usuario vuelve mañana desde otro flyer, con otra promotora, tiene que
  *   volver a verlo. La clave incluye el código de la promotora por el mismo
@@ -76,6 +84,63 @@ function guardarDescarte(promoterCode: string | null): void {
     }
   }
   suscriptores.forEach((cb) => cb());
+}
+
+/**
+ * Cuánto de la franja sigue visible, en px, publicado como `--referral-banner-offset`.
+ *
+ * Lo lee el header fijo (`components/hero/Navbar.tsx`) para saber dónde empezar.
+ * Se recalcula en scroll y resize porque la altura cambia sola: en móvil el texto
+ * puede pasar a dos líneas, y al hacer scroll la franja se va saliendo.
+ *
+ * El scroll va con `passive` y coalescido por frame: es la landing que convierte,
+ * y acá no se puede pagar un reflow por evento de rueda.
+ */
+function useOffsetDeFranja(visible: boolean) {
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const limpiar = () => raiz.style.removeProperty('--referral-banner-offset');
+
+    // Descartada o sin montar: el header tiene que volver a `top: 0`. Sin esto,
+    // cerrar la franja dejaría una banda transparente permanente arriba.
+    if (!visible) {
+      limpiar();
+      return;
+    }
+
+    let pendiente = 0;
+    const medir = () => {
+      pendiente = 0;
+      const el = contenedorRef.current;
+      if (!el) return;
+      // `bottom` del rect ya viene en coordenadas del viewport: mientras la
+      // franja baja del borde vale su alto, y llega a 0 sola cuando termina de
+      // salir. No hace falta leer scrollY ni saber cuánto mide.
+      raiz.style.setProperty(
+        '--referral-banner-offset',
+        `${Math.max(0, el.getBoundingClientRect().bottom)}px`,
+      );
+    };
+
+    const alFrame = () => {
+      if (pendiente) return;
+      pendiente = requestAnimationFrame(medir);
+    };
+
+    medir();
+    window.addEventListener('scroll', alFrame, { passive: true });
+    window.addEventListener('resize', alFrame);
+    return () => {
+      if (pendiente) cancelAnimationFrame(pendiente);
+      window.removeEventListener('scroll', alFrame);
+      window.removeEventListener('resize', alFrame);
+      limpiar();
+    };
+  }, [visible]);
+
+  return contenedorRef;
 }
 
 /** Icono real de WhatsApp, inline: sin imagen externa que pueda no cargar. */
@@ -151,10 +216,14 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
     });
   }, [promoterCode, landingSlug, tracker]);
 
+  // Antes del early return: los hooks no pueden quedar detrás de una condición.
+  const contenedorRef = useOffsetDeFranja(!descartado);
+
   if (descartado) return null;
 
   return (
     <div
+      ref={contenedorRef}
       data-testid="referral-banner"
       className="w-full"
       style={{ backgroundColor: FONDO, color: TEXTO }}
