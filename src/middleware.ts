@@ -197,8 +197,17 @@ export function middleware(request: NextRequest) {
   // `esRutaInterna` sólo aplica en producción: en desarrollo TODO cuelga de
   // /prototipos/0.6, así que ahí el filtro lo hace `landingRootSlug`, que exige
   // exactamente un segmento después del basePath.
+  //
+  // Dispara con `promotor` O con `ref`. Son los dos parámetros con los que un
+  // link de activación puede identificar a quien refirió, y no son intercambiables:
+  // `promotor` es el `Promoter.code` de ws2 y sólo viaja cuando esa promotora tiene
+  // su correspondencia cargada allá —hoy, la minoría—, mientras que `ref` lo estampa
+  // siempre `/r/{codigo}` del hub. Mirando sólo `promotor`, el tráfico de un flyer
+  // salía estático del CDN y la franja no se pintaba nunca.
   const puedeLlevarFranja = isProduction ? !esRutaInterna(pathname) : true;
-  if (request.nextUrl.searchParams.has('promotor') && puedeLlevarFranja) {
+  const traeReferidor =
+    request.nextUrl.searchParams.has('promotor') || request.nextUrl.searchParams.has('ref');
+  if (traeReferidor && puedeLlevarFranja) {
     const slug = landingRootSlug(pathname, isProduction ? '' : APP_BASE_PATH);
     if (slug) {
       const url = request.nextUrl.clone();
