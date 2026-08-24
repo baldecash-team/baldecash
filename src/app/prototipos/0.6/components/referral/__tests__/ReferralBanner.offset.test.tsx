@@ -131,3 +131,52 @@ describe('devuelve el espacio cuando ya no está', () => {
     expect(offset()).toBe('');
   });
 });
+
+/**
+ * El texto va centrado en la franja, no pegado a la izquierda.
+ *
+ * El detalle que no se ve en el markup: centrar el `<p>` no alcanza, porque su
+ * caja es el espacio que sobra a la izquierda del botón de cerrar. Sin un hueco
+ * del mismo ancho enfrente, la frase queda corrida media anchura de botón.
+ */
+describe('centrado del texto', () => {
+  it('el parrafo va centrado', () => {
+    simularBorde(ALTO);
+    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+
+    const parrafo = screen.getByTestId('referral-banner').querySelector('p');
+    expect(parrafo?.className).toContain('text-center');
+  });
+
+  it('sin chip de WhatsApp hay contrapeso del boton de cerrar', () => {
+    simularBorde(ALTO);
+    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+
+    const franja = screen.getByTestId('referral-banner');
+    const fila = franja.querySelector(':scope > div');
+    const hueco = fila?.firstElementChild;
+
+    // Mismo padding que el botón y un bloque del mismo tamaño que su icono:
+    // así los dos lados miden igual y el centro del texto es el de la franja.
+    expect(hueco?.getAttribute('aria-hidden')).toBe('true');
+    expect(hueco?.className).toContain('shrink-0');
+    expect(hueco?.className).toContain('p-1');
+    expect(hueco?.firstElementChild?.className).toContain('h-4');
+    expect(hueco?.firstElementChild?.className).toContain('w-4');
+  });
+
+  it('con chip de WhatsApp no se agrega contrapeso', () => {
+    // Ahí el lado derecho tiene ancho variable y un hueco fijo desbalancearía
+    // igual; además le robaría espacio a un texto que ya viene apretado.
+    simularBorde(ALTO);
+    render(
+      <ReferralBanner
+        data={{ ...DATOS, phoneDisplay: '999 888 777', whatsappUrl: 'https://wa.me/51999888777' }}
+        landingSlug="wiener"
+      />,
+    );
+
+    const fila = screen.getByTestId('referral-banner').querySelector(':scope > div');
+    expect(fila?.firstElementChild?.tagName).toBe('P');
+  });
+});
