@@ -8,7 +8,7 @@
  * render por request — cambiar el TTFB de la página que convierte para pintarle
  * una franja al 1% de las visitas es exactamente lo que el diseño quería evitar.
  *
- * En su lugar, el middleware manda acá SÓLO las URLs que traen `?promotor=`.
+ * En su lugar, el middleware manda acá SÓLO las URLs que traen `?promotor=` o `?ref=`.
  * El tráfico orgánico nunca toca este archivo y sigue saliendo del CDN; el
  * referido paga un render y a cambio recibe la franja ya en el HTML, sin el
  * salto de layout de resolverla después de pintar.
@@ -22,7 +22,7 @@ import type { Metadata } from 'next';
 import { LandingPageClient } from '../../[[...slug]]/LandingPageClient';
 import { getLandingMeta, fetchHeroData } from '../../services/landingApi';
 import { fetchLandingConfig } from '../../services/landingConfigApi';
-import { fetchReferralBanner } from '../../services/referralBannerApi';
+import { fetchReferralBanner, fetchReferralBannerByRef } from '../../services/referralBannerApi';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -35,6 +35,28 @@ function primerValor(valor: string | string[] | undefined): string | null {
   return valor ?? null;
 }
 
+/**
+ * La franja, venga por donde venga el identificador.
+ *
+ * `promotor` primero: es el `Promoter.code` de ws2 y trae el teléfono, o sea la
+ * versión de la franja con el chip de WhatsApp. `ref` es el respaldo —resuelve
+ * contra el hub y sólo devuelve el nombre— pero es el ÚNICO que viaja siempre,
+ * así que sin él la mayoría de los flyers no pinta nada.
+ *
+ * Secuencial y no en paralelo a propósito: un link normal trae uno solo de los
+ * dos, y cuando trae los dos el de ws2 gana. Pedir el otro igual sería un
+ * round-trip contra otro dominio dentro del render de la página que convierte.
+ */
+async function resolverFranja(
+  promotor: string | null,
+  utmTerm: string | null,
+  ref: string | null,
+) {
+  const porPromotor = await fetchReferralBanner(promotor, utmTerm);
+  if (porPromotor) return porPromotor;
+  return fetchReferralBannerByRef(ref);
+}
+
 export default async function LandingConReferidoPage({ params, searchParams }: PageProps) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
 
@@ -43,7 +65,7 @@ export default async function LandingConReferidoPage({ params, searchParams }: P
     fetchLandingConfig(slug),
     // Nunca lanza: ante cualquier problema devuelve null y la landing carga
     // sin franja. Ver `referralBannerApi`.
-    fetchReferralBanner(primerValor(query.promotor), primerValor(query.utm_term)),
+    resolverFranja(primerValor(query.promotor), primerValor(query.utm_term), primerValor(query.ref)),
   ]);
 
   return (
@@ -65,8 +87,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description:
       meta?.meta_description ||
       'Financiamiento de laptops para estudiantes. Sin historial crediticio.',
-    // La variante con `?promotor=` no se indexa: es la misma landing con el
-    // teléfono de una promotora encima, y no tiene por qué terminar en un
+    // La variante con `?promotor=` / `?ref=` no se indexa: es la misma landing
+    // con el nombre de una promotora encima, y no tiene por qué terminar en un
     // resultado de búsqueda. La versión limpia (`/upn`) se sigue indexando
     // normal desde `[[...slug]]`.
     robots: { index: false, follow: true },

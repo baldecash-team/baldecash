@@ -17,6 +17,29 @@ import type { CatalogDeviceType } from '../[landing]/catalogo/types/catalog';
 const categoriaKey = (landing: string) => `baldecash-${landing}-pending-categoria`;
 const couponKey = (landing: string) => `baldecash-${landing}-pending-coupon`;
 const leadLinkKey = (landing: string) => `baldecash-${landing}-pending-alk`;
+const promotorRefKey = (landing: string) => `baldecash-${landing}-promotor-ref`;
+
+/**
+ * Forma del código de referido que emite el hub de activaciones: 6 caracteres
+ * de un alfabeto sin 0/O/1/l/i (ver `promotores.baldecash.com`, lib/referido_publico).
+ *
+ * Se valida antes de guardar porque `ref` llega de la calle —de un QR mal leído,
+ * de un link recortado, de la URL entera pegada en el parámetro— y lo que se
+ * guarda acá después viaja al backend como atribución. Guardar basura es peor
+ * que no guardar nada: ensucia el dato con el que se le paga a alguien.
+ */
+const REF_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{6}$/;
+
+/**
+ * `ref` de la URL, normalizado, o null si no tiene forma de código.
+ *
+ * Acepta mayúsculas: ese código sí existe, y un `ref` que pasó por un cliente de
+ * correo llega en mayúsculas. Rechazarlo por la caja sería perder la atribución.
+ */
+export function readPromotorRef(search: string): string | null {
+  const raw = new URLSearchParams(search).get('ref')?.trim().toLowerCase();
+  return raw && REF_RE.test(raw) ? raw : null;
+}
 
 /**
  * Drops the params parked for a landing (campaign coupon, preselected
@@ -87,6 +110,17 @@ export function captureLandingParams(landingSlug: string): void {
     try { localStorage.setItem(couponKey(landingSlug), coupon); } catch {}
   }
 
+  // `ref` = código del link corto del hub de activaciones (`/r/{codigo}`). Es el
+  // ÚNICO identificador de la promotora que viaja siempre en un flyer —`promotor`
+  // sólo aparece cuando esa persona tiene correspondencia en ws2—, así que sin
+  // guardarlo la atribución se pierde en cuanto la URL suelta el querystring, que
+  // es lo que pasa al pasar de la landing al catálogo (`routes.catalogo()` arma
+  // una URL limpia). No se limpia al consumirlo, por el mismo motivo que `alk`.
+  const ref = readPromotorRef(window.location.search);
+  if (ref) {
+    try { localStorage.setItem(promotorRefKey(landingSlug), ref); } catch {}
+  }
+
   // `alk` = código del link de activación. Cuando viene de un socio (A365) el
   // API ya tiene los datos de esa persona, así que el wizard puede prellenarse
   // sin pedírselos de nuevo. Se guarda el CÓDIGO, no los datos: los datos se
@@ -140,6 +174,22 @@ export function getLeadLinkCode(landingSlug: string): string | null {
   if (typeof window === 'undefined') return null;
   try {
     return localStorage.getItem(leadLinkKey(landingSlug));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Código de la promotora (`ref`) con el que entró el visitante.
+ *
+ * No se limpia: la atribución vale para toda la visita, no para un paso. Quien
+ * llegó por el flyer de alguien sigue siendo su referido aunque recargue, vuelva
+ * atrás o reinicie el wizard.
+ */
+export function getPromotorRef(landingSlug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(promotorRefKey(landingSlug));
   } catch {
     return null;
   }
