@@ -57,6 +57,18 @@ jest.mock('framer-motion', () => ({
 //   console.error = originalError;
 // });
 
+// jsdom tampoco implementa ResizeObserver, y varios componentes lo usan para
+// reaccionar al ancho disponible (la altura del navbar, el desborde del strip
+// de tabs del inspector). Sin este stub el render explota con
+// "ResizeObserver is not defined".
+if (typeof global !== 'undefined' && !global.ResizeObserver) {
+  global.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // jsdom no implementa matchMedia y varios componentes lo consultan para decidir
 // el layout inicial (p.ej. EquipoRecomendadoCard abre el detalle en desktop).
 // Sin este polyfill el render explota con "matchMedia is not a function".

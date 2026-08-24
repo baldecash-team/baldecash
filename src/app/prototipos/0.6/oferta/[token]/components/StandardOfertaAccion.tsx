@@ -684,9 +684,12 @@ export function StandardOfertaAccion({
                       Incluido
                     </span>
                   ) : (
+                    /* Azul de marca, igual que la cuota de "Términos de tu
+                       oferta": las dos dicen lo mismo —plata por mes— y en
+                       negro competían con el nombre del accesorio. */
                     <span
                       className="whitespace-nowrap text-[13.5px] font-bold"
-                      style={{ color: OFERTA_COLORS.textStrong }}
+                      style={{ color: OFERTA_COLORS.primary }}
                     >
                       +S/{Math.round(a.monthlyDelta)}
                       <span className="text-[11.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
