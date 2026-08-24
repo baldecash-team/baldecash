@@ -8,6 +8,17 @@
  */
 export interface ApplicationStatusData {
   code: string;
+  /**
+   * El numero con el que el cliente identifica su solicitud.
+   *
+   * Lo arma el backend: el id del sistema de creditos cuando este contesto, y
+   * el `code` (`APP-2026-00029`) cuando no. Es el mismo numero por el que va a
+   * preguntar el asesor, asi que tiene que ser el que se le muestra aca.
+   *
+   * Opcional: una confirmacion abierta antes de este cambio no lo trae, y ahi
+   * se cae al `code`, que es lo que se mostraba hasta ahora.
+   */
+  reference?: string | null;
   status: string;
   submitted_at: string | null;
   evaluated_at?: string | null;
