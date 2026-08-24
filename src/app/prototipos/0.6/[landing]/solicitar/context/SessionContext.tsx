@@ -25,6 +25,7 @@ import {
   getUserAgentData,
   resolveOsVersion,
 } from '@/app/prototipos/0.6/analytics/clientHints';
+import { getPromotorRef, readPromotorRef } from '@/app/prototipos/0.6/utils/landingParams';
 
 // Dynamic storage key based on landing slug
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
@@ -234,13 +235,21 @@ function getBrowserInfo(): { browser: string; browserVersion: string } {
 /**
  * Extract UTM params from URL.
  *
- * Además de los 5 UTM estándar viajan dos parámetros propios de las difusiones:
+ * Además de los 5 UTM estándar viajan tres parámetros propios de las difusiones:
  * `promotor` (el código del promotor, que no va dentro de utm_term para no
- * mezclarlo con la sede) y `alk` (el código del link corto, que da atribución
- * exacta aunque se recorten las UTMs). Sin reenviarlos acá, el backend no puede
- * saber quién trajo la visita.
+ * mezclarlo con la sede), `alk` (el código del link corto, que da atribución
+ * exacta aunque se recorten las UTMs) y `ref` (el código del link del hub de
+ * activaciones). Sin reenviarlos acá, el backend no puede saber quién trajo la
+ * visita.
+ *
+ * `ref` se lee de la URL Y, si ahí no está, del valor que `captureLandingParams`
+ * dejó guardado al entrar. Los otros no lo necesitan porque la sesión nace en el
+ * layout de la landing, con el querystring todavía intacto; `ref` sí, porque es
+ * el que tiene que sobrevivir a que la sesión se cree en un reintento posterior
+ * —ya sobre /catalogo, cuyo link se arma limpio— y es el único identificador de
+ * la promotora que viaja en todos los flyers.
  */
-function getUtmParams(): Record<string, string | undefined> {
+function getUtmParams(landingSlug: string): Record<string, string | undefined> {
   if (typeof window === 'undefined') return {};
 
   const params = new URLSearchParams(window.location.search);
@@ -252,6 +261,7 @@ function getUtmParams(): Record<string, string | undefined> {
     utm_content: params.get('utm_content') || undefined,
     promotor: params.get('promotor') || undefined,
     alk: params.get('alk') || undefined,
+    ref: readPromotorRef(window.location.search) || getPromotorRef(landingSlug) || undefined,
   };
 }
 
@@ -301,7 +311,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
       const { browser, browserVersion } = getBrowserInfo();
       const { os, osVersion } = getOsInfo();
-      const utmParams = getUtmParams();
+      const utmParams = getUtmParams(slug);
       const referrer = getReferrerInfo();
       // Client Hints: la versión que declara el user agent está congelada.
       // Nunca lanza — ante cualquier problema devuelve el valor de respaldo.
