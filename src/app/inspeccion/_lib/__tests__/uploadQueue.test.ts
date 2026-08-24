@@ -734,3 +734,82 @@ describe('UploadQueue — fotos', () => {
     expect(impl.mock.calls.every(([u]) => !String(u).includes('/complete'))).toBe(true);
   });
 });
+
+/**
+ * La toma se regrabó (o la inspección se cerró) mientras esta subida estaba
+ * en vuelo. El servidor lo dice con un 404 en `/complete`.
+ *
+ * Reintentar acá no es inofensivo: el ciclo de reintento arranca pidiendo una
+ * URL de subida NUEVA, que el servidor concede (la regrabación creó su fila),
+ * y la key de S3 de una toma no cambia entre grabación y regrabación
+ * (`t{take}-{label}`). O sea que el reintento sube el video VIEJO encima del
+ * nuevo y lo confirma como bueno: la evidencia terminaría siendo justo la toma
+ * que el operador mandó descartar.
+ */
+describe('subida obsoleta: el servidor ya no tiene dónde ponerla', () => {
+  it('un 404 en /complete descarta la subida sin reintentar', async () => {
+    const llamadas: string[] = [];
+    const fetchImpl = jest.fn(async (url: string, init?: RequestInit) => {
+      llamadas.push(url);
+      if (url.includes('/upload-url')) {
+        return ok({ upload_url: 'https://s3.example.com/bucket/key', s3_key: 'key' });
+      }
+      if (url.includes('/complete')) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ detail: { reason: 'not_found' } }),
+        } as Response;
+      }
+      return ok({}); // el PUT a S3
+    }) as unknown as typeof fetch;
+
+    const queue = new UploadQueue({
+      fetchImpl,
+      profundidadMaxima: 2,
+      maxIntentos: 3,
+      backoffBaseMs: 5,
+    });
+    queue.encolar(crearItem());
+
+    await waitFor(() => {
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
+    });
+
+    // Se fue de la cola, pero NO como "fallido": no hay nada que un humano
+    // pueda reintentar ni que valga la pena mostrarle.
+    expect(queue.listarFallidos()).toHaveLength(0);
+    // Un solo ciclo. Si reintentara, habría un segundo upload-url y con él un
+    // segundo PUT del blob viejo sobre la key de la regrabación.
+    expect(llamadas.filter((u) => u.includes('/upload-url'))).toHaveLength(1);
+    expect(llamadas.filter((u) => u.includes('/complete'))).toHaveLength(1);
+  });
+
+  it('un 500 en /complete SÍ reintenta: es un fallo del servidor, no una subida obsoleta', async () => {
+    let completes = 0;
+    const fetchImpl = jest.fn(async (url: string) => {
+      if (url.includes('/upload-url')) {
+        return ok({ upload_url: 'https://s3.example.com/bucket/key', s3_key: 'key' });
+      }
+      if (url.includes('/complete')) {
+        completes++;
+        return completes === 1 ? (noOk(500) as Response) : ok({ status: 'verified' });
+      }
+      return ok({});
+    }) as unknown as typeof fetch;
+
+    const queue = new UploadQueue({
+      fetchImpl,
+      profundidadMaxima: 2,
+      maxIntentos: 3,
+      backoffBaseMs: 5,
+    });
+    queue.encolar(crearItem());
+
+    await waitFor(() => {
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>(estadoVacio());
+    });
+    expect(completes).toBe(2);
+    expect(queue.listarFallidos()).toHaveLength(0);
+  });
+});
