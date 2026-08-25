@@ -95,10 +95,16 @@ export const about = {
 export const faq = { title: 'Preguntas frecuentes' };
 
 /**
- * Items del menú de navegación, hardcodeados a pedido del dueño de producto
- * (no se gestionan desde el admin como el resto de landings). Cada uno
- * apunta al id de una sección de esta misma página — ver SeminuevosLanding,
- * que intercepta el click y hace scroll suave.
+ * Las secciones de esta página que aceptan scroll suave.
+ *
+ * YA NO es el menú: el navbar lo lee de BD (`home_component.navbar`), igual que
+ * el catálogo y el detalle, y se gestiona desde el admin (BAL-3288). Esta lista
+ * sobrevive porque `SeminuevosLanding` la usa para saber qué anclas son suyas
+ * antes de interceptar un click y hacer scroll — un `#hash` que no esté acá se
+ * deja pasar al navegador.
+ *
+ * Si se agrega una sección al menú desde el admin, hay que sumar su id acá o el
+ * salto será seco en vez de suave.
  */
 export const navItems = [
   { label: '¿Qué es?', sectionId: 'que-es' },

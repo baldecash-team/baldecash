@@ -30,6 +30,9 @@ import {
 } from '../../../types/catalog';
 import { cardKey } from '../../../utils/cardKey';
 import { cardSelectorMode } from '../../../utils/cardSelectorMode';
+// El nombre del grado ("Buen estado") sale de la misma fuente que el detalle:
+// una sola redacción para los dos sitios donde se lee.
+import { GRADE_COPY, isGradeKey } from '@/app/prototipos/0.6/[landing]/producto/family-farm/familyFarmGrades';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
@@ -739,29 +742,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   const modo = cardSelectorMode(product);
 
                   if (modo === 'grades') {
+                    const grados = product.gradeSiblings ?? [];
+                    const elegido = grados.find((g) => g.grade === selectedGrade);
+                    // Nombre del grado elegido ("Buen estado"), no solo su letra:
+                    // una "B" suelta no significa nada para quien no conoce la
+                    // escala, y la card es el primer sitio donde la ve.
+                    const nombreElegido = elegido && isGradeKey(elegido.grade)
+                      ? GRADE_COPY[elegido.grade].titulo
+                      : null;
+
                     return (
-                      <div data-testid="card-grades" className="flex flex-col gap-1">
-                        <span className="text-[10px] font-semibold text-[var(--text-muted,#6b7280)] text-left">
-                          Condición:
-                        </span>
-                        <div className="flex gap-1">
-                          {(product.gradeSiblings ?? []).map((g) => {
+                      <div data-testid="card-grades" className="flex flex-col gap-1.5">
+                        <div className="flex gap-1.5">
+                          {grados.map((g) => {
                             const agotado = !g.isAvailable;
-                            const elegido = g.grade === selectedGrade;
+                            const esElegido = g.grade === selectedGrade;
                             return (
                               <button
                                 key={g.grade}
                                 type="button"
                                 aria-label={`Grado ${g.grade}`}
-                                aria-pressed={elegido}
+                                aria-pressed={esElegido}
                                 disabled={agotado}
+                                // El agotado explica POR QUÉ no responde: un
+                                // botón muerto sin motivo se lee como un fallo.
+                                title={agotado ? `Grado ${g.grade} — sin stock` : `Grado ${g.grade}`}
                                 onClick={() => setSelectedGrade(g.grade)}
-                                className={`flex-1 rounded-lg border py-1 text-xs font-bold transition-colors ${
+                                // min-h-8: las pills tenían ~24px, por debajo de
+                                // lo cómodo para el pulgar en móvil.
+                                className={`flex-1 min-h-8 rounded-lg border text-xs font-bold transition-colors ${
                                   agotado
-                                    ? 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-muted,#f3f4f6)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed'
-                                    : elegido
-                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-                                    : 'border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10'
+                                    ? 'border-dashed border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-muted,#f3f4f6)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed line-through decoration-1'
+                                    : esElegido
+                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm cursor-pointer'
+                                    : 'border-[var(--color-primary)] text-[var(--color-primary)] cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.08)]'
                                 }`}
                               >
                                 {g.grade}
@@ -769,6 +783,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                             );
                           })}
                         </div>
+                        {/* Alto reservado aunque no haya nombre: sin él, una card
+                            con grado sin copy (el D) mediría menos que sus
+                            vecinas y la fila quedaría dispareja. */}
+                        <span className="min-h-[14px] text-[10px] leading-[14px] text-[var(--text-muted,#6b7280)]">
+                          {nombreElegido}
+                        </span>
                       </div>
                     );
                   }
@@ -804,10 +824,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )
             )}
 
-            {/* Specs técnicas con iconos - solo muestra specs con dato real.
-                En la variante compacta no van: la card apunta a decidir por
-                condición y cuota, no a comparar fichas técnicas. */}
-            {!compact && (
+            {/* Specs técnicas con iconos - solo muestra specs con dato real. */}
             <div className="space-y-2 min-h-[120px]">
               {displaySpecs?.processor?.model && (
                 <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
@@ -852,7 +869,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
               )}
             </div>
-            )}
 
             {/* Spacer - empuja pricing y CTAs al fondo */}
             <div className="flex-1 min-h-4" />

@@ -124,9 +124,11 @@ describe('ProductCard — variante compacta (reacondicionados)', () => {
     expect(screen.getAllByText('Detalle').length).toBeGreaterThan(0);
   });
 
-  it('en compact oculta los specs tecnicos', () => {
+  // Los specs se ocultaron un rato y negocio los quiso de vuelta: la card de
+  // reacondicionados los muestra igual que las demás.
+  it('en compact SIGUE mostrando los specs tecnicos', () => {
     render(<ProductCard product={buildProduct()} compact />);
-    expect(screen.queryByText('Intel Celeron N4020')).toBeNull();
+    expect(screen.getByText('Intel Celeron N4020')).toBeInTheDocument();
   });
 
   it('en compact el CTA dice "Ver detalle"', () => {

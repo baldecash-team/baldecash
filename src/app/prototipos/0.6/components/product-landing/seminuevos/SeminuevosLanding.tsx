@@ -124,6 +124,12 @@ export interface SeminuevosLandingProps {
    * Si no llega, SeminuevosWhatsapp cae a su propio valor por defecto.
    */
   whatsappUrl?: string;
+  /**
+   * Items del menú, de BD (`home_component.navbar`). Los mismos que usan el
+   * catálogo y el detalle de esta landing, para que el menú no cambie al
+   * navegar entre ellas.
+   */
+  navbarItems?: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];
 }
 
 export default function SeminuevosLanding({
@@ -135,6 +141,7 @@ export default function SeminuevosLanding({
   logoUrl,
   primaryColor,
   whatsappUrl,
+  navbarItems = [],
 }: SeminuevosLandingProps) {
   useSectionScroll();
   useHashLanding();
@@ -162,11 +169,19 @@ export default function SeminuevosLanding({
         promoBannerData={promoBannerData}
         previewBannerOffset={previewBannerOffset}
         hidePortalButton
-        navbarItems={navItems.map((item) => ({
-          label: item.label,
-          href: `#${item.sectionId}`,
-          section: null,
-        }))}
+        // Los del admin (`home_component.navbar`), los mismos que ven el
+        // catálogo y el detalle. Antes se armaba con la lista de
+        // `seminuevosData` y el index acababa con un menú distinto al del resto
+        // del flujo: sin "Equipos" y sin poder cambiarlo desde el admin
+        // (BAL-3288). El Navbar no busca en BD por su cuenta —su default es
+        // `[]`—, así que si no llegan, no hay menú.
+        navbarItems={navbarItems}
+        // El Navbar esconde los items con `section` que no estén acá: es lo que
+        // evita ofrecer un ancla a una sección que la página no tiene. Este
+        // index las tiene TODAS —están en el JSX de abajo, no vienen de BD—, así
+        // que se declaran todas. Sin esto solo sobrevive "Equipos", que es el
+        // único item sin `section`.
+        activeSections={SECTION_IDS as unknown as string[]}
       />
 
       <main style={{ paddingTop: 'var(--header-total-height, 6.5rem)' }}>

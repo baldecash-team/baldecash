@@ -121,8 +121,12 @@ export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProp
                 // anunciaría un equipo regalado.
                 typeof sib.minTermQuota === 'number' && sib.minTermQuota > 0 && (
                   <span className={styles.colQuota}>
-                    Desde
-                    <br />
+                    {/* "Desde" solo cuando hay sitio: apilado ocuparía una línea
+                        entera para una palabra que la cifra ya sugiere. */}
+                    <span className={styles.colQuotaFrom}>
+                      Desde
+                      <br />
+                    </span>
                     <b>S/{formatMoneyNoDecimals(Math.floor(sib.minTermQuota))}</b>
                     {FREQ_SUFFIX[paymentFrequency ?? 'mensual'] ?? FREQ_SUFFIX.mensual}
                   </span>
