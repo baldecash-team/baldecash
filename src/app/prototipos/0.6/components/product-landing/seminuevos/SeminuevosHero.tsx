@@ -88,7 +88,9 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
 
       <div
         data-testid="hero-copy"
-        className={`${COPY_HERO_SOLO_MOVIL} relative z-[2] w-full max-w-[600px] mx-auto pt-6 pb-8`}
+        // Radio solo arriba: abajo el velo ya se desvanece contra la imagen y
+        // redondear ahí no se vería. Es un remate suave, no una tarjeta.
+        className={`${COPY_HERO_SOLO_MOVIL} relative z-[2] w-full max-w-[600px] mx-auto pt-6 pb-8 rounded-t-[20px]`}
         style={{
           // Velo vertical, no radial: el radial al 85% blanqueaba el centro de
           // la pieza y se comía las laptops que quedan detrás. Este baja desde
