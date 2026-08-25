@@ -27,6 +27,8 @@ import {
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { ReacondicionadosGradoCuota } from '../../reacondicionados/ReacondicionadosGradoCuota';
+import { targetSlugForGrade, currentGrade } from '../../copia-home/gradeSelector';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -61,6 +63,15 @@ interface ProductDetailProps {
   // Config props
   deviceType?: DeviceType;
   cronogramaVersion?: CronogramaVersion;
+  /**
+   * Pinta el selector de grado con el diseño de reacondicionados (BAL-3344):
+   * tres columnas, agotados atenuados, sobre el bloque de pricing. Exclusivo de
+   * la landing 241; por defecto no se dibuja y el detalle queda como siempre.
+   *
+   * Si el equipo no tiene grados hermanos el componente devuelve null solo, así
+   * que un equipo nuevo de esa landing tampoco lo ve.
+   */
+  gradeSelectorReacondicionados?: boolean;
   // v0.6.1: onAddToCart now receives CartItem with full config (variant, pricing)
   onAddToCart?: (cartItem: CartItem) => void;
   onRemoveFromCart?: (productId: string) => void;
@@ -121,6 +132,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Config props
   deviceType = 'laptop',
   cronogramaVersion = 1,
+  gradeSelectorReacondicionados = false,
   onAddToCart,
   onRemoveFromCart,
   onUpdateCart,
@@ -149,6 +161,31 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const searchParams = useSearchParams();
   const landing = params.landing as string || 'home';
   const analytics = useAnalytics();
+
+  // --- Grados (reacondicionados, BAL-3344) ---
+  // Cada grado es un PRODUCTO distinto, con su propio id, slug y stock. Elegir
+  // otro grado navega a su página, igual que los hermanos de color: así el
+  // product_id que llega al submit es el del grado que la persona eligió.
+  // El grado del producto que se está viendo. Si no se resuelve por id --datos
+  // incompletos, o un hermano que apunta a otro producto-- cae al primero
+  // DISPONIBLE en vez de dejar la card sin nada marcado: una lista de tres
+  // opciones donde ninguna se ve elegida no dice qué está mirando la persona.
+  const gradoActual = useMemo(() => {
+    const sibs = product.gradeSiblings ?? [];
+    return (
+      currentGrade(sibs, Number(product.id))
+      ?? [...sibs].sort((a, b) => a.grade.localeCompare(b.grade))
+          .find((s) => s.isAvailable)?.grade
+      ?? ''
+    );
+  }, [product.gradeSiblings, product.id]);
+
+  const irAlGrado = useCallback((grade: string) => {
+    const slug = targetSlugForGrade(product.gradeSiblings ?? [], grade);
+    if (slug && slug !== product.slug) {
+      router.push(routes.producto(landing, slug));
+    }
+  }, [product.gradeSiblings, product.slug, router, landing]);
 
   /**
    * Slug de la card que ESTA página está mostrando (BAL-3328).
@@ -680,6 +717,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Selector de grado (reacondicionados, BAL-3344).
+                Va ARRIBA del pricing porque elegir grado cambia de producto, y
+                con él las cuotas que pinta la calculadora. */}
+            {gradeSelectorReacondicionados && (
+              <div className="mb-4">
+                <ReacondicionadosGradoCuota
+                  gradeSiblings={product.gradeSiblings ?? []}
+                  selectedGrade={gradoActual}
+                  onSelectGrade={irAlGrado}
+                  // La frecuencia del MISMO payload que trajo las cuotas, no la
+                  // de la calculadora: esa se refresca sola y dejaría la
+                  // etiqueta cambiando mientras el número queda fijo.
+                  paymentFrequency={paymentPlans[0]?.paymentFrequency}
+                />
               </div>
             )}
 
