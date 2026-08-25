@@ -317,6 +317,12 @@ export function StandardOfertaAccion({
   if (decision === 'accepted') {
     const chosen: ChosenSummary = {
       name: info?.productName || 'Tu equipo',
+      // La imagen faltaba: el objeto se armaba sin `imageUrl` y la pantalla de
+      // "¡Felicidades!" mostraba el recuadro gris "Sin imagen" justo despues de
+      // aceptar --el peor momento para que el equipo no se vea--. El backend la
+      // manda (`product_image_url`) y la card de arriba ya la usa; solo no se
+      // pasaba a la confirmacion.
+      imageUrl: info?.productImageUrl ?? undefined,
       monthly: cuotaConSeleccion ?? shownMonthly ?? undefined,
       termMonths: curTerm ?? info?.termMonths ?? undefined,
       initialAmount: shownInitialPayment ?? undefined,
