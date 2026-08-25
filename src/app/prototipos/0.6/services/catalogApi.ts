@@ -150,6 +150,12 @@ export interface ApiCatalogProduct {
     stock_available: number;
     is_available: boolean;
     min_term_quota?: number | null;
+    /**
+     * Cuota más baja del grado (la del plazo más largo). Es la que muestra la
+     * card: "Desde S/40/mes" sale de acá, no de `min_term_quota` —esa es la del
+     * plazo más CORTO (S/90) y es la que usa el detalle en sus tarjetas.
+     */
+    lowest_quota?: number | null;
   }[];
   short_description?: string;
   brand: ApiBrand;
@@ -748,6 +754,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
       slug: s.slug,
       price: s.price,
       minTermQuota: s.min_term_quota ?? null,
+      lowestQuota: s.lowest_quota ?? null,
       isAvailable: s.is_available,
     })),
     stock: 'available' as StockStatus, // Default - not in API response

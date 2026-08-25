@@ -233,14 +233,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Get the selected color sibling data
   const selectedColor = product.colors?.find(c => c.id === selectedColorId);
 
+  // Grado elegido, resuelto a su hermano. Cada grado es un Product aparte —con su
+  // id, su slug y su precio—, igual que un hermano de color, así que se proyecta
+  // por el MISMO camino: id activo, slug, precio y cuota. Antes solo pintaba la
+  // pill: el link, el precio y "Lo quiero" seguían apuntando al grado que trajo el
+  // listado, y quien elegía el C terminaba solicitando el B (BAL-3340).
+  //
+  // Solo el elegido que NO es el de la card cuenta como hermano: si coincide, la
+  // card ya trae sus propios datos y proyectar sería copiar lo mismo con menos
+  // campos (el hermano no trae specs ni imágenes).
+  const selectedGradeSibling = product.gradeSiblings?.find(
+    (g) => g.grade === selectedGrade && String(g.productId) !== String(product.id),
+  );
+
   // Determine the active product ID (sibling's productId if selected, else card's product)
-  const activeProductId = selectedColor?.productId || product.id;
+  const activeProductId = selectedGradeSibling
+    ? String(selectedGradeSibling.productId)
+    : selectedColor?.productId || product.id;
+
+  // El slug manda en el link de detalle y en la clave de card. El grado pisa al
+  // color: cuando hay grados, `cardSelectorMode` ya no muestra el selector de
+  // color, así que no compiten.
+  const activeSlug = selectedGradeSibling?.slug || selectedColor?.slug || product.slug;
 
   // Clave de ESTA card. `activeProductId` no alcanza: el suelto y sus combos
   // comparten id y colapsarían en favoritos y comparar (BAL-3328).
   const activeCardKey = cardKey({
     id: activeProductId,
-    slug: selectedColor?.slug || product.slug,
+    slug: activeSlug,
   });
 
   // Resolve favorite/compare/cart state using sibling-aware checks
@@ -252,8 +272,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   // Override card data when a different color sibling is selected
   const displayName = selectedColor?.displayName || product.displayName;
-  const displayPrice = selectedColor?.price ?? product.price;
-  const displayQuota = selectedColor?.quotaMonthly ?? product.quotaMonthly;
+  // El grado manda sobre el color cuando hay uno elegido: `price` y `minTermQuota`
+  // vienen del hermano y son los del grado, no los de la card. `??` y no `||`
+  // porque el API manda `null` cuando el grado no tiene pricing cargado, y ahí sí
+  // hay que caer al de la card en vez de mostrar un hueco.
+  const displayPrice = selectedGradeSibling?.price ?? selectedColor?.price ?? product.price;
+  // `lowestQuota` y NO `minTermQuota`: la card anuncia la cuota más baja ("Desde
+  // S/40/mes"), la misma punta que el hook del catálogo. `minTermQuota` es la del
+  // plazo más corto (S/90 en el mismo equipo) y es la que usan las tarjetas del
+  // detalle. Leer la que no era mostraba un salto de precio al elegir grado.
+  const displayQuota =
+    selectedGradeSibling?.lowestQuota ?? selectedColor?.quotaMonthly ?? product.quotaMonthly;
   // BAL-2859: elegir un color equivale a ver esa card como si fuera
   // independiente, asi que su descuento y su precio "antes" salen de SU pricing.
   // El `??` caia al producto primario cuando el color no tiene promocion: el
@@ -342,7 +371,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Sin esto la tarjeta mostraba siempre la del producto primario — con el
   // Titanium seleccionado se veia la cuota del Negro.
   const freqHook = (selectedColor?.paymentHooks ?? product.paymentHooks)?.[selectedFrequency];
-  const displayQuotaForFreq = freqHook?.price ?? displayQuota;
+  // El hermano de grado NO trae `paymentHooks`: el hook es el del producto que
+  // trajo el listado. Si se dejara ganar al hook, elegir el grado C seguiria
+  // mostrando la cuota del B —el bug que se arregla en BAL-3340—, asi que con un
+  // grado elegido manda su `minTermQuota`, que es la cuota de ESE producto.
+  //
+  // Solo aplica a la frecuencia mensual: `minTermQuota` es mensual y no hay de
+  // donde sacar la semanal/quincenal del grado. Hoy no se cruzan —los
+  // reacondicionados de la landing 241 son mensuales—, pero si algun dia lo
+  // fueran, mejor la cuota del hook (frecuencia correcta, grado equivocado) que
+  // una mensual presentada como semanal.
+  const usaCuotaDelGrado = !!selectedGradeSibling && selectedFrequency === 'mensual';
+  const displayQuotaForFreq = usaCuotaDelGrado
+    ? displayQuota
+    : freqHook?.price ?? displayQuota;
 
   const freqShort = selectedFrequency === 'semanal' ? '/sem' : selectedFrequency === 'quincenal' ? '/qcn' : '/mes';
   const displayTermMonths = freqHook?.termMonths
@@ -398,7 +440,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const createCartItem = (): CartItem => ({
     productId: activeProductId,
-    slug: selectedColor?.slug || product.slug,  // For API calls when fetching payment plans
+    slug: activeSlug,  // For API calls when fetching payment plans
     name: displayName,
     shortName: product.name,
     brand: product.brand,
@@ -427,7 +469,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // ============================================
   const createWishlistItem = (): WishlistItem => ({
     productId: activeProductId,
-    slug: selectedColor?.slug || product.slug,
+    slug: activeSlug,
     name: displayName,           // Full name for display
     shortName: product.name,     // Short name
     brand: product.brand,
@@ -691,12 +733,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="relative group/title min-h-[3rem] sm:min-h-[3.5rem] mb-3">
               {getDetailHref ? (
                 <Link
-                  href={getDetailHref(selectedColor?.slug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
+                  href={getDetailHref(activeSlug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
                   onClick={() => {
                     if (promoTemplate) {
-                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
+                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: activeSlug });
                     }
-                    handleViewDetail(selectedColor?.slug);
+                    handleViewDetail(activeSlug);
                   }}
                   className="block"
                 >
@@ -713,9 +755,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   className="font-bold text-[var(--text-strong,#1f2937)] text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
                   onClick={() => {
                     if (promoTemplate) {
-                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
+                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: activeSlug });
                     }
-                    handleViewDetail(selectedColor?.slug);
+                    handleViewDetail(activeSlug);
                   }}
                 >
                   {displayName}
@@ -1000,12 +1042,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <Button
                   id={detailButtonId}
                   as={Link}
-                  href={getDetailHref(selectedColor?.slug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
+                  href={getDetailHref(activeSlug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
                   size="lg"
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                  onPress={() => handleViewDetail(selectedColor?.slug)}
+                  onPress={() => handleViewDetail(activeSlug)}
                 >
                   {compact ? 'Ver detalle' : 'Detalle'}
                 </Button>
@@ -1016,7 +1058,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                  onPress={() => handleViewDetail(selectedColor?.slug)}
+                  onPress={() => handleViewDetail(activeSlug)}
                 >
                   {compact ? 'Ver detalle' : 'Detalle'}
                 </Button>

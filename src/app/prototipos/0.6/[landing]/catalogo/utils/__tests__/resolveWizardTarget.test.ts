@@ -91,4 +91,100 @@ describe('resolveWizardTarget', () => {
     expect(target.slug).toBe('ipad-11-pulgadas-wi-fi-tbapme0000835');
     expect(target.landingProductId).toBe(2);
   });
+
+  /**
+   * BAL-3340 — elegir el grado C en la card y dar "Lo quiero" llevaba a
+   * solicitar el grado B.
+   *
+   * Cada grado es un Product aparte. Sin resolverlo, `resolveWizardTarget` caia
+   * a `return clickedCard` (el grado que trajo el listado) y el wizard recibia
+   * el equipo equivocado: no es un detalle visual, es pedir otro producto.
+   *
+   * Datos reales de produccion (Advance CN4058, 25/08/2026).
+   */
+  describe('hermanos de grado (reacondicionados)', () => {
+    const gradoC = {
+      grade: 'C',
+      productId: 1567,
+      slug: 'advance-notebook-cn4058-2-en-1-reacondicionada-grado-c-1169',
+      price: 287,
+      // Las dos puntas del grado: `lowestQuota` es la del plazo mas largo (la
+      // que muestra la card) y `minTermQuota` la del mas corto (la del detalle).
+      lowestQuota: 32,
+      minTermQuota: 68,
+      isAvailable: true,
+    };
+    const gradoB = {
+      grade: 'B',
+      productId: 1566,
+      slug: 'advance-notebook-cn4058-2-en-1-reacondicionada-grado-b-1168',
+      price: 402,
+      lowestQuota: 40,
+      minTermQuota: 90,
+      isAvailable: true,
+    };
+    // La card que trae el listado es la del grado B.
+    const cardGradoB = card({
+      id: '1566',
+      landingProductId: 7,
+      slug: gradoB.slug,
+      price: 402,
+      quotaMonthly: 90,
+      gradeSiblings: [gradoB, gradoC],
+    });
+
+    it('resuelve el grado elegido, no el que trajo el listado', () => {
+      const target = resolveWizardTarget(cardGradoB, '1567');
+
+      expect(target.id).toBe('1567');
+      expect(target.slug).toBe(gradoC.slug);
+      expect(target.price).toBe(287);
+      // La cuota que muestra la card, no la del plazo mas corto.
+      expect(target.quotaMonthly).toBe(32);
+    });
+
+    it('conserva de la card lo que el hermano de grado no trae', () => {
+      // Un grado solo trae identidad y precio: fotos, specs y el
+      // landingProductId de la card tocada tienen que sobrevivir.
+      const target = resolveWizardTarget(cardGradoB, '1567');
+
+      expect(target.landingProductId).toBe(7);
+      expect(target.brand).toBe('APPLE');
+    });
+
+    it('devuelve la card tal cual cuando el grado elegido es el suyo', () => {
+      const target = resolveWizardTarget(cardGradoB, '1566');
+
+      expect(target.slug).toBe(gradoB.slug);
+      expect(target.quotaMonthly).toBe(90);
+    });
+
+    it('no toca las cards sin grados (resto de landings)', () => {
+      const target = resolveWizardTarget(sueltaCard, '518');
+
+      expect(target.slug).toBe('ipad-11-pulgadas-wi-fi-tbapme0000835');
+      expect(target.quotaMonthly).toBe(119);
+    });
+
+    // El backend manda `null` cuando no puede cotizar el grado (pasaba en TODO
+    // el listado hasta el arreglo del `target_initial`). La identidad SI cambia
+    // —es otro producto— pero la cuota cae a la de la card en vez de quedar en
+    // blanco o en 0.
+    it('cae a la cuota de la card cuando el grado no trae cuota', () => {
+      const sinCuota = { ...gradoC, lowestQuota: null, minTermQuota: null };
+      const cardConGradoSinCuota = card({
+        id: '1566',
+        landingProductId: 7,
+        slug: gradoB.slug,
+        quotaMonthly: 40,
+        gradeSiblings: [gradoB, sinCuota],
+      });
+
+      const target = resolveWizardTarget(cardConGradoSinCuota, '1567');
+
+      expect(target.id).toBe('1567');
+      expect(target.slug).toBe(gradoC.slug);
+      expect(target.quotaMonthly).toBe(40);
+    });
+  });
 });

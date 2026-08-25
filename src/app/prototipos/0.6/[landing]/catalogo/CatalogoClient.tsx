@@ -1920,12 +1920,18 @@ function CatalogoContent() {
                 compact={isReacondicionadosLanding(landing)}
                 addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
                 onAddToCart={(cartItem: CartItem) => {
-                  // Reacondicionado: confirmar aviso antes de continuar
+                  // Reacondicionado: confirmar aviso antes de continuar.
+                  // El aviso nombra el equipo, asi que tiene que nombrar el GRADO
+                  // elegido: `product` es el que trajo el listado y decia "Grado B"
+                  // aunque la persona hubiera elegido el C (BAL-3340). El cartItem
+                  // ya trae el id resuelto, asi que resolver aca da el mismo target
+                  // que usara `proceedAddToCart` despues de confirmar.
+                  const elegido = resolveWizardTarget(product, cartItem.productId);
                   if (isRefurbishedCondition(product.conditionCode || product.condition)) {
-                    setPendingRefurb({ cartItem, product });
+                    setPendingRefurb({ cartItem, product: elegido });
                     return;
                   }
-                  proceedAddToCart(cartItem, product);
+                  proceedAddToCart(cartItem, elegido);
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info

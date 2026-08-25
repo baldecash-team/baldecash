@@ -920,6 +920,13 @@ export interface CatalogGradeSibling {
   price: number | null;
   /** Cuota del plazo más corto (BAL-2864). `null` = no calculable. */
   minTermQuota: number | null;
+  /**
+   * Cuota más baja del grado (plazo más largo). Es la que muestra la card
+   * —"Desde S/40/mes"—, la misma punta que el hook del catálogo. `null` = no
+   * calculable. Distinta de `minTermQuota`, que es la del plazo más corto y la
+   * que usan las tarjetas del detalle.
+   */
+  lowestQuota?: number | null;
   /** Con stock disponible. Los agotados SÍ se muestran, en gris. */
   isAvailable: boolean;
 }
