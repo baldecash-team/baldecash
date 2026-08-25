@@ -19,7 +19,7 @@ describe('ZoomSlot', () => {
   });
 
   it('arranca sin ampliar y con el aviso visible', () => {
-    render(<ZoomSlot src={SRC} alt="Carcasa" />);
+    render(<ZoomSlot src={SRC} alt="Carcasa" onAmpliar={jest.fn()} />);
     const caja = screen.getByTestId('zoom-slot');
     expect(caja).toHaveAttribute('data-zoom', 'off');
     expect(screen.getByTestId('zoom-hint')).toBeInTheDocument();
@@ -27,7 +27,7 @@ describe('ZoomSlot', () => {
   });
 
   it('amplía al entrar el mouse y vuelve al salir', () => {
-    render(<ZoomSlot src={SRC} alt="Carcasa" />);
+    render(<ZoomSlot src={SRC} alt="Carcasa" onAmpliar={jest.fn()} />);
     const caja = screen.getByTestId('zoom-slot');
 
     fireEvent.mouseEnter(caja);
@@ -69,16 +69,43 @@ describe('ZoomSlot', () => {
     expect(caja).toHaveStyle({ '--zoom-x': '100%', '--zoom-y': '100%' });
   });
 
-  it('amplía mientras el dedo está apoyado (táctil, donde no hay hover)', () => {
-    render(<ZoomSlot src={SRC} alt="Carcasa" />);
+  // El zoom a dedo apoyado se QUITÓ: competía con el scroll de la página
+  // (arrastrar para bajar ampliaba la foto). En táctil el toque abre el visor.
+  it('no amplía al tocar: el toque queda para abrir el visor', () => {
+    const onAmpliar = jest.fn();
+    render(<ZoomSlot src={SRC} alt="Carcasa" onAmpliar={onAmpliar} />);
     const caja = screen.getByTestId('zoom-slot');
     medirCaja(caja, { left: 0, top: 0, width: 200, height: 100 });
 
     fireEvent.touchStart(caja, { touches: [{ clientX: 100, clientY: 50 }] });
-    expect(caja).toHaveAttribute('data-zoom', 'on');
-    expect(caja).toHaveStyle({ '--zoom-x': '50%', '--zoom-y': '50%' });
-
-    fireEvent.touchEnd(caja, { touches: [] });
     expect(caja).toHaveAttribute('data-zoom', 'off');
+  });
+
+  describe('cuando puede ampliar', () => {
+    it('avisa al hacer clic y es alcanzable con teclado', async () => {
+      const onAmpliar = jest.fn();
+      render(<ZoomSlot src={SRC} alt="Carcasa" onAmpliar={onAmpliar} />);
+      const caja = screen.getByTestId('zoom-slot');
+
+      expect(caja).toHaveAttribute('role', 'button');
+      expect(caja).toHaveAttribute('tabindex', '0');
+      expect(caja).toHaveAccessibleName('Ampliar: Carcasa');
+
+      fireEvent.click(caja);
+      expect(onAmpliar).toHaveBeenCalledTimes(1);
+
+      // Enter y Espacio, que es lo que espera quien navega con teclado.
+      fireEvent.keyDown(caja, { key: 'Enter' });
+      fireEvent.keyDown(caja, { key: ' ' });
+      expect(onAmpliar).toHaveBeenCalledTimes(3);
+    });
+
+    it('sin onAmpliar no se anuncia como botón ni muestra el aviso', () => {
+      render(<ZoomSlot src={SRC} alt="Carcasa" />);
+      const caja = screen.getByTestId('zoom-slot');
+      expect(caja).not.toHaveAttribute('role', 'button');
+      expect(caja).not.toHaveAttribute('tabindex');
+      expect(screen.queryByTestId('zoom-hint')).not.toBeInTheDocument();
+    });
   });
 });

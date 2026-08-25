@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ZoomSlot } from './ZoomSlot';
+import { InspectorLightbox } from './InspectorLightbox';
 import { PIEZAS, GRADOS, inspectorAssetUrl, quees, type Grado } from './data/seminuevosData';
 
 export function SeminuevosInspector() {
   const [grado, setGrado] = useState<Grado>('A');
   const [pieza, setPieza] = useState(0);
+  const [visor, setVisor] = useState(false);
 
   const tabsRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -159,6 +161,7 @@ export function SeminuevosInspector() {
                 src={inspectorAssetUrl(piezaActual, grado)}
                 alt={`${piezaActual} de un equipo Grado ${grado}`}
                 className="h-full min-h-[180px]"
+                onAmpliar={() => setVisor(true)}
               />
               <span
                 data-testid="insp-badge"
@@ -238,6 +241,16 @@ export function SeminuevosInspector() {
           </div>
         </div>
       </div>
+
+      {/* El grado se comparte con el visor: cambiarlo ahí adentro deja la
+          tarjeta en la misma calidad al cerrar, que es lo que uno espera. */}
+      <InspectorLightbox
+        abierto={visor}
+        pieza={piezaActual}
+        grado={grado}
+        onGrado={setGrado}
+        onClose={() => setVisor(false)}
+      />
     </section>
   );
 }

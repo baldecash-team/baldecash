@@ -11,6 +11,8 @@ export interface ZoomSlotProps {
   src?: string | null;
   alt: string;
   className?: string;
+  /** Clic o toque. Con esto la imagen pasa a ser un botón que abre el visor. */
+  onAmpliar?: () => void;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface ZoomSlotProps {
  * Se apoya en MediaSlot en vez de duplicarlo, así el placeholder y el manejo de
  * error siguen viviendo en un solo sitio.
  */
-export function ZoomSlot({ src, alt, className = '' }: ZoomSlotProps) {
+export function ZoomSlot({ src, alt, className = '', onAmpliar }: ZoomSlotProps) {
   const [zoom, setZoom] = useState(false);
   // Origen del zoom en %, que es lo que entiende transform-origin.
   const [origen, setOrigen] = useState({ x: 50, y: 50 });
@@ -46,19 +48,25 @@ export function ZoomSlot({ src, alt, className = '' }: ZoomSlotProps) {
       ref={caja}
       data-testid="zoom-slot"
       data-zoom={zoom ? 'on' : 'off'}
-      className={`relative overflow-hidden rounded-[14px] ${
-        zoom ? 'cursor-zoom-out' : 'cursor-zoom-in'
+      className={`relative overflow-hidden rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2 ${
+        onAmpliar ? 'cursor-zoom-in' : ''
       } ${className}`}
+      // La lupa es SOLO de hover, o sea solo desktop. En táctil el zoom a dedo
+      // apoyado competía con el scroll de la página --arrastrar para bajar
+      // ampliaba la foto-- así que ahí el toque abre el visor y ya.
       onMouseEnter={() => setZoom(true)}
       onMouseLeave={() => setZoom(false)}
       onMouseMove={(e) => mover(e.clientX, e.clientY)}
-      // En táctil no hay hover: se amplía mientras el dedo está apoyado.
-      onTouchStart={(e) => {
-        setZoom(true);
-        mover(e.touches[0].clientX, e.touches[0].clientY);
+      onClick={onAmpliar}
+      // Enter y Espacio, que es lo que espera quien navega con teclado.
+      onKeyDown={(e) => {
+        if (!onAmpliar || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        onAmpliar();
       }}
-      onTouchMove={(e) => mover(e.touches[0].clientX, e.touches[0].clientY)}
-      onTouchEnd={() => setZoom(false)}
+      role={onAmpliar ? 'button' : undefined}
+      tabIndex={onAmpliar ? 0 : undefined}
+      aria-label={onAmpliar ? `Ampliar: ${alt}` : undefined}
       style={{
         // El origen va acá y no en la imagen para no reconstruir su className
         // en cada mousemove; MediaSlot hereda estas dos custom properties.
@@ -72,14 +80,14 @@ export function ZoomSlot({ src, alt, className = '' }: ZoomSlotProps) {
         className="h-full transition-transform duration-200 ease-out origin-[var(--zoom-x)_var(--zoom-y)]"
         style={zoom ? { transform: `scale(${ZOOM})` } : undefined}
       />
-      {!zoom && (
+      {!zoom && onAmpliar && (
         <span
           data-testid="zoom-hint"
           aria-hidden="true"
           className="absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
           style={{ background: 'rgba(21,23,68,.6)' }}
         >
-          Acerca para ver el detalle
+          Toca para ampliar
         </span>
       )}
     </div>
