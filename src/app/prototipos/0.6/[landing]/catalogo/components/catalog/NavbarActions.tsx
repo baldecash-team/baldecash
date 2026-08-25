@@ -473,9 +473,11 @@ interface NavbarWishlistConfig {
 
 interface NavbarWishlistProps {
   items: WishlistItem[];
-  onRemoveItem: (productId: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onRemoveItem: (cardKey: string) => void;
   onClearAll: () => void;
-  onViewProduct: (productId: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onViewProduct: (cardKey: string) => void;
   id?: string;
   config?: NavbarWishlistConfig;
   unavailableIds?: string[];
@@ -570,16 +572,17 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                   {items.map((item) => {
                     // unavailableWishlistIds trae cardKey (slug), no productId
                     // — el suelto y sus combos comparten productId (BAL-3328).
-                    const isUnavailable = unavailableSet.has(cardKey(item));
+                    const itemKey = cardKey(item);
+                    const isUnavailable = unavailableSet.has(itemKey);
                     const hasInitial = item.initialAmount > 0;
                     return (
                       <div
-                        key={item.productId}
+                        key={itemKey}
                         className={`flex items-center gap-3 p-2 rounded-lg group ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-[var(--surface-bg,#fafafa)]'}`}
                       >
                         <div
                           onClick={() => {
-                            onViewProduct(item.productId);
+                            onViewProduct(itemKey);
                             setIsOpen(false);
                           }}
                           className="w-12 h-12 bg-[var(--surface,#fff)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)] cursor-pointer hover:border-[var(--color-primary)] transition-colors"
@@ -596,7 +599,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           </p>
                           <p
                             onClick={() => {
-                              onViewProduct(item.productId);
+                              onViewProduct(itemKey);
                               setIsOpen(false);
                             }}
                             className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate cursor-pointer hover:text-[var(--color-primary)] transition-colors"
@@ -625,7 +628,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           )}
                         </div>
                         <button
-                          onClick={() => onRemoveItem(item.productId)}
+                          onClick={() => onRemoveItem(itemKey)}
                           className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer"
                         >
                           <X className="w-4 h-4" />
