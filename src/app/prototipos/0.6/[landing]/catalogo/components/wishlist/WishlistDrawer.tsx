@@ -15,6 +15,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X, Heart, Trash2, GitCompare, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { CatalogProduct, WishlistItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
+import { cardKey } from '../../utils/cardKey';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
@@ -34,6 +35,12 @@ interface WishlistConfig {
 /** v0.6.1: Normalized item for display - works with both WishlistItem and CatalogProduct */
 interface NormalizedWishlistItem {
   id: string;
+  /**
+   * Clave de card (cardKey) para cruzar contra unavailableIds — no es lo
+   * mismo que `id` (productId): el suelto y sus combos comparten productId
+   * (BAL-3328). Solo se usa para el chequeo de disponibilidad.
+   */
+  key: string;
   name: string;
   brand: string;
   image: string;
@@ -102,6 +109,7 @@ const WishlistContentShared: React.FC<{
         // New WishlistItem format
         return {
           id: item.productId,
+          key: cardKey(item),
           name: item.name || item.shortName,
           brand: item.brand,
           image: item.image,
@@ -116,6 +124,7 @@ const WishlistContentShared: React.FC<{
         // Legacy CatalogProduct format
         return {
           id: item.id,
+          key: item.id,
           name: item.displayName,
           brand: item.brand,
           image: item.thumbnail,
@@ -167,7 +176,8 @@ const WishlistContentShared: React.FC<{
       {normalizedItems.map((item, index) => {
         const isInCompare = compareList.includes(item.id);
         const canAddToCompare = compareList.length < maxCompareProducts;
-        const isUnavailable = unavailableSet.has(item.id);
+        // unavailableIds trae cardKey (slug), no productId — usar item.key.
+        const isUnavailable = unavailableSet.has(item.key);
 
         return (
           <motion.div

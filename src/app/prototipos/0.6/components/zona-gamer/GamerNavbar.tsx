@@ -13,6 +13,7 @@ import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/h
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/catalogo/utils/formatMoney';
+import { cardKey } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardKey';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -684,7 +685,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                           if (href) router.push(href);
                         };
                         const hasInitial = (item.initialAmount ?? 0) > 0;
-                        const isUnavailable = unavailableWishlistIds?.includes(item.productId) ?? false;
+                        // unavailableWishlistIds trae cardKey (slug), no
+                        // productId — el suelto y sus combos lo comparten (BAL-3328).
+                        const isUnavailable = unavailableWishlistIds?.includes(cardKey(item)) ?? false;
                         return (
                           <div
                             key={item.productId}

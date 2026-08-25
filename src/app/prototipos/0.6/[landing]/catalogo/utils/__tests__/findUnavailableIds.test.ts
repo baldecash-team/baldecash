@@ -5,6 +5,10 @@
  * suelto y sus combos comparten `id`: si al usuario se le archiva el combo que
  * habia guardado, el productId sigue existiendo (por la card suelta), el item
  * nunca se marca no disponible, y el boton lo manda a una pagina muerta.
+ *
+ * BAL-3328 (PR 2) — la salida paso de `productId` a cardKey (slug, o
+ * productId si el item no tiene slug), porque el storage de wishlist ahora
+ * puede tener dos entradas con el mismo productId.
  */
 import { findUnavailableIds } from '../findUnavailableIds';
 
@@ -23,13 +27,15 @@ describe('findUnavailableIds', () => {
     const items = [{ productId: '518', slug: 'ipad-11-combo-166' }];
     const activas = [cardViva('518', 'ipad-11')];
 
-    expect(findUnavailableIds(items, activas)).toEqual(['518']);
+    // La salida es el cardKey (slug) del item guardado, no el productId: asi
+    // el consumidor puede distinguirlo de otra entrada con el mismo productId.
+    expect(findUnavailableIds(items, activas)).toEqual(['ipad-11-combo-166']);
   });
 
   it('marca el item cuando el producto entero salio del catalogo', () => {
     const items = [{ productId: '518', slug: 'ipad-11' }];
 
-    expect(findUnavailableIds(items, [])).toEqual(['518']);
+    expect(findUnavailableIds(items, [])).toEqual(['ipad-11']);
   });
 
   it('cae a comparar por id cuando el item guardado no tiene slug', () => {

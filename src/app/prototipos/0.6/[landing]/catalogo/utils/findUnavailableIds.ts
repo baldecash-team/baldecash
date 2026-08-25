@@ -1,3 +1,5 @@
+import { cardKey } from './cardKey';
+
 /** Lo minimo que este calculo necesita de un item guardado. */
 export interface ItemGuardado {
   productId: string;
@@ -11,7 +13,8 @@ export interface CardViva {
 }
 
 /**
- * Devuelve los `productId` de los items guardados que ya no se pueden abrir.
+ * Devuelve las claves de card (ver cardKey) de los items guardados que ya no
+ * se pueden abrir.
  *
  * Compara por SLUG cuando el item lo tiene, porque el `productId` no identifica
  * una card: el suelto y sus combos lo comparten. Si al usuario se le archiva el
@@ -19,10 +22,11 @@ export interface CardViva {
  * comparacion por id lo daria por disponible — mandandolo a una pagina muerta
  * (BAL-3277).
  *
- * La salida sigue siendo `productId` porque es lo que hoy consumen los
- * componentes para deshabilitar el item. Eso es correcto mientras el storage
- * este keyeado por `productId` (hay a lo sumo una entrada por producto); cuando
- * la clave pase a slug, esto tiene que devolver slugs.
+ * La salida es la clave de card (cardKey: slug, o productId si el item no
+ * tiene slug) y no el `productId` crudo, porque el storage de wishlist ahora
+ * puede tener dos entradas con el mismo productId (el suelto y su combo,
+ * BAL-3328) y devolver productId las confundiria entre si. Los consumidores
+ * de `unavailableWishlistIds` deben comparar por cardKey, no por productId.
  */
 export function findUnavailableIds(
   items: ItemGuardado[],
@@ -33,5 +37,5 @@ export function findUnavailableIds(
 
   return items
     .filter((i) => (i.slug ? !slugsVivos.has(i.slug) : !idsVivos.has(i.productId)))
-    .map((i) => i.productId);
+    .map((i) => cardKey(i));
 }

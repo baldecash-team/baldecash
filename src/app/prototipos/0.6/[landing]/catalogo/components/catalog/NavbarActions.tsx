@@ -18,6 +18,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { cardKey } from '../../utils/cardKey';
 
 // Configuración fija para sugerencias: plazo más alto del producto, sin inicial
 const SELECTED_INITIAL = 0;
@@ -567,7 +568,9 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
               <div className="max-h-[280px] overflow-y-auto">
                 <div className="p-3 space-y-2">
                   {items.map((item) => {
-                    const isUnavailable = unavailableSet.has(item.productId);
+                    // unavailableWishlistIds trae cardKey (slug), no productId
+                    // — el suelto y sus combos comparten productId (BAL-3328).
+                    const isUnavailable = unavailableSet.has(cardKey(item));
                     const hasInitial = item.initialAmount > 0;
                     return (
                       <div

@@ -74,8 +74,9 @@ interface UseCatalogSharedStateReturn {
   getCartItem: (productId: string) => CartItem | undefined;
 
   // Move from wishlist to cart
+  /** @param key clave de card (slug), no el productId — ver cardKey. */
   moveToCart: (
-    productId: string,
+    key: string,
     config: { months: TermMonths; initialPercent: InitialPaymentPercent; monthlyPayment: number; initialAmount: number }
   ) => void;
 
@@ -355,11 +356,16 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
 
   const moveToCart = useCallback(
     (
-      productId: string,
+      key: string,
       config: { months: TermMonths; initialPercent: InitialPaymentPercent; monthlyPayment: number; initialAmount: number }
     ) => {
-      const wishlistItem = wishlist.find((w) => w.productId === productId);
+      // Por clave de card, no por productId: el suelto y sus combos comparten
+      // productId y filtrar por productId borraria a ambos de la wishlist al
+      // mover solo uno (BAL-3328).
+      const wishlistItem = wishlist.find((w) => cardKey(w) === key);
       if (!wishlistItem) return;
+
+      const productId = wishlistItem.productId;
 
       // Create cart item from wishlist item + config
       const cartItem: CartItem = {
@@ -380,7 +386,7 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
         addedAt: Date.now(),
       };
 
-      // Add to cart and remove from wishlist
+      // Cart: identidad propia por productId, fuera de alcance de BAL-3328.
       setCart((prev) => {
         const exists = prev.find((c) => c.productId === productId);
         if (exists) {
@@ -389,7 +395,8 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
         return [...prev, cartItem];
       });
 
-      setWishlist((prev) => prev.filter((w) => w.productId !== productId));
+      // Wishlist: por clave de card, no por productId (ver comentario arriba).
+      setWishlist((prev) => prev.filter((w) => cardKey(w) !== key));
 
       tracker?.track('wishlist_move_to_cart', {
         product_id: wishlistItem.productId,
@@ -444,7 +451,14 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
         if (activeProducts === null) return;
 
         const cardsVivas = activeProducts.map(p => ({ id: p.id, slug: p.slug }));
-        setUnavailableCartIds(findUnavailableIds(cart, cardsVivas));
+        // Cart: identidad propia por productId, fuera de alcance de BAL-3328.
+        // Se omite el slug a proposito para que findUnavailableIds devuelva
+        // productId (fallback), que es lo que CartDrawer/NavbarCart comparan.
+        setUnavailableCartIds(
+          findUnavailableIds(cart.map((c) => ({ productId: c.productId })), cardsVivas)
+        );
+        // Wishlist: por clave de card (slug) — el suelto y sus combos
+        // comparten productId y no se pueden distinguir por id (BAL-3328).
         setUnavailableWishlistIds(findUnavailableIds(wishlist, cardsVivas));
       })
       .catch(() => {
