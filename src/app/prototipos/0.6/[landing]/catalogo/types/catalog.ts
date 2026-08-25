@@ -905,16 +905,6 @@ export interface CatalogLayoutProps {
   /** Cupón de campaña (?coupon=) — banner bajo filtros de uso */
   campaignCoupon?: AppliedCoupon | null;
   isCampaignCouponValidating?: boolean;
-  /**
-   * Cabecera al grano: sin el título "Encuentra tu equipo ideal", sin su
-   * subtítulo, sin las 4 tarjetas de uso rápido y sin la tarjeta que envolvía
-   * todo. Deja el contador de equipos y el selector de orden, sueltos sobre la
-   * grilla (landing de reacondicionados, BAL-3340).
-   *
-   * La GRILLA no cambia con esto: todas las landings usan la misma, una columna
-   * en móvil. Hubo una variante de 2 columnas y se retiró.
-   */
-  compactHeader?: boolean;
 }
 
 /**
