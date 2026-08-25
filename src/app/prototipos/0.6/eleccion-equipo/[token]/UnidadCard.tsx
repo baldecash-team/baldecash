@@ -45,7 +45,11 @@ export function UnidadCard({ unidad, onAbrir }: UnidadCardProps) {
             src={portada.url}
             alt={`${titulo} — ${portada.label ?? 'foto del equipo'}`}
             loading="lazy"
-            className="h-full w-full object-cover"
+            // `object-position` al 60% vertical (no el 50% centrado por defecto):
+            // el frame de portada trae la laptop en la mitad inferior del cuadro
+            // y bastante pared vacía arriba. Bajar el encuadre recorta más de
+            // esa pared y deja el equipo más centrado dentro del recuadro.
+            className="h-full w-full object-cover object-[50%_60%]"
           />
         ) : (
           <span className="px-2 text-center text-[10px] font-semibold text-[#9a9aa8]">
