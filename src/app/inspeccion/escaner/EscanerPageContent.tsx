@@ -6,7 +6,11 @@ import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import { PreVuelo, estaListo } from '../_components/PreVuelo';
 import { clearDeviceSession, getDeviceSession, type DeviceSession } from '../_lib/deviceSession';
 import { mensajeDeError, mensajeDeRed } from '../_lib/errores';
-import { IdentificarEquipo, type EquipoCatalogo } from '../_components/IdentificarEquipo';
+import {
+  IdentificarEquipo,
+  type EquipoCatalogo,
+  type VideoDeClase,
+} from '../_components/IdentificarEquipo';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { type PresenceCaptureState, usePresenceChannel } from '../_lib/usePresenceChannel';
 
@@ -91,6 +95,28 @@ function hayCodigoEnUrl(): boolean {
 }
 
 /**
+ * Traduce el motivo de un 409 de `POST /inspections/reuse` (Task 9) a un
+ * mensaje accionable. El servidor re-valida todo al recibir la
+ * reutilización — el equipo contra el catálogo y la referencia de la
+ * clase — así que un 409 acá no es un bug: el mundo cambió mientras esta
+ * pantalla estaba abierta (alguien cargó un defecto sobre esta unidad, o se
+ * revocó la referencia de la clase). En los tres casos la salida correcta es
+ * grabar, no reintentar la reutilización.
+ */
+function motivoReuseRechazado(reason: string | undefined): string {
+  switch (reason) {
+    case 'no_impecable':
+      return 'Esta unidad ya no figura impecable — hay que grabarla en vez de reutilizar el video de la clase.';
+    case 'sin_referencia':
+      return 'La clase ya no tiene una referencia de video disponible — hay que grabar esta unidad.';
+    case 'estacion_ocupada':
+      return 'La estación ya tiene una inspección en curso.';
+    default:
+      return 'No se pudo reutilizar el video de la clase — hay que grabar esta unidad.';
+  }
+}
+
+/**
  * Controlador de la estación. En F1 muestra el pre-vuelo y permite vincular
  * cámaras por QR: la lectura del serial es F2 y el comando de grabación es F3.
  *
@@ -151,6 +177,29 @@ export default function EscanerPageContent() {
   // tipeado) grabaría evidencia contra el equipo equivocado — que es el riesgo
   // que el spec §5.1 cierra con esta confirmación, no con un OCR mejor.
   const [equipo, setEquipo] = useState<EquipoCatalogo | null>(null);
+  // Task 9: la clase de este equipo ya tiene video de otra unidad idéntica
+  // (Task 8, `video_de_clase`) — no hace falta grabar, se reutiliza. Un
+  // `useState` propio (no solo el interno de `IdentificarEquipo`) porque
+  // este valor gatea INICIAR y decide qué botón primario se muestra acá.
+  // `grabarIgual` es el escape hatch: el operador tiene el equipo en la
+  // mano y puede ver algo que el catálogo no sabe.
+  const [videoDeClase, setVideoDeClase] = useState<VideoDeClase | null>(null);
+  const [grabarIgual, setGrabarIgual] = useState(false);
+  const [usandoVideoDeClase, setUsandoVideoDeClase] = useState(false);
+  // Fix ronda 1 (hallazgo 2): fuerza el remount de `IdentificarEquipo` desde
+  // `reiniciar()`. `IdentificarEquipo` guarda SU PROPIA copia de
+  // impecable/defectos/clase/videoDeClase (ver su doc-comment sobre
+  // `limpiarClase`), y solo la limpia por caminos que dispara el propio
+  // usuario (tipear, una nueva búsqueda). El ciclo normal de grabación la
+  // desmonta igual (pasa por `grabando`/`decidiendo`, ausentes de ese
+  // branch del JSX) así que remonta sola al volver a `inactiva` — pero el
+  // reuse de Task 9 NUNCA sale de `inactiva`, así que ese reset gratis no
+  // pasa: sin esto, la ficha del equipo YA reutilizado (`ya tiene
+  // video...`) seguía en pantalla sobre un serial vacío. Cambiar la `key`
+  // fuerza el mismo remount que el resto del ciclo ya usa como mecanismo de
+  // reset, en vez de duplicar ese estado acá o cablear un efecto nuevo en
+  // `IdentificarEquipo`.
+  const [identificarKey, setIdentificarKey] = useState(0);
   const [sesionEstado, setSesionEstado] = useState<SesionEstado>('inactiva');
   const [sesionError, setSesionError] = useState<string | null>(null);
   // Contador de tomas (F4 Task 5), visible en pantalla mientras se decide
@@ -187,6 +236,17 @@ export default function EscanerPageContent() {
   // del click, no el que tenía cuando se creó el callback.
   const inspectionIdRef = useRef<number | null>(null);
   const ackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Task 9: recibe el video de clase de `IdentificarEquipo` (o `null`
+   * cuando la confirmación queda vieja — serial editado, búsqueda fallida
+   * o sin match). Cualquier cambio resetea `grabarIgual`: el override es de
+   * ESTE equipo confirmado, no debe sobrevivir a que se confirme otro.
+   */
+  const onVideoDeClaseChange = useCallback((v: VideoDeClase | null) => {
+    setVideoDeClase(v);
+    setGrabarIgual(false);
+  }, []);
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('p');
@@ -679,6 +739,17 @@ export default function EscanerPageContent() {
     setSesionError(null);
     setSerial('');
     setEquipo(null);
+    // Task 9: el video de clase (y el "grabar igual" que lo haya
+    // sobreescrito) es de ESTE equipo — no debe arrastrarse al siguiente.
+    setVideoDeClase(null);
+    setGrabarIgual(false);
+    // Fix ronda 1 (hallazgo 2): fuerza el remount de `IdentificarEquipo` —
+    // ver el doc-comment de `identificarKey` más arriba. Sin esto, el reset
+    // de arriba no alcanza a limpiar la ficha interna del componente
+    // (impecable/defectos/clase/videoDeClase propios) cuando `reiniciar()`
+    // corre sin que el componente haya llegado a desmontarse (el caso nuevo
+    // de Task 9: "usar ese video" nunca sale de `inactiva`).
+    setIdentificarKey((k) => k + 1);
     setFavorita(false);
     setTakeNumber(1);
     setBloqueoCola(null);
@@ -688,6 +759,57 @@ export default function EscanerPageContent() {
     setMiniaturas({});
     setFotoError(null);
   }, [session]);
+
+  /**
+   * "Usar ese video y pasar al siguiente" (Task 9). En vez de grabar, se
+   * registra la inspección como reutilización del video de otra unidad
+   * idéntica (Task 8, `video_de_clase`) — no se manda ningún `cmd.start`
+   * ni se pide ninguna toma, porque no hay nada que grabar.
+   *
+   * El servidor re-resuelve el equipo contra el catálogo y re-verifica la
+   * referencia de la clase: un 409 acá no es un bug (ver doc-comment de
+   * `motivoReuseRechazado`) — es la API diciendo que el mundo cambió
+   * mientras la pantalla estaba abierta, y la respuesta correcta es
+   * habilitar INICIAR para que el operador grabe.
+   */
+  const usarVideoDeClase = useCallback(async () => {
+    if (!session || !videoDeClase) return;
+    const serialTrim = serial.trim();
+    if (!serialTrim || sesionEstado !== 'inactiva') return;
+
+    setSesionError(null);
+    setUsandoVideoDeClase(true);
+    try {
+      const r = await fetch(`${API_BASE_URL}/inspections/reuse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': session.token },
+        body: JSON.stringify({
+          serial: serialTrim,
+          airtable_record_id: equipo?.record_id ?? null,
+        }),
+      });
+      if (!r.ok) {
+        if (r.status === 409) {
+          const errorBody = await r.json().catch(() => null);
+          const detalle = errorBody?.detail as { reason?: string } | undefined;
+          setSesionError(motivoReuseRechazado(detalle?.reason));
+          setGrabarIgual(true);
+          return;
+        }
+        setSesionError(await mensajeDeError(r, 'reutilizar el video de la clase'));
+        return;
+      }
+      // Éxito: no hay inspección propia que cerrar (no se creó ninguna) —
+      // `reiniciar()` ya cubre exactamente ese caso (su guarda `session &&
+      // inspectionId` no dispara) y deja la pantalla lista para el
+      // siguiente equipo.
+      await reiniciar();
+    } catch {
+      setSesionError(mensajeDeRed('reutilizar el video de la clase'));
+    } finally {
+      setUsandoVideoDeClase(false);
+    }
+  }, [session, videoDeClase, serial, equipo, sesionEstado, reiniciar]);
 
   const pedirTomaSiguiente = useCallback(async () => {
     if (!session) return;
@@ -1020,6 +1142,16 @@ export default function EscanerPageContent() {
             <p className="mt-1 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: TOKENS.slate }}>
               Toma {takeNumber}
             </p>
+            {/* Identidad del equipo mientras graba: serial, modelo y grado.
+                Chica y gris a propósito — no compite con GRABANDO, que es
+                lo que el operador mira de lejos. */}
+            {equipo && (
+              <p className="mt-1 text-center text-xs" style={{ color: TOKENS.slate }}>
+                <span className="font-mono">{equipo.serial}</span>
+                {equipo.modelo ? ` · ${equipo.modelo}` : ''}
+                {equipo.grado ? ` · Grado ${equipo.grado}` : ''}
+              </p>
+            )}
             {/* Obturador: dispara una foto SIN cortar la toma. Es el caso
                 que más pide el operador — el video ya está corriendo y
                 aparece el detalle que hay que dejar en alta resolución. Va
@@ -1293,13 +1425,52 @@ export default function EscanerPageContent() {
           <>
             {session && (
               <IdentificarEquipo
+                key={identificarKey}
                 token={session.token}
                 serial={serial}
                 onSerialChange={setSerial}
                 equipo={equipo}
                 onEquipoChange={setEquipo}
-                deshabilitado={sesionEstado !== 'inactiva'}
+                // `usandoVideoDeClase` también deshabilita: mientras
+                // `/inspections/reuse` está en vuelo no debe poder editarse
+                // el serial ni relanzarse una búsqueda contra el equipo que
+                // ya se está reutilizando.
+                deshabilitado={sesionEstado !== 'inactiva' || usandoVideoDeClase}
+                onVideoDeClaseChange={onVideoDeClaseChange}
               />
+            )}
+
+            {/*
+              Task 9: la clase de este equipo ya tiene video de otra unidad
+              idéntica — la ficha de arriba (`IdentificarEquipo`) ya lo dice.
+              El camino normal deja de ser INICIAR: es reutilizar ese video y
+              pasar al siguiente equipo. "Grabar igual" sigue disponible — el
+              operador tiene el equipo en la mano y puede ver algo que el
+              catálogo no sabe.
+            */}
+            {videoDeClase && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void usarVideoDeClase()}
+                  disabled={usandoVideoDeClase || sesionEstado !== 'inactiva'}
+                  className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:hover:brightness-100"
+                  style={{ background: TOKENS.primary }}
+                >
+                  {usandoVideoDeClase ? 'REGISTRANDO…' : 'Usar ese video y pasar al siguiente'}
+                </button>
+                {!grabarIgual && (
+                  <button
+                    type="button"
+                    onClick={() => setGrabarIgual(true)}
+                    disabled={usandoVideoDeClase}
+                    className="mt-2 w-full text-center text-xs font-semibold underline disabled:opacity-40"
+                    style={{ color: TOKENS.slate }}
+                  >
+                    Grabar igual
+                  </button>
+                )}
+              </>
             )}
             {/* Qué se va a capturar. Dos opciones, así que es un
                 segmentado y no un select: el operador lo toca con guantes y
@@ -1326,7 +1497,13 @@ export default function EscanerPageContent() {
             <button
               type="button"
               onClick={() => void iniciarInspeccion()}
-              disabled={!listo || !equipo || sesionEstado !== 'inactiva'}
+              disabled={
+                !listo ||
+                !equipo ||
+                sesionEstado !== 'inactiva' ||
+                usandoVideoDeClase ||
+                (videoDeClase != null && !grabarIgual)
+              }
               className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:hover:brightness-100"
               style={{ background: TOKENS.primary }}
             >
