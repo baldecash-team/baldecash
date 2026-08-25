@@ -330,14 +330,34 @@ function CatalogoContent() {
   // `undefined` = todavia no respondio el fetch. Con `{}` el gate no podia
   // distinguirlo de "llego y el modal esta apagado", avisaba de inmediato, y
   // el welcome se abria antes de que el cupon tuviera su turno.
-  const [leadModalConfig, setLeadModalConfig] = useState<Record<string, unknown> | undefined>(undefined);
+  const [landingConfig, setLandingConfig] = useState<Record<string, unknown> | undefined>(undefined);
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
       setVipCountdownDate(cfg.features.vip_countdown || '');
       setOverlayVariant(cfg.features.overlay_variant || '');
-      setLeadModalConfig(cfg as unknown as Record<string, unknown>);
+      setLandingConfig(cfg as unknown as Record<string, unknown>);
     });
   }, [landing]);
+
+  /**
+   * Modal de bienvenida del onboarding: encendido salvo que la landing lo
+   * apague (`extra_data.onboarding.enabled = false` en el admin).
+   *
+   * Son DOS condiciones distintas y confundirlas rompe algo en cada
+   * direccion:
+   *
+   * - Mientras la config NO llego (`undefined`), vale `false`. Sin esto el
+   *   modal aparece y desaparece al llegar la respuesta.
+   * - Ya resuelta y SIN el namespace, vale `true`. `fetchLandingConfig`
+   *   nunca lanza: ante red caida, 404 o body roto devuelve el default, que
+   *   no trae `onboarding` (landingConfigApi.ts:60-77). Leer esa ausencia
+   *   como `false` apagaria el modal en TODAS las landings ante cualquier
+   *   problema de red, en silencio.
+   */
+  const onboardingEnabled =
+    landingConfig !== undefined &&
+    (landingConfig['onboarding'] as { enabled?: boolean } | undefined)
+      ?.enabled !== false;
 
   // El cupón va PRIMERO, el onboarding DESPUÉS: los dos apuntan al mismo
   // visitante nuevo y sin coordinarlos se apilan encima. `leadModalSettled`
@@ -973,6 +993,20 @@ function CatalogoContent() {
   const lastHoveredProductRef = useRef<string | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // El modal de bienvenida tapa la pantalla en este momento. NO es lo mismo
+  // que "el visitante todavia no lo vio" (`onboarding.shouldShowWelcome`):
+  // esa bandera queda en `true` para siempre en la sesion si la landing tiene
+  // el onboarding apagado, porque solo se pone en `false` cuando el modal se
+  // muestra y se cierra. Con el switch apagado el modal nunca monta, asi que
+  // usar `shouldShowWelcome` a secas para ocultar UI (botón de ayuda, scroll
+  // to top, etc.) los deja ocultos para siempre y rompe la promesa de
+  // BAL-3323 (el switch apaga el modal, no el tour). Replica exactamente las
+  // mismas condiciones que gobiernan el `isOpen` real del modal (mas abajo,
+  // junto a `OnboardingWelcomeModal`) para que esta bandera sea `true`
+  // solo cuando el modal esta efectivamente en pantalla.
+  const isWelcomeModalCovering =
+    onboarding.shouldShowWelcome && !isPageLoading && leadModalSettled && onboardingEnabled;
+
   // Quiz hint - tracking last interaction for inactivity detection
   const lastInteractionRef = useRef<number>(Date.now());
   const lastScrollYRef = useRef<number>(0);
@@ -988,7 +1022,7 @@ function CatalogoContent() {
         !isQuizOpen &&
         !isHelpPopoverOpen &&
         !onboarding.shouldShowTour &&
-        !onboarding.shouldShowWelcome &&
+        !isWelcomeModalCovering &&
         !isComparatorOpen &&
         !isCartDrawerOpen &&
         !isWishlistDrawerOpen &&
@@ -1018,7 +1052,7 @@ function CatalogoContent() {
     isQuizOpen,
     isHelpPopoverOpen,
     onboarding.shouldShowTour,
-    onboarding.shouldShowWelcome,
+    isWelcomeModalCovering,
     onboarding,
     isComparatorOpen,
     isCartDrawerOpen,
@@ -1840,7 +1874,7 @@ function CatalogoContent() {
                 campaignCoupon={campaignCoupon}
                 labels={apiFilters?.labels}
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
-                addToCartDisabled={!isProductContextHydrated || onboarding.shouldShowWelcome}
+                addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar
                   if (isRefurbishedCondition(product.conditionCode || product.condition)) {
@@ -2240,7 +2274,7 @@ function CatalogoContent() {
       )}
 
       {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !isWelcomeModalCovering && (
       // && !isWebchatOpen // COMENTADO: Blip Chat maneja su propio botón
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
@@ -2414,7 +2448,7 @@ function CatalogoContent() {
           quiz/modales/drawers/onboarding abiertos (misma condición de antes). */}
       <ScrollToTopButton
         threshold={400}
-        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || onboarding.shouldShowWelcome}
+        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || isWelcomeModalCovering}
         className="fixed bottom-6 right-6 z-[100] flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-primary)] text-white shadow-lg cursor-pointer transition-all hover:brightness-90 hover:scale-110"
       />
 
@@ -2479,13 +2513,13 @@ function CatalogoContent() {
           de acceso, este modal es opcional y descartable. */}
       <LeadModalGate
         landingSlug={landing}
-        config={leadModalConfig}
+        config={landingConfig}
         onSettled={handleLeadModalSettled}
       />
 
       {/* Onboarding - Welcome Modal */}
       <OnboardingWelcomeModal
-        isOpen={onboarding.shouldShowWelcome && !isPageLoading && leadModalSettled}
+        isOpen={isWelcomeModalCovering}
         onStartTour={onboarding.startTour}
         onDismiss={onboarding.dismissWelcome}
       />
