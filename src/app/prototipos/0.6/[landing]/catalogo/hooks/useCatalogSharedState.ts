@@ -451,11 +451,13 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
         if (activeProducts === null) return;
 
         const cardsVivas = activeProducts.map(p => ({ id: p.id, slug: p.slug }));
-        // Cart: identidad propia por productId, fuera de alcance de BAL-3328.
-        // Se omite el slug a proposito para que findUnavailableIds devuelva
-        // productId (fallback), que es lo que CartDrawer/NavbarCart comparan.
+        // Cart: se pasan los items COMPLETOS (con su slug) para que el
+        // filtro siga siendo slug-aware — igual que la wishlist (BAL-3277).
+        // Solo la proyeccion de salida difiere: 'productId' porque
+        // CartDrawer/NavbarCart comparan por productId (identidad propia del
+        // carrito via comboId, fuera de alcance de BAL-3328).
         setUnavailableCartIds(
-          findUnavailableIds(cart.map((c) => ({ productId: c.productId })), cardsVivas)
+          findUnavailableIds(cart, cardsVivas, { output: 'productId' })
         );
         // Wishlist: por clave de card (slug) — el suelto y sus combos
         // comparten productId y no se pueden distinguir por id (BAL-3328).

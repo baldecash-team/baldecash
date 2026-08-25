@@ -9,6 +9,13 @@
  * BAL-3328 (PR 2) — la salida paso de `productId` a cardKey (slug, o
  * productId si el item no tiene slug), porque el storage de wishlist ahora
  * puede tener dos entradas con el mismo productId.
+ *
+ * BAL-3328 (PR 3, regresion) — un fix intermedio le quitaba el slug a los
+ * items del carrito ANTES de llamar a findUnavailableIds, para que la salida
+ * fuera productId. Eso rompio el FILTRO: sin slug, todo item de carrito caia
+ * a comparar por productId — exactamente lo que BAL-3277 vino a reemplazar.
+ * El filtro debe seguir siendo slug-aware para ambos llamadores; solo la
+ * PROYECCION de salida cambia (parametro `output`).
  */
 import { findUnavailableIds } from '../findUnavailableIds';
 
@@ -54,5 +61,17 @@ describe('findUnavailableIds', () => {
 
   it('no marca nada con la lista vacia', () => {
     expect(findUnavailableIds([], [])).toEqual([]);
+  });
+
+  it('carrito: marca el item por slug (no por productId) y reporta su productId', () => {
+    // Caso de la regresion: el combo guardado en el carrito se archivo, pero
+    // el suelto del mismo producto sigue vivo. Si el llamador le quita el
+    // slug al item antes de pasarlo, el filtro cae a comparar por productId
+    // y NO lo marca (bug). Con el slug intacto y output: 'productId', debe
+    // marcarlo y reportar el productId crudo (identidad del carrito).
+    const items = [{ productId: '518', slug: 'ipad-11-combo-166' }];
+    const activas = [cardViva('518', 'ipad-11')];
+
+    expect(findUnavailableIds(items, activas, { output: 'productId' })).toEqual(['518']);
   });
 });
