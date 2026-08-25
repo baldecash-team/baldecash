@@ -3,31 +3,34 @@
 import { hero } from './data/seminuevosData';
 
 /**
- * El bloque de copy sobre el banner --eyebrow, título, subtítulo y CTA-- queda
- * OCULTO por pedido de producto: el banner de Haru ya trae su propio texto
- * incrustado y encima se leían dos mensajes superpuestos. Se oculta en desktop
- * y en móvil (BAL-3317).
+ * El copy del hero --eyebrow, h1, subtítulo y CTA-- se dibuja SIEMPRE.
  *
- * Es temporal, por eso el bloque no se borra: se apaga con esta bandera y
- * vuelve poniéndola en true.
+ * Historia, porque explica por qué el bloque tuvo tres estados en dos días: las
+ * piezas originales traían el texto compuesto dentro de la imagen, así que
+ * mostrarlo duplicaba el mensaje en pantalla y se apagó del todo (BAL-3317).
+ * Las piezas nuevas de Haru son solo fondo --las laptops sobre el degradé, sin
+ * una palabra--, primero la de móvil y ahora también la de escritorio. Sin este
+ * bloque la landing abriría sin título, sin promesa y sin botón al catálogo, y
+ * además sin ningún <h1> (BAL-3288).
  *
- * Al ocultarlo la landing se queda sin <h1> y sin el CTA "Ver catálogo" del
- * hero -- el del navbar sigue estando. Si el banner se quedara sin texto, esto
- * hay que reactivarlo o el hero no dice nada.
+ * La regla ya no depende del viewport sino de la pieza: si la imagen no trae
+ * texto, el texto lo pone el HTML. Si algún día vuelve una pieza con el copy
+ * incrustado, esto se apaga para ese breakpoint y no antes.
  */
+
 /**
- * El copy del hero (eyebrow, h1, subtítulo y CTA) se dibuja o no según la pieza
- * que haya detrás.
+ * Dónde se apoya el copy sobre cada pieza.
  *
- * En DESKTOP la imagen ya trae el texto compuesto, así que repetirlo lo
- * duplicaría en pantalla: ahí sigue oculto.
+ * En MÓVIL la imagen tiene el tercio superior liso y los equipos de la mitad
+ * hacia abajo: el texto va arriba, centrado.
  *
- * En MÓVIL la pieza nueva es solo fondo —las laptops sobre el degradé azul, sin
- * una palabra—, y sin este bloque la landing abre sin título, sin promesa y sin
- * botón al catálogo. Se muestra hasta 767px y se esconde de 768px en adelante,
- * el mismo corte que usa el <picture> para cambiar de archivo.
+ * En ESCRITORIO las cinco laptops se agrupan a la DERECHA y la mitad izquierda
+ * queda libre — la pieza está compuesta para que el texto viva ahí. Por eso en
+ * `md` el bloque deja de estar centrado, se alinea a la izquierda y se limita a
+ * la mitad del ancho, para no invadir los equipos.
  */
-const COPY_HERO_SOLO_MOVIL = 'md:hidden';
+const COPY_HERO_POSICION =
+  'md:mx-0 md:max-w-[46%] md:text-left md:self-start';
 
 /** Las 4 laptops decorativas del prototipo: color, posición y rotación. */
 const LAPTOPS = [
@@ -56,11 +59,13 @@ function LaptopShape({ fill, className }: { fill: string; className: string }) {
 export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
   return (
     <section
-      // En móvil el texto se ancla ARRIBA: la pieza tiene el tercio superior de
-      // fondo liso y las laptops repartidas de la mitad hacia abajo, así que
-      // centrarlo lo dejaba justo encima de los equipos. De 768px en adelante
-      // vuelve al centro, que es donde lo espera la pieza apaisada.
-      className="relative overflow-hidden flex flex-col justify-start md:justify-center px-[22px] py-[18px] text-center"
+      // Móvil: el texto se ancla ARRIBA. La pieza tiene el tercio superior de
+      // fondo liso y las laptops de la mitad hacia abajo, así que centrarlo lo
+      // dejaba justo encima de los equipos.
+      //
+      // Escritorio: vuelve al centro vertical y el bloque se va a la izquierda
+      // (`items-start`), que es la mitad que la pieza dejó libre a propósito.
+      className="relative overflow-hidden flex flex-col justify-start md:justify-center md:items-start px-[22px] md:px-[max(40px,6vw)] py-[18px] text-center"
       style={{
         background: 'linear-gradient(180deg,#fdfdff,#e9ebf3)',
         // El prototipo restaba 65px (su header). Acá se resta la altura real que
@@ -68,6 +73,17 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
         minHeight: 'calc(100svh - var(--header-total-height, 6.5rem))',
       }}
     >
+      {/* El velo del copy solo hace falta en móvil, donde el texto se apoya
+          sobre la zona lisa de una pieza vertical. En escritorio la mitad
+          izquierda ya es fondo plano y el degradado se notaría como una mancha.
+          Va en <style> y no en Tailwind porque el degradado vive en el `style`
+          inline del bloque, y una clase utilitaria no lo pisa. */}
+      <style>{`
+        @media (min-width: 768px) {
+          .hero-copy-velo { background: none !important; border-radius: 0 !important; }
+        }
+      `}</style>
+
       {hero.bannerUrl ? (
         // <picture> y no MediaSlot: son dos archivos con proporciones muy
         // distintas (vertical en móvil, apaisado en desktop) y el navegador
@@ -90,7 +106,8 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
         data-testid="hero-copy"
         // Radio solo arriba: abajo el velo ya se desvanece contra la imagen y
         // redondear ahí no se vería. Es un remate suave, no una tarjeta.
-        className={`${COPY_HERO_SOLO_MOVIL} relative z-[2] w-full max-w-[600px] mx-auto pt-6 pb-8 rounded-t-[20px]`}
+        // `hero-copy-velo` apaga ese velo en escritorio (ver <style> de abajo).
+        className={`hero-copy-velo ${COPY_HERO_POSICION} relative z-[2] w-full max-w-[600px] mx-auto pt-6 pb-8 rounded-t-[20px]`}
         style={{
           // Velo vertical, no radial: el radial al 85% blanqueaba el centro de
           // la pieza y se comía las laptops que quedan detrás. Este baja desde
