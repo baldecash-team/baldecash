@@ -18,6 +18,7 @@ import type {
 } from '../types/catalog';
 import { migrateCartData, migrateWishlistData } from '../types/catalog';
 import { findUnavailableIds } from '../utils/findUnavailableIds';
+import { cardKey } from '../utils/cardKey';
 
 // Dynamic storage keys based on landing slug
 const getWishlistKey = (landing: string) => `baldecash-${landing}-wishlist`;
@@ -232,10 +233,13 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
 
   const addToWishlist = useCallback((item: WishlistItem) => {
     setWishlist((prev) => {
-      const exists = prev.find((w) => w.productId === item.productId);
+      // Por clave de card, no por productId: el suelto y sus combos comparten
+      // productId y colapsarian en uno solo (BAL-3328).
+      const k = cardKey(item);
+      const exists = prev.find((w) => cardKey(w) === k);
       if (exists) {
         return prev.map((w) =>
-          w.productId === item.productId ? { ...w, ...item, addedAt: w.addedAt } : w
+          cardKey(w) === k ? { ...w, ...item, addedAt: w.addedAt } : w
         );
       }
       return [...prev, item];
@@ -247,18 +251,20 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
     });
   }, [tracker]);
 
-  const removeFromWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => prev.filter((w) => w.productId !== productId));
-    setUnavailableWishlistIds((prev) => prev.filter((id) => id !== productId));
-    tracker?.track('wishlist_remove', { product_id: productId });
+  /** @param key clave de card (slug), no el productId — ver cardKey. */
+  const removeFromWishlist = useCallback((key: string) => {
+    setWishlist((prev) => prev.filter((w) => cardKey(w) !== key));
+    setUnavailableWishlistIds((prev) => prev.filter((id) => id !== key));
+    tracker?.track('wishlist_remove', { product_id: key });
   }, [tracker]);
 
   const toggleWishlist = useCallback((item: WishlistItem) => {
     setWishlist((prev) => {
-      const exists = prev.find((w) => w.productId === item.productId);
+      const k = cardKey(item);
+      const exists = prev.find((w) => cardKey(w) === k);
       if (exists) {
         tracker?.track('wishlist_remove', { product_id: item.productId });
-        return prev.filter((w) => w.productId !== item.productId);
+        return prev.filter((w) => cardKey(w) !== k);
       }
       tracker?.track('wishlist_add', {
         product_id: item.productId,
@@ -269,13 +275,15 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
     });
   }, [tracker]);
 
+  /** @param key clave de card (slug), no el productId — ver cardKey. */
   const isInWishlist = useCallback(
-    (productId: string) => wishlist.some((w) => w.productId === productId),
+    (key: string) => wishlist.some((w) => cardKey(w) === key),
     [wishlist]
   );
 
+  /** @param key clave de card (slug), no el productId — ver cardKey. */
   const getWishlistItem = useCallback(
-    (productId: string) => wishlist.find((w) => w.productId === productId),
+    (key: string) => wishlist.find((w) => cardKey(w) === key),
     [wishlist]
   );
 
