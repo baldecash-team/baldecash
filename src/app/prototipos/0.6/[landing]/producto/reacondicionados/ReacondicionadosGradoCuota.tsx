@@ -1,14 +1,20 @@
 'use client';
 
 /**
- * Card de grado y cuota del detalle de reacondicionados (BAL-3344).
+ * Selector de grado del detalle de reacondicionados (BAL-3344).
  *
- * Reproduce el diseño que entregó Haru (`haru-prototipo.html`, pantalla
- * `#scr-detalle`): tres columnas de grado arriba y, tras una línea, la
- * calculadora de cuota. Es UN solo bloque a propósito — elegir grado cambia la
- * cuota, así que separarlos en dos cards rompería la relación.
+ * Tres columnas de grado con el diseño que entregó Haru (`haru-prototipo.html`,
+ * pantalla `#scr-detalle`): tarjeta neutra, check azul en la esquina del
+ * elegido, precio "Desde S/X" y los agotados atenuados.
  *
- * No reutiliza `FamilyFarmGradeSelector` porque aquel pinta una lista vertical
+ * SOLO los grados. El prototipo dibujaba la calculadora de cuota dentro de la
+ * misma card, pero esa parte NO se reimplementa: `PricingCalculator` ya la
+ * resuelve y además alimenta el carrito (`onSelectionChange` lleva plazo,
+ * inicial, cuota y frecuencia al checkout). Duplicarla rompería ese flujo por
+ * un detalle visual. Es el mismo criterio que siguen las otras landings con
+ * grados: selector arriba, pricing de siempre abajo.
+ *
+ * Tampoco reutiliza `FamilyFarmGradeSelector`: aquel pinta una lista vertical
  * con color por grado y un cuadro de "¿Qué puedes esperar?" + ahorro debajo.
  * Son formas distintas del mismo dato; unificarlas con props volvería ilegible
  * un componente que ya está en producción.
@@ -24,18 +30,6 @@ import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import type { GradeSibling } from '../types/detail';
 import styles from './reacondicionadosGrados.module.css';
 
-/** Una opción de plazo con su cuota, ya resuelta por el backend. */
-export interface TermOption {
-  termMonths: number;
-  monthlyQuota: number;
-}
-
-/** Una opción de inicial con su monto. */
-export interface InitialOption {
-  percent: number;
-  amount: number;
-}
-
 export interface ReacondicionadosGradoCuotaProps {
   /** Grados hermanos del equipo (`grade_siblings`). Vacío = no se pinta nada. */
   gradeSiblings: GradeSibling[];
@@ -43,24 +37,12 @@ export interface ReacondicionadosGradoCuotaProps {
   selectedGrade: string;
   /** Al elegir otro grado se navega a SU slug: cada grado es un producto. */
   onSelectGrade: (grade: string) => void;
-
-  initialOptions: InitialOption[];
-  selectedInitialPercent: number;
-  onSelectInitial: (percent: number) => void;
-
-  termOptions: TermOption[];
-  selectedTermMonths: number;
-  onSelectTerm: (termMonths: number) => void;
-
   /** Sufijo de la cuota. Sale del payload que trajo los números, no de la UI. */
   paymentFrequency?: string;
 }
 
 const HEADING = 'Elige el estado de tu equipo';
 const SUBHEADING = 'Compara la cuota según el grado que elijas';
-const CALC_HEADING = 'Selecciona tu cuota';
-const INITIAL_LABEL = 'Cuota inicial (opcional)';
-const LEGAL = 'Cuota referencial según evaluación y condiciones de financiamiento.';
 const ASSURE = 'Todos los grados son 100% funcionales y revisados por técnicos certificados.';
 const NO_DISPONIBLE = 'No disponible';
 
@@ -71,25 +53,10 @@ const FREQ_SUFFIX: Record<string, string> = {
   mensual: '/mes',
 };
 
-/**
- * Cuota con el sufijo de su frecuencia. Trunca en vez de redondear, como el
- * resto de la pantalla: a favor del usuario.
- */
-function formatQuota(quota: number, frequency?: string): string {
-  const suffix = FREQ_SUFFIX[frequency ?? 'mensual'] ?? FREQ_SUFFIX.mensual;
-  return `S/${formatMoneyNoDecimals(Math.floor(quota))}${suffix}`;
-}
-
 export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProps> = ({
   gradeSiblings,
   selectedGrade,
   onSelectGrade,
-  initialOptions,
-  selectedInitialPercent,
-  onSelectInitial,
-  termOptions,
-  selectedTermMonths,
-  onSelectTerm,
   paymentFrequency,
 }) => {
   // Ordenados A→D. El backend no garantiza orden y la comparación visual solo
@@ -97,11 +64,6 @@ export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProp
   const grados = useMemo(
     () => [...gradeSiblings].sort((a, b) => a.grade.localeCompare(b.grade)),
     [gradeSiblings],
-  );
-
-  const cuotaElegida = useMemo(
-    () => termOptions.find((t) => t.termMonths === selectedTermMonths),
-    [termOptions, selectedTermMonths],
   );
 
   // Sin grados que comparar no hay nada que decidir: la sección no se dibuja.
@@ -171,69 +133,10 @@ export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProp
         })}
       </div>
 
-      <h4 className={styles.mergeSub}>{CALC_HEADING}</h4>
-
-      {initialOptions.length > 0 && (
-        <>
-          <div className={styles.calcLabel}>{INITIAL_LABEL}</div>
-          <div className={styles.pills} role="radiogroup" aria-label={INITIAL_LABEL}>
-            {initialOptions.map((op) => (
-              <button
-                key={op.percent}
-                type="button"
-                role="radio"
-                aria-checked={op.percent === selectedInitialPercent}
-                onClick={() => onSelectInitial(op.percent)}
-                className={`${styles.pill} ${op.percent === selectedInitialPercent ? styles.pillOn : ''}`}
-              >
-                {op.amount > 0 ? `S/${formatMoneyNoDecimals(op.amount)}` : 'Sin inicial'}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className={styles.terms} role="radiogroup" aria-label={CALC_HEADING}>
-        {termOptions.map((op) => {
-          const elegido = op.termMonths === selectedTermMonths;
-          return (
-            <button
-              key={op.termMonths}
-              type="button"
-              role="radio"
-              aria-checked={elegido}
-              onClick={() => onSelectTerm(op.termMonths)}
-              className={`${styles.term} ${elegido ? styles.termOn : ''}`}
-            >
-              <span className={styles.termCheck} aria-hidden="true">
-                <Check size={12} strokeWidth={3.5} />
-              </span>
-              <span className={styles.termMonths}>
-                {op.termMonths}
-                <br />
-                meses
-              </span>
-              <span className={styles.termQuota}>
-                S/{formatMoneyNoDecimals(Math.floor(op.monthlyQuota))}
-              </span>
-              <span className={styles.termPer}>al mes</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {cuotaElegida && (
-        <div className={styles.summary} data-testid="reacond-resumen">
-          <div className={styles.summaryLabel}>Tu cuota mensual · Grado {selectedGrade}</div>
-          <div className={styles.summaryQuota}>
-            {formatQuota(cuotaElegida.monthlyQuota, paymentFrequency)}
-          </div>
-          <div className={styles.summaryTerm}>durante {cuotaElegida.termMonths} meses</div>
-        </div>
-      )}
-
-      <p className={styles.legal}>{LEGAL}</p>
-
+      {/* La nota "Cuota referencial según evaluación…" NO va acá: habla de las
+          cuotas, y las cuotas las pinta `PricingCalculator` más abajo, que ya
+          trae su propia advertencia. Repetirla aquí diría lo mismo dos veces en
+          la misma pantalla. */}
       <div className={styles.assure}>
         <span className={styles.assureIcon} aria-hidden="true">
           <ShieldCheck size={18} strokeWidth={1.8} />

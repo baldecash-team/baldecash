@@ -15,30 +15,11 @@ const GRADOS: GradeSibling[] = [
   { grade: 'C', productId: 3, slug: 'adv-c', price: 287, stockAvailable: 4, isAvailable: true, minTermQuota: 68 },
 ];
 
-const INICIALES = [
-  { percent: 0, amount: 0 },
-  { percent: 10, amount: 50 },
-  { percent: 20, amount: 90 },
-];
-
-const PLAZOS = [
-  { termMonths: 6, monthlyQuota: 90 },
-  { termMonths: 12, monthlyQuota: 56 },
-  { termMonths: 18, monthlyQuota: 45 },
-  { termMonths: 24, monthlyQuota: 40 },
-];
-
 function renderCard(overrides: Partial<React.ComponentProps<typeof ReacondicionadosGradoCuota>> = {}) {
   const props = {
     gradeSiblings: GRADOS,
     selectedGrade: 'B',
     onSelectGrade: jest.fn(),
-    initialOptions: INICIALES,
-    selectedInitialPercent: 0,
-    onSelectInitial: jest.fn(),
-    termOptions: PLAZOS,
-    selectedTermMonths: 24,
-    onSelectTerm: jest.fn(),
     ...overrides,
   };
   return { ...render(<ReacondicionadosGradoCuota {...props} />), props };
@@ -118,51 +99,38 @@ describe('ReacondicionadosGradoCuota', () => {
     });
   });
 
-  describe('cuota', () => {
-    it('muestra las iniciales, con "Sin inicial" para el cero', () => {
+  describe('textos de cierre', () => {
+    it('incluye la garantía de los grados', () => {
       renderCard();
-      expect(screen.getByRole('radio', { name: 'Sin inicial' })).toBeInTheDocument();
-      expect(screen.getByRole('radio', { name: 'S/50' })).toBeInTheDocument();
-      expect(screen.getByRole('radio', { name: 'S/90' })).toBeInTheDocument();
+      expect(screen.getByText(/100% funcionales y revisados/)).toBeInTheDocument();
     });
 
-    it('muestra un plazo por opción con su cuota', () => {
+    // La nota "Cuota referencial según evaluación…" vive en PricingCalculator,
+    // que pinta las cuotas más abajo. Repetirla acá diría lo mismo dos veces en
+    // la misma pantalla.
+    it('no repite la nota de cuota referencial', () => {
       renderCard();
-      const plazos = screen.getAllByRole('radio').filter((b) => /meses/.test(b.textContent || ''));
-      expect(plazos).toHaveLength(4);
-      expect(plazos[3]).toHaveTextContent('24');
-      expect(plazos[3]).toHaveTextContent('S/40');
-    });
-
-    it('avisa al padre al cambiar de inicial y de plazo', () => {
-      const { props } = renderCard();
-      fireEvent.click(screen.getByRole('radio', { name: 'S/50' }));
-      expect(props.onSelectInitial).toHaveBeenCalledWith(10);
-
-      const docePlazo = screen.getAllByRole('radio').find((b) => /^12/.test(b.textContent || ''));
-      fireEvent.click(docePlazo!);
-      expect(props.onSelectTerm).toHaveBeenCalledWith(12);
-    });
-
-    it('el resumen nombra el grado elegido y su plazo', () => {
-      renderCard();
-      const resumen = screen.getByTestId('reacond-resumen');
-      expect(resumen).toHaveTextContent('Tu cuota mensual · Grado B');
-      expect(resumen).toHaveTextContent('S/40/mes');
-      expect(resumen).toHaveTextContent('durante 24 meses');
-    });
-
-    it('usa el sufijo de la frecuencia que traen los datos', () => {
-      renderCard({ paymentFrequency: 'quincenal' });
-      expect(screen.getByTestId('reacond-resumen')).toHaveTextContent('S/40/qcn');
+      expect(screen.queryByText(/Cuota referencial/)).toBeNull();
     });
   });
 
-  describe('textos de cierre', () => {
-    it('incluye la nota legal y la garantía de los grados', () => {
+  // El componente eligió NO reimplementar la calculadora de cuota: eso lo hace
+  // PricingCalculator, que además alimenta el carrito. Si alguien la trae de
+  // vuelta aquí, estos tests avisan.
+  describe('no reimplementa el selector de cuota', () => {
+    it('no pinta plazos ni iniciales', () => {
       renderCard();
-      expect(screen.getByText(/Cuota referencial según evaluación/)).toBeInTheDocument();
-      expect(screen.getByText(/100% funcionales y revisados/)).toBeInTheDocument();
+      expect(screen.queryByText('Selecciona tu cuota')).toBeNull();
+      expect(screen.queryByText('Cuota inicial (opcional)')).toBeNull();
+      expect(screen.queryByText('Sin inicial')).toBeNull();
+      expect(screen.queryByText(/meses/)).toBeNull();
+    });
+
+    it('solo expone los grados como radios', () => {
+      renderCard();
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(GRADOS.length);
+      radios.forEach((r) => expect(r.textContent).toMatch(/Grado [A-D]/));
     });
   });
 
