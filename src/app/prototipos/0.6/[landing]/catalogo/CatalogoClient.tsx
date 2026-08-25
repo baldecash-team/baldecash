@@ -1879,7 +1879,7 @@ function CatalogoContent() {
         catalogBanner={catalogBanner}
         vipCountdownDate={vipCountdownDate}
         overlayVariant={overlayVariant}
-        gridVariant={isReacondicionadosLanding(landing) ? 'compact' : 'default'}
+        compactHeader={isReacondicionadosLanding(landing)}
         campaignCoupon={showCouponUi ? campaignCoupon : null}
         isCampaignCouponValidating={isCampaignCouponValidating}
       >
