@@ -14,10 +14,11 @@
  *
  * Lo mínimo para revisar un equipo, nada más: reproducir/pausar, una barra de
  * progreso que se pueda arrastrar (para volver al rayón que se vio al pasar) y
- * el tiempo. Sin pantalla completa a propósito: en varios navegadores móviles
- * la pantalla completa nativa del `<video>` devuelve los controles del
- * sistema —con volumen incluido— y eso tira abajo todo esto. El zoom
- * (`VisorZoom`) ya cubre la necesidad de "ver en detalle".
+ * el tiempo. SIN botón de pantalla completa acá adentro: ese botón vive en
+ * `GaleriaUnidad`, sobre el CONTENEDOR (visor + estos controles), nunca sobre
+ * el `<video>` — pedirle pantalla completa al `<video>` es lo que en varios
+ * navegadores móviles hace que el sistema devuelva SUS controles nativos, con
+ * volumen incluido, por encima de todo esto.
  *
  * Este componente NO toca el `<video>`: lo recibe ya montado (vía el nodo del
  * DOM, no una `key` ni una prop de React) y solo se suscribe a sus eventos

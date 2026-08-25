@@ -131,6 +131,30 @@ export function VisorZoom({
    * indicador de escala y por el estilo `cursor-grab` — no se quede atrás más
    * de un frame. Los gestos DISCRETOS (botones, doble click) siguen usando
    * `fijar` de una: no hay ráfaga de eventos que batchear ahí.
+   *
+   * `actual` (el ref) es la ÚNICA fuente de verdad de la transformación
+   * vigente — `pintar` y `fijar` son los DOS ÚNICOS lugares que lo escriben, y
+   * los dos lo hacen EN EL MISMO instante en que cambia (nunca antes, nunca
+   * después). Los botones (`acercar`/`alejar`/`restablecer`) siempre leen de
+   * acá, no de `transformacion` (el estado de React): así, tocarlos justo
+   * después de un gesto opera sobre el valor de verdad, no sobre uno que
+   * puede estar un cuadro atrasado.
+   *
+   * BUG QUE YA HUBO ACÁ (para que no vuelva): existía un `useEffect` que
+   * copiaba `actual.current = transformacion` cada vez que el estado
+   * cambiaba — un "espejo" pensado, en el diseño original, solo para el reset
+   * a 1x al cambiar de foto/unidad. El problema es que ese efecto corre
+   * ASÍNCRONO (después del commit), y en el medio puede colarse un gesto
+   * nuevo que ya avanzó `actual.current` con `pintar` — el efecto, con el
+   * valor VIEJO todavía en su clausura, pisaba ese avance. Resultado: en
+   * medio de un pinch o de la rueda, un `+` (o el gesto siguiente) podía
+   * calcular sobre una escala vieja y la imagen saltaba hacia atrás — "el +
+   * a veces aleja". La solución no fue deshacer esta optimización: fue sacar
+   * el ÚNICO lugar que escribía `actual.current` A PARTIR DEL estado (ese
+   * efecto) y reemplazarlo por una asignación síncrona en el propio sitio
+   * donde el estado cambia (ver el reset de `claveVista` más abajo). Con eso,
+   * nada vuelve a copiar el estado (que puede llegar atrasado) hacia el ref
+   * (que nunca lo está): el flujo quedó en un solo sentido.
    */
   const pintar = useCallback((next: Transformacion) => {
     actual.current = next;
@@ -216,19 +240,20 @@ export function VisorZoom({
   // en un efecto: con un efecto habría un cuadro intermedio mostrando la foto
   // nueva todavía acercada y desplazada. Al cerrar la galería el componente se
   // desmonta, así que ese caso se resuelve solo.
+  //
+  // `actual.current` se resetea ACÁ MISMO, en la misma línea que el estado —
+  // no en un efecto aparte. Hubo un efecto así (`actual.current =
+  // transformacion`, en cada cambio de `transformacion`) y era exactamente el
+  // bug de "el botón + a veces aleja": ver el comentario largo en `pintar`
+  // más arriba para la explicación completa de por qué un espejo asíncrono
+  // del estado es peligroso ahora que `pintar` escribe `actual.current` en
+  // vivo, fuera de React.
   const [claveVista, setClaveVista] = useState(reiniciarEn);
   if (claveVista !== reiniciarEn) {
     setClaveVista(reiniciarEn);
     setTransformacion(INICIAL);
+    actual.current = INICIAL;
   }
-
-  // El espejo síncrono no se puede escribir durante el render, así que se
-  // sincroniza acá. Entre ese render y este efecto no corre ningún gesto, y los
-  // gestos escriben el espejo ellos mismos (por `fijar`) para no depender de
-  // este ciclo.
-  useEffect(() => {
-    actual.current = transformacion;
-  }, [transformacion]);
 
   // Rueda del mouse / trackpad.
   //

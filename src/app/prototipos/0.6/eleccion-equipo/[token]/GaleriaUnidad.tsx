@@ -24,7 +24,11 @@
  * esos siempre traen volumen, y el audio de este video puede traer
  * conversaciones del equipo de trabajo del taller. Silenciarlo por defecto no
  * alcanzaba porque el volumen quedaba a un click — con controles propios el
- * volumen directamente no existe como opción.
+ * volumen directamente no existe como opción. El botón de pantalla completa
+ * (si el navegador lo soporta — no en iPhone, ver `soportaPantallaCompleta`)
+ * pide el modo sobre el CONTENEDOR (visor + controles), nunca sobre el
+ * `<video>`, por la misma razón: pedirlo sobre el `<video>` es lo que hace
+ * que varios navegadores móviles devuelvan sus controles nativos por encima.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -105,6 +109,43 @@ export function GaleriaUnidad({
 
   const dialogoRef = useRef<HTMLDivElement>(null);
 
+  // Contenedor que entra a pantalla completa: el visor + sus botones + los
+  // controles del video, NUNCA el `<video>` solo. Pedirle pantalla completa
+  // al `<video>` es lo que el navegador (sobre todo en varios móviles) usa
+  // como gancho para devolver SUS controles nativos —con volumen— por
+  // encima de todo esto, así que el pedido va siempre sobre este `<div>`.
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  const [pantallaCompleta, setPantallaCompleta] = useState(false);
+  // Existe (`Element.requestFullscreen`) en desktop y en iPad, pero NO en
+  // iPhone: Safari en iPhone solo deja entrar a pantalla completa a un
+  // `<video>` (`webkitEnterFullscreen`), nunca a un `<div>` — que es
+  // justamente lo que se necesita evitar (ver el comentario de arriba). Se
+  // detecta una sola vez y, si no hay soporte, directamente no se muestra el
+  // botón: uno que no hace nada sería el mismo bug que se está arreglando.
+  const [soportaPantallaCompleta] = useState(
+    () => typeof document !== 'undefined' && document.fullscreenEnabled === true,
+  );
+
+  useEffect(() => {
+    const alCambiar = () => {
+      setPantallaCompleta(document.fullscreenElement === contenedorRef.current);
+    };
+    document.addEventListener('fullscreenchange', alCambiar);
+    return () => document.removeEventListener('fullscreenchange', alCambiar);
+  }, []);
+
+  const alternarPantallaCompleta = () => {
+    const el = contenedorRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      // Puede rechazar (poco frecuente) si algo más ya está saliendo: no hay
+      // nada más que hacer que dejarlo, no es un error que romper la UI.
+      void document.exitFullscreen().catch(() => {});
+    } else {
+      void el.requestFullscreen?.().catch(() => {});
+    }
+  };
+
   // `onCerrar` llega como arrow inline, así que su identidad cambia en cada
   // render del padre. Se guarda en un ref para que el efecto de foco corra UNA
   // vez por apertura: si dependiera de `onCerrar`, cada render volvería a
@@ -171,7 +212,15 @@ export function GaleriaUnidad({
     dialogo?.focus();
 
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return cerrarRef.current();
+      if (e.key === 'Escape') {
+        // El propio navegador YA sale de pantalla completa con Escape (es
+        // comportamiento nativo del Fullscreen API, nada que programar acá).
+        // Si se dejara pasar este Escape además, cerraría TODA la galería de
+        // un solo toque —la persona solo pidió salir de la pantalla
+        // completa—. Se cierra recién en un Escape posterior, ya afuera.
+        if (document.fullscreenElement === contenedorRef.current) return;
+        return cerrarRef.current();
+      }
 
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         // El input[type=range] de la barra de progreso del video YA usa las
@@ -286,11 +335,22 @@ export function GaleriaUnidad({
         </div>
 
         <div className="px-5 pb-6 pt-4 md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:gap-6 md:px-6 md:pb-7">
-          {/* Columna del medio: el visor grande (con el zoom y, superpuestos,
-              los botones de anterior/siguiente) y, debajo, los controles
-              propios del video cuando corresponde. */}
-          <div>
-            <div className="relative">
+          {/* Columna del medio: el visor grande (con el zoom, los botones de
+              anterior/siguiente y el de pantalla completa, todos
+              superpuestos) y, debajo, los controles propios del video cuando
+              corresponde. `contenedorRef` es lo que entra a pantalla
+              completa: incluye los controles del video a propósito, para que
+              sigan operables ahí adentro. */}
+          <div
+            ref={contenedorRef}
+            data-testid="visor-contenedor"
+            className={
+              pantallaCompleta
+                ? 'flex h-full w-full flex-col items-center justify-center gap-2 bg-black p-4'
+                : undefined
+            }
+          >
+            <div className={`relative w-full ${pantallaCompleta ? 'max-w-4xl' : ''}`}>
               {/* Visor grande: el video por defecto, o la foto que se toque.
                   El zoom vive en `VisorZoom` y es una transformación CSS sobre la
                   capa que envuelve al medio: acá adentro no se toca el `<video>`,
@@ -299,7 +359,11 @@ export function GaleriaUnidad({
               <VisorZoom
                 activo={!sinMedios}
                 reiniciarEn={claveMedio}
-                className="h-[210px] rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]"
+                className={
+                  pantallaCompleta
+                    ? 'h-[70vh] w-full rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8]'
+                    : 'h-[210px] rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]'
+                }
               >
                 {medio.tipo === 'video' && unidad.video_url ? (
                   <video
@@ -352,6 +416,28 @@ export function GaleriaUnidad({
                 )}
               </VisorZoom>
 
+              {soportaPantallaCompleta && (
+                <button
+                  type="button"
+                  onClick={alternarPantallaCompleta}
+                  aria-label={pantallaCompleta ? 'Salir de pantalla completa' : 'Ver en pantalla completa'}
+                  className="absolute left-2 top-2 z-20 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-[#3a3c52] shadow-[0_2px_10px_rgba(10,12,30,.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD]"
+                >
+                  <svg
+                    width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                  >
+                    {pantallaCompleta ? (
+                      // Achicar: cuatro flechas hacia ADENTRO.
+                      <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3" />
+                    ) : (
+                      // Agrandar: cuatro flechas hacia AFUERA.
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" />
+                    )}
+                  </svg>
+                </button>
+              )}
+
               {onNavegar && (
                 // Comparar es la actividad central de esta pantalla: ir a la
                 // unidad siguiente/anterior sin cerrar el diálogo evita perder
@@ -397,7 +483,9 @@ export function GaleriaUnidad({
               )}
             </div>
 
-            <VideoControls video={videoNode} />
+            <div className={`w-full ${pantallaCompleta ? 'max-w-4xl' : ''}`}>
+              <VideoControls video={videoNode} />
+            </div>
           </div>
 
           <div className="md:flex md:flex-col">
