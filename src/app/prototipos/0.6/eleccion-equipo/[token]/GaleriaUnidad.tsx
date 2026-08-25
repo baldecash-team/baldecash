@@ -155,7 +155,6 @@ export function GaleriaUnidad({
         aria-label={titulo}
         // Enfocable por código (no por Tab): es donde aterriza el foco al abrir.
         tabIndex={-1}
-        style={{ fontFamily: 'var(--font-baloo-2), sans-serif' }}
         className="fixed z-[9999] flex flex-col bg-white focus:outline-none text-[#151744] shadow-[0_-10px_40px_rgba(0,0,0,.2)] bottom-0 left-1/2 max-h-[92vh] w-full max-w-[480px] -translate-x-1/2 overflow-y-auto rounded-t-[22px] md:bottom-auto md:top-1/2 md:max-h-[88vh] md:max-w-[1000px] md:-translate-y-1/2 md:rounded-[22px]"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e9e9ef] bg-white px-5 pb-3 pt-[18px]">

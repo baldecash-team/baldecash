@@ -51,10 +51,7 @@ export interface ChromeProps {
 
 export function Chrome({ expiraEn, children }: ChromeProps) {
   return (
-    <div
-      style={{ fontFamily: 'var(--font-baloo-2), sans-serif' }}
-      className="min-h-screen bg-[#f4f5f8] text-[#151744]"
-    >
+    <div className="min-h-screen bg-[#f4f5f8] text-[#151744]">
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[#e9e9ef] bg-white px-[18px] py-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- logo de S3, mismo criterio que el resto de las rutas por token */}
         <img src={LOGO_URL} alt="BaldeCash" className="h-[30px] w-auto" />
