@@ -29,6 +29,7 @@ import { routes, normalizeCatalogUrl } from '../utils/routes';
 import { evaluateLandingAccess } from '../services/landingApi';
 import type { EvaluatePayload } from '../services/landingApi';
 import { FamilyFarmOverlayGate } from './overlays/FamilyFarmOverlayGate';
+import { ReferralBannerGate } from '../components/referral/ReferralBannerGate';
 import { usePreview } from '../context/PreviewContext';
 import { sendEventsBatch } from '../services/eventsApi';
 import { isDarkLanding } from '../utils/theme';
@@ -1748,6 +1749,22 @@ export default function LandingLayout({
           <Suspense>
             <KeepDataFlag />
           </Suspense>
+          {/*
+            La franja de referido acompaña TODO el recorrido, no sólo la landing:
+            las dudas que este canal existe para resolver aparecen en el catálogo
+            y en el formulario, no mirando el hero.
+
+            Va acá arriba por dos motivos. Uno, es el primer elemento del flujo
+            del documento, que es de donde el header fijo saca su offset (ver
+            `ReferralBanner`). Dos, está DENTRO de los providers a propósito: así
+            su evento de impresión viaja con el mismo `session_uuid` que el resto
+            de la visita y se puede cruzar con la conversión.
+
+            Fuera del VipGate a propósito: la franja se pinta igual mientras el
+            visitante resuelve el DNI o espera el countdown. No es contenido del
+            catálogo, es de quién lo trajo.
+          */}
+          <ReferralBannerGate />
           {/* Fondo oscuro para las páginas de flujo de landings dark (nvidia).
               Los tokens viven en <html data-theme="nvidia"> (LayoutContext). THEME_DARK.md §5.2 */}
           <div className={dark ? 'min-h-screen bg-[var(--surface-bg,#06060A)]' : undefined}>

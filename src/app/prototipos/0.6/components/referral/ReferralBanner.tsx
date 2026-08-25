@@ -1,17 +1,22 @@
 'use client';
 
 /**
- * Franja "Haz sido referido por Marco".
+ * Franja "Te refirió Cynthia, si tienes dudas escríbele aquí".
  *
- * Aparece arriba de todo cuando la landing se abre con un link de activación
- * (`?promotor=` + el token en `utm_term`). Los datos llegan resueltos desde el
- * server component — acá no se consulta nada: el teléfono no debe pedirse desde
- * el navegador después de pintar.
+ * Aparece arriba de todo cuando la visita llega por un link de activación
+ * (`?promotor=` o `?ref=`). Los datos llegan resueltos —del server component en
+ * la landing, de lo guardado en el resto del recorrido (`ReferralBannerGate`)—:
+ * acá no se consulta nada.
  *
  * Notas de diseño que vienen del spec y conviene no perder:
  *
+ * - TODA la franja es el link. No es un cartel con un botón al costado: es un
+ *   solo blanco de ~44 px de alto y del ancho de la pantalla, que en móvil es la
+ *   diferencia entre un canal que se usa y uno que se mira. El ícono circular
+ *   está para que se lea qué va a abrir, no para ser lo único tocable.
  * - NO es `sticky`. Una franja fija le roba altura permanente al viewport móvil,
- *   y la mayor parte del tráfico entra por celular desde el QR.
+ *   y la mayor parte del tráfico entra por celular desde el QR. Se ve al entrar
+ *   —que es cuando importa— y se va con el scroll; al cambiar de página vuelve.
  *
  *   Eso tiene una consecuencia que costó ver: el navbar y el banner promocional
  *   SÍ son `fixed` y arrancan en `top: 0`, así que tapaban esta franja por
@@ -19,72 +24,30 @@
  *   Por eso `--referral-banner-offset`: la franja publica cuánto de ella queda
  *   por debajo del borde superior del viewport, el header fijo arranca ahí, y
  *   el valor llega solo a 0 cuando la franja termina de salir con el scroll.
- *   La franja se va, el header sube, y nada queda robando altura.
- * - El descarte se recuerda en `sessionStorage`, no en `localStorage`: si el
- *   usuario vuelve mañana desde otro flyer, con otra promotora, tiene que
- *   volver a verlo. La clave incluye el código de la promotora por el mismo
- *   motivo, para el caso de dos links distintos en la misma sesión.
- * - Sin teléfono usable no se arma el botón. Un `wa.me` sin destinatario válido
- *   abre WhatsApp en blanco y es peor que no tener el botón.
- *
- * Sobre "Haz sido referido": es el copy pedido y así queda. La ortografía
- * estándar sería "Has sido referido" (del verbo *haber*); "haz" es de *hacer*.
+ * - No se puede cerrar. Antes tenía una X que recordaba el descarte en
+ *   `sessionStorage`; se quitó cuando la franja pasó a acompañar todo el
+ *   recorrido, porque un descarte en la landing la apagaba también en el
+ *   catálogo y en el formulario, que es donde aparecen las dudas que este canal
+ *   existe para resolver. Además, una X adentro de un blanco que ocupa la franja
+ *   entera es un conflicto de toque, no un control.
+ * - Sin número usable no se arma link: la franja se pinta igual, pero como un
+ *   aviso. Un `wa.me` sin destinatario abre WhatsApp en blanco y es peor que no
+ *   llevar a ningún lado.
  */
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 import type { ReferralBanner as ReferralBannerData } from '../../services/referralBannerApi';
 import { safeExternalUrl } from '../../utils/safeExternalUrl';
+import { guardarFranja } from './referralBannerCache';
 
 /** Sage de la paleta de marca: información amable, no una alerta. */
 const FONDO = '#006b65';
 const TEXTO = '#f2fbfa';
-/** Aqua, para el chip de WhatsApp — el único elemento que pide ser tocado. */
-const CHIP_FONDO = '#03dbd0';
-const CHIP_TEXTO = '#04302e';
-
-function claveDescarte(promoterCode: string | null): string {
-  return `baldecash-referral-banner-dismissed-${promoterCode ?? 'anon'}`;
-}
-
-function leerDescarte(promoterCode: string | null): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.sessionStorage.getItem(claveDescarte(promoterCode)) === '1';
-  } catch {
-    // sessionStorage tira en algunos WebView y en modo privado de WebKit.
-    return false;
-  }
-}
-
-/**
- * Suscriptores del descarte.
- *
- * `sessionStorage` es un sistema externo a React, así que el estado se lee con
- * `useSyncExternalStore` en vez de con `useState` + `useEffect`. Además de ser
- * lo que corresponde, evita el render en cascada: el valor del cliente entra
- * durante la hidratación, no en un efecto posterior. El emisor existe porque el
- * evento `storage` del navegador NO se dispara en la pestaña que escribe.
- */
-const suscriptores = new Set<() => void>();
-
-function suscribir(cb: () => void): () => void {
-  suscriptores.add(cb);
-  return () => {
-    suscriptores.delete(cb);
-  };
-}
-
-function guardarDescarte(promoterCode: string | null): void {
-  if (typeof window !== 'undefined') {
-    try {
-      window.sessionStorage.setItem(claveDescarte(promoterCode), '1');
-    } catch {
-      // Sin storage el descarte dura lo que dure la página. Es aceptable.
-    }
-  }
-  suscriptores.forEach((cb) => cb());
-}
+/** Aqua, para el ícono — la señal de qué abre el toque. */
+const ICONO_FONDO = '#03dbd0';
+const ICONO_COLOR = '#04302e';
 
 /**
  * Cuánto de la franja sigue visible, en px, publicado como `--referral-banner-offset`.
@@ -96,19 +59,14 @@ function guardarDescarte(promoterCode: string | null): void {
  * El scroll va con `passive` y coalescido por frame: es la landing que convierte,
  * y acá no se puede pagar un reflow por evento de rueda.
  */
-function useOffsetDeFranja(visible: boolean) {
-  const contenedorRef = useRef<HTMLDivElement>(null);
+function useOffsetDeFranja() {
+  // `HTMLElement` y no un tipo concreto: la franja es un <a> cuando hay número y
+  // un <div> cuando no, y este hook sólo necesita medirla.
+  const contenedorRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const raiz = document.documentElement;
     const limpiar = () => raiz.style.removeProperty('--referral-banner-offset');
-
-    // Descartada o sin montar: el header tiene que volver a `top: 0`. Sin esto,
-    // cerrar la franja dejaría una banda transparente permanente arriba.
-    if (!visible) {
-      limpiar();
-      return;
-    }
 
     let pendiente = 0;
     const medir = () => {
@@ -136,9 +94,11 @@ function useOffsetDeFranja(visible: boolean) {
       if (pendiente) cancelAnimationFrame(pendiente);
       window.removeEventListener('scroll', alFrame);
       window.removeEventListener('resize', alFrame);
+      // Al desmontar se suelta la variable: si no, al navegar a una página sin
+      // franja el header arrancaría 44 px más abajo, dejando una banda vacía.
       limpiar();
     };
-  }, [visible]);
+  }, []);
 
   return contenedorRef;
 }
@@ -161,129 +121,180 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 interface ReferralBannerProps {
   data: ReferralBannerData;
-  /** Slug de la landing — viaja como propiedad del evento. */
+  /** Slug de la landing — viaja como propiedad del evento y es la clave del guardado. */
   landingSlug: string;
 }
 
 export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   const tracker = useEventTrackerOptional();
-  const { firstName, phoneDisplay, whatsappUrl: rawWhatsappUrl, promoterCode, reason } = data;
-  // La URL viene del backend y va directo a un href: se valida el esquema para
+  const pathname = usePathname();
+  const { firstName, whatsappUrl: rawWhatsappUrl, promoterCode, reason } = data;
+  // La URL viene de un backend y va directo a un href: se valida el esquema para
   // que un `javascript:...` no se ejecute al hacer clic (BAL-3292).
-  const whatsappUrl = safeExternalUrl(rawWhatsappUrl);
+  const whatsappUrl = safeExternalUrl(rawWhatsappUrl) || null;
 
-  // El snapshot del servidor es "no descartado" a propósito: la franja tiene que
-  // venir en el HTML. Renderizarla recién en el cliente la haría aparecer a los
-  // 300 ms empujando el hero hacia abajo, justo cuando el usuario va a tocar el
-  // CTA — que es exactamente lo que este diseño evita.
-  const descartado = useSyncExternalStore(
-    suscribir,
-    () => leerDescarte(promoterCode),
-    () => false,
-  );
-  const eventoEmitido = useRef(false);
-
-  // Impresión. Se emite una sola vez y sólo si la franja quedó visible: si el
-  // usuario ya la había descartado, no hubo impresión que contar. El ref
-  // protege del doble montaje de React en modo estricto, y la relectura del
-  // storage cubre el instante de hidratación, cuando `descartado` todavía puede
-  // traer el valor del servidor.
+  // Quien pinta la franja la guarda. Así el catálogo, el detalle y el wizard la
+  // encuentran resuelta sin volver a preguntarle a nadie — ver
+  // `referralBannerCache` y `ReferralBannerGate`.
   useEffect(() => {
-    if (descartado || eventoEmitido.current || !tracker) return;
-    if (leerDescarte(promoterCode)) return;
-    eventoEmitido.current = true;
-    tracker.track('referral_banner_shown', {
+    guardarFranja(landingSlug, data);
+  }, [landingSlug, data]);
+
+  const contenedorRef = useOffsetDeFranja();
+
+  /**
+   * Qué estaba diciendo la franja, en las dos puntas del embudo.
+   *
+   * Va idéntico en la impresión y en el clic para que el click-through se saque
+   * restando, sin joins y segmentado por cualquiera de estas propiedades:
+   *
+   * - `promoter_code` — quién refirió. Es la LLAVE, no el adorno: con `?ref=` es
+   *   el código del hub y con `?promotor=` el `Promoter.code` de ws2, y contra
+   *   cualquiera de los dos se recupera el nombre del otro lado.
+   * - `reason` — por qué camino se resolvió: `ok` (ws2, con teléfono),
+   *   `sin_telefono`, `ref` (el hub) o `guardado` (recuperada de la sesión en un
+   *   paso posterior). Es la diferencia entre "la franja anda" y "la franja anda
+   *   sólo en la landing".
+   * - `variant` — cómo se pintó: `link` cuando toda la franja abre WhatsApp,
+   *   `aviso` cuando no hay número usable y es sólo texto. Sin esto, un
+   *   click-through bajo se lee como "el copy no funciona" cuando la mitad de
+   *   las impresiones no tenían a dónde llevar.
+   * - `page` — en qué paso. La franja acompaña landing, catálogo, detalle y
+   *   wizard: sin esta propiedad las cuatro se suman en un número que no dice
+   *   nada.
+   *
+   * ── LO QUE NO VIAJA, Y NO ES UN OLVIDO ──
+   *
+   * El nombre de la promotora y su celular NO se mandan, ni sueltos ni adentro
+   * de la `whatsapp_url`. No es sólo la regla de privacidad: `nombre` y
+   * `phone_value` están en `FORBIDDEN_PROPERTIES` de ws2 y `is_valid_event`
+   * descarta el evento ENTERO si aparece alguna, con 200 OK y cero filas. O sea
+   * que mandarlos no logra "medir de más": logra no medir nada, en silencio.
+   * `promoter_code` es la llave con la que se recupera todo eso.
+   */
+  const datosDelEvento = useMemo(
+    () => ({
       promoter_code: promoterCode,
       landing_slug: landingSlug,
       reason,
       has_whatsapp: Boolean(whatsappUrl),
-    });
-  }, [descartado, tracker, promoterCode, landingSlug, reason, whatsappUrl]);
-
-  const handleDescartar = useCallback(() => {
-    guardarDescarte(promoterCode);
-    tracker?.track('referral_banner_dismiss', {
-      promoter_code: promoterCode,
-      landing_slug: landingSlug,
-      has_whatsapp: Boolean(whatsappUrl),
-    });
-  }, [promoterCode, landingSlug, whatsappUrl, tracker]);
+      variant: whatsappUrl ? 'link' : 'aviso',
+      page: pathname,
+    }),
+    [promoterCode, landingSlug, reason, whatsappUrl, pathname],
+  );
 
   const handleWhatsApp = useCallback(() => {
-    tracker?.track('referral_banner_whatsapp_click', {
-      promoter_code: promoterCode,
-      landing_slug: landingSlug,
-    });
-  }, [promoterCode, landingSlug, tracker]);
+    tracker?.track('referral_banner_whatsapp_click', datosDelEvento);
+  }, [tracker, datosDelEvento]);
 
-  // Antes del early return: los hooks no pueden quedar detrás de una condición.
-  const contenedorRef = useOffsetDeFranja(!descartado);
+  /**
+   * Impresión — `referral_banner_shown`, emitido cuando la franja está DE VERDAD
+   * a la vista.
+   *
+   * Se conserva el nombre del evento aunque ahora signifique "visible" y no
+   * "montado": `REFERRAL_BANNER_EVENT_TYPES` de ws2 es una allowlist y un tipo
+   * que no esté ahí lo descarta `is_valid_event` en silencio —200 OK, cero
+   * filas—. Estrenar `referral_banner_visible` costaba un deploy de ws2 para
+   * medir peor mientras tanto, y de paso rompía la serie histórica.
+   *
+   * Montar no es ver: la franja no es sticky, así que al navegar entre pasos con
+   * la página ya scrolleada puede montar completamente fuera del viewport. Con
+   * `IntersectionObserver` la impresión sólo se cuenta cuando el navegador
+   * confirma que entró en pantalla.
+   *
+   * OJO con lo que esto NO cubre: `IntersectionObserver` mide contra el viewport,
+   * no oclusión. La franja tapada por el navbar fijo —el bug que ya tuvo, con el
+   * nombre correcto en el HTML y cero pixeles visibles— sigue contando como
+   * visible acá. Contra eso lo que protege es `--referral-banner-offset`, no
+   * este evento; si alguna vez hace falta detectarlo desde el dato, el camino es
+   * `elementFromPoint` sobre el centro de la franja, no subir el threshold.
+   *
+   * Un cuarto de la franja alcanza: es una tira de ~44 px y con eso ya se lee.
+   *
+   * Una por página, no una por vez que entra al viewport: la franja sale y vuelve
+   * con el scroll y no son impresiones nuevas. `pathname` en las dependencias es
+   * a propósito —acompaña todo el recorrido y queremos saber en qué paso se vio—
+   * y el ref cubre el doble montaje de React en modo estricto.
+   */
+  const pathnameVisto = useRef<string | null>(null);
+  useEffect(() => {
+    const el = contenedorRef.current;
+    if (!tracker || !el || pathnameVisto.current === pathname) return;
 
-  if (descartado) return null;
+    const emitir = () => {
+      if (pathnameVisto.current === pathname) return;
+      pathnameVisto.current = pathname;
+      tracker.track('referral_banner_shown', datosDelEvento);
+    };
+
+    // Sin soporte (WebView viejo) se emite igual: perder la impresión es peor
+    // que contarla sin la confirmación de visibilidad.
+    if (typeof IntersectionObserver === 'undefined') {
+      emitir();
+      return;
+    }
+
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) {
+          emitir();
+          observador.disconnect();
+        }
+      },
+      { threshold: 0.25 },
+    );
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [tracker, pathname, datosDelEvento, contenedorRef]);
+
+  const contenido = (
+    <div className="mx-auto flex min-h-[44px] max-w-7xl items-center justify-center gap-2 px-3 py-2 sm:gap-3 sm:px-6">
+      <p className="text-center text-[13px] leading-tight sm:text-sm">
+        Te refirió <strong className="font-semibold">{firstName}</strong>
+        {whatsappUrl ? ', si tienes dudas escríbele aquí' : ''}
+      </p>
+      {whatsappUrl && (
+        <span
+          aria-hidden="true"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+          style={{ backgroundColor: ICONO_FONDO, color: ICONO_COLOR }}
+        >
+          <WhatsAppIcon className="h-4 w-4" />
+        </span>
+      )}
+    </div>
+  );
+
+  // Sin número no hay a dónde ir: se pinta como aviso y no como link. Un <a> sin
+  // href no es enfocable ni se anuncia como link, así que sería un botón falso.
+  if (!whatsappUrl) {
+    return (
+      <div
+        ref={contenedorRef as React.RefObject<HTMLDivElement>}
+        data-testid="referral-banner"
+        className="w-full"
+        style={{ backgroundColor: FONDO, color: TEXTO }}
+      >
+        {contenido}
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={contenedorRef}
+    <a
+      ref={contenedorRef as React.RefObject<HTMLAnchorElement>}
+      href={whatsappUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleWhatsApp}
       data-testid="referral-banner"
-      className="w-full"
+      // El testid del link ya no cuelga de un chip: ahora el link ES la franja.
+      data-referral-banner-whatsapp="true"
+      className="block w-full transition-opacity hover:opacity-95"
       style={{ backgroundColor: FONDO, color: TEXTO }}
     >
-      <div className="mx-auto flex min-h-[44px] max-w-7xl items-center gap-2 px-3 py-2 sm:px-6">
-        {/*
-          Contrapeso del botón de cerrar.
-
-          El texto se centra dentro de su caja, pero esa caja es el espacio que
-          SOBRA a la izquierda del botón: sin este hueco del mismo ancho, la
-          frase queda corrida hacia la izquierda la mitad del botón. Sólo aplica
-          cuando el botón es lo único que hay a la derecha — con el chip de
-          WhatsApp el ancho es variable y no hay contrapeso estático que sirva,
-          así que ahí el texto se centra en lo que le queda y ya.
-        */}
-        {!whatsappUrl && (
-          <span aria-hidden className="shrink-0 p-1">
-            <span className="block h-4 w-4" />
-          </span>
-        )}
-
-        <p className="flex-1 text-center text-[13px] leading-tight sm:text-sm">
-          {/* Móvil: versión corta, para que entre en una línea. */}
-          <span className="sm:hidden">
-            Te refirió <strong className="font-semibold">{firstName}</strong>
-          </span>
-          <span className="hidden sm:inline">
-            Haz sido referido por <strong className="font-semibold">{firstName}</strong>.
-            {whatsappUrl ? ' Si tienes dudas, escríbele:' : ''}
-          </span>
-        </p>
-
-        {whatsappUrl && (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleWhatsApp}
-            data-testid="referral-banner-whatsapp"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: CHIP_FONDO, color: CHIP_TEXTO }}
-          >
-            <WhatsAppIcon className="h-4 w-4" />
-            <span className="sm:hidden">Escríbele</span>
-            <span className="hidden sm:inline">{phoneDisplay}</span>
-          </a>
-        )}
-
-        <button
-          type="button"
-          onClick={handleDescartar}
-          aria-label="Cerrar aviso de referido"
-          data-testid="referral-banner-dismiss"
-          className="shrink-0 rounded p-1 opacity-70 transition-opacity hover:opacity-100"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
-    </div>
+      {contenido}
+    </a>
   );
 }

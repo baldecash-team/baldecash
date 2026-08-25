@@ -23,7 +23,6 @@ jest.mock('../../../[landing]/solicitar/context/EventTrackerContext', () => ({
 
 const DATOS: ReferralBannerData = {
   firstName: 'Aned',
-  phoneDisplay: null,
   whatsappUrl: null,
   promoterCode: 'ekscah',
   reason: 'ref',
@@ -100,83 +99,58 @@ describe('empuja al header fijo', () => {
 });
 
 describe('devuelve el espacio cuando ya no está', () => {
-  it('al descartarla suelta el offset', () => {
-    // Si quedara puesto, cerrar la franja dejaría una banda transparente
-    // permanente arriba de la página.
-    simularBorde(ALTO);
-    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
-    expect(offset()).toBe(`${ALTO}px`);
-
-    fireEvent.click(screen.getByTestId('referral-banner-dismiss'));
-
-    expect(screen.queryByTestId('referral-banner')).toBeNull();
-    expect(offset()).toBe('');
-  });
-
   it('al desmontarse suelta el offset', () => {
+    // Si quedara puesto, navegar a una página sin franja dejaría al header
+    // arrancando 44 px más abajo, con una banda transparente permanente arriba.
     simularBorde(ALTO);
     const { unmount } = render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+    expect(offset()).toBe(`${ALTO}px`);
 
     unmount();
-
-    expect(offset()).toBe('');
-  });
-
-  it('si ya venía descartada nunca lo pone', () => {
-    window.sessionStorage.setItem('baldecash-referral-banner-dismissed-ekscah', '1');
-    simularBorde(ALTO);
-
-    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
 
     expect(offset()).toBe('');
   });
 });
 
 /**
- * El texto va centrado en la franja, no pegado a la izquierda.
+ * El texto va centrado en la franja.
  *
- * El detalle que no se ve en el markup: centrar el `<p>` no alcanza, porque su
- * caja es el espacio que sobra a la izquierda del botón de cerrar. Sin un hueco
- * del mismo ancho enfrente, la frase queda corrida media anchura de botón.
+ * Antes hacía falta un hueco fantasma a la izquierda para contrapesar el botón
+ * de cerrar: la caja del `<p>` era lo que sobraba a su lado, así que centrar el
+ * párrafo dejaba la frase corrida media anchura de botón. Sin la X, el contenido
+ * es texto + ícono y alcanza con centrar la fila entera.
  */
 describe('centrado del texto', () => {
-  it('el parrafo va centrado', () => {
-    simularBorde(ALTO);
-    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
-
-    const parrafo = screen.getByTestId('referral-banner').querySelector('p');
-    expect(parrafo?.className).toContain('text-center');
-  });
-
-  it('sin chip de WhatsApp hay contrapeso del boton de cerrar', () => {
+  it('la fila va centrada y el párrafo también', () => {
     simularBorde(ALTO);
     render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
 
     const franja = screen.getByTestId('referral-banner');
-    const fila = franja.querySelector(':scope > div');
-    const hueco = fila?.firstElementChild;
-
-    // Mismo padding que el botón y un bloque del mismo tamaño que su icono:
-    // así los dos lados miden igual y el centro del texto es el de la franja.
-    expect(hueco?.getAttribute('aria-hidden')).toBe('true');
-    expect(hueco?.className).toContain('shrink-0');
-    expect(hueco?.className).toContain('p-1');
-    expect(hueco?.firstElementChild?.className).toContain('h-4');
-    expect(hueco?.firstElementChild?.className).toContain('w-4');
+    expect(franja.querySelector(':scope > div')?.className).toContain('justify-center');
+    expect(franja.querySelector('p')?.className).toContain('text-center');
   });
 
-  it('con chip de WhatsApp no se agrega contrapeso', () => {
-    // Ahí el lado derecho tiene ancho variable y un hueco fijo desbalancearía
-    // igual; además le robaría espacio a un texto que ya viene apretado.
+  it('no queda ningún hueco de contrapeso del botón que ya no existe', () => {
+    simularBorde(ALTO);
+    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+
+    const fila = screen.getByTestId('referral-banner').querySelector(':scope > div');
+    expect(fila?.firstElementChild?.tagName).toBe('P');
+  });
+
+  it('con link, el ícono va después del texto y no antes', () => {
+    // "Te refirió Aned, si tienes dudas escríbele aquí" ➜ ícono. Al revés, el
+    // ícono se lee como el sujeto de la frase.
     simularBorde(ALTO);
     render(
       <ReferralBanner
-        data={{ ...DATOS, phoneDisplay: '999 888 777', whatsappUrl: 'https://wa.me/51999888777' }}
+        data={{ ...DATOS, whatsappUrl: 'https://wa.me/51999888777' }}
         landingSlug="wiener"
       />,
     );
 
     const fila = screen.getByTestId('referral-banner').querySelector(':scope > div');
     expect(fila?.firstElementChild?.tagName).toBe('P');
+    expect(fila?.lastElementChild?.querySelector('svg')).not.toBeNull();
   });
 });
