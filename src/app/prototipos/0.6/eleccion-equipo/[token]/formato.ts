@@ -92,6 +92,20 @@ export function resumenMedios(fotos: number, tieneVideo: boolean): string {
 }
 
 /**
+ * "Foto 1", "Foto 2"... genérico y ordinal, 1-based a partir de un índice
+ * 0-based.
+ *
+ * ÚNICO rótulo de foto que se muestra en esta pantalla. El `label` que manda
+ * el API por foto NO es la parte del equipo (no existe ese dato): es el
+ * nombre del dispositivo de la estación de inspección que la grabó, y ese
+ * nombre puede ser el de una persona del equipo de trabajo — nunca se
+ * muestra en una pantalla pública.
+ */
+export function etiquetaFoto(indice: number): string {
+  return `Foto ${indice + 1}`;
+}
+
+/**
  * "1:05" a partir de segundos, para los controles propios del video
  * (`VideoControls`). `NaN`/negativo/`Infinity` (duración todavía desconocida,
  * antes de que cargue el metadata) se muestra como "0:00" en vez de romper.

@@ -203,7 +203,7 @@ describe('el zoom vuelve a su estado inicial', () => {
     await userEvent.click(boton('Acercar'));
     expect(escala()).toBeGreaterThan(1);
 
-    await userEvent.click(screen.getByRole('button', { name: /Teclado/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Foto 2/ }));
 
     // Quedarse acercado sobre otra foto deja mirando un recorte que nadie pidió.
     expect(escala()).toBe(1);
@@ -212,7 +212,7 @@ describe('el zoom vuelve a su estado inicial', () => {
   it('al pasar de una foto al video', async () => {
     render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Tapa/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Foto 1/ }));
     await userEvent.click(boton('Acercar'));
     expect(escala()).toBeGreaterThan(1);
 

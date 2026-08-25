@@ -152,10 +152,41 @@ describe('encuadre del medio grande', () => {
   it('la foto grande también usa object-cover, igual que sus miniaturas', async () => {
     render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Tapa/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Foto 1/ }));
 
     const foto = within(screen.getByTestId('visor-capa')).getByRole('img');
     expect(foto).toHaveClass('object-cover');
     expect(foto).not.toHaveClass('object-contain');
+  });
+});
+
+describe('privacidad: nunca se muestra el label del dispositivo de la estación', () => {
+  // El `label` de cada foto NO es la parte del equipo: es el nombre del
+  // dispositivo de la estación de inspección que la grabó (p. ej. "celular
+  // pamela" — el celular de una persona del equipo de trabajo). Mostrarlo en
+  // esta pantalla pública expondría ese nombre al cliente.
+  it('no aparece el label del dispositivo en ningún lado visible ni en el alt', async () => {
+    render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
+
+    expect(screen.queryByText('Tapa')).not.toBeInTheDocument();
+    expect(screen.queryByText('Teclado')).not.toBeInTheDocument();
+    expect(screen.queryByAltText(/Tapa|Teclado/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Foto 2/ }));
+
+    expect(screen.queryByText('Tapa')).not.toBeInTheDocument();
+    expect(screen.queryByText('Teclado')).not.toBeInTheDocument();
+    expect(screen.queryByAltText(/Tapa|Teclado/)).not.toBeInTheDocument();
+  });
+
+  it('rotula las fotos de forma genérica y ordinal, aunque el API no mande ningún label', () => {
+    render(
+      <GaleriaUnidad
+        unidad={{ ...unidad(1), photos: [{ url: 'https://s3/sin-label.jpg' }] }}
+        {...props}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Foto 1/ })).toBeInTheDocument();
   });
 });

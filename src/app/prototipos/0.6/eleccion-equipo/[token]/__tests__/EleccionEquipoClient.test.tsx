@@ -191,8 +191,10 @@ describe('galería', () => {
     await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
     await screen.findByRole('dialog');
 
-    // El nombre accesible del thumb es el alt de la foto + su etiqueta.
-    await userEvent.click(screen.getByRole('button', { name: /Teclado/ }));
+    // El nombre accesible del thumb es su rótulo genérico y ordinal (NUNCA el
+    // `label` que manda el API: es el nombre del dispositivo de la estación
+    // de inspección, no una parte del equipo — ver `EleccionFoto`).
+    await userEvent.click(screen.getByRole('button', { name: /Foto 2/ }));
 
     const cambios = mockTrack.mock.calls.filter(
       (c) => c[0] === 'equipment_selection_photo_change',
@@ -207,8 +209,8 @@ describe('galería', () => {
     await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
     await screen.findByRole('dialog');
 
-    await userEvent.click(screen.getByRole('button', { name: /Teclado/ }));
-    await userEvent.click(screen.getByRole('button', { name: /Teclado/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Foto 2/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Foto 2/ }));
 
     // Dos toques, un solo cambio real: contar el segundo infla la métrica.
     expect(

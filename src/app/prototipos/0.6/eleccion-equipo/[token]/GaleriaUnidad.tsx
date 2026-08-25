@@ -33,7 +33,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EleccionUnidad } from '../../services/eleccionEquipoApi';
-import { etiquetaGrado, nombreUnidad } from './formato';
+import { etiquetaFoto, etiquetaGrado, nombreUnidad } from './formato';
 import { VideoControls } from './VideoControls';
 import { VisorZoom } from './VisorZoom';
 
@@ -279,6 +279,9 @@ export function GaleriaUnidad({
   };
 
   const fotoActual = medio.tipo === 'foto' ? fotos[medio.indice] : undefined;
+  // Índice de la foto en pantalla, para el rótulo genérico ("Foto 1", "Foto
+  // 2"...). Nunca el `label` del API: ver el comentario de `EleccionFoto`.
+  const fotoActualIndice = medio.tipo === 'foto' ? medio.indice : 0;
   const sinMedios = !unidad.video_url && fotos.length === 0;
 
   const tira = useMemo(
@@ -398,7 +401,7 @@ export function GaleriaUnidad({
                   // eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image
                   <img
                     src={fotoActual.url}
-                    alt={`${titulo} — ${fotoActual.label ?? 'foto del equipo'}`}
+                    alt={`${titulo} — ${etiquetaFoto(fotoActualIndice)}`}
                     // Mismo criterio de encuadre que la tira de miniaturas de acá
                     // abajo y que la card de la lista (`UnidadCard`): las
                     // grabaciones de la estación de inspección traen pared vacía
@@ -525,12 +528,12 @@ export function GaleriaUnidad({
                     {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image */}
                     <img
                       src={foto.url}
-                      alt={foto.label ?? `Foto ${foto.indice + 1}`}
+                      alt={etiquetaFoto(foto.indice)}
                       loading="lazy"
                       className="h-[74px] w-full rounded-lg bg-[#f7f7fb] object-cover"
                     />
                     <span className="mt-1 block truncate text-[11px] font-semibold text-[#9a9aa8]">
-                      {foto.label ?? `Foto ${foto.indice + 1}`}
+                      {etiquetaFoto(foto.indice)}
                     </span>
                   </button>
                 ))}
