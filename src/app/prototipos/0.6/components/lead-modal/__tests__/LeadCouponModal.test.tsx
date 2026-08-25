@@ -632,6 +632,57 @@ describe('links legales', () => {
 
 
 
+describe('subtitle (antes description)', () => {
+  it('pinta el subtitle de la config', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, subtitle: 'Mi bajada propia' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('Mi bajada propia')).toBeInTheDocument();
+  });
+
+  // Una landing guardada antes del renombre sigue trayendo `description`.
+  // Sin este fallback, su subtitulo desaparece de la web.
+  it('cae a description cuando no hay subtitle', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, description: 'Bajada vieja' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('Bajada vieja')).toBeInTheDocument();
+  });
+
+  it('con las dos claves manda subtitle', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, subtitle: 'La nueva', description: 'La vieja' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('La nueva')).toBeInTheDocument();
+    expect(screen.queryByText('La vieja')).not.toBeInTheDocument();
+  });
+
+  it('sin subtitle ni description arma la bajada con el benefit del cupón', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, benefit: 'tu 50%' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(
+      screen.getByText('Déjanos tus datos y activamos tu 50%. Se aplica solo al elegir tu equipo.'),
+    ).toBeInTheDocument();
+  });
+});
+
 describe('z-index del overlay', () => {
   it('se monta por encima del chat de Blip', () => {
     // El chat se monta en el <body> con z-index 1000000 (medido en

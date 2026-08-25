@@ -31,6 +31,12 @@ export type PanelContent = 'coupon' | 'image' | 'none';
 export interface LeadModalConfig {
   enabled?: boolean;
   title?: string;
+  /** Segunda línea, bajo el título. */
+  subtitle?: string;
+  /**
+   * Nombre anterior de `subtitle`. Se sigue leyendo por las landings
+   * guardadas antes del renombre; el admin ya no lo escribe.
+   */
   description?: string;
   image_url?: string;
   button_text?: string;
@@ -497,14 +503,20 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
               {/* Texto del diseño aprobado, con el descuento REAL del cupon:
                   "Dejanos tus datos y activamos tu 15%". El `benefit` lo arma
                   el backend por tipo — con un periferico dice "tu regalo", no
-                  un porcentaje inventado. Si el admin escribe su propia
-                  descripcion, manda la suya. */}
-              {(config.description || config.benefit) && (
-                <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">
-                  {config.description
-                    || `Déjanos tus datos y activamos ${config.benefit}. Se aplica solo al elegir tu equipo.`}
-                </p>
-              )}
+                  un porcentaje inventado. Si el admin escribe su propio
+                  subtitulo, manda el suyo.
+                  `description` es el nombre viejo de `subtitle`: sigue leyendose
+                  para las landings guardadas antes del renombre. */}
+              {(() => {
+                const propio = config.subtitle || config.description;
+                if (!propio && !config.benefit) return null;
+                return (
+                  <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">
+                    {propio
+                      || `Déjanos tus datos y activamos ${config.benefit}. Se aplica solo al elegir tu equipo.`}
+                  </p>
+                );
+              })()}
 
               {config.countdown_enabled && config.countdown_ends_at && (
                 <Countdown endsAt={config.countdown_ends_at} />
