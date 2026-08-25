@@ -186,6 +186,20 @@ export default function EscanerPageContent() {
   const [videoDeClase, setVideoDeClase] = useState<VideoDeClase | null>(null);
   const [grabarIgual, setGrabarIgual] = useState(false);
   const [usandoVideoDeClase, setUsandoVideoDeClase] = useState(false);
+  // Fix ronda 1 (hallazgo 2): fuerza el remount de `IdentificarEquipo` desde
+  // `reiniciar()`. `IdentificarEquipo` guarda SU PROPIA copia de
+  // impecable/defectos/clase/videoDeClase (ver su doc-comment sobre
+  // `limpiarClase`), y solo la limpia por caminos que dispara el propio
+  // usuario (tipear, una nueva búsqueda). El ciclo normal de grabación la
+  // desmonta igual (pasa por `grabando`/`decidiendo`, ausentes de ese
+  // branch del JSX) así que remonta sola al volver a `inactiva` — pero el
+  // reuse de Task 9 NUNCA sale de `inactiva`, así que ese reset gratis no
+  // pasa: sin esto, la ficha del equipo YA reutilizado (`ya tiene
+  // video...`) seguía en pantalla sobre un serial vacío. Cambiar la `key`
+  // fuerza el mismo remount que el resto del ciclo ya usa como mecanismo de
+  // reset, en vez de duplicar ese estado acá o cablear un efecto nuevo en
+  // `IdentificarEquipo`.
+  const [identificarKey, setIdentificarKey] = useState(0);
   const [sesionEstado, setSesionEstado] = useState<SesionEstado>('inactiva');
   const [sesionError, setSesionError] = useState<string | null>(null);
   // Contador de tomas (F4 Task 5), visible en pantalla mientras se decide
@@ -729,6 +743,13 @@ export default function EscanerPageContent() {
     // sobreescrito) es de ESTE equipo — no debe arrastrarse al siguiente.
     setVideoDeClase(null);
     setGrabarIgual(false);
+    // Fix ronda 1 (hallazgo 2): fuerza el remount de `IdentificarEquipo` —
+    // ver el doc-comment de `identificarKey` más arriba. Sin esto, el reset
+    // de arriba no alcanza a limpiar la ficha interna del componente
+    // (impecable/defectos/clase/videoDeClase propios) cuando `reiniciar()`
+    // corre sin que el componente haya llegado a desmontarse (el caso nuevo
+    // de Task 9: "usar ese video" nunca sale de `inactiva`).
+    setIdentificarKey((k) => k + 1);
     setFavorita(false);
     setTakeNumber(1);
     setBloqueoCola(null);
@@ -1394,6 +1415,7 @@ export default function EscanerPageContent() {
           <>
             {session && (
               <IdentificarEquipo
+                key={identificarKey}
                 token={session.token}
                 serial={serial}
                 onSerialChange={setSerial}
@@ -1469,6 +1491,7 @@ export default function EscanerPageContent() {
                 !listo ||
                 !equipo ||
                 sesionEstado !== 'inactiva' ||
+                usandoVideoDeClase ||
                 (videoDeClase != null && !grabarIgual)
               }
               className="mt-4 w-full rounded-xl px-6 py-4 text-lg font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:hover:brightness-100"

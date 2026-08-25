@@ -837,6 +837,48 @@ describe('EscanerPageContent', () => {
         expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
       });
 
+      it('FIX RONDA 1 (hallazgo 1): INICIAR queda deshabilitado mientras "usar ese video" esta en vuelo, aunque ya se haya tocado "grabar igual"', async () => {
+        // "Grabar igual" habilita INICIAR sin ocultar "Usar ese video" — las
+        // dos quedan tocables a la vez. Si el operador dispara el reuse y
+        // ANTES de que resuelva hace click en INICIAR, no debe poder salir
+        // POST /inspections/reuse y POST /inspections en simultaneo sobre el
+        // mismo equipo (grabación silenciosa por carrera, no por una sola
+        // accion deliberada).
+        await renderConEquipoYVideoDeClase();
+        fireEvent.click(screen.getByRole('button', { name: /grabar igual/i }));
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
+
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        // Deliberadamente SIN esperar (`waitFor`/`await`) a que el fetch
+        // resuelva: el bloqueo tiene que ser inmediato, apenas se dispara el
+        // pedido — no una consecuencia de que la respuesta ya haya vuelto.
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+
+        // Deja resolver el pedido para no dejar act() warnings colgando.
+        await waitFor(() => {
+          expect(screen.getByLabelText(/serial del equipo/i)).toHaveValue('');
+        });
+      });
+
+      it('FIX RONDA 1 (hallazgo 2): tras un reuse exitoso, la ficha del equipo anterior no sigue en pantalla', async () => {
+        await renderConEquipoYVideoDeClase();
+        expect(screen.getByText(/ya tiene video/i)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        await waitFor(() => {
+          expect(screen.getByLabelText(/serial del equipo/i)).toHaveValue('');
+        });
+
+        // El estado confirmado (ficha "ya tiene video", equipo, etc.) es de
+        // OTRO equipo (el que se acaba de reutilizar) — no debe sobrevivir a
+        // un serial vacío. Si sigue en pantalla, el operador puede
+        // confundirla con la del equipo siguiente.
+        expect(screen.queryByText(/ya tiene video/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /usar ese video/i })).not.toBeInTheDocument();
+      });
+
       it('un 409 del reuse muestra el motivo y habilita INICIAR en vez de tragarse el error', async () => {
         await renderConEquipoYVideoDeClase({
           ok: false,
