@@ -15,8 +15,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 
 export interface EleccionFoto {
   url: string;
-  /** Etiqueta de la cámara que la tomó ("Tapa", "Teclado"...). Puede venir nula. */
-  label: string | null;
+  /**
+   * NO es la parte del equipo que muestra la foto: es el nombre del
+   * dispositivo de la estación de inspección que la tomó (p. ej. "celular
+   * pamela" — el celular de una persona del equipo de trabajo). Dato interno,
+   * nunca se muestra en pantalla ni viaja en analítica. El backend va a dejar
+   * de mandarlo; tratarlo como opcional y no usarlo para nada visible.
+   */
+  label?: string | null;
 }
 
 export interface EleccionUnidad {

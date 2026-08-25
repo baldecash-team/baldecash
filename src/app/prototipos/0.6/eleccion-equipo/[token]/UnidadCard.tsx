@@ -18,7 +18,7 @@
  */
 
 import type { EleccionUnidad } from '../../services/eleccionEquipoApi';
-import { etiquetaGrado, nombreUnidad, resumenMedios } from './formato';
+import { etiquetaFoto, etiquetaGrado, nombreUnidad, resumenMedios } from './formato';
 
 export interface UnidadCardProps {
   unidad: EleccionUnidad;
@@ -43,7 +43,7 @@ export function UnidadCard({ unidad, onAbrir }: UnidadCardProps) {
           // eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image
           <img
             src={portada.url}
-            alt={`${titulo} — ${portada.label ?? 'foto del equipo'}`}
+            alt={`${titulo} — ${etiquetaFoto(0)}`}
             loading="lazy"
             // `object-position` al 60% vertical (no el 50% centrado por defecto):
             // el frame de portada trae la laptop en la mitad inferior del cuadro

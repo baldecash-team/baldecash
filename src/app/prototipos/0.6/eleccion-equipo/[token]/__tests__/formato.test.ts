@@ -8,6 +8,7 @@
  */
 import {
   etiquetaCuentaRegresiva,
+  etiquetaFoto,
   etiquetaGrado,
   formatearCuota,
   nombreUnidad,
@@ -98,5 +99,13 @@ describe('resumenMedios', () => {
     expect(resumenMedios(1, false)).toBe('1 foto');
     expect(resumenMedios(0, true)).toBe('1 video');
     expect(resumenMedios(0, false)).toBe('');
+  });
+});
+
+describe('etiquetaFoto', () => {
+  it('ordinal 1-based genérico, sin depender del label del API', () => {
+    expect(etiquetaFoto(0)).toBe('Foto 1');
+    expect(etiquetaFoto(1)).toBe('Foto 2');
+    expect(etiquetaFoto(7)).toBe('Foto 8');
   });
 });

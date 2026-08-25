@@ -247,9 +247,10 @@ describe('efectos de navegar (el padre re-renderiza con otra unidad)', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Reproducir video' })).not.toBeInTheDocument();
-    // El alt de la foto GRANDE es "<título> — <etiqueta>" (distinto al de la
-    // miniatura, que es solo la etiqueta): se pide por ese texto completo para
-    // no confundirla con el thumbnail de la tira, que también matchea /Tapa/.
-    expect(screen.getByAltText('Unidad 02 — Tapa')).toBeInTheDocument();
+    // El alt de la foto GRANDE es "<título> — <rótulo genérico>" (distinto al
+    // de la miniatura, que es solo el rótulo): se pide por ese texto completo
+    // para no confundirla con el thumbnail de la tira, que también matchea
+    // /Foto 1/.
+    expect(screen.getByAltText('Unidad 02 — Foto 1')).toBeInTheDocument();
   });
 });
