@@ -184,7 +184,7 @@ describe('el video no se reinicia al hacer zoom', () => {
     expect(escala()).toBeGreaterThan(1);
   });
 
-  it('el zoom tampoco toca el src ni los atributos del video', async () => {
+  it('el zoom tampoco toca el src ni el silenciado del video', async () => {
     const { container } = render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
     const video = container.querySelector('video') as HTMLVideoElement;
     const srcAntes = video.getAttribute('src');
@@ -192,7 +192,7 @@ describe('el video no se reinicia al hacer zoom', () => {
     await userEvent.click(boton('Acercar'));
 
     expect(video.getAttribute('src')).toBe(srcAntes);
-    expect(video).toHaveAttribute('controls');
+    expect(video.muted).toBe(true);
   });
 });
 

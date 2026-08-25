@@ -25,13 +25,15 @@
  *    remontaje: usarla como `key` sería exactamente el bug que se quiere
  *    evitar.
  *
- * SOBRE EL `<video controls>`: los controles nativos son del navegador y ahí un
- * click ya significa play/pausa. Por eso el reparto es explícito — en tamaño
- * original el gesto de un dedo es del video (que siga funcionando la barra de
- * reproducción); recién acercado el marco se queda con el puntero para
- * desplazar. Y el doble click se ignora sobre el `<video>`: ahí el navegador ya
- * lo usa (pantalla completa en Chrome) y secuestrarlo terminaría pausando el
- * video, que es justo lo que no puede pasar.
+ * SOBRE EL VIDEO: el `<video>` NO tiene controles nativos (ver
+ * `VideoControls`, afuera de este componente) — así que acá no hay que
+ * repartirse el click con el navegador. En tamaño original el gesto de un
+ * dedo pasa de largo (nada que capturar: los controles propios viven afuera
+ * del marco); recién acercado el marco se queda con el puntero para
+ * desplazar. El doble click SÍ acerca sobre el video, igual que sobre una
+ * foto — antes se ignoraba ahí porque los controles nativos ya usaban ese
+ * gesto (pantalla completa) y el click suelto pausaba; sin controles nativos
+ * ese conflicto ya no existe.
  */
 
 import {
@@ -91,6 +93,7 @@ export function VisorZoom({
   className = '',
 }: VisorZoomProps) {
   const marcoRef = useRef<HTMLDivElement>(null);
+  const capaRef = useRef<HTMLDivElement>(null);
   const [transformacion, setTransformacion] = useState<Transformacion>(INICIAL);
 
   // Espejo síncrono del estado. Los handlers de puntero llegan muchas veces por
@@ -102,6 +105,44 @@ export function VisorZoom({
     actual.current = next;
     setTransformacion(next);
   }, []);
+
+  // Hay una sincronización con React pedida para el próximo cuadro (ver
+  // `pintar`). Evita apilar un `requestAnimationFrame` por cada evento del
+  // gesto: con esto se pide como mucho uno por cuadro.
+  const sincronizacionPedida = useRef(false);
+
+  const sincronizarConReact = useCallback(() => {
+    sincronizacionPedida.current = false;
+    setTransformacion(actual.current);
+  }, []);
+
+  /**
+   * Pinta la transformación DIRECTO sobre el nodo del DOM, sin pasar por
+   * `setState` en cada evento.
+   *
+   * POR QUÉ: la rueda y el pinch disparan decenas de eventos por segundo: si
+   * cada uno provocara un render de React (reconciliación completa de este
+   * componente), el trabajo se acumula cuadro a cuadro y el gesto se siente
+   * pegado al dedo, con retraso — es la causa real de que el zoom se sintiera
+   * "poco responsivo": no había ninguna `transition` de CSS de por medio (se
+   * buscó y no hay), era puramente esto. Acá se escribe el estilo YA (lo que
+   * se ve responde en el mismo cuadro del evento) y se pide UNA sola
+   * sincronización de React por cuadro, para que el estado — usado por el
+   * indicador de escala y por el estilo `cursor-grab` — no se quede atrás más
+   * de un frame. Los gestos DISCRETOS (botones, doble click) siguen usando
+   * `fijar` de una: no hay ráfaga de eventos que batchear ahí.
+   */
+  const pintar = useCallback((next: Transformacion) => {
+    actual.current = next;
+    const capa = capaRef.current;
+    if (capa) {
+      capa.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.escala})`;
+    }
+    if (!sincronizacionPedida.current) {
+      sincronizacionPedida.current = true;
+      requestAnimationFrame(sincronizarConReact);
+    }
+  }, [sincronizarConReact]);
 
   /**
    * Encierra la transformación dentro de lo razonable: la escala entre sus
@@ -141,13 +182,22 @@ export function VisorZoom({
    * `cx - f * (cx - x)`, con `f` la razón entre la escala nueva y la vieja.
    */
   const acercarHacia = useCallback(
-    (escalaPedida: number, cx: number, cy: number) => {
+    (
+      escalaPedida: number,
+      cx: number,
+      cy: number,
+      // 'gesto': viene de un evento que se repite muchas veces por segundo
+      // (rueda, pinch) y usa `pintar` (directo al DOM). 'inmediato' (default):
+      // acción discreta (botones, doble click), pasa por React de una.
+      modo: 'inmediato' | 'gesto' = 'inmediato',
+    ) => {
       const previa = actual.current;
       const escala = Math.min(ESCALA_MAX, Math.max(ESCALA_MIN, escalaPedida));
       const f = escala / previa.escala;
-      fijar(limitar(escala, cx - f * (cx - previa.x), cy - f * (cy - previa.y)));
+      const next = limitar(escala, cx - f * (cx - previa.x), cy - f * (cy - previa.y));
+      if (modo === 'gesto') pintar(next); else fijar(next);
     },
-    [fijar, limitar],
+    [fijar, pintar, limitar],
   );
 
   const acercar = useCallback(
@@ -193,8 +243,10 @@ export function VisorZoom({
       e.preventDefault();
       const centro = desdeElCentro(e.clientX, e.clientY);
       // Exponencial: cada paso multiplica, así que acercar y alejar el mismo
-      // tramo devuelve exactamente al mismo lugar.
-      acercarHacia(actual.current.escala * Math.exp(-e.deltaY * 0.0016), centro.x, centro.y);
+      // tramo devuelve exactamente al mismo lugar. El factor subió de 0.0016 a
+      // 0.0026 (antes se sentía "que no hace nada" con una sola muesca del
+      // mouse); 'gesto' porque la rueda dispara muchos eventos seguidos.
+      acercarHacia(actual.current.escala * Math.exp(-e.deltaY * 0.0026), centro.x, centro.y, 'gesto');
     };
 
     marco.addEventListener('wheel', alRodar, { passive: false });
@@ -211,8 +263,9 @@ export function VisorZoom({
   const arrastre = useRef<Punto | null>(null);
   /**
    * Hubo un gesto que movió algo. Sirve para tragarse el `click` que el
-   * navegador dispara al soltar: sin esto, terminar un arrastre sobre el
-   * `<video>` contaría como click y pausaría la reproducción.
+   * navegador dispara al soltar: sin esto, terminar un arrastre o un pinch se
+   * contaría como un tap suelto sobre el marco (o el arranque de un doble
+   * click de zoom que la persona no pidió).
    */
   const huboGesto = useRef(false);
 
@@ -231,7 +284,8 @@ export function VisorZoom({
     }
 
     // Un dedo: solo se secuestra si ya está acercado. En tamaño original el
-    // gesto es del video, para que su barra de reproducción siga andando.
+    // gesto pasa de largo: no hay nada que capturar ahí (los controles
+    // propios del video viven AFUERA del marco, en `VideoControls`).
     if (punteros.current.size === 1 && actual.current.escala > ESCALA_MIN) {
       arrastre.current = { x: e.clientX, y: e.clientY };
       e.preventDefault();
@@ -248,7 +302,9 @@ export function VisorZoom({
       const ahora = distancia(a, b);
       if (pinchPrevio.current > 0 && ahora > 0) {
         const centro = desdeElCentro((a.x + b.x) / 2, (a.y + b.y) / 2);
-        acercarHacia(actual.current.escala * (ahora / pinchPrevio.current), centro.x, centro.y);
+        // 'gesto': el pinch dispara un `pointermove` por cada micro-cambio de
+        // distancia entre los dos dedos — pintar directo, no por React.
+        acercarHacia(actual.current.escala * (ahora / pinchPrevio.current), centro.x, centro.y, 'gesto');
         huboGesto.current = true;
       }
       pinchPrevio.current = ahora;
@@ -261,7 +317,10 @@ export function VisorZoom({
       if (dx === 0 && dy === 0) return;
       arrastre.current = { x: e.clientX, y: e.clientY };
       const previa = actual.current;
-      fijar(limitar(previa.escala, previa.x + dx, previa.y + dy));
+      // Mismo motivo que el pinch: un `pointermove` de arrastre dispara
+      // muchas veces por segundo, así que se pinta directo (`pintar`) y no se
+      // pasa por `setState` en cada uno.
+      pintar(limitar(previa.escala, previa.x + dx, previa.y + dy));
       huboGesto.current = true;
     }
   };
@@ -272,13 +331,20 @@ export function VisorZoom({
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
     if (punteros.current.size < 2) pinchPrevio.current = null;
-    if (punteros.current.size === 0) arrastre.current = null;
+    if (punteros.current.size === 0) {
+      arrastre.current = null;
+      // Cierra el gesto: el estado de React se pone al día YA, sin esperar el
+      // próximo cuadro — para que un click inmediato después (el propio
+      // `click` fantasma que se traga `alHacerClickCaptura`, o un toque a los
+      // botones de zoom) vea la escala real y no una desactualizada.
+      setTransformacion(actual.current);
+    }
   };
 
   /**
    * Se traga el click con el que el navegador cierra un arrastre o un pinch.
-   * Va en fase de captura para que no llegue al `<video>`: si llegara, soltar
-   * el dedo después de mover la imagen pausaría la reproducción.
+   * Va en fase de captura para que no llegue a los hijos: sin esto, soltar el
+   * dedo después de mover la imagen se leería como un tap suelto.
    */
   const alHacerClickCaptura = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (!huboGesto.current) return;
@@ -289,11 +355,11 @@ export function VisorZoom({
 
   const alDobleClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (!activo) return;
-    // Sobre el `<video>` el doble click ya es del navegador (pantalla completa)
-    // y el click suelto es play/pausa: acá el atajo se rinde a propósito, para
-    // no terminar pausando lo que la persona está mirando. En el video quedan
-    // la rueda, el pinch y los botones.
-    if ((e.target as HTMLElement | null)?.tagName === 'VIDEO') return;
+    // Antes acá se ignoraba el doble click sobre el `<video>` porque los
+    // controles NATIVOS del navegador ya usaban ese gesto (pantalla completa)
+    // y el click suelto pausaba. Con controles propios (`VideoControls`,
+    // afuera de este marco) el `<video>` no tiene ningún comportamiento propio
+    // de click: el doble click queda libre para acercar, igual que en una foto.
 
     if (actual.current.escala > ESCALA_MIN) {
       restablecer();
@@ -324,6 +390,7 @@ export function VisorZoom({
       onDoubleClick={alDobleClick}
     >
       <div
+        ref={capaRef}
         data-testid="visor-capa"
         data-escala={transformacion.escala.toFixed(2)}
         className="grid h-full w-full place-items-center will-change-transform"

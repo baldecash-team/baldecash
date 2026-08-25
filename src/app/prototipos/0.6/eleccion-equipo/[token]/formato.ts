@@ -90,3 +90,15 @@ export function resumenMedios(fotos: number, tieneVideo: boolean): string {
   if (fotos > 0) partes.push(`${fotos} ${fotos === 1 ? 'foto' : 'fotos'}`);
   return partes.join(' · ');
 }
+
+/**
+ * "1:05" a partir de segundos, para los controles propios del video
+ * (`VideoControls`). `NaN`/negativo/`Infinity` (duración todavía desconocida,
+ * antes de que cargue el metadata) se muestra como "0:00" en vez de romper.
+ */
+export function formatearDuracion(segundos: number): string {
+  const total = Number.isFinite(segundos) && segundos > 0 ? Math.floor(segundos) : 0;
+  const mm = Math.floor(total / 60);
+  const ss = total % 60;
+  return `${mm}:${String(ss).padStart(2, '0')}`;
+}

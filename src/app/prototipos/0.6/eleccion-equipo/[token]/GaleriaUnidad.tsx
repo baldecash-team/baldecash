@@ -7,7 +7,9 @@
  * Es el corazón de la pantalla. El valor no es elegir un número: es VER el
  * equipo concreto antes de aceptarlo, así que el medio manda y el resto es
  * marco. Como los equipos son reacondicionados y lo que se busca son rayones y
- * marcas, el visor se puede acercar (`VisorZoom`) sin cortar el video.
+ * marcas, el visor se puede acercar (`VisorZoom`) sin cortar el video, y desde
+ * acá también se puede pasar a la unidad siguiente/anterior sin cerrar el
+ * diálogo — comparar es la actividad central de esta pantalla.
  *
  * Dos formas según el ancho:
  * - Mobile: bottom-sheet, como el diseño aprobado.
@@ -17,11 +19,18 @@
  * NO hay bullets de "detalle estético" ni marcas dibujadas sobre la imagen: ese
  * dato no existe, nadie lo captura. Y NUNCA se muestra el serial — el cliente
  * ve "Unidad 01" (`display_number`), que es lo único que el backend manda.
+ *
+ * El video NO usa los controles nativos del navegador (ver `VideoControls`):
+ * esos siempre traen volumen, y el audio de este video puede traer
+ * conversaciones del equipo de trabajo del taller. Silenciarlo por defecto no
+ * alcanzaba porque el volumen quedaba a un click — con controles propios el
+ * volumen directamente no existe como opción.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EleccionUnidad } from '../../services/eleccionEquipoApi';
 import { etiquetaGrado, nombreUnidad } from './formato';
+import { VideoControls } from './VideoControls';
 import { VisorZoom } from './VisorZoom';
 
 /** Qué se está viendo en el visor grande. */
@@ -34,7 +43,6 @@ const FOCUSABLES = [
   'input:not([disabled])',
   'select:not([disabled])',
   'textarea:not([disabled])',
-  'video[controls]',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
@@ -50,10 +58,21 @@ export interface GaleriaUnidadProps {
   onCambiarFoto: (indice: number) => void;
   /** El video empezó a reproducirse. Se llama UNA vez por apertura. */
   onReproducirVideo: () => void;
+  /** La unidad previa en la lista que recibió la pantalla, o `null`/`undefined` si esta es la primera. */
+  unidadAnterior?: EleccionUnidad | null;
+  /** La unidad siguiente en la lista, o `null`/`undefined` si esta es la última. */
+  unidadSiguiente?: EleccionUnidad | null;
+  /**
+   * Navega a otra unidad SIN cerrar el diálogo. Si no se pasa, no se muestran
+   * los botones de anterior/siguiente (así este componente sigue sirviendo
+   * standalone, sin forzar a todo consumidor a resolver una lista).
+   */
+  onNavegar?: (unidad: EleccionUnidad) => void;
 }
 
 export function GaleriaUnidad({
   unidad, enviando, error, onCerrar, onElegir, onCambiarFoto, onReproducirVideo,
+  unidadAnterior = null, unidadSiguiente = null, onNavegar,
 }: GaleriaUnidadProps) {
   const titulo = nombreUnidad(unidad.display_number);
   const grado = etiquetaGrado(unidad.grado, unidad.grado_label);
@@ -67,6 +86,23 @@ export function GaleriaUnidad({
   // métrica de "cuántos miran el video" en "cuántos manotean la barra".
   const videoYaContado = useRef(false);
 
+  // Vuelve al video (o a la primera foto) cuando cambia de UNIDAD, aunque la
+  // galería no se desmonte: navegar con los botones/flechas reusa este mismo
+  // componente. Sin esto, `medio` seguiría apuntando al índice de foto de la
+  // unidad anterior —que en la nueva puede no existir, o ser otra foto— y el
+  // video quedaría mostrando el cuadro de la unidad vieja hasta que alguien
+  // tocara la tira. Se ajusta DURANTE el render, mismo patrón que usa
+  // `VisorZoom` para `reiniciarEn`: con un efecto habría un cuadro intermedio
+  // mostrando el medio equivocado.
+  const [unidadVista, setUnidadVista] = useState(unidad.unit_id);
+  if (unidadVista !== unidad.unit_id) {
+    setUnidadVista(unidad.unit_id);
+    setMedio(unidad.video_url ? { tipo: 'video' } : { tipo: 'foto', indice: 0 });
+    // Navegar a otra unidad es, para la analítica, abrir su galería: su
+    // primer play tiene que volver a contar.
+    videoYaContado.current = false;
+  }
+
   const dialogoRef = useRef<HTMLDivElement>(null);
 
   // `onCerrar` llega como arrow inline, así que su identidad cambia en cada
@@ -76,6 +112,49 @@ export function GaleriaUnidad({
   // el foco nunca volvería a la card.
   const cerrarRef = useRef(onCerrar);
   useEffect(() => { cerrarRef.current = onCerrar; }, [onCerrar]);
+
+  // El nodo real del `<video>` montado ahora mismo (o `null` si se está
+  // mirando una foto). `VideoControls` vive AFUERA de `VisorZoom` —si viviera
+  // adentro, la barra de progreso se acercaría y se movería con el zoom— así
+  // que necesita el nodo por acá, no como `children`.
+  const [videoNode, setVideoNode] = useState<HTMLVideoElement | null>(null);
+  const asignarVideo = (nodo: HTMLVideoElement | null) => {
+    if (nodo) {
+      // Fuerza la PROPIEDAD del DOM, no solo el atributo declarativo `muted`
+      // de más abajo: React no siempre refleja `muted` en el HTML que sale
+      // del servidor (bug conocido de React con `<video>`/`<audio>`), así que
+      // sin esto el video podría arrancar audible antes de que React termine
+      // de hidratar. El callback ref corre en el commit, antes del pintado.
+      nodo.muted = true;
+      nodo.defaultMuted = true;
+    }
+    setVideoNode(nodo);
+  };
+
+  // Refs con los últimos valores de navegación, para que el handler de
+  // teclado (registrado UNA vez al abrir, más abajo) no quede leyendo props
+  // viejas de cuando se montó.
+  const navegacionRef = useRef({ unidadAnterior, unidadSiguiente, onNavegar });
+  useEffect(() => {
+    navegacionRef.current = { unidadAnterior, unidadSiguiente, onNavegar };
+  });
+
+  /**
+   * Navega a otra unidad SIN cerrar el diálogo.
+   *
+   * Antes de disparar la navegación se lleva el foco al propio diálogo: los
+   * controles del video se REMONTAN al cambiar de unidad (arrancan limpios,
+   * sin arrastrar el cuadro ni el punto de reproducción de la unidad
+   * anterior — ver el `key` del `<video>` más abajo), así que si el foco
+   * seguía en el botón de play o en la barra de progreso, el remount lo tira
+   * al `body` y rompe la trampa de foco del diálogo. Asegurarlo ACÁ, antes de
+   * que React procese el cambio, lo evita sin importar qué control lo tenía.
+   */
+  const navegarA = (destino: EleccionUnidad) => {
+    if (!onNavegar) return;
+    dialogoRef.current?.focus();
+    onNavegar(destino);
+  };
 
   // Foco y scroll mientras el diálogo está abierto.
   //
@@ -93,6 +172,22 @@ export function GaleriaUnidad({
 
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key === 'Escape') return cerrarRef.current();
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // El input[type=range] de la barra de progreso del video YA usa las
+        // flechas para mover el punto de reproducción cuando tiene el foco:
+        // se respeta ese uso y acá no se navega de unidad, para que una
+        // flecha no haga dos cosas a la vez.
+        const activo = document.activeElement;
+        const enBarraDeVideo = activo instanceof HTMLInputElement && activo.type === 'range';
+        if (!enBarraDeVideo) {
+          const { unidadAnterior: prev, unidadSiguiente: next } = navegacionRef.current;
+          if (e.key === 'ArrowLeft' && prev) { e.preventDefault(); navegarA(prev); }
+          if (e.key === 'ArrowRight' && next) { e.preventDefault(); navegarA(next); }
+        }
+        return;
+      }
+
       if (e.key !== 'Tab' || !dialogo) return;
 
       const focusables = Array.from(dialogo.querySelectorAll<HTMLElement>(FOCUSABLES));
@@ -166,7 +261,8 @@ export function GaleriaUnidad({
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        // Enfocable por código (no por Tab): es donde aterriza el foco al abrir.
+        // Enfocable por código (no por Tab): es donde aterriza el foco al abrir
+        // (y al navegar a otra unidad, ver `navegarA`).
         tabIndex={-1}
         className="fixed z-[9999] flex flex-col bg-white focus:outline-none text-[#151744] shadow-[0_-10px_40px_rgba(0,0,0,.2)] bottom-0 left-1/2 max-h-[92vh] w-full max-w-[480px] -translate-x-1/2 overflow-y-auto rounded-t-[22px] md:bottom-auto md:top-1/2 md:max-h-[88vh] md:max-w-[1000px] md:-translate-y-1/2 md:rounded-[22px]"
       >
@@ -190,42 +286,119 @@ export function GaleriaUnidad({
         </div>
 
         <div className="px-5 pb-6 pt-4 md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:gap-6 md:px-6 md:pb-7">
-          {/* Visor grande: el video por defecto, o la foto que se toque.
-              El zoom vive en `VisorZoom` y es una transformación CSS sobre la
-              capa que envuelve al medio: acá adentro no se toca el `<video>`,
-              porque remontarlo lo reiniciaría desde cero. */}
-          <VisorZoom
-            activo={!sinMedios}
-            reiniciarEn={claveMedio}
-            className="h-[210px] rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]"
-          >
-            {medio.tipo === 'video' && unidad.video_url ? (
-              <video
-                src={unidad.video_url}
-                controls
-                playsInline
-                preload="metadata"
-                aria-label={`Video de la ${titulo}`}
-                onPlay={() => {
-                  if (videoYaContado.current) return;
-                  videoYaContado.current = true;
-                  onReproducirVideo();
-                }}
-                className="h-full w-full object-contain"
-              />
-            ) : fotoActual ? (
-              // eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image
-              <img
-                src={fotoActual.url}
-                alt={`${titulo} — ${fotoActual.label ?? 'foto del equipo'}`}
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <p className="px-6 text-center text-[13px] text-[#5b5c6b]">
-                Todavía no subimos las fotos de esta unidad.
-              </p>
-            )}
-          </VisorZoom>
+          {/* Columna del medio: el visor grande (con el zoom y, superpuestos,
+              los botones de anterior/siguiente) y, debajo, los controles
+              propios del video cuando corresponde. */}
+          <div>
+            <div className="relative">
+              {/* Visor grande: el video por defecto, o la foto que se toque.
+                  El zoom vive en `VisorZoom` y es una transformación CSS sobre la
+                  capa que envuelve al medio: acá adentro no se toca el `<video>`,
+                  porque remontarlo lo reiniciaría desde cero (salvo al cambiar de
+                  UNIDAD, que sí lo remonta a propósito — ver su `key`). */}
+              <VisorZoom
+                activo={!sinMedios}
+                reiniciarEn={claveMedio}
+                className="h-[210px] rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]"
+              >
+                {medio.tipo === 'video' && unidad.video_url ? (
+                  <video
+                    // Sí se remonta al cambiar de UNIDAD (no al hacer zoom ni al
+                    // cambiar de medio dentro de la misma unidad): es un video
+                    // distinto y tiene que arrancar limpio, no seguir reproduciendo
+                    // el de la unidad anterior ni mostrar su último cuadro.
+                    key={`video:${unidad.unit_id}`}
+                    ref={asignarVideo}
+                    src={unidad.video_url}
+                    // Obligatorio: sin esto, iOS abre el reproductor nativo a
+                    // pantalla completa, que trae SUS propios controles —con
+                    // volumen incluido— y se pierde todo lo de `VideoControls`.
+                    playsInline
+                    preload="metadata"
+                    // Silenciado a propósito, y SIN control de volumen (ver
+                    // `VideoControls`, debajo): la estación de inspección graba
+                    // este video EN EL TALLER, y el audio puede traer
+                    // conversaciones del equipo de trabajo alrededor del equipo.
+                    // No es un descuido si lo ves sin sonido y sin forma de
+                    // subirlo: es a propósito, por privacidad.
+                    muted
+                    aria-label={`Video de la ${titulo}`}
+                    onPlay={() => {
+                      if (videoYaContado.current) return;
+                      videoYaContado.current = true;
+                      onReproducirVideo();
+                    }}
+                    className="h-full w-full object-cover object-[50%_60%]"
+                  />
+                ) : fotoActual ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image
+                  <img
+                    src={fotoActual.url}
+                    alt={`${titulo} — ${fotoActual.label ?? 'foto del equipo'}`}
+                    // Mismo criterio de encuadre que la tira de miniaturas de acá
+                    // abajo y que la card de la lista (`UnidadCard`): las
+                    // grabaciones de la estación de inspección traen pared vacía
+                    // arriba y el equipo cae hacia la mitad inferior del cuadro.
+                    // `object-cover` (en vez de `object-contain`, que dejaba el
+                    // equipo chico y con bandas) hace que el medio grande
+                    // acompañe a la tira, que ya recorta; lo que quede fuera del
+                    // recuadro se alcanza con el zoom, que es justo para eso.
+                    className="h-full w-full object-cover object-[50%_60%]"
+                  />
+                ) : (
+                  <p className="px-6 text-center text-[13px] text-[#5b5c6b]">
+                    Todavía no subimos las fotos de esta unidad.
+                  </p>
+                )}
+              </VisorZoom>
+
+              {onNavegar && (
+                // Comparar es la actividad central de esta pantalla: ir a la
+                // unidad siguiente/anterior sin cerrar el diálogo evita perder
+                // el hilo —y el zoom, y el punto del video— en cada
+                // comparación. NUNCA `disabled` en los extremos, mismo motivo
+                // que los botones de zoom de `VisorZoom`: deshabilitar el que
+                // tiene el foco lo saca del diálogo. En el límite, el botón no
+                // hace nada (`aria-disabled` lo informa igual).
+                <>
+                  <button
+                    type="button"
+                    onClick={() => unidadAnterior && navegarA(unidadAnterior)}
+                    aria-label="Unidad anterior"
+                    aria-disabled={!unidadAnterior}
+                    className={`absolute left-2 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[#3a3c52] shadow-[0_2px_10px_rgba(10,12,30,.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD] ${
+                      unidadAnterior ? '' : 'opacity-40'
+                    }`}
+                  >
+                    <svg
+                      width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                    >
+                      <path d="M15 6l-6 6 6 6" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => unidadSiguiente && navegarA(unidadSiguiente)}
+                    aria-label="Unidad siguiente"
+                    aria-disabled={!unidadSiguiente}
+                    className={`absolute right-2 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[#3a3c52] shadow-[0_2px_10px_rgba(10,12,30,.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD] ${
+                      unidadSiguiente ? '' : 'opacity-40'
+                    }`}
+                  >
+                    <svg
+                      width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                    >
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
+
+            <VideoControls video={videoNode} />
+          </div>
 
           <div className="md:flex md:flex-col">
             {/* Tira: el video primero (si hay) y después cada foto. */}
