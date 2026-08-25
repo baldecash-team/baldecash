@@ -706,6 +706,195 @@ describe('EscanerPageContent', () => {
     });
   
 
+    describe('usar el video de la clase (Task 9)', () => {
+      /** Referencia de otra unidad idéntica que ya cubre esta clase (Task 8,
+       * `video_de_clase`). Mismo shape que `VideoDeClase` en
+       * `IdentificarEquipo.tsx`. */
+      const videoDeClase = {
+        inspection_id: 41,
+        serial: '5CD5202OLD',
+        fecha: '2026-08-20T10:00:00',
+        videos: 3,
+        fotos: 2,
+      };
+
+      /** Igual que `instalarFetchEscaner`, pero el catálogo devuelve
+       * `video_de_clase` para el serial confirmado, y agrega la ruta de
+       * `POST /inspections/reuse` (Task 5/9). `reuseResponse` es
+       * override-able para simular el 409 del servidor. */
+      function instalarFetchEscanerConVideoDeClase(reuseResponse?: {
+        ok: boolean;
+        status?: number;
+        json: () => Promise<unknown>;
+      }) {
+        global.fetch = jest.fn((url: RequestInfo | URL) => {
+          const u = String(url);
+          if (u.includes('/stations/') && u.endsWith('/state')) {
+            return Promise.resolve({ ok: true, json: async () => ({ camera_labels: ['techo'] }) });
+          }
+          if (u.endsWith('/inspections/reuse')) {
+            return Promise.resolve(
+              reuseResponse ?? {
+                ok: true,
+                json: async () => ({ inspection_id: 55, reused_from: 41, status: 'complete' }),
+              }
+            );
+          }
+          if (u.includes('/inspections/catalog/')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                encontrado: true,
+                equipo: {
+                  record_id: 'rec1',
+                  serial: '5CD5202PWY',
+                  marca: 'Lenovo',
+                  modelo: 'IdeaPad Slim 3',
+                  procesador: 'Intel Core i7',
+                  ram_gb: 16,
+                  almacenamiento: '1TB SSD',
+                  pantalla: 15.6,
+                  grado: 'A',
+                  tipo: 'Laptop',
+                  sku: 'LPLEAL0000606',
+                },
+                candidato: '5CD5202PWY',
+                confianza: null,
+                error: null,
+                impecable: true,
+                defectos: [],
+                clase: { grupo_visual: 'g1', grado: 'A', etiqueta: 'IdeaPad Slim 3 A' },
+                video_de_clase: videoDeClase,
+              }),
+            });
+          }
+          return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
+        }) as unknown as typeof fetch;
+      }
+
+      /** Deja la vista lista para escanear y con el equipo confirmado, cuya
+       * clase ya tiene video (`videoDeClase`, arriba). */
+      async function renderConEquipoYVideoDeClase(reuseResponse?: {
+        ok: boolean;
+        status?: number;
+        json: () => Promise<unknown>;
+      }) {
+        setDeviceSessionEscaner();
+        instalarFetchEscanerConVideoDeClase(reuseResponse);
+        render(<EscanerPageContent />);
+        conectarYListo();
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial('5CD5202PWY');
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /usar ese video/i })).toBeInTheDocument();
+        });
+      }
+
+      it('con video de clase, INICIAR queda deshabilitado y aparece "usar ese video"', async () => {
+        await renderConEquipoYVideoDeClase();
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /usar ese video/i })).toBeEnabled();
+      });
+
+      it('"usar ese video" registra la inspeccion sin grabar', async () => {
+        await renderConEquipoYVideoDeClase();
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        await waitFor(() => {
+          const llamada = (global.fetch as jest.Mock).mock.calls.find(([u]: [string]) =>
+            String(u).endsWith('/inspections/reuse')
+          );
+          expect(llamada).toBeTruthy();
+          expect(JSON.parse(llamada![1].body)).toEqual({
+            serial: '5CD5202PWY',
+            airtable_record_id: 'rec1',
+          });
+        });
+        // No se manda ningun cmd.start: no hay nada que grabar. Tampoco se
+        // crea una inspección normal ni se pide ninguna toma.
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).includes('/takes'))
+        ).toBe(false);
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(
+            ([u]: [string]) => String(u).endsWith('/inspections') && !String(u).includes('reuse')
+          )
+        ).toBe(false);
+
+        // Se limpia la pantalla para el equipo siguiente — mismo reset que
+        // "Terminar y pasar al equipo siguiente".
+        await waitFor(() => {
+          expect(screen.getByLabelText(/serial del equipo/i)).toHaveValue('');
+        });
+        expect(screen.queryByRole('button', { name: /usar ese video/i })).not.toBeInTheDocument();
+      });
+
+      it('"grabar igual" habilita el flujo normal', async () => {
+        await renderConEquipoYVideoDeClase();
+        fireEvent.click(screen.getByRole('button', { name: /grabar igual/i }));
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
+      });
+
+      it('FIX RONDA 1 (hallazgo 1): INICIAR queda deshabilitado mientras "usar ese video" esta en vuelo, aunque ya se haya tocado "grabar igual"', async () => {
+        // "Grabar igual" habilita INICIAR sin ocultar "Usar ese video" — las
+        // dos quedan tocables a la vez. Si el operador dispara el reuse y
+        // ANTES de que resuelva hace click en INICIAR, no debe poder salir
+        // POST /inspections/reuse y POST /inspections en simultaneo sobre el
+        // mismo equipo (grabación silenciosa por carrera, no por una sola
+        // accion deliberada).
+        await renderConEquipoYVideoDeClase();
+        fireEvent.click(screen.getByRole('button', { name: /grabar igual/i }));
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
+
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        // Deliberadamente SIN esperar (`waitFor`/`await`) a que el fetch
+        // resuelva: el bloqueo tiene que ser inmediato, apenas se dispara el
+        // pedido — no una consecuencia de que la respuesta ya haya vuelto.
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+
+        // Deja resolver el pedido para no dejar act() warnings colgando.
+        await waitFor(() => {
+          expect(screen.getByLabelText(/serial del equipo/i)).toHaveValue('');
+        });
+      });
+
+      it('FIX RONDA 1 (hallazgo 2): tras un reuse exitoso, la ficha del equipo anterior no sigue en pantalla', async () => {
+        await renderConEquipoYVideoDeClase();
+        expect(screen.getByText(/ya tiene video/i)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        await waitFor(() => {
+          expect(screen.getByLabelText(/serial del equipo/i)).toHaveValue('');
+        });
+
+        // El estado confirmado (ficha "ya tiene video", equipo, etc.) es de
+        // OTRO equipo (el que se acaba de reutilizar) — no debe sobrevivir a
+        // un serial vacío. Si sigue en pantalla, el operador puede
+        // confundirla con la del equipo siguiente.
+        expect(screen.queryByText(/ya tiene video/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /usar ese video/i })).not.toBeInTheDocument();
+      });
+
+      it('un 409 del reuse muestra el motivo y habilita INICIAR en vez de tragarse el error', async () => {
+        await renderConEquipoYVideoDeClase({
+          ok: false,
+          status: 409,
+          json: async () => ({ detail: { reason: 'no_impecable' } }),
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        await waitFor(() => {
+          expect(screen.getByText(/ya no.*impecable/i)).toBeInTheDocument();
+        });
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
+      });
+    });
+
     describe('fotos desde el controlador', () => {
       /** Simula que TODAS las camaras confirmaron la foto contra S3. Es la
        * senal que destraba la pantalla: el escaner no deja decidir hasta
@@ -827,6 +1016,94 @@ describe('EscanerPageContent', () => {
             ([u]: [string]) => !String(u).endsWith('/stop')
           )
         ).toBe(true);
+      });
+
+      async function renderGrabando() {
+        setDeviceSessionEscaner();
+        // Override para incluir un serial específico en la respuesta
+        global.fetch = jest.fn((url: RequestInfo | URL) => {
+          const u = String(url);
+          if (u.includes('/stations/') && u.endsWith('/state')) {
+            return Promise.resolve({ ok: true, json: async () => ({ camera_labels: ['techo'] }) });
+          }
+          if (u.endsWith('/abort')) {
+            return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'failed' }) });
+          }
+          if (u.endsWith('/stop')) {
+            return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'uploading' }) });
+          }
+          if (u.endsWith('/takes')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                inspection_id: 1, take_number: 1, start_at: Date.now() + 1500, seq: 1, status: 'recording',
+              }),
+            });
+          }
+          if (u.includes('/inspections/catalog/')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                encontrado: true,
+                equipo: {
+                  record_id: 'rec123',
+                  serial: '5CD5202PWY',
+                  marca: 'Lenovo',
+                  modelo: 'IdeaPad Slim 3',
+                  procesador: 'Intel Core i7',
+                  ram_gb: 16,
+                  almacenamiento: '1TB SSD',
+                  pantalla: 15.6,
+                  grado: 'A',
+                  tipo: 'Laptop',
+                  sku: 'LPLEAL0000606',
+                },
+                candidato: '5CD5202PWY',
+                confianza: null,
+                error: null,
+              }),
+            });
+          }
+          if (u.endsWith('/inspections')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                inspection_id: 1, start_at: Date.now() + 1500, seq: 1, modo: 'video',
+              }),
+            });
+          }
+          return Promise.reject(new Error(`fetch inesperado en renderGrabando: ${u}`));
+        }) as unknown as typeof fetch;
+
+        render(<EscanerPageContent />);
+        const pusher = conectarYListo();
+
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial('5CD5202PWY');
+        fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+
+        await waitFor(() => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/inspections'))
+          ).toBe(true);
+        });
+
+        act(() => {
+          pusher.channel.emit('recording.started', { inspection_id: 1 });
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        });
+      }
+
+      it('mientras graba sigue mostrando contra que equipo esta grabando', async () => {
+        await renderGrabando();
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        expect(screen.getByText(/5CD5202PWY/)).toBeInTheDocument();
+        expect(screen.getByText(/Grado A/)).toBeInTheDocument();
       });
     });
   });

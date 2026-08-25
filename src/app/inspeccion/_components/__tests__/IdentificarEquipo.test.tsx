@@ -32,6 +32,14 @@ function fetchColgado() {
   global.fetch = jest.fn(() => new Promise(() => {})) as unknown as typeof fetch;
 }
 
+/** `fetch` que resuelve OK con el body dado (misma forma que `/catalog/{serial}`). */
+function fetchOk(body: unknown) {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => body,
+  }) as unknown as typeof fetch;
+}
+
 describe('IdentificarEquipo', () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -125,5 +133,164 @@ describe('IdentificarEquipo', () => {
     // Si no, lo confirmado dejaría de corresponder al texto en pantalla y se
     // podría grabar contra el equipo equivocado.
     expect(onEquipoChange).toHaveBeenCalledWith(null);
+  });
+
+  it('muestra que la clase ya tiene video y cuanto material tiene', async () => {
+    fetchOk({
+      encontrado: true,
+      equipo: { ...EQUIPO, grado: 'A' },
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: {
+        inspection_id: 41,
+        serial: '5CD51854S5',
+        fecha: '2026-08-24T11:02:00',
+        videos: 2,
+        fotos: 4,
+      },
+    });
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/ya tiene video/i)).toBeInTheDocument();
+    expect(screen.getByText(/5CD51854S5/)).toBeInTheDocument();
+    expect(screen.getByText(/2 videos/)).toBeInTheDocument();
+    expect(screen.getByText(/4 fotos/)).toBeInTheDocument();
+  });
+
+  it('sin fecha, el bloque de clase se arma igual (no tumba la pantalla)', async () => {
+    // `video_de_clase.fecha` es `Optional[str]` en el backend. Tipada como
+    // `string`, `formatearFecha(null)` llamaba `.split` sobre `null` y se
+    // llevaba puesta la pantalla entera de la estación. Lo que el operador
+    // necesita para decidir —desde qué serial y cuánto material— no depende
+    // de la fecha, así que el bloque tiene que seguir en pie sin ella.
+    fetchOk({
+      encontrado: true,
+      equipo: { ...EQUIPO, grado: 'A' },
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: {
+        inspection_id: 41,
+        serial: '5CD51854S5',
+        fecha: null,
+        videos: 2,
+        fotos: 4,
+      },
+    });
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/ya tiene video/i)).toBeInTheDocument();
+    expect(screen.getByText(/5CD51854S5/)).toBeInTheDocument();
+    expect(screen.getByText(/2 videos/)).toBeInTheDocument();
+    // Y sin un "grabado el " colgando de la nada.
+    expect(screen.queryByText(/grabado el/i)).not.toBeInTheDocument();
+  });
+
+  it('lista los defectos que obligan a grabar', async () => {
+    fetchOk({
+      encontrado: true,
+      equipo: EQUIPO,
+      impecable: false,
+      defectos: [{ campo: 'Pantalla — Rayadura', nivel: 'Leve' }],
+      clase: null,
+      video_de_clase: null,
+    });
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/hay que grabar/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pantalla — Rayadura/)).toBeInTheDocument();
+    expect(screen.getByText(/Leve/)).toBeInTheDocument();
+  });
+
+  it('avisa cuando esta unidad va a quedar como referencia de su clase', async () => {
+    fetchOk({
+      encontrado: true,
+      equipo: EQUIPO,
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: null,
+    });
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/queda como referencia/i)).toBeInTheDocument();
+  });
+
+  it('editar el serial tras un match invalida también el video de clase confirmado', async () => {
+    fetchOk({
+      encontrado: true,
+      equipo: EQUIPO,
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: {
+        inspection_id: 41,
+        serial: '5CD51854S5',
+        fecha: '2026-08-24T11:02:00',
+        videos: 2,
+        fotos: 4,
+      },
+    });
+    const onVideoDeClaseChange = jest.fn();
+    render(
+      <IdentificarEquipo {...props({ serial: 'F3XP92635W', equipo: EQUIPO, onVideoDeClaseChange })} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await screen.findByText(/ya tiene video/i);
+    onVideoDeClaseChange.mockClear();
+
+    fireEvent.change(screen.getByLabelText(/serial del equipo/i), { target: { value: 'X' } });
+
+    // Lo confirmado (incluido el video de clase) dejó de corresponder al
+    // texto en pantalla.
+    expect(onVideoDeClaseChange).toHaveBeenCalledWith(null);
+    expect(screen.queryByText(/ya tiene video/i)).not.toBeInTheDocument();
+  });
+
+  it('una segunda búsqueda que falla limpia el bloque de clase de la búsqueda anterior', async () => {
+    // Repro: el operador escanea, el catálogo confirma y muestra un bloque
+    // (acá, "referencia de la clase"). Sin tocar el input, escanea de nuevo
+    // el mismo serial (red de la estación con hipo, doble lectura del lector
+    // de barras) y esta vez la consulta falla. El equipo ya se limpia en ese
+    // caso (`onEquipoChange(null)` en `buscarPorSerial`) — el bloque de clase
+    // tiene que limpiarse igual, porque lo confirmado ya no corresponde a lo
+    // que hay en pantalla.
+    const okBody = {
+      encontrado: true,
+      equipo: EQUIPO,
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: null,
+    };
+    const okResponse = { ok: true, json: async () => okBody };
+    const failResponse = {
+      ok: false,
+      status: 500,
+      clone() {
+        return failResponse;
+      },
+      json: async () => ({}),
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(okResponse)
+      .mockResolvedValueOnce(failResponse) as unknown as typeof fetch;
+
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await screen.findByText(/queda como referencia/i);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no se pudo consultar el catálogo/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/queda como referencia/i)).not.toBeInTheDocument();
   });
 });

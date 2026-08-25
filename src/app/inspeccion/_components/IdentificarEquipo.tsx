@@ -19,12 +19,39 @@ export interface EquipoCatalogo {
   sku: string | null;
 }
 
+export interface Defecto {
+  campo: string;
+  nivel: string;
+}
+
+export interface ClaseInfo {
+  grupo_visual: string;
+  grado: string;
+  etiqueta: string;
+}
+
+/** Video de otra unidad idéntica (misma clase) que ya cubre esta — spec Task 8. */
+export interface VideoDeClase {
+  inspection_id: number;
+  serial: string;
+  /** `Optional[str]` en el backend: la inspección de referencia puede no tener
+   * `created_at`. Tiparlo `string` hacía que `formatearFecha` llamara `.split`
+   * sobre `null` y tumbara la pantalla de la estación entera. */
+  fecha: string | null;
+  videos: number;
+  fotos: number;
+}
+
 interface RespuestaSerial {
   encontrado: boolean;
   equipo: EquipoCatalogo | null;
   candidato: string | null;
   confianza: number | null;
   error: string | null;
+  impecable?: boolean;
+  defectos?: Defecto[];
+  clase?: ClaseInfo | null;
+  video_de_clase?: VideoDeClase | null;
 }
 
 interface Props {
@@ -34,6 +61,27 @@ interface Props {
   equipo: EquipoCatalogo | null;
   onEquipoChange: (e: EquipoCatalogo | null) => void;
   deshabilitado: boolean;
+  /** Task 9 la usa para habilitar/gatear INICIAR y ofrecer "usar ese video".
+   * Opcional: un caller que todavía no la consume no tiene por qué romper. */
+  onVideoDeClaseChange?: (v: VideoDeClase | null) => void;
+}
+
+/** "2026-08-24T11:02:00" → "24/08/2026 11:02". Sin `Date`/`Intl`: la fecha
+ * llega sin zona horaria y parsearla con `Date` la corre según el reloj del
+ * navegador — acá alcanza con recortar el ISO tal cual llegó.
+ *
+ * Acepta `null` (devolviendo `null`) porque el backend la manda opcional. Una
+ * fecha ausente no puede costar la pantalla: el bloque tiene que seguir
+ * diciendo desde qué serial y con cuánto material, que es lo que el operador
+ * necesita para decidir. */
+function formatearFecha(fecha: string | null): string | null {
+  if (!fecha) return null;
+  const [fechaParte, horaParte] = fecha.split('T');
+  const partes = fechaParte?.split('-');
+  if (!partes || partes.length !== 3) return fecha;
+  const [anio, mes, dia] = partes;
+  const hora = horaParte ? horaParte.slice(0, 5) : '';
+  return hora ? `${dia}/${mes}/${anio} ${hora}` : `${dia}/${mes}/${anio}`;
 }
 
 /**
@@ -60,14 +108,41 @@ export function IdentificarEquipo({
   equipo,
   onEquipoChange,
   deshabilitado,
+  onVideoDeClaseChange,
 }: Props) {
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avisoOcr, setAvisoOcr] = useState<string | null>(null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
+  // Las tres caras de la ficha (spec Task 8): impecable/defectos/clase llegan
+  // junto a `equipo` en la misma respuesta del catálogo, así que viven como
+  // estado propio del componente — no dependen de que el padre reenvíe el
+  // `equipo` prop para mostrarse.
+  const [impecable, setImpecable] = useState(false);
+  const [defectos, setDefectos] = useState<Defecto[]>([]);
+  const [clase, setClase] = useState<ClaseInfo | null>(null);
+  const [videoDeClase, setVideoDeClase] = useState<VideoDeClase | null>(null);
   const inputFotoRef = useRef<HTMLInputElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  /**
+   * Limpia las tres caras de la ficha (impecable/defectos/clase/videoDeClase)
+   * y avisa al padre. Un único punto para esto — antes vivía duplicado en el
+   * branch de "no encontrado" de `aplicar()` y en el `onChange` del input, y
+   * esa duplicación fue justo lo que dejó sin cubrir los branches de error de
+   * `buscarPorSerial` (fix de review post-Task-8, C1): ahí SÍ se limpiaba
+   * `equipo` pero no esto, así que una segunda búsqueda fallida sobre el
+   * mismo serial dejaba en pantalla el bloque de una búsqueda anterior que ya
+   * no correspondía a nada confirmado.
+   */
+  const limpiarClase = useCallback(() => {
+    setImpecable(false);
+    setDefectos([]);
+    setClase(null);
+    setVideoDeClase(null);
+    onVideoDeClaseChange?.(null);
+  }, [onVideoDeClaseChange]);
 
   const aplicar = useCallback(
     (data: RespuestaSerial, desdeOcr: boolean) => {
@@ -80,6 +155,12 @@ export function IdentificarEquipo({
             ? `Leído por foto con ${data.confianza.toFixed(0)}% de confianza. Verificá que coincida con el equipo.`
             : null
         );
+        setImpecable(data.impecable ?? false);
+        setDefectos(data.defectos ?? []);
+        setClase(data.clase ?? null);
+        const video = data.video_de_clase ?? null;
+        setVideoDeClase(video);
+        onVideoDeClaseChange?.(video);
         return;
       }
       // No matcheó: se limpia el equipo (nada habilitado) pero se conserva el
@@ -88,8 +169,9 @@ export function IdentificarEquipo({
       if (data.candidato) onSerialChange(data.candidato);
       setError(data.error ?? 'No se encontró el equipo.');
       setAvisoOcr(null);
+      limpiarClase();
     },
-    [onEquipoChange, onSerialChange]
+    [onEquipoChange, onSerialChange, onVideoDeClaseChange, limpiarClase]
   );
 
   const buscarPorSerial = useCallback(async () => {
@@ -104,17 +186,19 @@ export function IdentificarEquipo({
       });
       if (!r.ok) {
         onEquipoChange(null);
+        limpiarClase();
         setError(await mensajeDeError(r, 'consultar el catálogo'));
         return;
       }
       aplicar((await r.json()) as RespuestaSerial, false);
     } catch {
       onEquipoChange(null);
+      limpiarClase();
       setError(mensajeDeRed('consultar el catálogo'));
     } finally {
       setBuscando(false);
     }
-  }, [serial, buscando, token, aplicar, onEquipoChange]);
+  }, [serial, buscando, token, aplicar, onEquipoChange, limpiarClase]);
 
   /** Manda una imagen ya en dataURL al OCR. Comparte camino entre la foto
    * tomada con la webcam y el archivo subido: el backend recibe lo mismo. */
@@ -229,6 +313,10 @@ export function IdentificarEquipo({
     };
   }, []);
 
+  // `null` cuando el backend no mandó fecha (`Optional[str]`): el bloque se
+  // arma sin ella en vez de romperse.
+  const fechaDeClase = videoDeClase ? formatearFecha(videoDeClase.fecha) : null;
+
   return (
     <div>
       <label
@@ -249,6 +337,7 @@ export function IdentificarEquipo({
             // Cualquier edición invalida la ficha: lo confirmado dejó de
             // corresponder al texto que hay en pantalla.
             if (equipo) onEquipoChange(null);
+            if (impecable || defectos.length > 0 || clase || videoDeClase) limpiarClase();
           }}
           onKeyDown={(e) => {
             // Enter busca. Un lector de código de barras USB se comporta como
@@ -421,6 +510,56 @@ export function IdentificarEquipo({
             </p>
           )}
         </div>
+      )}
+
+      {/*
+        Las tres caras de la ficha (spec Task 8). Exactamente una a la vez,
+        en este orden de prioridad — el backend ya decidió, acá solo se
+        muestra lo que dijo, nunca se re-deriva:
+
+          1. La clase ya tiene video de otra unidad idéntica: no hay que
+             grabar, se reutiliza.
+          2. Esta unidad tiene defectos: sí hay que grabarla (nunca puede
+             quedar como referencia de la clase).
+          3. Está impecable y su clase todavía no tiene referencia: lo que
+             se grabe ahora queda como esa referencia.
+      */}
+      {!buscando && videoDeClase && (
+        <div
+          className="mt-3 rounded-xl border p-3"
+          style={{ borderColor: TOKENS.primary, background: '#E9F4EF' }}
+        >
+          <p className="text-sm font-semibold" style={{ color: TOKENS.ink }}>
+            Este chasis en grado {clase?.grado ?? '—'} ya tiene video — grabado
+            {fechaDeClase ? ` el ${fechaDeClase}` : ''} desde el serial {videoDeClase.serial} (
+            {videoDeClase.videos} videos, {videoDeClase.fotos} fotos).
+          </p>
+        </div>
+      )}
+
+      {!buscando && !videoDeClase && defectos.length > 0 && (
+        <div
+          className="mt-3 rounded-xl border p-3"
+          style={{ borderColor: TOKENS.tertiary, background: '#FEF3E2' }}
+        >
+          <p className="text-sm font-semibold" style={{ color: TOKENS.ink }}>
+            Esta unidad tiene defectos — hay que grabar esta unidad:
+          </p>
+          <ul className="mt-1 list-disc pl-4 text-sm" style={{ color: TOKENS.slate }}>
+            {defectos.map((d, i) => (
+              <li key={`${d.campo}-${i}`}>
+                {d.campo} — {d.nivel}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!buscando && !videoDeClase && defectos.length === 0 && impecable && clase && (
+        <p className="mt-3 text-xs" style={{ color: TOKENS.slate }}>
+          Primera unidad impecable de {clase.etiqueta}: lo que grabes queda como referencia de la
+          clase.
+        </p>
       )}
 
       {error && (
