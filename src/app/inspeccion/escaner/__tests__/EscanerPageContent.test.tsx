@@ -1017,6 +1017,94 @@ describe('EscanerPageContent', () => {
           )
         ).toBe(true);
       });
+
+      async function renderGrabando() {
+        setDeviceSessionEscaner();
+        // Override para incluir un serial específico en la respuesta
+        global.fetch = jest.fn((url: RequestInfo | URL) => {
+          const u = String(url);
+          if (u.includes('/stations/') && u.endsWith('/state')) {
+            return Promise.resolve({ ok: true, json: async () => ({ camera_labels: ['techo'] }) });
+          }
+          if (u.endsWith('/abort')) {
+            return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'failed' }) });
+          }
+          if (u.endsWith('/stop')) {
+            return Promise.resolve({ ok: true, json: async () => ({ inspection_id: 1, status: 'uploading' }) });
+          }
+          if (u.endsWith('/takes')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                inspection_id: 1, take_number: 1, start_at: Date.now() + 1500, seq: 1, status: 'recording',
+              }),
+            });
+          }
+          if (u.includes('/inspections/catalog/')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                encontrado: true,
+                equipo: {
+                  record_id: 'rec123',
+                  serial: '5CD5202PWY',
+                  marca: 'Lenovo',
+                  modelo: 'IdeaPad Slim 3',
+                  procesador: 'Intel Core i7',
+                  ram_gb: 16,
+                  almacenamiento: '1TB SSD',
+                  pantalla: 15.6,
+                  grado: 'A',
+                  tipo: 'Laptop',
+                  sku: 'LPLEAL0000606',
+                },
+                candidato: '5CD5202PWY',
+                confianza: null,
+                error: null,
+              }),
+            });
+          }
+          if (u.endsWith('/inspections')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                inspection_id: 1, start_at: Date.now() + 1500, seq: 1, modo: 'video',
+              }),
+            });
+          }
+          return Promise.reject(new Error(`fetch inesperado en renderGrabando: ${u}`));
+        }) as unknown as typeof fetch;
+
+        render(<EscanerPageContent />);
+        const pusher = conectarYListo();
+
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial('5CD5202PWY');
+        fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+
+        await waitFor(() => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).endsWith('/inspections'))
+          ).toBe(true);
+        });
+
+        act(() => {
+          pusher.channel.emit('recording.started', { inspection_id: 1 });
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        });
+      }
+
+      it('mientras graba sigue mostrando contra que equipo esta grabando', async () => {
+        await renderGrabando();
+        expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        expect(screen.getByText(/5CD5202PWY/)).toBeInTheDocument();
+        expect(screen.getByText(/Grado A/)).toBeInTheDocument();
+      });
     });
   });
 });

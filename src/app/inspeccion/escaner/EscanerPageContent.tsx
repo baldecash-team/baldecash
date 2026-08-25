@@ -1142,6 +1142,16 @@ export default function EscanerPageContent() {
             <p className="mt-1 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: TOKENS.slate }}>
               Toma {takeNumber}
             </p>
+            {/* Identidad del equipo mientras graba: serial, modelo y grado.
+                Chica y gris a propósito — no compite con GRABANDO, que es
+                lo que el operador mira de lejos. */}
+            {equipo && (
+              <p className="mt-1 text-center text-xs" style={{ color: TOKENS.slate }}>
+                <span className="font-mono">{equipo.serial}</span>
+                {equipo.modelo ? ` · ${equipo.modelo}` : ''}
+                {equipo.grado ? ` · Grado ${equipo.grado}` : ''}
+              </p>
+            )}
             {/* Obturador: dispara una foto SIN cortar la toma. Es el caso
                 que más pide el operador — el video ya está corriendo y
                 aparece el detalle que hay que dejar en alta resolución. Va
