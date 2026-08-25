@@ -66,6 +66,24 @@ export function gridClassName(variant: GridVariant = 'default'): string {
 }
 
 /**
+ * Envoltorio del bloque superior del catálogo.
+ *
+ * Normalmente es una tarjeta con sombra y borde que agrupa el título, el
+ * ordenamiento y las tarjetas de uso rápido. En la variante compacta
+ * (reacondicionados) no queda nada de eso salvo el contador y el orden, y un
+ * marco alrededor de una sola línea se lee como una sección vacía: ahí el
+ * envoltorio desaparece y su contenido va suelto sobre la grilla.
+ */
+const HeaderShell: React.FC<React.PropsWithChildren<{ compact: boolean }>> = ({ compact, children }) => {
+  if (compact) return <>{children}</>;
+  return (
+    <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
+      <CardBody className="p-4 sm:p-5 md:p-6">{children}</CardBody>
+    </Card>
+  );
+};
+
+/**
  * CatalogLayoutV4 - Header con Quick Cards + Sidebar Flotante
  * Header con tarjetas de uso rápido y filtros en sidebar flotante
  * Referencia: Nubank, Revolut (secciones de productos)
@@ -626,10 +644,13 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Full Width Header Section - Inside Card */}
-        <div className="w-full p-3 sm:p-4 lg:p-6">
-          <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
-            <CardBody className="p-4 sm:p-5 md:p-6">
+        {/* Full Width Header Section - Inside Card.
+            En la variante compacta se cae la tarjeta (sombra + borde) y su
+            padding interno: sin título ni tarjetas de uso, el marco envolvía
+            una sola línea y se leía como una sección vacía. El contador y el
+            orden quedan sueltos sobre la grilla. */}
+        <div className={compactHeader ? 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-6' : 'w-full p-3 sm:p-4 lg:p-6'}>
+          <HeaderShell compact={compactHeader}>
               {/* Header */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -679,8 +700,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </div>
               )}
 
-            </CardBody>
-          </Card>
+          </HeaderShell>
         </div>
 
         {/* VIP Countdown Banner */}
