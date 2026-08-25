@@ -45,7 +45,7 @@ export const hero = {
    * desktop apaisado (1536x1024). Servir uno solo en ambos deja franjas o
    * recorta el equipo, así que el hero elige por viewport (BAL-3317).
    */
-  bannerUrl: `${SEMINUEVOS_ASSETS}/hero/hero-desktop.webp` as string | null,
+  bannerUrl: `${SEMINUEVOS_ASSETS}/hero/hero-desktop-ad500b09.webp` as string | null,
   // El hash del nombre sale del contenido: al reemplazar la pieza cambia la URL
   // y nadie se queda con la anterior en cache.
   bannerUrlMobile: `${SEMINUEVOS_ASSETS}/hero/hero-mobile-00451355.webp` as string | null,

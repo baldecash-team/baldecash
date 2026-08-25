@@ -26,7 +26,7 @@
  *     TEA/TCEA al pie, en vez de una grilla que destacaba la TEA.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, Ban, Check, CheckCircle2, Clock, MessageCircle, Package, XCircle } from 'lucide-react';
+import { ArrowDown, Ban, Check, CheckCircle2, ChevronRight, Clock, Package, Search, XCircle } from 'lucide-react';
 
 import {
   acceptOffer,
@@ -37,8 +37,8 @@ import {
   type StandardOfferOption,
 } from '../../../services/offerApi';
 import { createSpecsFromEav } from '../../../services/catalogApi';
-import { routes } from '../../../utils/routes';
 import { useAnalytics } from '../../../analytics/useAnalytics';
+import { AccesorioDetalleModal } from './AccesorioDetalleModal';
 import { OfertaHeader } from './redesign/OfertaHeader';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './redesign/EquipoRecomendadoCard';
@@ -110,6 +110,9 @@ export function StandardOfertaAccion({
   const [loading, setLoading] = useState<'accept' | 'reject' | null>(null);
   const [decision, setDecision] = useState<'accepted' | 'rejected' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Accesorio abierto en el modal de detalle y filtro del buscador (WEB-07).
+  const [addonAbiertoId, setAddonAbiertoId] = useState<number | null>(null);
+  const [busquedaAddon, setBusquedaAddon] = useState('');
 
   // Rangos de plazo/inicial. Vacío = oferta de una sola combinación: todo lo
   // que sigue degrada a la vista de siempre.
@@ -236,6 +239,19 @@ export function StandardOfertaAccion({
   const vigente = quoted && quoted.key === selectionKey ? quoted.option : null;
   const cuotaConSeleccion = vigente ? vigente.monthlyPayment : estimado;
 
+  const addonAbierto = useMemo(
+    () => addons.find((a) => a.id === addonAbiertoId) ?? null,
+    [addons, addonAbiertoId],
+  );
+  // Con 18 accesorios encontrar uno a ojo es scroll y suerte. Debajo de ese
+  // volumen el buscador es una caja más que estorba.
+  const hayBuscador = togglables.length > 6;
+  const addonsVisibles = useMemo(() => {
+    const q = busquedaAddon.trim().toLowerCase();
+    if (!q) return addons;
+    return addons.filter((a) => a.name.toLowerCase().includes(q));
+  }, [addons, busquedaAddon]);
+
   // Vencida en vivo (el usuario dejó la pestaña abierta hasta que expiró) o ya
   // había vencido al cargar. En ambos casos: botones deshabilitados.
   const expired = countdown?.expired === true;
@@ -298,19 +314,18 @@ export function StandardOfertaAccion({
     }
   }, [disabled, token, offer.offerCode, analytics, onConverted]);
 
-  // "Ver detalle": ficha del equipo en la landing de la solicitud. Necesita los
-  // dos slugs; si falta alguno, el card no pinta el botón.
-  const detalleUrl =
-    info?.productSlug && offer.landingSlug
-      ? routes.producto(offer.landingSlug, info.productSlug)
-      : null;
+  // "Ver detalle" (WEB-05): la ficha COMPLETA del equipo —galería, todas las
+  // specs, cronograma de pago— dentro de la oferta. Antes abría la landing en
+  // una pestaña nueva: el mismo equipo, pero en el sitio comercial, con su
+  // navbar y sus CTAs de "solicitar", y sin el plazo de esta oferta. La ficha
+  // interna ya existe (la usa el Caso 4) y vuelve con "Volver a mi oferta".
+  const detalleUrl = info?.productSlug
+    ? `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${info.productSlug}`
+    : null;
 
   const handleVerDetalle = useCallback(() => {
-    if (!detalleUrl) return;
     analytics.track('offer_standard_detail_click', { offer_code: offer.offerCode });
-    // Pestaña nueva: que no pierda la oferta al ir a mirar el equipo.
-    window.open(detalleUrl, '_blank', 'noopener,noreferrer');
-  }, [detalleUrl, analytics, offer.offerCode]);
+  }, [analytics, offer.offerCode]);
 
   // Confirmación de aceptación — mismo componente "¡Felicidades!" que el
   // Caso 4/5 (sin equipo anterior: acá no hay cambio, solo aceptación).
@@ -387,37 +402,74 @@ export function StandardOfertaAccion({
   };
 
   const aceptarTexto = expired ? 'Oferta vencida' : loading === 'accept' ? 'Aceptando…' : 'Aceptar';
+  // La cuota que repite la barra fija: la misma que la tarjeta, para que no
+  // haya dos números conviviendo en pantalla.
+  const cuotaVigente = cuotaConSeleccion ?? shownMonthly;
+
+  // Título por modalidad (WEB-04). Las tres se distinguen con lo que ya viaja:
+  //   accesorios → `offer_type='upsell'` (la "Oferta con Accesorios" de admin2);
+  //                se mira también la lista, porque es la que manda en el resto
+  //                de la pantalla (ver `_client_options` en el backend);
+  //   equipo     → el backend manda `requested_product` SOLO cuando la oferta
+  //                cambia de equipo;
+  //   plazo      → lo que queda: mismo equipo, otras condiciones.
+  const esOfertaDeAccesorios = (info?.offerType ?? '') === 'upsell' || addons.length > 0;
+  const nombre = offer.clientName?.trim();
+  const saludo = esOfertaDeAccesorios
+    ? (nombre ? `Hola ${nombre}, complementa tu solicitud con el ` : 'Complementa tu solicitud con el ')
+    : (nombre ? `Hola ${nombre}, tu asesor te ha ofrecido un ` : 'Tu asesor te ha ofrecido un ');
+  const tituloAcento = esOfertaDeAccesorios
+    ? 'accesorio'
+    : req ? 'cambio de equipo' : 'cambio de plazo';
+  const tituloCierre = esOfertaDeAccesorios ? ' que necesitas!' : '';
 
   return (
     <div className="min-h-screen bg-white">
       <OfertaHeader />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
-        {/* Saludo. Decía "tu solicitud ha sido aprobada": no lo está — hay una
-            oferta esperando decisión, y si el cliente la rechaza nunca hubo
-            aprobación. Prometer aprobado y después pedir que acepte es lo que
-            hacía que el rechazo se leyera como que le quitaron algo. */}
-        <div className="text-[18px] font-semibold leading-[1.25]">
-          {offer.clientName ? `${offer.clientName.trim()}, tu ` : 'Tu '}
-          <span className="font-extrabold" style={{ color: OFERTA_COLORS.primary }}>oferta</span>
-          {' '}ha sido generada
-        </div>
+      {/* `pb-28`: la barra fija de decisión tapa el final del scroll — sin este
+          colchón el último accesorio queda debajo de ella. */}
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 pb-28 sm:gap-[18px] sm:py-6 sm:pb-28 sm:px-6 lg:px-8">
+        {/* Título (WEB-04). El anterior era el mismo para las tres
+            modalidades —"tu oferta ha sido generada"— y no decía qué le
+            ofrecieron: el cliente tenía que deducirlo de las cifras. Ahora el
+            título ES la oferta. Sin subtítulo: lo que decía ("revisa las
+            condiciones y decide") ya lo dicen los botones. */}
+        <h1 className="text-[18px] font-semibold leading-[1.25]">
+          {saludo}
+          <span className="font-extrabold" style={{ color: OFERTA_COLORS.primary }}>
+            {tituloAcento}
+          </span>
+          {tituloCierre}
+        </h1>
 
-        <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-          {/* Vencida, el subtítulo invitaba a aceptar algo que ya no se puede
-              aceptar. Lo contradecía el propio botón de abajo. */}
-          {expired
-            ? 'Estas son las condiciones que se te ofrecieron. Escríbenos y la reactivamos.'
-            : 'Revisa las condiciones y decide. Queda en firme recién cuando la aceptas.'}
-        </p>
+        {/* Vencida sí necesita una línea: los botones de abajo están apagados y
+            sin esto la pantalla no explica por qué. */}
+        {expired ? (
+          <p className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+            Estas son las condiciones que se te ofrecieron.{' '}
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline underline-offset-2"
+              style={{ color: OFERTA_COLORS.primary }}
+            >
+              Escríbenos
+            </a>{' '}
+            y la reactivamos.
+          </p>
+        ) : null}
 
-        {/* Código de la solicitud: para tenerlo a mano si contacta soporte. */}
-        {offer.applicationCode ? (
+        {/* Número de la solicitud, para tenerlo a mano si contacta soporte. El
+            `legacy_id` es el que el cliente conoce; el code de ws2 (`APP-xxxx`)
+            es interno y queda de fallback (WEB-01). */}
+        {offer.legacyId ?? offer.applicationCode ? (
           <div
             className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
             style={{ backgroundColor: OFERTA_COLORS.lilac, color: OFERTA_COLORS.textSoft }}
           >
-            Solicitud: {offer.applicationCode}
+            Solicitud: {offer.legacyId ?? offer.applicationCode}
           </div>
         ) : null}
 
@@ -486,6 +538,7 @@ export function StandardOfertaAccion({
           equipo={equipo}
           tone="indigo"
           badgeText="TU OFERTA"
+          verDetalleHref={detalleUrl ?? undefined}
           onVerDetalle={detalleUrl ? handleVerDetalle : undefined}
         />
 
@@ -536,13 +589,15 @@ export function StandardOfertaAccion({
             TCEA bajan al pie — siguen visibles por transparencia, pero dejan de
             competir con lo que el cliente necesita para decidir. */}
         <section
-          aria-label="Términos de tu oferta"
+          aria-label="Tu nueva cuota"
           className="rounded-xl border"
           style={{ borderColor: OFERTA_COLORS.border }}
         >
+          {/* "Términos de tu oferta" describía el contenido en la lengua del
+              contrato; el cliente entra a ver cuánto va a pagar (WEB-03). */}
           <div className="rounded-t-xl px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[.09em] text-white"
                style={{ backgroundColor: OFERTA_COLORS.primary }}>
-            Términos de tu oferta
+            Tu nueva cuota
           </div>
           <dl className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
             {shownMonthly != null ? (
@@ -616,17 +671,30 @@ export function StandardOfertaAccion({
                 </button>
               ) : null}
             </div>
+            {hayBuscador ? (
+              <div className="border-b px-3.5 py-2.5" style={{ borderColor: OFERTA_COLORS.border }}>
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2"
+                    style={{ color: OFERTA_COLORS.textSoft }}
+                  />
+                  <input
+                    type="search"
+                    aria-label="Buscar accesorio"
+                    placeholder="Buscar accesorio"
+                    value={busquedaAddon}
+                    onChange={(e) => setBusquedaAddon(e.target.value)}
+                    className="w-full rounded-lg border py-2 pl-8 pr-3 text-[13px] outline-none focus:border-[color:var(--color-primary)]"
+                    style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textStrong }}
+                  />
+                </div>
+              </div>
+            ) : null}
             <ul className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
-              {addons.map((a) => {
+              {addonsVisibles.map((a) => {
                 const kept = a.includedFree || isKept(a.id);
                 return (
-                <li
-                  key={a.id}
-                  className={`flex items-center gap-2.5 px-3.5 py-2.5 ${
-                    a.includedFree ? '' : 'cursor-pointer'
-                  }`}
-                  onClick={a.includedFree ? undefined : () => toggleAddon(a.id)}
-                >
+                <li key={a.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
                   {/* El regalo del combo no lleva casilla: no cuesta nada y no
                       se puede sacar por separado.
 
@@ -651,30 +719,41 @@ export function StandardOfertaAccion({
                       {kept ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
                     </button>
                   )}
-                  <div
-                    className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-lg"
-                    style={{ backgroundColor: OFERTA_COLORS.grayBg }}
+                  {/* La foto y el nombre abren la ficha (WEB-07): la casilla
+                      sigue siendo la que decide, así mirar el accesorio no
+                      obliga a marcarlo primero. */}
+                  <button
+                    type="button"
+                    aria-label={`Ver detalle de ${a.name}`}
+                    onClick={() => setAddonAbiertoId(a.id)}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left"
                   >
-                    {a.imageUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={a.imageUrl} alt={a.name} className="h-full w-full object-contain" />
-                    ) : (
-                      <Package className="h-5 w-5" style={{ color: OFERTA_COLORS.textSoft }} />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
                     <div
-                      className="truncate text-[13.5px] font-semibold"
-                      style={{ color: OFERTA_COLORS.textStrong }}
+                      className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-lg"
+                      style={{ backgroundColor: OFERTA_COLORS.grayBg }}
                     >
-                      {a.name}
+                      {a.imageUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={a.imageUrl} alt={a.name} className="h-full w-full object-contain" />
+                      ) : (
+                        <Package className="h-5 w-5" style={{ color: OFERTA_COLORS.textSoft }} />
+                      )}
                     </div>
-                    {!a.includedFree && showAddonAmounts && a.price > 0 ? (
-                      <div className="text-[11.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
-                        S/{Math.round(a.price).toLocaleString('es-PE')} al contado
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="truncate text-[13.5px] font-semibold"
+                        style={{ color: OFERTA_COLORS.textStrong }}
+                      >
+                        {a.name}
                       </div>
-                    ) : null}
-                  </div>
+                      {!a.includedFree && showAddonAmounts && a.price > 0 ? (
+                        <div className="text-[11.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                          S/{Math.round(a.price).toLocaleString('es-PE')} al contado
+                        </div>
+                      ) : null}
+                    </div>
+                    <ChevronRight className="h-4 w-4 flex-none" style={{ color: OFERTA_COLORS.textSoft }} />
+                  </button>
                   {a.includedFree ? (
                     <span
                       className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px] font-bold"
@@ -720,50 +799,13 @@ export function StandardOfertaAccion({
         {/* Error inline (no reemplaza la pagina: el cliente puede reintentar) */}
         {error ? (
           <div
+            role="alert"
             className="rounded-lg px-3.5 py-2.5 text-[13px]"
             style={{ backgroundColor: OFERTA_COLORS.amberBg, color: '#B45309', border: `1px solid ${OFERTA_COLORS.amberBorder}` }}
           >
             {error}
           </div>
         ) : null}
-
-        {/* Tres acciones al mismo nivel. "Consultar" es nuevo: antes WhatsApp
-            solo aparecia DESPUES de rechazar, asi que el cliente que dudaba no
-            tenia salida — o aceptaba o rechazaba. Y sigue habilitado con la
-            oferta vencida: si vencio, escribir es justamente lo que hay que
-            hacer. */}
-        <div className="flex flex-col gap-2.5 sm:flex-row">
-          <button
-            type="button"
-            onClick={handleAccept}
-            disabled={disabled}
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-3.5 text-[15px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: OFERTA_COLORS.primary }}
-          >
-            <CheckCircle2 className="h-5 w-5" />
-            {aceptarTexto}
-          </button>
-          <button
-            type="button"
-            onClick={handleReject}
-            disabled={disabled}
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 text-[15px] font-bold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textMid }}
-          >
-            <XCircle className="h-5 w-5" />
-            {loading === 'reject' ? 'Rechazando…' : 'Rechazar'}
-          </button>
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-5 py-3.5 text-[15px] font-bold transition-colors hover:bg-neutral-50"
-            style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.primary }}
-          >
-            <MessageCircle className="h-5 w-5" />
-            Consultar
-          </a>
-        </div>
 
         {expired ? (
           <div className="flex items-center gap-2 text-[12.5px]" style={{ color: OFERTA_COLORS.textSoft }}>
@@ -772,6 +814,76 @@ export function StandardOfertaAccion({
           </div>
         ) : null}
       </main>
+
+      {/* Barra fija de decisión (WEB-06). Las acciones vivían al final del
+          scroll: con el menú de plazo, la tarjeta de cuota y hasta 18
+          accesorios, el cliente que iba marcando add-ons perdía de vista tanto
+          la cuota como los botones. Acá la cuota vigente y las dos decisiones
+          lo acompañan todo el scroll.
+
+          Aceptar en verde y rechazar en rojo (WEB-02): antes eran el azul de
+          marca y un borde gris, y el gris se leía como "deshabilitado". Se fue
+          también el botón "Consultar" — el enlace a WhatsApp sigue en el aviso
+          de vencida, que es donde hacía falta. */}
+      <div
+        role="region"
+        aria-label="Tu decisión"
+        className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur"
+        style={{ borderColor: OFERTA_COLORS.border, boxShadow: '0 -6px 20px rgba(15,23,42,.08)' }}
+      >
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+          {cuotaVigente != null ? (
+            <div className="min-w-0 flex-none">
+              <div className="text-[10px] font-bold uppercase tracking-[.08em]" style={{ color: OFERTA_COLORS.textSoft }}>
+                Tu cuota
+              </div>
+              <div className="text-[19px] font-extrabold leading-[1.1]" style={{ color: OFERTA_COLORS.primary }}>
+                S/{Math.round(cuotaVigente)}
+                <span className="text-[11.5px] font-semibold" style={{ color: OFERTA_COLORS.textMid }}>
+                  {cuotaSuffix(frecuencia)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+          <div className="flex flex-1 items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleReject}
+              disabled={disabled}
+              className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-4 py-3 text-[14px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ backgroundColor: OFERTA_COLORS.red }}
+            >
+              <XCircle className="h-4.5 w-4.5" />
+              {loading === 'reject' ? 'Rechazando…' : 'Rechazar'}
+            </button>
+            <button
+              type="button"
+              onClick={handleAccept}
+              disabled={disabled}
+              className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-5 py-3 text-[14px] font-bold text-white transition-transform hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ backgroundColor: OFERTA_COLORS.greenDark }}
+            >
+              <CheckCircle2 className="h-4.5 w-4.5" />
+              {aceptarTexto}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Ficha del accesorio (WEB-07). */}
+      {addonAbierto ? (
+        <AccesorioDetalleModal
+          addon={addonAbierto}
+          incluido={addonAbierto.includedFree || isKept(addonAbierto.id)}
+          sufijoCuota={cuotaSuffix(frecuencia)}
+          mostrarMontos={showAddonAmounts}
+          onToggle={() => {
+            toggleAddon(addonAbierto.id);
+            setAddonAbiertoId(null);
+          }}
+          onCerrar={() => setAddonAbiertoId(null)}
+        />
+      ) : null}
     </div>
   );
 }

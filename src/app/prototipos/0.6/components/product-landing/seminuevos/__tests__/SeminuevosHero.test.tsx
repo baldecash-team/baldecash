@@ -2,19 +2,29 @@ import { render, screen } from '@testing-library/react';
 import { SeminuevosHero } from '../SeminuevosHero';
 
 describe('SeminuevosHero', () => {
-  // El copy del hero se dibuja según la pieza que haya detrás: la de móvil es
-  // solo fondo (sin una palabra) y sin este bloque la landing abriría sin
-  // título, sin promesa y sin botón; la de desktop ya trae el texto compuesto y
-  // repetirlo lo duplicaría. Por eso el bloque existe siempre en el DOM y se
-  // esconde con `md:hidden` a partir de 768px (BAL-3288).
-  it('muestra el copy del hero, oculto solo desde el breakpoint de escritorio', () => {
+  // El copy se dibuja SIEMPRE: las dos piezas de Haru son solo fondo, sin texto
+  // incrustado. Lo que cambia con el viewport es dónde se apoya — centrado
+  // arriba en móvil, a la izquierda en escritorio, que es la mitad que la pieza
+  // apaisada deja libre (BAL-3288).
+  it('muestra el copy del hero en los dos viewports', () => {
     render(<SeminuevosHero catalogUrl="/seminuevos/catalogo" />);
 
     const copy = screen.getByTestId('hero-copy');
     expect(copy).toBeVisible();
-    // jsdom no evalúa media queries: lo que se comprueba es que el corte esté
-    // declarado, no el pixel exacto donde ocurre.
-    expect(copy.className).toContain('md:hidden');
+    // Ya no se esconde en escritorio: esa clase era del estado anterior, cuando
+    // la pieza de desktop traía el texto dentro de la imagen.
+    expect(copy.className).not.toContain('md:hidden');
+  });
+
+  it('en escritorio el copy se alinea a la izquierda y no ocupa todo el ancho', () => {
+    render(<SeminuevosHero catalogUrl="/seminuevos/catalogo" />);
+
+    // jsdom no evalúa media queries: se comprueba que las reglas estén
+    // declaradas, no el pixel donde se aplican. Sin ellas el texto quedaría
+    // centrado sobre las laptops de la pieza.
+    const copy = screen.getByTestId('hero-copy');
+    expect(copy.className).toContain('md:text-left');
+    expect(copy.className).toContain('md:max-w-[46%]');
   });
 
   it('el copy trae el h1, el subtítulo y el CTA al catálogo', () => {
@@ -39,7 +49,9 @@ describe('SeminuevosHero', () => {
 
     const source = container.querySelector('picture source');
     expect(source).toHaveAttribute('media', '(min-width: 768px)');
-    expect(source?.getAttribute('srcSet')).toContain('hero-desktop.webp');
+    // Mismo criterio que el <img> de abajo: las dos piezas llevan hash de
+    // contenido, así que se casa el patrón y no el nombre exacto.
+    expect(source?.getAttribute('srcSet')).toMatch(/\/hero-desktop[-.][^/]*\.webp$/);
 
     // El <img> es el caso por defecto: móvil. Se comprueba el prefijo y no el
     // nombre completo porque las piezas llevan hash de contenido

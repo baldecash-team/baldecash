@@ -22,11 +22,19 @@ export const OFERTA_COLORS = {
   primary: '#4654CD',
   primaryHover: '#3A46AE',
 
-  /** Verde — estados de éxito, Caso 4 (downgrade aprobado). */
+  /** Verde — estados de éxito, Caso 4 (downgrade aprobado) y la decisión de
+   *  aceptar (WEB-02). El botón usa `greenDark`: sobre `green` el texto blanco
+   *  no llega al contraste mínimo. */
   green: '#22C55E',
   greenDark: '#16A34A',
   greenSoft: '#E8F8EF',
   greenBadgeBg: '#DCFCE7',
+
+  /** Rojo — la decisión de rechazar (WEB-02). Aceptar y rechazar dejaron de ser
+   *  dos botones neutros: el color dice qué hace cada uno antes de leerlo. */
+  red: '#DC2626',
+  redDark: '#B91C1C',
+  redSoft: '#FEE2E2',
 
   /** Teal y índigo del logo bicolor BaldeCash. */
   tealBrand: '#12B3A6',
