@@ -103,6 +103,11 @@ export interface EquipoRecomendadoCardProps {
   /** Acción secundaria "Ver detalle" (botón fantasma). Si no se pasa, no se
    *  muestra ese botón y el CTA "Aceptar" ocupa el ancho como antes. */
   onVerDetalle?: () => void;
+  /** Destino de "Ver detalle" cuando es una navegación de verdad (la ficha
+   *  completa del equipo, WEB-05): se pinta como enlace en vez de botón, para
+   *  que se pueda abrir en otra pestaña y el navegador lo trate como lo que es.
+   *  `onVerDetalle` sigue disparándose para el tracking. */
+  verDetalleHref?: string;
 }
 
 const TONE_STYLES: Record<
@@ -152,6 +157,7 @@ export function EquipoRecomendadoCard({
   subtext,
   onElegir,
   onVerDetalle,
+  verDetalleHref,
 }: EquipoRecomendadoCardProps) {
   const t = TONE_STYLES[tone];
   const cuotaFormateada = Math.round(equipo.monthly).toLocaleString('es-PE');
@@ -310,7 +316,7 @@ export function EquipoRecomendadoCard({
             - MOBILE: cuota arriba, botones en una fila aparte (ancho completo).
             - DESKTOP (sm+): cuota a la izquierda, botones a la derecha, misma fila.
             Sin "Ver detalle" → layout compacto: cuota izquierda, CTA derecha. */}
-        {onVerDetalle ? (
+        {onVerDetalle || verDetalleHref ? (
           <div
             className="mt-3 flex flex-col gap-2.5 border-t pt-[11px] sm:flex-row sm:items-center sm:justify-between"
             style={{ borderColor: '#F1F2F7' }}
@@ -335,14 +341,25 @@ export function EquipoRecomendadoCard({
               ) : null}
             </div>
             <div className="flex items-stretch gap-2 sm:flex-none">
-              <button
-                type="button"
-                onClick={onVerDetalle}
-                className="flex-1 cursor-pointer rounded-lg border px-3.5 py-2.5 text-[13px] font-bold transition-all duration-200 ease-out hover:bg-[#F7F8FB] hover:shadow-sm active:scale-[.97] sm:flex-none"
-                style={{ borderColor: t.border, color: t.cuota }}
-              >
-                Ver detalle
-              </button>
+              {verDetalleHref ? (
+                <a
+                  href={verDetalleHref}
+                  onClick={onVerDetalle}
+                  className="flex flex-1 cursor-pointer items-center justify-center rounded-lg border px-3.5 py-2.5 text-[13px] font-bold transition-all duration-200 ease-out hover:bg-[#F7F8FB] hover:shadow-sm active:scale-[.97] sm:flex-none"
+                  style={{ borderColor: t.border, color: t.cuota }}
+                >
+                  Ver detalle
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onVerDetalle}
+                  className="flex-1 cursor-pointer rounded-lg border px-3.5 py-2.5 text-[13px] font-bold transition-all duration-200 ease-out hover:bg-[#F7F8FB] hover:shadow-sm active:scale-[.97] sm:flex-none"
+                  style={{ borderColor: t.border, color: t.cuota }}
+                >
+                  Ver detalle
+                </button>
+              )}
               {onElegir ? (
                 <button
                   type="button"

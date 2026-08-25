@@ -141,6 +141,9 @@ export interface StandardOfferAddon {
   id: number;
   productId: number | null;
   name: string;
+  /** Descripción del catálogo (`short_description`, o la larga si no hay) para
+   *  el modal de detalle. Null cuando el producto no la tiene cargada. */
+  description: string | null;
   imageUrl: string | null;
   price: number;
   /** Cuota mensual que aporta este ítem. Null si el backend no la tiene.
@@ -225,6 +228,10 @@ export interface OfferView {
   selectedEquipment?: SelectedEquipment | null;
   /** Código de la solicitud y nombre del estudiante (de la BD). */
   applicationCode?: string | null;
+  /** ID de la solicitud en el sistema anterior: es el número que el cliente
+   *  conoce y con el que llama a soporte. El `applicationCode` (`APP-xxxx`) es
+   *  interno de ws2 y queda de fallback. */
+  legacyId?: number | null;
   clientName?: string | null;
   /** Caso 5 (upsell): 'upsell' cuando el token es de esa oferta. 'standard'
    *  (F-6B): oferta única armada por el analista, aceptar/rechazar. */
@@ -293,6 +300,7 @@ function mapStandardAddons(raw: unknown): StandardOfferAddon[] {
       id: Number(a.id),
       productId: a.product_id != null ? Number(a.product_id) : null,
       name: String(a.name ?? 'Accesorio'),
+      description: (a.description as string | null) ?? null,
       imageUrl: (a.image_url as string | null) ?? null,
       price: Number(a.price ?? 0),
       monthly: a.monthly_payment != null ? Number(a.monthly_payment) : null,
@@ -340,6 +348,7 @@ export async function getOffer(token: string): Promise<OfferView> {
       requestedProduct: data.current_product ?? null,
       recommended: null,
       applicationCode: data.application_code ?? null,
+      legacyId: data.legacy_id ?? null,
       clientName: data.client_name ?? null,
       offerCase: 'upsell',
       profile: data.profile ?? null,
@@ -387,6 +396,7 @@ export async function getOffer(token: string): Promise<OfferView> {
       requestedProduct: data.requested_product ?? null,
       recommended: null,
       applicationCode: data.application_code ?? null,
+      legacyId: data.legacy_id ?? null,
       clientName: data.client_name ?? null,
       offerCase: 'standard',
       terms: [],
@@ -430,6 +440,7 @@ export async function getOffer(token: string): Promise<OfferView> {
       recommended: null,
       alreadySelected: true,
       applicationCode: data.application_code ?? null,
+      legacyId: data.legacy_id ?? null,
       clientName: data.client_name ?? null,
       selectedEquipment: eq
         ? {
@@ -464,6 +475,7 @@ export async function getOffer(token: string): Promise<OfferView> {
   return {
     offerCode: data.offer_code,
     applicationCode: data.application_code ?? null,
+    legacyId: data.legacy_id ?? null,
     clientName: data.client_name ?? null,
     maxMonthlyQuota: data.max_monthly_quota,
     expiresAt: data.expires_at ?? null,

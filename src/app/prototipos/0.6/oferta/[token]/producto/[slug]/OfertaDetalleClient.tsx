@@ -26,6 +26,7 @@ import {
 } from '../../../../[landing]/producto/api/productDetailApi';
 import { getOffer, getCatalog, OfferApiError } from '../../../../services/offerApi';
 import { saveOfferSelection } from '../../offerStorage';
+import { modoDetalle } from './ofertaDetalleModo';
 import type { ProductSuggestion } from '../../../../services/catalogApi';
 import { useAnalytics } from '../../../../analytics/useAnalytics';
 
@@ -143,20 +144,15 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           return;
         }
 
-        // El equipo que el estudiante PIDIÓ se puede VER (link "Ver detalle" del
-        // card izquierdo) pero NO elegir: la oferta existe porque no calificaba.
-        // Lo marcamos readOnly para ocultar el CTA "Elegir este equipo".
-        const reqSlug = offer.requestedProduct?.slug;
-        const readOnly = !!reqSlug && reqSlug === slug;
-        // En readOnly (equipo pedido), la frecuencia real que el estudiante
-        // eligió (de application) — semanal para el celular. Se pasa al fetch
-        // inicial para traer directamente los planes en esa frecuencia, así el
-        // PricingCalculator no refetchea a otra frecuencia (loop de network).
-        const reqFrequency = readOnly ? (offer.requestedProduct?.payment_frequency ?? null) : null;
-        // Plazo (nº cuotas) e inicial reales del pedido → preseleccionar la misma
-        // celda en el detalle (solo readOnly).
-        const reqTerm = readOnly ? (offer.requestedProduct?.term ?? null) : null;
-        const reqInitial = readOnly ? (offer.requestedProduct?.initial_percent ?? null) : null;
+        // Con qué modo se abre la ficha: quién puede elegir, y en qué celda
+        // arranca el pricing. Ver `modoDetalle` — cubre el equipo pedido
+        // (Caso 4/5) y la oferta estándar (WEB-05), que tampoco se elige acá.
+        //
+        // La frecuencia se pasa al fetch inicial para traer los planes ya en
+        // esa frecuencia, así el PricingCalculator no refetchea a otra (loop
+        // de network).
+        const { readOnly, frequency: reqFrequency, term: reqTerm, initial: reqInitial } =
+          modoDetalle(offer, slug);
 
         // BAL-2250 — dentro de la oferta el detalle va por token para aplicar la
         // TEA custom del Perfil C (consistente con el catálogo). `comboId` no está
