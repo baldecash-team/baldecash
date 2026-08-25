@@ -31,6 +31,12 @@ export type PanelContent = 'coupon' | 'image' | 'none';
 export interface LeadModalConfig {
   enabled?: boolean;
   title?: string;
+  /** Segunda línea, bajo el título. */
+  subtitle?: string;
+  /**
+   * Nombre anterior de `subtitle`. Se sigue leyendo por las landings
+   * guardadas antes del renombre; el admin ya no lo escribe.
+   */
   description?: string;
   image_url?: string;
   button_text?: string;
@@ -398,12 +404,17 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
         role="dialog"
         aria-modal="true"
         aria-labelledby="lead-coupon-modal-headline"
-        className={`lead-modal-dialog relative m-auto grid w-full max-w-[880px] overflow-hidden rounded-[26px] bg-white shadow-2xl ${
+        // Sin panel el modal es MAS ANGOSTO: 880px son la franja de 330 mas
+        // el formulario. Al sacar la franja, ese mismo formulario se estiraba
+        // a los 880 completos y quedaban campos de una linea larguisimos,
+        // con el texto perdido de punta a punta. 550 = 880 - 330: el
+        // formulario conserva el ancho que ya tiene en los otros dos modos.
+        className={`lead-modal-dialog relative m-auto grid w-full overflow-hidden rounded-[26px] bg-white shadow-2xl ${
           panelContent === 'none'
-            ? 'grid-cols-1'
+            ? 'max-w-[550px] grid-cols-1'
             : panelPosition === 'left'
-              ? 'md:grid-cols-[minmax(0,330px)_minmax(0,1fr)]'
-              : 'md:grid-cols-[minmax(0,1fr)_minmax(0,330px)]'
+              ? 'max-w-[880px] md:grid-cols-[minmax(0,330px)_minmax(0,1fr)]'
+              : 'max-w-[880px] md:grid-cols-[minmax(0,1fr)_minmax(0,330px)]'
         }`}
       >
         <button
@@ -497,14 +508,20 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
               {/* Texto del diseño aprobado, con el descuento REAL del cupon:
                   "Dejanos tus datos y activamos tu 15%". El `benefit` lo arma
                   el backend por tipo — con un periferico dice "tu regalo", no
-                  un porcentaje inventado. Si el admin escribe su propia
-                  descripcion, manda la suya. */}
-              {(config.description || config.benefit) && (
-                <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">
-                  {config.description
-                    || `Déjanos tus datos y activamos ${config.benefit}. Se aplica solo al elegir tu equipo.`}
-                </p>
-              )}
+                  un porcentaje inventado. Si el admin escribe su propio
+                  subtitulo, manda el suyo.
+                  `description` es el nombre viejo de `subtitle`: sigue leyendose
+                  para las landings guardadas antes del renombre. */}
+              {(() => {
+                const propio = config.subtitle || config.description;
+                if (!propio && !config.benefit) return null;
+                return (
+                  <p className="mb-5 text-[15px] leading-relaxed text-[#6B7099]">
+                    {propio
+                      || `Déjanos tus datos y activamos ${config.benefit}. Se aplica solo al elegir tu equipo.`}
+                  </p>
+                );
+              })()}
 
               {config.countdown_enabled && config.countdown_ends_at && (
                 <Countdown endsAt={config.countdown_ends_at} />

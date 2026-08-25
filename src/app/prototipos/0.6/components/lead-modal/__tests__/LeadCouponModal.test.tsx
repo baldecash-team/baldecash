@@ -317,6 +317,28 @@ describe('LeadCouponModal — panel_content', () => {
     );
     expect(document.querySelector('[data-testid="modal-stub"]')).toBeNull();
   });
+
+  // Sin franja el modal tiene que ser MAS ANGOSTO. Con los 880px de los otros
+  // modos, el formulario solo se estiraba de punta a punta y los campos de
+  // una linea quedaban larguisimos.
+  it('sin panel el modal es mas angosto que con panel', () => {
+    const anchoDe = (panel_content: 'none' | 'coupon') => {
+      const { container, unmount } = render(
+        <LeadCouponModal
+          landingSlug="senati"
+          config={{ ...CONFIG_CUPON, panel_content }}
+          onClose={jest.fn()}
+        />
+      );
+      const dialog = container.querySelector('[role="dialog"]')!;
+      const clase = [...dialog.classList].find((c) => c.startsWith('max-w-'));
+      unmount();
+      return clase;
+    };
+
+    expect(anchoDe('none')).toBe('max-w-[550px]');
+    expect(anchoDe('coupon')).toBe('max-w-[880px]');
+  });
 });
 
 describe('LeadCouponModal — botones', () => {
@@ -631,6 +653,57 @@ describe('links legales', () => {
 });
 
 
+
+describe('subtitle (antes description)', () => {
+  it('pinta el subtitle de la config', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, subtitle: 'Mi bajada propia' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('Mi bajada propia')).toBeInTheDocument();
+  });
+
+  // Una landing guardada antes del renombre sigue trayendo `description`.
+  // Sin este fallback, su subtitulo desaparece de la web.
+  it('cae a description cuando no hay subtitle', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, description: 'Bajada vieja' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('Bajada vieja')).toBeInTheDocument();
+  });
+
+  it('con las dos claves manda subtitle', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, subtitle: 'La nueva', description: 'La vieja' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText('La nueva')).toBeInTheDocument();
+    expect(screen.queryByText('La vieja')).not.toBeInTheDocument();
+  });
+
+  it('sin subtitle ni description arma la bajada con el benefit del cupón', () => {
+    render(
+      <LeadCouponModal
+        landingSlug="copia-home"
+        config={{ enabled: true, benefit: 'tu 50%' }}
+        onClose={() => {}}
+      />,
+    );
+    expect(
+      screen.getByText('Déjanos tus datos y activamos tu 50%. Se aplica solo al elegir tu equipo.'),
+    ).toBeInTheDocument();
+  });
+});
 
 describe('z-index del overlay', () => {
   it('se monta por encima del chat de Blip', () => {
