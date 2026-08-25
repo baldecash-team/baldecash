@@ -7,7 +7,7 @@ import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tabl
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
-import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
+import { CatalogLayoutProps, CatalogDeviceType, ProductTagType, GridVariant } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
@@ -43,6 +43,29 @@ import {
 } from '../../../data/mockCatalogData';
 
 /**
+ * Clases de la grilla de productos.
+ *
+ * `default` es la grilla histórica: `auto-fill` con mínimo de 280px, que en un
+ * móvil de 360px deja una sola columna porque no caben dos. `compact` fuerza 2
+ * columnas SOLO en móvil (landing de reacondicionados, BAL-3288) y desde `sm`
+ * vuelve al mismo auto-fill: 2 columnas fijas en desktop darían cards enormes.
+ *
+ * Se extrae como función pura para poder testear la decisión sin montar el
+ * layout completo, que arrastra router, contextos y hooks de datos.
+ *
+ * IMPORTANTE: las clases se escriben COMPLETAS y literales, nunca armadas por
+ * interpolación (`sm:${x}`). Tailwind escanea el código como texto: una clase
+ * construida en runtime no entra al bundle y el estilo no existe.
+ */
+export function gridClassName(variant: GridVariant = 'default'): string {
+  const base = 'w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 justify-items-center';
+  if (variant === 'compact') {
+    return `${base} grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]`;
+  }
+  return `${base} grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]`;
+}
+
+/**
  * CatalogLayoutV4 - Header con Quick Cards + Sidebar Flotante
  * Header con tarjetas de uso rápido y filtros en sidebar flotante
  * Referencia: Nubank, Revolut (secciones de productos)
@@ -68,6 +91,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   overlayVariant,
   campaignCoupon,
   isCampaignCouponValidating,
+  gridVariant = 'default',
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -952,7 +976,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               ref={gridRef}
-              className="w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] justify-items-center"
+              className={gridClassName(gridVariant)}
             >
               {children}
             </motion.div>
