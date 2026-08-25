@@ -15,7 +15,19 @@ import { hero } from './data/seminuevosData';
  * hero -- el del navbar sigue estando. Si el banner se quedara sin texto, esto
  * hay que reactivarlo o el hero no dice nada.
  */
-const MOSTRAR_COPY_HERO = false;
+/**
+ * El copy del hero (eyebrow, h1, subtítulo y CTA) se dibuja o no según la pieza
+ * que haya detrás.
+ *
+ * En DESKTOP la imagen ya trae el texto compuesto, así que repetirlo lo
+ * duplicaría en pantalla: ahí sigue oculto.
+ *
+ * En MÓVIL la pieza nueva es solo fondo —las laptops sobre el degradé azul, sin
+ * una palabra—, y sin este bloque la landing abre sin título, sin promesa y sin
+ * botón al catálogo. Se muestra hasta 767px y se esconde de 768px en adelante,
+ * el mismo corte que usa el <picture> para cambiar de archivo.
+ */
+const COPY_HERO_SOLO_MOVIL = 'md:hidden';
 
 /** Las 4 laptops decorativas del prototipo: color, posición y rotación. */
 const LAPTOPS = [
@@ -71,8 +83,8 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
       )}
 
       <div
-        hidden={!MOSTRAR_COPY_HERO}
-        className="relative z-[2] w-full max-w-[600px] mx-auto py-10"
+        data-testid="hero-copy"
+        className={`${COPY_HERO_SOLO_MOVIL} relative z-[2] w-full max-w-[600px] mx-auto py-10`}
         style={{
           background:
             'radial-gradient(ellipse at center,rgba(255,255,255,.85) 55%,rgba(255,255,255,0))',
