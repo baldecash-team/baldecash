@@ -59,6 +59,47 @@ describe('CatalogBanner', () => {
       .toHaveAttribute('src', defaultProps.desktopImageUrl);
   });
 
+  // Banner solo-móvil: la pieza que entregó diseño es vertical (700×1197) y
+  // estirada a 1920px se vería deforme, así que en desktop no se muestra.
+  describe('solo imagen de móvil', () => {
+    const soloMovil = { desktopImageUrl: '', mobileImageUrl: 'https://cdn.example.com/mobile.webp' };
+
+    it('omite el source de desktop', () => {
+      const { container } = render(<CatalogBanner {...soloMovil} />);
+      expect(container.querySelector('source[media="(min-width: 769px)"]')).not.toBeInTheDocument();
+      expect(container.querySelector('source[media="(max-width: 768px)"]')).toBeInTheDocument();
+    });
+
+    it('usa la imagen de móvil como src base', () => {
+      render(<CatalogBanner {...soloMovil} />);
+      expect(screen.getByAltText('Banner promocional'))
+        .toHaveAttribute('src', soloMovil.mobileImageUrl);
+    });
+
+    it('se oculta desde el breakpoint de escritorio', () => {
+      render(<CatalogBanner {...soloMovil} />);
+      expect(screen.getByTestId('catalog-banner').className).toContain('md:hidden');
+    });
+
+    it('tambien se oculta cuando el banner es un enlace', () => {
+      render(<CatalogBanner {...soloMovil} linkUrl="/x" />);
+      expect(screen.getByTestId('catalog-banner-link').className).toContain('md:hidden');
+    });
+
+    // El skeleton reserva alto con proporción apaisada; con una pieza vertical
+    // eso haría saltar el catálogo al cargar la imagen.
+    it('no reserva alto con la proporcion apaisada', () => {
+      const { container } = render(<CatalogBanner {...soloMovil} />);
+      expect(container.querySelector('.catalog-banner-skeleton')).not.toBeInTheDocument();
+    });
+
+    // Con las dos imágenes el comportamiento de siempre no cambia.
+    it('con ambas imagenes NO se oculta en desktop', () => {
+      render(<CatalogBanner {...defaultProps} />);
+      expect(screen.getByTestId('catalog-banner').className).not.toContain('md:hidden');
+    });
+  });
+
   describe('sin enlace', () => {
     it('no se envuelve en <a>: un banner decorativo no debe anunciarse como clicable', () => {
       const { container } = render(<CatalogBanner {...defaultProps} />);

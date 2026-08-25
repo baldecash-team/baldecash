@@ -46,10 +46,22 @@ export default function CatalogBanner({
   const nuevaPestana = linkTarget === '_blank';
   const alt = altText?.trim() || 'Banner promocional';
 
+  // Banner solo-móvil: hay pieza de móvil pero no de desktop. Se esconde de 769px
+  // en adelante en vez de estirar una imagen vertical a todo el ancho.
+  // `md:hidden` corta en 768px, el mismo punto que el <picture> de abajo.
+  const soloMovil = !!mobileImageUrl && !desktopImageUrl;
+  const claseVisibilidad = soloMovil ? 'md:hidden ' : '';
+
+  // El skeleton reserva alto con la proporción del banner. Con una pieza
+  // solo-móvil no se puede asumir 700×400: puede ser vertical, y reservar el
+  // alto apaisado haría saltar el catálogo al cargar. En ese caso no se reserva
+  // nada y la imagen define su propio alto.
+  const reservaAlto = !soloMovil;
+
   const contenido = (
     <>
       {/* Skeleton placeholder */}
-      {!loaded && (
+      {!loaded && reservaAlto && (
         <>
           <style>{SKELETON_ASPECT_STYLE}</style>
           <div
@@ -63,18 +75,25 @@ export default function CatalogBanner({
           El <source> de móvil solo se emite si HAY imagen de móvil: con un
           srcSet vacío el navegador no resuelve nada, `onLoad` no dispara y el
           skeleton se queda animando para siempre. Sin ella, el <img> de abajo
-          sirve la de desktop en todos los tamaños, que se degrada bien. */}
+          sirve la de desktop en todos los tamaños, que se degrada bien.
+
+          Al revés también vale: cuando solo hay imagen de móvil (una pieza
+          vertical que estirada a 1920px se vería deforme), se omite el <source>
+          de desktop y el `src` base pasa a ser la de móvil — el contenedor de
+          arriba ya se encarga de no mostrar nada en pantallas grandes. */}
       <picture>
         {mobileImageUrl && (
           <source media="(max-width: 768px)" srcSet={mobileImageUrl} />
         )}
-        <source media="(min-width: 769px)" srcSet={desktopImageUrl} />
+        {desktopImageUrl && (
+          <source media="(min-width: 769px)" srcSet={desktopImageUrl} />
+        )}
         <img
-          src={desktopImageUrl}
+          src={desktopImageUrl || mobileImageUrl}
           alt={alt}
           loading="lazy"
           className={`w-full rounded-xl object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-          style={!loaded ? { position: 'absolute', top: 0, left: 0 } : undefined}
+          style={!loaded && reservaAlto ? { position: 'absolute', top: 0, left: 0 } : undefined}
           onLoad={() => setLoaded(true)}
         />
       </picture>
@@ -85,7 +104,7 @@ export default function CatalogBanner({
   // anunciarlo como algo clicable que no lleva a ninguna parte.
   if (!href) {
     return (
-      <div data-testid="catalog-banner" className="relative w-full overflow-hidden rounded-xl">
+      <div data-testid="catalog-banner" className={`${claseVisibilidad}relative w-full overflow-hidden rounded-xl`}>
         {contenido}
       </div>
     );
@@ -96,7 +115,7 @@ export default function CatalogBanner({
       href={href}
       data-testid="catalog-banner-link"
       {...(nuevaPestana ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      className="relative block w-full cursor-pointer overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul,#5a63e0)] focus-visible:ring-offset-2"
+      className={`${claseVisibilidad}relative block w-full cursor-pointer overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul,#5a63e0)] focus-visible:ring-offset-2`}
     >
       {contenido}
     </a>
