@@ -107,6 +107,15 @@
   box-shadow: 0 0 0 3px rgba(70, 84, 205, 0.35);
 }
 
+/* Solo donde hay puntero fino: en táctil el :hover se queda pegado tras el
+   toque y la tarjeta parece seleccionada sin estarlo. */
+@media (hover: hover) and (pointer: fine) {
+  .col:not(:disabled):hover {
+    border-color: var(--azul, #4654cd);
+    background: rgba(70, 84, 205, 0.04);
+  }
+}
+
 .colOn {
   border-color: var(--azul, #4654cd);
   box-shadow: 0 0 0 3px rgba(70, 84, 205, 0.12);

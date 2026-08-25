@@ -421,6 +421,10 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
           logoUrl={heroData.logoUrl}
           primaryColor={heroData.primaryColor}
           whatsappUrl={mergedCta?.buttons.whatsapp.url}
+          // Igual que en la landing publicada: el menú sale de BD. Acá además
+          // pasa por el merge del preview, así que los cambios sin guardar del
+          // admin también se ven (BAL-3288).
+          navbarItems={mergedNavbarItems}
         />
       </div>
     );

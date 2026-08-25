@@ -514,6 +514,11 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           logoUrl={heroData.logoUrl}
           primaryColor={heroData.primaryColor}
           whatsappUrl={heroData.ctaData?.buttons.whatsapp.url}
+          // El mismo menú que ven el catálogo y el detalle de esta landing: sale
+          // de BD (`home_component.navbar`) y se gestiona desde el admin. Antes
+          // el index usaba una lista propia en `seminuevosData` y acababa con un
+          // menú distinto al del resto del flujo (BAL-3288).
+          navbarItems={mergedNavbarItems}
         />
       </div>
     );

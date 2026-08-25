@@ -49,16 +49,33 @@ beforeEach(() => {
   window.history.pushState({}, '', '/prototipos/0.6/preview/241');
 });
 
+/**
+ * El menú ya NO sale de `navItems`: viene de BD y lo pasa quien monta la
+ * landing (`LandingPageClient` / `PreviewPageClient`). Estos tests lo simulan
+ * con la misma forma que llega en producción — sin la prop no hay menú, que es
+ * justo lo que pasaba antes de conectarlo (BAL-3288).
+ *
+ * `navItems` se mantiene como fuente de las secciones scrolleables, que es para
+ * lo único que sigue sirviendo.
+ */
+const ITEMS_DE_BD = navItems.map((item) => ({
+  label: item.label,
+  href: `#${item.sectionId}`,
+  section: item.sectionId,
+}));
+
+const SECCIONES = navItems.map((item) => item.sectionId);
+
 describe('SeminuevosLanding — menú de anclas', () => {
   it('expone un item de navbar por cada sección, con los labels exactos', () => {
-    render(<SeminuevosLanding landing="seminuevos" />);
+    render(<SeminuevosLanding landing="seminuevos" navbarItems={ITEMS_DE_BD} />);
     navItems.forEach((item) => {
       expect(screen.getByRole('link', { name: item.label })).toBeInTheDocument();
     });
   });
 
   it('hace scroll suave a "¿Qué es?" aunque la ruta no coincida (caso preview)', async () => {
-    render(<SeminuevosLanding landing="seminuevos" />);
+    render(<SeminuevosLanding landing="seminuevos" navbarItems={ITEMS_DE_BD} />);
     const link = screen.getByRole('link', { name: '¿Qué es?' });
     fireEvent.click(link);
     await flushAnimationFrames();
@@ -76,7 +93,7 @@ describe('SeminuevosLanding — menú de anclas', () => {
     }));
     Object.defineProperty(window, 'matchMedia', { writable: true, value: matchMediaMock });
 
-    render(<SeminuevosLanding landing="seminuevos" />);
+    render(<SeminuevosLanding landing="seminuevos" navbarItems={ITEMS_DE_BD} />);
     const link = screen.getByRole('link', { name: 'Nosotros' });
     fireEvent.click(link);
     await flushAnimationFrames();
