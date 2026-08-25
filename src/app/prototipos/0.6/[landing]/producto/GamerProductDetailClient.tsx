@@ -12,6 +12,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert, Keyboard, Camera, Music, Settings, Volume2, Fingerprint } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
+import { cardKey } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardKey';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
@@ -142,6 +143,17 @@ function DetailContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   const slugArray = params.slug as string[] | undefined;
   const slug = slugArray?.join('/') || '';
+
+  /**
+   * Clave de la card que esta página muestra (BAL-3328).
+   *
+   * El slug de la URL, no `product.slug` ni `product.id`: el endpoint resuelve
+   * el combo al producto que lo compone, así que la página del combo y la del
+   * suelto devuelven el mismo `product.slug` y el mismo `id`. Marcar el corazón
+   * por `product.id` hacía que el suelto apareciera en favoritos sin tocarlo.
+   */
+  const pageKey = cardKey({ slug });
+
   // Note: we write directly to localStorage instead of using context setters
   // because each page has its own ProductProvider instance.
 
@@ -493,7 +505,7 @@ function DetailContent() {
   const isAvailable = data?.isAvailable !== false;
   const activePlan = paymentPlans.find((p) => p.term === selectedTerm) || paymentPlans[0];
   const lowestOption = activePlan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || activePlan?.options?.[0];
-  const isWishlisted = product ? catalogState.isInWishlist(String(product.id)) : false;
+  const isWishlisted = product ? catalogState.isInWishlist(pageKey) : false;
 
   // Month-equivalent of the selected term. For semanal (term=48 weeks → 12 months)
   // or quincenal (term=24 fortnights → 12 months) we need the normalized value
@@ -611,7 +623,10 @@ function DetailContent() {
   const handleToggleWishlist = () => {
     if (!product) return;
     const pid = String(product.id);
-    const wasWishlisted = catalogState.isInWishlist(pid);
+    // Por clave de card (el slug de la URL), no por productId: el suelto y sus
+    // combos comparten `id` y el toast diría lo contrario de lo que hizo, y el
+    // favorito del suelto se encendería sin haberlo tocado (BAL-3328).
+    const wasWishlisted = catalogState.isInWishlist(pageKey);
     const selectedColor = displayColors.find((c) => c.id === selectedColorId);
     const initialAmount = lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100);
     catalogState.toggleWishlist({
@@ -622,7 +637,10 @@ function DetailContent() {
       price: product.price,
       lowestQuota: lowestOption?.monthlyQuota || 0,
       brand: product.brand,
-      slug: product.slug,
+      // El slug de la URL, no `product.slug`: es lo único que distingue la
+      // página del combo de la del suelto, y debe coincidir con `pageKey`
+      // para que el corazón siga marcado al volver (BAL-3328).
+      slug: pageKey || product.slug,
       type: product.deviceType as 'laptop' | 'tablet' | 'celular' | 'accesorio',
       months: (selectedTermMonths || 24) as TermMonths,
       term: selectedTerm ?? undefined,
