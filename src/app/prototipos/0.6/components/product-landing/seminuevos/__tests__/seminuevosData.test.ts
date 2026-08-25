@@ -7,11 +7,8 @@ describe('piezaSlug', () => {
     expect(piezaSlug('Batería')).toBe('bateria');
   });
 
-  it('produce un slug ASCII para las 8 piezas', () => {
-    expect(PIEZAS.map(piezaSlug)).toEqual([
-      'carcasa', 'mousepad', 'pantalla', 'teclado',
-      'entradas', 'camara', 'bisagras', 'bateria',
-    ]);
+  it('produce un slug ASCII para las piezas publicadas', () => {
+    expect(PIEZAS.map(piezaSlug)).toEqual(['carcasa', 'pantalla', 'teclado']);
   });
 
   it('reemplaza los espacios por guiones', () => {
@@ -29,9 +26,12 @@ describe('inspectorAssetUrl', () => {
     );
   });
 
-  it('cubre las 24 combinaciones sin colisiones', () => {
+  it('cubre todas las combinaciones de pieza y grado sin colisiones', () => {
+    // El total sale de las constantes, no de un número escrito a mano: lo que
+    // se prueba es que no haya COLISIONES, y eso vale con 3 piezas o con 8.
+    const esperadas = PIEZAS.length * GRADOS.length;
     const urls = PIEZAS.flatMap((p) => GRADOS.map((g) => inspectorAssetUrl(p, g)));
-    expect(urls).toHaveLength(24);
-    expect(new Set(urls).size).toBe(24);
+    expect(urls).toHaveLength(esperadas);
+    expect(new Set(urls).size).toBe(esperadas);
   });
 });

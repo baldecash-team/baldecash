@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 const VIDEO_EXT = /\.(mp4|webm)(\?.*)?$/i;
 
@@ -11,6 +11,8 @@ export interface MediaSlotProps {
   className?: string;
   /** Ej. '16/10'. Por defecto lo define el contenedor. */
   aspectRatio?: string;
+  /** Estilos extra para el medio. Se combinan con aspectRatio. */
+  style?: CSSProperties;
 }
 
 /**
@@ -18,9 +20,12 @@ export interface MediaSlotProps {
  * en S3, muestra el placeholder con el gradiente del prototipo. Cuando el asset
  * se sube, la landing lo toma sin tocar código.
  */
-export function MediaSlot({ src, alt, className = '', aspectRatio }: MediaSlotProps) {
+export function MediaSlot({
+  src, alt, className = '', aspectRatio, style: styleExtra,
+}: MediaSlotProps) {
   const [failed, setFailed] = useState(false);
-  const style = aspectRatio ? { aspectRatio } : undefined;
+  const style =
+    aspectRatio || styleExtra ? { ...styleExtra, ...(aspectRatio ? { aspectRatio } : {}) } : undefined;
 
   if (!src || failed) {
     return (

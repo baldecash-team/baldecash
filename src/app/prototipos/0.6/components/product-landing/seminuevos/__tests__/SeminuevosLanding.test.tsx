@@ -25,9 +25,10 @@ describe('SeminuevosLanding', () => {
   it('renderiza el navbar, el hero y el footer compartido', () => {
     render(<SeminuevosLanding landing="seminuevos" />);
     expect(screen.getByTestId('navbar-mock')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /Equipos seminuevos en cuotas sin intereses/i })
-    ).toBeInTheDocument();
+    // El hero se comprueba por su banner y no por el <h1>: el bloque de copy
+    // está oculto (MOSTRAR_COPY_HERO en SeminuevosHero), así que ese heading ya
+    // no es accesible.
+    expect(screen.getByAltText('Equipos seminuevos BaldeCash')).toBeInTheDocument();
     expect(screen.getByTestId('footer-compartido')).toBeInTheDocument();
   });
 

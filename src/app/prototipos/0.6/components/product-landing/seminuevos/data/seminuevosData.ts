@@ -12,10 +12,10 @@ export type Grado = 'A' | 'B' | 'C';
 
 export const GRADOS: readonly Grado[] = ['A', 'B', 'C'] as const;
 
-export const PIEZAS = [
-  'Carcasa', 'Mousepad', 'Pantalla', 'Teclado',
-  'Entradas', 'Cámara', 'Bisagras', 'Batería',
-] as const;
+// Solo las piezas de las que Haru entregó fotos de los tres grados. Una pieza
+// sin su imagen en S3 no se degrada a nada útil: el <img> falla y MediaSlot
+// pinta el placeholder gris, así que la tab queda vacía (BAL-3317).
+export const PIEZAS = ['Carcasa', 'Pantalla', 'Teclado'] as const;
 
 /** Slug del archivo en S3: "Cámara" → "camara". */
 export function piezaSlug(pieza: string): string {
@@ -38,8 +38,15 @@ export const hero = {
   title: 'Equipos seminuevos en cuotas sin intereses',
   subtitle: 'Elige el modelo y fináncialo en BaldeCash.',
   ctaLabel: 'Ver catálogo',
-  /** Banner de Haru. Mientras sea null se pintan las laptops SVG del prototipo. */
-  bannerUrl: null as string | null,
+  /**
+   * Banner de Haru. Mientras sea null se pintan las laptops SVG del prototipo.
+   *
+   * Son dos archivos, no uno: el de móvil es vertical (900x1599) y el de
+   * desktop apaisado (1536x1024). Servir uno solo en ambos deja franjas o
+   * recorta el equipo, así que el hero elige por viewport (BAL-3317).
+   */
+  bannerUrl: `${SEMINUEVOS_ASSETS}/hero/hero-desktop.webp` as string | null,
+  bannerUrlMobile: `${SEMINUEVOS_ASSETS}/hero/hero-mobile.webp` as string | null,
 };
 
 export const quees = {
@@ -72,7 +79,7 @@ export const about = {
   parrafo:
     'BaldeCash ofrece financiamiento a estudiantes universitarios para acceder a equipos tecnológicos claves para su crecimiento académico y personal.',
   /** Foto del equipo. Slot: mientras sea null, placeholder. */
-  fotoEquipoUrl: null as string | null,
+  fotoEquipoUrl: `${SEMINUEVOS_ASSETS}/about/equipo.webp` as string | null,
   sbsLabel: 'Registrados en:',
   sbsText: 'SBS · Superintendencia de Banca, Seguros y AFP',
   redes: [

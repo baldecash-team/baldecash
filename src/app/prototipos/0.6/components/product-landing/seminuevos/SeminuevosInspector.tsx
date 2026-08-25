@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MediaSlot } from './MediaSlot';
+import { ZoomSlot } from './ZoomSlot';
+import { InspectorLightbox } from './InspectorLightbox';
 import { PIEZAS, GRADOS, inspectorAssetUrl, quees, type Grado } from './data/seminuevosData';
 
 export function SeminuevosInspector() {
   const [grado, setGrado] = useState<Grado>('A');
   const [pieza, setPieza] = useState(0);
+  const [visor, setVisor] = useState(false);
 
   const tabsRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -26,10 +28,11 @@ export function SeminuevosInspector() {
     strip.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
   }, [pieza]);
 
-  // Con 8 piezas en móvil solo entran ~4 tabs y la barra de scroll está oculta,
-  // así que nada delata que la lista sigue. Se difumina el borde del lado que
-  // tiene contenido fuera de vista; cuando el strip entra completo (desktop),
-  // no se difumina ningún lado.
+  // Si las tabs no entran en el ancho disponible, la barra de scroll oculta no
+  // delata que la lista sigue. Se difumina el borde del lado con contenido
+  // fuera de vista; si el strip entra completo, no se difumina ningún lado.
+  // Se mide en runtime, así que con las 3 piezas actuales se apaga solo y
+  // vuelve a activarse si se agregan más (BAL-3317).
   const [desborde, setDesborde] = useState({ izq: false, der: false });
 
   useEffect(() => {
@@ -55,9 +58,45 @@ export function SeminuevosInspector() {
     };
   }, []);
 
+  // Cuánto hay que correr las tabs a la derecha para que su centro coincida con
+  // el de la imagen. Desde sm es el ancho de la columna de pills más el gap;
+  // en móvil las pills van arriba y no hay nada que compensar, así que 0.
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const [sangria, setSangria] = useState(0);
+
+  useEffect(() => {
+    const pills = pillsRef.current;
+    if (!pills) return;
+
+    const medir = () => {
+      // En móvil las pills quedan APILADAS sobre la imagen (flex-col), y ahí su
+      // ancho no desplaza nada. Se detecta por la posición real y no por un
+      // breakpoint escrito a mano, que se desincronizaría del `sm:` del layout.
+      const enColumna = pills.getBoundingClientRect().bottom
+        <= (pills.nextElementSibling?.getBoundingClientRect().top ?? 0);
+      if (enColumna) return setSangria(0);
+      const gap = parseFloat(getComputedStyle(pills.parentElement!).columnGap) || 0;
+      setSangria(pills.getBoundingClientRect().width + gap);
+    };
+
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(pills);
+    if (pills.parentElement) ro.observe(pills.parentElement);
+    return () => ro.disconnect();
+  }, []);
+
   const total = PIEZAS.length;
-  const prev = () => setPieza((p) => (p - 1 + total) % total);
-  const next = () => setPieza((p) => (p + 1) % total);
+
+  // Cambiar de pieza vuelve SIEMPRE al grado A, por pedido de producto: cada
+  // pieza se lee de mejor a peor, y arrastrar el grado anterior dejaba al
+  // visitante viendo un grado C de entrada sin haberlo elegido para esa pieza.
+  const irA = (i: number) => {
+    setPieza(i);
+    setGrado('A');
+  };
+  const prev = () => irA((pieza - 1 + total) % total);
+  const next = () => irA((pieza + 1) % total);
 
   // Máscara: transparente en el borde con contenido oculto, opaco si no hay nada más.
   const bordeIzq = desborde.izq ? 'transparent 0, black 24px' : 'black 0';
@@ -94,7 +133,7 @@ export function SeminuevosInspector() {
               del dueño de producto, para no quitarle ancho a la img principal).
               Desde sm: layout original en columna, al costado. */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-5">
-            <div className="flex flex-row sm:flex-col gap-2 shrink-0">
+            <div ref={pillsRef} className="flex flex-row sm:flex-col gap-2 shrink-0">
               {GRADOS.map((g) => {
                 const on = g === grado;
                 return (
@@ -118,10 +157,11 @@ export function SeminuevosInspector() {
             </div>
 
             <div className="relative flex-1 min-h-[180px]">
-              <MediaSlot
+              <ZoomSlot
                 src={inspectorAssetUrl(piezaActual, grado)}
                 alt={`${piezaActual} de un equipo Grado ${grado}`}
                 className="h-full min-h-[180px]"
+                onAmpliar={() => setVisor(true)}
               />
               <span
                 data-testid="insp-badge"
@@ -133,11 +173,23 @@ export function SeminuevosInspector() {
             </div>
           </div>
 
-          {/* Tabs de pieza */}
+          {/* Tabs de pieza.
+              Centradas sobre la IMAGEN, no sobre la tarjeta: desde sm las pills
+              de grado ocupan una columna a la izquierda, así que sin compensar
+              su ancho las tabs quedan corridas respecto del centro de la foto.
+              El desplazamiento se MIDE (no se escribe a mano) porque depende
+              del texto de los grados y de la tipografía; en móvil las pills van
+              arriba y la compensación es 0.
+              justify-center solo actúa cuando las tabs entran completas: si
+              vuelven a desbordar, el navegador lo ignora y manda el scroll. */}
           <div
             ref={tabsRef}
-            className="flex gap-2 overflow-x-auto px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            style={{ maskImage: mascara, WebkitMaskImage: mascara }}
+            className="flex gap-2 justify-center overflow-x-auto px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{
+              maskImage: mascara,
+              WebkitMaskImage: mascara,
+              paddingLeft: `calc(1.25rem + ${sangria}px)`,
+            }}
           >
             {PIEZAS.map((p, i) => {
               const on = i === pieza;
@@ -147,7 +199,7 @@ export function SeminuevosInspector() {
                   type="button"
                   ref={on ? activeTabRef : undefined}
                   aria-pressed={on}
-                  onClick={() => setPieza(i)}
+                  onClick={() => irA(i)}
                   className={`shrink-0 min-h-11 flex items-center rounded-[20px] px-3.5 text-[13px] font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2 ${
                     on ? 'hover:brightness-110' : 'hover:bg-[#e8e9ee]'
                   }`}
@@ -189,6 +241,16 @@ export function SeminuevosInspector() {
           </div>
         </div>
       </div>
+
+      {/* El grado se comparte con el visor: cambiarlo ahí adentro deja la
+          tarjeta en la misma calidad al cerrar, que es lo que uno espera. */}
+      <InspectorLightbox
+        abierto={visor}
+        pieza={piezaActual}
+        grado={grado}
+        onGrado={setGrado}
+        onClose={() => setVisor(false)}
+      />
     </section>
   );
 }
