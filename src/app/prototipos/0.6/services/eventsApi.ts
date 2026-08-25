@@ -328,7 +328,27 @@ export type EventType =
   // has_whatsapp. Nunca el nombre ni el teléfono: el backend los rechaza.
   | 'referral_banner_shown'
   | 'referral_banner_whatsapp_click'
-  | 'referral_banner_dismiss';
+  | 'referral_banner_dismiss'
+  // Phase 21: Elección de la unidad física (`/eleccion-equipo/[token]`).
+  // El cliente ya aprobado ve las unidades reales de su modelo —con las fotos
+  // y el video que grabó la estación de inspección— y elige la que se lleva.
+  // Los emitidos desde esa ruta usan el token del link como `session_id`.
+  // NUNCA llevan el serial en `properties`: el backend ni siquiera lo manda,
+  // el cliente ve `display_number` ("Unidad 01").
+  | 'equipment_selection_link_open'
+  | 'equipment_selection_already_chosen'
+  // `units: []` — no es un error: el equipo se está preparando y el link
+  // sigue sirviendo cuando entren unidades.
+  | 'equipment_selection_empty'
+  | 'equipment_selection_gallery_open'
+  | 'equipment_selection_photo_change'
+  | 'equipment_selection_video_play'
+  // Click en "Elegir esta unidad". Distinto de `..._confirmed`, que es el
+  // desenlace: entre los dos está el 409 de la unidad que otro se llevó.
+  | 'equipment_selection_click'
+  | 'equipment_selection_confirmed'
+  | 'equipment_selection_error'
+  | 'equipment_selection_link_expired';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([
