@@ -159,6 +159,36 @@ describe('IdentificarEquipo', () => {
     expect(screen.getByText(/4 fotos/)).toBeInTheDocument();
   });
 
+  it('sin fecha, el bloque de clase se arma igual (no tumba la pantalla)', async () => {
+    // `video_de_clase.fecha` es `Optional[str]` en el backend. Tipada como
+    // `string`, `formatearFecha(null)` llamaba `.split` sobre `null` y se
+    // llevaba puesta la pantalla entera de la estación. Lo que el operador
+    // necesita para decidir —desde qué serial y cuánto material— no depende
+    // de la fecha, así que el bloque tiene que seguir en pie sin ella.
+    fetchOk({
+      encontrado: true,
+      equipo: { ...EQUIPO, grado: 'A' },
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: {
+        inspection_id: 41,
+        serial: '5CD51854S5',
+        fecha: null,
+        videos: 2,
+        fotos: 4,
+      },
+    });
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/ya tiene video/i)).toBeInTheDocument();
+    expect(screen.getByText(/5CD51854S5/)).toBeInTheDocument();
+    expect(screen.getByText(/2 videos/)).toBeInTheDocument();
+    // Y sin un "grabado el " colgando de la nada.
+    expect(screen.queryByText(/grabado el/i)).not.toBeInTheDocument();
+  });
+
   it('lista los defectos que obligan a grabar', async () => {
     fetchOk({
       encontrado: true,

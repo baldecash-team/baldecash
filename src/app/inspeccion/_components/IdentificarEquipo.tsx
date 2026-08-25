@@ -34,7 +34,10 @@ export interface ClaseInfo {
 export interface VideoDeClase {
   inspection_id: number;
   serial: string;
-  fecha: string;
+  /** `Optional[str]` en el backend: la inspección de referencia puede no tener
+   * `created_at`. Tiparlo `string` hacía que `formatearFecha` llamara `.split`
+   * sobre `null` y tumbara la pantalla de la estación entera. */
+  fecha: string | null;
   videos: number;
   fotos: number;
 }
@@ -65,8 +68,14 @@ interface Props {
 
 /** "2026-08-24T11:02:00" → "24/08/2026 11:02". Sin `Date`/`Intl`: la fecha
  * llega sin zona horaria y parsearla con `Date` la corre según el reloj del
- * navegador — acá alcanza con recortar el ISO tal cual llegó. */
-function formatearFecha(fecha: string): string {
+ * navegador — acá alcanza con recortar el ISO tal cual llegó.
+ *
+ * Acepta `null` (devolviendo `null`) porque el backend la manda opcional. Una
+ * fecha ausente no puede costar la pantalla: el bloque tiene que seguir
+ * diciendo desde qué serial y con cuánto material, que es lo que el operador
+ * necesita para decidir. */
+function formatearFecha(fecha: string | null): string | null {
+  if (!fecha) return null;
   const [fechaParte, horaParte] = fecha.split('T');
   const partes = fechaParte?.split('-');
   if (!partes || partes.length !== 3) return fecha;
@@ -304,6 +313,10 @@ export function IdentificarEquipo({
     };
   }, []);
 
+  // `null` cuando el backend no mandó fecha (`Optional[str]`): el bloque se
+  // arma sin ella en vez de romperse.
+  const fechaDeClase = videoDeClase ? formatearFecha(videoDeClase.fecha) : null;
+
   return (
     <div>
       <label
@@ -517,8 +530,8 @@ export function IdentificarEquipo({
           style={{ borderColor: TOKENS.primary, background: '#E9F4EF' }}
         >
           <p className="text-sm font-semibold" style={{ color: TOKENS.ink }}>
-            Este chasis en grado {clase?.grado ?? '—'} ya tiene video — grabado el{' '}
-            {formatearFecha(videoDeClase.fecha)} desde el serial {videoDeClase.serial} (
+            Este chasis en grado {clase?.grado ?? '—'} ya tiene video — grabado
+            {fechaDeClase ? ` el ${fechaDeClase}` : ''} desde el serial {videoDeClase.serial} (
             {videoDeClase.videos} videos, {videoDeClase.fotos} fotos).
           </p>
         </div>
