@@ -117,6 +117,24 @@ export function IdentificarEquipo({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  /**
+   * Limpia las tres caras de la ficha (impecable/defectos/clase/videoDeClase)
+   * y avisa al padre. Un único punto para esto — antes vivía duplicado en el
+   * branch de "no encontrado" de `aplicar()` y en el `onChange` del input, y
+   * esa duplicación fue justo lo que dejó sin cubrir los branches de error de
+   * `buscarPorSerial` (fix de review post-Task-8, C1): ahí SÍ se limpiaba
+   * `equipo` pero no esto, así que una segunda búsqueda fallida sobre el
+   * mismo serial dejaba en pantalla el bloque de una búsqueda anterior que ya
+   * no correspondía a nada confirmado.
+   */
+  const limpiarClase = useCallback(() => {
+    setImpecable(false);
+    setDefectos([]);
+    setClase(null);
+    setVideoDeClase(null);
+    onVideoDeClaseChange?.(null);
+  }, [onVideoDeClaseChange]);
+
   const aplicar = useCallback(
     (data: RespuestaSerial, desdeOcr: boolean) => {
       if (data.encontrado && data.equipo) {
@@ -142,13 +160,9 @@ export function IdentificarEquipo({
       if (data.candidato) onSerialChange(data.candidato);
       setError(data.error ?? 'No se encontró el equipo.');
       setAvisoOcr(null);
-      setImpecable(false);
-      setDefectos([]);
-      setClase(null);
-      setVideoDeClase(null);
-      onVideoDeClaseChange?.(null);
+      limpiarClase();
     },
-    [onEquipoChange, onSerialChange, onVideoDeClaseChange]
+    [onEquipoChange, onSerialChange, onVideoDeClaseChange, limpiarClase]
   );
 
   const buscarPorSerial = useCallback(async () => {
@@ -163,17 +177,19 @@ export function IdentificarEquipo({
       });
       if (!r.ok) {
         onEquipoChange(null);
+        limpiarClase();
         setError(await mensajeDeError(r, 'consultar el catálogo'));
         return;
       }
       aplicar((await r.json()) as RespuestaSerial, false);
     } catch {
       onEquipoChange(null);
+      limpiarClase();
       setError(mensajeDeRed('consultar el catálogo'));
     } finally {
       setBuscando(false);
     }
-  }, [serial, buscando, token, aplicar, onEquipoChange]);
+  }, [serial, buscando, token, aplicar, onEquipoChange, limpiarClase]);
 
   /** Manda una imagen ya en dataURL al OCR. Comparte camino entre la foto
    * tomada con la webcam y el archivo subido: el backend recibe lo mismo. */
@@ -308,13 +324,7 @@ export function IdentificarEquipo({
             // Cualquier edición invalida la ficha: lo confirmado dejó de
             // corresponder al texto que hay en pantalla.
             if (equipo) onEquipoChange(null);
-            if (impecable || defectos.length > 0 || clase || videoDeClase) {
-              setImpecable(false);
-              setDefectos([]);
-              setClase(null);
-              setVideoDeClase(null);
-              onVideoDeClaseChange?.(null);
-            }
+            if (impecable || defectos.length > 0 || clase || videoDeClase) limpiarClase();
           }}
           onKeyDown={(e) => {
             // Enter busca. Un lector de código de barras USB se comporta como

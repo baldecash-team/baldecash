@@ -221,4 +221,46 @@ describe('IdentificarEquipo', () => {
     expect(onVideoDeClaseChange).toHaveBeenCalledWith(null);
     expect(screen.queryByText(/ya tiene video/i)).not.toBeInTheDocument();
   });
+
+  it('una segunda búsqueda que falla limpia el bloque de clase de la búsqueda anterior', async () => {
+    // Repro: el operador escanea, el catálogo confirma y muestra un bloque
+    // (acá, "referencia de la clase"). Sin tocar el input, escanea de nuevo
+    // el mismo serial (red de la estación con hipo, doble lectura del lector
+    // de barras) y esta vez la consulta falla. El equipo ya se limpia en ese
+    // caso (`onEquipoChange(null)` en `buscarPorSerial`) — el bloque de clase
+    // tiene que limpiarse igual, porque lo confirmado ya no corresponde a lo
+    // que hay en pantalla.
+    const okBody = {
+      encontrado: true,
+      equipo: EQUIPO,
+      impecable: true,
+      defectos: [],
+      clase: { grupo_visual: 'HP 250 G10', grado: 'A', etiqueta: 'HP 250 G10 · grado A' },
+      video_de_clase: null,
+    };
+    const okResponse = { ok: true, json: async () => okBody };
+    const failResponse = {
+      ok: false,
+      status: 500,
+      clone() {
+        return failResponse;
+      },
+      json: async () => ({}),
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(okResponse)
+      .mockResolvedValueOnce(failResponse) as unknown as typeof fetch;
+
+    render(<IdentificarEquipo {...props({ serial: 'F3XP92635W' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await screen.findByText(/queda como referencia/i);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no se pudo consultar el catálogo/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/queda como referencia/i)).not.toBeInTheDocument();
+  });
 });
