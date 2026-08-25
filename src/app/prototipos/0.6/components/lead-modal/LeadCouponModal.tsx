@@ -404,12 +404,17 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
         role="dialog"
         aria-modal="true"
         aria-labelledby="lead-coupon-modal-headline"
-        className={`lead-modal-dialog relative m-auto grid w-full max-w-[880px] overflow-hidden rounded-[26px] bg-white shadow-2xl ${
+        // Sin panel el modal es MAS ANGOSTO: 880px son la franja de 330 mas
+        // el formulario. Al sacar la franja, ese mismo formulario se estiraba
+        // a los 880 completos y quedaban campos de una linea larguisimos,
+        // con el texto perdido de punta a punta. 550 = 880 - 330: el
+        // formulario conserva el ancho que ya tiene en los otros dos modos.
+        className={`lead-modal-dialog relative m-auto grid w-full overflow-hidden rounded-[26px] bg-white shadow-2xl ${
           panelContent === 'none'
-            ? 'grid-cols-1'
+            ? 'max-w-[550px] grid-cols-1'
             : panelPosition === 'left'
-              ? 'md:grid-cols-[minmax(0,330px)_minmax(0,1fr)]'
-              : 'md:grid-cols-[minmax(0,1fr)_minmax(0,330px)]'
+              ? 'max-w-[880px] md:grid-cols-[minmax(0,330px)_minmax(0,1fr)]'
+              : 'max-w-[880px] md:grid-cols-[minmax(0,1fr)_minmax(0,330px)]'
         }`}
       >
         <button

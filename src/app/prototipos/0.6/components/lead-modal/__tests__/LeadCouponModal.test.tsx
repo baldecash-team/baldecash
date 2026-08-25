@@ -317,6 +317,28 @@ describe('LeadCouponModal — panel_content', () => {
     );
     expect(document.querySelector('[data-testid="modal-stub"]')).toBeNull();
   });
+
+  // Sin franja el modal tiene que ser MAS ANGOSTO. Con los 880px de los otros
+  // modos, el formulario solo se estiraba de punta a punta y los campos de
+  // una linea quedaban larguisimos.
+  it('sin panel el modal es mas angosto que con panel', () => {
+    const anchoDe = (panel_content: 'none' | 'coupon') => {
+      const { container, unmount } = render(
+        <LeadCouponModal
+          landingSlug="senati"
+          config={{ ...CONFIG_CUPON, panel_content }}
+          onClose={jest.fn()}
+        />
+      );
+      const dialog = container.querySelector('[role="dialog"]')!;
+      const clase = [...dialog.classList].find((c) => c.startsWith('max-w-'));
+      unmount();
+      return clase;
+    };
+
+    expect(anchoDe('none')).toBe('max-w-[550px]');
+    expect(anchoDe('coupon')).toBe('max-w-[880px]');
+  });
 });
 
 describe('LeadCouponModal — botones', () => {
