@@ -2,22 +2,32 @@ import { render, screen } from '@testing-library/react';
 import { SeminuevosHero } from '../SeminuevosHero';
 
 describe('SeminuevosHero', () => {
-  // El copy del hero está OCULTO por pedido de producto (MOSTRAR_COPY_HERO):
-  // el banner de Haru ya trae su texto y se superponían. El bloque sigue en el
-  // DOM con `hidden`, así que se comprueba que no sea accesible, no que no
-  // exista -- si mañana se reactiva, estos tests avisan.
-  it('mantiene oculto el copy del hero', () => {
+  // El copy del hero se dibuja según la pieza que haya detrás: la de móvil es
+  // solo fondo (sin una palabra) y sin este bloque la landing abriría sin
+  // título, sin promesa y sin botón; la de desktop ya trae el texto compuesto y
+  // repetirlo lo duplicaría. Por eso el bloque existe siempre en el DOM y se
+  // esconde con `md:hidden` a partir de 768px (BAL-3288).
+  it('muestra el copy del hero, oculto solo desde el breakpoint de escritorio', () => {
     render(<SeminuevosHero catalogUrl="/seminuevos/catalogo" />);
-    expect(screen.queryByText('Exclusivo')).not.toBeVisible();
-    expect(
-      screen.queryByRole('heading', { name: /Equipos seminuevos en cuotas sin intereses/i })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Ver catálogo/i })).not.toBeInTheDocument();
+
+    const copy = screen.getByTestId('hero-copy');
+    expect(copy).toBeVisible();
+    // jsdom no evalúa media queries: lo que se comprueba es que el corte esté
+    // declarado, no el pixel exacto donde ocurre.
+    expect(copy.className).toContain('md:hidden');
   });
 
-  it('el CTA conserva el href del catálogo para cuando se reactive', () => {
-    const { container } = render(<SeminuevosHero catalogUrl="/seminuevos/catalogo" />);
-    expect(container.querySelector('a[href="/seminuevos/catalogo"]')).toBeInTheDocument();
+  it('el copy trae el h1, el subtítulo y el CTA al catálogo', () => {
+    render(<SeminuevosHero catalogUrl="/seminuevos/catalogo" />);
+
+    // El <h1> de la landing vive acá: si el bloque desaparece, la página se
+    // queda sin ninguno.
+    expect(
+      screen.getByRole('heading', { level: 1, name: /Equipos seminuevos en cuotas sin intereses/i })
+    ).toBeVisible();
+    expect(screen.getByText('Exclusivo')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Ver catálogo/i }))
+      .toHaveAttribute('href', '/seminuevos/catalogo');
   });
 
   // El banner de Haru ya está en S3, así que las laptops SVG son el fallback y
@@ -31,9 +41,13 @@ describe('SeminuevosHero', () => {
     expect(source).toHaveAttribute('media', '(min-width: 768px)');
     expect(source?.getAttribute('srcSet')).toContain('hero-desktop.webp');
 
-    // El <img> es el caso por defecto: móvil.
-    expect(container.querySelector('picture img'))
-      .toHaveAttribute('src', expect.stringContaining('hero-mobile.webp'));
+    // El <img> es el caso por defecto: móvil. Se comprueba el prefijo y no el
+    // nombre completo porque las piezas llevan hash de contenido
+    // (`hero-mobile-<hash>.webp`): al reemplazar la imagen cambia la URL para
+    // saltar el caché, y clavar el hash aquí volvería rojo el test en cada
+    // cambio de arte sin que nada esté roto.
+    expect(container.querySelector('picture img')?.getAttribute('src'))
+      .toMatch(/\/hero-mobile[-.][^/]*\.webp$/);
 
     // Con banner, las laptops decorativas no se pintan.
     expect(container.querySelectorAll('[data-testid="hero-laptop"]')).toHaveLength(0);
