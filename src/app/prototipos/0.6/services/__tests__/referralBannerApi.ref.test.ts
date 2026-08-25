@@ -19,9 +19,19 @@ const REF = 'ekscah';
 const RESPUESTA_OK = {
   ok: true,
   codigo: REF,
+  promotor: { nombre: 'Aned', whatsapp: '51999888777' },
+  activacion_activa: true,
+};
+
+/** El hub OMITE `whatsapp` cuando el registro no tiene un número usable. */
+const RESPUESTA_SIN_TELEFONO = {
+  ok: true,
+  codigo: REF,
   promotor: { nombre: 'Aned' },
   activacion_activa: true,
 };
+
+const MENSAJE = 'Hola Aned, tengo dudas sobre el financiamiento de equipos de BaldeCash';
 
 function mockFetch(impl: jest.Mock) {
   global.fetch = impl as unknown as typeof fetch;
@@ -41,27 +51,49 @@ afterEach(() => {
 });
 
 describe('resuelve la franja', () => {
-  it('devuelve el primer nombre del promotor', async () => {
+  it('devuelve el nombre y el link de WhatsApp ya armado', async () => {
     mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
 
     expect(await fetchReferralBannerByRef(REF)).toEqual({
       firstName: 'Aned',
-      phoneDisplay: null,
-      whatsappUrl: null,
+      whatsappUrl: `https://wa.me/51999888777?text=${encodeURIComponent(MENSAJE)}`,
       promoterCode: REF,
       reason: 'ref',
     });
   });
 
-  it('la franja va sin teléfono, no a medias', async () => {
-    // El endpoint del hub expone sólo el nombre a propósito. `ReferralBanner`
-    // pinta la versión sin chip; un `wa.me` sin destinatario abre WhatsApp en
-    // blanco y es peor que no tener el botón.
+  it('el mensaje precargado nombra a la promotora y de qué se trata', async () => {
+    // Sin `text` la promotora recibe un "Hola" suelto y no sabe de qué
+    // activación viene ni de qué producto le hablan.
     mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
 
+    const url = new URL((await fetchReferralBannerByRef(REF))!.whatsappUrl!);
+    expect(url.searchParams.get('text')).toBe(MENSAJE);
+  });
+
+  it('sin número usable la franja va sin link, no a medias', async () => {
+    // El hub omite el campo cuando no hay teléfono. `ReferralBanner` pinta la
+    // versión aviso; un `wa.me` sin destinatario abre WhatsApp en blanco y es
+    // peor que no llevar a ningún lado.
+    mockFetch(jest.fn(() => respuesta(RESPUESTA_SIN_TELEFONO)));
+
     const banner = await fetchReferralBannerByRef(REF);
+    expect(banner?.firstName).toBe('Aned');
     expect(banner?.whatsappUrl).toBeNull();
-    expect(banner?.phoneDisplay).toBeNull();
+  });
+
+  it('un número con forma rara no arma link', async () => {
+    // Llega de otro dominio y termina en un href. Antes que confiar, se descarta:
+    // preferimos la franja sin link que un link a un número inventado.
+    for (const basura of ['no-soy-un-numero', '123', '51 999 888 777', '<script>', '']) {
+      mockFetch(
+        jest.fn(() =>
+          respuesta({ ...RESPUESTA_OK, promotor: { nombre: 'Aned', whatsapp: basura } }),
+        ),
+      );
+      const banner = await fetchReferralBannerByRef(REF);
+      expect(banner?.whatsappUrl).toBeNull();
+    }
   });
 
   it('acepta el código en mayúsculas y lo normaliza', async () => {

@@ -64,11 +64,30 @@ describe('fetchReferralBanner · respuesta del API', () => {
     mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
     await expect(fetchReferralBanner('jperez', UTM_TERM)).resolves.toEqual({
       firstName: 'Marco',
-      phoneDisplay: '999 888 777',
-      whatsappUrl: 'https://wa.me/51999888777?text=Hola%20Marco',
+      whatsappUrl: `https://wa.me/51999888777?text=${encodeURIComponent(
+        'Hola Marco, tengo dudas sobre el financiamiento de equipos de BaldeCash',
+      )}`,
       promoterCode: 'jperez',
       reason: 'ok',
     });
+  });
+
+  it('se queda con el número de ws2 pero con NUESTRO mensaje', async () => {
+    // ws2 arma su propio `text` ("vi el flyer de BaldeCash y tengo una consulta")
+    // y el hub no arma ninguno. Con el copy repartido en tres repos, cambiarlo
+    // significaba tres deploys coordinados para que el usuario no viera un texto
+    // distinto según por qué parámetro entró.
+    //
+    // El número, en cambio, es el de ellos: ws2 ya sabe de fijos, extranjeros y
+    // números que traen país. Rearmarlo desde `phone_display` sería una segunda
+    // normalización que puede discrepar de la suya.
+    mockFetch(jest.fn(() => respuesta(RESPUESTA_OK)));
+
+    const url = new URL((await fetchReferralBanner('jperez', UTM_TERM))!.whatsappUrl!);
+    expect(url.pathname).toBe('/51999888777');
+    expect(url.searchParams.get('text')).toBe(
+      'Hola Marco, tengo dudas sobre el financiamiento de equipos de BaldeCash',
+    );
   });
 
   it('manda promotor y utm_term codificados', async () => {

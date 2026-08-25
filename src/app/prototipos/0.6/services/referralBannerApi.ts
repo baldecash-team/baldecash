@@ -19,9 +19,15 @@
  *
  * Tres decisiones que no son negociables acá:
  *
- * 1. Corre server-side. El teléfono no debe pedirse desde el navegador después
- *    de pintar: el banner apareciendo a los 300 ms mueve el layout y desplaza
- *    el CTA justo cuando el usuario va a tocarlo.
+ * 1. En la LANDING corre server-side. Ahí el banner apareciendo a los 300 ms
+ *    mueve el layout y desplaza el CTA justo cuando el usuario va a tocarlo.
+ *
+ *    `fetchReferralBannerByRef` sí se llama desde el navegador en el resto del
+ *    recorrido (`ReferralBannerGate`), y no es una excepción a la regla sino el
+ *    mismo criterio: en el catálogo, el detalle y el wizard no hay nada arriba
+ *    de la franja que se pueda desplazar, y esas páginas ya montan su contenido
+ *    en el cliente. El endpoint del hub está hecho para eso —tiene CORS con
+ *    allowlist justamente para que la landing lo llame desde el navegador—.
  * 2. Se cachea una hora. El dato cambia con la frecuencia con la que se edita
  *    un teléfono en Airtable, o sea casi nunca; el costo de un teléfono viejo
  *    por una hora es cero y el de una consulta por pageview no.
@@ -41,12 +47,84 @@ const REVALIDATE_SECONDS = 3600;
  */
 const TIMEOUT_MS = 2000;
 
+/**
+ * El mensaje con el que se abre WhatsApp.
+ *
+ * Vive acá, y no en cada backend, porque los dos caminos tienen que abrir la
+ * MISMA conversación: ws2 arma su propio `text` ("vi el flyer de BaldeCash y
+ * tengo una consulta") y el hub no arma ninguno. Con el copy repartido en tres
+ * repos, cambiarlo significaba tres deploys coordinados para que un usuario no
+ * viera un texto distinto según por qué parámetro entró.
+ *
+ * El `text` importa más de lo que parece: sin él la promotora recibe un "Hola"
+ * suelto y no sabe de qué activación viene, ni de qué producto le hablan.
+ */
+export function mensajeWhatsApp(firstName: string | null | undefined): string {
+  const nombre = firstName?.trim();
+  return nombre
+    ? `Hola ${nombre}, tengo dudas sobre el financiamiento de equipos de BaldeCash`
+    : 'Hola, tengo dudas sobre el financiamiento de equipos de BaldeCash';
+}
+
+/**
+ * Forma de un destinatario de `wa.me`: sólo dígitos, con país.
+ *
+ * El hub ya normaliza, pero esto llega de otro dominio y termina en un `href`.
+ * Un valor con cualquier otra cosa adentro no se usa: preferimos la franja sin
+ * link antes que un link a un número inventado.
+ */
+const RE_WHATSAPP = /^[0-9]{9,15}$/;
+
+/** `wa.me` a un número ya normalizado (`51987654321`), con el mensaje precargado. */
+function urlWhatsApp(numero: string, firstName: string): string {
+  return `https://wa.me/${numero}?text=${encodeURIComponent(mensajeWhatsApp(firstName))}`;
+}
+
+/**
+ * El número que ws2 ya validó, sacado de su propio link.
+ *
+ * Se toma de ahí y no de `phone_display` a propósito: ws2 conoce los fijos, los
+ * extranjeros y los que ya vienen con país, y volver a derivar el número desde
+ * el string que se pinta sería una segunda normalización que puede discrepar de
+ * la suya. Lo único que no queremos de ws2 es el copy.
+ *
+ * Contempla las dos formas de link de WhatsApp por si esa punta cambia de
+ * opinión: `wa.me/{numero}` (la que arma hoy) y `api.whatsapp.com/send?phone=`.
+ */
+function numeroDeUrlWhatsApp(waUrl: string | null): string | null {
+  if (!waUrl) return null;
+  try {
+    const url = new URL(waUrl);
+    const candidato = url.searchParams.get('phone') ?? url.pathname.replace(/\//g, '');
+    return RE_WHATSAPP.test(candidato) ? candidato : null;
+  } catch {
+    // No parsea: `safeExternalUrl` la iba a descartar igual del otro lado.
+    return null;
+  }
+}
+
+/**
+ * El link de ws2 con NUESTRO mensaje encima.
+ *
+ * Se rearma entero en vez de sólo reescribirle el `text` porque
+ * `URLSearchParams` serializa los espacios como `+` y el camino del hub los
+ * manda como `%20`. Las dos formas funcionan en WhatsApp, pero producirlas
+ * distinto según por qué parámetro entró el usuario es una diferencia que no
+ * significa nada y que se convierte en ruido apenas alguien compare los links en
+ * el dato o en un log.
+ */
+function conNuestroMensaje(waUrl: string | null, firstName: string): string | null {
+  const numero = numeroDeUrlWhatsApp(waUrl);
+  return numero ? urlWhatsApp(numero, firstName) : null;
+}
+
 export interface ReferralBanner {
   /** Primer nombre de la promotora, ya capitalizado: "Marco". */
   firstName: string;
-  /** Número tal como se pinta: "999 888 777". `null` si no hay teléfono usable. */
-  phoneDisplay: string | null;
-  /** Link `wa.me` con el mensaje precargado. `null` ⇒ franja sin botón. */
+  /**
+   * Link `wa.me` con el mensaje precargado. `null` ⇒ la franja se pinta igual,
+   * pero no es clickeable: un `wa.me` sin destinatario abre WhatsApp en blanco.
+   */
   whatsappUrl: string | null;
   /** `Promoter.code`; viaja como propiedad del evento, no se muestra. */
   promoterCode: string | null;
@@ -97,8 +175,7 @@ export async function fetchReferralBanner(
 
     return {
       firstName: data.first_name,
-      phoneDisplay: data.phone_display ?? null,
-      whatsappUrl: data.whatsapp_url ?? null,
+      whatsappUrl: conNuestroMensaje(data.whatsapp_url ?? null, data.first_name),
       promoterCode: data.promoter_code ?? null,
       reason: data.reason,
     };
@@ -146,18 +223,31 @@ const RE_REF = /^[23456789abcdefghjkmnpqrstuvwxyz]{6}$/;
 interface PromotorPublicoResponse {
   ok: boolean;
   codigo?: string;
-  promotor?: { nombre?: string | null };
+  promotor?: {
+    nombre?: string | null;
+    /**
+     * Ya normalizado y listo para `wa.me` (`51987654321`). Viene AUSENTE —no en
+     * null— cuando el registro no tiene un número usable; el hub lo omite a
+     * propósito para que la ausencia sea el caso, no un valor.
+     */
+    whatsapp?: string | null;
+  };
   activacion_activa?: boolean;
 }
+
 
 /**
  * Resuelve la franja a partir del `ref` que estampa `/r/{codigo}` del hub.
  *
- * Devuelve una franja SIN teléfono: el endpoint público del hub expone solo el
- * primer nombre, a propósito —es una ruta abierta cuya llave es un código de 6
- * caracteres tipeable—. `ReferralBanner` ya contempla ese caso y pinta "Haz sido
- * referido por Aned." sin el chip de WhatsApp, que es mejor que un `wa.me` sin
- * destinatario.
+ * Desde `feat/referido-publico-whatsapp` en el hub, el endpoint devuelve también
+ * el celular ya normalizado, así que este camino arma la franja completa —con
+ * link— igual que el de ws2. Es el que importa: `ref` viaja en TODOS los links
+ * del hub y `promotor` sólo en los de quien tiene correspondencia en ws2.
+ *
+ * Cuando el registro no tiene un número usable el campo viene ausente y la
+ * franja sale sin link. `ReferralBanner` ya contempla ese caso: mejor un aviso
+ * que no lleva a ningún lado que un `wa.me` sin destinatario, que abre WhatsApp
+ * en blanco.
  *
  * Mismas tres reglas que `fetchReferralBanner`: corre server-side, se cachea una
  * hora, y ante cualquier problema devuelve `null` en vez de lanzar.
@@ -181,10 +271,13 @@ export async function fetchReferralBannerByRef(
     const firstName = data?.promotor?.nombre?.trim();
     if (!data?.ok || !firstName) return null;
 
+    const numero = data.promotor?.whatsapp?.trim();
+    const whatsappUrl =
+      numero && RE_WHATSAPP.test(numero) ? urlWhatsApp(numero, firstName) : null;
+
     return {
       firstName,
-      phoneDisplay: null,
-      whatsappUrl: null,
+      whatsappUrl,
       // El `ref` ocupa el lugar del `Promoter.code`: no se muestra, viaja como
       // propiedad del evento y es la clave con la que el banner recuerda que lo
       // descartaron. Dos promotoras distintas nunca comparten código.
