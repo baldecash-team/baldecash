@@ -60,6 +60,44 @@ function useSectionScroll() {
   }, []);
 }
 
+/**
+ * Suaviza la LLEGADA a la página con un hash (`/reacondicionados#que-es`).
+ *
+ * `useSectionScroll` solo cubre los clics dentro de esta misma página. Cuando
+ * se entra desde otra ruta --el banner del catálogo, por ejemplo-- el que
+ * scrollea es el navegador, de golpe y antes de que las secciones tengan su
+ * alto final: se aterriza en un salto seco y a veces en el sitio equivocado,
+ * porque las imágenes de abajo aún no cargaron y el layout se mueve después.
+ *
+ * Se anula ese salto nativo y se rehace con scroll suave, ya montado
+ * (BAL-3320).
+ */
+function useHashLanding() {
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash || !SECTION_IDS.includes(hash as (typeof SECTION_IDS)[number])) return;
+
+    const el = document.getElementById(hash);
+    if (!el) return;
+
+    // El navegador ya saltó al montar: se vuelve arriba sin animación para que
+    // el movimiento suave se vea entero y no un tirón desde media página.
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      el.scrollIntoView({ behavior: 'auto', block: 'start' });
+      return;
+    }
+
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    // Dos frames de margen, igual que en el click: da tiempo a que el layout
+    // se asiente antes de arrancar, si no el scroll suave se corta a medias.
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    );
+    return () => cancelAnimationFrame(id);
+  }, []);
+}
+
 const baloo = Baloo_2({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
@@ -99,6 +137,7 @@ export default function SeminuevosLanding({
   whatsappUrl,
 }: SeminuevosLandingProps) {
   useSectionScroll();
+  useHashLanding();
 
   return (
     <div className={`${baloo.variable} seminuevos-landing min-h-screen antialiased`}>
