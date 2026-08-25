@@ -1,7 +1,21 @@
 'use client';
 
-import { MediaSlot } from './MediaSlot';
 import { hero } from './data/seminuevosData';
+
+/**
+ * El bloque de copy sobre el banner --eyebrow, título, subtítulo y CTA-- queda
+ * OCULTO por pedido de producto: el banner de Haru ya trae su propio texto
+ * incrustado y encima se leían dos mensajes superpuestos. Se oculta en desktop
+ * y en móvil (BAL-3317).
+ *
+ * Es temporal, por eso el bloque no se borra: se apaga con esta bandera y
+ * vuelve poniéndola en true.
+ *
+ * Al ocultarlo la landing se queda sin <h1> y sin el CTA "Ver catálogo" del
+ * hero -- el del navbar sigue estando. Si el banner se quedara sin texto, esto
+ * hay que reactivarlo o el hero no dice nada.
+ */
+const MOSTRAR_COPY_HERO = false;
 
 /** Las 4 laptops decorativas del prototipo: color, posición y rotación. */
 const LAPTOPS = [
@@ -39,16 +53,25 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
       }}
     >
       {hero.bannerUrl ? (
-        <MediaSlot
-          src={hero.bannerUrl}
-          alt="Equipos seminuevos BaldeCash"
-          className="absolute inset-0 h-full !rounded-none"
-        />
+        // <picture> y no MediaSlot: son dos archivos con proporciones muy
+        // distintas (vertical en móvil, apaisado en desktop) y el navegador
+        // descarga SOLO el que corresponde al viewport. Con dos MediaSlot
+        // ocultos por CSS se bajarían los dos, que en móvil es justo lo que
+        // no queremos.
+        <picture className="absolute inset-0">
+          <source media="(min-width: 768px)" srcSet={hero.bannerUrl} />
+          <img
+            src={hero.bannerUrlMobile ?? hero.bannerUrl}
+            alt="Equipos seminuevos BaldeCash"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </picture>
       ) : (
         LAPTOPS.map((l, i) => <LaptopShape key={i} {...l} />)
       )}
 
       <div
+        hidden={!MOSTRAR_COPY_HERO}
         className="relative z-[2] w-full max-w-[600px] mx-auto py-10"
         style={{
           background:

@@ -8,9 +8,13 @@ describe('SeminuevosAbout', () => {
     expect(screen.getByText(/financiamiento a estudiantes universitarios/i)).toBeInTheDocument();
   });
 
-  it('muestra el placeholder de la foto del equipo mientras no haya asset', () => {
+  // La foto del equipo ya está en S3 (BAL-3317): se pinta la imagen, no el
+  // placeholder. El placeholder sigue cubierto por MediaSlot.test.tsx.
+  it('muestra la foto del equipo desde S3', () => {
     render(<SeminuevosAbout />);
-    expect(screen.getByTestId('media-slot-placeholder')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Equipo de BaldeCash/i }))
+      .toHaveAttribute('src', expect.stringContaining('about/equipo.webp'));
+    expect(screen.queryByTestId('media-slot-placeholder')).not.toBeInTheDocument();
   });
 
   it('muestra el sello SBS', () => {
