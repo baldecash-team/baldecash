@@ -57,6 +57,24 @@ export function isCopiaHomeStyleLanding(slug: string): boolean {
   return isCopiaHomeLanding(slug) || isSecondFinancingLanding(slug);
 }
 
+/**
+ * Landing de equipos reacondicionados (id 241, slug `reacondicionados`).
+ *
+ * Usa un catálogo propio: grilla de 2 columnas en móvil y card reducida, con
+ * una zona bajo el nombre que muestra grados o colores. Aplica a TODOS los
+ * productos de la landing, sean reacondicionados o nuevos: lo que cambia entre
+ * unos y otros es el contenido de esa zona, no el diseño de la card.
+ *
+ * Es EXCLUSIVO de esta landing: se detecta por slug exacto, no por prefijo,
+ * para que ninguna landing nueva lo herede por accidente (BAL-3288).
+ *
+ * Ojo: NO se apoya en `isCopiaHomeStyleLanding`. Aunque las dos son de
+ * seminuevos, son diseños distintos y no comparten componentes.
+ */
+export function isReacondicionadosLanding(slug: string): boolean {
+  return slug === 'reacondicionados';
+}
+
 /** Colores de marca para landings oscuras (paleta oficial NVIDIA). */
 export const NVIDIA_GREEN = '#76B900';
 export const NVIDIA_TURQUOISE = '#00D9CB';

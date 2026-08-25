@@ -29,6 +29,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { cardKey } from '../../../utils/cardKey';
+import { cardSelectorMode } from '../../../utils/cardSelectorMode';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
@@ -152,6 +153,13 @@ interface ProductCardProps {
    * producto (Oferta, Más vendido…), que vienen por otro canal.
    */
   hideStateBadges?: boolean;
+  /**
+   * Variante compacta (landing de reacondicionados, BAL-3288): oculta los
+   * specs técnicos, cambia el CTA a "Ver detalle" y sustituye el selector de
+   * colores por la zona que decide `cardSelectorMode` — grados o colores, nunca
+   * los dos, y con alto reservado aunque no haya ninguno.
+   */
+  compact?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -185,6 +193,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   labels = null,
   addToCartDisabled = false,
   hideStateBadges = false,
+  compact = false,
 }) => {
   const analytics = useAnalytics();
 
@@ -192,6 +201,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const currentProductColor = product.colors?.find(c => c.productId === product.id);
   const [selectedColorId, setSelectedColorId] = useState<string>(
     currentProductColor?.id || product.colors?.[0]?.id || ''
+  );
+
+  // Grado elegido en la variante compacta. Arranca en el grado del producto que
+  // llegó del listado; si ese no viniera, en el primero DISPONIBLE (no en el
+  // primero a secas: marcar de entrada un grado agotado sería mentir).
+  const [selectedGrade, setSelectedGrade] = useState<string | undefined>(
+    () => product.grade ?? product.gradeSiblings?.find(g => g.isAvailable)?.grade,
   );
 
   // Entrega diferida: al dar "Lo quiero" se muestra primero el aviso de fecha.
@@ -710,9 +726,73 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Color Selector — visible desde un color: los de una familia
-                (color_siblings) y tambien el color propio de la variante. */}
-            {!hideColors && product.colors && product.colors.length >= 1 && (
+            {/* Variante compacta (reacondicionados): una sola franja que muestra
+                grados O colores, nunca los dos. El contenedor se dibuja SIEMPRE,
+                aunque quede vacío, para que todas las cards de la fila midan lo
+                mismo y la grilla no quede dispareja. */}
+            {compact ? (
+              <div
+                data-testid="card-selector-slot"
+                className="mb-4 min-h-[44px] flex flex-col justify-center gap-1"
+              >
+                {(() => {
+                  const modo = cardSelectorMode(product);
+
+                  if (modo === 'grades') {
+                    return (
+                      <div data-testid="card-grades" className="flex flex-col gap-1">
+                        <span className="text-[10px] font-semibold text-[var(--text-muted,#6b7280)] text-left">
+                          Condición:
+                        </span>
+                        <div className="flex gap-1">
+                          {(product.gradeSiblings ?? []).map((g) => {
+                            const agotado = !g.isAvailable;
+                            const elegido = g.grade === selectedGrade;
+                            return (
+                              <button
+                                key={g.grade}
+                                type="button"
+                                aria-label={`Grado ${g.grade}`}
+                                aria-pressed={elegido}
+                                disabled={agotado}
+                                onClick={() => setSelectedGrade(g.grade)}
+                                className={`flex-1 rounded-lg border py-1 text-xs font-bold transition-colors ${
+                                  agotado
+                                    ? 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-muted,#f3f4f6)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed'
+                                    : elegido
+                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                                    : 'border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10'
+                                }`}
+                              >
+                                {g.grade}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (modo === 'colors' && product.colors) {
+                    return (
+                      <div className="flex justify-center">
+                        <ColorSelector
+                          colors={product.colors}
+                          selectedColorId={selectedColorId}
+                          onColorSelect={setSelectedColorId}
+                          version={colorSelectorVersion}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
+              </div>
+            ) : (
+            /* Color Selector — visible desde un color: los de una familia
+                (color_siblings) y tambien el color propio de la variante. */
+            !hideColors && product.colors && product.colors.length >= 1 && (
               <div className="flex justify-center mb-4 min-h-[32px]">
                 <ColorSelector
                   colors={product.colors}
@@ -721,9 +801,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   version={colorSelectorVersion}
                 />
               </div>
+            )
             )}
 
-            {/* Specs técnicas con iconos - solo muestra specs con dato real */}
+            {/* Specs técnicas con iconos - solo muestra specs con dato real.
+                En la variante compacta no van: la card apunta a decidir por
+                condición y cuota, no a comparar fichas técnicas. */}
+            {!compact && (
             <div className="space-y-2 min-h-[120px]">
               {displaySpecs?.processor?.model && (
                 <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
@@ -768,6 +852,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
               )}
             </div>
+            )}
 
             {/* Spacer - empuja pricing y CTAs al fondo */}
             <div className="flex-1 min-h-4" />
@@ -906,7 +991,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
                   onPress={() => handleViewDetail(selectedColor?.slug)}
                 >
-                  Detalle
+                  {compact ? 'Ver detalle' : 'Detalle'}
                 </Button>
               ) : (
                 <Button
@@ -917,7 +1002,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
                   onPress={() => handleViewDetail(selectedColor?.slug)}
                 >
-                  Detalle
+                  {compact ? 'Ver detalle' : 'Detalle'}
                 </Button>
               )}
               <Button

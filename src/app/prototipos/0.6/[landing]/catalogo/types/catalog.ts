@@ -736,6 +736,13 @@ export interface CatalogProduct {
   conditionLabelColor?: string | null;
   /** Grado de reacondicionamiento (A/B/C/D) si el producto es un grado; si no, undefined. */
   grade?: string;
+  /**
+   * Grados hermanos del equipo (`grade_siblings` del API). Cada grado es un
+   * producto distinto, con su propio precio y stock: el backend los agrupa por
+   * familia. Solo lo traen los reacondicionados con hermanos cargados; el resto
+   * lo recibe vacío (nunca `null`, para que `.length` no necesite guarda).
+   */
+  gradeSiblings?: CatalogGradeSibling[];
   stock: StockStatus;
   stockQuantity: number;
   usage: UsageType[];
@@ -898,6 +905,32 @@ export interface CatalogLayoutProps {
   /** Cupón de campaña (?coupon=) — banner bajo filtros de uso */
   campaignCoupon?: AppliedCoupon | null;
   isCampaignCouponValidating?: boolean;
+  /**
+   * Variante de la grilla de productos. `compact` = 2 columnas en móvil
+   * (landing de reacondicionados, BAL-3288). Por defecto `default`: la grilla
+   * `auto-fill` de siempre, que en móvil deja una sola columna.
+   */
+  gridVariant?: GridVariant;
+}
+
+/** Variante de grilla del catálogo. `compact` = 2 columnas en móvil. */
+export type GridVariant = 'default' | 'compact';
+
+/**
+ * Un grado hermano tal como llega del listado público (`grade_siblings`).
+ * Misma forma que la del endpoint de detalle: los dos se parsean igual.
+ */
+export interface CatalogGradeSibling {
+  /** Letra del grado: "A", "B", "C"… */
+  grade: string;
+  productId: number;
+  slug: string;
+  /** Precio de lista del grado. `null` cuando no está cargado. */
+  price: number | null;
+  /** Cuota del plazo más corto (BAL-2864). `null` = no calculable. */
+  minTermQuota: number | null;
+  /** Con stock disponible. Los agotados SÍ se muestran, en gris. */
+  isAvailable: boolean;
 }
 
 export interface BrandFilterProps {

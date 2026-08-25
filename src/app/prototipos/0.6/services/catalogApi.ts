@@ -137,6 +137,20 @@ export interface ApiCatalogProduct {
   condition_label_text?: string | null;
   condition_label_color?: string | null;
   grade?: string | null;
+  /**
+   * Grados hermanos del equipo. El endpoint de DETALLE ya lo devuelve desde
+   * hace tiempo; en el LISTADO es nuevo (BAL-3288), así que puede no venir
+   * contra un backend viejo: el mapeo cae a lista vacía.
+   */
+  grade_siblings?: {
+    grade: string;
+    product_id: number;
+    slug: string;
+    price: number | null;
+    stock_available: number;
+    is_available: boolean;
+    min_term_quota?: number | null;
+  }[];
   short_description?: string;
   brand: ApiBrand;
   display_order: number;
@@ -726,6 +740,16 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     conditionLabelText: apiProduct.condition_label_text ?? undefined,
     conditionLabelColor: apiProduct.condition_label_color ?? undefined,
     grade: apiProduct.grade ?? undefined,
+    // Siempre un array: si el backend no manda el campo, queda vacío y la card
+    // cae al selector de colores sin necesitar guardas contra `null`.
+    gradeSiblings: (apiProduct.grade_siblings ?? []).map((s) => ({
+      grade: s.grade,
+      productId: s.product_id,
+      slug: s.slug,
+      price: s.price,
+      minTermQuota: s.min_term_quota ?? null,
+      isAvailable: s.is_available,
+    })),
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response
     usage: inferUsage(apiProduct.type, apiProduct.name),

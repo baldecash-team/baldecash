@@ -61,7 +61,7 @@ import LeadModalGate from '@/app/prototipos/0.6/components/lead-modal/LeadModalG
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding, isReacondicionadosLanding } from '@/app/prototipos/0.6/utils/theme';
 import { GamerCatalogoContent } from './GamerCatalogoClient';
 import { CopiaHomeMobileCatalog } from './copia-home/CopiaHomeMobileCatalog';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
@@ -1879,6 +1879,7 @@ function CatalogoContent() {
         catalogBanner={catalogBanner}
         vipCountdownDate={vipCountdownDate}
         overlayVariant={overlayVariant}
+        gridVariant={isReacondicionadosLanding(landing) ? 'compact' : 'default'}
         campaignCoupon={showCouponUi ? campaignCoupon : null}
         isCampaignCouponValidating={isCampaignCouponValidating}
       >
@@ -1917,6 +1918,7 @@ function CatalogoContent() {
                 campaignCoupon={campaignCoupon}
                 labels={apiFilters?.labels}
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
+                compact={isReacondicionadosLanding(landing)}
                 addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar

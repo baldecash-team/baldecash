@@ -7,7 +7,7 @@ import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tabl
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
-import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
+import { CatalogLayoutProps, CatalogDeviceType, ProductTagType, GridVariant } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
@@ -43,6 +43,47 @@ import {
 } from '../../../data/mockCatalogData';
 
 /**
+ * Clases de la grilla de productos.
+ *
+ * `default` es la grilla histórica: `auto-fill` con mínimo de 280px, que en un
+ * móvil de 360px deja una sola columna porque no caben dos. `compact` fuerza 2
+ * columnas SOLO en móvil (landing de reacondicionados, BAL-3288) y desde `sm`
+ * vuelve al mismo auto-fill: 2 columnas fijas en desktop darían cards enormes.
+ *
+ * Se extrae como función pura para poder testear la decisión sin montar el
+ * layout completo, que arrastra router, contextos y hooks de datos.
+ *
+ * IMPORTANTE: las clases se escriben COMPLETAS y literales, nunca armadas por
+ * interpolación (`sm:${x}`). Tailwind escanea el código como texto: una clase
+ * construida en runtime no entra al bundle y el estilo no existe.
+ */
+export function gridClassName(variant: GridVariant = 'default'): string {
+  const base = 'w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 justify-items-center';
+  if (variant === 'compact') {
+    return `${base} grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]`;
+  }
+  return `${base} grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]`;
+}
+
+/**
+ * Envoltorio del bloque superior del catálogo.
+ *
+ * Normalmente es una tarjeta con sombra y borde que agrupa el título, el
+ * ordenamiento y las tarjetas de uso rápido. En la variante compacta
+ * (reacondicionados) no queda nada de eso salvo el contador y el orden, y un
+ * marco alrededor de una sola línea se lee como una sección vacía: ahí el
+ * envoltorio desaparece y su contenido va suelto sobre la grilla.
+ */
+const HeaderShell: React.FC<React.PropsWithChildren<{ compact: boolean }>> = ({ compact, children }) => {
+  if (compact) return <>{children}</>;
+  return (
+    <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
+      <CardBody className="p-4 sm:p-5 md:p-6">{children}</CardBody>
+    </Card>
+  );
+};
+
+/**
  * CatalogLayoutV4 - Header con Quick Cards + Sidebar Flotante
  * Header con tarjetas de uso rápido y filtros en sidebar flotante
  * Referencia: Nubank, Revolut (secciones de productos)
@@ -68,7 +109,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   overlayVariant,
   campaignCoupon,
   isCampaignCouponValidating,
+  gridVariant = 'default',
 }) => {
+  // La cabecera compacta viaja con la grilla compacta: son la misma decisión de
+  // diseño (catálogo de reacondicionados), así que no se agrega otra prop que
+  // haya que mantener sincronizada desde el call site.
+  const compactHeader = gridVariant === 'compact';
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const analytics = useAnalytics();
@@ -598,30 +644,42 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Full Width Header Section - Inside Card */}
-        <div className="w-full p-3 sm:p-4 lg:p-6">
-          <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
-            <CardBody className="p-4 sm:p-5 md:p-6">
+        {/* Full Width Header Section - Inside Card.
+            En la variante compacta se cae la tarjeta (sombra + borde) y su
+            padding interno: sin título ni tarjetas de uso, el marco envolvía
+            una sola línea y se leía como una sección vacía. El contador y el
+            orden quedan sueltos sobre la grilla. */}
+        <div className={compactHeader ? 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-6' : 'w-full p-3 sm:p-4 lg:p-6'}>
+          <HeaderShell compact={compactHeader}>
               {/* Header */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
+                className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ${
+                  compactHeader ? 'sm:justify-end' : 'sm:justify-between mb-4'
+                }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-                    <Search className="w-5 h-5 text-[var(--color-primary)]" />
+                {/* Título + subtítulo: se ocultan en la variante compacta
+                    (reacondicionados), donde el catálogo va directo al grano y
+                    solo deja el contador de equipos y el ordenamiento. */}
+                {!compactHeader && (
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                      <Search className="w-5 h-5 text-[var(--color-primary)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
+                        Encuentra tu equipo ideal
+                      </h2>
+                      <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
+                        Selecciona según tu necesidad principal
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
-                      Encuentra tu equipo ideal
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
-                      Selecciona según tu necesidad principal
-                    </p>
-                  </div>
-                </div>
+                )}
 
+                {/* SortDropdown ya trae el contador de equipos: es lo único que
+                    queda arriba en la variante compacta. */}
                 <div id="onboarding-sort">
                   <SortDropdown
                     value={sort}
@@ -632,16 +690,17 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
-              <div id="onboarding-quick-cards">
-                <QuickUsageCards
-                  selected={filters.usage}
-                  onChange={(usage) => updateFilter('usage', usage)}
-                  className=""
-                />
-              </div>
+              {!compactHeader && (
+                <div id="onboarding-quick-cards">
+                  <QuickUsageCards
+                    selected={filters.usage}
+                    onChange={(usage) => updateFilter('usage', usage)}
+                    className=""
+                  />
+                </div>
+              )}
 
-            </CardBody>
-          </Card>
+          </HeaderShell>
         </div>
 
         {/* VIP Countdown Banner */}
@@ -952,7 +1011,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               ref={gridRef}
-              className="w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] justify-items-center"
+              className={gridClassName(gridVariant)}
             >
               {children}
             </motion.div>
