@@ -706,6 +706,153 @@ describe('EscanerPageContent', () => {
     });
   
 
+    describe('usar el video de la clase (Task 9)', () => {
+      /** Referencia de otra unidad idéntica que ya cubre esta clase (Task 8,
+       * `video_de_clase`). Mismo shape que `VideoDeClase` en
+       * `IdentificarEquipo.tsx`. */
+      const videoDeClase = {
+        inspection_id: 41,
+        serial: '5CD5202OLD',
+        fecha: '2026-08-20T10:00:00',
+        videos: 3,
+        fotos: 2,
+      };
+
+      /** Igual que `instalarFetchEscaner`, pero el catálogo devuelve
+       * `video_de_clase` para el serial confirmado, y agrega la ruta de
+       * `POST /inspections/reuse` (Task 5/9). `reuseResponse` es
+       * override-able para simular el 409 del servidor. */
+      function instalarFetchEscanerConVideoDeClase(reuseResponse?: {
+        ok: boolean;
+        status?: number;
+        json: () => Promise<unknown>;
+      }) {
+        global.fetch = jest.fn((url: RequestInfo | URL) => {
+          const u = String(url);
+          if (u.includes('/stations/') && u.endsWith('/state')) {
+            return Promise.resolve({ ok: true, json: async () => ({ camera_labels: ['techo'] }) });
+          }
+          if (u.endsWith('/inspections/reuse')) {
+            return Promise.resolve(
+              reuseResponse ?? {
+                ok: true,
+                json: async () => ({ inspection_id: 55, reused_from: 41, status: 'complete' }),
+              }
+            );
+          }
+          if (u.includes('/inspections/catalog/')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                encontrado: true,
+                equipo: {
+                  record_id: 'rec1',
+                  serial: '5CD5202PWY',
+                  marca: 'Lenovo',
+                  modelo: 'IdeaPad Slim 3',
+                  procesador: 'Intel Core i7',
+                  ram_gb: 16,
+                  almacenamiento: '1TB SSD',
+                  pantalla: 15.6,
+                  grado: 'A',
+                  tipo: 'Laptop',
+                  sku: 'LPLEAL0000606',
+                },
+                candidato: '5CD5202PWY',
+                confianza: null,
+                error: null,
+                impecable: true,
+                defectos: [],
+                clase: { grupo_visual: 'g1', grado: 'A', etiqueta: 'IdeaPad Slim 3 A' },
+                video_de_clase: videoDeClase,
+              }),
+            });
+          }
+          return Promise.reject(new Error(`fetch inesperado en la prueba: ${u}`));
+        }) as unknown as typeof fetch;
+      }
+
+      /** Deja la vista lista para escanear y con el equipo confirmado, cuya
+       * clase ya tiene video (`videoDeClase`, arriba). */
+      async function renderConEquipoYVideoDeClase(reuseResponse?: {
+        ok: boolean;
+        status?: number;
+        json: () => Promise<unknown>;
+      }) {
+        setDeviceSessionEscaner();
+        instalarFetchEscanerConVideoDeClase(reuseResponse);
+        render(<EscanerPageContent />);
+        conectarYListo();
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial('5CD5202PWY');
+        await waitFor(() => {
+          expect(screen.getByRole('button', { name: /usar ese video/i })).toBeInTheDocument();
+        });
+      }
+
+      it('con video de clase, INICIAR queda deshabilitado y aparece "usar ese video"', async () => {
+        await renderConEquipoYVideoDeClase();
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /usar ese video/i })).toBeEnabled();
+      });
+
+      it('"usar ese video" registra la inspeccion sin grabar', async () => {
+        await renderConEquipoYVideoDeClase();
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        await waitFor(() => {
+          const llamada = (global.fetch as jest.Mock).mock.calls.find(([u]: [string]) =>
+            String(u).endsWith('/inspections/reuse')
+          );
+          expect(llamada).toBeTruthy();
+          expect(JSON.parse(llamada![1].body)).toEqual({
+            serial: '5CD5202PWY',
+            airtable_record_id: 'rec1',
+          });
+        });
+        // No se manda ningun cmd.start: no hay nada que grabar. Tampoco se
+        // crea una inspección normal ni se pide ninguna toma.
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) => String(u).includes('/takes'))
+        ).toBe(false);
+        expect(
+          (global.fetch as jest.Mock).mock.calls.some(
+            ([u]: [string]) => String(u).endsWith('/inspections') && !String(u).includes('reuse')
+          )
+        ).toBe(false);
+
+        // Se limpia la pantalla para el equipo siguiente — mismo reset que
+        // "Terminar y pasar al equipo siguiente".
+        await waitFor(() => {
+          expect(screen.getByLabelText(/serial del equipo/i)).toHaveValue('');
+        });
+        expect(screen.queryByRole('button', { name: /usar ese video/i })).not.toBeInTheDocument();
+      });
+
+      it('"grabar igual" habilita el flujo normal', async () => {
+        await renderConEquipoYVideoDeClase();
+        fireEvent.click(screen.getByRole('button', { name: /grabar igual/i }));
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
+      });
+
+      it('un 409 del reuse muestra el motivo y habilita INICIAR en vez de tragarse el error', async () => {
+        await renderConEquipoYVideoDeClase({
+          ok: false,
+          status: 409,
+          json: async () => ({ detail: { reason: 'no_impecable' } }),
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /usar ese video/i }));
+
+        await waitFor(() => {
+          expect(screen.getByText(/ya no.*impecable/i)).toBeInTheDocument();
+        });
+        expect(screen.getByRole('button', { name: /^iniciar$/i })).toBeEnabled();
+      });
+    });
+
     describe('fotos desde el controlador', () => {
       /** Simula que TODAS las camaras confirmaron la foto contra S3. Es la
        * senal que destraba la pantalla: el escaner no deja decidir hasta
