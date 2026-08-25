@@ -3,9 +3,15 @@
 import { useRef, useState } from 'react';
 import { MediaSlot } from './MediaSlot';
 
-/** Cuánto amplía la lupa. 2.2x sobre una foto de 1200px servida a ~600 todavía
- *  muestra píxel real, sin llegar a verse borrosa. */
-const ZOOM = 2.2;
+/**
+ * Cuánto amplía la lupa.
+ *
+ * 1.8x y no más: a 2.2x la superficie del equipo se ve tan uniforme que se
+ * pierde la referencia de QUÉ parte se está mirando. Con el lightbox al lado,
+ * la lupa ya no tiene que mostrarlo todo --solo invitar a mirar-- y el detalle
+ * fino se ve en el visor (BAL-3317).
+ */
+export const ZOOM = 1.8;
 
 export interface ZoomSlotProps {
   src?: string | null;

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ZoomSlot } from '../ZoomSlot';
+import { ZoomSlot, ZOOM } from '../ZoomSlot';
 
 const SRC = 'https://baldecash.s3.amazonaws.com/landings/seminuevos/inspector/carcasa-a.webp';
 
@@ -23,7 +23,9 @@ describe('ZoomSlot', () => {
     const caja = screen.getByTestId('zoom-slot');
     expect(caja).toHaveAttribute('data-zoom', 'off');
     expect(screen.getByTestId('zoom-hint')).toBeInTheDocument();
-    expect(screen.getByRole('img')).not.toHaveStyle({ transform: 'scale(2.2)' });
+    // Sin transform en absoluto. Comprobar `not.toHaveStyle('scale(2.2)')`
+    // pasaria con CUALQUIER otro valor, incluido un zoom mal puesto.
+    expect(screen.getByRole('img').style.transform).toBe('');
   });
 
   it('amplía al entrar el mouse y vuelve al salir', () => {
@@ -32,7 +34,7 @@ describe('ZoomSlot', () => {
 
     fireEvent.mouseEnter(caja);
     expect(caja).toHaveAttribute('data-zoom', 'on');
-    expect(screen.getByRole('img')).toHaveStyle({ transform: 'scale(2.2)' });
+    expect(screen.getByRole('img')).toHaveStyle({ transform: `scale(${ZOOM})` });
     // El aviso estorba cuando ya estás mirando el detalle.
     expect(screen.queryByTestId('zoom-hint')).not.toBeInTheDocument();
 
