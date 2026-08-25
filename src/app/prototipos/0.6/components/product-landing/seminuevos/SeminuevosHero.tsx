@@ -56,7 +56,11 @@ function LaptopShape({ fill, className }: { fill: string; className: string }) {
 export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
   return (
     <section
-      className="relative overflow-hidden flex flex-col justify-center px-[22px] py-[18px] text-center"
+      // En móvil el texto se ancla ARRIBA: la pieza tiene el tercio superior de
+      // fondo liso y las laptops repartidas de la mitad hacia abajo, así que
+      // centrarlo lo dejaba justo encima de los equipos. De 768px en adelante
+      // vuelve al centro, que es donde lo espera la pieza apaisada.
+      className="relative overflow-hidden flex flex-col justify-start md:justify-center px-[22px] py-[18px] text-center"
       style={{
         background: 'linear-gradient(180deg,#fdfdff,#e9ebf3)',
         // El prototipo restaba 65px (su header). Acá se resta la altura real que
@@ -84,10 +88,14 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
 
       <div
         data-testid="hero-copy"
-        className={`${COPY_HERO_SOLO_MOVIL} relative z-[2] w-full max-w-[600px] mx-auto py-10`}
+        className={`${COPY_HERO_SOLO_MOVIL} relative z-[2] w-full max-w-[600px] mx-auto pt-6 pb-8`}
         style={{
+          // Velo vertical, no radial: el radial al 85% blanqueaba el centro de
+          // la pieza y se comía las laptops que quedan detrás. Este baja desde
+          // arriba --donde la imagen ya es fondo liso-- y se desvanece antes de
+          // llegar a los equipos, así el texto se lee sin apagar la foto.
           background:
-            'radial-gradient(ellipse at center,rgba(255,255,255,.85) 55%,rgba(255,255,255,0))',
+            'linear-gradient(180deg,rgba(233,238,252,.92) 0%,rgba(233,238,252,.78) 55%,rgba(233,238,252,0) 100%)',
         }}
       >
         <p
@@ -103,22 +111,27 @@ export function SeminuevosHero({ catalogUrl }: { catalogUrl: string }) {
         </p>
 
         <h1
-          className="font-extrabold leading-[1.06] tracking-[-1px]"
-          style={{ fontSize: 'clamp(30px,8vw,50px)' }}
+          className="font-extrabold leading-[1.06] tracking-[-1px] text-balance"
+          // El mínimo baja de 30 a 27px: en móvil el titular ocupaba tres líneas
+          // y empujaba el bloque sobre las laptops. El techo de desktop no se
+          // toca.
+          style={{ fontSize: 'clamp(27px,7.2vw,50px)', color: '#151744' }}
         >
           {hero.title}
         </h1>
 
         <p
-          className="mt-3 font-medium"
-          style={{ fontSize: 'clamp(16px,4.4vw,20px)', color: '#5b5c6b' }}
+          className="mt-2.5 font-medium text-balance"
+          // Gris azulado en vez del gris neutro: sobre el fondo azul de la pieza
+          // el #5b5c6b se veía sucio.
+          style={{ fontSize: 'clamp(15px,4.1vw,20px)', color: '#4a4d63' }}
         >
           {hero.subtitle}
         </p>
 
         <a
           href={catalogUrl}
-          className="inline-flex items-center gap-2 min-h-11 mt-7 rounded-[30px] px-6 py-3 text-white font-semibold text-[15px] cursor-pointer transition-[filter,box-shadow] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-2 min-h-11 mt-5 md:mt-7 rounded-[30px] px-6 py-3 text-white font-semibold text-[15px] cursor-pointer transition-[filter,box-shadow] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul)] focus-visible:ring-offset-2"
           style={{
             background: 'linear-gradient(135deg,#5a63e0,#03DBD0)',
             boxShadow: '0 10px 24px rgba(90,99,224,.35)',
