@@ -6,7 +6,8 @@
  *
  * Es el corazón de la pantalla. El valor no es elegir un número: es VER el
  * equipo concreto antes de aceptarlo, así que el medio manda y el resto es
- * marco.
+ * marco. Como los equipos son reacondicionados y lo que se busca son rayones y
+ * marcas, el visor se puede acercar (`VisorZoom`) sin cortar el video.
  *
  * Dos formas según el ancho:
  * - Mobile: bottom-sheet, como el diseño aprobado.
@@ -21,6 +22,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EleccionUnidad } from '../../services/eleccionEquipoApi';
 import { etiquetaGrado, nombreUnidad } from './formato';
+import { VisorZoom } from './VisorZoom';
 
 /** Qué se está viendo en el visor grande. */
 type Medio = { tipo: 'video' } | { tipo: 'foto'; indice: number };
@@ -140,6 +142,17 @@ export function GaleriaUnidad({
     [fotos],
   );
 
+  // Qué se está mirando, como una sola cadena. El visor la usa para volver a
+  // tamaño original cuando cambia la unidad o el medio: quedarse acercado
+  // sobre otra foto deja a la persona mirando un recorte que no pidió.
+  //
+  // Va como PROP del visor, nunca como `key`: una `key` remontaría el `<video>`
+  // y el navegador reiniciaría la reproducción desde cero.
+  const claveMedio =
+    medio.tipo === 'video'
+      ? `${unidad.unit_id}:video`
+      : `${unidad.unit_id}:foto:${medio.indice}`;
+
   return (
     <>
       <div
@@ -155,7 +168,6 @@ export function GaleriaUnidad({
         aria-label={titulo}
         // Enfocable por código (no por Tab): es donde aterriza el foco al abrir.
         tabIndex={-1}
-        style={{ fontFamily: 'var(--font-baloo-2), sans-serif' }}
         className="fixed z-[9999] flex flex-col bg-white focus:outline-none text-[#151744] shadow-[0_-10px_40px_rgba(0,0,0,.2)] bottom-0 left-1/2 max-h-[92vh] w-full max-w-[480px] -translate-x-1/2 overflow-y-auto rounded-t-[22px] md:bottom-auto md:top-1/2 md:max-h-[88vh] md:max-w-[1000px] md:-translate-y-1/2 md:rounded-[22px]"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e9e9ef] bg-white px-5 pb-3 pt-[18px]">
@@ -178,8 +190,15 @@ export function GaleriaUnidad({
         </div>
 
         <div className="px-5 pb-6 pt-4 md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:gap-6 md:px-6 md:pb-7">
-          {/* Visor grande: el video por defecto, o la foto que se toque. */}
-          <div className="relative grid h-[210px] place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]">
+          {/* Visor grande: el video por defecto, o la foto que se toque.
+              El zoom vive en `VisorZoom` y es una transformación CSS sobre la
+              capa que envuelve al medio: acá adentro no se toca el `<video>`,
+              porque remontarlo lo reiniciaría desde cero. */}
+          <VisorZoom
+            activo={!sinMedios}
+            reiniciarEn={claveMedio}
+            className="h-[210px] rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]"
+          >
             {medio.tipo === 'video' && unidad.video_url ? (
               <video
                 src={unidad.video_url}
@@ -206,7 +225,7 @@ export function GaleriaUnidad({
                 Todavía no subimos las fotos de esta unidad.
               </p>
             )}
-          </div>
+          </VisorZoom>
 
           <div className="md:flex md:flex-col">
             {/* Tira: el video primero (si hay) y después cada foto. */}
@@ -260,6 +279,13 @@ export function GaleriaUnidad({
             <div className="mt-4 rounded-2xl bg-[#f7f8fc] p-4 text-[13px] leading-[1.5] text-[#3a3c52]">
               Estas fotos y este video son de <b>esta unidad exacta</b>, no de una
               foto de catálogo. Míralas con calma antes de decidir.
+              {!sinMedios && (
+                <>
+                  {' '}
+                  Puedes <b>acercar</b> con los botones del visor, con la rueda del
+                  mouse o juntando dos dedos, para revisar los detalles.
+                </>
+              )}
             </div>
 
             {error && (
