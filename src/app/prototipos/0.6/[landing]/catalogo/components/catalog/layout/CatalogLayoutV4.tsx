@@ -671,6 +671,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             <CatalogBanner
               desktopImageUrl={catalogBanner.desktop_image_url as string}
               mobileImageUrl={catalogBanner.mobile_image_url as string}
+              linkUrl={catalogBanner.link_url as string | undefined}
+              linkTarget={catalogBanner.link_target as string | undefined}
+              altText={catalogBanner.alt_text as string | undefined}
             />
           </div>
         )}
