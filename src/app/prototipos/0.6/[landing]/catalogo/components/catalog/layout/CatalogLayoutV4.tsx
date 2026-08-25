@@ -93,6 +93,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   isCampaignCouponValidating,
   gridVariant = 'default',
 }) => {
+  // La cabecera compacta viaja con la grilla compacta: son la misma decisión de
+  // diseño (catálogo de reacondicionados), así que no se agrega otra prop que
+  // haya que mantener sincronizada desde el call site.
+  const compactHeader = gridVariant === 'compact';
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const analytics = useAnalytics();
@@ -630,22 +634,31 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
+                className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ${
+                  compactHeader ? 'sm:justify-end' : 'sm:justify-between mb-4'
+                }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-                    <Search className="w-5 h-5 text-[var(--color-primary)]" />
+                {/* Título + subtítulo: se ocultan en la variante compacta
+                    (reacondicionados), donde el catálogo va directo al grano y
+                    solo deja el contador de equipos y el ordenamiento. */}
+                {!compactHeader && (
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                      <Search className="w-5 h-5 text-[var(--color-primary)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
+                        Encuentra tu equipo ideal
+                      </h2>
+                      <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
+                        Selecciona según tu necesidad principal
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
-                      Encuentra tu equipo ideal
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
-                      Selecciona según tu necesidad principal
-                    </p>
-                  </div>
-                </div>
+                )}
 
+                {/* SortDropdown ya trae el contador de equipos: es lo único que
+                    queda arriba en la variante compacta. */}
                 <div id="onboarding-sort">
                   <SortDropdown
                     value={sort}
@@ -656,13 +669,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
-              <div id="onboarding-quick-cards">
-                <QuickUsageCards
-                  selected={filters.usage}
-                  onChange={(usage) => updateFilter('usage', usage)}
-                  className=""
-                />
-              </div>
+              {!compactHeader && (
+                <div id="onboarding-quick-cards">
+                  <QuickUsageCards
+                    selected={filters.usage}
+                    onChange={(usage) => updateFilter('usage', usage)}
+                    className=""
+                  />
+                </div>
+              )}
 
             </CardBody>
           </Card>
