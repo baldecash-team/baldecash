@@ -330,14 +330,34 @@ function CatalogoContent() {
   // `undefined` = todavia no respondio el fetch. Con `{}` el gate no podia
   // distinguirlo de "llego y el modal esta apagado", avisaba de inmediato, y
   // el welcome se abria antes de que el cupon tuviera su turno.
-  const [leadModalConfig, setLeadModalConfig] = useState<Record<string, unknown> | undefined>(undefined);
+  const [landingConfig, setLandingConfig] = useState<Record<string, unknown> | undefined>(undefined);
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
       setVipCountdownDate(cfg.features.vip_countdown || '');
       setOverlayVariant(cfg.features.overlay_variant || '');
-      setLeadModalConfig(cfg as unknown as Record<string, unknown>);
+      setLandingConfig(cfg as unknown as Record<string, unknown>);
     });
   }, [landing]);
+
+  /**
+   * Modal de bienvenida del onboarding: encendido salvo que la landing lo
+   * apague (`extra_data.onboarding.enabled = false` en el admin).
+   *
+   * Son DOS condiciones distintas y confundirlas rompe algo en cada
+   * direccion:
+   *
+   * - Mientras la config NO llego (`undefined`), vale `false`. Sin esto el
+   *   modal aparece y desaparece al llegar la respuesta.
+   * - Ya resuelta y SIN el namespace, vale `true`. `fetchLandingConfig`
+   *   nunca lanza: ante red caida, 404 o body roto devuelve el default, que
+   *   no trae `onboarding` (landingConfigApi.ts:60-77). Leer esa ausencia
+   *   como `false` apagaria el modal en TODAS las landings ante cualquier
+   *   problema de red, en silencio.
+   */
+  const onboardingEnabled =
+    landingConfig !== undefined &&
+    (landingConfig['onboarding'] as { enabled?: boolean } | undefined)
+      ?.enabled !== false;
 
   // El cupón va PRIMERO, el onboarding DESPUÉS: los dos apuntan al mismo
   // visitante nuevo y sin coordinarlos se apilan encima. `leadModalSettled`
@@ -2479,13 +2499,13 @@ function CatalogoContent() {
           de acceso, este modal es opcional y descartable. */}
       <LeadModalGate
         landingSlug={landing}
-        config={leadModalConfig}
+        config={landingConfig}
         onSettled={handleLeadModalSettled}
       />
 
       {/* Onboarding - Welcome Modal */}
       <OnboardingWelcomeModal
-        isOpen={onboarding.shouldShowWelcome && !isPageLoading && leadModalSettled}
+        isOpen={onboarding.shouldShowWelcome && !isPageLoading && leadModalSettled && onboardingEnabled}
         onStartTour={onboarding.startTour}
         onDismiss={onboarding.dismissWelcome}
       />
