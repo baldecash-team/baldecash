@@ -29,6 +29,7 @@ import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '.
 import { useCatalogProducts, useCatalogFilters } from '../hooks/useCatalogProducts';
 import { useCatalogSharedState } from '../hooks/useCatalogSharedState';
 import { useCampaignCoupon } from '../hooks/useCampaignCoupon';
+import { cardKey } from '../utils/cardKey';
 import styles from './copiaHome.module.css';
 
 type SortKey = 'recommended' | 'price_asc' | 'price_desc';
@@ -134,7 +135,10 @@ export function CopiaHomeMobileCatalog() {
 
   const displayed = useMemo(() => {
     if (!favOnly) return products;
-    return products.filter((p) => shared.isInWishlist(p.id));
+    // Por clave de card, no por id: el suelto y sus combos comparten `id`, así
+    // que el filtro "solo favoritos" mostraba las tres cards habiendo marcado
+    // una sola (BAL-3328).
+    return products.filter((p) => shared.isInWishlist(cardKey(p)));
   }, [products, favOnly, shared]);
 
   const goDetalle = useCallback(
@@ -299,7 +303,10 @@ export function CopiaHomeMobileCatalog() {
             const refurbished = isRefurbishedCondition(p.conditionCode || p.condition);
             const specs = cardSpecs(p);
             return (
-              <div key={p.id} className={`${styles.card} ${styles.prod}`}>
+              // Por clave de card, no por `id`: el suelto y su combo son dos
+              // cards con el MISMO id, y React dejaba una card vieja en el DOM
+              // al filtrar por favoritos (BAL-3328).
+              <div key={cardKey(p)} className={`${styles.card} ${styles.prod}`}>
                 <CopiaHomePromoBanner promotion={p.promotion} style={{ margin: '-18px -18px 14px' }} />
                 {/*
                   «Seminuevo» está escrito a mano y la condición se deriva acá

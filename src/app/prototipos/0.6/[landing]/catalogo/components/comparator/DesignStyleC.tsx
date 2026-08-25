@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
+import { cardKey } from '../../utils/cardKey';
 
 interface DesignStyleCProps {
   products: ComparisonProduct[];
@@ -263,7 +264,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
 
                 return (
                   <motion.div
-                    key={product.id}
+                    key={cardKey(product)}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 + idx * 0.1 }}
@@ -276,7 +277,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onRemoveProduct(product.id);
+                                onRemoveProduct(cardKey(product));
                               }}
                               className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] hover:bg-red-50 hover:border-red-200 flex items-center justify-center cursor-pointer transition-all z-10 opacity-0 group-hover:opacity-100"
                             >
@@ -408,7 +409,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                   const isBest = showBestOption && index === bestProductIndex;
                   return (
                     <th
-                      key={product.id}
+                      key={cardKey(product)}
                       className={`p-1.5 md:p-4 text-center ${
                         isBest ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : ''
                       }`}
@@ -461,7 +462,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                                 : 'border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                             }`}
                             startContent={cartItems.includes(product.id) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
-                            onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
+                            onPress={() => !cartItems.includes(product.id) && onAddToCart?.(cardKey(product))}
                             isDisabled={cartItems.includes(product.id)}
                           >
                             {cartItems.includes(product.id) ? 'Añadido' : 'Carrito'}
@@ -487,7 +488,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     const isWinner = spec.isDifferent && spec.winner === index;
                     return (
                       <td
-                        key={`${product.id}-${spec.key}`}
+                        key={`${cardKey(product)}-${spec.key}`}
                         className={`p-1.5 md:p-3 text-center text-[10px] md:text-xs ${
                           index === bestProductIndex ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : ''
                         } ${isWinner ? 'font-semibold text-[var(--color-primary)]' : 'text-[var(--text,#374151)]'}`}

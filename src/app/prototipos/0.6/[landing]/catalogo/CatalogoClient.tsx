@@ -77,7 +77,7 @@ import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landin
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
 // API for fetching products by IDs (used for cart/wishlist)
-import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+import { fetchAllCardsByIds, fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 
 
 // Types
@@ -102,6 +102,7 @@ import {
 
 // Import the shared state hook for cart/wishlist
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
+import { cardKey } from './utils/cardKey';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { diffAndEmitFilterChanges, buildFilterSnapshot } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
@@ -1161,7 +1162,15 @@ function CatalogoContent() {
     const saved = localStorage.getItem(getCompareKey(landing));
     if (saved) {
       try {
-        setCompareList(JSON.parse(saved));
+        const guardado: string[] = JSON.parse(saved);
+        // La lista vieja guardaba productIds; ahora guarda slugs de card. Un id
+        // suelto resolveria a la primera card del producto — la que el usuario no
+        // eligio (BAL-3328). Se descarta: comparar es una seleccion efimera de
+        // 2-3 equipos, no algo que se acumule.
+        // El filtro `includes('-')` distingue un slug de un id numerico: un id
+        // como "518" no tiene guiones; todo slug del catalogo si.
+        const soloSlugs = guardado.filter((k: string) => k.includes('-'));
+        setCompareList(soloSlugs);
       } catch (e) {
         console.error('Error parsing compareList from localStorage:', e);
       }
@@ -1179,21 +1188,38 @@ function CatalogoContent() {
   // Fetch compare products from API (independent of catalog filters)
   useEffect(() => {
     if (isCompareListLoaded && compareList.length > 0) {
-      fetchProductsByIds(landing, compareList, previewKey).then((products) => {
-        setCompareProducts(products as ComparisonProduct[]);
+      // La API busca por id; los ids se derivan de las cards del catalogo cuyo
+      // slug esta en compareList. Asi la peticion pide lo correcto y la
+      // resolucion posterior no depende del orden que devuelva el backend.
+      const idsAPedir = compareList
+        .map((key) => catalogProducts.find((p) => cardKey(p) === key)?.id)
+        .filter((id): id is string => Boolean(id));
+      if (idsAPedir.length === 0) { setCompareProducts([]); return; }
+      // `fetchAllCardsByIds` y no `fetchProductsByIds`: esta ultima colapsa a UNA
+      // card por id — la primera que devuelve la landing, normalmente la del
+      // combo — y entonces el slug que el usuario eligio no vendria en la
+      // respuesta y la lista quedaria vacia (BAL-3328).
+      fetchAllCardsByIds(landing, idsAPedir, previewKey).then((products) => {
+        // Quedarse con la card cuyo slug pidio el usuario, no con la primera del id.
+        const porClave = compareList
+          .map((key) => (products as ComparisonProduct[] | null)?.find((p) => cardKey(p) === key))
+          .filter((p): p is ComparisonProduct => Boolean(p));
+        setCompareProducts(porClave);
       });
     } else {
       setCompareProducts([]);
     }
-  }, [compareList, isCompareListLoaded, landing]);
+  }, [compareList, isCompareListLoaded, landing, previewKey, catalogProducts]);
 
   // Mark filters as initialized (state already initialized from URL params)
   const isFiltersInitialized = useRef(true);
 
   // v0.6.1: Updated to use WishlistItem through the hook
   // Note: findProductOrSibling is defined later, so we handle fallback in the callback
-  const handleToggleWishlist = useCallback((productId: string, wishlistItem?: WishlistItem) => {
-    const isAdding = !isInWishlist(productId);
+  // La clave es la de la card (slug), no el productId: el suelto y sus combos
+  // comparten productId y colapsarían en uno solo (BAL-3328).
+  const handleToggleWishlist = useCallback((key: string, wishlistItem?: WishlistItem) => {
+    const isAdding = !isInWishlist(key);
     if (isAdding) {
       // If we have a WishlistItem, use it directly
       if (wishlistItem) {
@@ -1203,7 +1229,7 @@ function CatalogoContent() {
       // If no wishlistItem provided, the caller should provide one
       // (ProductCard always provides WishlistItem via onFavorite callback)
     } else {
-      removeWishlistItem(productId);
+      removeWishlistItem(key);
     }
   }, [isInWishlist, addWishlistItem, removeWishlistItem, showToast]);
 
@@ -1510,6 +1536,19 @@ function CatalogoContent() {
     return null;
   }, [catalogProducts]);
 
+  /**
+   * La card exacta cuya clave coincide. Buscar por id devolveria la primera
+   * card del producto — normalmente la del combo — y no la que el usuario
+   * eligio (BAL-3328, mismo criterio que resolveSavedItemDetail).
+   */
+  const findCardByKey = useCallback((key: string): CatalogProduct | null => {
+    const exacta = catalogProducts.find((p) => cardKey(p) === key);
+    if (exacta) return exacta;
+    // El slug ya no esta en el catalogo (combo archivado): la card viva del
+    // producto es mejor que nada. Misma degradacion que resolveSavedItemDetail.
+    return catalogProducts.find((p) => p.id === key) ?? null;
+  }, [catalogProducts]);
+
   // Resuelve a que detalle lleva un item de favoritos/carrito. La card guardada
   // se busca por SLUG (la identidad real de una card); el lookup por id queda
   // de respaldo por si ese slug ya no existe. Ver `resolveSavedItemDetail`.
@@ -1564,26 +1603,28 @@ function CatalogoContent() {
     return product.deviceType || 'laptop';
   };
 
-  const handleToggleCompare = useCallback((productId: string) => {
+  // La clave es la de la card (slug), no el productId: el suelto y sus combos
+  // comparten productId y colapsarían en uno solo (BAL-3328).
+  const handleToggleCompare = useCallback((key: string) => {
     // Si ya está en la lista, quitarlo
-    if (compareList.includes(productId)) {
-      setCompareList((prev) => prev.filter((id) => id !== productId));
-      tracker?.track('compare_remove', { product_id: productId });
+    if (compareList.includes(key)) {
+      setCompareList((prev) => prev.filter((k) => k !== key));
+      tracker?.track('compare_remove', { product_id: key });
       return;
     }
 
     // Verificar límite
     if (compareList.length >= maxCompareProducts) return;
 
-    // Obtener el producto a agregar (puede ser un sibling)
-    const productToAdd = findProductOrSibling(productId);
+    // Obtener la card a agregar: por clave, no por id
+    const productToAdd = findCardByKey(key);
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
-    // Usa findProductOrSibling (síncrono, ya en memoria) en vez de compareProducts (async)
+    // Usa findCardByKey (síncrono, ya en memoria) en vez de compareProducts (async)
     // para evitar race condition cuando el fetch aún no terminó
     if (compareList.length > 0) {
-      const firstProductInList = findProductOrSibling(compareList[0]);
+      const firstProductInList = findCardByKey(compareList[0]);
 
       if (firstProductInList) {
         const currentDeviceType = getDeviceType(firstProductInList);
@@ -1608,13 +1649,14 @@ function CatalogoContent() {
     }
 
     // Agregar a la lista
-    setCompareList((prev) => [...prev, productId]);
-    tracker?.track('compare_add', { product_id: productId });
-  }, [compareList, maxCompareProducts, showToast, findProductOrSibling, tracker]);
+    setCompareList((prev) => [...prev, key]);
+    tracker?.track('compare_add', { product_id: key });
+  }, [compareList, maxCompareProducts, showToast, findCardByKey, tracker]);
 
-  const handleRemoveFromCompare = useCallback((productId: string) => {
-    setCompareList((prev) => prev.filter((id) => id !== productId));
-    tracker?.track('compare_remove', { product_id: productId });
+  // Recibe la clave de la card (slug) — ver `handleToggleCompare`.
+  const handleRemoveFromCompare = useCallback((key: string) => {
+    setCompareList((prev) => prev.filter((k) => k !== key));
+    tracker?.track('compare_remove', { product_id: key });
   }, [tracker]);
 
   const handleClearCompare = useCallback(() => {
@@ -1767,9 +1809,10 @@ function CatalogoContent() {
         wishlistItems={wishlistItems}
         onWishlistRemove={handleToggleWishlist}
         onWishlistClear={() => clearWishlistItems()}
-        onWishlistViewProduct={(productId) => {
-          const item = wishlistItems.find((w) => w.productId === productId);
-          const destino = resolveSavedDetail(item, productId);
+        onWishlistViewProduct={(key) => {
+          // El navbar emite la clave de card (slug), no el productId (BAL-3328).
+          const item = wishlistItems.find((w) => cardKey(w) === key);
+          const destino = resolveSavedDetail(item, item?.productId ?? key);
           if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         cartItems={cartItems}
@@ -1885,9 +1928,11 @@ function CatalogoContent() {
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info
-                  handleToggleWishlist(wishlistItem.productId, wishlistItem);
+                  handleToggleWishlist(cardKey(wishlistItem), wishlistItem);
                 }}
-                isFavoriteCheck={(id) => wishlist.includes(id)}
+                // El array `wishlist` es de productIds: no distingue el suelto de
+                // sus combos. Se compara por cardKey del item guardado (BAL-3328).
+                isFavoriteCheck={(key) => wishlistItems.some((w) => cardKey(w) === key)}
                 isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
                 getDetailHref={(siblingSlug, frecuency) => getDetailUrl(landing, siblingSlug || product.slug, frecuency ? { frecuency } : undefined)}
                 onViewDetail={(siblingSlug, pricing) => {
@@ -1924,8 +1969,10 @@ function CatalogoContent() {
                     });
                   }, 500);
                 }}
-                onCompare={(activeId) => handleToggleCompare(activeId)}
-                isCompareCheck={(id) => compareList.includes(id)}
+                // La card emite su cardKey (slug), así que `compareList` guarda
+                // claves de card, no productIds (BAL-3328).
+                onCompare={(key) => handleToggleCompare(key)}
+                isCompareCheck={(key) => compareList.includes(key)}
                 compareDisabled={compareList.length >= maxCompareProducts}
                 // Onboarding IDs only for first card
                 {...(index === 0 && {
@@ -2153,12 +2200,13 @@ function CatalogoContent() {
         isOpen={isWishlistDrawerOpen}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlistItems}
-        onRemoveProduct={(productId) => handleToggleWishlist(productId)}
+        onRemoveProduct={(key) => handleToggleWishlist(key)}
         onClearAll={() => clearWishlistItems()}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
-          const item = wishlistItems.find((w) => w.productId === productId);
-          const destino = resolveSavedDetail(item, productId);
+          // El drawer emite la clave de card (slug), no el productId (BAL-3328).
+          const item = wishlistItems.find((w) => cardKey(w) === key);
+          const destino = resolveSavedDetail(item, item?.productId ?? key);
           if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         onAddToCompare={handleToggleCompare}
@@ -2212,7 +2260,7 @@ function CatalogoContent() {
           <div className="flex -space-x-2">
             {compareProducts.slice(0, 4).map((product, index) => (
               <div
-                key={product.id}
+                key={cardKey(product)}
                 className="w-10 h-10 rounded-lg bg-[var(--surface,#fff)] border-2 border-white shadow-sm overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
@@ -2263,10 +2311,12 @@ function CatalogoContent() {
           onClearAll={handleClearCompare}
           comparisonState={comparisonState}
           onStateChange={setComparisonState}
-          onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
-            const product = compareProducts.find(p => p.id === productId);
+          onAddToCart={ALLOW_MULTI_PRODUCT ? (productKey) => {
+            // El comparador emite la clave de la card; buscar por id devolveria
+            // la primera card del producto y no la elegida (BAL-3328).
+            const product = compareProducts.find((p) => cardKey(p) === productKey);
             if (product) {
-              handleAddToCart(productId, product);
+              handleAddToCart(product.id, product);
             }
           } : undefined}
           cartItems={ALLOW_MULTI_PRODUCT ? cart : []}

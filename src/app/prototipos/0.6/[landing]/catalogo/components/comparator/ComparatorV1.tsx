@@ -10,6 +10,7 @@ import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { cardKey } from '../../utils/cardKey';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 import type { TermMonths } from '../../types/catalog';
@@ -293,7 +294,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     onPress={() => {
                       if (bestProduct) {
                         analytics.trackCompareBestAddToCart({ product_id: bestProduct.id });
-                        onAddToCart(bestProduct.id);
+                        onAddToCart(cardKey(bestProduct));
                       }
                     }}
                   >

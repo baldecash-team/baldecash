@@ -15,6 +15,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X, Heart, Trash2, GitCompare, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { CatalogProduct, WishlistItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
+import { cardKey } from '../../utils/cardKey';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
@@ -34,6 +35,12 @@ interface WishlistConfig {
 /** v0.6.1: Normalized item for display - works with both WishlistItem and CatalogProduct */
 interface NormalizedWishlistItem {
   id: string;
+  /**
+   * Clave de card (cardKey) para cruzar contra unavailableIds — no es lo
+   * mismo que `id` (productId): el suelto y sus combos comparten productId
+   * (BAL-3328). Solo se usa para el chequeo de disponibilidad.
+   */
+  key: string;
   name: string;
   brand: string;
   image: string;
@@ -55,10 +62,13 @@ interface WishlistDrawerProps {
   onClose: () => void;
   /** Accepts both WishlistItem[] (new) and CatalogProduct[] (legacy) */
   products: (WishlistItem | CatalogProduct)[];
-  onRemoveProduct: (productId: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onRemoveProduct: (cardKey: string) => void;
   onClearAll: () => void;
-  onViewProduct: (productId: string) => void;
-  onAddToCompare?: (productId: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onViewProduct: (cardKey: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onAddToCompare?: (cardKey: string) => void;
   /** v0.6.1: Add item to cart with configuration */
   onAddToCart?: (productId: string) => void;
   compareList?: string[];
@@ -73,9 +83,9 @@ interface WishlistDrawerProps {
 // Contenido compartido entre mobile y desktop
 const WishlistContentShared: React.FC<{
   products: (WishlistItem | CatalogProduct)[];
-  onRemoveProduct: (productId: string) => void;
-  onViewProduct: (productId: string) => void;
-  onAddToCompare?: (productId: string) => void;
+  onRemoveProduct: (cardKey: string) => void;
+  onViewProduct: (cardKey: string) => void;
+  onAddToCompare?: (cardKey: string) => void;
   onAddToCart?: (productId: string) => void;
   compareList: string[];
   maxCompareProducts: number;
@@ -102,6 +112,7 @@ const WishlistContentShared: React.FC<{
         // New WishlistItem format
         return {
           id: item.productId,
+          key: cardKey(item),
           name: item.name || item.shortName,
           brand: item.brand,
           image: item.image,
@@ -116,6 +127,7 @@ const WishlistContentShared: React.FC<{
         // Legacy CatalogProduct format
         return {
           id: item.id,
+          key: item.id,
           name: item.displayName,
           brand: item.brand,
           image: item.thumbnail,
@@ -165,13 +177,15 @@ const WishlistContentShared: React.FC<{
         </div>
       )}
       {normalizedItems.map((item, index) => {
-        const isInCompare = compareList.includes(item.id);
+        // compareList guarda claves de card (slug), no productIds (BAL-3328).
+        const isInCompare = compareList.includes(item.key);
         const canAddToCompare = compareList.length < maxCompareProducts;
-        const isUnavailable = unavailableSet.has(item.id);
+        // unavailableIds trae cardKey (slug), no productId — usar item.key.
+        const isUnavailable = unavailableSet.has(item.key);
 
         return (
           <motion.div
-            key={item.id}
+            key={item.key}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
@@ -179,7 +193,7 @@ const WishlistContentShared: React.FC<{
           >
             {/* Product Image */}
             <div
-              onClick={() => onViewProduct(item.id)}
+              onClick={() => onViewProduct(item.key)}
               className="w-20 h-20 rounded-lg bg-[var(--surface,#fff)] flex-shrink-0 flex items-center justify-center p-2 cursor-pointer hover:shadow-md transition-shadow"
             >
               <img
@@ -193,7 +207,7 @@ const WishlistContentShared: React.FC<{
             <div className="flex-1 min-w-0">
               <p className="text-xs text-[var(--text-muted,#6b7280)]">{item.brand}</p>
               <p
-                onClick={() => onViewProduct(item.id)}
+                onClick={() => onViewProduct(item.key)}
                 className="text-sm font-semibold text-[var(--text-strong,#1f2937)] line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
               >
                 {item.name}
@@ -249,7 +263,7 @@ const WishlistContentShared: React.FC<{
                   <Button
                     size="sm"
                     variant={isInCompare ? 'solid' : 'bordered'}
-                    onPress={() => onAddToCompare(item.id)}
+                    onPress={() => onAddToCompare(item.key)}
                     isDisabled={!isInCompare && !canAddToCompare}
                     className={`cursor-pointer text-xs h-7 ${
                       isInCompare
@@ -264,7 +278,7 @@ const WishlistContentShared: React.FC<{
                 <Button
                   size="sm"
                   variant="light"
-                  onPress={() => onRemoveProduct(item.id)}
+                  onPress={() => onRemoveProduct(item.key)}
                   className="cursor-pointer text-xs h-7 text-red-500 hover:bg-red-50"
                   startContent={<Trash2 className="w-3 h-3" />}
                 >

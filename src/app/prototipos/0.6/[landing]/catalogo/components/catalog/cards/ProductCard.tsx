@@ -28,6 +28,7 @@ import {
   InitialPaymentPercent,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
+import { cardKey } from '../../../utils/cardKey';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
@@ -102,12 +103,15 @@ interface ProductCardProps {
   getDetailHref?: (slug?: string, frecuency?: string) => string;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
-  isFavoriteCheck?: (productId: string) => boolean;
+  /** Recibe la clave de card (slug), NO el productId — ver `cardKey` (BAL-3328) */
+  isFavoriteCheck?: (cardKey: string) => boolean;
   colorSelectorVersion?: ColorSelectorVersion;
   // Compare props
-  onCompare?: (activeProductId: string) => void;
+  /** Emite la clave de card (slug), NO el productId — ver `cardKey` (BAL-3328) */
+  onCompare?: (cardKey: string) => void;
   isCompareSelected?: boolean;
-  isCompareCheck?: (productId: string) => boolean;
+  /** Recibe la clave de card (slug), NO el productId — ver `cardKey` (BAL-3328) */
+  isCompareCheck?: (cardKey: string) => boolean;
   compareDisabled?: boolean;
   // Cart state
   isInCart?: boolean;
@@ -213,9 +217,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Determine the active product ID (sibling's productId if selected, else card's product)
   const activeProductId = selectedColor?.productId || product.id;
 
+  // Clave de ESTA card. `activeProductId` no alcanza: el suelto y sus combos
+  // comparten id y colapsarían en favoritos y comparar (BAL-3328).
+  const activeCardKey = cardKey({
+    id: activeProductId,
+    slug: selectedColor?.slug || product.slug,
+  });
+
   // Resolve favorite/compare/cart state using sibling-aware checks
-  const resolvedIsFavorite = isFavoriteCheck ? isFavoriteCheck(activeProductId) : isFavorite;
-  const resolvedIsCompareSelected = isCompareCheck ? isCompareCheck(activeProductId) : isCompareSelected;
+  const resolvedIsFavorite = isFavoriteCheck ? isFavoriteCheck(activeCardKey) : isFavorite;
+  const resolvedIsCompareSelected = isCompareCheck ? isCompareCheck(activeCardKey) : isCompareSelected;
+  // El carrito conserva `activeProductId` a propósito: tiene su propia identidad
+  // (`comboId`) y está fuera del alcance de BAL-3328.
   const resolvedIsInCart = isInCartCheck ? isInCartCheck(activeProductId) : isInCart;
 
   // Override card data when a different color sibling is selected
@@ -582,7 +595,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!compareDisabled || resolvedIsCompareSelected) {
-                      onCompare(activeProductId);
+                      onCompare(activeCardKey);
                     }
                   }}
                   disabled={compareDisabled && !resolvedIsCompareSelected}

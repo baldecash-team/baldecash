@@ -150,6 +150,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const landing = params.landing as string || 'home';
   const analytics = useAnalytics();
 
+  /**
+   * Slug de la card que ESTA página está mostrando (BAL-3328).
+   *
+   * No sirve `product.slug`: el endpoint del detalle resuelve el combo al
+   * producto que lo compone, así que `/…-combo-166/detail` y `/…835/detail`
+   * devuelven el MISMO `product.slug` (el del suelto) y el mismo `id`. Tampoco
+   * sirve `combo?.slug` — `ComboInfo` no tiene slug (solo `id`), y de hecho el
+   * API manda `combo: null` en estas landings.
+   *
+   * Lo único que distingue las dos páginas es el slug de la URL, que además es
+   * con el que se pidió el detalle: esa es la identidad real de la card.
+   */
+  const pageSlug = useMemo(() => {
+    const raw = params.slug;
+    const first = Array.isArray(raw) ? raw[0] : raw;
+    return (first ?? '').trim() || product.slug;
+  }, [params.slug, product.slug]);
+
   // Timestamp when product detail page was loaded — used to compute time_on_detail_ms in cart_add
   const pageViewTsRef = useRef<number>(Date.now());
   useEffect(() => { pageViewTsRef.current = Date.now(); }, [product.id]);
@@ -417,7 +435,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     const wishlistItem: WishlistItem = {
       productId: product.id,
-      slug: product.slug,
+      // El slug de ESTA card, no el del producto suelto: si la página es la de
+      // un combo, el favorito es el del combo (BAL-3328).
+      slug: pageSlug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
@@ -436,7 +456,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     };
 
     onToggleWishlist(wishlistItem);
-  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product, isInWishlist, analytics]);
+  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product, isInWishlist, analytics, pageSlug]);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;

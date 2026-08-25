@@ -30,6 +30,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
+import { cardKey } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardKey';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 
 // Drawers for mobile
@@ -66,6 +67,16 @@ function ProductDetailContent() {
   const slugArray = params.slug as string[];
   const slug = slugArray?.[0] || '';
   const landing = (params.landing as string) || 'home';
+
+  /**
+   * Clave de la card que esta página muestra (BAL-3328).
+   *
+   * El slug de la URL, no `apiData.product.slug`: el endpoint resuelve el combo
+   * al producto que lo compone, así que la página del combo y la del suelto
+   * devuelven el mismo `product.slug` y el mismo `id`. Marcar el corazón por
+   * `product.id` hacía que el suelto apareciera en favoritos sin tocarlo.
+   */
+  const pageKey = cardKey({ slug });
 
   // Lead guard — DEBE ir antes de otros hooks (no puede haber return antes de hooks)
   const hasLeadAccess = useLeadGuard(landing);
@@ -115,7 +126,9 @@ function ProductDetailContent() {
 
   // Toggle wishlist with toast feedback
   const handleToggleWishlist = useCallback((wishlistItem: WishlistItem) => {
-    const wasInWishlist = catalogState.isInWishlist(wishlistItem.productId);
+    // Por clave de card, no por productId: el suelto y sus combos comparten
+    // productId, y el toast diría lo contrario de lo que hizo (BAL-3328).
+    const wasInWishlist = catalogState.isInWishlist(cardKey(wishlistItem));
     catalogState.toggleWishlist(wishlistItem);
     showToast(
       wasInWishlist ? 'Eliminado de favoritos' : 'Agregado a favoritos',
@@ -390,12 +403,15 @@ function ProductDetailContent() {
         wishlistItems={catalogState.wishlist}
         onWishlistRemove={catalogState.removeFromWishlist}
         onWishlistClear={catalogState.clearWishlist}
-        onWishlistViewProduct={(productId) => {
-          const item = catalogState.wishlist.find((w) => w.productId === productId);
+        onWishlistViewProduct={(key) => {
+          // El favorito llega identificado por clave de card (slug), no por
+          // productId: buscarlo por productId abría el suelto en vez del
+          // combo guardado (BAL-3328).
+          const item = catalogState.wishlist.find((w) => cardKey(w) === key);
           if (item?.slug) {
             router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
           } else {
-            const product = wishlistProducts.find((p) => p.id === productId);
+            const product = wishlistProducts.find((p) => cardKey(p) === key);
             if (product) {
               router.push(getDetailUrl(product.slug));
             }
@@ -437,7 +453,7 @@ function ProductDetailContent() {
             defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
             defaultFrequency={defaultFrequency}
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
-            isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+            isInWishlist={isAvailable ? catalogState.isInWishlist(pageKey) : false}
             gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
             startDate={inicioCronograma}
           />
@@ -450,7 +466,7 @@ function ProductDetailContent() {
             defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
             defaultFrequency={defaultFrequency}
             onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
-            isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+            isInWishlist={isAvailable ? catalogState.isInWishlist(pageKey) : false}
             gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
             startDate={inicioCronograma}
           />
@@ -477,7 +493,7 @@ function ProductDetailContent() {
           cartItem={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.getCartItem(apiData.product.id) : undefined}
           isInCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.isInCart(apiData.product.id) : false}
           onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
-          isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+          isInWishlist={isAvailable ? catalogState.isInWishlist(pageKey) : false}
           onSimilarAddToCart={ALLOW_MULTI_PRODUCT ? (similarProduct) => {
             // Similar products are independent — always allow add-to-cart
             const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24);
@@ -530,13 +546,14 @@ function ProductDetailContent() {
         products={catalogState.wishlist}
         onRemoveProduct={catalogState.removeFromWishlist}
         onClearAll={catalogState.clearWishlist}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
-          const item = catalogState.wishlist.find((w) => w.productId === productId);
+          // Clave de card (slug), no productId — ver onWishlistViewProduct.
+          const item = catalogState.wishlist.find((w) => cardKey(w) === key);
           if (item?.slug) {
             router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
           } else {
-            const product = wishlistProducts.find((p) => p.id === productId);
+            const product = wishlistProducts.find((p) => cardKey(p) === key);
             if (product) {
               router.push(getDetailUrl(product.slug));
             }

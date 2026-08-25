@@ -102,6 +102,7 @@ import type { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/q
 import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { mapQuizAnswersToFilters } from './utils/quizFilters';
 import { resolveSavedItemDetail } from './utils/resolveSavedItemDetail';
+import { cardKey } from './utils/cardKey';
 
 // ============================================
 // Main export
@@ -779,7 +780,10 @@ export function GamerCatalogoContent() {
   }, [analytics, products.length, total, loadMore]);
 
   const handleWishlistToggle = useCallback((product: CatalogProduct) => {
-    const wasInWishlist = isInWishlist(product.id);
+    // Por clave de card, no por id: el suelto y sus combos comparten `id` y el
+    // toast diría lo contrario de lo que hizo (BAL-3328). Sin slug cae al id,
+    // así que una card sin combos se comporta igual que antes.
+    const wasInWishlist = isInWishlist(cardKey(product));
     const item: WishlistItem = {
       productId: product.id,
       slug: product.slug,
@@ -850,6 +854,19 @@ export function GamerCatalogoContent() {
       }
     }
     return null;
+  }, [allProducts]);
+
+  /**
+   * La card exacta cuya clave coincide. Buscar por id devolvería la primera
+   * card del producto — normalmente la del combo — y no la que el usuario
+   * eligió (BAL-3328, mismo criterio que `CatalogoClient`).
+   */
+  const findCardByKey = useCallback((key: string): CatalogProduct | null => {
+    const exacta = allProducts.find((p: CatalogProduct) => cardKey(p) === key);
+    if (exacta) return exacta;
+    // El slug ya no está en el catálogo (combo archivado): la card viva del
+    // producto es mejor que nada. Misma degradación que resolveSavedItemDetail.
+    return allProducts.find((p: CatalogProduct) => p.id === key) ?? null;
   }, [allProducts]);
 
   // "Lo quiero" handler — respects ALLOW_MULTI_PRODUCT.
@@ -1484,7 +1501,7 @@ export function GamerCatalogoContent() {
                     <div style={{ maxHeight: 340, overflowY: 'auto', padding: 10 }}>
                       {wishlist.map((item) => (
                         <div
-                          key={item.productId}
+                          key={cardKey(item)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: isDark ? '#222' : '#fafafa', marginBottom: 6 }}
                         >
                           <div
@@ -1521,7 +1538,7 @@ export function GamerCatalogoContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => removeFromWishlist(item.productId)}
+                            onClick={() => removeFromWishlist(cardKey(item))}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: T.textMuted, display: 'flex' }}
                             aria-label="Quitar de favoritos"
                             title="Quitar"
@@ -1839,7 +1856,7 @@ export function GamerCatalogoContent() {
                     product={product}
                     isDark={isDark}
                     T={T}
-                    isWishlisted={isInWishlist(product.id)}
+                    isWishlisted={isInWishlist(cardKey(product))}
                     onWishlistToggle={() => handleWishlistToggle(product)}
                     isCompared={isInCompare(product.id)}
                     onCompare={() => handleToggleCompare(product)}
@@ -2554,25 +2571,30 @@ export function GamerCatalogoContent() {
         isOpen={isWishlistDrawerOpen && isMobileViewport}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlist}
-        onRemoveProduct={(productId) => removeFromWishlist(productId)}
+        onRemoveProduct={(key) => removeFromWishlist(key)}
         onClearAll={() => clearWishlist()}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
+          // El drawer emite la clave de card (slug), no el productId (BAL-3328).
           // El slug guardado identifica la card exacta; el lookup por id devuelve
           // la primera card del producto y el suelto y sus combos comparten
           // `id` (BAL-3272). Se conserva la URL sin params de esta pantalla.
-          const item = wishlist.find((w) => w.productId === productId);
+          const item = wishlist.find((w) => cardKey(w) === key);
           const cardGuardada = item?.slug
             ? allProducts.find((p: CatalogProduct) => p.slug === item.slug) ?? null
             : null;
-          const destino = resolveSavedItemDetail(item, cardGuardada, findProductOrSibling(productId));
+          const destino = resolveSavedItemDetail(item, cardGuardada, findProductOrSibling(item?.productId ?? key));
           if (destino) router.push(routes.producto(landing, destino.slug));
         }}
-        onAddToCompare={(productId) => {
-          const prod = findProductOrSibling(productId);
+        onAddToCompare={(key) => {
+          // La clave es el slug de la card; buscarla por id traería la primera
+          // card del producto y no la que el usuario guardó (BAL-3328).
+          const prod = findCardByKey(key);
           if (prod) handleToggleCompare(prod);
         }}
         onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
+          // onAddToCart sigue emitiendo el productId: el carrito tiene identidad
+          // propia via comboId y queda fuera del alcance de BAL-3328.
           const wishlistItem = wishlist.find((w) => w.productId === productId);
           if (wishlistItem) {
             handleAddToCart(productId, undefined, {
