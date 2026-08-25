@@ -21,7 +21,6 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/terminos-y-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
   '/ucal-cachimbo': 'https://beneficios.baldecash.com/ucal-cachimbo',
   '/icpna': 'https://beneficios.baldecash.com/icpna',
-  '/isil': 'https://beneficios.baldecash.com/isil',
   '/carloscueto': 'https://beneficios.baldecash.com/carloscueto',
   '/innova': 'https://beneficios.baldecash.com/innova',
   '/corrientealterna': 'https://beneficios.baldecash.com/corrientealterna',
