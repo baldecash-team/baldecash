@@ -68,8 +68,14 @@ export function Chrome({ expiraEn, children }: ChromeProps) {
   );
 }
 
-/** Botón de WhatsApp: la salida de emergencia de todas las pantallas. */
-export function BotonWhatsApp({ texto = 'Escríbenos por WhatsApp' }: { texto?: string }) {
+/**
+ * Botón de WhatsApp: la salida de emergencia de todas las pantallas.
+ *
+ * El número va VISIBLE en el texto, como en el diseño aprobado: quien abre esto
+ * desde una compu no puede tocar el enlace, y el número escrito es lo único que
+ * le sirve.
+ */
+export function BotonWhatsApp({ texto = '¿Dudas? Escríbenos: 959 324 808' }: { texto?: string }) {
   return (
     <a
       href={WHATSAPP_URL}

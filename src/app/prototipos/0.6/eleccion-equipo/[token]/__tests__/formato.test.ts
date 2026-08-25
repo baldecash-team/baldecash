@@ -10,7 +10,6 @@ import {
   etiquetaCuentaRegresiva,
   etiquetaGrado,
   formatearCuota,
-  formatearFecha,
   nombreUnidad,
   resumenMedios,
   vencimientoEnMs,
@@ -58,13 +57,6 @@ describe('etiquetaCuentaRegresiva', () => {
   it('vencido', () => {
     expect(etiquetaCuentaRegresiva(0)).toBe('Vencido');
     expect(etiquetaCuentaRegresiva(-1)).toBe('Vencido');
-  });
-});
-
-describe('formatearFecha', () => {
-  it('no corre la fecha un día para atrás', () => {
-    expect(formatearFecha('2026-08-20')).toBe('20/08/2026');
-    expect(formatearFecha('2026-08-20T15:30:00')).toBe('20/08/2026');
   });
 });
 

@@ -12,7 +12,7 @@
  * módulo completo — mismo patrón que `EntregaClient.test.tsx`.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
@@ -132,6 +132,58 @@ describe('galería', () => {
     });
   });
 
+  it('mete el foco en el diálogo, atrapa el Tab y bloquea el scroll del body', async () => {
+    mockGet.mockResolvedValue(datos);
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
+    const dialogo = await screen.findByRole('dialog');
+
+    // Declarar `aria-modal` sin llevar el foco adentro es peor que no
+    // declararlo: la lista de atrás queda tabulable igual.
+    expect(document.activeElement).toBe(dialogo);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Shift+Tab desde el propio diálogo envuelve al último enfocable de adentro,
+    // en vez de salirse a las cards.
+    const enfocables = dialogo.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), video[controls]');
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(enfocables[enfocables.length - 1]);
+  });
+
+  it('al cerrar devuelve el foco a la card y libera el scroll', async () => {
+    mockGet.mockResolvedValue(datos);
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    const card = screen.getByRole('button', { name: /Unidad 01/ });
+    await userEvent.click(card);
+    await screen.findByRole('dialog');
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(document.activeElement).toBe(card);
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('reabrir una galería limpia el aviso anterior', async () => {
+    mockGet.mockResolvedValue(datos);
+    mockPost.mockResolvedValue({ reason: 'unit_unavailable', error: 'x' });
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Elegir esta unidad/ }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/Alguien eligió/i));
+
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 02/ }));
+
+    // Ya siguió adelante: el aviso cumplió y dejarlo pegado es ruido.
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it('cambiar de foto emite photo_change con el índice', async () => {
     mockGet.mockResolvedValue(datos);
     render(<EleccionEquipoClient token="tok" />);
@@ -146,6 +198,22 @@ describe('galería', () => {
       (c) => c[0] === 'equipment_selection_photo_change',
     );
     expect(cambios[0][1]).toEqual({ unit_id: 101, photo_index: 1 });
+  });
+
+  it('tocar la foto que ya está en el visor no emite photo_change', async () => {
+    mockGet.mockResolvedValue(datos);
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
+    await screen.findByRole('dialog');
+
+    await userEvent.click(screen.getByRole('button', { name: /Teclado/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Teclado/ }));
+
+    // Dos toques, un solo cambio real: contar el segundo infla la métrica.
+    expect(
+      mockTrack.mock.calls.filter((c) => c[0] === 'equipment_selection_photo_change'),
+    ).toHaveLength(1);
   });
 });
 
@@ -183,8 +251,14 @@ describe('confirmar la elección', () => {
     mockGet.mockResolvedValue({ ...datos, units: [unidad(2), unidad(3)] });
     await userEvent.click(await screen.findByRole('button', { name: /Elegir esta unidad/ }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/Alguien eligió esa unidad/i);
+    // La región live ya está montada desde antes (por eso `waitFor` sobre el
+    // texto y no `findByRole`): una que nace junto con su contenido no se
+    // anuncia de forma confiable.
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/Alguien eligió esa unidad/i));
     await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
+    // El refresco NO pasa por "Cargando...": el chrome nunca se desmonta.
+    expect(screen.queryByText('Cargando...')).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Unidad 01/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Unidad 02/ })).toBeInTheDocument();
@@ -204,6 +278,30 @@ describe('confirmar la elección', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos conectarnos/);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('si cierra la galería mientras el POST viaja y falla, el error igual se ve', async () => {
+    // El peor desenlace posible: la reserva NO ocurrió y el cliente se queda
+    // creyendo que sí porque el error se escribió en un componente desmontado.
+    mockGet.mockResolvedValue(datos);
+    let resolver: (v: unknown) => void = () => {};
+    mockPost.mockReturnValue(new Promise((r) => { resolver = r; }));
+
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Elegir esta unidad/ }));
+
+    // Se va de la galería con el POST todavía en vuelo.
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolver({ reason: 'network', error: 'No pudimos conectarnos.' });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/No pudimos reservar esa unidad/i));
   });
 });
 
@@ -241,14 +339,24 @@ describe('enlaces que ya no sirven', () => {
       render(<EleccionEquipoClient token="tok" />);
 
       expect(await screen.findByText(/no es válido/i)).toBeInTheDocument();
+      // Un link muerto tiene que dejar rastro: sin evento, la visita es
+      // invisible y "cuántos abren y dónde se caen" queda sin respuesta.
+      const errores = mockTrack.mock.calls.filter(
+        (c) => c[0] === 'equipment_selection_error',
+      );
+      expect(errores[0][1]).toEqual({ reason });
     },
   );
 
-  it('invalid_status tiene su propio copy: la solicitud dejó de estar aprobada', async () => {
+  it('invalid_status tiene su propio copy y también deja rastro', async () => {
     mockGet.mockResolvedValue({ reason: 'invalid_status', error: 'x' });
     render(<EleccionEquipoClient token="tok" />);
 
     expect(await screen.findByText(/cambió de estado/i)).toBeInTheDocument();
+    const errores = mockTrack.mock.calls.filter(
+      (c) => c[0] === 'equipment_selection_error',
+    );
+    expect(errores[0][1]).toEqual({ reason: 'invalid_status' });
   });
 
   it('ofrece reintentar si falla la red', async () => {

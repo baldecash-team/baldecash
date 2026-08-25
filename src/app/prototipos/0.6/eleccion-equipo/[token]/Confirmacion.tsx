@@ -62,7 +62,7 @@ export function Confirmacion({ unidad, producto, cuota }: ConfirmacionProps) {
         </Paso>
       </div>
 
-      <BotonWhatsApp texto="Escríbenos por WhatsApp" />
+      <BotonWhatsApp />
     </div>
   );
 }

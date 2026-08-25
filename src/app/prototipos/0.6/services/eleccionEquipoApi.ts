@@ -89,7 +89,12 @@ export async function getEleccion(token: string): Promise<EleccionDatos | Elecci
   try {
     const response = await fetch(`${API_BASE_URL}/public/eleccion-equipo/${token}`);
     if (!response.ok) return await toError(response);
-    return (await response.json()) as EleccionDatos;
+    const datos = (await response.json()) as EleccionDatos;
+    // `units` es la única lista que la pantalla recorre sin preguntar. Si el
+    // backend alguna vez la omite, sin este default la página queda en blanco
+    // y sin error visible; con él cae en "estamos preparando tu equipo", que es
+    // exactamente lo que significa no tener unidades.
+    return { ...datos, units: datos.units ?? [] };
   } catch {
     // Se distingue de un rechazo del backend: acá reintentar sirve.
     return { reason: 'network', error: 'No pudimos conectarnos. Revisa tu conexión.' };

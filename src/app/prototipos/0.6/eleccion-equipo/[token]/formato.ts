@@ -2,8 +2,8 @@
  * Formateo de la pantalla de elección de equipo. Todo puro y testeable.
  *
  * TRAMPA DE FECHAS (la que ya nos mordió): `new Date("2026-08-20")` se
- * interpreta como UTC y en Lima (-5) cae el 19. Por eso las fechas se
- * formatean partiendo el string, nunca construyendo un `Date`.
+ * interpreta como UTC y en Lima (-5) cae el 19. Por eso ningún dato de fecha
+ * se le pasa crudo al constructor: se parte el string y se le declara la zona.
  *
  * El caso del vencimiento es aparte y peor: `link_expires_at` sale del backend
  * como un datetime NAIVE en hora Lima (`SecureLinkService` lo guarda así, ver
@@ -54,14 +54,6 @@ export function etiquetaCuentaRegresiva(msRestantes: number): string {
   const mm = Math.floor((totalSeg % 3600) / 60);
   const ss = totalSeg % 60;
   return `${hh}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
-}
-
-/** Fecha legible (DD/MM/YYYY) partiendo el string — nunca con `new Date`. */
-export function formatearFecha(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const [fecha] = iso.split('T');
-  const [y, m, d] = (fecha ?? '').split('-');
-  return y && m && d ? `${d}/${m}/${y}` : iso;
 }
 
 /**

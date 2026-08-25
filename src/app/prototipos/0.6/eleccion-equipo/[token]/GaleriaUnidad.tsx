@@ -25,6 +25,17 @@ import { etiquetaGrado, nombreUnidad } from './formato';
 /** Qué se está viendo en el visor grande. */
 type Medio = { tipo: 'video' } | { tipo: 'foto'; indice: number };
 
+/** Lo que puede recibir foco adentro del diálogo, en orden del DOM. */
+const FOCUSABLES = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'video[controls]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
 export interface GaleriaUnidadProps {
   unidad: EleccionUnidad;
   /** Bloquea el CTA mientras el POST está en vuelo. */
@@ -54,17 +65,69 @@ export function GaleriaUnidad({
   // métrica de "cuántos miran el video" en "cuántos manotean la barra".
   const videoYaContado = useRef(false);
 
-  // Cerrar con Escape: en el diálogo de desktop es LA forma esperada de salir,
-  // y en mobile no estorba.
+  const dialogoRef = useRef<HTMLDivElement>(null);
+
+  // `onCerrar` llega como arrow inline, así que su identidad cambia en cada
+  // render del padre. Se guarda en un ref para que el efecto de foco corra UNA
+  // vez por apertura: si dependiera de `onCerrar`, cada render volvería a
+  // guardar "el elemento previo" (que para entonces ya es el propio diálogo) y
+  // el foco nunca volvería a la card.
+  const cerrarRef = useRef(onCerrar);
+  useEffect(() => { cerrarRef.current = onCerrar; }, [onCerrar]);
+
+  // Foco y scroll mientras el diálogo está abierto.
+  //
+  // Declarar `aria-modal` sin manejar el foco es PEOR que no declararlo: le
+  // dice a la tecnología asistiva que lo de atrás está inerte mientras un
+  // usuario de teclado sigue tabulando por las cards de la lista. Acá se cierra
+  // el círculo entero: foco adentro al abrir, atrapado mientras está abierto,
+  // devuelto a la card al cerrar, y el body sin scroll de fondo.
   useEffect(() => {
+    const dialogo = dialogoRef.current;
+    const previo = document.activeElement as HTMLElement | null;
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogo?.focus();
+
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCerrar();
+      if (e.key === 'Escape') return cerrarRef.current();
+      if (e.key !== 'Tab' || !dialogo) return;
+
+      const focusables = Array.from(dialogo.querySelectorAll<HTMLElement>(FOCUSABLES));
+      if (focusables.length === 0) {
+        // Sin nada que enfocar adentro, el Tab igual no puede salir.
+        e.preventDefault();
+        return;
+      }
+      const primero = focusables[0];
+      const ultimo = focusables[focusables.length - 1];
+      const activo = document.activeElement;
+
+      // El propio diálogo cuenta como "antes del primero": es donde arranca el
+      // foco al abrir, así que un Shift+Tab desde ahí tiene que ir al último.
+      if (e.shiftKey && (activo === primero || activo === dialogo)) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && activo === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
     };
+
     document.addEventListener('keydown', alTeclear);
-    return () => document.removeEventListener('keydown', alTeclear);
-  }, [onCerrar]);
+    return () => {
+      document.removeEventListener('keydown', alTeclear);
+      document.body.style.overflow = overflowPrevio;
+      // Puede ser un nodo ya desmontado (el refresco tras un 409 rehace la
+      // lista): enfocar un nodo suelto es un no-op, no un error.
+      previo?.focus?.();
+    };
+  }, []);
 
   const verFoto = (indice: number) => {
+    // Tocar la foto que ya está en el visor no es un cambio: contarlo infla la
+    // métrica de "cuántas fotos mira la gente".
+    if (medio.tipo === 'foto' && medio.indice === indice) return;
     setMedio({ tipo: 'foto', indice });
     onCambiarFoto(indice);
   };
@@ -86,11 +149,14 @@ export function GaleriaUnidad({
       />
 
       <div
+        ref={dialogoRef}
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
+        // Enfocable por código (no por Tab): es donde aterriza el foco al abrir.
+        tabIndex={-1}
         style={{ fontFamily: 'var(--font-baloo-2), sans-serif' }}
-        className="fixed z-[9999] flex flex-col bg-white text-[#151744] shadow-[0_-10px_40px_rgba(0,0,0,.2)] bottom-0 left-1/2 max-h-[92vh] w-full max-w-[480px] -translate-x-1/2 overflow-y-auto rounded-t-[22px] md:bottom-auto md:top-1/2 md:max-h-[88vh] md:max-w-[1000px] md:-translate-y-1/2 md:rounded-[22px]"
+        className="fixed z-[9999] flex flex-col bg-white focus:outline-none text-[#151744] shadow-[0_-10px_40px_rgba(0,0,0,.2)] bottom-0 left-1/2 max-h-[92vh] w-full max-w-[480px] -translate-x-1/2 overflow-y-auto rounded-t-[22px] md:bottom-auto md:top-1/2 md:max-h-[88vh] md:max-w-[1000px] md:-translate-y-1/2 md:rounded-[22px]"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e9e9ef] bg-white px-5 pb-3 pt-[18px]">
           <div className="flex items-center gap-2 text-[19px] font-extrabold">

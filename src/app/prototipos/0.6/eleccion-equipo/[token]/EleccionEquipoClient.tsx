@@ -71,6 +71,11 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
   /** Aviso arriba de la lista, p. ej. cuando otro se llevó la unidad. */
   const [aviso, setAviso] = useState<string | null>(null);
 
+  // Espejo síncrono de `abierta`: cuando el POST vuelve, el estado de React
+  // puede haber cambiado y el closure de `confirmar` lo tendría viejo. Se
+  // actualiza en los mismos handlers que tocan el estado, así que nunca miente.
+  const abiertaRef = useRef<EleccionUnidad | null>(null);
+
   // Estable entre renders (no entre remounts) — mismo criterio que
   // `ResumeClient`: no depende de las garantías de `useMemo`.
   const eventsRef = useRef<ReturnType<typeof eleccionEvents> | null>(null);
@@ -82,8 +87,17 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
   // visita nueva.
   const aperturaContada = useRef(false);
 
-  const cargar = useCallback(async () => {
-    setView({ status: 'loading' });
+  /**
+   * Trae la vista del link.
+   *
+   * `silencioso` refresca SIN pasar por "Cargando...": tras un 409 la lista se
+   * rehace sola y desmontar el chrome haría parpadear la página entera (header
+   * y cuenta regresiva incluidos). Además mantiene montada la región
+   * `role="status"` del aviso — una región live que nace junto con su texto no
+   * se anuncia de forma confiable.
+   */
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setView({ status: 'loading' });
     const res = await getEleccion(token);
 
     if (isEleccionApiError(res)) {
@@ -92,6 +106,11 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
         events.track('equipment_selection_link_expired', { reason: res.reason });
         return setView({ status: 'expired' });
       }
+      // Un link muerto tiene que dejar rastro: sin esto, las visitas a enlaces
+      // inválidos o a solicitudes que dejaron de estar aprobadas son invisibles
+      // en analítica, y la pregunta "¿cuántos abren y dónde se caen?" queda sin
+      // respuesta justo en el tramo que más importa.
+      events.track('equipment_selection_error', { reason: res.reason });
       if (res.reason === 'invalid_status') return setView({ status: 'invalid_status' });
       return setView({ status: 'invalid' });
     }
@@ -123,8 +142,19 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
 
   useEffect(() => { void cargar(); }, [cargar]);
 
+  /** Cierra la galería y deja el espejo síncrono en cero. */
+  const cerrarGaleria = () => {
+    abiertaRef.current = null;
+    setAbierta(null);
+    setErrorGaleria(null);
+  };
+
   const abrirGaleria = (unidad: EleccionUnidad) => {
     setErrorGaleria(null);
+    // El aviso ya cumplió: la persona siguió adelante y está mirando otra
+    // unidad. Dejarlo pegado hasta elegir o recargar lo convierte en ruido.
+    setAviso(null);
+    abiertaRef.current = unidad;
     setAbierta(unidad);
     events.track('equipment_selection_gallery_open', {
       unit_id: unidad.unit_id,
@@ -150,7 +180,7 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
         unit_id: res.unit.unit_id,
         display_number: res.unit.display_number,
       });
-      setAbierta(null);
+      cerrarGaleria();
       // El backend devuelve la unidad realmente reservada, que puede no ser la
       // que se mandó (si otra request con el mismo token ganó la carrera). Se
       // muestra ESA, no la que el cliente tocó.
@@ -169,28 +199,38 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
 
     if (res.reason === 'unit_unavailable') {
       // Desenlace esperado, no falla: alguien la eligió primero. Se cierra la
-      // galería y se refresca para que la lista deje de mentir.
-      setAbierta(null);
+      // galería y se refresca (sin parpadeo) para que la lista deje de mentir.
+      cerrarGaleria();
       setAviso('Alguien eligió esa unidad antes que tú. Estas son las que siguen disponibles.');
-      void cargar();
+      void cargar(true);
       return;
     }
     if (EXPIRED_REASONS.has(res.reason)) {
       events.track('equipment_selection_link_expired', { reason: res.reason });
-      setAbierta(null);
+      cerrarGaleria();
       return setView({ status: 'expired' });
     }
     if (res.reason === 'invalid_status') {
-      setAbierta(null);
+      cerrarGaleria();
       return setView({ status: 'invalid_status' });
     }
     if (INVALID_REASONS.has(res.reason)) {
-      setAbierta(null);
+      cerrarGaleria();
       return setView({ status: 'invalid' });
     }
-    // Red o rechazo inesperado: la galería sigue abierta para reintentar sin
-    // volver a buscar la unidad.
-    setErrorGaleria(res.error);
+
+    // Red o rechazo inesperado. Si la galería sigue abierta el error va ahí,
+    // que es donde está mirando la persona. Si la cerró mientras el POST
+    // viajaba, el error tiene que caer en una superficie que HAYA sobrevivido
+    // al cierre: escribirlo en la galería desmontada dejaría a alguien creyendo
+    // que reservó cuando la reserva no ocurrió. Se prefiere esto a bloquear el
+    // cierre mientras `enviando`, que con la red colgada dejaría a la persona
+    // atrapada en un diálogo que no puede cerrar.
+    if (abiertaRef.current) {
+      setErrorGaleria(res.error);
+    } else {
+      setAviso(`No pudimos reservar esa unidad: ${res.error}`);
+    }
   };
 
   if (view.status === 'loading') return <Mensaje titulo="Cargando..." />;
@@ -310,14 +350,19 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
         )}
       </div>
 
-      {aviso && (
-        <p
-          role="status"
-          className="mb-4 rounded-2xl border border-[#ffe0b2] bg-[#fff4e5] px-4 py-3 text-center text-[13.5px] text-[#b5651d]"
-        >
-          {aviso}
-        </p>
-      )}
+      {/* Siempre montada, aunque esté vacía: una región live que aparece junto
+          con su texto no se anuncia de forma confiable. */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={
+          aviso
+            ? 'mb-4 rounded-2xl border border-[#ffe0b2] bg-[#fff4e5] px-4 py-3 text-center text-[13.5px] text-[#b5651d]'
+            : ''
+        }
+      >
+        {aviso}
+      </p>
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
         {unidades.map((u) => (
@@ -336,7 +381,7 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
           unidad={abierta}
           enviando={enviando}
           error={errorGaleria}
-          onCerrar={() => { setAbierta(null); setErrorGaleria(null); }}
+          onCerrar={cerrarGaleria}
           onElegir={() => void confirmar(abierta)}
           onCambiarFoto={(indice) =>
             events.track('equipment_selection_photo_change', {
