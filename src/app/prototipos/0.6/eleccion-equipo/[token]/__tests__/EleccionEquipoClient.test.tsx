@@ -217,6 +217,60 @@ describe('galería', () => {
   });
 });
 
+describe('navegar entre unidades sin cerrar la galería', () => {
+  it('siguiente cambia la unidad mostrada y emite gallery_open con sus datos', async () => {
+    mockGet.mockResolvedValue(datos);
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(dialogo).toHaveAccessibleName('Unidad 01');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Unidad siguiente' }));
+
+    expect(dialogo).toHaveAccessibleName('Unidad 02');
+    const abiertas = mockTrack.mock.calls.filter(
+      (c) => c[0] === 'equipment_selection_gallery_open',
+    );
+    // Una por el open inicial y otra por la navegación: para la analítica,
+    // navegar a otra unidad es, conceptualmente, abrir su galería.
+    expect(abiertas).toHaveLength(2);
+    expect(abiertas[1][1]).toEqual({
+      unit_id: 102, display_number: 2, photos_count: 2, has_video: true,
+    });
+  });
+
+  it('en la primera unidad, "Unidad anterior" está aria-disabled', async () => {
+    mockGet.mockResolvedValue(datos);
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
+    await screen.findByRole('dialog');
+
+    expect(screen.getByRole('button', { name: 'Unidad anterior' })).toHaveAttribute(
+      'aria-disabled', 'true',
+    );
+    expect(screen.getByRole('button', { name: 'Unidad siguiente' })).toHaveAttribute(
+      'aria-disabled', 'false',
+    );
+  });
+
+  it('en la última unidad, "Unidad siguiente" está aria-disabled', async () => {
+    mockGet.mockResolvedValue(datos);
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Unidad 03/ }));
+    await screen.findByRole('dialog');
+
+    expect(screen.getByRole('button', { name: 'Unidad siguiente' })).toHaveAttribute(
+      'aria-disabled', 'true',
+    );
+  });
+});
+
 describe('confirmar la elección', () => {
   it('reserva la unidad y muestra los próximos pasos', async () => {
     mockGet.mockResolvedValue(datos);

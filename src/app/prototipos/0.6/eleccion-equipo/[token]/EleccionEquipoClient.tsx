@@ -310,6 +310,16 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
   const { datos } = view;
   const unidades = datos.units;
   const cuota = formatearCuota(datos.application.monthly_payment);
+  // Vecinas de la unidad abierta en la galería, para los botones de
+  // anterior/siguiente. `abrirGaleria` ya hace todo lo que "abrir la galería
+  // de otra unidad" necesita (limpia error y aviso, emite `gallery_open`), así
+  // que navegar es literalmente reusarla — no hace falta un camino aparte.
+  const indiceAbierta = abierta ? unidades.findIndex((u) => u.unit_id === abierta.unit_id) : -1;
+  const unidadAnterior = indiceAbierta > 0 ? unidades[indiceAbierta - 1] : null;
+  const unidadSiguiente =
+    indiceAbierta >= 0 && indiceAbierta < unidades.length - 1
+      ? unidades[indiceAbierta + 1]
+      : null;
   // El grado solo encabeza la página cuando TODAS las unidades comparten el
   // mismo: el copy del diseño ("todas son del mismo grado") sería falso si no.
   const gradoComun = unidades.every(
@@ -383,6 +393,9 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
           error={errorGaleria}
           onCerrar={cerrarGaleria}
           onElegir={() => void confirmar(abierta)}
+          unidadAnterior={unidadAnterior}
+          unidadSiguiente={unidadSiguiente}
+          onNavegar={abrirGaleria}
           onCambiarFoto={(indice) =>
             events.track('equipment_selection_photo_change', {
               unit_id: abierta.unit_id,
