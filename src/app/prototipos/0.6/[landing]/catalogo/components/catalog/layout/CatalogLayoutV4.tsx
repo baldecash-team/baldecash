@@ -7,7 +7,7 @@ import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tabl
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
-import { CatalogLayoutProps, CatalogDeviceType, ProductTagType, GridVariant } from '../../../types/catalog';
+import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
@@ -41,29 +41,6 @@ import {
   processorModelOptions,
   applyDynamicCounts,
 } from '../../../data/mockCatalogData';
-
-/**
- * Clases de la grilla de productos.
- *
- * `default` es la grilla histórica: `auto-fill` con mínimo de 280px, que en un
- * móvil de 360px deja una sola columna porque no caben dos. `compact` fuerza 2
- * columnas SOLO en móvil (landing de reacondicionados, BAL-3288) y desde `sm`
- * vuelve al mismo auto-fill: 2 columnas fijas en desktop darían cards enormes.
- *
- * Se extrae como función pura para poder testear la decisión sin montar el
- * layout completo, que arrastra router, contextos y hooks de datos.
- *
- * IMPORTANTE: las clases se escriben COMPLETAS y literales, nunca armadas por
- * interpolación (`sm:${x}`). Tailwind escanea el código como texto: una clase
- * construida en runtime no entra al bundle y el estilo no existe.
- */
-export function gridClassName(variant: GridVariant = 'default'): string {
-  const base = 'w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 justify-items-center';
-  if (variant === 'compact') {
-    return `${base} grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]`;
-  }
-  return `${base} grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]`;
-}
 
 /**
  * Envoltorio del bloque superior del catálogo.
@@ -109,12 +86,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   overlayVariant,
   campaignCoupon,
   isCampaignCouponValidating,
-  gridVariant = 'default',
+  compactHeader = false,
 }) => {
-  // La cabecera compacta viaja con la grilla compacta: son la misma decisión de
-  // diseño (catálogo de reacondicionados), así que no se agrega otra prop que
-  // haya que mantener sincronizada desde el call site.
-  const compactHeader = gridVariant === 'compact';
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const analytics = useAnalytics();
@@ -649,7 +622,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             padding interno: sin título ni tarjetas de uso, el marco envolvía
             una sola línea y se leía como una sección vacía. El contador y el
             orden quedan sueltos sobre la grilla. */}
-        <div className={compactHeader ? 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-6' : 'w-full p-3 sm:p-4 lg:p-6'}>
+        {/* En la variante compacta se cae la tarjeta envolvente, y con ella su
+            padding: el contador y el orden quedaban pegados a la primera card.
+            El `pb-*` devuelve ese aire — menor que el `p-*` de la variante
+            normal, que además tiene que separar de las tarjetas de uso. */}
+        <div className={compactHeader ? 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-6 pb-8 sm:pb-10' : 'w-full p-3 sm:p-4 lg:p-6'}>
           <HeaderShell compact={compactHeader}>
               {/* Header */}
               <motion.div
@@ -1011,7 +988,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               ref={gridRef}
-              className={gridClassName(gridVariant)}
+              className="w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] justify-items-center"
             >
               {children}
             </motion.div>

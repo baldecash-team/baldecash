@@ -906,15 +906,16 @@ export interface CatalogLayoutProps {
   campaignCoupon?: AppliedCoupon | null;
   isCampaignCouponValidating?: boolean;
   /**
-   * Variante de la grilla de productos. `compact` = 2 columnas en móvil
-   * (landing de reacondicionados, BAL-3288). Por defecto `default`: la grilla
-   * `auto-fill` de siempre, que en móvil deja una sola columna.
+   * Cabecera al grano: sin el título "Encuentra tu equipo ideal", sin su
+   * subtítulo, sin las 4 tarjetas de uso rápido y sin la tarjeta que envolvía
+   * todo. Deja el contador de equipos y el selector de orden, sueltos sobre la
+   * grilla (landing de reacondicionados, BAL-3340).
+   *
+   * La GRILLA no cambia con esto: todas las landings usan la misma, una columna
+   * en móvil. Hubo una variante de 2 columnas y se retiró.
    */
-  gridVariant?: GridVariant;
+  compactHeader?: boolean;
 }
-
-/** Variante de grilla del catálogo. `compact` = 2 columnas en móvil. */
-export type GridVariant = 'default' | 'compact';
 
 /**
  * Un grado hermano tal como llega del listado público (`grade_siblings`).
