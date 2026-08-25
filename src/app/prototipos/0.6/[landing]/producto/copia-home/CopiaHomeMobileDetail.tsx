@@ -112,9 +112,27 @@ export function CopiaHomeMobileDetail({
   startDate,
 }: Props) {
   const router = useRouter();
+  const params = useParams();
   const { setSelectedProduct } = useProduct();
   const product = apiData.product;
   const paymentPlans = apiData.paymentPlans ?? [];
+
+  /**
+   * Slug de la card que ESTA página está mostrando (BAL-3328).
+   *
+   * No sirve `product.slug`: el endpoint del detalle resuelve el combo al
+   * producto que lo compone, así que la página del combo y la del suelto
+   * devuelven el MISMO `product.slug` y el mismo `id`. Tampoco sirve
+   * `combo?.slug` — `ComboInfo` no tiene slug (solo `id`).
+   *
+   * Lo único que distingue las dos páginas es el slug de la URL, que es el
+   * mismo con el que el padre consulta `isInWishlist`.
+   */
+  const pageSlug = useMemo(() => {
+    const raw = params.slug;
+    const first = Array.isArray(raw) ? raw[0] : raw;
+    return (first ?? '').trim() || product.slug;
+  }, [params.slug, product.slug]);
 
   // El endpoint de detalle no siempre devuelve `condition`, pero el nombre de
   // los seminuevos sí trae "Semi Nuevo". Detectamos por condición o por nombre
@@ -316,7 +334,9 @@ export function CopiaHomeMobileDetail({
     const thumbnail = apiData.combo?.thumbnailUrl || galleryImages[0]?.url || product.images[0]?.url || '';
     onToggleWishlist({
       productId: product.id,
-      slug: product.slug,
+      // El slug de ESTA card, no el del producto suelto: si la página es la de
+      // un combo, el favorito debe guardarse bajo el slug del combo.
+      slug: pageSlug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
