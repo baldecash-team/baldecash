@@ -26,6 +26,15 @@
  * suyos (`play()`, `pause()`, `currentTime`) para controlarlo. Vive AFUERA del
  * `VisorZoom`: si viviera adentro, la barra se acercaría y se movería con el
  * zoom, que es exactamente lo que no tiene que pasar.
+ *
+ * `play()` devuelve una promesa que se puede rechazar (fuente no soportada,
+ * política de autoplay, la persona navegó a otra unidad antes de que
+ * cargara...) y acá SIEMPRE se captura: sin el `.catch()`, el rechazo escapa
+ * como una promesa no manejada (así llegó a Sentry — BALDECASH3-57) y encima
+ * la persona aprieta play y no pasa nada, en silencio. Un `AbortError` es una
+ * interrupción benigna (se cambió de unidad, se cerró la galería, se llamó a
+ * `pause()` antes de que la promesa resolviera) y no se avisa; cualquier otro
+ * motivo sí, vía `onErrorReproduccion`.
  */
 import { useEffect, useState } from 'react';
 import { formatearDuracion } from './formato';
@@ -33,9 +42,15 @@ import { formatearDuracion } from './formato';
 export interface VideoControlsProps {
   /** El nodo del `<video>` ya montado, o `null` si no hay video en pantalla. */
   video: HTMLVideoElement | null;
+  /**
+   * `play()` rechazó por un motivo real, no por una interrupción benigna
+   * (`AbortError`). Quien lo recibe es responsable de avisarle a la persona —
+   * acá no hay dónde mostrar ese mensaje.
+   */
+  onErrorReproduccion?: () => void;
 }
 
-export function VideoControls({ video }: VideoControlsProps) {
+export function VideoControls({ video, onErrorReproduccion }: VideoControlsProps) {
   const [reproduciendo, setReproduciendo] = useState(false);
   const [actual, setActual] = useState(0);
   const [duracion, setDuracion] = useState(0);
@@ -84,8 +99,17 @@ export function VideoControls({ video }: VideoControlsProps) {
   const duracionValida = Number.isFinite(duracion) && duracion > 0 ? duracion : 0;
 
   const alTocarPlay = () => {
-    if (video.paused) void video.play();
-    else video.pause();
+    if (video.paused) {
+      // `?.` cubre el caso (raro, solo en entornos que no siguen la spec)
+      // donde `play()` no devuelve una promesa. Cuando sí la devuelve —el caso
+      // real, siempre en un navegador— el rechazo se captura acá mismo.
+      video.play()?.catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        onErrorReproduccion?.();
+      });
+    } else {
+      video.pause();
+    }
   };
 
   const alMoverBarra = (e: React.ChangeEvent<HTMLInputElement>) => {

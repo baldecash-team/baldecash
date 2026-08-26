@@ -29,6 +29,17 @@
  * pide el modo sobre el CONTENEDOR (visor + controles), nunca sobre el
  * `<video>`, por la misma razón: pedirlo sobre el `<video>` es lo que hace
  * que varios navegadores móviles devuelvan sus controles nativos por encima.
+ *
+ * Al reemplazar los controles nativos, esta pantalla también se quedó con la
+ * responsabilidad de avisar cuando el video NO se puede reproducir (Sentry
+ * BALDECASH3-57): todos los videos de inspección son WebM/VP9, y el soporte
+ * de eso en Safari de iPhone es limitado — ahí es esperable que ninguno
+ * reproduzca. `errorVideo`, más abajo, cubre las dos formas en que eso llega:
+ * el rechazo de `play()` (capturado en `VideoControls`, vía
+ * `onErrorReproduccion`) y el evento `error` nativo del `<video>` (que puede
+ * disparar solo, sin que nadie haya tocado play). Ninguno de los dos
+ * remonta el `<video>` — perdería el punto de reproducción de la unidad—: el
+ * mensaje se superpone encima.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -90,6 +101,16 @@ export function GaleriaUnidad({
   // métrica de "cuántos miran el video" en "cuántos manotean la barra".
   const videoYaContado = useRef(false);
 
+  // El video no se pudo reproducir: fuente no soportada (VP9/WebM en Safari
+  // de iPhone es el caso real — ver Sentry BALDECASH3-57), rechazo de
+  // `play()` que no fue un `AbortError` benigno, o el evento `error` nativo
+  // del elemento (una fuente inválida puede fallar sin que nadie haya
+  // apretado play, p. ej. al resolver el `preload="metadata"`). Antes esto lo
+  // cubrían los controles nativos del navegador, que muestran su propio
+  // estado de error; al reemplazarlos por los propios (`VideoControls`) esa
+  // responsabilidad quedó acá.
+  const [errorVideo, setErrorVideo] = useState(false);
+
   // Vuelve al video (o a la primera foto) cuando cambia de UNIDAD, aunque la
   // galería no se desmonte: navegar con los botones/flechas reusa este mismo
   // componente. Sin esto, `medio` seguiría apuntando al índice de foto de la
@@ -105,6 +126,8 @@ export function GaleriaUnidad({
     // Navegar a otra unidad es, para la analítica, abrir su galería: su
     // primer play tiene que volver a contar.
     videoYaContado.current = false;
+    // El error es de ESTA unidad: la de al lado puede reproducir perfecto.
+    setErrorVideo(false);
   }
 
   const dialogoRef = useRef<HTMLDivElement>(null);
@@ -369,34 +392,65 @@ export function GaleriaUnidad({
                 }
               >
                 {medio.tipo === 'video' && unidad.video_url ? (
-                  <video
-                    // Sí se remonta al cambiar de UNIDAD (no al hacer zoom ni al
-                    // cambiar de medio dentro de la misma unidad): es un video
-                    // distinto y tiene que arrancar limpio, no seguir reproduciendo
-                    // el de la unidad anterior ni mostrar su último cuadro.
-                    key={`video:${unidad.unit_id}`}
-                    ref={asignarVideo}
-                    src={unidad.video_url}
-                    // Obligatorio: sin esto, iOS abre el reproductor nativo a
-                    // pantalla completa, que trae SUS propios controles —con
-                    // volumen incluido— y se pierde todo lo de `VideoControls`.
-                    playsInline
-                    preload="metadata"
-                    // Silenciado a propósito, y SIN control de volumen (ver
-                    // `VideoControls`, debajo): la estación de inspección graba
-                    // este video EN EL TALLER, y el audio puede traer
-                    // conversaciones del equipo de trabajo alrededor del equipo.
-                    // No es un descuido si lo ves sin sonido y sin forma de
-                    // subirlo: es a propósito, por privacidad.
-                    muted
-                    aria-label={`Video de la ${titulo}`}
-                    onPlay={() => {
-                      if (videoYaContado.current) return;
-                      videoYaContado.current = true;
-                      onReproducirVideo();
-                    }}
-                    className="h-full w-full object-cover object-[50%_60%]"
-                  />
+                  // El `div` envolvente es SOLO para poder superponer el
+                  // mensaje de error sobre el video sin tocarlo: no es un
+                  // remontaje ni cambia el árbol del `<video>` en sí (sigue
+                  // siendo el mismo nodo, con el mismo `key`), así que no
+                  // reinicia la reproducción.
+                  <div className="relative h-full w-full">
+                    <video
+                      // Sí se remonta al cambiar de UNIDAD (no al hacer zoom ni al
+                      // cambiar de medio dentro de la misma unidad): es un video
+                      // distinto y tiene que arrancar limpio, no seguir reproduciendo
+                      // el de la unidad anterior ni mostrar su último cuadro.
+                      key={`video:${unidad.unit_id}`}
+                      ref={asignarVideo}
+                      src={unidad.video_url}
+                      // Obligatorio: sin esto, iOS abre el reproductor nativo a
+                      // pantalla completa, que trae SUS propios controles —con
+                      // volumen incluido— y se pierde todo lo de `VideoControls`.
+                      playsInline
+                      preload="metadata"
+                      // Silenciado a propósito, y SIN control de volumen (ver
+                      // `VideoControls`, debajo): la estación de inspección graba
+                      // este video EN EL TALLER, y el audio puede traer
+                      // conversaciones del equipo de trabajo alrededor del equipo.
+                      // No es un descuido si lo ves sin sonido y sin forma de
+                      // subirlo: es a propósito, por privacidad.
+                      muted
+                      aria-label={`Video de la ${titulo}`}
+                      onPlay={() => {
+                        // Si venía de un error (p. ej. reintentó y esta vez sí
+                        // cargó), el mensaje ya no aplica.
+                        setErrorVideo(false);
+                        if (videoYaContado.current) return;
+                        videoYaContado.current = true;
+                        onReproducirVideo();
+                      }}
+                      // El evento `error` nativo es la OTRA mitad de este bug
+                      // (ver Sentry BALDECASH3-57): una fuente inválida puede
+                      // fallar sin que nadie haya llamado a `play()` —al
+                      // resolver el `preload="metadata"`, por ejemplo—, así
+                      // que capturar solo el rechazo de `play()` (en
+                      // `VideoControls`) no alcanza.
+                      onError={() => setErrorVideo(true)}
+                      className="h-full w-full object-cover object-[50%_60%]"
+                    />
+                    {errorVideo && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[#151744]/92 px-6 text-center">
+                        <p className="text-[13px] leading-[1.5] text-white">
+                          Este video no se puede reproducir en tu dispositivo.
+                          {fotos.length > 0 && (
+                            <>
+                              {' '}
+                              Puedes revisar las <b>fotos</b> de esta unidad para
+                              ver el equipo.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 ) : fotoActual ? (
                   // eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image
                   <img
@@ -487,7 +541,7 @@ export function GaleriaUnidad({
             </div>
 
             <div className={`w-full ${pantallaCompleta ? 'max-w-4xl' : ''}`}>
-              <VideoControls video={videoNode} />
+              <VideoControls video={videoNode} onErrorReproduccion={() => setErrorVideo(true)} />
             </div>
           </div>
 
