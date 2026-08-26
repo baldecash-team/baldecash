@@ -20,6 +20,10 @@
  * navegadores móviles hace que el sistema devuelva SUS controles nativos, con
  * volumen incluido, por encima de todo esto.
  *
+ * NO trae margen ni posición propias: la barra vive superpuesta sobre el
+ * visor en mobile y como bloque debajo en desktop, y eso lo decide
+ * `GaleriaUnidad`, que es quien conoce el espacio.
+ *
  * Este componente NO toca el `<video>`: lo recibe ya montado (vía el nodo del
  * DOM, no una `key` ni una prop de React) y solo se suscribe a sus eventos
  * nativos (`play`, `pause`, `timeupdate`...) para reflejar su estado y a los
@@ -121,7 +125,10 @@ export function VideoControls({ video, onErrorReproduccion }: VideoControlsProps
   };
 
   return (
-    <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-[#151744] px-3 py-2 text-white">
+    // Sin margen propio: quien lo monta decide dónde va. En mobile va
+    // SUPERPUESTO abajo del visor (de ahí el fondo translúcido: se sigue
+    // viendo el equipo debajo de la barra); en desktop, como bloque debajo.
+    <div className="flex items-center gap-2 rounded-xl bg-[#151744]/85 px-3 py-2 text-white backdrop-blur-sm md:bg-[#151744] md:backdrop-blur-none">
       <button
         type="button"
         onClick={alTocarPlay}

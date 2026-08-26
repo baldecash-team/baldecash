@@ -23,11 +23,17 @@ import { etiquetaFoto, etiquetaGrado, nombreUnidad, resumenMedios } from './form
 export interface UnidadCardProps {
   unidad: EleccionUnidad;
   onAbrir: () => void;
+  /**
+   * Pinta el grado al lado del título. `false` cuando TODAS las unidades del
+   * link comparten grado —lo normal— porque ahí ya encabeza la página y
+   * repetirlo por card sugiere una diferencia entre unidades que no existe.
+   */
+  mostrarGrado?: boolean;
 }
 
-export function UnidadCard({ unidad, onAbrir }: UnidadCardProps) {
+export function UnidadCard({ unidad, onAbrir, mostrarGrado = true }: UnidadCardProps) {
   const titulo = nombreUnidad(unidad.display_number);
-  const grado = etiquetaGrado(unidad.grado, unidad.grado_label);
+  const grado = mostrarGrado ? etiquetaGrado(unidad.grado, unidad.grado_label) : '';
   const portada = unidad.photos[0];
   const medios = resumenMedios(unidad.photos.length, Boolean(unidad.video_url));
 
@@ -38,7 +44,11 @@ export function UnidadCard({ unidad, onAbrir }: UnidadCardProps) {
       aria-label={`${titulo}: ver fotos y video`}
       className="flex w-full gap-3.5 rounded-[18px] border border-[#e9e9ef] bg-white p-3.5 text-left shadow-[0_6px_20px_rgba(21,23,68,.06)] transition hover:border-[#4654CD]/40 hover:shadow-[0_10px_26px_rgba(21,23,68,.10)] active:scale-[.99] md:flex-col md:gap-0 md:p-0 md:pb-4"
     >
-      <span className="relative grid h-[88px] w-[104px] flex-none place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-[#f7f7fb] to-[#e9eaf1] md:h-[170px] md:w-full md:rounded-b-none md:rounded-t-[18px]">
+      {/* Cuadrada en mobile: la estación de inspección graba 1:1 y un recuadro
+          apaisado (104x88) le cortaba la mitad de arriba al equipo. En desktop
+          se deja apaisada a propósito — es la forma de la card de la grilla, y
+          ahí el recorte no molestó en la demo. */}
+      <span className="relative grid h-[104px] w-[104px] flex-none place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-[#f7f7fb] to-[#e9eaf1] md:h-[170px] md:w-full md:rounded-b-none md:rounded-t-[18px]">
         {portada ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL firmada de S3, sin host fijo para next/image
           <img

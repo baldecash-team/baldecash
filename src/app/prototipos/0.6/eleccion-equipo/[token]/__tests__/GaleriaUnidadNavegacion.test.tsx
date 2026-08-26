@@ -92,6 +92,46 @@ describe('botones de anterior/siguiente', () => {
     await userEvent.click(anterior);
     expect(onNavegar).not.toHaveBeenCalled();
   });
+
+  it('cada botón dice a QUÉ unidad lleva, y el medio dice en cuál se está', () => {
+    // Con chevrons flotando sobre el visor —el mismo dibujo que un carrusel de
+    // fotos— nadie entendía que estaba cambiando de UNIDAD (feedback de la
+    // demo). El nombre del destino es lo que lo vuelve explícito.
+    render(
+      <GaleriaUnidad
+        unidad={unidad(2)}
+        unidadAnterior={unidad(1)}
+        unidadSiguiente={unidad(3)}
+        onNavegar={jest.fn()}
+        {...props}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Unidad anterior' })).toHaveTextContent(
+      'Unidad 01',
+    );
+    expect(screen.getByRole('button', { name: 'Unidad siguiente' })).toHaveTextContent(
+      'Unidad 03',
+    );
+    // "Unidad 02" queda entre los dos: el título del diálogo y el de la fila.
+    expect(screen.getAllByText('Unidad 02')).toHaveLength(2);
+  });
+
+  it('en el extremo el botón cae a la palabra genérica, no al nombre de otra unidad', () => {
+    render(
+      <GaleriaUnidad
+        unidad={unidad(1)}
+        unidadAnterior={null}
+        unidadSiguiente={unidad(2)}
+        onNavegar={jest.fn()}
+        {...props}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Unidad anterior' })).toHaveTextContent(
+      'Anterior',
+    );
+  });
 });
 
 describe('flechas de teclado', () => {
