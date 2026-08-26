@@ -1,5 +1,6 @@
 import type { CatalogProduct } from '../types/catalog';
 import { mergeColorSibling } from './mergeColorSibling';
+import { mergeGradeSibling } from './mergeGradeSibling';
 
 /**
  * Devuelve la card que el usuario toco, resolviendo el color elegido si lo hay.
@@ -24,6 +25,15 @@ export function resolveWizardTarget(
 
   const sibling = clickedCard.colors?.find((c) => c.productId === activeProductId);
   if (sibling) return mergeColorSibling(clickedCard, sibling, activeProductId);
+
+  // Grado elegido en la card (landing de reacondicionados). Cada grado es un
+  // Product aparte, asi que el wizard tiene que recibir el del grado y no el que
+  // trajo el listado: sin esto, elegir el grado C llevaba a solicitar el B
+  // (BAL-3340).
+  const grado = clickedCard.gradeSiblings?.find(
+    (g) => String(g.productId) === activeProductId,
+  );
+  if (grado) return mergeGradeSibling(clickedCard, grado, activeProductId);
 
   return clickedCard;
 }
