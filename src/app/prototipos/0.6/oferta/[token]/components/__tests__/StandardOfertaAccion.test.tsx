@@ -343,8 +343,24 @@ describe('StandardOfertaAccion', () => {
     expect(modal.getByText(/Sin descripción/i)).toBeInTheDocument();
   });
 
-  it('desde el modal se agrega el accesorio a la cuota', async () => {
+  it('los accesorios de la oferta vienen marcados', () => {
+    // Lo que se le manda al cliente es la oferta que el gestor armo: quitar es
+    // la excepcion, no el punto de partida. Antes abrian todos desmarcados y la
+    // pantalla mostraba la cuota del equipo solo, sin nada de lo ofrecido.
     renderView(conAccesorios());
+
+    expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Incluir Mouse inalambrico/i })).toBeChecked();
+  });
+
+  it('desde el modal se quita el accesorio y se vuelve a poner', async () => {
+    renderView(conAccesorios());
+
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalle de Mochila Lenovo/i }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Quitar/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).not.toBeChecked();
 
     fireEvent.click(screen.getByRole('button', { name: /Ver detalle de Mochila Lenovo/i }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Agregar/i }));
