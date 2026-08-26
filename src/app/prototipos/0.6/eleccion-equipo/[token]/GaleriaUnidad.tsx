@@ -18,9 +18,12 @@
  * - Desktop: diálogo centrado en dos columnas — el video grande a la
  *   izquierda, las fotos y el detalle a la derecha.
  *
- * NO hay bullets de "detalle estético" ni marcas dibujadas sobre la imagen: ese
- * dato no existe, nadie lo captura. Y NUNCA se muestra el serial — el cliente
- * ve "Unidad 01" (`display_number`), que es lo único que el backend manda.
+ * SÍ hay daños estéticos por unidad (`DanosDeLaUnidad`), y son SOLO los daños:
+ * quien llega acá ya eligió modelo, así que repetirle procesador y RAM le hace
+ * scrollear por lo único que ya sabe. Lo que NO hay son marcas dibujadas sobre
+ * la imagen: eso exigiría coordenadas, y lo que Airtable tiene es "qué parte y
+ * qué tan fuerte", no dónde. Y NUNCA se muestra el serial — el cliente ve
+ * "Unidad 01" (`display_number`), que es lo único que el backend manda.
  *
  * El video NO usa los controles nativos del navegador (ver `VideoControls`):
  * esos siempre traen volumen, y el audio de este video puede traer
@@ -48,7 +51,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { EleccionUnidad } from '../../services/eleccionEquipoApi';
+import type { EleccionDefecto, EleccionUnidad } from '../../services/eleccionEquipoApi';
 import { etiquetaFoto, etiquetaGrado, nombreUnidad } from './formato';
 import { VideoControls } from './VideoControls';
 import { VisorZoom } from './VisorZoom';
@@ -684,6 +687,8 @@ export function GaleriaUnidad({
               </div>
             )}
 
+            <DanosDeLaUnidad defectos={unidad.defectos} />
+
             <div className="mt-4 rounded-2xl bg-[#f7f8fc] p-4 text-[13px] leading-[1.5] text-[#3a3c52]">
               Estas fotos y este video son de <b>esta unidad exacta</b>, no de una
               foto de catálogo. Míralas con calma antes de decidir.
@@ -728,6 +733,77 @@ export function GaleriaUnidad({
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Los daños estéticos de ESTA unidad.
+ *
+ * Lo que se muestra son los daños, NO las especificaciones: quien llega a esta
+ * pantalla ya eligió modelo, y repetirle procesador y RAM le hace scrollear por
+ * lo único que ya sabe. Lo que no sabe —y lo único que distingue una unidad de
+ * la de al lado, que es de su mismo modelo y su mismo grado— es dónde tiene las
+ * marcas.
+ *
+ * Los tres estados del dato son distintos y ninguno se puede aplanar:
+ *
+ * - `undefined`/`null` — nadie lo evaluó (Airtable no respondió cuando se creó
+ *   la inspección, o la inspección es anterior al snapshot). NO se dibuja nada:
+ *   "sin daños" sería una afirmación que no se puede sostener, y sobre un
+ *   equipo reacondicionado es exactamente la afirmación equivocada.
+ * - `[]` — se evaluó y está limpio. Eso SÍ se afirma, y es lo que hace que
+ *   alguien se decida entre dos unidades del mismo grado.
+ * - con elementos — la lista, con el nivel tal como lo cargó logística.
+ *
+ * El nivel se pinta en un chip NEUTRO a propósito. Colorearlo (rojo "grave",
+ * ámbar "leve") exigiría conocer el vocabulario completo de Airtable, y un
+ * valor nuevo caería en el color del default — diciéndole al cliente algo que
+ * nadie decidió.
+ */
+function DanosDeLaUnidad({ defectos }: { defectos?: EleccionDefecto[] | null }) {
+  if (defectos == null) return null;
+
+  if (defectos.length === 0) {
+    return (
+      <div className="mt-4 flex items-start gap-2 rounded-2xl bg-[#e7faf3] p-4 text-[13px] leading-[1.5] text-[#0a8a5a]">
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          className="mt-[2px] flex-none"
+        >
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+        <span>
+          Revisamos esta unidad y <b>no le encontramos daños estéticos</b>.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[#ffe0b2] bg-[#fff8ef] p-4">
+      <p className="text-[13px] font-extrabold text-[#151744]">
+        Marcas de esta unidad
+      </p>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {defectos.map((d, i) => (
+          <li
+            key={`${d.etiqueta}-${i}`}
+            className="flex items-center justify-between gap-3 text-[13px] leading-[1.4] text-[#3a3c52]"
+          >
+            <span className="min-w-0">{d.etiqueta}</span>
+            {d.nivel && (
+              <span className="flex-none rounded-full bg-white px-2 py-[3px] text-[11px] font-bold text-[#8a6a3a]">
+                {d.nivel}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2.5 text-[12px] leading-[1.4] text-[#8a6a3a]">
+        Míralas en el video y las fotos de arriba: son de esta unidad.
+      </p>
+    </div>
   );
 }
 

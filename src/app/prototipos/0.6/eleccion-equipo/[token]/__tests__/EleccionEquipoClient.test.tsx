@@ -74,15 +74,21 @@ describe('lista de unidades', () => {
     expect(screen.getByRole('button', { name: /Unidad 03/ })).toBeInTheDocument();
   });
 
-  it('nunca muestra el serial ni bullets de detalle estético', async () => {
+  it('nunca muestra el serial', async () => {
     mockGet.mockResolvedValue(datos);
     render(<EleccionEquipoClient token="tok" />);
     await screen.findByText(/Elige tu MacBook Air M1/);
 
     // El backend ni siquiera manda `serial`; esto es la red de seguridad de
     // que nadie lo reintroduzca por otra vía.
+    //
+    // Acá vivía además una segunda afirmación: que no hubiera bullets de
+    // "detalle estético". Se dio de baja a propósito. Nació de que ese dato no
+    // se capturaba, y sí se captura: son los nueve campos estéticos de
+    // Airtable que `InspectionCatalogService` ya leía y que ahora la
+    // inspección guarda como snapshot. Los daños por unidad son justamente lo
+    // que distingue una unidad de la de al lado — ver `DanosDeLaUnidad`.
     expect(screen.queryByText(/serial/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/detalle estético/i)).not.toBeInTheDocument();
   });
 
   it('las ordena por su número visible, no por el orden en que llegaron', async () => {
