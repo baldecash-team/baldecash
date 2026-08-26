@@ -308,7 +308,23 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
   }
 
   const { datos } = view;
-  const unidades = datos.units;
+  // Ordenadas por su número visible.
+  //
+  // El backend las lista por `product_unit.id` pero las NUMERA por el orden
+  // guardado en `secure_link.context` la primera vez que se abrió el link, y
+  // ahí las unidades que entran después se agregan AL FINAL. Los dos órdenes
+  // coinciden en la primera apertura y dejan de coincidir en cuanto entra una
+  // unidad con id menor: la pantalla mostraba "Unidad 04, 01, 02, 03".
+  //
+  // Se ordena acá, sobre una copia (`datos.units` es del estado, no se muta),
+  // y no se depende de que el backend lo arregle: es el número que la persona
+  // lee el que tiene que ir en orden. El desempate por `unit_id` cubre el caso
+  // degenerado de un `display_number` ausente.
+  const unidades = [...datos.units].sort(
+    (a, b) =>
+      (a.display_number ?? Number.MAX_SAFE_INTEGER) -
+        (b.display_number ?? Number.MAX_SAFE_INTEGER) || a.unit_id - b.unit_id,
+  );
   const cuota = formatearCuota(datos.application.monthly_payment);
   // Vecinas de la unidad abierta en la galería, para los botones de
   // anterior/siguiente. `abrirGaleria` ya hace todo lo que "abrir la galería
@@ -376,7 +392,14 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
 
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
         {unidades.map((u) => (
-          <UnidadCard key={u.unit_id} unidad={u} onAbrir={() => abrirGaleria(u)} />
+          <UnidadCard
+            key={u.unit_id}
+            unidad={u}
+            onAbrir={() => abrirGaleria(u)}
+            // Con grado común ya lo dice el encabezado: repetirlo por card
+            // hace parecer que las unidades difieren en algo que no difieren.
+            mostrarGrado={!gradoComun}
+          />
         ))}
       </div>
 
@@ -396,6 +419,7 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
           unidadAnterior={unidadAnterior}
           unidadSiguiente={unidadSiguiente}
           onNavegar={abrirGaleria}
+          mostrarGrado={!gradoComun}
           onCambiarFoto={(indice) =>
             events.track('equipment_selection_photo_change', {
               unit_id: abierta.unit_id,

@@ -12,7 +12,9 @@
  * diálogo — comparar es la actividad central de esta pantalla.
  *
  * Dos formas según el ancho:
- * - Mobile: bottom-sheet, como el diseño aprobado.
+ * - Mobile: bottom-sheet, como el diseño aprobado. El visor es CUADRADO (el
+ *   medio se graba 1:1) y los controles del video van superpuestos: en una
+ *   pantalla chica cada bloque que no es el equipo se paga en recorte.
  * - Desktop: diálogo centrado en dos columnas — el video grande a la
  *   izquierda, las fotos y el detalle a la derecha.
  *
@@ -24,11 +26,14 @@
  * esos siempre traen volumen, y el audio de este video puede traer
  * conversaciones del equipo de trabajo del taller. Silenciarlo por defecto no
  * alcanzaba porque el volumen quedaba a un click — con controles propios el
- * volumen directamente no existe como opción. El botón de pantalla completa
- * (si el navegador lo soporta — no en iPhone, ver `soportaPantallaCompleta`)
- * pide el modo sobre el CONTENEDOR (visor + controles), nunca sobre el
- * `<video>`, por la misma razón: pedirlo sobre el `<video>` es lo que hace
- * que varios navegadores móviles devuelvan sus controles nativos por encima.
+ * volumen directamente no existe como opción. El botón de ver en grande
+ * (`expandido`) es un overlay CSS propio, no el Fullscreen API: ese API no
+ * existe para un `<div>` en iPhone, y colgar el botón de él lo dejaba
+ * invisible justo en el dispositivo donde más falta hace. Donde el API sí
+ * existe se pide además, best-effort, y SIEMPRE sobre el CONTENEDOR (visor +
+ * controles), nunca sobre el `<video>`: pedirlo sobre el `<video>` es lo que
+ * hace que varios navegadores móviles devuelvan sus controles nativos —con
+ * volumen— por encima.
  *
  * Al reemplazar los controles nativos, esta pantalla también se quedó con la
  * responsabilidad de avisar cuando el video NO se puede reproducir (Sentry
@@ -42,11 +47,21 @@
  * mensaje se superpone encima.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EleccionUnidad } from '../../services/eleccionEquipoApi';
 import { etiquetaFoto, etiquetaGrado, nombreUnidad } from './formato';
 import { VideoControls } from './VideoControls';
 import { VisorZoom } from './VisorZoom';
+
+/**
+ * Ancho del visor en modo expandido.
+ *
+ * El medio es cuadrado, así que el lado no lo puede mandar solo el ancho de la
+ * ventana: en un teléfono acostado `92vw` daría un cuadrado más alto que la
+ * pantalla. Se toma el menor de los dos —ancho disponible y alto disponible—
+ * y el `aspect-square` del marco hace el resto.
+ */
+const ANCHO_EXPANDIDO = 'max-w-[min(92vw,72vh)]';
 
 /** Qué se está viendo en el visor grande. */
 type Medio = { tipo: 'video' } | { tipo: 'foto'; indice: number };
@@ -65,6 +80,14 @@ export interface GaleriaUnidadProps {
   unidad: EleccionUnidad;
   /** Bloquea el CTA mientras el POST está en vuelo. */
   enviando: boolean;
+  /**
+   * Pinta el grado al lado del título. `false` cuando TODAS las unidades del
+   * link comparten grado (lo normal: en ws2 cada grado es un producto
+   * distinto, y el link cuelga del producto de la solicitud) — ahí el grado ya
+   * encabeza la página y repetirlo por unidad sugiere una diferencia que no
+   * existe.
+   */
+  mostrarGrado?: boolean;
   /** Error que NO cierra la galería (red o rechazo inesperado). */
   error: string | null;
   onCerrar: () => void;
@@ -87,10 +110,12 @@ export interface GaleriaUnidadProps {
 
 export function GaleriaUnidad({
   unidad, enviando, error, onCerrar, onElegir, onCambiarFoto, onReproducirVideo,
-  unidadAnterior = null, unidadSiguiente = null, onNavegar,
+  unidadAnterior = null, unidadSiguiente = null, onNavegar, mostrarGrado = true,
 }: GaleriaUnidadProps) {
   const titulo = nombreUnidad(unidad.display_number);
-  const grado = etiquetaGrado(unidad.grado, unidad.grado_label);
+  const grado = mostrarGrado
+    ? etiquetaGrado(unidad.grado, unidad.grado_label)
+    : '';
   const fotos = unidad.photos;
 
   const [medio, setMedio] = useState<Medio>(() =>
@@ -132,40 +157,70 @@ export function GaleriaUnidad({
 
   const dialogoRef = useRef<HTMLDivElement>(null);
 
-  // Contenedor que entra a pantalla completa: el visor + sus botones + los
-  // controles del video, NUNCA el `<video>` solo. Pedirle pantalla completa
-  // al `<video>` es lo que el navegador (sobre todo en varios móviles) usa
-  // como gancho para devolver SUS controles nativos —con volumen— por
-  // encima de todo esto, así que el pedido va siempre sobre este `<div>`.
+  // Contenedor que se expande: el visor + sus botones + los controles del
+  // video, NUNCA el `<video>` solo. Pedirle pantalla completa al `<video>` es
+  // lo que el navegador (sobre todo en varios móviles) usa como gancho para
+  // devolver SUS controles nativos —con volumen— por encima de todo esto.
   const contenedorRef = useRef<HTMLDivElement>(null);
-  const [pantallaCompleta, setPantallaCompleta] = useState(false);
-  // Existe (`Element.requestFullscreen`) en desktop y en iPad, pero NO en
-  // iPhone: Safari en iPhone solo deja entrar a pantalla completa a un
+
+  // Expandir es un ESTADO NUESTRO, no el Fullscreen API.
+  //
+  // Antes colgaba de `document.fullscreenEnabled`, y en iPhone eso es SIEMPRE
+  // `false`: Safari de iPhone solo deja entrar a pantalla completa a un
   // `<video>` (`webkitEnterFullscreen`), nunca a un `<div>` — que es
-  // justamente lo que se necesita evitar (ver el comentario de arriba). Se
-  // detecta una sola vez y, si no hay soporte, directamente no se muestra el
-  // botón: uno que no hace nada sería el mismo bug que se está arreglando.
-  const [soportaPantallaCompleta] = useState(
-    () => typeof document !== 'undefined' && document.fullscreenEnabled === true,
-  );
+  // justamente lo que hay que evitar. Resultado: en el dispositivo donde más
+  // falta hace (pantalla chica, hay que encontrar un rayón) el botón ni
+  // siquiera se dibujaba, y así llegó el reporte de "no funciona en mobile".
+  //
+  // Ahora el modo expandido es un overlay CSS (`fixed inset-0`), que funciona
+  // en TODOS los navegadores, y el Fullscreen API queda como un extra
+  // best-effort donde existe: en desktop además esconde el chrome del
+  // navegador; donde no existe, no se pierde nada.
+  const [expandido, setExpandido] = useState(false);
+  // Si el pedido nativo fue aceptado. Sin esto, el `fullscreenchange` de
+  // cualquier OTRO elemento de la página apagaría nuestro overlay.
+  const fullscreenPedido = useRef(false);
+
+  const salirDeExpandido = useCallback(() => {
+    setExpandido(false);
+    if (fullscreenPedido.current) {
+      fullscreenPedido.current = false;
+      // Puede rechazar (poco frecuente) si algo más ya está saliendo: no hay
+      // nada más que hacer, y el overlay ya se apagó igual.
+      void document.exitFullscreen?.().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     const alCambiar = () => {
-      setPantallaCompleta(document.fullscreenElement === contenedorRef.current);
+      // El navegador salió por su cuenta (Escape, F11, gesto del sistema): el
+      // overlay tiene que acompañar, o queda un modo expandido que la persona
+      // ya pidió cerrar.
+      if (fullscreenPedido.current && document.fullscreenElement == null) {
+        fullscreenPedido.current = false;
+        setExpandido(false);
+      }
     };
     document.addEventListener('fullscreenchange', alCambiar);
     return () => document.removeEventListener('fullscreenchange', alCambiar);
   }, []);
 
-  const alternarPantallaCompleta = () => {
+  const alternarExpandido = () => {
+    if (expandido) {
+      salirDeExpandido();
+      return;
+    }
+    setExpandido(true);
     const el = contenedorRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) {
-      // Puede rechazar (poco frecuente) si algo más ya está saliendo: no hay
-      // nada más que hacer que dejarlo, no es un error que romper la UI.
-      void document.exitFullscreen().catch(() => {});
-    } else {
-      void el.requestFullscreen?.().catch(() => {});
+    // Best-effort: donde el Fullscreen API existe se gana, además, esconder el
+    // chrome del navegador. Donde no (iPhone), el overlay ya hizo el trabajo.
+    if (el?.requestFullscreen) {
+      void el
+        .requestFullscreen()
+        .then(() => {
+          fullscreenPedido.current = true;
+        })
+        .catch(() => {});
     }
   };
 
@@ -176,6 +231,11 @@ export function GaleriaUnidad({
   // el foco nunca volvería a la card.
   const cerrarRef = useRef(onCerrar);
   useEffect(() => { cerrarRef.current = onCerrar; }, [onCerrar]);
+
+  // Mismo motivo que `cerrarRef`: el handler de teclado se registra una sola
+  // vez al abrir, así que no puede leer `expandido` del closure.
+  const expandidoRef = useRef(expandido);
+  useEffect(() => { expandidoRef.current = expandido; });
 
   // El nodo real del `<video>` montado ahora mismo (o `null` si se está
   // mirando una foto). `VideoControls` vive AFUERA de `VisorZoom` —si viviera
@@ -236,12 +296,16 @@ export function GaleriaUnidad({
 
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        // El propio navegador YA sale de pantalla completa con Escape (es
-        // comportamiento nativo del Fullscreen API, nada que programar acá).
-        // Si se dejara pasar este Escape además, cerraría TODA la galería de
-        // un solo toque —la persona solo pidió salir de la pantalla
-        // completa—. Se cierra recién en un Escape posterior, ya afuera.
-        if (document.fullscreenElement === contenedorRef.current) return;
+        // Estando expandido, el Escape sale del visor grande y NO cierra toda
+        // la galería: la persona solo pidió volver del visor, no perder la
+        // unidad que estaba mirando. Se cierra recién en un Escape posterior.
+        // (Cuando además hubo pantalla completa nativa, el navegador ya salió
+        // por su cuenta con este mismo Escape; `salirDeExpandido` es
+        // idempotente, así que no hay doble salida.)
+        if (expandidoRef.current) {
+          salirDeExpandido();
+          return;
+        }
         return cerrarRef.current();
       }
 
@@ -291,7 +355,9 @@ export function GaleriaUnidad({
       // lista): enfocar un nodo suelto es un no-op, no un error.
       previo?.focus?.();
     };
-  }, []);
+    // `salirDeExpandido` es estable (`useCallback` sin dependencias): está acá
+    // para el lint, no cambia que este efecto corra UNA vez por apertura.
+  }, [salirDeExpandido]);
 
   const verFoto = (indice: number) => {
     // Tocar la foto que ya está en el visor no es un cambio: contarlo infla la
@@ -371,12 +437,12 @@ export function GaleriaUnidad({
             ref={contenedorRef}
             data-testid="visor-contenedor"
             className={
-              pantallaCompleta
-                ? 'flex h-full w-full flex-col items-center justify-center gap-2 bg-black p-4'
+              expandido
+                ? 'fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-2 bg-black p-3'
                 : undefined
             }
           >
-            <div className={`relative w-full ${pantallaCompleta ? 'max-w-4xl' : ''}`}>
+            <div className={`relative w-full ${expandido ? ANCHO_EXPANDIDO : ''}`}>
               {/* Visor grande: el video por defecto, o la foto que se toque.
                   El zoom vive en `VisorZoom` y es una transformación CSS sobre la
                   capa que envuelve al medio: acá adentro no se toca el `<video>`,
@@ -385,10 +451,18 @@ export function GaleriaUnidad({
               <VisorZoom
                 activo={!sinMedios}
                 reiniciarEn={claveMedio}
+                // CUADRADO en mobile, y no por gusto: la estación de
+                // inspección graba 1:1 a propósito (`ASPECT_RATIO = 1` en
+                // `useKioskRecorder`), así que un marco de alto fijo recorta
+                // el equipo. Los 210px de antes daban ~1.7:1 en un teléfono
+                // —se veía el 60% del cuadro, cortado arriba y abajo— y en
+                // desktop ~1.3:1, que es lo que hacía que el mismo medio se
+                // viera bien en una pantalla y recortado en la otra. De paso,
+                // acercar dentro de una franja de 210px no servía de nada.
                 className={
-                  pantallaCompleta
-                    ? 'h-[70vh] w-full rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8]'
-                    : 'h-[210px] rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:h-[420px]'
+                  expandido
+                    ? 'aspect-square rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8]'
+                    : 'aspect-square rounded-2xl bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] md:aspect-auto md:h-[420px]'
                 }
               >
                 {medio.tipo === 'video' && unidad.video_url ? (
@@ -473,18 +547,21 @@ export function GaleriaUnidad({
                 )}
               </VisorZoom>
 
-              {soportaPantallaCompleta && (
+              {/* SIEMPRE visible: ya no cuelga de `document.fullscreenEnabled`
+                  (ver el comentario de `expandido`), que en iPhone es false y
+                  dejaba la pantalla sin el botón justo donde más falta hace. */}
+              {(
                 <button
                   type="button"
-                  onClick={alternarPantallaCompleta}
-                  aria-label={pantallaCompleta ? 'Salir de pantalla completa' : 'Ver en pantalla completa'}
+                  onClick={alternarExpandido}
+                  aria-label={expandido ? 'Salir de pantalla completa' : 'Ver en pantalla completa'}
                   className="absolute left-2 top-2 z-20 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-[#3a3c52] shadow-[0_2px_10px_rgba(10,12,30,.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD]"
                 >
                   <svg
                     width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
                   >
-                    {pantallaCompleta ? (
+                    {expandido ? (
                       // Achicar: cuatro flechas hacia ADENTRO.
                       <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3" />
                     ) : (
@@ -495,54 +572,64 @@ export function GaleriaUnidad({
                 </button>
               )}
 
-              {onNavegar && (
-                // Comparar es la actividad central de esta pantalla: ir a la
-                // unidad siguiente/anterior sin cerrar el diálogo evita perder
-                // el hilo —y el zoom, y el punto del video— en cada
-                // comparación. NUNCA `disabled` en los extremos, mismo motivo
-                // que los botones de zoom de `VisorZoom`: deshabilitar el que
-                // tiene el foco lo saca del diálogo. En el límite, el botón no
-                // hace nada (`aria-disabled` lo informa igual).
-                <>
-                  <button
-                    type="button"
-                    onClick={() => unidadAnterior && navegarA(unidadAnterior)}
-                    aria-label="Unidad anterior"
-                    aria-disabled={!unidadAnterior}
-                    className={`absolute left-2 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[#3a3c52] shadow-[0_2px_10px_rgba(10,12,30,.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD] ${
-                      unidadAnterior ? '' : 'opacity-40'
-                    }`}
-                  >
-                    <svg
-                      width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-                    >
-                      <path d="M15 6l-6 6 6 6" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => unidadSiguiente && navegarA(unidadSiguiente)}
-                    aria-label="Unidad siguiente"
-                    aria-disabled={!unidadSiguiente}
-                    className={`absolute right-2 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[#3a3c52] shadow-[0_2px_10px_rgba(10,12,30,.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD] ${
-                      unidadSiguiente ? '' : 'opacity-40'
-                    }`}
-                  >
-                    <svg
-                      width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-                    >
-                      <path d="M9 6l6 6-6 6" />
-                    </svg>
-                  </button>
-                </>
+              {/* Controles del video, SUPERPUESTOS abajo del visor en mobile.
+                  Como bloque aparte se comían ~58px (barra + margen) de una
+                  pantalla donde el visor es lo único que importa; encima
+                  quedaban lejos del video, separados por el borde del marco.
+                  En desktop, donde el espacio sobra, siguen debajo del visor
+                  como bloque propio (`md:static`), que se lee mejor.
+
+                  Siguen siendo los controles PROPIOS: la barra se mueve de
+                  lugar, no vuelve a `<video controls>` — el volumen no puede
+                  existir (ver `VideoControls`). */}
+              {medio.tipo === 'video' && unidad.video_url && (
+                <div className="absolute inset-x-0 bottom-0 z-20 px-2 pb-2 md:static md:mt-2.5 md:px-0 md:pb-0">
+                  <VideoControls
+                    video={videoNode}
+                    onErrorReproduccion={() => setErrorVideo(true)}
+                  />
+                </div>
               )}
             </div>
 
-            <div className={`w-full ${pantallaCompleta ? 'max-w-4xl' : ''}`}>
-              <VideoControls video={videoNode} onErrorReproduccion={() => setErrorVideo(true)} />
-            </div>
+            {onNavegar && (
+              // Comparar es la actividad central de esta pantalla, pero con
+              // chevrons flotando SOBRE el visor —el mismo dibujo y el mismo
+              // lugar que los de un carrusel de fotos— nadie entendía que
+              // estaba cambiando de UNIDAD (feedback de la demo). Acá la
+              // navegación es una fila propia, afuera del visor, que dice a
+              // dónde va cada botón ("Unidad 01") y en cuál se está parado.
+              // De paso el visor se descongestiona: en mobile llegaron a
+              // convivir seis botones flotantes sobre 350px de ancho.
+              //
+              // NUNCA `disabled` en los extremos, mismo motivo que los botones
+              // de zoom de `VisorZoom`: deshabilitar el que tiene el foco lo
+              // saca del diálogo. En el límite el botón no hace nada
+              // (`aria-disabled` lo informa igual).
+              <div
+                className={`mt-2.5 flex w-full items-center justify-between gap-2 ${
+                  expandido ? ANCHO_EXPANDIDO : ''
+                }`}
+              >
+                <BotonUnidad
+                  hacia="anterior"
+                  destino={unidadAnterior}
+                  onClick={() => unidadAnterior && navegarA(unidadAnterior)}
+                />
+                <span
+                  className={`flex-none rounded-full px-3 py-1 text-[12px] font-extrabold ${
+                    expandido ? 'bg-white/12 text-white' : 'bg-[#EEF0FC] text-[#4654CD]'
+                  }`}
+                >
+                  {titulo}
+                </span>
+                <BotonUnidad
+                  hacia="siguiente"
+                  destino={unidadSiguiente}
+                  onClick={() => unidadSiguiente && navegarA(unidadSiguiente)}
+                />
+              </div>
+            )}
           </div>
 
           <div className="md:flex md:flex-col">
@@ -558,7 +645,7 @@ export function GaleriaUnidad({
                       medio.tipo === 'video' ? 'border-[#4654CD]' : 'border-transparent'
                     }`}
                   >
-                    <span className="grid h-[74px] w-full place-items-center rounded-lg bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] text-[#4654CD]">
+                    <span className="grid aspect-square w-full place-items-center rounded-lg bg-gradient-to-br from-[#eef0fc] to-[#e6f9f8] text-[#4654CD]">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M8 5v14l11-7z" />
                       </svg>
@@ -584,7 +671,10 @@ export function GaleriaUnidad({
                       src={foto.url}
                       alt={etiquetaFoto(foto.indice)}
                       loading="lazy"
-                      className="h-[74px] w-full rounded-lg bg-[#f7f7fb] object-cover"
+                      // Cuadrada, igual que el visor grande y por el mismo
+                      // motivo: el medio se graba 1:1 y un recuadro apaisado
+                      // le corta la mitad al equipo.
+                      className="aspect-square w-full rounded-lg bg-[#f7f7fb] object-cover"
                     />
                     <span className="mt-1 block truncate text-[11px] font-semibold text-[#9a9aa8]">
                       {etiquetaFoto(foto.indice)}
@@ -638,6 +728,55 @@ export function GaleriaUnidad({
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Un paso de la navegación entre unidades.
+ *
+ * Lleva el NOMBRE de la unidad de destino, no una flecha muda: el reporte de
+ * la demo fue que con chevrons no se entendía que se estaba cambiando de
+ * unidad. En el extremo (sin destino) queda con la palabra genérica y
+ * `aria-disabled`, nunca `disabled` — ver el comentario de arriba.
+ */
+function BotonUnidad({
+  hacia,
+  destino,
+  onClick,
+}: {
+  hacia: 'anterior' | 'siguiente';
+  destino: EleccionUnidad | null;
+  onClick: () => void;
+}) {
+  const esAnterior = hacia === 'anterior';
+  const flecha = (
+    <svg
+      width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+      className="flex-none"
+    >
+      <path d={esAnterior ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
+    </svg>
+  );
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      // El `aria-label` no cambia con el destino: es la ACCIÓN, y las pruebas
+      // y la tecnología asistiva la nombran así.
+      aria-label={esAnterior ? 'Unidad anterior' : 'Unidad siguiente'}
+      aria-disabled={!destino}
+      className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-xl border border-[#e9e9ef] bg-white px-2.5 py-2 text-[12px] font-bold text-[#3a3c52] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD] ${
+        esAnterior ? 'justify-start' : 'justify-end'
+      } ${destino ? '' : 'opacity-40'}`}
+    >
+      {esAnterior && flecha}
+      <span className="truncate">
+        {destino ? nombreUnidad(destino.display_number) : esAnterior ? 'Anterior' : 'Siguiente'}
+      </span>
+      {!esAnterior && flecha}
+    </button>
   );
 }
 

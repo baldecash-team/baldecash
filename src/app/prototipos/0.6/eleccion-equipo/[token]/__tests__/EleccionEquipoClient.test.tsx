@@ -85,6 +85,54 @@ describe('lista de unidades', () => {
     expect(screen.queryByText(/detalle estético/i)).not.toBeInTheDocument();
   });
 
+  it('las ordena por su número visible, no por el orden en que llegaron', async () => {
+    // El backend lista por `product_unit.id` pero numera por el orden guardado
+    // en `secure_link.context`, donde las unidades que entran después van AL
+    // FINAL: los dos órdenes se separan y la pantalla llegó a mostrar
+    // "Unidad 04, 01, 02, 03".
+    mockGet.mockResolvedValue({
+      ...datos,
+      units: [unidad(4), unidad(1), unidad(3), unidad(2)],
+    });
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    const nombres = screen
+      .getAllByRole('button', { name: /^Unidad \d+: ver fotos y video$/ })
+      .map((b) => b.getAttribute('aria-label'));
+
+    expect(nombres).toEqual([
+      'Unidad 01: ver fotos y video',
+      'Unidad 02: ver fotos y video',
+      'Unidad 03: ver fotos y video',
+      'Unidad 04: ver fotos y video',
+    ]);
+  });
+
+  it('con grado común no repite el grado en cada card: ya encabeza la página', async () => {
+    mockGet.mockResolvedValue(datos);   // las 3 unidades son grado A
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    // Una sola vez, en el encabezado.
+    expect(screen.getAllByText(/Excelente estado/)).toHaveLength(1);
+  });
+
+  it('con grados distintos sí lo muestra por unidad: ahí la diferencia es real', async () => {
+    mockGet.mockResolvedValue({
+      ...datos,
+      units: [
+        unidad(1),
+        { ...unidad(2), grado: 'B', grado_label: 'Buen estado' },
+      ],
+    });
+    render(<EleccionEquipoClient token="tok" />);
+    await screen.findByText(/Elige tu MacBook Air M1/);
+
+    expect(screen.getByText(/Excelente estado/)).toBeInTheDocument();
+    expect(screen.getByText(/Buen estado/)).toBeInTheDocument();
+  });
+
   it('emite link_open una sola vez, con la cantidad de unidades', async () => {
     mockGet.mockResolvedValue(datos);
     render(<EleccionEquipoClient token="tok" />);

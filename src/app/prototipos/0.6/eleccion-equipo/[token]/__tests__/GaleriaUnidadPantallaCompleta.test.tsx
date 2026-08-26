@@ -10,9 +10,16 @@
  * controles nativos —con volumen incluido— por encima de todo lo de
  * `VideoControls`, que es exactamente lo que este cambio existe para evitar.
  *
+ * LA OTRA REGLA: el modo expandido NO puede depender del Fullscreen API. En
+ * iPhone `document.fullscreenEnabled` es siempre `false` (Safari solo deja
+ * entrar a pantalla completa a un `<video>`), y colgar el botón de ahí lo
+ * dejaba invisible justo en el dispositivo donde más falta hace — así llegó el
+ * reporte de "los controles de pantalla completa no funcionan en mobile". Hoy
+ * expandir es un overlay CSS propio y el API nativo es un extra best-effort.
+ *
  * jsdom no implementa el Fullscreen API (no hay `document.fullscreenEnabled`
  * ni `Element.requestFullscreen`), así que acá se lo mockea a mano — ver
- * `simularSoporteFullscreen`.
+ * `simularSoporteFullscreen` y `sinFullscreenApi`.
  */
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
@@ -66,6 +73,20 @@ function simularSoporteFullscreen(soporta = true) {
   return { requestFullscreen, exitFullscreen };
 }
 
+/**
+ * Simula un navegador SIN Fullscreen API: iPhone. No alcanza con
+ * `fullscreenEnabled = false` — hay que sacar `requestFullscreen` del
+ * prototipo, porque otro test del archivo lo dejó puesto ahí.
+ */
+function sinFullscreenApi() {
+  Object.defineProperty(document, 'fullscreenEnabled', {
+    value: false,
+    configurable: true,
+  });
+  delete (HTMLElement.prototype as Partial<HTMLElement>).requestFullscreen;
+  delete (document as Partial<Document>).exitFullscreen;
+}
+
 /** Simula que el navegador aceptó el pedido y entró a pantalla completa. */
 const entrarAFullscreen = (el: Element) => act(() => {
   Object.defineProperty(document, 'fullscreenElement', {
@@ -96,12 +117,53 @@ afterEach(() => {
   });
 });
 
-describe('sin soporte del navegador', () => {
-  it('no se muestra el botón (uno que no hace nada sería el mismo bug)', () => {
-    simularSoporteFullscreen(false);
+describe('sin Fullscreen API (iPhone)', () => {
+  beforeEach(sinFullscreenApi);
+
+  it('el botón SE MUESTRA igual: es lo único que hay para agrandar el visor', () => {
     render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
 
-    expect(screen.queryByRole('button', { name: /pantalla completa/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Ver en pantalla completa' }),
+    ).toBeInTheDocument();
+  });
+
+  it('expande de verdad: el contenedor pasa a overlay a pantalla entera', async () => {
+    render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
+    const contenedor = screen.getByTestId('visor-contenedor');
+    expect(contenedor.className).not.toMatch(/fixed/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ver en pantalla completa' }));
+
+    expect(contenedor.className).toMatch(/fixed/);
+    expect(contenedor.className).toMatch(/inset-0/);
+    // Y el video y sus controles siguen adentro: expandir el visor sin los
+    // controles deja algo que se ve pero no se puede pausar.
+    expect(contenedor).toContainElement(screen.getByRole('button', { name: 'Reproducir video' }));
+  });
+
+  it('vuelve al tamaño normal al tocarlo de nuevo', async () => {
+    render(<GaleriaUnidad unidad={unidad(1)} {...props} />);
+    const contenedor = screen.getByTestId('visor-contenedor');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ver en pantalla completa' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salir de pantalla completa' }));
+
+    expect(contenedor.className).not.toMatch(/fixed/);
+  });
+
+  it('Escape sale del modo expandido; recién el segundo cierra la galería', async () => {
+    const onCerrar = jest.fn();
+    render(<GaleriaUnidad unidad={unidad(1)} {...props} onCerrar={onCerrar} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ver en pantalla completa' }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(onCerrar).not.toHaveBeenCalled();
+    expect(screen.getByTestId('visor-contenedor').className).not.toMatch(/fixed/);
+
+    await userEvent.keyboard('{Escape}');
+    expect(onCerrar).toHaveBeenCalledTimes(1);
   });
 });
 
