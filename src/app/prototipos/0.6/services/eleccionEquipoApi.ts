@@ -25,6 +25,15 @@ export interface EleccionFoto {
   label?: string | null;
 }
 
+/** Un daño estético concreto de UNA unidad, ya nombrado para un cliente. */
+export interface EleccionDefecto {
+  /** Ya traducido por el backend: "Rayadura en la pantalla", no el nombre de
+   *  la columna de Airtable. */
+  etiqueta: string;
+  /** Crudo, como lo cargó logística: "Leve", "Grave"... Puede ser nulo. */
+  nivel: string | null;
+}
+
 export interface EleccionUnidad {
   unit_id: number;
   /** Correlativo que ve el cliente (1, 2, 3...). NUNCA el serial. */
@@ -33,6 +42,16 @@ export interface EleccionUnidad {
   grado_label: string | null;
   photos: EleccionFoto[];
   video_url: string | null;
+  /**
+   * Daños estéticos de ESTA unidad. La diferencia entre los tres valores es
+   * todo el punto del campo y no se puede aplanar:
+   *
+   * - `undefined` — backend viejo, sin el campo.
+   * - `null` — nadie evaluó el equipo. No se puede afirmar nada.
+   * - `[]` — se evaluó y no tiene ninguno. Eso SÍ se afirma, y es lo que
+   *   decide entre dos unidades del mismo grado.
+   */
+  defectos?: EleccionDefecto[] | null;
 }
 
 export interface EleccionProducto {
