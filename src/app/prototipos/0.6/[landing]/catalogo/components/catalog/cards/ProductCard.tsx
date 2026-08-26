@@ -271,7 +271,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const resolvedIsInCart = isInCartCheck ? isInCartCheck(activeProductId) : isInCart;
 
   // Override card data when a different color sibling is selected
-  const displayName = selectedColor?.displayName || product.displayName;
+  // El nombre del grado elegido sale de BD (`name` del hermano), no de un
+  // reemplazo de texto sobre el del padre: los nombres no siguen un patrón único
+  // —el grado A suele venir sin sufijo y los demás con "(Reacondicionada Grado
+  // X)"— así que fabricarlo daría un título que no existe en ninguna tabla y que
+  // además discreparía del que muestra el detalle (BAL-3340).
+  const displayName =
+    selectedGradeSibling?.name || selectedColor?.displayName || product.displayName;
   // El grado manda sobre el color cuando hay uno elegido: `price` y `minTermQuota`
   // vienen del hermano y son los del grado, no los de la card. `??` y no `||`
   // porque el API manda `null` cuando el grado no tiene pricing cargado, y ahí sí
@@ -511,7 +517,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Condición y grado se ocultan juntos: describen el mismo estado del equipo, y
   // la campaña que suprime uno suprime el par.
   const showCondition = !hideStateBadges && !!product.conditionLabelText;
-  const showGrade = !hideStateBadges && !!product.grade;
+  // El badge nombra el grado ELEGIDO, no el que trajo el listado: con el chip en
+  // C, un badge que dijera "Grado A" seria la misma card afirmando dos grados a
+  // la vez (BAL-3340). Fuera de `compact` no hay chip, asi que `selectedGrade`
+  // sigue siendo el del producto y el badge no cambia para el resto de landings.
+  const gradoMostrado = (compact ? selectedGrade : undefined) ?? product.grade;
+  const showGrade = !hideStateBadges && !!gradoMostrado;
   const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
 
   return (
@@ -699,7 +710,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 )}
                 {showGrade && (
                   <CardBadge backgroundColor="rgba(0,0,0,0.7)">
-                    Grado {product.grade}
+                    Grado {gradoMostrado}
                   </CardBadge>
                 )}
                 {hasTopLeftTags && <ProductTags tags={product.tags} labels={labels} />}

@@ -918,6 +918,12 @@ export interface CatalogGradeSibling {
   slug: string;
   /** Precio de lista del grado. `null` cuando no está cargado. */
   price: number | null;
+  /**
+   * Nombre real del grado, tal como está en BD. La card lo muestra al elegir un
+   * grado distinto del que trajo el listado: sin él, el título seguiría
+   * nombrando el grado equivocado.
+   */
+  name?: string | null;
   /** Cuota del plazo más corto (BAL-2864). `null` = no calculable. */
   minTermQuota: number | null;
   /**

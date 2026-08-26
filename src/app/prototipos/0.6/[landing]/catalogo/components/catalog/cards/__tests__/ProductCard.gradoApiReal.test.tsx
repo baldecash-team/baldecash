@@ -43,9 +43,9 @@ beforeAll(() => {
 
 // Copiado literal de la respuesta del backend local (puerto 8420).
 const DEL_API = [
-  { grade: 'A', productId: 515,  slug: 'ideapad-slim-3-15irh8-i7-lple0000817', price: 2296, lowestQuota: 174, minTermQuota: 461, isAvailable: true },
-  { grade: 'B', productId: 1569, slug: 'ideapad-slim-3-15irh8-i7-reacondicionada-grado-b-1171', price: 1607, lowestQuota: 125, minTermQuota: 326, isAvailable: false },
-  { grade: 'C', productId: 1570, slug: 'ideapad-slim-3-15irh8-i7-reacondicionada-grado-c-1172', price: 1148, lowestQuota: 93,  minTermQuota: 236, isAvailable: true },
+  { grade: 'A', productId: 515,  slug: 'ideapad-slim-3-15irh8-i7-lple0000817', name: 'IdeaPad Slim 3 15IRH8 i7', price: 2296, lowestQuota: 174, minTermQuota: 461, isAvailable: true },
+  { grade: 'B', productId: 1569, slug: 'ideapad-slim-3-15irh8-i7-reacondicionada-grado-b-1171', name: 'IdeaPad Slim 3 15IRH8 i7 (Reacondicionada Grado B)', price: 1607, lowestQuota: 125, minTermQuota: 326, isAvailable: false },
+  { grade: 'C', productId: 1570, slug: 'ideapad-slim-3-15irh8-i7-reacondicionada-grado-c-1172', name: 'IdeaPad Slim 3 15IRH8 i7 (Reacondicionada Grado C)', price: 1148, lowestQuota: 93,  minTermQuota: 236, isAvailable: true },
 ];
 
 const producto = () => ({
@@ -58,6 +58,7 @@ const producto = () => ({
   usage: ['estudios'], isFeatured: false, isNew: false, tags: [],
   specs: { processor: { model: 'Intel Core i7' } },
   createdAt: '2026-01-01T00:00:00Z',
+  grade: 'A',
   gradeSiblings: DEL_API,
 } as unknown as CatalogProduct);
 
@@ -94,5 +95,33 @@ describe('BAL-3340 — datos reales del API atraviesan la card', () => {
   it('el grado agotado del API llega deshabilitado', () => {
     render(<ProductCard product={producto()} compact />);
     expect(screen.getByRole('button', { name: 'Grado B' })).toBeDisabled();
+  });
+
+  // Lo que se veia en pantalla: la pill en C, la cuota en S/93 y el titulo y el
+  // badge todavia nombrando el grado A. La misma card afirmando dos grados.
+  it('el titulo y el badge nombran el grado elegido', async () => {
+    const user = userEvent.setup();
+    render(<ProductCard product={producto()} compact />);
+
+    expect(screen.getByText(/Grado A/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Grado C' }));
+
+    // El nombre sale de BD, con su "(Reacondicionada Grado C)".
+    expect(screen.getByText(/\(Reacondicionada Grado C\)/)).toBeInTheDocument();
+    // Y el badge deja de decir "Grado A".
+    expect(screen.queryByText(/Grado A/)).toBeNull();
+  });
+
+  // Sin `name` del backend (backend viejo) el titulo cae al del padre en vez de
+  // quedar vacio: el campo es nuevo y puede no venir.
+  it('sin name del hermano conserva el titulo de la card', async () => {
+    const user = userEvent.setup();
+    const sinNombre = { ...producto(), gradeSiblings: DEL_API.map(({ name, ...g }) => g) } as any;
+    render(<ProductCard product={sinNombre} compact />);
+
+    await user.click(screen.getByRole('button', { name: 'Grado C' }));
+
+    expect(screen.getByText(/Lenovo IdeaPad Slim 3 15IRH8 i7/)).toBeInTheDocument();
   });
 });

@@ -13,10 +13,11 @@ import type { CatalogProduct, CatalogGradeSibling } from '../types/catalog';
  * distinto estado, asi que las fotos y la ficha tecnica del padre siguen siendo
  * las suyas. Solo cambia lo que de verdad cambia: identidad y precio.
  *
- * El nombre SI queda el del padre, aunque lleve "Grado B" adentro. Nombrar el
- * grado correcto es cosa del detalle y del wizard, que piden el producto por su
- * id/slug y reciben del backend el nombre real; inventarlo aca con un reemplazo
- * de texto daria un nombre que no existe en ninguna tabla.
+ * El nombre SI viaja, porque el backend manda el de BD (`name` del hermano).
+ * Lo que NO se hace es fabricarlo: reemplazar "Grado B" por "Grado C" sobre el
+ * nombre del padre daria un titulo que no existe en ninguna tabla —los nombres
+ * no siguen un patron unico, el grado A suele venir sin sufijo y los demas con
+ * "(Reacondicionada Grado X)"— y ademas discreparia del que muestra el detalle.
  */
 export function mergeGradeSibling(
   parent: CatalogProduct,
@@ -27,6 +28,10 @@ export function mergeGradeSibling(
     ...parent,
     id: productId,
     slug: sibling.slug || parent.slug,
+    // El nombre del grado, de BD. Sin esto el wizard y el aviso de
+    // reacondicionado nombran el grado que trajo el listado.
+    displayName: sibling.name || parent.displayName,
+    name: sibling.name || parent.name,
     // `??` y no `||`: el API manda `null` cuando el grado no tiene pricing
     // cargado, y ahi hay que conservar el del padre en vez de dejar la card en 0.
     price: sibling.price ?? parent.price,
