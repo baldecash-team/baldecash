@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * MobileStickyCta - Accion principal fija en movil para las pantallas del final
- * del flujo (resumen y complementos).
+ * MobileStickyCta - Accion principal fija en movil, en todo el flujo de
+ * solicitar: los pasos del wizard, el resumen y complementos.
  *
  * El problema que resuelve (reportado por Marco, 26-ago): en el resumen el
  * usuario ve sus datos agrupados, cada bloque con "Editar", y abajo la barra
@@ -13,10 +13,16 @@
  * Se apila SOBRE `SelectedProductBar` (que es `fixed bottom-0 z-40` y mide
  * 72px), asi que usa `bottom` para dejarla libre y un z-index por encima.
  *
- * Se OCULTA cuando el drawer del producto esta expandido: ese drawer monta un
- * overlay `fixed inset-0` con backdrop-blur y crece hasta `60vh`, asi que
- * competir con el deja el CTA borroso detras del velo. El estado vive en
- * ProductContext (`isProductBarExpanded`), no hace falta levantarlo.
+ * SE DESMONTA cuando otra cosa ocupa la parte de abajo:
+ *
+ * 1. El drawer del producto expandido monta un overlay `fixed inset-0` con
+ *    backdrop-blur y crece hasta `60vh`; competir con el deja el CTA borroso
+ *    detras del velo. El estado vive en ProductContext
+ *    (`isProductBarExpanded`), no hace falta levantarlo.
+ * 2. El teclado virtual (ver `useTecladoVirtualAbierto`). Mientras esta abierto
+ *    `WizardLayout` devuelve la navegacion en flujo, asi que el paso nunca
+ *    queda sin accion.
+ * 3. La celebracion entre pasos, via la prop `oculto`.
  *
  * Solo movil: en desktop la barra del producto no es fija (`hidden lg:block`)
  * y la navegacion en flujo se ve sin scrollear.
@@ -40,6 +46,23 @@ interface MobileStickyCtaProps {
    * el envio ocurre en /complementos.
    */
   isLastStep?: boolean;
+  /**
+   * Hay una operacion en curso: deshabilita los botones para evitar el doble
+   * click. NO implica que se este enviando la solicitud.
+   *
+   * En el resumen de una landing con complementos, `handleSummarySubmit` levanta
+   * su flag local antes de navegar a /complementos (`StepClient.tsx:561`), y ahi
+   * no se envia nada: solo se cambia de pagina.
+   */
+  isBusy?: boolean;
+  /**
+   * La solicitud se esta enviando de verdad. Solo entonces el boton cambia a
+   * spinner + `submitMessage`.
+   *
+   * Se separa de `isBusy` porque mostrar "Enviando..." en un paso intermedio le
+   * dice al usuario que ya termino cuando todavia le faltan pantallas -- que es
+   * justo la confusion que este componente vino a resolver.
+   */
   isSubmitting?: boolean;
   canProceed?: boolean;
   /** Mensaje de progreso durante el envio ("Creando solicitud...", etc). */
@@ -57,6 +80,7 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
   onBack,
   onPrimary,
   isLastStep = false,
+  isBusy = false,
   isSubmitting = false,
   canProceed = true,
   submitMessage,
@@ -64,6 +88,11 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
 }) => {
   const { isProductBarExpanded, getAllProducts } = useProduct();
   const tecladoAbierto = useTecladoVirtualAbierto();
+
+  // El spinner de envio solo tiene sentido en la pantalla que envia. Si no,
+  // "Enviando..." aparece en un paso intermedio y miente sobre el progreso.
+  const mostrandoEnvio = isSubmitting && isLastStep;
+  const deshabilitado = isBusy || isSubmitting || !canProceed;
 
   if (oculto) return null;
 
@@ -95,7 +124,7 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
           <button
             type="button"
             onClick={onBack}
-            disabled={isSubmitting}
+            disabled={isBusy || isSubmitting}
             aria-label="Atrás"
             className="flex-shrink-0 flex items-center justify-center px-4 py-3 rounded-xl
                        border border-neutral-300 text-neutral-600
@@ -109,14 +138,14 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
         <button
           type="button"
           onClick={onPrimary}
-          disabled={isSubmitting || !canProceed}
+          disabled={deshabilitado}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl
                      bg-[var(--color-primary)] text-white font-semibold
                      shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]
                      hover:brightness-90 transition-[filter] cursor-pointer
                      disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? (
+          {mostrandoEnvio ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>{submitMessage || 'Enviando...'}</span>

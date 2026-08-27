@@ -839,12 +839,18 @@ function StepContent() {
     // el usuario creia que ya habia terminado (Marco, 26-ago). El texto sale de
     // `isActuallyLastStep`, asi que dice "Continuar" en las landings con
     // complementos y "Enviar Solicitud" en las que no.
+    //
+    // `isSubmitting` (local) y `isAppSubmitting` (del hook de envio) NO son lo
+    // mismo y no se pueden juntar: con complementos, `handleSummarySubmit` sube
+    // el flag local solo para navegar (:561). Si eso llegara como envio, el
+    // boton diria "Enviando..." en una pantalla que todavia no envia nada.
     const stickyCta = (
       <MobileStickyCta
         onBack={handleSummaryBack}
         onPrimary={isActuallyLastStep ? handleSummarySubmit : nextHandler}
         isLastStep={isActuallyLastStep}
-        isSubmitting={isSubmitting || isAppSubmitting}
+        isBusy={isSubmitting}
+        isSubmitting={isAppSubmitting}
         submitMessage={submitMessage}
         canProceed={true}
       />
@@ -927,7 +933,8 @@ function StepContent() {
       onBack={handleBack}
       onPrimary={handleNext}
       isLastStep={isActuallyLastRegularStep}
-      isSubmitting={isSubmitting || isAppSubmitting}
+      isBusy={isSubmitting}
+      isSubmitting={isAppSubmitting}
       submitMessage={submitMessage}
       canProceed={true}
       oculto={showCelebration}
