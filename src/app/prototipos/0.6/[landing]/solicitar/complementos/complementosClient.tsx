@@ -15,6 +15,7 @@ import { Button } from '@nextui-org/react';
 import { Loader2, Shield, Package } from 'lucide-react';
 import { useProduct } from '../context/ProductContext';
 import { SelectedProductBar, SelectedProductSpacer } from '../components/solicitar/product/SelectedProductBar';
+import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -349,7 +350,7 @@ function ComplementosContent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 * (sectionsAfterWizard.length + 2) }}
-          className="mt-6 flex flex-col-reverse gap-3 lg:flex-row"
+          className="mt-6 hidden lg:flex flex-col-reverse gap-3 lg:flex-row"
         >
           <Button
             size="lg"
@@ -403,6 +404,14 @@ function ComplementosContent() {
       <GamerComplementosWrapper footerData={footerData}>
         {pageContent}
         <SelectedProductSpacer />
+        <MobileStickyCtaSpacer />
+        <MobileStickyCta
+          onBack={handleBack}
+          onPrimary={() => handleSubmit()}
+          isLastStep
+          isSubmitting={isSubmitting}
+          submitMessage={submitMessage}
+        />
         <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
         {toast && (
           <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
@@ -428,6 +437,15 @@ function ComplementosContent() {
     <>
       {pageContent}
       <SelectedProductSpacer />
+      <MobileStickyCtaSpacer />
+      {/* Esta ES la pantalla que envia la solicitud en 69 de 72 landings */}
+      <MobileStickyCta
+        onBack={handleBack}
+        onPrimary={() => handleSubmit()}
+        isLastStep
+        isSubmitting={isSubmitting}
+        submitMessage={submitMessage}
+      />
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
 
       {/* Submit progress overlay */}
