@@ -12,6 +12,8 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import { WizardProgress } from './WizardProgress';
 import { WizardNavigation } from './WizardNavigation';
+import { MobileStickyCtaSpacer } from './MobileStickyCta';
+import { useTecladoVirtualAbierto } from '../../../hooks/useTecladoVirtualAbierto';
 import { MotivationalCard } from './MotivationalCard';
 import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/solicitar';
@@ -52,6 +54,15 @@ interface WizardLayoutProps {
   motivational?: WizardMotivational | null;
   /** Nombre del usuario para personalización VIP */
   firstName?: string;
+  /**
+   * La acción principal va fija abajo (`MobileStickyCta`), así que la navegación
+   * en flujo se oculta en móvil para no duplicarla, y se reserva el alto del
+   * CTA. En desktop no cambia nada.
+   *
+   * Se usa en todo el flujo de solicitar: los pasos del formulario, el resumen
+   * y complementos.
+   */
+  ctaFijoEnMovil?: boolean;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -72,9 +83,16 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   hideNavbar = false,
   motivational,
   firstName,
+  ctaFijoEnMovil = false,
 }) => {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  // El CTA fijo se esconde solo mientras el teclado esta abierto. En ese rato
+  // hay que devolver la navegacion en flujo, o el paso se queda sin ninguna
+  // accion visible en movil.
+  const tecladoAbierto = useTecladoVirtualAbierto();
+  const ocultarNavEnMovil = ctaFijoEnMovil && !tecladoAbierto;
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
@@ -124,10 +142,13 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               isSubmitting={isSubmitting}
               canProceed={canProceed}
               submitMessage={submitMessage}
+              hideOnMobile={ocultarNavEnMovil}
             />
 
             {/* Bottom Spacer for Mobile fixed product bar */}
             <SelectedProductSpacer />
+            {/* Reserva el alto del CTA fijo, que se apila sobre esa barra */}
+            {ctaFijoEnMovil && <MobileStickyCtaSpacer />}
           </div>
 
           {/* Right Column - Motivational Card (Desktop only).

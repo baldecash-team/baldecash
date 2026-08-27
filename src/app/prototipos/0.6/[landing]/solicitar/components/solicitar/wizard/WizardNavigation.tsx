@@ -18,6 +18,18 @@ interface WizardNavigationProps {
   canProceed?: boolean;
   /** Mensaje dinámico de progreso durante el envío */
   submitMessage?: string;
+  /**
+   * Oculta esta navegación en móvil, para las pantallas donde `MobileStickyCta`
+   * ya pinta la acción fija abajo. Sin esto quedarían dos botones que hacen lo
+   * mismo: uno fijo y otro al final del scroll.
+   * En desktop se sigue viendo igual — ahí no hay CTA fijo.
+   *
+   * OJO: el CTA fijo se esconde solo cuando el teclado virtual está abierto.
+   * Si en ese momento esta navegación siguiera oculta, el paso quedaría sin
+   * ninguna acción visible en móvil. Por eso `WizardLayout` deja de pasar
+   * `hideOnMobile` mientras hay teclado.
+   */
+  hideOnMobile?: boolean;
 }
 
 export const WizardNavigation: React.FC<WizardNavigationProps> = ({
@@ -29,9 +41,10 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
   isSubmitting = false,
   canProceed = true,
   submitMessage,
+  hideOnMobile = false,
 }) => {
   return (
-    <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-6 sm:mt-8 mb-4 lg:mb-0">
+    <div className={`${hideOnMobile ? 'hidden lg:flex' : 'flex'} flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-6 sm:mt-8 mb-4 lg:mb-0`}>
       {/* Back Button */}
       {onBack ? (
         <button

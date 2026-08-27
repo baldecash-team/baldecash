@@ -36,6 +36,7 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
@@ -719,6 +720,7 @@ function StepContent() {
         navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
+        ctaFijoEnMovil
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -833,11 +835,33 @@ function StepContent() {
       </WizardLayout>
     );
 
+    // CTA fijo en movil: en el resumen la accion quedaba a dos o tres scrolls y
+    // el usuario creia que ya habia terminado (Marco, 26-ago). El texto sale de
+    // `isActuallyLastStep`, asi que dice "Continuar" en las landings con
+    // complementos y "Enviar Solicitud" en las que no.
+    //
+    // `isSubmitting` (local) y `isAppSubmitting` (del hook de envio) NO son lo
+    // mismo y no se pueden juntar: con complementos, `handleSummarySubmit` sube
+    // el flag local solo para navegar (:561). Si eso llegara como envio, el
+    // boton diria "Enviando..." en una pantalla que todavia no envia nada.
+    const stickyCta = (
+      <MobileStickyCta
+        onBack={handleSummaryBack}
+        onPrimary={isActuallyLastStep ? handleSummarySubmit : nextHandler}
+        isLastStep={isActuallyLastStep}
+        isBusy={isSubmitting}
+        isSubmitting={isAppSubmitting}
+        submitMessage={submitMessage}
+        canProceed={true}
+      />
+    );
+
     // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
     if (isGamer) {
       return (
         <GamerWizardWrapper footerData={footerData}>
           {pageContent}
+          {stickyCta}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
         </GamerWizardWrapper>
       );
@@ -846,6 +870,7 @@ function StepContent() {
     return (
       <>
         {pageContent}
+        {stickyCta}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       </>
@@ -881,6 +906,7 @@ function StepContent() {
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
         canProceed={true}
+        ctaFijoEnMovil
         hideNavbar={isGamer}
         navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={stepMotivational}
@@ -895,11 +921,32 @@ function StepContent() {
     </>
   );
 
+  // CTA fijo en movil, igual que en el resumen y complementos: el boton de
+  // avanzar queda siempre a la vista en vez de al final del scroll. Usa los
+  // mismos handlers que la navegacion en flujo, asi que la validacion y el
+  // scroll al primer campo con error se comportan identico.
+  //
+  // Se esconde durante la celebracion entre pasos (`showCelebration`), que monta
+  // un overlay a pantalla completa.
+  const stickyCtaPaso = (
+    <MobileStickyCta
+      onBack={handleBack}
+      onPrimary={handleNext}
+      isLastStep={isActuallyLastRegularStep}
+      isBusy={isSubmitting}
+      isSubmitting={isAppSubmitting}
+      submitMessage={submitMessage}
+      canProceed={true}
+      oculto={showCelebration}
+    />
+  );
+
   // Zona Gamer: wrap with dark theme, gamer navbar and footer
   if (isGamer) {
     return (
       <GamerWizardWrapper footerData={footerData}>
         {pageContent}
+        {stickyCtaPaso}
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       </GamerWizardWrapper>
     );
@@ -908,6 +955,7 @@ function StepContent() {
   return (
     <>
       {pageContent}
+      {stickyCtaPaso}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
     </>
