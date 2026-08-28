@@ -178,22 +178,34 @@ export function StandardOfertaAccion({
   // desde MiOfertaClient (solo renderiza esta vista con la oferta cargada), así
   // que `togglables` está completo en el primer render y no hay que re-sembrarlo
   // después — un effect que lo hiciera pelearía con los toggles del cliente.
-  const [dropped, setDropped] = useState<number[]>(() => togglables.map((a) => a.id));
-  const isKept = useCallback((id: number) => !dropped.includes(id), [dropped]);
+  // `null` = el cliente todavía no tocó nada, así que vale el default. NO se
+  // siembra el estado con los ids al montar: si `togglables` llegara vacío en el
+  // primer render, esa semilla vacía significaría "no hay nada descartado" —
+  // o sea, TODO marcado — y no habría forma de corregirla después. Derivándolo
+  // en cada render el default no puede quedar viejo: mientras el cliente no
+  // marque nada, todo está descartado, en esta visita y en cualquier otra.
+  const [dropped, setDropped] = useState<number[] | null>(null);
+  const droppedIds = useMemo(
+    () => dropped ?? togglables.map((a) => a.id),
+    [dropped, togglables],
+  );
+  const isKept = useCallback((id: number) => !droppedIds.includes(id), [droppedIds]);
   // Con 18 accesorios, marcarlos uno por uno no es una opción razonable.
-  const todosMarcados = togglables.length > 0 && dropped.length === 0;
+  const todosMarcados = togglables.length > 0 && droppedIds.length === 0;
   const toggleTodos = useCallback(() => {
-    setDropped((prev) => (prev.length === 0 ? togglables.map((a) => a.id) : []));
+    setDropped(droppedIds.length === 0 ? togglables.map((a) => a.id) : []);
     analytics.track('offer_standard_addon_toggle', {
       offer_code: offer.offerCode,
       bulk: true,
     });
-  }, [togglables, analytics, offer.offerCode]);
+  }, [droppedIds, togglables, analytics, offer.offerCode]);
 
   const toggleAddon = useCallback((id: number) => {
-    setDropped((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setDropped(
+      droppedIds.includes(id) ? droppedIds.filter((x) => x !== id) : [...droppedIds, id],
+    );
     analytics.track('offer_standard_addon_toggle', { offer_code: offer.offerCode, addon_id: id });
-  }, [analytics, offer.offerCode]);
+  }, [droppedIds, analytics, offer.offerCode]);
 
   // Cuota del equipo solo: la total menos TODOS los deltas. Sobre esa base se
   // suman los que quedan marcados, así el número de arriba y las filas de
@@ -208,7 +220,7 @@ export function StandardOfertaAccion({
   // Estimación local, para que el número reaccione al instante al marcar.
   const estimado =
     equipoMonthly != null && shownMonthly != null
-      ? (dropped.length ? equipoMonthly + keptDelta : shownMonthly)
+      ? (droppedIds.length ? equipoMonthly + keptDelta : shownMonthly)
       : shownMonthly;
 
   // Cotización EXACTA del backend. La estimación de arriba se va hasta un sol
@@ -216,9 +228,9 @@ export function StandardOfertaAccion({
   // que apenas llega esta, manda ella: el cliente no puede ver un número y
   // firmar otro.
   const [quoted, setQuoted] = useState<{ key: string; option: StandardOfferOption } | null>(null);
-  const selectionKey = `${curTerm}|${curInitial}|${dropped.slice().sort().join(',')}`;
+  const selectionKey = `${curTerm}|${curInitial}|${droppedIds.slice().sort().join(',')}`;
   useEffect(() => {
-    if (!togglables.length || !dropped.length) {
+    if (!togglables.length || !droppedIds.length) {
       setQuoted(null);
       return;
     }
@@ -792,7 +804,7 @@ export function StandardOfertaAccion({
             </ul>
             {showAddonAmounts && togglables.length > 0 ? (
               <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
-                {dropped.length === togglables.length
+                {droppedIds.length === togglables.length
                   ? 'Marca lo que quieras sumar y la cuota se ajusta.'
                   : `Sumaste S/${Math.round(keptDelta)}${cuotaSuffix(frecuencia)} a tu cuota.`}
               </div>
