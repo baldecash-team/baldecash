@@ -243,36 +243,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         const stored = readStoredAddons(token, vId);
         const accOk = new Set(res.accessories.map((a) => a.id));
         // Hay algo guardado con CONTENIDO (no un {acc:[],ins:[]} que el persist
-        // effect pudo escribir vacío en un montaje previo). Solo entonces rehidrata;
-        // si está vacío, cae a la preselección del pedido (mantener mi equipo).
+        // effect pudo escribir vacío en un montaje previo). Solo entonces rehidrata.
+        // Si no hay nada guardado, la pantalla arranca SIN NADA seleccionado: no se
+        // preselecciona ningún accesorio/seguro por defecto, ni siquiera los que
+        // venían en el pedido al "mantener mi equipo". Todo add-on que el cliente
+        // termine llevando lo tiene que marcar él (los REGALOS del combo / Perfil B
+        // no son add-ons: se muestran aparte en "Incluidos gratis" a S/0).
         const storedTieneContenido = !!stored && (stored.acc.length > 0 || stored.ins.length > 0);
         if (storedTieneContenido) {
           const insOk = new Set(res.insurances.map((p) => p.id));
           setSelectedAcc(stored!.acc.filter((id) => accOk.has(id)));
           setSelectedIns(stored!.ins.filter((id) => insOk.has(id)));
-        } else if (selection.preselectedAccessoryIds?.length || selection.preselectedInsuranceIds?.length) {
-          // Primera vez (sin add-ons guardados): preseleccionar lo que venía en la
-          // selección (accesorios/seguros del pedido al "mantener mi equipo").
-          // PERO NO preseleccionar los REGALOS (combo / Perfil B): esos ya se
-          // muestran gratis en "Incluidos gratis" (combo_free_addons) y NO deben
-          // ocupar el slot de selectedAcc — si lo ocuparan, el cliente no podría
-          // comprar una unidad ADICIONAL del mismo producto (el id ya estaría
-          // "seleccionado"). Al dejarlos fuera de selectedAcc, su id queda libre en
-          // el catálogo para agregar la 2da unidad con costo (BAL-2250 p15).
-          const comboFreeIds = new Set(
-            (res.comboFreeAddons?.accessories ?? []).map((a) => String(a.id)),
-          );
-          const comboFreeInsIds = new Set(
-            (res.comboFreeAddons?.insurances ?? []).map((s) => String(s.id)),
-          );
-          const preAcc = (selection.preselectedAccessoryIds ?? [])
-            .map(String)
-            .filter((id) => !comboFreeIds.has(id));
-          if (preAcc.length) setSelectedAcc(preAcc);
-          const preIns = (selection.preselectedInsuranceIds ?? [])
-            .map(String)
-            .filter((id) => !comboFreeInsIds.has(id));
-          if (preIns.length) setSelectedIns(preIns);
         }
       } catch (err) {
         if (!active) return;
