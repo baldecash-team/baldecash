@@ -20,12 +20,17 @@ import { X } from 'lucide-react';
 import type { SimulacionFinanciamiento } from '../api/simuladorApi';
 import type { MontosMatricula } from '../types/calculadora';
 import { formatearSoles, formatearTasa } from '../types/calculadora';
+import type { CampoMontoPerfil } from '../perfiles';
 
 interface Props {
   abierto: boolean;
   onCerrar: () => void;
   simulacion: SimulacionFinanciamiento | null;
   montos: MontosMatricula;
+  /** Los importes que pide la landing, en el mismo orden que en el formulario. */
+  campos: CampoMontoPerfil[];
+  /** Nota al pie sobre cuándo se fija el cronograma. */
+  notaCronograma: string;
 }
 
 const MESES_ABREVIADOS = [
@@ -68,7 +73,14 @@ function Clausula({ titulo, children }: { titulo: string; children: React.ReactN
   );
 }
 
-export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, montos }: Props) {
+export function DetalleFinanciamientoModal({
+  abierto,
+  onCerrar,
+  simulacion,
+  montos,
+  campos,
+  notaCronograma,
+}: Props) {
   // Cerrar con Escape y bloquear el scroll de fondo mientras está abierto.
   useEffect(() => {
     if (!abierto) return;
@@ -135,8 +147,13 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
               </h4>
               <table className="w-full border-collapse text-[0.84rem]">
                 <tbody>
-                  <Fila etiqueta="Monto de matrícula" valor={formatearSoles(montos.matricula)} />
-                  <Fila etiqueta="Monto primera cuota" valor={formatearSoles(montos.primeraCuota)} />
+                  {campos.map((campo) => (
+                    <Fila
+                      key={campo.clave}
+                      etiqueta={campo.etiquetaResumen}
+                      valor={formatearSoles(montos[campo.clave])}
+                    />
+                  ))}
                   <Fila
                     etiqueta="Monto total financiado"
                     valor={formatearSoles(simulacion?.montoFinanciado)}
@@ -225,8 +242,7 @@ export function DetalleFinanciamientoModal({ abierto, onCerrar, simulacion, mont
           </div>
 
           <p className="mt-4 rounded-[10px] bg-[#eef0ff] px-3.5 py-3 text-[0.74rem] leading-relaxed text-[#3a3f9e]">
-            Las fechas son referenciales y se calculan desde hoy. El cronograma definitivo se genera
-            con la fecha real en que BaldeCash pague tu matrícula a la universidad.
+            {notaCronograma}
           </p>
         </div>
       </div>

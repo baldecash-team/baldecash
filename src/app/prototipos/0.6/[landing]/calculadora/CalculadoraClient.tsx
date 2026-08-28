@@ -41,17 +41,7 @@ import {
   type MontosMatricula,
 } from './types/calculadora';
 import { CampoMonto } from './components/CampoMonto';
-
-/**
- * Textos del producto en pantalla.
- *
- * El identificador, la variante y el tipo ya NO viven acá: los resuelve la
- * configuración de la landing, junto con el rango del monto, los plazos, la
- * tasa y la comisión. Lo que queda es copia visible, que no es configuración de
- * negocio: cambiarla es un cambio de texto, no de condiciones.
- */
-const PRODUCTO_NOMBRE = 'Financiamiento de Matrícula';
-const PRODUCTO_SLUG = 'prestamo-matricula-1186';
+import { perfilDe } from './perfiles';
 
 /** Milisegundos de espera antes de simular, para no pedir en cada tecla. */
 const ESPERA_SIMULACION_MS = 450;
@@ -69,6 +59,15 @@ export function CalculadoraClient() {
   const parametros = useParams();
   const landing = (parametros?.landing as string) || 'home';
   const { navbarProps, footerData, agreementData, calculadora } = useLayout();
+
+  /**
+   * Copia, cantidad de importes e institución de ESTA landing.
+   *
+   * Esta pantalla la comparten todas las landings que corren el riel, así que
+   * lo que las diferencia no puede estar escrito acá adentro. La referencia es
+   * estable entre renders: sale de una tabla del módulo, no se construye.
+   */
+  const perfil = perfilDe(landing);
 
   const [montos, setMontos] = useState<MontosMatricula>(MONTOS_VACIOS);
   /**
@@ -110,20 +109,31 @@ export function CalculadoraClient() {
   const datosMatricula = useDatosMatricula(landing);
 
   const institucion = useMemo<InstitucionElegida>(() => {
+    // Una landing con institución fija no pasa por la pantalla de selección, así
+    // que no hay nada guardado que leer: el dato lo pone el perfil. Al continuar
+    // se persiste igual que si lo hubiera elegido la persona, porque es lo que
+    // el paso académico lee después para setear y bloquear el campo.
+    if (perfil.institucionFija) return perfil.institucionFija;
+
     if (!datosMatricula) return INSTITUCION_VACIA;
     return {
       id: datosMatricula.institucionId ?? null,
       nombre: datosMatricula.institucionNombre ?? null,
       tipo: datosMatricula.institucionTipo ?? null,
     };
-  }, [datosMatricula]);
+  }, [datosMatricula, perfil]);
 
   /**
    * Guarda de institución.
    *
    * Sin institución elegida no hay financiamiento que armar: el producto se paga
-   * a una universidad concreta. Se devuelve a la pantalla de selección, igual que
+   * a una institución concreta. Se devuelve a la pantalla de selección, igual que
    * el paso de solicitar devuelve al catálogo cuando se limpia el almacenamiento.
+   *
+   * No hace falta exceptuar a las landings de institución fija: su perfil ya
+   * devolvió un identificador, así que la condición no se cumple nunca. Que la
+   * guarda dependa del dato y no de la landing evita una segunda regla que
+   * después se desincroniza de la primera.
    *
    * La instantánea es `null` durante el render de servidor, así que se espera a
    * estar en el navegador para no redirigir sobre una lectura vacía.
@@ -205,8 +215,8 @@ export function CalculadoraClient() {
       landing,
       productoId: calculadora.productId,
       varianteId: calculadora.variantId,
-      productoSlug: PRODUCTO_SLUG,
-      productoNombre: PRODUCTO_NOMBRE,
+      productoSlug: perfil.productoSlug,
+      productoNombre: perfil.productoNombre,
       montos,
       plazoMeses: simulacion.plazoMeses,
       cuotaMensual: simulacion.cuotaMensual,
@@ -221,7 +231,7 @@ export function CalculadoraClient() {
     }
 
     router.push(routes.solicitar(landing));
-  }, [puedeContinuar, simulacion, calculadora, landing, montos, institucion, router]);
+  }, [puedeContinuar, simulacion, calculadora, landing, montos, institucion, perfil, router]);
 
   // Mientras la guarda redirige no se pinta nada: evita el parpadeo de la
   // pantalla vacía y el título sin universidad.
@@ -237,9 +247,7 @@ export function CalculadoraClient() {
    */
   if (!calculadora) return null;
 
-  const titulo = institucion.nombre
-    ? `Financiamiento de Matrícula — ${institucion.nombre}`
-    : 'Financiamiento de Matrícula';
+  const titulo = perfil.titulo(institucion.nombre);
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
@@ -264,14 +272,13 @@ export function CalculadoraClient() {
         <div className="mb-8 text-center sm:mb-10">
           <p className="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)]">
             <Landmark className="h-4 w-4" />
-            Pagamos directo a tu universidad
+            {perfil.encabezado}
           </p>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight">
             {titulo}
           </h1>
           <p className="mx-auto max-w-xl px-2 text-sm sm:text-base md:text-lg text-neutral-600">
-            Ingresa los montos exactos de tu matrícula y tu primera cuota, y elige cómo prefieres
-            pagarlo. Evaluamos tu solicitud antes de confirmarla.
+            {perfil.subtitulo}
           </p>
         </div>
 
@@ -279,22 +286,26 @@ export function CalculadoraClient() {
           <div className="space-y-4">
             <section className="rounded-xl border border-neutral-200 bg-white p-5">
               <h2 className="mb-4 text-base font-semibold text-neutral-800">
-                ¿Cuánto necesitas para inscribirte?
+                {perfil.preguntaMontos}
               </h2>
 
               <div className="space-y-4">
-                <CampoMonto
-                  etiqueta="Monto de matrícula"
-                  valor={montos.matricula}
-                  placeholder="Ej. 350.50"
-                  onCambio={(valor) => setMontos((previo) => ({ ...previo, matricula: valor }))}
-                />
-                <CampoMonto
-                  etiqueta="Monto primera cuota"
-                  valor={montos.primeraCuota}
-                  placeholder="Ej. 450.80"
-                  onCambio={(valor) => setMontos((previo) => ({ ...previo, primeraCuota: valor }))}
-                />
+                {/*
+                  El perfil decide cuántos importes se piden. El que no se pide
+                  queda en cero, que es un valor válido del modelo: lo que se
+                  financia es la suma, y el backend valida esa suma.
+                */}
+                {perfil.campos.map((campo) => (
+                  <CampoMonto
+                    key={campo.clave}
+                    etiqueta={campo.etiqueta}
+                    valor={montos[campo.clave]}
+                    placeholder={campo.placeholder}
+                    onCambio={(valor) =>
+                      setMontos((previo) => ({ ...previo, [campo.clave]: valor }))
+                    }
+                  />
+                ))}
 
                 <div
                   className={`flex items-center justify-between rounded-xl px-4 py-3 ${
@@ -329,12 +340,7 @@ export function CalculadoraClient() {
 
               <p className="mt-4 flex gap-2 text-xs leading-relaxed text-neutral-500">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
-                <span>
-                  Escribe el monto exacto que te aparece al consultar tu código de alumno en el banco,
-                  <strong className="font-semibold text-neutral-600"> incluyendo los céntimos </strong>
-                  si los tuviera (por ejemplo, 350.50). Si ya pagaste uno de los dos por tu cuenta,
-                  déjalo en cero.
-                </span>
+                <span>{perfil.ayudaMontos}</span>
               </p>
             </section>
 
@@ -438,7 +444,7 @@ export function CalculadoraClient() {
 
               <button
                 type="button"
-                onClick={() => router.push(routes.universidad(landing))}
+                onClick={() => router.push(perfil.rutaVolver(landing))}
                 className="w-full flex items-center justify-center gap-2 mt-4 py-3 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -456,6 +462,8 @@ export function CalculadoraClient() {
         onCerrar={() => setModalAbierto(false)}
         simulacion={simulacionVisible}
         montos={montos}
+        campos={perfil.campos}
+        notaCronograma={perfil.notaCronograma}
       />
     </div>
   );
