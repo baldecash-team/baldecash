@@ -33,13 +33,6 @@ export interface OfferSelection extends StoredEquipo {
   comboId: number | null;
   /** Slug del producto — destino del botón "Volver al equipo". */
   slug: string | null;
-  /** Accesorios que deben venir YA seleccionados en el mini-checkout (Perfil B:
-   *  el accesorio de regalo; o los accesorios que el cliente ya tenía en su
-   *  pedido al "mantener mi equipo" en el Caso 5). Se preseleccionan al cargar. */
-  preselectedAccessoryIds?: number[];
-  /** Seguros que deben venir YA seleccionados (los que el cliente ya tenía en su
-   *  pedido al "mantener mi equipo"). Se preseleccionan al cargar. */
-  preselectedInsuranceIds?: number[];
 }
 
 function selectionKey(token: string): string {
@@ -105,12 +98,6 @@ export function readOfferSelection(token: string): OfferSelection | null {
       monthly: typeof p.monthly === 'number' ? p.monthly : undefined,
       term: typeof p.term === 'number' ? p.term : undefined,
       initial: typeof p.initial === 'number' ? p.initial : undefined,
-      preselectedAccessoryIds: Array.isArray(p.preselectedAccessoryIds)
-        ? p.preselectedAccessoryIds.filter((n: unknown): n is number => typeof n === 'number')
-        : undefined,
-      preselectedInsuranceIds: Array.isArray(p.preselectedInsuranceIds)
-        ? p.preselectedInsuranceIds.filter((n: unknown): n is number => typeof n === 'number')
-        : undefined,
     };
   } catch {
     return null;

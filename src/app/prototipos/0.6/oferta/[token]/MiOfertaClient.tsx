@@ -246,8 +246,6 @@ export function MiOfertaClient({ token }: { token: string }) {
       comboId: number | null | undefined,
       slug: string | null | undefined,
       equipo?: StoredEquipo,
-      preselectedAccessoryIds?: number[],
-      preselectedInsuranceIds?: number[],
     ) => {
       const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
       // Avanzó (a complementos o, en el fallback, al detalle) → no es abandono
@@ -280,10 +278,6 @@ export function MiOfertaClient({ token }: { token: string }) {
         // celda (BAL-2212). Sin esto caía al default del snapshot.
         term: equipo?.term,
         initial: equipo?.initial,
-        preselectedAccessoryIds:
-          preselectedAccessoryIds && preselectedAccessoryIds.length ? preselectedAccessoryIds : undefined,
-        preselectedInsuranceIds:
-          preselectedInsuranceIds && preselectedInsuranceIds.length ? preselectedInsuranceIds : undefined,
       });
       window.location.href = base;
     },
@@ -338,8 +332,9 @@ export function MiOfertaClient({ token }: { token: string }) {
     });
     // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
     // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
-    // (no-combo) se resuelve aparte y se pasa preseleccionado.
-    const regaloId = ex.accessory?.product_id;
+    // (no-combo) NO se preselecciona: es un REGALO, no un add-on que el cliente
+    // compre, y el backend lo sincroniza a legacy por su cuenta (post-select-sync
+    // lo agrega desde approved_capacity.accessory aunque no venga en accessory_ids).
     goToAccesorios(
       ex.variantId,
       ex.comboId ?? null,
@@ -350,7 +345,6 @@ export function MiOfertaClient({ token }: { token: string }) {
         imageUrl: ex.imageUrl ?? undefined,
         monthly: ex.combinedMonthly,
       },
-      regaloId ? [regaloId] : undefined,
     );
   }, [state, goToAccesorios, analytics, trackFirstAction]);
 
@@ -370,12 +364,9 @@ export function MiOfertaClient({ token }: { token: string }) {
       source: 'keep',
       variant_id: req.variant_id ?? null,
     });
-    // Accesorios/seguros que el cliente YA tenía en su pedido → preseleccionados
-    // en complementos (editables). Al "mantener mi equipo" no debe perderlos.
-    const accIds = (req.accessories ?? [])
-      .map((a) => a.id).filter((id): id is number => id != null);
-    const insIds = (req.insurances ?? [])
-      .map((i) => i.id).filter((id): id is number => id != null);
+    // Los accesorios/seguros del pedido NO se preseleccionan en complementos: la
+    // pantalla arranca sin nada marcado y el cliente vuelve a elegir lo que quiere
+    // llevar. Ningún check viene activado por defecto.
     goToAccesorios(
       req.variant_id, null, req.slug,
       {
@@ -388,8 +379,6 @@ export function MiOfertaClient({ token }: { token: string }) {
         term: req.term_months ?? req.term ?? undefined,
         initial: req.initial_percent ?? undefined,
       },
-      accIds,
-      insIds,
     );
   }, [state, goToAccesorios, analytics, trackFirstAction]);
 
