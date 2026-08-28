@@ -8,6 +8,7 @@
 
 import { CalculadoraClient } from './CalculadoraClient';
 import { getLandingMeta } from '../../services/landingApi';
+import { perfilDe } from './perfiles';
 
 export default async function CalculadoraPage() {
   return <CalculadoraClient />;
@@ -27,12 +28,12 @@ export async function generateMetadata({
 
   const meta = await getLandingMeta(landing);
   const landingName = meta?.name || landing;
+  const perfil = perfilDe(landing);
 
   return {
     title: meta?.meta_title
       ? `Calculadora | ${meta.meta_title}`
-      : `Calculadora de matrícula - BaldeCash | ${landingName}`,
-    description:
-      'Calcula la cuota mensual del financiamiento de tu matrícula. Pagamos directo a tu universidad.',
+      : `${perfil.metaTitulo} | ${landingName}`,
+    description: perfil.metaDescripcion,
   };
 }

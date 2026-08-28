@@ -9,6 +9,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { DetalleFinanciamientoModal } from './DetalleFinanciamientoModal';
+import { perfilDe } from '../perfiles';
 import type { SimulacionFinanciamiento } from '../api/simuladorApi';
 
 const SIMULACION: SimulacionFinanciamiento = {
@@ -35,6 +36,10 @@ const SIMULACION: SimulacionFinanciamiento = {
   cronograma: [{ numero: 1, fechaVencimiento: '2026-09-20', total: 373.98 }],
 };
 
+// El perfil de matricula es el de una landing sin perfil propio: dos importes y
+// la nota de cronograma de siempre.
+const PERFIL_MATRICULA = perfilDe('prestamo-matricula');
+
 function montar(simulacion: SimulacionFinanciamiento | null = SIMULACION) {
   return render(
     <DetalleFinanciamientoModal
@@ -42,6 +47,8 @@ function montar(simulacion: SimulacionFinanciamiento | null = SIMULACION) {
       onCerrar={() => {}}
       simulacion={simulacion}
       montos={{ matricula: 800, primeraCuota: 150 }}
+      campos={PERFIL_MATRICULA.campos}
+      notaCronograma={PERFIL_MATRICULA.notaCronograma}
     />
   );
 }
