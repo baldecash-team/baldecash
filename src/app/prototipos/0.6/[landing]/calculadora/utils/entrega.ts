@@ -18,6 +18,7 @@
 import type { SelectedProduct } from '../../solicitar/context/ProductContext';
 import { getStorageKey } from '../../solicitar/context/ProductContext';
 import type { TipoInstitucion } from '../../universidad/types/instituciones';
+import type { CampoMontoPerfil } from '../perfiles';
 import type { MontosMatricula } from '../types/calculadora';
 import { totalAFinanciar } from '../types/calculadora';
 
@@ -27,14 +28,6 @@ export function getMatriculaKey(landing: string): string {
 }
 
 /**
- * Códigos de los campos del formulario que reciben los importes.
- *
- * Están dados de alta en el banco de preguntas como campos ocultos del paso
- * académico: no se dibujan ni se piden, su valor lo pone esta función. Los
- * códigos tienen que coincidir exactos con los del banco, porque es lo único
- * que los liga.
- */
-/**
  * Tipo de producto del riel de préstamo en efectivo.
  *
  * Además de identificar el producto, apaga accesorios y seguros por
@@ -43,16 +36,13 @@ export function getMatriculaKey(landing: string): string {
  */
 export const TIPO_EFECTIVO = 'efectivo';
 
-export const CLAVE_MONTO_MATRICULA = 'enrollment_amount';
-export const CLAVE_MONTO_PRIMERA_CUOTA = 'first_fee_amount';
-
 /** Clave única donde el formulario guarda y restaura TODO su estado. */
 function getFormularioKey(landing: string): string {
   return `baldecash-wizard-${landing}-data`;
 }
 
 /**
- * Deja los dos importes donde el formulario los va a encontrar.
+ * Deja los importes donde el formulario los va a encontrar.
  *
  * El formulario NO lee las claves propias de la calculadora: restaura su estado
  * desde una sola clave, con la forma `{codigo: {value}}`, y lo hace UNA vez al
@@ -65,10 +55,16 @@ function getFormularioKey(landing: string): string {
  * A diferencia del modal de captación, acá la calculadora SÍ manda: si vuelve
  * atrás y cambia los montos, los nuevos pisan a los viejos. Un importe anterior
  * que sobreviva es peor que ninguno, porque viaja como si fuera el elegido.
+ *
+ * Los códigos los declara el perfil de la landing y NO se escriben acá: cada
+ * producto financia otra cosa y el paso del asistente que los recoge solo tiene
+ * los suyos. Sembrar el código de otro producto deja un dato huérfano que ningún
+ * paso recoge, y encima pisa el del formulario si alguna vez coinciden.
  */
 export function sembrarImportesEnFormulario(
   landing: string,
-  montos: MontosMatricula
+  montos: MontosMatricula,
+  campos: CampoMontoPerfil[]
 ): void {
   const clave = getFormularioKey(landing);
 
@@ -81,16 +77,14 @@ export function sembrarImportesEnFormulario(
     data = {};
   }
 
-  // El formulario guarda todo como texto, así que el importe viaja como cadena
-  // y conserva sus decimales.
-  data[CLAVE_MONTO_MATRICULA] = {
-    ...(data[CLAVE_MONTO_MATRICULA] ?? {}),
-    value: String(montos.matricula),
-  };
-  data[CLAVE_MONTO_PRIMERA_CUOTA] = {
-    ...(data[CLAVE_MONTO_PRIMERA_CUOTA] ?? {}),
-    value: String(montos.primeraCuota),
-  };
+  for (const campo of campos) {
+    // El formulario guarda todo como texto, así que el importe viaja como
+    // cadena y conserva sus decimales.
+    data[campo.codigoFormulario] = {
+      ...(data[campo.codigoFormulario] ?? {}),
+      value: String(montos[campo.clave]),
+    };
+  }
 
   try {
     localStorage.setItem(clave, JSON.stringify(data));
@@ -168,6 +162,8 @@ export interface ParametrosEntrega {
   productoSlug: string;
   productoNombre: string;
   montos: MontosMatricula;
+  /** Los importes que pide la landing, con el código donde viaja cada uno. */
+  campos: CampoMontoPerfil[];
   plazoMeses: number;
   cuotaMensual: number;
   institucionId: number | null;
@@ -189,6 +185,7 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
     productoSlug,
     productoNombre,
     montos,
+    campos,
     plazoMeses,
     cuotaMensual,
     institucionId,
@@ -238,10 +235,10 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
     plazoMeses,
   });
 
-  // Los dos importes van además al estado del formulario, que es lo único que
-  // viaja con la solicitud. La clave de arriba la lee esta pantalla; esta otra,
-  // el asistente.
-  sembrarImportesEnFormulario(landing, montos);
+  // Los importes van además al estado del formulario, que es lo único que viaja
+  // con la solicitud. La clave de arriba la lee esta pantalla; esta otra, el
+  // asistente.
+  sembrarImportesEnFormulario(landing, montos, campos);
 
   return producto;
 }
