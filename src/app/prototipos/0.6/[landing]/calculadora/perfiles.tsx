@@ -27,8 +27,33 @@ import { routes } from '../../utils/routes';
 /** Una de las dos claves de `MontosMatricula`, que es lo que el campo escribe. */
 export type ClaveMonto = 'matricula' | 'primeraCuota';
 
+/**
+ * Ayuda que se abre desde el propio campo.
+ *
+ * Los pasos van en una lista y no en un texto con saltos de línea: en un
+ * párrafo corrido se leen como una sola instrucción larga, que es justo lo
+ * que hay que evitar cuando la persona tiene que seguirlos en otra pantalla.
+ */
+export interface AyudaCampo {
+  titulo: string;
+  /** Un paso por elemento. Se dibujan numerados. */
+  pasos: string[];
+  /** Cierre destacado, debajo de los pasos. Opcional. */
+  recomendacion?: string;
+}
+
 export interface CampoMontoPerfil {
   clave: ClaveMonto;
+  /**
+   * Código del campo del banco donde este importe viaja al formulario.
+   *
+   * Es lo único que liga la calculadora con el asistente: el importe se siembra
+   * en el estado del formulario bajo esta clave, y el paso del asistente lo
+   * recoge desde ahí. Tiene que coincidir EXACTO con el código del banco de
+   * campos, y cada landing usa el suyo: matrícula financia matrícula y primera
+   * cuota, titulación financia el trámite del título.
+   */
+  codigoFormulario: string;
   /** Etiqueta del campo en el formulario. */
   etiqueta: string;
   /**
@@ -39,6 +64,8 @@ export interface CampoMontoPerfil {
    */
   etiquetaResumen: string;
   placeholder: string;
+  /** Sin esto el campo no muestra el botón de ayuda. */
+  ayuda?: AyudaCampo;
 }
 
 /**
@@ -106,12 +133,14 @@ const PERFIL_MATRICULA: PerfilCalculadora = {
   campos: [
     {
       clave: 'matricula',
+      codigoFormulario: 'enrollment_amount',
       etiqueta: 'Monto de matrícula',
       etiquetaResumen: 'Monto de matrícula',
       placeholder: 'Ej. 350.50',
     },
     {
       clave: 'primeraCuota',
+      codigoFormulario: 'first_fee_amount',
       etiqueta: 'Monto primera cuota',
       etiquetaResumen: 'Monto primera cuota',
       placeholder: 'Ej. 450.80',
@@ -157,9 +186,24 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
   campos: [
     {
       clave: 'matricula',
+      codigoFormulario: 'degree_amount',
       etiqueta: 'Ingresa el monto de titulación',
       etiquetaResumen: 'Monto del título',
       placeholder: 'Ej. 350.50',
+      // El monto y el número de recibo salen de la MISMA pantalla de SINFO, así
+      // que la ayuda vive acá, donde se pide el primero de los dos. El paso del
+      // asistente que pide el recibo no repite el cierre: ahí la persona ya está
+      // completando la solicitud, y decirle que guarde el número llega tarde.
+      ayuda: {
+        titulo: '¿Dónde encuentro el monto y el número de recibo?',
+        pasos: [
+          'Entra a la página de alumnos de Senati.',
+          'En Inicio, ve a la opción Páginas administrativas.',
+          'Desde ahí entra a SINFO.',
+          'Inicia el proceso de titulación: si eres apto, el sistema te muestra el monto a pagar y un número de recibo alfanumérico.',
+        ],
+        recomendacion: 'Guarda ese número: lo vas a necesitar para completar tu solicitud.',
+      },
     },
   ],
   ayudaMontos: (

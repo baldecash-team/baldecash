@@ -7,10 +7,9 @@
  */
 
 import { getStorageKey } from '../../solicitar/context/ProductContext';
+import { perfilDe } from '../perfiles';
 import {
   sembrarImportesEnFormulario,
-  CLAVE_MONTO_MATRICULA,
-  CLAVE_MONTO_PRIMERA_CUOTA,
   entregarASolicitar,
   guardarInstitucion,
   leerDatosMatricula,
@@ -18,6 +17,12 @@ import {
 } from './entrega';
 
 const LANDING = 'prestamo-matricula';
+
+// Los códigos ya no son constantes del módulo: los declara el perfil de cada
+// landing. Se leen de ahí para que la prueba siga el mismo camino que la pantalla.
+const CAMPOS = perfilDe(LANDING).campos;
+const CLAVE_MONTO_MATRICULA = CAMPOS[0].codigoFormulario;
+const CLAVE_MONTO_PRIMERA_CUOTA = CAMPOS[1].codigoFormulario;
 const CLAVE_FORMULARIO = `baldecash-wizard-${LANDING}-data`;
 
 function leerFormulario(): Record<string, { value?: unknown }> {
@@ -30,7 +35,7 @@ describe('sembrarImportesEnFormulario', () => {
   });
 
   it('deja los dos importes bajo los codigos que espera el formulario', () => {
-    sembrarImportesEnFormulario(LANDING, { matricula: 350.6, primeraCuota: 320.5 });
+    sembrarImportesEnFormulario(LANDING, { matricula: 350.6, primeraCuota: 320.5 }, CAMPOS);
 
     const data = leerFormulario();
     expect(data[CLAVE_MONTO_MATRICULA]).toEqual({ value: '350.6' });
@@ -38,7 +43,7 @@ describe('sembrarImportesEnFormulario', () => {
   });
 
   it('conserva los decimales, que es lo que distingue un importe de otro', () => {
-    sembrarImportesEnFormulario(LANDING, { matricula: 1234.56, primeraCuota: 0.5 });
+    sembrarImportesEnFormulario(LANDING, { matricula: 1234.56, primeraCuota: 0.5 }, CAMPOS);
 
     const data = leerFormulario();
     expect(data[CLAVE_MONTO_MATRICULA].value).toBe('1234.56');
@@ -58,7 +63,7 @@ describe('sembrarImportesEnFormulario', () => {
       })
     );
 
-    sembrarImportesEnFormulario(LANDING, { matricula: 500, primeraCuota: 305 });
+    sembrarImportesEnFormulario(LANDING, { matricula: 500, primeraCuota: 305 }, CAMPOS);
 
     const data = leerFormulario();
     expect(data.document_number).toEqual({ value: '70020010' });
@@ -73,8 +78,8 @@ describe('sembrarImportesEnFormulario', () => {
    * el elegido.
    */
   it('un importe nuevo reemplaza al anterior', () => {
-    sembrarImportesEnFormulario(LANDING, { matricula: 500, primeraCuota: 305 });
-    sembrarImportesEnFormulario(LANDING, { matricula: 800, primeraCuota: 150 });
+    sembrarImportesEnFormulario(LANDING, { matricula: 500, primeraCuota: 305 }, CAMPOS);
+    sembrarImportesEnFormulario(LANDING, { matricula: 800, primeraCuota: 150 }, CAMPOS);
 
     const data = leerFormulario();
     expect(data[CLAVE_MONTO_MATRICULA].value).toBe('800');
@@ -87,7 +92,7 @@ describe('sembrarImportesEnFormulario', () => {
       JSON.stringify({ [CLAVE_MONTO_MATRICULA]: { value: '100', touched: true } })
     );
 
-    sembrarImportesEnFormulario(LANDING, { matricula: 250, primeraCuota: 90 });
+    sembrarImportesEnFormulario(LANDING, { matricula: 250, primeraCuota: 90 }, CAMPOS);
 
     expect(leerFormulario()[CLAVE_MONTO_MATRICULA]).toEqual({
       value: '250',
@@ -99,14 +104,14 @@ describe('sembrarImportesEnFormulario', () => {
     localStorage.setItem(CLAVE_FORMULARIO, '{esto no es json');
 
     expect(() =>
-      sembrarImportesEnFormulario(LANDING, { matricula: 400, primeraCuota: 120 })
+      sembrarImportesEnFormulario(LANDING, { matricula: 400, primeraCuota: 120 }, CAMPOS)
     ).not.toThrow();
 
     expect(leerFormulario()[CLAVE_MONTO_MATRICULA].value).toBe('400');
   });
 
   it('usa la clave de la landing recibida y no una fija', () => {
-    sembrarImportesEnFormulario('otra-landing', { matricula: 10, primeraCuota: 20 });
+    sembrarImportesEnFormulario('otra-landing', { matricula: 10, primeraCuota: 20 }, CAMPOS);
 
     expect(localStorage.getItem(CLAVE_FORMULARIO)).toBeNull();
     expect(localStorage.getItem('baldecash-wizard-otra-landing-data')).not.toBeNull();
@@ -133,6 +138,7 @@ describe('entregarASolicitar', () => {
       productoSlug: 'prestamo-matricula-1186',
       productoNombre: 'Financiamiento de Matrícula',
       montos: { matricula: 800, primeraCuota: 150 },
+      campos: CAMPOS,
       plazoMeses: 3,
       cuotaMensual: 373.98,
       institucionId: 7,
@@ -228,6 +234,7 @@ describe('guardarInstitucion', () => {
       productoSlug: 'prestamo-matricula-1186',
       productoNombre: 'Financiamiento de Matrícula',
       montos: { matricula: 800, primeraCuota: 150 },
+      campos: CAMPOS,
       plazoMeses: 3,
       cuotaMensual: 373.98,
       institucionId: 409,

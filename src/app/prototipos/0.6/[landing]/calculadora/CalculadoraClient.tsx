@@ -218,6 +218,7 @@ export function CalculadoraClient() {
       productoSlug: perfil.productoSlug,
       productoNombre: perfil.productoNombre,
       montos,
+      campos: perfil.campos,
       plazoMeses: simulacion.plazoMeses,
       cuotaMensual: simulacion.cuotaMensual,
       institucionId: institucion.id,
@@ -301,6 +302,7 @@ export function CalculadoraClient() {
                     etiqueta={campo.etiqueta}
                     valor={montos[campo.clave]}
                     placeholder={campo.placeholder}
+                    ayuda={campo.ayuda}
                     onCambio={(valor) =>
                       setMontos((previo) => ({ ...previo, [campo.clave]: valor }))
                     }
