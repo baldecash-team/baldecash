@@ -166,23 +166,19 @@ export function StandardOfertaAccion({
     options.length === 0
     || (curTerm === info?.termMonths && curInitial === info?.initialPaymentPercent);
 
-  // Los add-ons arrancan SIN marcar: el cliente suma lo que quiere, en vez de
-  // encontrarse todo puesto y tener que sacarlo. La cuota que ve al abrir es la
-  // de su equipo solo, y cada casilla la va subiendo.
-  //
   // Los regalos de combo no llevan casilla — no cuestan nada y vienen atados al
-  // combo, así que no entran en esto.
+  // combo, así que no entran en esto ni se pueden desmarcar.
   const togglables = useMemo(() => addons.filter((a) => !a.includedFree), [addons]);
-  // `dropped` = lo NO elegido. Arranca VACÍO: los accesorios y seguros que el
-  // gestor puso en la oferta vienen marcados, y el cliente desmarca lo que no
-  // quiera.
+  // `dropped` = lo NO elegido. Arranca CON TODO ADENTRO: ningún accesorio ni
+  // seguro viene marcado por defecto. La cuota que el cliente ve al abrir es la
+  // de su equipo solo, y cada casilla que marca la va subiendo — suma lo que
+  // quiere en vez de encontrarse todo puesto y tener que sacarlo.
   //
-  // Antes arrancaba con todo adentro —o sea, todo desmarcado—, y eso invertía
-  // la oferta: la pantalla abría mostrando la cuota del equipo solo, sin nada
-  // de lo que el gestor había armado, y el cliente tenía que reconstruirlo a
-  // mano para ver lo que le ofrecieron. Lo que se le manda es la oferta
-  // completa; quitar es la excepción, no el punto de partida.
-  const [dropped, setDropped] = useState<number[]>([]);
+  // El default se inicializa una sola vez, al montar: `offer` ya viene resuelto
+  // desde MiOfertaClient (solo renderiza esta vista con la oferta cargada), así
+  // que `togglables` está completo en el primer render y no hay que re-sembrarlo
+  // después — un effect que lo hiciera pelearía con los toggles del cliente.
+  const [dropped, setDropped] = useState<number[]>(() => togglables.map((a) => a.id));
   const isKept = useCallback((id: number) => !dropped.includes(id), [dropped]);
   // Con 18 accesorios, marcarlos uno por uno no es una opción razonable.
   const todosMarcados = togglables.length > 0 && dropped.length === 0;

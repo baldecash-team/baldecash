@@ -343,30 +343,30 @@ describe('StandardOfertaAccion', () => {
     expect(modal.getByText(/Sin descripción/i)).toBeInTheDocument();
   });
 
-  it('los accesorios de la oferta vienen marcados', () => {
-    // Lo que se le manda al cliente es la oferta que el gestor armo: quitar es
-    // la excepcion, no el punto de partida. Antes abrian todos desmarcados y la
-    // pantalla mostraba la cuota del equipo solo, sin nada de lo ofrecido.
+  it('los accesorios de la oferta NO vienen marcados', () => {
+    // Ningun accesorio ni seguro arranca puesto: el cliente suma lo que quiere
+    // en vez de encontrarse todo adentro y tener que sacarlo. La cuota que ve al
+    // abrir es la de su equipo solo.
     renderView(conAccesorios());
 
-    expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: /Incluir Mouse inalambrico/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Incluir Mouse inalambrico/i })).not.toBeChecked();
   });
 
-  it('desde el modal se quita el accesorio y se vuelve a poner', async () => {
+  it('desde el modal se agrega el accesorio y se vuelve a quitar', async () => {
     renderView(conAccesorios());
-
-    fireEvent.click(screen.getByRole('button', { name: /Ver detalle de Mochila Lenovo/i }));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Quitar/i }));
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).not.toBeChecked();
 
     fireEvent.click(screen.getByRole('button', { name: /Ver detalle de Mochila Lenovo/i }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Agregar/i }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalle de Mochila Lenovo/i }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Quitar/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('checkbox', { name: /Incluir Mochila Lenovo/i })).not.toBeChecked();
   });
 
   it('el buscador filtra los accesorios cuando la lista es larga', () => {
