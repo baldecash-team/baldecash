@@ -154,11 +154,18 @@ export function DetalleFinanciamientoModal({
                       valor={formatearSoles(montos[campo.clave])}
                     />
                   ))}
-                  <Fila
-                    etiqueta="Monto total financiado"
-                    valor={formatearSoles(simulacion?.montoFinanciado)}
-                    destacado
-                  />
+                  {/*
+                    Con un solo importe, el total financiado es esa misma cifra:
+                    la fila repetiria el numero de arriba y se leeria como si
+                    fueran dos conceptos distintos.
+                  */}
+                  {campos.length > 1 && (
+                    <Fila
+                      etiqueta="Monto total financiado"
+                      valor={formatearSoles(simulacion?.montoFinanciado)}
+                      destacado
+                    />
+                  )}
                   <Fila
                     etiqueta="Número de cuotas"
                     valor={simulacion ? String(simulacion.plazoMeses) : '—'}

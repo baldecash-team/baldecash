@@ -158,7 +158,7 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
     {
       clave: 'matricula',
       etiqueta: 'Ingresa el monto de titulación',
-      etiquetaResumen: 'Monto de titulación',
+      etiquetaResumen: 'Monto del título',
       placeholder: 'Ej. 350.50',
     },
   ],
@@ -172,7 +172,7 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
   rutaVolver: (landing) => routes.landingHome(landing),
   notaCronograma:
     'Las fechas son referenciales y se calculan desde hoy. El cronograma definitivo se genera con ' +
-    'la fecha real en que BaldeCash pague tu titulación a Senati.',
+    'la fecha real en que BaldeCash pague tu trámite a Senati.',
   metaTitulo: 'Calculadora de titulación - BaldeCash',
   metaDescripcion:
     'Calcula la cuota mensual del financiamiento de tu titulación. Pagamos directo a Senati.',
