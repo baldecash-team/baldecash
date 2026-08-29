@@ -343,6 +343,18 @@ export function StandardOfertaAccion({
     analytics.track('offer_standard_detail_click', { offer_code: offer.offerCode });
   }, [analytics, offer.offerCode]);
 
+  // Modalidad de la oferta (WEB-04). Se calcula ACÁ ARRIBA porque la usan dos
+  // pantallas: el título de la oferta y la confirmación de aceptación
+  // (BAL-3471). Las tres se distinguen con lo que ya viaja:
+  //   accesorios → `offer_type='upsell'` (la "Oferta con Accesorios" de admin2);
+  //                se mira también la lista, porque es la que manda en el resto
+  //                de la pantalla (ver `_client_options` en el backend);
+  //   equipo     → el backend manda `requested_product` SOLO cuando la oferta
+  //                cambia de equipo;
+  //   plazo      → lo que queda: mismo equipo, otras condiciones.
+  const esOfertaDeAccesorios = (info?.offerType ?? '') === 'upsell' || addons.length > 0;
+  const req = offer.requestedProduct;
+
   // Confirmación de aceptación — mismo componente "¡Felicidades!" que el
   // Caso 4/5 (sin equipo anterior: acá no hay cambio, solo aceptación).
   if (decision === 'accepted') {
@@ -362,7 +374,11 @@ export function StandardOfertaAccion({
       offerCode: offer.offerCode,
       previous: null,
     };
-    return <SeleccionConfirmada chosen={chosen} />;
+    // El copy depende de lo que se aceptó (BAL-3471): una oferta de accesorios
+    // no cambió el equipo, así que no puede decir "cambio de equipo" ni titular
+    // la tarjeta "Tu nuevo equipo".
+    const tipo = esOfertaDeAccesorios ? 'accesorios' : req ? 'equipo' : 'condiciones';
+    return <SeleccionConfirmada chosen={chosen} variant={tipo} />;
   }
 
   // Confirmación de rechazo — mismo lenguaje visual que las pantallas de
@@ -381,9 +397,8 @@ export function StandardOfertaAccion({
   const totalTexto =
     vigente?.totalAmount ?? selected?.totalAmount ?? info?.totalAmount ?? info?.totalPrice ?? null;
 
-  // El equipo anterior, para el antes/ahora. Llega null cuando no hay
-  // comparacion que mostrar.
-  const req = offer.requestedProduct;
+  // `req` (el equipo anterior, para el antes/ahora) y `esOfertaDeAccesorios`
+  // se declaran más arriba: la confirmación de aceptación también los usa.
 
   // Plazo y frecuencia REALES, con los helpers compartidos de las otras cards
   // (equipoCardFormat) para no abrir un segundo formato. `termMonths` normaliza
@@ -422,14 +437,7 @@ export function StandardOfertaAccion({
   // haya dos números conviviendo en pantalla.
   const cuotaVigente = cuotaConSeleccion ?? shownMonthly;
 
-  // Título por modalidad (WEB-04). Las tres se distinguen con lo que ya viaja:
-  //   accesorios → `offer_type='upsell'` (la "Oferta con Accesorios" de admin2);
-  //                se mira también la lista, porque es la que manda en el resto
-  //                de la pantalla (ver `_client_options` en el backend);
-  //   equipo     → el backend manda `requested_product` SOLO cuando la oferta
-  //                cambia de equipo;
-  //   plazo      → lo que queda: mismo equipo, otras condiciones.
-  const esOfertaDeAccesorios = (info?.offerType ?? '') === 'upsell' || addons.length > 0;
+  // Título por modalidad (WEB-04). `esOfertaDeAccesorios` se declara arriba.
   const nombre = offer.clientName?.trim();
   const saludo = esOfertaDeAccesorios
     ? (nombre ? `Hola ${nombre}, complementa tu solicitud con el ` : 'Complementa tu solicitud con el ')
