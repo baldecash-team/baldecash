@@ -3,12 +3,30 @@
 /**
  * Confirmación de elección (feedback de Marco): UI custom simple que muestra el
  * cambio de equipo — equipo anterior (gris) → equipo nuevo (verde) con flecha,
- * cada uno con nombre y cuota. Abajo, el aviso del contrato por WhatsApp.
- * NO reutiliza el ReceivedScreen (sin timeline, sin tiempos de evaluación).
+ * cada uno con nombre y cuota. NO reutiliza el ReceivedScreen (sin timeline,
+ * sin tiempos de evaluación).
  *
  * Rediseño visual (BAL-2186): mismo API de props y misma lógica; solo cambia
  * la presentación para calzar con el mock de Claude Design
  * (docs/superpowers/design-refs/mock-confirmacion.html, frame 3).
+ *
+ * BAL-3471 — el copy ahora DERIVA del tipo de oferta aceptada. Antes esta
+ * pantalla era una sola: decía "Has realizado el cambio de equipo
+ * correctamente", titulaba "Tu nuevo equipo" y prometía "Recibirás el contrato
+ * por WhatsApp para firmarlo y coordinar la entrega" — sin importar qué había
+ * aceptado el cliente. La comparten tres caminos (oferta estándar, Caso 4
+ * downgrade y Caso 5 upsell), así que un cliente que solo sumó un accesorio
+ * leía que había cambiado de equipo y que ya tenía contrato.
+ *
+ * Las tres afirmaciones eran falsas para el caso de accesorios, y la del
+ * contrato lo es para TODOS: aceptar una oferta marca `application_offer` como
+ * `accepted` y reescribe producto/pricing de la solicitud, pero NO toca
+ * `application.status_id` (ws2 `conditional_offer_service.py:3383`,
+ * `offer_acceptance_service.py:50-113` — ninguno escribe status). En prod, 54
+ * de 75 solicitudes con upsell aceptado seguían en evaluación (`nuevo`,
+ * `documentacion_erronea`, `mas_documentacion`, incluso `ready_to_reject`).
+ * Por eso la promesa de contrato/entrega se elimina de la pantalla: el único
+ * mensaje que se puede sostener es que la solicitud sigue su evaluación.
  */
 import { useEffect, useState } from 'react';
 import { CheckCircle2, ArrowRight, MessageCircle, Package, ShieldCheck, ChevronDown } from 'lucide-react';
@@ -40,6 +58,41 @@ export interface AddonResumen {
   includedFree?: boolean;
 }
 
+/**
+ * Qué aceptó el cliente. Determina TODO el copy de la pantalla (BAL-3471).
+ *
+ *  - `accesorios`  → sumó accesorios/seguros a su solicitud; el equipo NO cambió.
+ *  - `equipo`      → cambió de equipo (hay equipo anterior distinto del elegido).
+ *  - `condiciones` → mismo equipo, otro plazo/inicial (la "oferta de plazo").
+ */
+export type ConfirmacionVariant = 'accesorios' | 'equipo' | 'condiciones';
+
+/** Copy por tipo de oferta. Regla (BAL-3471): cada texto solo puede afirmar lo
+ *  que efectivamente ocurrió. Ninguno promete contrato ni entrega, porque
+ *  aceptar una oferta no aprueba la solicitud — sigue en evaluación. */
+const COPY: Record<
+  ConfirmacionVariant,
+  { subtitulo: string; etiquetaNuevo: string; seguimiento: string }
+> = {
+  accesorios: {
+    // Copy pedido por Marco (BAL-3471): no dice "cambio de equipo" —no lo hubo—
+    // y deja claro que la evaluación continúa.
+    subtitulo: 'Has modificado tu solicitud exitosamente, te seguiremos evaluando.',
+    etiquetaNuevo: 'Tu equipo',
+    seguimiento: 'Seguiremos evaluando tu solicitud y te avisaremos por WhatsApp cuando tengamos novedades.',
+  },
+  equipo: {
+    subtitulo: 'Has realizado el cambio de equipo correctamente, te seguiremos evaluando.',
+    etiquetaNuevo: 'Tu nuevo equipo',
+    seguimiento: 'Seguiremos evaluando tu solicitud con este equipo y te avisaremos por WhatsApp cuando tengamos novedades.',
+  },
+  condiciones: {
+    subtitulo: 'Has actualizado las condiciones de tu solicitud, te seguiremos evaluando.',
+    etiquetaNuevo: 'Tu equipo',
+    seguimiento: 'Seguiremos evaluando tu solicitud y te avisaremos por WhatsApp cuando tengamos novedades.',
+  },
+};
+
 export interface ChosenSummary {
   // Equipo NUEVO (el elegido)
   name: string;
@@ -68,9 +121,13 @@ export interface ChosenSummary {
 function EquipoMini({
   equipo,
   tone,
+  label,
 }: {
   equipo: EquipoResumen;
   tone: 'old' | 'new';
+  /** Encabezado de la tarjeta. En la columna "new" depende del tipo de oferta:
+   *  solo un cambio de equipo puede decir "Tu nuevo equipo" (BAL-3471). */
+  label: string;
 }) {
   const isNew = tone === 'new';
   const f = equipo.paymentFrequency ?? 'mensual';
@@ -89,7 +146,7 @@ function EquipoMini({
         className="mb-2 text-[8.5px] font-bold uppercase tracking-wide"
         style={{ color: isNew ? OFERTA_COLORS.greenDark : OFERTA_COLORS.textSoft }}
       >
-        {isNew ? 'Tu nuevo equipo' : 'Equipo anterior'}
+        {label}
       </p>
       {equipo.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -131,11 +188,32 @@ function EquipoMini({
   );
 }
 
-export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHref?: string }) {
+export function SeleccionConfirmada({
+  chosen,
+  variant,
+}: {
+  chosen: ChosenSummary;
+  /** Tipo de oferta aceptada — decide el copy (BAL-3471). Si no se pasa, se
+   *  deriva de los datos: hay equipo anterior distinto → cambio de equipo. */
+  variant?: ConfirmacionVariant;
+  backHref?: string;
+}) {
   // El nombre viene ya capitalizado del backend (fuente única de verdad): el
   // front solo lo pinta.
   const nombre = (chosen.userName || '').trim();
   const titulo = nombre ? `¡Felicidades, ${nombre}!` : '¡Felicidades!';
+
+  // El equipo anterior solo cuenta como "cambio" si es OTRO equipo: el backend
+  // manda `requested_product` siempre que la solicitud tenga producto, también
+  // cuando el cliente se quedó con el mismo (ws2 `_requested_product`,
+  // conditional_offer_service.py:1796). Comparar por nombre evita pintar la
+  // flecha "anterior → nuevo" entre dos tarjetas idénticas.
+  const cambioDeEquipo =
+    !!chosen.previous && chosen.previous.name.trim() !== chosen.name.trim();
+  const tipo: ConfirmacionVariant = variant ?? (cambioDeEquipo ? 'equipo' : 'condiciones');
+  const copy = COPY[tipo];
+  // La comparación viejo→nuevo solo se muestra si de verdad cambió el equipo.
+  const previo = cambioDeEquipo ? chosen.previous : null;
   const nuevo: EquipoResumen = {
     name: chosen.name, imageUrl: chosen.imageUrl, monthly: chosen.monthly,
     term: chosen.termMonths ?? chosen.term, initial: chosen.initial,
@@ -186,14 +264,16 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
             {titulo}
           </h1>
           <p className="mt-1 text-[12.5px]" style={{ color: OFERTA_COLORS.textMid }}>
-            Has realizado el cambio de equipo correctamente.
+            {copy.subtitulo}
           </p>
 
-          {/* Equipo anterior → equipo nuevo */}
+          {/* Equipo anterior → equipo nuevo. Sin cambio de equipo se pinta una
+              sola tarjeta, rotulada "Tu equipo": es el que el cliente ya tenía,
+              se muestra como contexto de lo que quedó en su solicitud. */}
           <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            {chosen.previous ? (
+            {previo ? (
               <>
-                <EquipoMini equipo={chosen.previous} tone="old" />
+                <EquipoMini equipo={previo} tone="old" label="Equipo anterior" />
                 <div className="flex justify-center sm:shrink-0">
                   <div
                     className="flex h-[26px] w-[26px] items-center justify-center rounded-full"
@@ -204,7 +284,7 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
                 </div>
               </>
             ) : null}
-            <EquipoMini equipo={nuevo} tone="new" />
+            <EquipoMini equipo={nuevo} tone="new" label={copy.etiquetaNuevo} />
           </div>
 
           {/* Desglose de accesorios/seguros sumados (BAL-2064) */}
@@ -296,14 +376,18 @@ export function SeleccionConfirmada({ chosen }: { chosen: ChosenSummary; backHre
             </div>
           ) : null}
 
-          {/* Aviso del contrato por WhatsApp */}
+          {/* Qué pasa después. Antes decía "Recibirás el contrato por WhatsApp
+              para firmarlo y coordinar la entrega de tu equipo": aceptar la
+              oferta NO aprueba la solicitud —el backend no toca el estado— así
+              que la promesa era falsa para los tres tipos de oferta. Ahora
+              anuncia lo único cierto: la evaluación sigue y avisamos. */}
           <div
             className="mt-5 flex items-start gap-3 rounded-xl p-4 text-left"
             style={{ backgroundColor: OFERTA_COLORS.greenSoft }}
           >
             <MessageCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: OFERTA_COLORS.greenDark }} />
             <p className="text-sm" style={{ color: OFERTA_COLORS.greenDark }}>
-              Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega de tu equipo.
+              {copy.seguimiento}
             </p>
           </div>
         </div>
