@@ -208,8 +208,8 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
   ],
   ayudaMontos: (
     <>
-      Ingresa los montos exactos correspondientes a tu proceso de titulación en SENATI, incluyendo
-      los céntimos si los hubiera. Si algún concepto no aplica, déjalo en cero.
+      Ingresa EL MONTO exacto correspondiente a tu proceso de titulación en SENATI, incluyendo los
+      céntimos si los hubiera.
     </>
   ),
   institucionFija: { id: 551, nombre: 'Senati', tipo: 'institute' },
