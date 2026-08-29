@@ -87,3 +87,103 @@ describe('SeleccionConfirmada — "Tu pedido incluye" colapsable', () => {
     expect(screen.queryByText(/Tu pedido incluye/i)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * BAL-3471 — el copy debe DERIVAR del tipo de oferta aceptada.
+ *
+ * El bug: la pantalla era una sola para los tres tipos y afirmaba "Has
+ * realizado el cambio de equipo", titulaba "Tu nuevo equipo" y prometía
+ * "Recibirás el contrato por WhatsApp para firmarlo y coordinar la entrega".
+ * Un cliente que solo sumó un accesorio leía las tres cosas, y ninguna había
+ * pasado: su solicitud seguía en evaluación.
+ */
+describe('SeleccionConfirmada — copy por tipo de oferta (BAL-3471)', () => {
+  const base: ChosenSummary = {
+    name: 'HP 250 G8 Notebook PC',
+    monthly: 89,
+    termMonths: 24,
+    paymentFrequency: 'mensual',
+    userName: 'Belen abigail Jara Yapias',
+    previous: null,
+  };
+
+  it('accesorios: dice "modificado tu solicitud" y NO habla de cambio de equipo', () => {
+    mockMatchMedia(true);
+    render(<SeleccionConfirmada chosen={base} variant="accesorios" />);
+
+    expect(
+      screen.getByText('Has modificado tu solicitud exitosamente, te seguiremos evaluando.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/cambio de equipo/i)).not.toBeInTheDocument();
+    // El equipo no cambió → la tarjeta no puede titularse "Tu nuevo equipo".
+    expect(screen.queryByText(/Tu nuevo equipo/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Tu equipo')).toBeInTheDocument();
+  });
+
+  it('accesorios: saluda al cliente por su nombre', () => {
+    mockMatchMedia(true);
+    render(<SeleccionConfirmada chosen={base} variant="accesorios" />);
+    expect(screen.getByText('¡Felicidades, Belen abigail Jara Yapias!')).toBeInTheDocument();
+  });
+
+  it('equipo: mantiene el copy de cambio de equipo y la etiqueta "Tu nuevo equipo"', () => {
+    mockMatchMedia(true);
+    const conCambio: ChosenSummary = {
+      ...base,
+      previous: { name: 'Laptop ExpertBook', monthly: 179, term: 24, paymentFrequency: 'mensual' },
+    };
+    render(<SeleccionConfirmada chosen={conCambio} variant="equipo" />);
+
+    expect(screen.getByText(/Has realizado el cambio de equipo correctamente/)).toBeInTheDocument();
+    expect(screen.getByText('Tu nuevo equipo')).toBeInTheDocument();
+    expect(screen.getByText('Equipo anterior')).toBeInTheDocument();
+  });
+
+  it('condiciones: habla de condiciones actualizadas, sin "nuevo equipo"', () => {
+    mockMatchMedia(true);
+    render(<SeleccionConfirmada chosen={base} variant="condiciones" />);
+
+    expect(
+      screen.getByText('Has actualizado las condiciones de tu solicitud, te seguiremos evaluando.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Tu nuevo equipo/i)).not.toBeInTheDocument();
+  });
+
+  it('NINGÚN tipo promete contrato ni entrega: la solicitud sigue en evaluación', () => {
+    mockMatchMedia(true);
+    const conCambio: ChosenSummary = {
+      ...base,
+      previous: { name: 'Laptop ExpertBook', monthly: 179, term: 24, paymentFrequency: 'mensual' },
+    };
+    const casos: Array<[string, ChosenSummary, 'accesorios' | 'equipo' | 'condiciones']> = [
+      ['accesorios', base, 'accesorios'],
+      ['equipo', conCambio, 'equipo'],
+      ['condiciones', base, 'condiciones'],
+    ];
+
+    for (const [nombre, chosen, variant] of casos) {
+      const { unmount } = render(<SeleccionConfirmada chosen={chosen} variant={variant} />);
+      expect(screen.queryByText(/contrato/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/firmarlo/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/coordinar la entrega/i)).not.toBeInTheDocument();
+      // Lo que sí se afirma: que la evaluación continúa.
+      expect(screen.getByText(/te avisaremos por WhatsApp/i)).toBeInTheDocument();
+      unmount();
+      void nombre;
+    }
+  });
+
+  it('sin variant: deriva "equipo" solo si el anterior es OTRO equipo', () => {
+    mockMatchMedia(true);
+    const mismoEquipo: ChosenSummary = {
+      ...base,
+      // El backend manda `requested_product` aunque el equipo no haya cambiado.
+      previous: { name: 'HP 250 G8 Notebook PC', monthly: 89, term: 24, paymentFrequency: 'mensual' },
+    };
+    render(<SeleccionConfirmada chosen={mismoEquipo} />);
+
+    expect(screen.queryByText(/cambio de equipo/i)).not.toBeInTheDocument();
+    // No se pinta la comparación "anterior → nuevo" contra sí mismo.
+    expect(screen.queryByText('Equipo anterior')).not.toBeInTheDocument();
+  });
+});

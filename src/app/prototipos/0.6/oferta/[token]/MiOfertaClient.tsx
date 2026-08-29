@@ -430,6 +430,10 @@ export function MiOfertaClient({ token }: { token: string }) {
   }, [pending, token, state, analytics]);
 
   // Ya eligió un equipo → pantalla de confirmación "¡Listo!".
+  // Sin `variant`: en Casos 4 y 5 el cliente elige del catálogo, y puede
+  // quedarse con el MISMO equipo sumando solo accesorios. El componente deriva
+  // el copy comparando el equipo anterior con el elegido, que es el único dato
+  // que distingue "cambió de equipo" de "solo cambió condiciones" (BAL-3471).
   if (selected) {
     return (
       <SeleccionConfirmada
