@@ -60,6 +60,8 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
       variantId: product.variantId,
+      // Combo de la card comparada (el equipo convive en varias cards)
+      comboId: product.comboId,
       paymentFrequency: product.paymentFrequency,
       specs: {
         processor: product.specs?.processor?.model || '',
