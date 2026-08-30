@@ -218,6 +218,64 @@ describe('useSubmitApplication', () => {
         })
       );
     });
+
+    // El catalogo lista el producto suelto y cada uno de sus combos como cards
+    // distintas, pero todas comparten product_id. Si el submit no manda cual se
+    // eligio, el backend solo puede deducirlo del precio — y un combo de regalo
+    // (mismo precio que el pelado) queda indistinguible y se pierde.
+    describe('combo_id', () => {
+      const mutable = mockSelectedProduct as { comboId?: number };
+      afterEach(() => { delete mutable.comboId; });
+
+      it('envia combo_id: null cuando se compro el producto suelto', async () => {
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-1' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        // null explicito, no undefined: el backend distingue "eligio el pelado"
+        // de "este front no lo manda".
+        expect(payload.product_data.combo_id).toBeNull();
+        expect(payload.product_data.products?.[0].combo_id).toBeNull();
+      });
+
+      it('envia el combo_id de la card cuando se compro un combo', async () => {
+        mutable.comboId = 49;
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-2' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        expect(payload.product_data.combo_id).toBe(49);
+        expect(payload.product_data.products?.[0].combo_id).toBe(49);
+      });
+
+      // Red de seguridad: `comboId` se copia a mano en cada punto de entrada al
+      // wizard (catalogo, comparador, copia-home, detalle) y es facil que uno
+      // nuevo se olvide. El slug siempre viaja y lleva el sufijo `-combo-{id}`.
+      it('deduce el combo del slug cuando comboId no viajo', async () => {
+        const slugged = mockSelectedProduct as { slug?: string };
+        const originalSlug = slugged.slug;
+        slugged.slug = 'lenovo-v15-g4-iru-lpleba0000767-combo-37';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-3' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        expect(payload.product_data.combo_id).toBe(37);
+        expect(payload.product_data.products?.[0].combo_id).toBe(37);
+        slugged.slug = originalSlug;
+      });
+    });
   });
 
   describe('API errors', () => {
