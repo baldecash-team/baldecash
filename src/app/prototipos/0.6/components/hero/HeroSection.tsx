@@ -347,6 +347,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   underlineStyle={UNDERLINE_STYLE}
                   landing={landing}
                   showHeroContent={heroContent.showHeroContent}
+                  showMinQuota={heroContent.showMinQuota}
                 />
               </section>
             )}

@@ -107,6 +107,15 @@ export interface HeroContent {
    * Aplica a landings institucional y convenio.
    */
   showHeroContent?: boolean;
+  /**
+   * Switch "Mostrar «Desde S/X»" del admin (BAL-3477).
+   * Ausente o true = se muestra el recuadro del precio. false = se oculta.
+   *
+   * Es distinto de que `minQuota` valga cero: el cero dice que no hay precio
+   * que mostrar, y este switch dice que hay uno pero no se quiere mostrar.
+   * Por eso se piden las dos condiciones y no una sola.
+   */
+  showMinQuota?: boolean;
 }
 
 // ============================================
@@ -144,6 +153,11 @@ export interface HeroBannerProps {
    * Ausente o true = comportamiento actual.
    */
   showHeroContent?: boolean;
+  /**
+   * BAL-3477: false = sin el recuadro "Desde S/X".
+   * Ausente o true = se muestra, siempre que haya un monto.
+   */
+  showMinQuota?: boolean;
 }
 
 export interface SocialProofProps {

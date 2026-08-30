@@ -210,7 +210,7 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
             </div>
 
             {/* Price recap */}
-            {heroContent && heroContent.minQuota > 0 && (
+            {heroContent && heroContent.showMinQuota !== false && heroContent.minQuota > 0 && (
               <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/20 text-center">
                 <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
                 <p className="text-2xl sm:text-3xl font-bold text-white font-['Baloo_2',_sans-serif]">

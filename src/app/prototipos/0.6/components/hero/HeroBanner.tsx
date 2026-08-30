@@ -36,6 +36,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   underlineStyle = 4,
   landing = 'home',
   showHeroContent,
+  showMinQuota,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
@@ -241,11 +242,18 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </p>
 
             {/* Price Highlight */}
-            <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
-              <span className="text-white/70 text-sm sm:text-lg">Desde</span>
-              <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
-              <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
-            </div>
+            {/* Dos condiciones, no una: el monto en cero significa que no hay
+                precio que mostrar, y el switch significa que hay uno pero la
+                landing no lo quiere en pantalla. Los otros heroes ya piden lo
+                mismo; este era el unico que pintaba el recuadro sin preguntar,
+                y por eso una landing con el monto vacio mostraba "Desde S/0". */}
+            {showMinQuota !== false && minQuota > 0 && (
+              <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
+                <span className="text-white/70 text-sm sm:text-lg">Desde</span>
+                <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
+                <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
+              </div>
+            )}
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
