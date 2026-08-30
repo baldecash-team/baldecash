@@ -27,6 +27,13 @@ export interface SubmitApplicationRequest {
   product_data: {
     product_id: number;
     variant_id?: number;
+    /**
+     * Combo de la card elegida, o `null` si el cliente compro el producto suelto.
+     * SIEMPRE se envia, incluido el `null`: el backend necesita distinguir "eligio
+     * el pelado" de "este front no lo manda". Sin el, cae a una heuristica por
+     * precio que no ve los combos de regalo (mismo precio que el equipo solo).
+     */
+    combo_id?: number | null;
     /** Raw term in native units of payment_frequency (weeks / fortnights / months). */
     term: number;
     /** Term normalized to months (12 for 24 quincenas, etc.). */
@@ -49,6 +56,8 @@ export interface SubmitApplicationRequest {
     products?: {
       product_id: number;
       variant_id?: number;  // Color/variant selection
+      /** Combo de la card elegida para este item, o `null` si es el producto suelto. */
+      combo_id?: number | null;
       quantity: number;
       unit_price?: number;
       monthly_price?: number;  // Cuota mensual con intereses
