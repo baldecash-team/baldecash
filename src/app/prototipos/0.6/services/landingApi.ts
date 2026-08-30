@@ -689,10 +689,6 @@ export function transformLandingData(data: LandingHeroResponse): {
       // `!== false` a proposito: la ausencia del campo significa "mostrar",
       // que es como estan hoy las 60 landings activas.
       showHeroContent: heroConfig.show_hero_content !== false,
-      // Misma lectura que el de arriba, y por el mismo motivo: la clave no
-      // existe en ninguna landing todavia, asi que su ausencia tiene que
-      // significar "mostrar" para que nada cambie sin que alguien lo pida.
-      showMinQuota: heroConfig.show_min_quota !== false,
     };
   }
 
