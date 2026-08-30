@@ -411,6 +411,12 @@ export function useSubmitApplication(
           variant_id: primaryProduct.variantId
             ? parseInt(primaryProduct.variantId, 10)
             : undefined,
+          // Card elegida: el catalogo lista el producto suelto y cada uno de sus
+          // combos como cards distintas, pero todas comparten product_id. Sin
+          // esto el backend solo puede deducir el combo del precio, y uno de
+          // regalo (mismo precio que el pelado) se pierde en silencio.
+          // El `null` es significativo — se manda siempre, no se omite.
+          combo_id: primaryProduct.comboId ?? null,
           // Raw term in native units of payment_frequency (no conversion)
           term: primaryProduct.term ?? primaryProduct.months,
           // Calendar-month equivalent, derived from term + frequency
@@ -433,6 +439,7 @@ export function useSubmitApplication(
           products: allProducts.map((p) => ({
             product_id: parseInt(p.id, 10),
             variant_id: p.variantId ? parseInt(p.variantId, 10) : undefined,
+            combo_id: p.comboId ?? null,
             quantity: 1,
             unit_price: p.price,
             monthly_price: p.monthlyPayment,  // Cuota mensual con intereses
