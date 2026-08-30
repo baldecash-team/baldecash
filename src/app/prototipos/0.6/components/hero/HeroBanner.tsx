@@ -241,11 +241,17 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </p>
 
             {/* Price Highlight */}
-            <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
-              <span className="text-white/70 text-sm sm:text-lg">Desde</span>
-              <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
-              <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
-            </div>
+            {/* Sin monto no hay recuadro. LeadHeroBanner, ConvenioHero y
+                ConvenioCta ya pedian esto; este era el unico que lo pintaba sin
+                preguntar, y por eso una landing con la cuota minima vacia
+                mostraba "Desde S/0". */}
+            {minQuota > 0 && (
+              <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
+                <span className="text-white/70 text-sm sm:text-lg">Desde</span>
+                <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
+                <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
+              </div>
+            )}
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
