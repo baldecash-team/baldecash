@@ -255,6 +255,26 @@ describe('useSubmitApplication', () => {
         expect(payload.product_data.combo_id).toBe(49);
         expect(payload.product_data.products?.[0].combo_id).toBe(49);
       });
+
+      // Red de seguridad: `comboId` se copia a mano en cada punto de entrada al
+      // wizard (catalogo, comparador, copia-home, detalle) y es facil que uno
+      // nuevo se olvide. El slug siempre viaja y lleva el sufijo `-combo-{id}`.
+      it('deduce el combo del slug cuando comboId no viajo', async () => {
+        const slugged = mockSelectedProduct as { slug?: string };
+        const originalSlug = slugged.slug;
+        slugged.slug = 'lenovo-v15-g4-iru-lpleba0000767-combo-37';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-3' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        expect(payload.product_data.combo_id).toBe(37);
+        expect(payload.product_data.products?.[0].combo_id).toBe(37);
+        slugged.slug = originalSlug;
+      });
     });
   });
 

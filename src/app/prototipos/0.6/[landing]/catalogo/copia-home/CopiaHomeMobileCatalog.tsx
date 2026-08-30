@@ -165,6 +165,8 @@ export function CopiaHomeMobileCatalog() {
         type: p.deviceType,
         condition: p.conditionCode || p.condition,
         variantId: p.variantId,
+        // Combo de la card elegida (el equipo convive en varias cards)
+        comboId: p.comboId,
         specs: {
           processor: p.specs?.processor?.model || '',
           ram: p.specs?.ram ? `${p.specs.ram.size}GB RAM` : '',

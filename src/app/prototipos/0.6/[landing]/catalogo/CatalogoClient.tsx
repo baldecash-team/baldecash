@@ -728,6 +728,9 @@ function CatalogoContent() {
       variantId: variantInfo?.variantId || product.variantId,
       colorName: variantInfo?.colorName,
       colorHex: variantInfo?.colorHex,
+      // Combo de la card elegida: el equipo convive en varias cards (suelto y
+      // uno o mas combos) con el mismo product_id, y el submit lo reenvia.
+      comboId: variantInfo?.comboId ?? product.comboId,
       paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
       specs: {
         processor: product.specs?.processor?.model || '',
@@ -1353,6 +1356,8 @@ function CatalogoContent() {
           variantId: item.variantId,
           colorName: item.colorName,
           colorHex: item.colorHex,
+          // Combo de la card que origino el item del carrito
+          comboId: item.comboId ?? product?.comboId,
           // v0.6.2: Include payment plans for dynamic initial options (no hardcoded fallback)
           paymentPlans: item.paymentPlans,
         };
