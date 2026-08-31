@@ -424,6 +424,8 @@ function StepContent() {
   const shouldDisplayField = (field: WizardField): boolean => {
     // Prefill target fields (like supporter_full_name) are internal — never show in summary
     if (field.hidden && prefillTargetFields.has(field.code)) return false;
+    // hidden=true with no dependency groups = always hidden (no condition can activate it)
+    if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) return false;
     return evaluateFieldVisibility(field, formValues);
   };
 

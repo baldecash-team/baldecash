@@ -93,3 +93,44 @@ describe('BAL-3168: campo oculto sin dependencias', () => {
     expect(visibleEnElResumen(field, valores)).toBe(true);
   });
 });
+
+/**
+ * Leads multi-institución A365 — el mismo agujero de BAL-3168 existe en un
+ * TERCER lugar: `StepClient.shouldDisplayField` (el resumen que sí se usa en
+ * producción, a diferencia de `WizardSummary` que no lo importa nadie).
+ *
+ * `partner_lead` es exactamente el caso: `hidden: true`, sin
+ * `dependency_groups`, y no es un prefill target (no aparece en ningún
+ * `prefill_config.target_field` de otro campo). Sin la regla que ya tienen
+ * `DynamicWizardStep.fieldVisibility` y `wizardApi.validateStep`, el resumen
+ * le muestra "Socio de origen — -" a todo postulante organico.
+ *
+ * Replica de `StepClient.shouldDisplayField` (`[stepSlug]/StepClient.tsx:424-430`),
+ * ya con el fix aplicado: filtra prefill targets Y campos hidden sin
+ * dependency_groups, igual que `DynamicWizardStep.fieldVisibility` y
+ * `wizardApi.validateStep`.
+ */
+function shouldDisplayFieldEnStepClient(
+  field: WizardField,
+  formValues: Record<string, string | string[]>,
+  prefillTargetFields: Set<string>
+): boolean {
+  if (field.hidden && prefillTargetFields.has(field.code)) return false;
+  if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) return false;
+  return evaluateFieldVisibility(field, formValues);
+}
+
+describe('leads-multi-institucion-a365: partner_lead en el resumen de StepClient', () => {
+  const valoresConPartnerLead = { partner_lead: 'a365' };
+  const sinPrefillTargets = new Set<string>();
+
+  it('partner_lead (hidden, sin dependency_groups, no prefill target) no se muestra', () => {
+    const field = createField({ code: 'partner_lead', hidden: true, dependency_groups: [] });
+    expect(shouldDisplayFieldEnStepClient(field, valoresConPartnerLead, sinPrefillTargets)).toBe(false);
+  });
+
+  it('un campo normal no oculto se sigue mostrando igual', () => {
+    const field = createField({ code: 'email', hidden: false, dependency_groups: [] });
+    expect(shouldDisplayFieldEnStepClient(field, valoresConPartnerLead, sinPrefillTargets)).toBe(true);
+  });
+});

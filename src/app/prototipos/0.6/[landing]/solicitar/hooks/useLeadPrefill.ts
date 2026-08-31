@@ -70,6 +70,7 @@ const CODIGOS: Record<CampoDeLead, string[]> = {
   institution_type: ['institution_type', 'tipo_institucion'],
   institution_id: ['institution', 'institucion', 'study_center'],
   sede_id: ['sede', 'branch', 'campus'],
+  partner_code: ['partner_lead'],
 };
 
 /**
@@ -105,6 +106,9 @@ const AL_SUBMIT_AUNQUE_NO_HAYA_CAMPO: CampoDeLead[] = [
   'institution_type',
   'institution_id',
   'sede_id',
+  // El campo existe solo en los steps academicos de convenio. Donde no esta,
+  // el dato igual viaja: es la marca de que la solicitud nacio de un socio.
+  'partner_code',
 ];
 
 export interface CampoAPrellenar {

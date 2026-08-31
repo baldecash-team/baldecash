@@ -272,6 +272,34 @@ describe('calcularPrellenado', () => {
 
     expect(updates).toEqual([]);
   });
+
+  it('escribe partner_lead con el codigo del socio', () => {
+    const updates = calcularPrellenado(
+      { ...LEAD, partner_code: 'a365' },
+      pasos('partner_lead'),
+      vacio,
+    );
+
+    expect(updates).toContainEqual(
+      expect.objectContaining({ fieldId: 'partner_lead', value: 'a365' }),
+    );
+    // El form SI declara el campo: no debe llevar `hidden` (eso es exclusivo
+    // del caso de abajo, donde el wizard no lo pide). Sin este assert, los
+    // dos tests pasarian igual aunque partner_lead viniera siempre `hidden`.
+    expect(updates.find(u => u.fieldId === 'partner_lead')).not.toHaveProperty('hidden', true);
+  });
+
+  it('manda partner_lead al submit aunque el form no lo declare', () => {
+    const updates = calcularPrellenado(
+      { ...LEAD, partner_code: 'a365' },
+      pasos('first_name'),
+      vacio,
+    );
+
+    expect(updates).toContainEqual(
+      expect.objectContaining({ fieldId: 'partner_lead', value: 'a365', hidden: true }),
+    );
+  });
 });
 
 describe('captura del alk', () => {
