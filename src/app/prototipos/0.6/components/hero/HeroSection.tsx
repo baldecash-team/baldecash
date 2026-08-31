@@ -92,6 +92,11 @@ interface HeroSectionProps {
    * renderizan igual con el flag apagado.
    */
   showInstitutionLogo?: boolean;
+  /**
+   * Preset `hero-quota-off` (BAL-3477), leido de `features.show_hero_min_quota`.
+   * false = la portada no muestra el recuadro «Desde S/X», aunque haya monto.
+   */
+  showMinQuota?: boolean;
   /** Landing slug for dynamic URL building */
   landing?: string;
   /** Offset from top when preview banner is shown (in pixels) */
@@ -125,6 +130,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   agreementData,
   institutionBranding,
   showInstitutionLogo = true,
+  showMinQuota = true,
   landing = 'home',
   previewBannerOffset = 0,
   previewKey,
@@ -283,7 +289,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio Hero - Campus image, badge, checklist, price */}
             {heroContent && (
               <section id="hero">
-                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} primaryColor={primaryColor} />
+                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} primaryColor={primaryColor} showMinQuota={showMinQuota} />
               </section>
             )}
 
@@ -318,7 +324,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio CTA - 2-col WhatsApp + Quick Links */}
             {hasCta && (
               <section id="cta">
-                <ConvenioCta ctaData={ctaData} agreementData={agreementData} heroContent={heroContent} landing={landing} />
+                <ConvenioCta ctaData={ctaData} agreementData={agreementData} heroContent={heroContent} landing={landing} showMinQuota={showMinQuota} />
               </section>
             )}
           </>
@@ -347,6 +353,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   underlineStyle={UNDERLINE_STYLE}
                   landing={landing}
                   showHeroContent={heroContent.showHeroContent}
+                  showMinQuota={showMinQuota}
                 />
               </section>
             )}

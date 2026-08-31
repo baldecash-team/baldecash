@@ -63,6 +63,18 @@ export interface LandingConfigFeatures {
   can_change_term: boolean;
 
   /**
+   * Si el recuadro «Desde S/X» se muestra en la portada.
+   *
+   * El default es `true`: una landing sin el ingrediente `hero-quota-off`
+   * se ve igual que antes de que este flag existiera.
+   *
+   * No reemplaza a dejar la cuota mínima vacía. El monto en cero significa que
+   * no hay precio que mostrar; este flag significa que hay uno y la landing no
+   * lo quiere en pantalla, conservando el valor configurado.
+   */
+  show_hero_min_quota: boolean;
+
+  /**
    * Si la imagen del producto se muestra en el recorrido de solicitud.
    *
    * El default es `true`: una landing sin el ingrediente `product-image-off`
@@ -333,6 +345,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     overlay_variant: '',
     overlay_deadline: '',
     can_change_term: true,
+    show_hero_min_quota: true,
     show_product_image: true,
     has_coupon: true,
   },

@@ -144,6 +144,11 @@ export interface HeroBannerProps {
    * Ausente o true = comportamiento actual.
    */
   showHeroContent?: boolean;
+  /**
+   * Preset `hero-quota-off` (BAL-3477). false = sin el recuadro «Desde S/X»,
+   * aunque haya monto. Ausente o true = se muestra si hay monto.
+   */
+  showMinQuota?: boolean;
 }
 
 export interface SocialProofProps {
