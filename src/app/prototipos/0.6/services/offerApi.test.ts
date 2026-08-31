@@ -211,6 +211,63 @@ describe('getOffer — oferta estándar con accesorios', () => {
   });
 });
 
+describe('getOffer — oferta estándar: la cuota base vigente', () => {
+  it('mapea los tres campos nuevos de la cuota que la solicitud paga hoy', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        case: 'standard',
+        offer_code: 'OFF-STD-5',
+        offer_type: 'upsell',
+        product_name: 'Laptop V15',
+        // La congelada al crear la oferta: sale del precio de lista global.
+        monthly_payment: 190,
+        equipment_monthly_payment: 200,
+        preexisting_addons_monthly_payment: 20,
+        current_monthly_payment: 220,
+      }),
+    });
+
+    const std = (await getOffer('tok')).standardOffer!;
+    expect(std.equipmentMonthlyPayment).toBe(200);
+    expect(std.preexistingAddonsMonthlyPayment).toBe(20);
+    expect(std.currentMonthlyPayment).toBe(220);
+    // La congelada sigue viajando igual: nada se renombró ni se quitó.
+    expect(std.monthlyPayment).toBe(190);
+  });
+
+  it('un backend sin los campos nuevos los deja en null, no en NaN', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ case: 'standard', offer_code: 'OFF-STD-6', monthly_payment: 149 }),
+    });
+
+    const std = (await getOffer('tok')).standardOffer!;
+    expect(std.currentMonthlyPayment).toBeNull();
+    expect(std.equipmentMonthlyPayment).toBeNull();
+    expect(std.preexistingAddonsMonthlyPayment).toBeNull();
+  });
+
+  it('tolera que los campos lleguen como string (decimales del backend)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        case: 'standard',
+        offer_code: 'OFF-STD-7',
+        monthly_payment: 190,
+        current_monthly_payment: '288.00',
+        preexisting_addons_monthly_payment: '35.00',
+        equipment_monthly_payment: '253.00',
+      }),
+    });
+
+    const std = (await getOffer('tok')).standardOffer!;
+    expect(std.currentMonthlyPayment).toBe(288);
+    expect(std.preexistingAddonsMonthlyPayment).toBe(35);
+    expect(std.equipmentMonthlyPayment).toBe(253);
+  });
+});
+
 describe('getOffer — oferta estándar con rangos de plazo/inicial', () => {
   it('mapea la grilla de opciones', async () => {
     global.fetch = jest.fn().mockResolvedValue({

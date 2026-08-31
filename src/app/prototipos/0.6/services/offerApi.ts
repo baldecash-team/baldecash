@@ -211,6 +211,24 @@ export interface StandardOfferInfo {
   /** Cuota mensual que aportan los add-ons. La cuota del equipo solo es
    *  `monthlyPayment - addonsMonthlyPayment`. */
   addonsMonthlyPayment: number;
+  /** ── La cuota que la solicitud paga HOY, desarmada (backend 2026-08-30) ──
+   *
+   *  `currentMonthlyPayment` es la cuota base VIGENTE: equipo vigente +
+   *  accesorios que la solicitud YA tiene colgados. Es el número de partida
+   *  del hero en la oferta de accesorios, y sobre él se suma el `monthlyDelta`
+   *  de cada add-on que el cliente marque (200 + 20 = 220; marcar uno de 15
+   *  muestra 235). El catálogo de add-ons ya NO lista los preexistentes: van
+   *  horneados acá, invisibles como ítems y no quitables.
+   *
+   *  `monthlyPayment` es la cuota CONGELADA al crear la oferta, que sale del
+   *  precio de lista global del catálogo y no del que el cliente pidió (caso
+   *  120107: 224 congelada contra 253 + 35 = 288 vigentes).
+   *
+   *  Los tres son `null` en payloads viejos (o cuando el backend no puede
+   *  resolver la solicitud): ahí todo cae a `monthlyPayment`, como antes. */
+  equipmentMonthlyPayment: number | null;
+  preexistingAddonsMonthlyPayment: number | null;
+  currentMonthlyPayment: number | null;
   /** Combinaciones de plazo/inicial entre las que el cliente elige. Vacío = la
    *  oferta tiene una sola combinación y no hay nada que elegir. */
   options: StandardOfferOption[];
@@ -423,6 +441,17 @@ export async function getOffer(token: string): Promise<OfferView> {
         accessories: mapStandardAddons(data.accessories),
         insurances: mapStandardAddons(data.insurances),
         addonsMonthlyPayment: data.addons_monthly_payment ?? 0,
+        // Aditivos y retrocompatibles: un backend viejo no los manda y quedan
+        // en null. `Number()` solo si vinieron — así un payload sin ellos no
+        // deja un NaN suelto en la pantalla.
+        equipmentMonthlyPayment:
+          data.equipment_monthly_payment != null ? Number(data.equipment_monthly_payment) : null,
+        preexistingAddonsMonthlyPayment:
+          data.preexisting_addons_monthly_payment != null
+            ? Number(data.preexisting_addons_monthly_payment)
+            : null,
+        currentMonthlyPayment:
+          data.current_monthly_payment != null ? Number(data.current_monthly_payment) : null,
         options: mapStandardOptions(data.options),
       },
     };
