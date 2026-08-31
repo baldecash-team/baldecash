@@ -126,6 +126,40 @@ const conAccesorios = (extra: Record<string, unknown>[] = []) =>
     },
   }) as unknown as OfferView;
 
+/** Oferta de accesorios con la cuota base VIGENTE (campos nuevos del backend,
+ *  2026-08-30). Ejemplo canónico del negocio: equipo vigente 200 +
+ *  preexistentes 20 = base 220; marcar el addon de 15 lleva la cuota a 235.
+ *  `monthlyPayment` (190 = 175 de equipo congelado + 15 del addon) es el
+ *  número viejo, el que salía del precio de lista global del catálogo. */
+const conBaseVigente = (extra: Record<string, unknown> = {}) =>
+  ({
+    ...baseOffer,
+    standardOffer: {
+      ...baseOffer.standardOffer,
+      offerType: 'upsell',
+      monthlyPayment: 190,
+      addonsMonthlyPayment: 15,
+      equipmentMonthlyPayment: 200,
+      preexistingAddonsMonthlyPayment: 20,
+      currentMonthlyPayment: 220,
+      accessories: [
+        {
+          id: 7,
+          productId: 77,
+          name: 'Garantía extendida',
+          description: null,
+          imageUrl: null,
+          price: 360,
+          monthly: 15,
+          monthlyDelta: 15,
+          includedFree: false,
+        },
+      ],
+      insurances: [],
+      ...extra,
+    },
+  }) as unknown as OfferView;
+
 const renderView = (offer: OfferView = baseOffer) =>
   render(<StandardOfertaAccion token="tok-123" offer={offer} />);
 
@@ -465,5 +499,86 @@ describe('StandardOfertaAccion', () => {
       'href',
       expect.stringContaining('wa.link'),
     );
+  });
+
+  // ------------------------------------------------- cuota base VIGENTE
+
+  it('parte de la cuota que la solicitud paga HOY, no de la congelada', () => {
+    // 200 de equipo vigente + 20 de accesorios que YA tiene = 220. La oferta
+    // trae 190 congelados (175 + 15): ese era el número equivocado del hero.
+    renderView(conBaseVigente());
+
+    expect(terminos().getByText(porTextoCompleto('S/220/mes'))).toBeInTheDocument();
+    expect(barra().getByText(porTextoCompleto('S/220/mes'))).toBeInTheDocument();
+    expect(terminos().queryByText(porTextoCompleto('S/175/mes'))).not.toBeInTheDocument();
+  });
+
+  it('dice que la base ya incluye los accesorios que el cliente tiene', () => {
+    renderView(conBaseVigente());
+
+    expect(
+      terminos().getByText(/Incluye S\/20\/mes de los accesorios que ya tienes/i),
+    ).toBeInTheDocument();
+  });
+
+  it('cada add-on marcado SUMA sobre la base vigente', async () => {
+    renderView(conBaseVigente());
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Incluir Garantía extendida/i }));
+
+    await waitFor(() =>
+      expect(terminos().getByText(porTextoCompleto('S/235/mes'))).toBeInTheDocument(),
+    );
+  });
+
+  it('la cotizacion congelada no pisa la base vigente', async () => {
+    // `/quote` cotiza sobre el `total_price` congelado de la oferta: devolvería
+    // 319, que no es lo que la solicitud va a quedar pagando.
+    renderView(conBaseVigente());
+
+    await waitFor(() => expect(quoteOffer).toHaveBeenCalled());
+    expect(terminos().getByText(porTextoCompleto('S/220/mes'))).toBeInTheDocument();
+    expect(terminos().queryByText(porTextoCompleto('S/319/mes'))).not.toBeInTheDocument();
+  });
+
+  it('sin los campos nuevos (backend viejo) la pantalla no cambia', () => {
+    // Retrocompat: el front puede deployarse antes que el backend.
+    quoteOffer.mockRejectedValue(new Error('sin cotización'));
+    renderView(
+      conBaseVigente({
+        equipmentMonthlyPayment: null,
+        preexistingAddonsMonthlyPayment: null,
+        currentMonthlyPayment: null,
+      }),
+    );
+
+    // La de siempre: la congelada menos los deltas de los add-ons (190 - 15).
+    expect(terminos().getByText(porTextoCompleto('S/175/mes'))).toBeInTheDocument();
+    expect(terminos().queryByText(/Incluye S\//i)).not.toBeInTheDocument();
+    // Y nunca un NaN en pantalla.
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+  });
+
+  it('una oferta que CAMBIA el equipo sigue mostrando la cuota de la oferta', () => {
+    // La cuota vigente es la del equipo viejo: en un cambio de equipo mostrarla
+    // sería el número de lo que deja de tener.
+    quoteOffer.mockRejectedValue(new Error('sin cotización'));
+    const conCambio = {
+      ...conBaseVigente(),
+      requestedProduct: {
+        id: 9,
+        variant_id: null,
+        name: 'Laptop HP 15-fd0026la',
+        slug: 'hp-15-fd0026la',
+        image_url: null,
+        monthly_price: 210,
+      },
+    } as unknown as OfferView;
+
+    renderView(conCambio);
+
+    expect(terminos().getByText(porTextoCompleto('S/175/mes'))).toBeInTheDocument();
+    expect(terminos().queryByText(porTextoCompleto('S/220/mes'))).not.toBeInTheDocument();
+    expect(terminos().queryByText(/Incluye S\//i)).not.toBeInTheDocument();
   });
 });
