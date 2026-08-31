@@ -42,6 +42,17 @@ export interface LeadPrefill {
   institution_type?: string | null;
   sede_id?: number | null;
   sede_name?: string | null;
+
+  /**
+   * Socio que empujó este lead (`a365`). No es un dato de la persona: es quién
+   * nos la trajo, lo mismo que ya viaja en `utm_campaign`. El formulario lo usa
+   * para destapar los campos propios de ese socio en landings que comparte con
+   * el tráfico orgánico.
+   *
+   * Opcional por la misma razón que institución y sede: el backend que lo sirve
+   * puede ser anterior al frontend que lo lee.
+   */
+  partner_code?: string | null;
 }
 
 /**

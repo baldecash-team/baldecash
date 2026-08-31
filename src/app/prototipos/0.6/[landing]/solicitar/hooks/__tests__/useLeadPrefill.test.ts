@@ -272,6 +272,30 @@ describe('calcularPrellenado', () => {
 
     expect(updates).toEqual([]);
   });
+
+  it('escribe partner_lead con el codigo del socio', () => {
+    const updates = calcularPrellenado(
+      { ...LEAD, partner_code: 'a365' },
+      pasos('partner_lead'),
+      vacio,
+    );
+
+    expect(updates).toContainEqual(
+      expect.objectContaining({ fieldId: 'partner_lead', value: 'a365' }),
+    );
+  });
+
+  it('manda partner_lead al submit aunque el form no lo declare', () => {
+    const updates = calcularPrellenado(
+      { ...LEAD, partner_code: 'a365' },
+      pasos('first_name'),
+      vacio,
+    );
+
+    expect(updates).toContainEqual(
+      expect.objectContaining({ fieldId: 'partner_lead', value: 'a365', hidden: true }),
+    );
+  });
 });
 
 describe('captura del alk', () => {
