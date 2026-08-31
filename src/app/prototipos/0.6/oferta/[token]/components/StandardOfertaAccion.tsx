@@ -207,6 +207,19 @@ export function StandardOfertaAccion({
     analytics.track('offer_standard_addon_toggle', { offer_code: offer.offerCode, addon_id: id });
   }, [droppedIds, analytics, offer.offerCode]);
 
+  // Modalidad de la oferta (WEB-04). Se calcula ACÁ ARRIBA porque la usan tres
+  // cosas: la cuota base (acá abajo), el título de la oferta y la confirmación
+  // de aceptación (BAL-3471). Las tres modalidades se distinguen con lo que ya
+  // viaja:
+  //   accesorios → `offer_type='upsell'` (la "Oferta con Accesorios" de admin2);
+  //                se mira también la lista, porque es la que manda en el resto
+  //                de la pantalla (ver `_client_options` en el backend);
+  //   equipo     → el backend manda `requested_product` SOLO cuando la oferta
+  //                cambia de equipo;
+  //   plazo      → lo que queda: mismo equipo, otras condiciones.
+  const esOfertaDeAccesorios = (info?.offerType ?? '') === 'upsell' || addons.length > 0;
+  const req = offer.requestedProduct;
+
   // Cuota del equipo solo: la total menos TODOS los deltas. Sobre esa base se
   // suman los que quedan marcados, así el número de arriba y las filas de
   // abajo siempre cuentan la misma historia.
@@ -217,9 +230,32 @@ export function StandardOfertaAccion({
   const keptDelta = togglables
     .filter((a) => isKept(a.id))
     .reduce((sum, a) => sum + a.monthlyDelta, 0);
+
+  // ── Cuota base VIGENTE (campos nuevos del backend, 2026-08-30) ─────────
+  // `currentMonthlyPayment` es lo que la solicitud paga HOY: equipo vigente +
+  // los accesorios que YA tiene colgados. Esos preexistentes no se listan como
+  // ítems (el catálogo del link ya los excluye): van horneados en la base, así
+  // que no se pueden desmarcar — desde esta página el cliente solo AGREGA.
+  // Cada add-on que marca sube la base: 200 + 20 = 220, y uno de 15 → 235.
+  //
+  // La cuota congelada de la oferta (`monthlyPayment`) sale del precio de
+  // lista GLOBAL del catálogo y no del que el cliente pidió: el hero decía
+  // S/224 cuando la solicitud vigente es 253 + 35 = 288 (caso 120107).
+  //
+  // Solo manda en la oferta de ACCESORIOS, sobre el MISMO equipo y en la
+  // combinación con la que se armó: una oferta que cambia el equipo (`req`) o
+  // el plazo/inicial tiene por definición otra cuota que la vigente, y ahí el
+  // número correcto sigue siendo el de la oferta. Sin los campos nuevos
+  // (backend viejo) todo cae al cálculo de siempre: la página no cambia.
+  const preexistentesMonthly = info?.preexistingAddonsMonthlyPayment ?? 0;
+  const baseVigente = info?.currentMonthlyPayment ?? null;
+  const usaBaseVigente =
+    baseVigente != null && esOfertaDeAccesorios && !req && showAddonAmounts;
+
   // Estimación local, para que el número reaccione al instante al marcar.
-  const estimado =
-    equipoMonthly != null && shownMonthly != null
+  const estimado = usaBaseVigente
+    ? baseVigente + keptDelta
+    : equipoMonthly != null && shownMonthly != null
       ? (droppedIds.length ? equipoMonthly + keptDelta : shownMonthly)
       : shownMonthly;
 
@@ -253,7 +289,16 @@ export function StandardOfertaAccion({
   // pagar" seguía mostrando el monto con TODOS los accesorios, contradiciendo
   // la cuota de arriba.
   const vigente = quoted && quoted.key === selectionKey ? quoted.option : null;
-  const cuotaConSeleccion = vigente ? vigente.monthlyPayment : estimado;
+  // Con la base vigente manda la suma local: `/quote` cotiza sobre el
+  // `total_price` CONGELADO de la oferta, así que devuelve la cuota del número
+  // viejo (224 + lo marcado) y no la que la solicitud va a quedar pagando
+  // (288 + lo marcado, que es lo que el backend deja al aceptar). El resto de
+  // las cifras —inicial, total, TEA/TCEA— siguen saliendo de la cotización.
+  const cuotaConSeleccion = usaBaseVigente
+    ? estimado
+    : vigente
+      ? vigente.monthlyPayment
+      : estimado;
 
   const addonAbierto = useMemo(
     () => addons.find((a) => a.id === addonAbiertoId) ?? null,
@@ -342,18 +387,6 @@ export function StandardOfertaAccion({
   const handleVerDetalle = useCallback(() => {
     analytics.track('offer_standard_detail_click', { offer_code: offer.offerCode });
   }, [analytics, offer.offerCode]);
-
-  // Modalidad de la oferta (WEB-04). Se calcula ACÁ ARRIBA porque la usan dos
-  // pantallas: el título de la oferta y la confirmación de aceptación
-  // (BAL-3471). Las tres se distinguen con lo que ya viaja:
-  //   accesorios → `offer_type='upsell'` (la "Oferta con Accesorios" de admin2);
-  //                se mira también la lista, porque es la que manda en el resto
-  //                de la pantalla (ver `_client_options` en el backend);
-  //   equipo     → el backend manda `requested_product` SOLO cuando la oferta
-  //                cambia de equipo;
-  //   plazo      → lo que queda: mismo equipo, otras condiciones.
-  const esOfertaDeAccesorios = (info?.offerType ?? '') === 'upsell' || addons.length > 0;
-  const req = offer.requestedProduct;
 
   // Confirmación de aceptación — mismo componente "¡Felicidades!" que el
   // Caso 4/5 (sin equipo anterior: acá no hay cambio, solo aceptación).
@@ -624,11 +657,11 @@ export function StandardOfertaAccion({
             Tu nueva cuota
           </div>
           <dl className="divide-y" style={{ borderColor: OFERTA_COLORS.border }}>
-            {shownMonthly != null ? (
+            {cuotaVigente != null ? (
               <div className="flex items-baseline justify-between px-3.5 py-2.5">
                 <dt className="text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>Cuota</dt>
                 <dd className="text-[15px] font-bold" style={{ color: OFERTA_COLORS.primary }}>
-                  S/{Math.round(cuotaConSeleccion ?? shownMonthly)}{cuotaSuffix(frecuencia)}
+                  S/{Math.round(cuotaVigente)}{cuotaSuffix(frecuencia)}
                 </dd>
               </div>
             ) : null}
@@ -658,6 +691,19 @@ export function StandardOfertaAccion({
               </div>
             ) : null}
           </dl>
+          {/* Los accesorios que la solicitud YA tiene no son una fila que se
+              pueda marcar ni desmarcar: viven adentro de la cuota base. Sin
+              esta línea, el cliente ve una cuota más alta que la de su equipo
+              y no sabe de dónde sale. */}
+          {usaBaseVigente && preexistentesMonthly > 0 ? (
+            <div
+              className="border-t px-3.5 py-2 text-[11px]"
+              style={{ borderColor: OFERTA_COLORS.border, color: OFERTA_COLORS.textSoft }}
+            >
+              Incluye S/{Math.round(preexistentesMonthly)}{cuotaSuffix(frecuencia)} de los
+              accesorios que ya tienes en tu solicitud.
+            </div>
+          ) : null}
           {((vigente?.tea ?? shownTea) != null || (vigente?.tcea ?? shownTcea) != null) ? (
             <div className="px-3.5 py-2 text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
               {(vigente?.tea ?? shownTea) != null ? <>TEA {vigente?.tea ?? shownTea}%</> : null}
