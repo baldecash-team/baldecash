@@ -577,6 +577,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
             agreementData={heroData.agreementData}
             institutionBranding={heroData.institutionBranding}
             showInstitutionLogo={landingConfig.layout.show_agreement_logo}
+            showMinQuota={landingConfig.features.show_hero_min_quota}
             landing={slug}
             previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
             previewKey={previewKey}

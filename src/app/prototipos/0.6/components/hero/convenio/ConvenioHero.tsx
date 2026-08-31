@@ -26,6 +26,11 @@ interface ConvenioHeroProps {
   agreementData: AgreementData;
   landing: string;
   primaryColor?: string;
+  /**
+   * Preset `hero-quota-off` (BAL-3477). false = sin el recuadro «Cuotas desde»,
+   * aunque haya monto.
+   */
+  showMinQuota?: boolean;
 }
 
 export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
@@ -33,6 +38,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   agreementData,
   landing,
   primaryColor,
+  showMinQuota,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
@@ -161,7 +167,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
             </p>
 
             {/* Price highlight */}
-            {heroContent.minQuota > 0 && (
+            {showMinQuota !== false && heroContent.minQuota > 0 && (
               <div className="bg-white/10 backdrop-blur rounded-xl p-3 sm:p-4 mb-5 sm:mb-6 inline-block max-w-full">
                 <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
                 <p className="text-3xl sm:text-4xl font-bold text-white font-['Baloo_2',_sans-serif]">
