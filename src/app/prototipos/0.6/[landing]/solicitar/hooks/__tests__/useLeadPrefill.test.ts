@@ -283,6 +283,10 @@ describe('calcularPrellenado', () => {
     expect(updates).toContainEqual(
       expect.objectContaining({ fieldId: 'partner_lead', value: 'a365' }),
     );
+    // El form SI declara el campo: no debe llevar `hidden` (eso es exclusivo
+    // del caso de abajo, donde el wizard no lo pide). Sin este assert, los
+    // dos tests pasarian igual aunque partner_lead viniera siempre `hidden`.
+    expect(updates.find(u => u.fieldId === 'partner_lead')).not.toHaveProperty('hidden', true);
   });
 
   it('manda partner_lead al submit aunque el form no lo declare', () => {
