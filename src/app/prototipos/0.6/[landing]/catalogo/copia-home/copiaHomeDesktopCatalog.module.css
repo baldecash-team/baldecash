@@ -66,7 +66,8 @@
 /* ---- Sidebar de filtros ---- */
 .side {
   background: var(--card); border-radius: var(--radio); box-shadow: var(--sombra); padding: 22px;
-  position: sticky; top: calc(var(--header-total-height, 6.5rem) + 20px);
+  /* + la franja de referido mientras está a la vista: el header fijo arranca ahí. */
+  position: sticky; top: calc(var(--header-total-height, 6.5rem) + var(--referral-banner-offset, 0px) + 20px);
 }
 .side h3 { font-family: 'Baloo 2', var(--font-baloo), sans-serif; font-weight: 700; font-size: 18px; color: var(--navy); margin-bottom: 18px; }
 .fgroup { margin-bottom: 22px; }

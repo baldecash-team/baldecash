@@ -637,11 +637,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
           {/* Right Column - Pricing (Sticky).
               top offset tracks --header-total-height + --catalog-secondary-height
-              so it stays correctly positioned regardless of promo banner state. */}
+              so it stays correctly positioned regardless of promo banner state,
+              plus --referral-banner-offset while the referral banner is on screen
+              (the fixed header starts that much lower). */}
           <div
             className="order-2 lg:order-2 lg:sticky space-y-6"
             style={{
-              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
+              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + var(--referral-banner-offset, 0px) + 0.5rem)',
             }}
           >
             {/* Refurbished Info Banner */}
