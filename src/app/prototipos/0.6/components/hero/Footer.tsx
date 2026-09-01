@@ -14,6 +14,7 @@ import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 import Image from 'next/image';
 
 
@@ -242,6 +243,19 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
       {isGamer && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${PURPLE}, ${CYAN}, ${PURPLE}, transparent)`, opacity: 0.3 }} />
       )}
+      {/*
+        La franja legal se engancha acá y no en cada pantalla del recorrido: el
+        pie es lo único que la landing, la calculadora y los cuatro pasos de la
+        solicitud montan por igual. Colgada de las seis pantallas, el día que se
+        agregue una séptima el aviso falta justo ahí y nadie lo nota.
+
+        Va dentro del `footer` y no encima para no reindentar el archivo entero
+        por un elemento: la franja trae su propio fondo, así que se dibuja igual.
+
+        No sale nada cuando la landing no tiene aviso, que es el caso de todas
+        menos titulación.
+      */}
+      <AvisoLegal landing={landing} variante="pie" />
       {/* Newsletter Section - Only render if newsletter is enabled */}
       {newsletterConfig?.enabled && !isGamer && (
         <div style={{ backgroundColor: '#4654CD' }}>

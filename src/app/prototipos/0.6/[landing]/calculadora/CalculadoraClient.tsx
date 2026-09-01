@@ -25,6 +25,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Landmark, Info, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { routes } from '../../utils/routes';
 import { simularCalculadora, type SimulacionFinanciamiento } from './api/simuladorApi';
@@ -281,6 +282,15 @@ export function CalculadoraClient() {
           <p className="mx-auto max-w-xl px-2 text-sm sm:text-base md:text-lg text-neutral-600">
             {perfil.subtitulo}
           </p>
+
+          {/*
+            El aviso se repite acá aunque la franja del pie ya lo lleve: esta es
+            la pantalla donde se elige el financiamiento, y el descargo tiene
+            que estar a la vista al elegirlo, no a un scroll de distancia.
+          */}
+          <div className="mt-3">
+            <AvisoLegal landing={landing} variante="suelto" />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
