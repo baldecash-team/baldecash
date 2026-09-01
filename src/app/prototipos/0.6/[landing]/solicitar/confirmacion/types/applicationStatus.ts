@@ -28,6 +28,8 @@ export interface ApplicationStatusData {
   // Products array (multiple products support)
   products?: Array<{
     name: string;
+    /** Tipo del producto: 'laptop', 'celular', 'efectivo'… */
+    type?: string | null;
     brand?: string | null;
     image: string | null;
     quantity: number;

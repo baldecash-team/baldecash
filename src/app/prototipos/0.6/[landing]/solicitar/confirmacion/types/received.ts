@@ -19,6 +19,14 @@ export interface VariantInfo {
 
 export interface ProductItem {
   name: string;
+  /**
+   * Tipo del producto tal como lo informa la solicitud (`laptop`, `efectivo`…).
+   *
+   * Sirve para saber qué se está mostrando. Un préstamo del riel de efectivo
+   * corre sobre un producto del catálogo y hereda su marca, así que sin esto no
+   * hay forma de distinguirlo de un equipo.
+   */
+  type?: string;
   brand?: string;
   image: string;
   quantity: number;

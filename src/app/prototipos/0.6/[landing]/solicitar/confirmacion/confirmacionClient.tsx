@@ -138,6 +138,7 @@ function buildReceivedData(
   // Mapear productos desde API (v0.6.1: incluye variant info y initial payment)
   const products = applicationData?.products?.map((p) => ({
     name: p.name,
+    type: p.type || undefined,
     brand: p.brand || undefined,
     image: p.image || '',
     quantity: p.quantity || 1,
