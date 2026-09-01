@@ -16,6 +16,7 @@ import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicita
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { HeroOverlay } from './common/HeroOverlay';
 import { HeroImageCta } from './common/HeroImageCta';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
@@ -60,6 +61,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
 
+  /**
+   * Condiciones que hay que aceptar antes de la calculadora, si la landing las
+   * tiene. Va acá y no solo en el hero de convenio: `titulo-senati` NO es una
+   * landing de convenio (no tiene acuerdo), así que se pinta con este hero.
+   */
+  const compuerta = useCompuertaLegal(normalizedLanding);
+
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {
     if (!href) return '#';
@@ -96,9 +104,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     return href.includes('#');
   };
 
-  // Handle CTA click - external links in new tab, anchors with smooth scroll
-  const handleCtaClick = () => {
-    tracker?.track('hero_cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
+  // Navigation - external links in new tab, anchors with smooth scroll
+  const navegar = () => {
     if (isExternalLink(ctaUrl)) {
       window.open(ctaUrl, '_blank', 'noopener,noreferrer');
     } else if (isAnchorLink(ctaUrl)) {
@@ -125,6 +132,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     } else {
       router.push(ctaUrl);
     }
+  };
+
+  const handleCtaClick = () => {
+    tracker?.track('hero_cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
+    // La compuerta envuelve la navegación entera y no la reemplaza: si la landing
+    // no tiene condiciones para este destino, `navegar` corre tal cual. El
+    // seguimiento queda afuera porque el clic ocurrió igual.
+    compuerta.pedirPaso(ctaUrl, navegar);
   };
 
   // BAL-2782: el switch del admin apaga textos y overlay, y la imagen toma el
@@ -287,6 +302,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
         </div>
       )}
+
+      <CompuertaLegal {...compuerta} />
     </section>
   );
 };
