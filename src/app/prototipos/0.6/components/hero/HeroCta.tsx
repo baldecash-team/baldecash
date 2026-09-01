@@ -13,6 +13,7 @@ import type { HeroCtaProps } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { safeExternalUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 
 const WhatsAppIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -27,6 +28,9 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
+
+  /** El segundo acceso a la calculadora en las landings que no son de convenio. */
+  const compuerta = useCompuertaLegal(normalizedLanding);
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string | undefined, fallback: string): string => {
@@ -87,6 +91,12 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
     });
     onCtaClick?.();
 
+    // Igual que en el hero: la compuerta envuelve la navegación y no la
+    // reemplaza. Sin condiciones para este destino, `navegar` corre tal cual.
+    compuerta.pedirPaso(catalogUrl, navegarAlCatalogo);
+  };
+
+  const navegarAlCatalogo = () => {
     if (isExternalLink(catalogUrl)) {
       // External - open in new tab
       window.open(catalogUrl, '_blank', 'noopener,noreferrer');
@@ -173,6 +183,8 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
         className="text-xs sm:text-sm text-neutral-400 text-center [&_p]:inline [&_strong]:font-bold [&_em]:italic"
         dangerouslySetInnerHTML={{ __html: data?.responseTime || '' }}
       />
+
+      <CompuertaLegal {...compuerta} />
     </div>
   );
 };
