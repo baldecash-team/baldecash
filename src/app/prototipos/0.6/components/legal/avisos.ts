@@ -17,11 +17,45 @@
  * que no mostrarlo.
  */
 
+/**
+ * Condición que la compuerta pone a la vista antes de dejar avanzar.
+ *
+ * Cada una arranca con una frase en negrita porque son tres párrafos que se
+ * leen de un vistazo o no se leen: el resaltado es lo que queda si la persona
+ * solo barre la lista.
+ */
+export interface CondicionCompuerta {
+  destacado: string;
+  cuerpo: string;
+}
+
+/**
+ * Compuerta que se interpone antes de armar el financiamiento.
+ *
+ * No es el mismo texto que el descargo del recorrido, y no es una repetición:
+ * el descargo acompaña y se puede ignorar, la compuerta corta el paso y pide un
+ * acto. Por eso su copia es propia y está redactada como condiciones, no como
+ * aclaración al pie.
+ */
+export interface CompuertaLegal {
+  titulo: string;
+  subtitulo: string;
+  condiciones: CondicionCompuerta[];
+  textoAceptar: string;
+  textoCancelar: string;
+}
+
 export interface AvisoLegalLanding {
   /** Primera frase, en negrita. Es la que tiene que leerse aunque el resto no. */
   destacado: string;
   /** El cuerpo del descargo, sin el destacado. */
   cuerpo: string;
+  /**
+   * Condiciones que hay que aceptar antes de entrar a la calculadora.
+   *
+   * Sin esto, la landing no interpone nada y el botón lleva directo.
+   */
+  compuerta?: CompuertaLegal;
   /**
    * Cierre que solo se agrega en el hero.
    *
@@ -48,6 +82,33 @@ const AVISO_TITULACION_SENATI: AvisoLegalLanding = {
     'para SENATI. Todo reclamo o consulta sobre el financiamiento se atiende exclusivamente por ' +
     'los canales de BaldeCash.',
   cierreHero: 'El trámite de titulación se sigue rigiendo por las condiciones de SENATI.',
+  compuerta: {
+    titulo: 'Antes de continuar',
+    subtitulo: 'Lee y acepta las condiciones de este financiamiento.',
+    condiciones: [
+      {
+        destacado: 'El financiamiento es un acuerdo entre BaldeCash y el estudiante.',
+        cuerpo:
+          'Lo otorga Balde K S.A.C. (BaldeCash), empresa supervisada por la SBS. SENATI no ' +
+          'otorga, garantiza ni avala el crédito, no interviene en la evaluación, el desembolso ' +
+          'ni la cobranza, y no responde por el incumplimiento de pago del estudiante.',
+      },
+      {
+        destacado: 'El proceso de titulación no cambia.',
+        cuerpo:
+          'Se sigue rigiendo íntegramente por las normas y los plazos de SENATI. Para obtener el ' +
+          'título, el estudiante debe cumplir con todos los requisitos de la institución: haber ' +
+          'concluido sus cursos, no tener pagos pendientes con SENATI y las demás condiciones ' +
+          'que esta establezca.',
+      },
+      {
+        destacado: 'BaldeCash solo financia el pago del derecho de titulación.',
+        cuerpo: 'No interviene, gestiona ni acelera el trámite académico ante SENATI.',
+      },
+    ],
+    textoAceptar: 'Estoy de acuerdo y continúo',
+    textoCancelar: 'Cancelar',
+  },
 };
 
 const AVISOS_POR_LANDING: Record<string, AvisoLegalLanding> = {
