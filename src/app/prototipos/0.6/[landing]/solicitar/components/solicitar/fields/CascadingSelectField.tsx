@@ -47,6 +47,7 @@ import { SelectInput } from './SelectInput';
  */
 const SEDES_SIN_CONVENIO: Record<string, number> = {
   'lead-flujo-normal': 16, // SENATI
+  'lead-flujo-ucv': 32, // UCV — clon de captación A365 para UCV (Ate/Callao)
 };
 
 interface CascadingSelectFieldProps {
