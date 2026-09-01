@@ -183,6 +183,16 @@ export interface PerfilCalculadora {
    * completo.
    */
   soloCronograma?: boolean;
+  /**
+   * El resumen no repite el importe financiado.
+   *
+   * En titulación el monto es fijo y ya se muestra en grande junto al
+   * formulario, así que la fila del resumen lo dice dos veces en la misma
+   * pantalla. Es por perfil y no por componente por la misma razón que
+   * `soloCronograma`: matrícula corre el mismo resumen, está en producción y
+   * nadie pidió cambiarlo.
+   */
+  ocultarMontoFinanciado?: boolean;
   /** `null` cuando la elige la persona en la pantalla de selección. */
   institucionFija: InstitucionFija | null;
   /** A dónde vuelve el enlace del pie. */
@@ -323,6 +333,7 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
     },
   },
   soloCronograma: true,
+  ocultarMontoFinanciado: true,
   ayudaMontos: (
     <>
       Ingresa EL MONTO exacto correspondiente a tu proceso de titulación en SENATI, incluyendo los

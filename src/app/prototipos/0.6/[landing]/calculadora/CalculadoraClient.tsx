@@ -507,10 +507,12 @@ export function CalculadoraClient() {
               </p>
 
               <dl className="mt-5 space-y-2 border-t border-neutral-100 pt-4">
-                <div className="flex justify-between text-sm">
-                  <dt className="text-neutral-600">Monto financiado</dt>
-                  <dd className="font-medium text-neutral-800">{formatearSoles(total)}</dd>
-                </div>
+                {!perfil.ocultarMontoFinanciado && (
+                  <div className="flex justify-between text-sm">
+                    <dt className="text-neutral-600">Monto financiado</dt>
+                    <dd className="font-medium text-neutral-800">{formatearSoles(total)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <dt className="text-neutral-600">Plazo</dt>
                   <dd className="font-medium text-neutral-800">{plazo} meses</dd>
