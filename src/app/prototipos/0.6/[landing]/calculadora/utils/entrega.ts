@@ -66,6 +66,37 @@ export function sembrarImportesEnFormulario(
   montos: MontosMatricula,
   campos: CampoMontoPerfil[]
 ): void {
+  fusionarEnFormulario(landing, valoresDeImportes(montos, campos));
+}
+
+/**
+ * Los importes con el código bajo el que viaja cada uno.
+ *
+ * Sale aparte porque la entrega completa siembra los importes y el dato de
+ * texto de una sola vez, y armar el mismo mapa en dos lugares es la forma
+ * cómoda de que un día uno de los dos deje de convertir a cadena.
+ */
+function valoresDeImportes(
+  montos: MontosMatricula,
+  campos: CampoMontoPerfil[]
+): Record<string, string> {
+  const valores: Record<string, string> = {};
+  for (const campo of campos) {
+    // El formulario guarda todo como texto, así que el importe viaja como
+    // cadena y conserva sus decimales.
+    valores[campo.codigoFormulario] = String(montos[campo.clave]);
+  }
+  return valores;
+}
+
+/**
+ * Mezcla valores en el estado guardado del formulario, sin pisar el resto.
+ *
+ * Una sola escritura para todo lo que se siembra: cada llamada es un ciclo de
+ * leer, modificar y volver a escribir la misma clave, y partirlo en dos deja
+ * una ventana en la que lo segundo se arma sobre lo que leyó lo primero.
+ */
+function fusionarEnFormulario(landing: string, valores: Record<string, string>): void {
   const clave = getFormularioKey(landing);
 
   let data: Record<string, { value?: unknown }> = {};
@@ -77,13 +108,8 @@ export function sembrarImportesEnFormulario(
     data = {};
   }
 
-  for (const campo of campos) {
-    // El formulario guarda todo como texto, así que el importe viaja como
-    // cadena y conserva sus decimales.
-    data[campo.codigoFormulario] = {
-      ...(data[campo.codigoFormulario] ?? {}),
-      value: String(montos[campo.clave]),
-    };
+  for (const [codigo, value] of Object.entries(valores)) {
+    data[codigo] = { ...(data[codigo] ?? {}), value };
   }
 
   try {
@@ -164,6 +190,14 @@ export interface ParametrosEntrega {
   montos: MontosMatricula;
   /** Los importes que pide la landing, con el código donde viaja cada uno. */
   campos: CampoMontoPerfil[];
+  /**
+   * Dato de texto que la landing pide junto al importe, si pide alguno.
+   *
+   * No entra en el producto ni en los datos de matrícula: no describe lo que se
+   * financia, solo viaja al formulario. Por eso llega ya resuelto —código y
+   * valor— en vez del perfil entero.
+   */
+  campoTexto?: { codigoFormulario: string; valor: string };
   plazoMeses: number;
   cuotaMensual: number;
   institucionId: number | null;
@@ -186,6 +220,7 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
     productoNombre,
     montos,
     campos,
+    campoTexto,
     plazoMeses,
     cuotaMensual,
     institucionId,
@@ -237,8 +272,12 @@ export function entregarASolicitar(parametros: ParametrosEntrega): SelectedProdu
 
   // Los importes van además al estado del formulario, que es lo único que viaja
   // con la solicitud. La clave de arriba la lee esta pantalla; esta otra, el
-  // asistente.
-  sembrarImportesEnFormulario(landing, montos, campos);
+  // asistente. El dato de texto va en la misma escritura, y no en una segunda:
+  // las dos leen y reescriben la misma clave.
+  fusionarEnFormulario(landing, {
+    ...valoresDeImportes(montos, campos),
+    ...(campoTexto ? { [campoTexto.codigoFormulario]: campoTexto.valor } : {}),
+  });
 
   return producto;
 }

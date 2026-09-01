@@ -13,9 +13,9 @@
  * Lo hace `sanearMontoEscrito`.
  */
 
-import React, { useEffect, useId, useRef, useState } from 'react';
-import { Info, X } from 'lucide-react';
+import React, { useId, useState } from 'react';
 import { redondearSoles, sanearMontoEscrito } from '../types/calculadora';
+import { AyudaDesplegable } from './AyudaDesplegable';
 import type { AyudaCampo } from '../perfiles';
 
 interface CampoMontoProps {
@@ -37,37 +37,7 @@ export function CampoMonto({ etiqueta, valor, placeholder, onCambio, ayuda }: Ca
    * campo a la mitad de una palabra es peor que dejarlo.
    */
   const [texto, setTexto] = useState(valor === 0 ? '' : String(valor));
-
-  /**
-   * La ayuda se abre a pedido, nunca sola.
-   *
-   * Explica cómo llegar a una pantalla ajena —el sistema de la institución— y
-   * no todo el mundo la necesita: abrirla de entrada le tapa el campo a quien
-   * ya tiene el número a mano.
-   */
-  const [ayudaAbierta, setAyudaAbierta] = useState(false);
-  const contenedorRef = useRef<HTMLDivElement>(null);
   const idCampo = useId();
-
-  // Cerrar con Escape y al tocar fuera. Sin esto, en un teléfono el panel queda
-  // abierto tapando el campo y la única salida es volver a tocar el botón.
-  useEffect(() => {
-    if (!ayudaAbierta) return;
-
-    const alTocarFuera = (evento: MouseEvent) => {
-      if (!contenedorRef.current?.contains(evento.target as Node)) setAyudaAbierta(false);
-    };
-    const alTeclear = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') setAyudaAbierta(false);
-    };
-
-    document.addEventListener('mousedown', alTocarFuera);
-    document.addEventListener('keydown', alTeclear);
-    return () => {
-      document.removeEventListener('mousedown', alTocarFuera);
-      document.removeEventListener('keydown', alTeclear);
-    };
-  }, [ayudaAbierta]);
 
   const alEscribir = (entrada: string) => {
     const saneado = sanearMontoEscrito(entrada);
@@ -80,67 +50,22 @@ export function CampoMonto({ etiqueta, valor, placeholder, onCambio, ayuda }: Ca
   };
 
   return (
-    <div ref={contenedorRef}>
-      {/*
-        La etiqueta y el botón de ayuda son hermanos, y el `label` envuelve solo
-        al texto: dentro del `label`, tocar el botón además le daría el foco al
-        campo, y el panel se abriría con el teclado encima.
-      */}
-      <div className="relative mb-1.5 flex items-center gap-1.5">
-        <label htmlFor={idCampo} className="text-sm font-medium text-neutral-700">
-          {etiqueta}
-        </label>
+    <div>
+      <AyudaDesplegable idCampo={idCampo} etiqueta={etiqueta} tituloAyuda={ayuda?.titulo}>
+        {/* Lista numerada y no un párrafo: son pasos a seguir, en orden,
+            en otra pantalla. Corridos se leen como una sola instrucción. */}
+        <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-neutral-600">
+          {ayuda?.pasos.map((paso) => (
+            <li key={paso}>{paso}</li>
+          ))}
+        </ol>
 
-        {ayuda && (
-          <>
-            <button
-              type="button"
-              onClick={() => setAyudaAbierta((previo) => !previo)}
-              aria-expanded={ayudaAbierta}
-              aria-label={ayuda.titulo}
-              className="inline-flex cursor-pointer text-neutral-400 transition-colors hover:text-[var(--color-primary)]"
-            >
-              <Info className="h-4 w-4" />
-            </button>
-
-            {ayudaAbierta && (
-              <div
-                role="dialog"
-                aria-label={ayuda.titulo}
-                className="absolute left-0 top-7 z-20 w-[min(20rem,calc(100vw-3rem))] rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_12px_32px_rgba(20,22,50,0.18)]"
-              >
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <p className="text-sm font-semibold leading-snug text-neutral-800">
-                    {ayuda.titulo}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setAyudaAbierta(false)}
-                    aria-label="Cerrar ayuda"
-                    className="-mr-1 -mt-1 shrink-0 cursor-pointer rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {/* Lista numerada y no un párrafo: son pasos a seguir, en orden,
-                    en otra pantalla. Corridos se leen como una sola instrucción. */}
-                <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-neutral-600">
-                  {ayuda.pasos.map((paso) => (
-                    <li key={paso}>{paso}</li>
-                  ))}
-                </ol>
-
-                {ayuda.recomendacion && (
-                  <p className="mt-3 rounded-lg bg-[#eef0ff] px-3 py-2 text-xs font-medium leading-relaxed text-[var(--color-primary)]">
-                    {ayuda.recomendacion}
-                  </p>
-                )}
-              </div>
-            )}
-          </>
+        {ayuda?.recomendacion && (
+          <p className="mt-3 rounded-lg bg-[#eef0ff] px-3 py-2 text-xs font-medium leading-relaxed text-[var(--color-primary)]">
+            {ayuda.recomendacion}
+          </p>
         )}
-      </div>
+      </AyudaDesplegable>
 
       <div className="flex items-center rounded-xl border border-neutral-200 bg-white px-3 transition-colors focus-within:border-[var(--color-primary)]">
         <span className="mr-2 text-sm font-semibold text-[var(--color-primary)]">S/</span>

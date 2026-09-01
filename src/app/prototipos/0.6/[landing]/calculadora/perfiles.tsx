@@ -69,6 +69,72 @@ export interface CampoMontoPerfil {
 }
 
 /**
+ * Ayuda del campo de texto.
+ *
+ * Es un párrafo con un enlace y no una lista de pasos como `AyudaCampo`: acá no
+ * se guía por una pantalla ajena, se dice de dónde sale el dato y se ofrece el
+ * documento que lo muestra. Forzar las dos formas en una sola estructura daría
+ * un campo `pasos` con un solo elemento, que se dibuja numerado sin que haya
+ * nada que numerar.
+ */
+export interface AyudaTexto {
+  titulo: string;
+  /** Nodo y no cadena: lleva resaltados. */
+  cuerpo: React.ReactNode;
+  /** Documento que se abre en otra pestaña. */
+  enlace?: { texto: string; url: string };
+}
+
+/**
+ * Dato de texto que la landing pide junto al importe.
+ *
+ * No entra en la simulación —no cambia la cuota ni el cronograma—, pero sin él
+ * no se puede continuar: viaja al formulario y es lo que después liga la
+ * solicitud con el trámite en la institución.
+ */
+export interface CampoTextoPerfil {
+  /**
+   * Código del campo del banco donde este dato viaja al formulario.
+   *
+   * Mismo contrato que en `CampoMontoPerfil`: tiene que coincidir EXACTO con el
+   * código del banco de campos. Si el paso del asistente sigue mostrando ese
+   * mismo campo, la persona lo va a encontrar completo.
+   */
+  codigoFormulario: string;
+  etiqueta: string;
+  placeholder: string;
+  /**
+   * Tope de caracteres.
+   *
+   * Es un límite de forma del código que emite la institución, no una regla de
+   * negocio nuestra: cuando la institución lo cambia, cambia acá y en la
+   * validación del campo en el banco.
+   */
+  maxLongitud: number;
+  /** Aclaración bajo el campo, al lado del contador. */
+  nota: string;
+  ayuda?: AyudaTexto;
+}
+
+/**
+ * Copia de la tarjeta de importe cuando la configuración lo deja fijo.
+ *
+ * Solo la copia. Que el monto sea fijo NO se declara acá: se deduce de que la
+ * configuración de la landing traiga el mismo mínimo y el mismo máximo. Un
+ * interruptor propio en el perfil sería un segundo lugar donde decir lo mismo,
+ * y el día que discrepen la pantalla pediría un importe que el backend rechaza,
+ * o mostraría fijo un número que en realidad admite un rango.
+ */
+export interface MontoFijoPerfil {
+  /** Encabezado de la tarjeta, en lugar de `preguntaMontos`. */
+  titulo: string;
+  /** Rótulo sobre la cifra. */
+  etiqueta: string;
+  /** Aclaración bajo la cifra: de dónde sale ese número. */
+  nota: string;
+}
+
+/**
  * Institución que la landing da por elegida.
  *
  * Cuando está, la pantalla de selección no forma parte del recorrido: se entra
@@ -97,8 +163,26 @@ export interface PerfilCalculadora {
   preguntaMontos: string;
   /** Los importes que se piden. Uno o dos; el que no se pide viaja en cero. */
   campos: CampoMontoPerfil[];
+  /**
+   * Copia de la tarjeta para cuando la configuración fije el importe.
+   *
+   * Sin esto, una landing con monto fijo cae en los textos genéricos. Con esto y
+   * sin monto fijo en la configuración, no se usa: manda la configuración.
+   */
+  montoFijo?: MontoFijoPerfil;
+  /** Dato de texto que se pide junto al importe. Sin él, no se dibuja ninguno. */
+  campoTexto?: CampoTextoPerfil;
   /** Texto al pie de los importes. Es nodo y no cadena: lleva resaltados. */
   ayudaMontos: React.ReactNode;
+  /**
+   * El detalle del financiamiento se reduce al cronograma.
+   *
+   * Producto lo pidió para titulación: en esa pantalla quieren que se vea
+   * cuándo y cuánto se paga, y nada más. Es por perfil y no por componente
+   * porque matrícula corre el mismo modal y está en producción con el desglose
+   * completo.
+   */
+  soloCronograma?: boolean;
   /** `null` cuando la elige la persona en la pantalla de selección. */
   institucionFija: InstitucionFija | null;
   /** A dónde vuelve el enlace del pie. */
@@ -179,10 +263,17 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
   productoSlug: 'título-senati-1233',
   encabezado: 'Pagamos directo a Senati',
   titulo: () => 'Financiamiento de Titulación — SENATI',
+  // Sirve con el importe fijo y con el importe a mano: no promete ninguna de
+  // las dos cosas. El campo, cuando se pide, ya dice qué se pide.
   subtitulo:
-    'Ingresa el monto correspondiente a tu proceso de titulación y elige cómo prefieres pagarlo. ' +
-    'Evaluaremos tu solicitud antes de confirmarla.',
+    'Elige en cuántos meses quieres pagar tu titulación. Evaluaremos tu solicitud antes de ' +
+    'confirmarla.',
   preguntaMontos: '¿Cuánto necesitas financiar para tu titulación?',
+  montoFijo: {
+    titulo: 'Monto de tu titulación',
+    etiqueta: 'Monto a financiar',
+    nota: 'Monto fijo del derecho de titulación en SENATI',
+  },
   campos: [
     {
       clave: 'matricula',
@@ -190,22 +281,48 @@ const PERFIL_TITULACION_SENATI: PerfilCalculadora = {
       etiqueta: 'Ingresa el monto de titulación',
       etiquetaResumen: 'Monto del título',
       placeholder: 'Ej. 350.50',
-      // El monto y el número de recibo salen de la MISMA pantalla de SINFO, así
-      // que la ayuda vive acá, donde se pide el primero de los dos. El paso del
-      // asistente que pide el recibo no repite el cierre: ahí la persona ya está
-      // completando la solicitud, y decirle que guarde el número llega tarde.
+      // Esta ayuda solo se ve si la configuración deja de traer el monto fijo,
+      // que es el camino de respaldo. Explica dónde está el importe y nada más:
+      // el número de ticket ahora se pide en esta misma pantalla, con su propia
+      // ayuda, así que mandar a anotarlo desde acá sobra.
       ayuda: {
-        titulo: '¿Dónde encuentro el monto y el número de recibo?',
+        titulo: '¿Dónde encuentro el monto?',
         pasos: [
           'Entra a la página de alumnos de Senati.',
           'En Inicio, ve a la opción Páginas administrativas.',
           'Desde ahí entra a SINFO.',
-          'Inicia el proceso de titulación: si eres apto, el sistema te muestra el monto a pagar y un número de recibo alfanumérico.',
+          'Inicia el proceso de titulación: si eres apto, el sistema te muestra el monto a pagar.',
         ],
-        recomendacion: 'Guarda ese número: lo vas a necesitar para completar tu solicitud.',
       },
     },
   ],
+  /**
+   * El identificador del banco es `degree_receipt_number` (id 92), que ahí se
+   * llama "Número de recibo". En pantalla se lee "ticket" porque es como lo
+   * nombra SENATI en su propio trámite, y es lo que la persona tiene delante.
+   */
+  campoTexto: {
+    codigoFormulario: 'degree_receipt_number',
+    etiqueta: 'Número de Ticket de Título',
+    placeholder: 'Ej. TKT00123456',
+    maxLongitud: 16,
+    nota: 'Hasta 16 caracteres alfanuméricos. Es el número que SENATI genera para tu trámite de titulación.',
+    ayuda: {
+      titulo: '¿Dónde consigo el número de ticket del título?',
+      cuerpo: (
+        <>
+          Lo genera SENATI al iniciar el trámite del Título a Nombre de la Nación. Revisa la guía
+          oficial de SENATI: en el <strong className="font-semibold text-neutral-800">paso 4</strong>{' '}
+          se visualiza el ticket.
+        </>
+      ),
+      enlace: {
+        texto: 'Abrir la guía de SENATI (PDF)',
+        url: '/docs/guia-titulacion-senati.pdf',
+      },
+    },
+  },
+  soloCronograma: true,
   ayudaMontos: (
     <>
       Ingresa EL MONTO exacto correspondiente a tu proceso de titulación en SENATI, incluyendo los
