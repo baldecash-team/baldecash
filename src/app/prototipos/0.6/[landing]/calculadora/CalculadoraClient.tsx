@@ -570,7 +570,17 @@ export function CalculadoraClient() {
         </div>
       </div>
 
-      <Footer data={footerData} landing={landing} agreementData={agreementData} />
+      {/*
+        Sin la franja del pie: esta pantalla ya muestra el descargo bajo el
+        título, al lado de la decisión, que es donde tiene que estar. Dejar las
+        dos lo repite en la misma vista.
+      */}
+      <Footer
+        data={footerData}
+        landing={landing}
+        agreementData={agreementData}
+        mostrarAvisoLegal={false}
+      />
 
       <DetalleFinanciamientoModal
         abierto={modalAbierto}

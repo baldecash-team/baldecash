@@ -12,6 +12,14 @@
  * de la base—, así que atarse a su rótulo significa que el día que alguien lo
  * renombre el paso queda abierto sin que nadie lo note. El maquetado de
  * referencia hace justamente eso: engancha por el texto del botón.
+ *
+ * Y el destino se compara por CAMINO, no como cadena. La primera versión usaba
+ * igualdad exacta y la compuerta quedó muda en producción: el destino de esta
+ * landing está cargado como `https://www.baldecash.com/titulo-senati/calculadora/`
+ * y se comparaba contra una ruta relativa sin barra final. La forma en que está
+ * escrito el enlace es una decisión de quien carga el dato —y con
+ * `trailingSlash` encendido ni siquiera la barra es estable—; lo único que
+ * importa es a dónde apunta.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -51,9 +59,62 @@ function recordarAceptacion(landing: string): void {
   }
 }
 
+/** Sin barra final: el proyecto corre con `trailingSlash`, así que la misma ruta llega escrita de las dos formas. */
+function sinBarraFinal(ruta: string): string {
+  return ruta.replace(/\/+$/, '') || '/';
+}
+
+/** Un host es el mismo con `www.` o sin él. */
+function hostComparable(host: string): string {
+  return host.replace(/^www\./i, '').toLowerCase();
+}
+
+/**
+ * El camino de un destino, o `null` si no se puede afirmar que sea de este sitio.
+ *
+ * Los destinos NO llegan en una sola forma. Los configura quien edita la
+ * landing y salen tal cual de la base: los hay relativos (`calculadora`), ya
+ * resueltos (`/titulo-senati/calculadora`) y absolutos con dominio
+ * (`https://www.baldecash.com/titulo-senati/calculadora/`). Compararlos como
+ * cadenas es lo que dejó la compuerta muda: la forma escrita es una decisión de
+ * quien carga el dato, y lo que hay que mirar es a dónde apunta.
+ *
+ * Un destino a otro dominio devuelve `null` aunque el camino coincida: no es
+ * nuestra calculadora, y detener a alguien camino a un sitio ajeno con nuestras
+ * condiciones no tiene sentido.
+ */
+function caminoDe(destino: string): string | null {
+  if (!/^https?:\/\//i.test(destino)) {
+    // Relativo: alcanza con quitarle lo que no es camino.
+    return destino.split(/[?#]/)[0] || null;
+  }
+
+  // Sin navegador no hay con qué comparar el host. Es el render del servidor, y
+  // ahí no hay ningún clic que interceptar.
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const url = new URL(destino);
+    if (hostComparable(url.host) !== hostComparable(window.location.host)) return null;
+    return url.pathname;
+  } catch {
+    return null;
+  }
+}
+
 interface Compuerta {
   condiciones: Condiciones | null;
   abierta: boolean;
+  /**
+   * Si este destino tiene condiciones pendientes.
+   *
+   * Se expone porque hay accesos que no navegan igual segun la forma del
+   * destino —un ancla con un enlace absoluto navega sola, uno relativo lo
+   * empuja el enrutador—, y esos necesitan saber si van a tener que
+   * interceptar ANTES de decidir como. Sin esto habria que interceptar todo y
+   * reconstruir a mano la navegacion que el navegador ya hacia bien.
+   */
+  aplicaA: (destino: string) => boolean;
   /**
    * Envuelve una navegación. Si la compuerta no aplica —la landing no tiene
    * condiciones, el destino no es la calculadora, o ya se aceptaron— llama a
@@ -76,17 +137,26 @@ export function useCompuertaLegal(landing: string): Compuerta {
    */
   const avanzarRef = useRef<(() => void) | null>(null);
 
+  const aplicaA = useCallback(
+    (destino: string) => {
+      if (!condiciones || yaAceptada(landing)) return false;
+      const camino = caminoDe(destino);
+      if (camino === null) return false;
+      return sinBarraFinal(camino) === sinBarraFinal(routes.calculadora(landing));
+    },
+    [condiciones, landing]
+  );
+
   const pedirPaso = useCallback(
     (destino: string, avanzar: () => void) => {
-      const esLaCalculadora = destino === routes.calculadora(landing);
-      if (!condiciones || !esLaCalculadora || yaAceptada(landing)) {
+      if (!aplicaA(destino)) {
         avanzar();
         return;
       }
       avanzarRef.current = avanzar;
       setAbierta(true);
     },
-    [condiciones, landing]
+    [aplicaA]
   );
 
   const aceptar = useCallback(() => {
@@ -106,7 +176,7 @@ export function useCompuertaLegal(landing: string): Compuerta {
     avanzarRef.current = null;
   }, []);
 
-  return { condiciones, abierta, pedirPaso, aceptar, cancelar };
+  return { condiciones, abierta, aplicaA, pedirPaso, aceptar, cancelar };
 }
 
 /**

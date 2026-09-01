@@ -71,9 +71,19 @@ interface FooterProps {
   theme?: 'gamer';
   /** When theme="gamer": current dark/light variant (default reads localStorage) */
   gamerTheme?: 'dark' | 'light';
+  /**
+   * Franja con el descargo legal de la landing sobre el pie. Encendida por
+   * omisión: es el pie el que la lleva a todas las pantallas del recorrido.
+   *
+   * Se apaga en la pantalla que ya muestra el descargo por su cuenta. El aviso
+   * es uno por pantalla: repetido dos veces deja de leerse como una condición
+   * y empieza a leerse como un error de la página, que es exactamente lo que
+   * no le sirve a nadie en un texto legal.
+   */
+  mostrarAvisoLegal?: boolean;
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, institutionBranding, showInstitutionLogo = true, onCatalogClick, logoOverride, theme, gamerTheme }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, institutionBranding, showInstitutionLogo = true, onCatalogClick, logoOverride, theme, gamerTheme, mostrarAvisoLegal = true }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
   const isGamer = theme === 'gamer';
@@ -255,7 +265,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
         No sale nada cuando la landing no tiene aviso, que es el caso de todas
         menos titulación.
       */}
-      <AvisoLegal landing={landing} variante="pie" />
+      {mostrarAvisoLegal && <AvisoLegal landing={landing} variante="pie" />}
       {/* Newsletter Section - Only render if newsletter is enabled */}
       {newsletterConfig?.enabled && !isGamer && (
         <div style={{ backgroundColor: '#4654CD' }}>
