@@ -207,8 +207,14 @@ export function CompuertaLegal({ condiciones, abierta, aceptar, cancelar }: Comp
       onClick={cancelar}
       role="presentation"
     >
+      {/*
+        `text-left` explícito: el diálogo se monta dentro del componente que lo
+        dispara, y uno de esos —la sección de cierre de la portada— vive en un
+        contenedor centrado. Sin esto, hereda ese centrado y las condiciones
+        salen alineadas al medio, con las viñetas separadas de su texto.
+      */}
       <div
-        className="max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-7"
+        className="max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 text-left shadow-2xl sm:p-7"
         onClick={(evento) => evento.stopPropagation()}
         role="dialog"
         aria-modal="true"

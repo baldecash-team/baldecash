@@ -17,6 +17,7 @@ import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { HeroOverlay } from './common/HeroOverlay';
 import { HeroImageCta } from './common/HeroImageCta';
 import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
@@ -302,6 +303,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
         </div>
       )}
+
+      {/*
+        Anclado al pie del hero y no debajo, que es donde estaba.
+
+        El hero mide una pantalla exacta —`100vh` menos el encabezado—, así que
+        una franja puesta a continuación arranca justo en el pliegue y hay que
+        desplazar para verla. Y este aviso existe para que se lea sin buscarlo.
+
+        Va encima de la imagen, como en el maquetado. No necesita apartarse del
+        sujeto de la foto: la franja trae fondo propio y opaco, así que se lee
+        igual sea cual sea la imagen que cargue la landing.
+      */}
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <AvisoLegal landing={normalizedLanding} variante="hero" />
+      </div>
 
       <CompuertaLegal {...compuerta} />
     </section>

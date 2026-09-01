@@ -21,6 +21,7 @@ import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicita
 import { HeroOverlay } from '../common/HeroOverlay';
 import { HeroImageCta } from '../common/HeroImageCta';
 import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 
 interface ConvenioHeroProps {
   heroContent: HeroContent;
@@ -219,6 +220,13 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           </div>
         </div>
       )}
+
+      {/* Anclado al pie del hero por el mismo motivo que en `HeroBanner`: la
+          sección mide una pantalla exacta, y debajo el aviso queda siempre
+          fuera de vista. */}
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <AvisoLegal landing={normalizedLanding} variante="hero" />
+      </div>
 
       <CompuertaLegal {...compuerta} />
     </div>

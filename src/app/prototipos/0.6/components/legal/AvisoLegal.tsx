@@ -37,9 +37,19 @@ export function AvisoLegal({ landing, variante }: Props) {
     variante === 'hero' && aviso.cierreHero ? `${aviso.cuerpo} ${aviso.cierreHero}` : aviso.cuerpo;
 
   if (variante === 'suelto') {
+    /*
+      Sin el destacado, a diferencia de las franjas.
+
+      Esta variante va bajo el título de la calculadora, que ya dice de qué
+      institución se habla. Abrir ahí con «El financiamiento no involucra a
+      SENATI» encabeza la pantalla con una negación de la institución con la
+      que la persona cree estar tratando, justo antes de pedirle que arme su
+      financiamiento. El descargo dice lo mismo empezando por quién sí otorga
+      el crédito.
+    */
     return (
       <p className="mx-auto max-w-4xl px-2 text-[11px] leading-snug text-neutral-400">
-        <span className="font-semibold text-neutral-500">{aviso.destacado}</span> {cuerpo}
+        {cuerpo}
       </p>
     );
   }
