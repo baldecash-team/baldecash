@@ -198,12 +198,27 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                       href={linkUrl}
                       onClick={(e) => {
                         tracker?.track('cta_click', { cta_name: link.text, target: linkUrl, source: 'convenio_quick_links' });
+
+                        // Con condiciones pendientes se intercepta SIEMPRE, sea
+                        // el enlace relativo o absoluto: esta landing configura
+                        // el suyo con el dominio completo, y dejar que el ancla
+                        // navegue sola con ese formato es lo que tenia muda a la
+                        // compuerta. Al aceptar se navega a mano, que es lo
+                        // mismo que hacia el ancla.
+                        if (compuerta.aplicaA(linkUrl)) {
+                          e.preventDefault();
+                          compuerta.pedirPaso(linkUrl, () => {
+                            window.location.href = linkUrl;
+                          });
+                          return;
+                        }
+
+                        // Sin compuerta, el comportamiento de siempre: los
+                        // enlaces del propio sitio los empuja el enrutador y los
+                        // externos salen por el href del ancla.
                         if (!linkUrl.startsWith('http')) {
                           e.preventDefault();
-                          // Igual que en el hero: la compuerta envuelve la
-                          // navegación y no la reemplaza. Un enlace externo no
-                          // pasa por acá y sale por el href del ancla.
-                          compuerta.pedirPaso(linkUrl, () => router.push(linkUrl));
+                          router.push(linkUrl);
                         }
                       }}
                       className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
