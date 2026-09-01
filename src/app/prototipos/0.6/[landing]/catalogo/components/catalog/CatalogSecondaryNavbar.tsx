@@ -64,6 +64,26 @@ interface CatalogSecondaryNavbarProps {
   showCart?: boolean;
 }
 
+/**
+ * Dónde arranca la barra: justo debajo del header fijo.
+ *
+ * `--header-total-height` es lo que mide el stack fijo (preview + promo +
+ * navbar) y lo publica `Navbar`. Pero el header no siempre arranca en `top: 0`:
+ * mientras la franja de referido está a la vista, baja `--referral-banner-offset`
+ * píxeles (ver `components/referral/ReferralBanner`). Sin sumar lo mismo acá la
+ * barra quedaba 44 px arriba de donde debía y el navbar la tapaba; la variable
+ * vuelve a 0 sola cuando la franja termina de salir con el scroll.
+ *
+ * Con `hidePromoBanner` se descuenta el promo a mano, porque el Navbar lo sigue
+ * contando en el total aunque esta pantalla no lo pinte.
+ */
+export function topDeLaBarra(hidePromoBanner: boolean): string {
+  const header = hidePromoBanner
+    ? 'var(--header-total-height, 6.5rem) - var(--promo-banner-height, 0px)'
+    : 'var(--header-total-height, 6.5rem)';
+  return `calc(${header} + var(--referral-banner-offset, 0px))`;
+}
+
 export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   hidePromoBanner = false,
   fullWidth = false,
@@ -96,12 +116,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   // accounts for the preview banner via Navbar.tsx.
   void previewBannerOffsetProp;
 
-  // Position below navbar using the --header-total-height CSS variable exposed
-  // by the Navbar component (preview banner + promo banner + main navbar).
-  // If `hidePromoBanner` is true, subtract the promo banner height manually.
-  const topPosition = hidePromoBanner
-    ? `calc(var(--header-total-height, 6.5rem) - var(--promo-banner-height, 0px))`
-    : `var(--header-total-height, 6.5rem)`;
+  const topPosition = topDeLaBarra(hidePromoBanner);
 
   // Expose this navbar's own height as a CSS variable so downstream layouts
   // (sticky sidebar, main content padding) can compensate for it dynamically.

@@ -731,12 +731,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         <div className="flex items-start">
           {/* Floating Filter Card - Sticky — top offset follows the dynamic
               header height (preview + promo + main navbar + secondary navbar)
-              via CSS variables exposed by each component. */}
+              via CSS variables exposed by each component, plus the referral
+              banner while it is still on screen (`--referral-banner-offset`):
+              the fixed header starts that much lower, so must this. */}
           <aside
             id="onboarding-filters-desktop"
             className="hidden lg:block w-[320px] p-6 pt-0 self-start sticky"
             style={{
-              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
+              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + var(--referral-banner-offset, 0px) + 0.5rem)',
             }}
           >
             <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
@@ -744,7 +746,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 className="p-4 overflow-y-auto lg:pb-32"
                 style={{
                   maxHeight:
-                    'calc(100vh - var(--header-total-height, 6.5rem) - var(--catalog-secondary-height, 3.5rem) - 2rem)',
+                    'calc(100vh - var(--header-total-height, 6.5rem) - var(--catalog-secondary-height, 3.5rem) - var(--referral-banner-offset, 0px) - 2rem)',
                 }}
               >
                 {/* Header */}

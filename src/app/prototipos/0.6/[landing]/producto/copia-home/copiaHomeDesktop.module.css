@@ -44,7 +44,8 @@
    caja de compra (más alta). Solo desktop. */
 .detGal {
   position: sticky;
-  top: calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 20px);
+  /* + la franja de referido mientras está a la vista: el header fijo arranca ahí. */
+  top: calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + var(--referral-banner-offset, 0px) + 20px);
   align-self: start;
 }
 .detFull { margin-top: 20px; }

@@ -152,11 +152,12 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
           </div>
 
           {/* Right Column - Motivational Card (Desktop only).
-              sticky top offset follows --header-total-height with a small extra gap. */}
+              sticky top offset follows --header-total-height with a small extra gap,
+              plus --referral-banner-offset while the referral banner is on screen. */}
           <div className="hidden lg:block">
             <div
               className="sticky"
-              style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}
+              style={{ top: 'calc(var(--header-total-height, 6.5rem) + var(--referral-banner-offset, 0px) + 1rem)' }}
             >
               <MotivationalCard currentStep={currentStep} motivational={motivational} firstName={firstName} />
             </div>
