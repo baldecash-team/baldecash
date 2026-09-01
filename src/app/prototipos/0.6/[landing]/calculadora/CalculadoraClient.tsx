@@ -25,6 +25,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Landmark, Info, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { routes } from '../../utils/routes';
 import { simularCalculadora, type SimulacionFinanciamiento } from './api/simuladorApi';
@@ -41,6 +42,7 @@ import {
   type MontosMatricula,
 } from './types/calculadora';
 import { CampoMonto } from './components/CampoMonto';
+import { CampoTexto } from './components/CampoTexto';
 import { perfilDe } from './perfiles';
 
 /** Milisegundos de espera antes de simular, para no pedir en cada tecla. */
@@ -69,7 +71,14 @@ export function CalculadoraClient() {
    */
   const perfil = perfilDe(landing);
 
-  const [montos, setMontos] = useState<MontosMatricula>(MONTOS_VACIOS);
+  const [montosEscritos, setMontosEscritos] = useState<MontosMatricula>(MONTOS_VACIOS);
+  /**
+   * El código que la landing pide junto al importe, si pide alguno.
+   *
+   * Vive acá y no en el perfil: el perfil describe qué se pide, no lo que la
+   * persona escribió.
+   */
+  const [textoCampo, setTextoCampo] = useState('');
   /**
    * El plazo elegido, o null mientras la persona no toca nada.
    *
@@ -86,16 +95,54 @@ export function CalculadoraClient() {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const total = useMemo(() => totalAFinanciar(montos), [montos]);
-  const hayMontos = montosValidos(montos);
-
   /**
    * Máximo que financia la landing. Sale de la configuración, nunca de una
    * constante acá: el mismo número lo valida el backend contra esa misma fuente,
    * y tenerlo escrito en dos lados garantiza que algún día digan cosas distintas.
    */
   const topeMaximo = calculadora?.amount.max ?? 0;
+
+  /**
+   * El importe cuando la configuración no deja nada que elegir, o `null`.
+   *
+   * Que un producto tenga monto único es una propiedad de su configuración —el
+   * mínimo y el máximo son el mismo número—, no de su copia. Deducirlo de ahí y
+   * no de un interruptor en el perfil evita el caso en que las dos fuentes
+   * discrepan: la pantalla pidiendo un importe que el backend va a rechazar, o
+   * mostrando como fijo un número que en realidad admite un rango.
+   *
+   * Como efecto útil, la pantalla sigue funcionando mientras la configuración
+   * todavía no fija el monto: dibuja el campo de siempre.
+   */
+  const montoFijado =
+    calculadora && calculadora.amount.min > 0 && calculadora.amount.min === calculadora.amount.max
+      ? calculadora.amount.min
+      : null;
+
+  /**
+   * Los importes que se simulan: los escritos, o el fijo de la configuración.
+   *
+   * El fijo va al primer importe que declara el perfil y el otro queda en cero,
+   * que es un valor válido del modelo: lo que se financia es la suma.
+   */
+  const montos = useMemo<MontosMatricula>(() => {
+    if (montoFijado === null) return montosEscritos;
+    const clave = perfil.campos[0]?.clave ?? 'matricula';
+    return { ...MONTOS_VACIOS, [clave]: montoFijado };
+  }, [montoFijado, montosEscritos, perfil]);
+
+  const total = useMemo(() => totalAFinanciar(montos), [montos]);
+  const hayMontos = montosValidos(montos);
   const excedido = excedeTope(montos, topeMaximo);
+
+  /**
+   * El dato de texto está completo, o la landing no pide ninguno.
+   *
+   * Bloquea el paso a la solicitud pero NO la simulación: la cuota no depende de
+   * él, y esconder el resultado hasta tenerlo obliga a ir a buscar un código
+   * antes de saber si el financiamiento conviene.
+   */
+  const textoCompleto = !perfil.campoTexto || textoCampo.length > 0;
 
   const plazos = calculadora?.terms ?? [];
   const plazo =
@@ -206,7 +253,12 @@ export function CalculadoraClient() {
   const simulandoVisible = mostrarResultado && simulando;
 
   const puedeContinuar =
-    mostrarResultado && !simulandoVisible && !!simulacionVisible && !errorVisible && !!calculadora;
+    mostrarResultado &&
+    !simulandoVisible &&
+    !!simulacionVisible &&
+    !errorVisible &&
+    !!calculadora &&
+    textoCompleto;
 
   const alContinuar = useCallback(() => {
     if (!puedeContinuar || !simulacion || !calculadora) return;
@@ -219,6 +271,9 @@ export function CalculadoraClient() {
       productoNombre: perfil.productoNombre,
       montos,
       campos: perfil.campos,
+      campoTexto: perfil.campoTexto
+        ? { codigoFormulario: perfil.campoTexto.codigoFormulario, valor: textoCampo }
+        : undefined,
       plazoMeses: simulacion.plazoMeses,
       cuotaMensual: simulacion.cuotaMensual,
       institucionId: institucion.id,
@@ -232,7 +287,17 @@ export function CalculadoraClient() {
     }
 
     router.push(routes.solicitar(landing));
-  }, [puedeContinuar, simulacion, calculadora, landing, montos, institucion, perfil, router]);
+  }, [
+    puedeContinuar,
+    simulacion,
+    calculadora,
+    landing,
+    montos,
+    textoCampo,
+    institucion,
+    perfil,
+    router,
+  ]);
 
   // Mientras la guarda redirige no se pinta nada: evita el parpadeo de la
   // pantalla vacía y el título sin universidad.
@@ -281,69 +346,117 @@ export function CalculadoraClient() {
           <p className="mx-auto max-w-xl px-2 text-sm sm:text-base md:text-lg text-neutral-600">
             {perfil.subtitulo}
           </p>
+
+          {/*
+            El aviso se repite acá aunque la franja del pie ya lo lleve: esta es
+            la pantalla donde se elige el financiamiento, y el descargo tiene
+            que estar a la vista al elegirlo, no a un scroll de distancia.
+          */}
+          <div className="mt-3">
+            <AvisoLegal landing={landing} variante="suelto" />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           <div className="space-y-4">
             <section className="rounded-xl border border-neutral-200 bg-white p-5">
               <h2 className="mb-4 text-base font-semibold text-neutral-800">
-                {perfil.preguntaMontos}
+                {montoFijado !== null && perfil.montoFijo
+                  ? perfil.montoFijo.titulo
+                  : perfil.preguntaMontos}
               </h2>
 
-              <div className="space-y-4">
-                {/*
-                  El perfil decide cuántos importes se piden. El que no se pide
-                  queda en cero, que es un valor válido del modelo: lo que se
-                  financia es la suma, y el backend valida esa suma.
-                */}
-                {perfil.campos.map((campo) => (
-                  <CampoMonto
-                    key={campo.clave}
-                    etiqueta={campo.etiqueta}
-                    valor={montos[campo.clave]}
-                    placeholder={campo.placeholder}
-                    ayuda={campo.ayuda}
-                    onCambio={(valor) =>
-                      setMontos((previo) => ({ ...previo, [campo.clave]: valor }))
-                    }
-                  />
-                ))}
+              {montoFijado !== null ? (
+                /*
+                  Sin nada que elegir, el importe se muestra y no se pide. Un
+                  campo de solo lectura con el número adentro invita a tocarlo y
+                  a preguntarse por qué no responde.
+                */
+                <div className="rounded-xl border border-indigo-100 bg-[#eef0ff] px-5 py-5 text-center">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-primary)]">
+                    {perfil.montoFijo?.etiqueta ?? 'Monto a financiar'}
+                  </p>
+                  <p className="mt-1 text-4xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] sm:text-5xl">
+                    {formatearSoles(montoFijado)}
+                  </p>
+                  {perfil.montoFijo?.nota && (
+                    <p className="mt-1.5 text-xs text-neutral-500">{perfil.montoFijo.nota}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/*
+                    El perfil decide cuántos importes se piden. El que no se pide
+                    queda en cero, que es un valor válido del modelo: lo que se
+                    financia es la suma, y el backend valida esa suma.
+                  */}
+                  {perfil.campos.map((campo) => (
+                    <CampoMonto
+                      key={campo.clave}
+                      etiqueta={campo.etiqueta}
+                      valor={montos[campo.clave]}
+                      placeholder={campo.placeholder}
+                      ayuda={campo.ayuda}
+                      onCambio={(valor) =>
+                        setMontosEscritos((previo) => ({ ...previo, [campo.clave]: valor }))
+                      }
+                    />
+                  ))}
 
-                <div
-                  className={`flex items-center justify-between rounded-xl px-4 py-3 ${
-                    excedido ? 'bg-red-50' : 'bg-neutral-50'
-                  }`}
-                >
-                  <span
-                    className={`text-sm font-medium ${
-                      excedido ? 'text-red-700' : 'text-neutral-700'
+                  <div
+                    className={`flex items-center justify-between rounded-xl px-4 py-3 ${
+                      excedido ? 'bg-red-50' : 'bg-neutral-50'
                     }`}
                   >
-                    Monto total a financiar
-                  </span>
-                  <span
-                    className={`text-lg font-bold ${excedido ? 'text-red-700' : 'text-neutral-800'}`}
-                  >
-                    {formatearSoles(total)}
-                  </span>
-                </div>
-
-                {excedido && (
-                  <p className="flex gap-2 text-xs leading-relaxed text-red-700" role="alert">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>
-                      El total supera el máximo de
-                      <strong className="font-semibold"> {formatearSoles(topeMaximo)} </strong>
-                      que podemos financiar. Ajusta los montos para continuar.
+                    <span
+                      className={`text-sm font-medium ${
+                        excedido ? 'text-red-700' : 'text-neutral-700'
+                      }`}
+                    >
+                      Monto total a financiar
                     </span>
-                  </p>
-                )}
-              </div>
+                    <span
+                      className={`text-lg font-bold ${excedido ? 'text-red-700' : 'text-neutral-800'}`}
+                    >
+                      {formatearSoles(total)}
+                    </span>
+                  </div>
 
-              <p className="mt-4 flex gap-2 text-xs leading-relaxed text-neutral-500">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
-                <span>{perfil.ayudaMontos}</span>
-              </p>
+                  {excedido && (
+                    <p className="flex gap-2 text-xs leading-relaxed text-red-700" role="alert">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        El total supera el máximo de
+                        <strong className="font-semibold"> {formatearSoles(topeMaximo)} </strong>
+                        que podemos financiar. Ajusta los montos para continuar.
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/*
+                El dato de texto se pide en la misma tarjeta que el importe: los
+                dos salen del mismo trámite y se copian de la misma pantalla.
+              */}
+              {perfil.campoTexto && (
+                <div className="mt-5">
+                  <CampoTexto
+                    campo={perfil.campoTexto}
+                    valor={textoCampo}
+                    onCambio={setTextoCampo}
+                  />
+                </div>
+              )}
+
+              {/* La ayuda explica cómo llegar al importe exacto. Con el importe
+                  fijo no hay a qué llegar. */}
+              {montoFijado === null && (
+                <p className="mt-4 flex gap-2 text-xs leading-relaxed text-neutral-500">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
+                  <span>{perfil.ayudaMontos}</span>
+                </p>
+              )}
             </section>
 
             <section className="rounded-xl border border-neutral-200 bg-white p-5">
@@ -428,7 +541,7 @@ export function CalculadoraClient() {
                 disabled={!simulacionVisible}
                 className="mt-4 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-700 transition-colors hover:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
-                Ver detalles
+                {perfil.soloCronograma ? 'Ver cronograma' : 'Ver detalles'}
               </button>
 
               <button
@@ -466,6 +579,7 @@ export function CalculadoraClient() {
         montos={montos}
         campos={perfil.campos}
         notaCronograma={perfil.notaCronograma}
+        soloCronograma={perfil.soloCronograma}
       />
     </div>
   );

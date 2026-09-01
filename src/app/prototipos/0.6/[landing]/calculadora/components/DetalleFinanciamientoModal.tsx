@@ -13,6 +13,10 @@
  *
  * El cronograma va en UNA sola columna. Se había partido en dos, pero el
  * maquetado lo muestra entero.
+ *
+ * Con `soloCronograma` queda nada más que la tabla de cuotas. Es lo que pidió
+ * producto para titulación, y por eso el desglose y las cláusulas viven en
+ * componentes propios: esconderlos tiene que ser una condición de una línea.
  */
 
 import React, { useEffect } from 'react';
@@ -31,6 +35,17 @@ interface Props {
   campos: CampoMontoPerfil[];
   /** Nota al pie sobre cuándo se fija el cronograma. */
   notaCronograma: string;
+  /**
+   * Deja solo el cronograma: sin desglose, sin tasas, sin cláusulas y sin nota.
+   *
+   * Lo pidió producto para titulación. Va como bandera y no como componente
+   * aparte porque la tabla de cuotas es la misma, y duplicarla para recortarle
+   * lo de alrededor deja dos cronogramas que hay que corregir de a dos.
+   *
+   * Lo que se esconde NO desaparece del financiamiento: la TEA, la TCEA y las
+   * cláusulas siguen viajando en la simulación y se firman en el contrato.
+   */
+  soloCronograma?: boolean;
 }
 
 const MESES_ABREVIADOS = [
@@ -73,6 +88,95 @@ function Clausula({ titulo, children }: { titulo: string; children: React.ReactN
   );
 }
 
+/**
+ * Desglose del financiamiento: importes, cuotas y tasas.
+ *
+ * Sale del cuerpo del modal para que esconderlo sea una condición de una línea
+ * y no un bloque de cuarenta indentado un nivel más adentro.
+ */
+function SeccionDetalles({
+  simulacion,
+  montos,
+  campos,
+}: Pick<Props, 'simulacion' | 'montos' | 'campos'>) {
+  return (
+    <section>
+      <h4 className="mb-3 text-[1.05rem] font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]">
+        Detalles
+      </h4>
+      <table className="w-full border-collapse text-[0.84rem]">
+        <tbody>
+          {campos.map((campo) => (
+            <Fila
+              key={campo.clave}
+              etiqueta={campo.etiquetaResumen}
+              valor={formatearSoles(montos[campo.clave])}
+            />
+          ))}
+          {/*
+            Con un solo importe, el total financiado es esa misma cifra:
+            la fila repetiria el numero de arriba y se leeria como si
+            fueran dos conceptos distintos.
+          */}
+          {campos.length > 1 && (
+            <Fila
+              etiqueta="Monto total financiado"
+              valor={formatearSoles(simulacion?.montoFinanciado)}
+              destacado
+            />
+          )}
+          <Fila
+            etiqueta="Número de cuotas"
+            valor={simulacion ? String(simulacion.plazoMeses) : '—'}
+          />
+          <Fila etiqueta="Cuota mensual" valor={formatearSoles(simulacion?.cuotaMensual)} destacado />
+          <Fila etiqueta="TEA" valor={formatearTasa(simulacion?.tea)} />
+          <Fila etiqueta="TCEA" valor={formatearTasa(simulacion?.tcea)} />
+        </tbody>
+      </table>
+
+      <p className="mt-4 rounded-[10px] border-l-4 border-[#05DAD3] bg-[#eef0ff] px-4 py-3 text-[0.88rem] font-bold text-neutral-800">
+        *Cantidad total a pagar: {formatearSoles(simulacion?.totalAPagar)}
+      </p>
+    </section>
+  );
+}
+
+/** Penalidades y comisiones. Sale acá por el mismo motivo que `SeccionDetalles`. */
+function SeccionClausulas({ simulacion }: Pick<Props, 'simulacion'>) {
+  const comisionDesglose = simulacion?.comisionDesglose ?? [];
+
+  return (
+    <div className="mt-7 grid gap-6 border-t border-[#eef0f8] pt-6 md:grid-cols-2">
+      <Clausula titulo="Cláusulas de penalidad">
+        Ante el retraso de pago de una cuota, existirá un interés moratorio de{' '}
+        {formatearSoles(simulacion?.moraDiaria)} por cada día de atraso en el que incurra el
+        cliente.
+      </Clausula>
+      <Clausula titulo="Gastos incluidos en la cuota">
+        {comisionDesglose.length > 0 ? (
+          <>
+            La cuota mensual incluye {formatearSoles(simulacion?.comisionMensual)} de comisiones
+            operativas:
+            <ul className="mt-1.5 space-y-0.5">
+              {comisionDesglose.map((concepto) => (
+                <li key={concepto.concepto} className="flex justify-between gap-3">
+                  <span>{concepto.concepto}</span>
+                  <span className="font-semibold text-neutral-700">
+                    {formatearSoles(concepto.monto)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          'La cuota mensual incluye las comisiones operativas del financiamiento.'
+        )}
+      </Clausula>
+    </div>
+  );
+}
+
 export function DetalleFinanciamientoModal({
   abierto,
   onCerrar,
@@ -80,6 +184,7 @@ export function DetalleFinanciamientoModal({
   montos,
   campos,
   notaCronograma,
+  soloCronograma = false,
 }: Props) {
   // Cerrar con Escape y bloquear el scroll de fondo mientras está abierto.
   useEffect(() => {
@@ -100,7 +205,6 @@ export function DetalleFinanciamientoModal({
 
   const cronograma = simulacion?.cronograma ?? [];
   const primerVencimiento = cronograma[0]?.fechaVencimiento;
-  const comisionDesglose = simulacion?.comisionDesglose ?? [];
 
   return (
     <div
@@ -121,7 +225,7 @@ export function DetalleFinanciamientoModal({
               id="titulo-detalle-financiamiento"
               className="text-xl font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]"
             >
-              Detalle de tu financiamiento
+              {soloCronograma ? 'Cronograma de pagos' : 'Detalle de tu financiamiento'}
             </h3>
             <p className="mt-0.5 text-[0.8rem] text-neutral-500">
               {simulacion
@@ -140,46 +244,12 @@ export function DetalleFinanciamientoModal({
         </header>
 
         <div className="overflow-y-auto px-6 py-6 sm:px-8">
-          <div className="grid gap-8 md:grid-cols-2 md:gap-10">
-            <section>
-              <h4 className="mb-3 text-[1.05rem] font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]">
-                Detalles
-              </h4>
-              <table className="w-full border-collapse text-[0.84rem]">
-                <tbody>
-                  {campos.map((campo) => (
-                    <Fila
-                      key={campo.clave}
-                      etiqueta={campo.etiquetaResumen}
-                      valor={formatearSoles(montos[campo.clave])}
-                    />
-                  ))}
-                  {/*
-                    Con un solo importe, el total financiado es esa misma cifra:
-                    la fila repetiria el numero de arriba y se leeria como si
-                    fueran dos conceptos distintos.
-                  */}
-                  {campos.length > 1 && (
-                    <Fila
-                      etiqueta="Monto total financiado"
-                      valor={formatearSoles(simulacion?.montoFinanciado)}
-                      destacado
-                    />
-                  )}
-                  <Fila
-                    etiqueta="Número de cuotas"
-                    valor={simulacion ? String(simulacion.plazoMeses) : '—'}
-                  />
-                  <Fila etiqueta="Cuota mensual" valor={formatearSoles(simulacion?.cuotaMensual)} destacado />
-                  <Fila etiqueta="TEA" valor={formatearTasa(simulacion?.tea)} />
-                  <Fila etiqueta="TCEA" valor={formatearTasa(simulacion?.tcea)} />
-                </tbody>
-              </table>
-
-              <p className="mt-4 rounded-[10px] border-l-4 border-[#05DAD3] bg-[#eef0ff] px-4 py-3 text-[0.88rem] font-bold text-neutral-800">
-                *Cantidad total a pagar: {formatearSoles(simulacion?.totalAPagar)}
-              </p>
-            </section>
+          {/* Sin el desglose al lado, el cronograma no tiene con quién compartir
+              la fila y ocupa el ancho entero. */}
+          <div className={soloCronograma ? '' : 'grid gap-8 md:grid-cols-2 md:gap-10'}>
+            {!soloCronograma && (
+              <SeccionDetalles simulacion={simulacion} montos={montos} campos={campos} />
+            )}
 
             <section>
               <h4 className="mb-3 text-[1.05rem] font-extrabold text-neutral-800 font-['Baloo_2',_sans-serif]">
@@ -220,37 +290,13 @@ export function DetalleFinanciamientoModal({
             </section>
           </div>
 
-          <div className="mt-7 grid gap-6 border-t border-[#eef0f8] pt-6 md:grid-cols-2">
-            <Clausula titulo="Cláusulas de penalidad">
-              Ante el retraso de pago de una cuota, existirá un interés moratorio de{' '}
-              {formatearSoles(simulacion?.moraDiaria)} por cada día de atraso en el que incurra el
-              cliente.
-            </Clausula>
-            <Clausula titulo="Gastos incluidos en la cuota">
-              {comisionDesglose.length > 0 ? (
-                <>
-                  La cuota mensual incluye {formatearSoles(simulacion?.comisionMensual)} de
-                  comisiones operativas:
-                  <ul className="mt-1.5 space-y-0.5">
-                    {comisionDesglose.map((concepto) => (
-                      <li key={concepto.concepto} className="flex justify-between gap-3">
-                        <span>{concepto.concepto}</span>
-                        <span className="font-semibold text-neutral-700">
-                          {formatearSoles(concepto.monto)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                'La cuota mensual incluye las comisiones operativas del financiamiento.'
-              )}
-            </Clausula>
-          </div>
+          {!soloCronograma && <SeccionClausulas simulacion={simulacion} />}
 
-          <p className="mt-4 rounded-[10px] bg-[#eef0ff] px-3.5 py-3 text-[0.74rem] leading-relaxed text-[#3a3f9e]">
-            {notaCronograma}
-          </p>
+          {!soloCronograma && (
+            <p className="mt-4 rounded-[10px] bg-[#eef0ff] px-3.5 py-3 text-[0.74rem] leading-relaxed text-[#3a3f9e]">
+              {notaCronograma}
+            </p>
+          )}
         </div>
       </div>
     </div>

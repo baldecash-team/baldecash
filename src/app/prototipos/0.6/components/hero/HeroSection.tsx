@@ -40,6 +40,7 @@ import { Toast, useToast } from '@/app/prototipos/_shared';
 import { Navbar } from './Navbar';
 import { HeroBanner } from './HeroBanner';
 import { SocialProof } from './SocialProof';
+import { AvisoLegal } from '../legal/AvisoLegal';
 import { HowItWorks } from './HowItWorks';
 import { HeroCta } from './HeroCta';
 import { FaqSection } from './FaqSection';
@@ -293,6 +294,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </section>
             )}
 
+            {/*
+              Debajo del hero y no dentro: el hero es `overflow-hidden` con la
+              imagen en `absolute inset-0`, asi que un parrafo adentro compite
+              con la foto y termina necesitando margenes que dependen de donde
+              este el sujeto de esa foto. Afuera es una franja propia, del ancho
+              de la pantalla, y se lee igual en cualquier landing.
+            */}
+            <AvisoLegal landing={landing} variante="hero" />
+
             {/* Benefits Section */}
             {benefitsData && activeSections.includes('beneficios') && (
               <section id="beneficios" className="scroll-mt-24">
@@ -357,6 +367,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 />
               </section>
             )}
+
+            {/* Mismo aviso que en el recorrido de convenio: la landing lo tiene
+                o no lo tiene, y eso no depende de con qué hero se pinte. */}
+            <AvisoLegal landing={landing} variante="hero" />
 
             {/* Social Proof - Solo mostrar si existe y está activa en navbar */}
             {socialProof && activeSections.includes('convenios') && (
