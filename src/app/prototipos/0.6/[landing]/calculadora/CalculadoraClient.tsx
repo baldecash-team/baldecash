@@ -506,12 +506,13 @@ export function CalculadoraClient() {
                     : 'Ingresa un monto para calcular tu cuota'}
               </p>
 
-              {/*
-                El importe financiado no se repite acá: la tarjeta de los montos
-                ya lo muestra destacado en los dos casos, como recuadro cuando es
-                fijo y como total de la suma cuando se escribe.
-              */}
               <dl className="mt-5 space-y-2 border-t border-neutral-100 pt-4">
+                {!perfil.ocultarMontoFinanciado && (
+                  <div className="flex justify-between text-sm">
+                    <dt className="text-neutral-600">Monto financiado</dt>
+                    <dd className="font-medium text-neutral-800">{formatearSoles(total)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <dt className="text-neutral-600">Plazo</dt>
                   <dd className="font-medium text-neutral-800">{plazo} meses</dd>
