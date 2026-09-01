@@ -118,10 +118,28 @@ function esRutaInterna(pathname: string): boolean {
     // esta línea el rewrite la manda al catch-all [[...slug]] de landings y
     // toda la vinculación por QR devuelve 404 en produccion.
     pathname.startsWith('/inspeccion') ||
-    pathname === '/robots.txt' ||
-    pathname === '/sitemap.xml' ||
-    pathname === '/favicon.ico'
+    esArchivo(pathname)
   );
+}
+
+/**
+ * Un archivo servido desde `public/`, no una landing.
+ *
+ * Va por la forma del camino y no por una lista de carpetas. El slug de una
+ * landing NUNCA lleva un punto —comprobado contra la tabla: cero de las que
+ * existen lo tiene—, así que un último segmento con extensión no puede ser
+ * una landing, y la regla es cierta por construcción en vez de por
+ * mantenimiento.
+ *
+ * Reemplaza a las tres excepciones sueltas que había —`/robots.txt`,
+ * `/sitemap.xml`, `/favicon.ico`—, que son casos particulares de esto mismo.
+ * La lista las nombraba una por una y ese es justo el problema: la guía de
+ * titulación en PDF se publicó bajo `/docs`, nadie agregó la línea, y el
+ * enlace devolvía la página de error en producción.
+ */
+function esArchivo(pathname: string): boolean {
+  const ultimoSegmento = pathname.slice(pathname.lastIndexOf('/') + 1);
+  return ultimoSegmento.includes('.');
 }
 
 /**
