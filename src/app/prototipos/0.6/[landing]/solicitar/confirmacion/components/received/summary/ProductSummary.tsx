@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { ReceivedData } from '../../../types/received';
 import { displayMonths, periodUnitLabel } from '../../../../../../utils/paymentTerm';
 import { formatCuotaDeLanding, landingMuestraCentavos } from '@/app/prototipos/0.6/utils/formatCuota';
+import { TIPO_EFECTIVO } from '../../../../../calculadora/utils/entrega';
 
 interface ProductSummaryProps {
   data: ReceivedData;
@@ -137,7 +138,14 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  {product.brand && (
+                  {/*
+                    Un préstamo no lleva marca. El riel de efectivo corre sobre
+                    un producto del catálogo y hereda la suya —`brand_id` es
+                    obligatorio en la base, no se puede vaciar—, así que sin
+                    esta condición la confirmación de titulación anuncia «ASUS»
+                    y la de matrícula «Acer».
+                  */}
+                  {product.brand && product.type !== TIPO_EFECTIVO && (
                     <p className="text-xs text-neutral-500 uppercase tracking-wide break-words">
                       {product.brand}
                     </p>
