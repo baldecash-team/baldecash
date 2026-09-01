@@ -20,6 +20,7 @@ import { getContrastTextColor, getColorForDarkBg } from '@/app/prototipos/0.6/ut
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { HeroOverlay } from '../common/HeroOverlay';
 import { HeroImageCta } from '../common/HeroImageCta';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 
 interface ConvenioHeroProps {
   heroContent: HeroContent;
@@ -70,6 +71,17 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
 
   const ctaUrl = transformLink(heroContent.primaryCta?.href || 'catalogo');
 
+  /**
+   * Condiciones que hay que aceptar antes de la calculadora, si la landing las
+   * tiene. La compuerta decide sola si aplica al destino; acá no hay ninguna
+   * regla por landing.
+   *
+   * Con el slug normalizado, que es el mismo con el que se arma `ctaUrl`: con
+   * la barra final la ruta de la calculadora saldria con una barra de mas y no
+   * coincidiria nunca con el destino, dejando el paso abierto en silencio.
+   */
+  const compuerta = useCompuertaLegal(normalizedLanding);
+
   // Modo "solo imagen" (BAL-2782): el switch del admin apaga textos y overlay,
   // y la imagen toma el destino del CTA. Es el unico mecanismo: los tres
   // flags sueltos que antes hacian esto por separado ya no existen.
@@ -98,11 +110,16 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
 
   const handleCtaClick = () => {
     tracker?.track('hero_cta_click', { cta_text: heroContent.primaryCta?.text, target: ctaUrl, source: 'convenio_hero' });
-    if (ctaUrl.startsWith('http')) {
-      window.open(ctaUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      router.push(ctaUrl);
-    }
+    // La compuerta envuelve a la navegación entera, no la reemplaza: decide si
+    // hay algo que aceptar antes y, si no lo hay, esto corre tal cual. El
+    // seguimiento queda afuera porque el clic ocurrió igual.
+    compuerta.pedirPaso(ctaUrl, () => {
+      if (ctaUrl.startsWith('http')) {
+        window.open(ctaUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        router.push(ctaUrl);
+      }
+    });
   };
 
   return (
@@ -202,6 +219,8 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           </div>
         </div>
       )}
+
+      <CompuertaLegal {...compuerta} />
     </div>
   );
 };

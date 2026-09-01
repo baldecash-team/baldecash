@@ -18,6 +18,7 @@ import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { safeExternalUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 
 const AVATAR_COLORS = [
   '#4654CD', '#E85D75', '#03DBD0', '#F59E0B', '#8B5CF6',
@@ -62,6 +63,13 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
   const tracker = useEventTrackerOptional();
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
+
+  /**
+   * El segundo acceso a la calculadora desde la portada. Instancia propia y no
+   * compartida con el hero: cada uno abre su diálogo, y lo que se comparte —que
+   * las condiciones ya se aceptaron— viaja por la sesión del navegador.
+   */
+  const compuerta = useCompuertaLegal(normalizedLanding);
 
   const transformLink = (href: string): string => {
     if (!href) return '#';
@@ -192,7 +200,10 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                         tracker?.track('cta_click', { cta_name: link.text, target: linkUrl, source: 'convenio_quick_links' });
                         if (!linkUrl.startsWith('http')) {
                           e.preventDefault();
-                          router.push(linkUrl);
+                          // Igual que en el hero: la compuerta envuelve la
+                          // navegación y no la reemplaza. Un enlace externo no
+                          // pasa por acá y sale por el href del ancla.
+                          compuerta.pedirPaso(linkUrl, () => router.push(linkUrl));
                         }
                       }}
                       className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
@@ -232,6 +243,8 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
           </div>
         </div>
       </div>
+
+      <CompuertaLegal {...compuerta} />
     </section>
   );
 };
