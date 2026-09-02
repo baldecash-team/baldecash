@@ -14,27 +14,26 @@
  *   solo blanco de ~44 px de alto y del ancho de la pantalla, que en móvil es la
  *   diferencia entre un canal que se usa y uno que se mira. El ícono circular
  *   está para que se lea qué va a abrir, no para ser lo único tocable.
- * - NO es `sticky`. Una franja fija le roba altura permanente al viewport móvil,
- *   y la mayor parte del tráfico entra por celular desde el QR. Se ve al entrar
- *   —que es cuando importa— y se va con el scroll; al cambiar de página vuelve.
  * - Va DEBAJO del header fijo —el promo de la institución y la barra de logos—,
  *   no arriba de todo. Lo primero que tiene que leerse al entrar es de quién es
- *   la landing; quién refirió la visita viene después. Antes iba arriba y era el
- *   header el que bajaba para no taparla; ahora el header queda pegado al borde.
+ *   la landing; quién refirió la visita viene después.
+ * - Se queda pegada ahí al hacer scroll: es `fixed`, parte del stack de arriba
+ *   junto con el promo y el navbar. Antes se iba con el scroll para no gastar
+ *   altura de viewport en móvil —la mayor parte del tráfico entra por celular
+ *   desde el QR—, y se cambió a pedido: el canal tiene que estar a mano en el
+ *   momento en que aparece la duda, que es leyendo el precio o llenando el
+ *   formulario, no en los primeros 44 px de scroll. El costo es real y conocido:
+ *   ~44 px menos de pantalla en todo el recorrido.
  *
- *   Eso obliga a un rodeo, porque el header es `fixed` y esta franja vive en el
- *   flujo del documento: su hueco en el flujo son los primeros ~44 px, que el
- *   header tapa enteros, y de ahí se la baja `--header-total-height` con un
- *   `transform`. Correr el flujo —un margen— no serviría: el contenido de la
- *   página ya reserva el alto del header con su propio padding, y sumarlo otra
- *   vez lo empujaría el doble. Con `transform` la franja se dibuja justo entre
- *   el header y el contenido sin tocarle el layout a nadie.
+ *   Ser `fixed` la saca del flujo, y el contenido de las páginas reserva el alto
+ *   del header con su propio padding sin saber nada de ella. Por eso el hueco:
+ *   un div vacío del alto de la franja, arriba de todo —detrás del header, donde
+ *   no se ve—, que devuelve al flujo los píxeles que la franja ya no ocupa. Así
+ *   ninguna página necesita tocar su padding.
  *
- *   Lo que sí sigue empujando es lo que va por debajo de ella: la barra
- *   secundaria del catálogo y las columnas sticky se cuelgan del header y sin
- *   corrección la franja las taparía. Para eso está `--referral-banner-offset`,
- *   que publica cuánto de la franja sigue asomando por debajo del header y llega
- *   a 0 sola cuando termina de meterse detrás con el scroll.
+ *   Y lo que se cuelga del header por debajo de ella —la barra secundaria del
+ *   catálogo, las columnas sticky— sigue leyendo `--referral-banner-offset`, que
+ *   ahora vale su alto de forma permanente en vez de bajar con el scroll.
  * - No se puede cerrar. Antes tenía una X que recordaba el descarte en
  *   `sessionStorage`; se quitó cuando la franja pasó a acompañar todo el
  *   recorrido, porque un descarte en la landing la apagaba también en el
@@ -46,7 +45,7 @@
  *   llevar a ningún lado.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 import type { ReferralBanner as ReferralBannerData } from '../../services/referralBannerApi';
@@ -61,67 +60,74 @@ const ICONO_FONDO = '#03dbd0';
 const ICONO_COLOR = '#04302e';
 
 /**
- * Cuánto de la franja sigue asomando por debajo del header, en px, publicado
- * como `--referral-banner-offset`.
+ * Dónde se pega la franja: al borde de abajo del header fijo.
  *
- * Lo leen las piezas que se cuelgan del header y quedan debajo de la franja: la
- * barra secundaria del catálogo (`CatalogSecondaryNavbar`), la columna de
- * filtros, la caja de compra del detalle. Mientras la franja está a la vista
- * arrancan esos píxeles más abajo, y vuelven solas cuando se va.
+ * `--header-total-height` la publica `Navbar` (preview + promo + navbar) y se
+ * actualiza sola, así que si cierran el promo de la institución la franja sube
+ * con él. El fallback `6.5rem` es el mismo que usan los demás consumidores de la
+ * variable en el proyecto.
  *
- * El ref va en el HUECO que la franja ocupa en el flujo, no en la franja pintada.
- * El hueco está en los primeros píxeles del documento, así que su `bottom` en
- * coordenadas del viewport ya es exactamente lo que todavía asoma —su alto menos
- * el scroll— y llega a 0 solo. La franja pintada está bajada por `transform`, y
- * su rect daría ese mismo número corrido un alto de header.
- *
- * Se recalcula en scroll y resize porque la altura cambia sola: en móvil el texto
- * puede pasar a dos líneas, y al hacer scroll la franja se va saliendo.
- *
- * El scroll va con `passive` y coalescido por frame: es la landing que convierte,
- * y acá no se puede pagar un reflow por evento de rueda.
+ * Se exporta para poder probarlo: jsdom descarta `var()` en `style.top`, así que
+ * el valor no se puede leer del DOM en un test (mismo motivo que `topDeLaBarra`
+ * en `CatalogSecondaryNavbar`).
  */
-function useOffsetDeFranja() {
-  const contenedorRef = useRef<HTMLDivElement>(null);
+export const TOP_DE_LA_FRANJA = 'var(--header-total-height, 6.5rem)';
+
+/** Lo que mide la franja de una línea; el hueco arranca con esto hasta medirla. */
+const ALTO_POR_DEFECTO = 44;
+
+/**
+ * El alto de la franja, publicado en `--referral-banner-offset` y devuelto para
+ * el hueco que la reserva en el flujo.
+ *
+ * Siendo fija, el valor ya no baja con el scroll: la franja no se va nunca, así
+ * que lo que hay debajo del header queda corrido ese alto de forma permanente.
+ * Lo leen la barra secundaria del catálogo (`CatalogSecondaryNavbar`), la
+ * columna de filtros y la caja de compra del detalle, que se cuelgan del header
+ * y quedan por debajo de ella.
+ *
+ * El hueco es la otra mitad del asunto. Al ser `fixed`, la franja no ocupa lugar
+ * en el flujo, y el contenido de la página reserva el alto del header con su
+ * propio padding pero no sabe nada de ella: sin el hueco, los primeros 44 px del
+ * contenido quedan tapados. El hueco los devuelve —arriba de todo, detrás del
+ * header, donde no se ve— y así ninguna página necesita tocar su padding.
+ *
+ * `ResizeObserver` y no un listener de resize: en móvil el texto pasa a dos
+ * líneas y la franja cambia de alto sin que la ventana cambie de tamaño.
+ */
+function useAltoDeFranja() {
+  // `HTMLElement` y no un tipo concreto: la franja es un <a> cuando hay numero y
+  // un <div> cuando no, y este hook solo necesita medirla.
+  const franjaRef = useRef<HTMLElement>(null);
+  const [alto, setAlto] = useState(ALTO_POR_DEFECTO);
 
   useEffect(() => {
+    const el = franjaRef.current;
+    if (!el) return;
     const raiz = document.documentElement;
-    const limpiar = () => raiz.style.removeProperty('--referral-banner-offset');
 
-    let pendiente = 0;
     const medir = () => {
-      pendiente = 0;
-      const el = contenedorRef.current;
-      if (!el) return;
-      // `bottom` del rect ya viene en coordenadas del viewport: mientras el
-      // hueco baja del borde vale su alto, y llega a 0 solo cuando termina de
-      // salir. No hace falta leer scrollY ni saber cuánto mide.
-      raiz.style.setProperty(
-        '--referral-banner-offset',
-        `${Math.max(0, el.getBoundingClientRect().bottom)}px`,
-      );
-    };
-
-    const alFrame = () => {
-      if (pendiente) return;
-      pendiente = requestAnimationFrame(medir);
+      const medido = el.offsetHeight || ALTO_POR_DEFECTO;
+      setAlto(medido);
+      raiz.style.setProperty('--referral-banner-offset', `${medido}px`);
     };
 
     medir();
-    window.addEventListener('scroll', alFrame, { passive: true });
-    window.addEventListener('resize', alFrame);
+    const observador =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(medir);
+    observador?.observe(el);
+    window.addEventListener('resize', medir);
     return () => {
-      if (pendiente) cancelAnimationFrame(pendiente);
-      window.removeEventListener('scroll', alFrame);
-      window.removeEventListener('resize', alFrame);
+      observador?.disconnect();
+      window.removeEventListener('resize', medir);
       // Al desmontar se suelta la variable: si no, al navegar a una página sin
       // franja la barra secundaria arrancaría 44 px más abajo, dejando una banda
       // vacía entre ella y el navbar.
-      limpiar();
+      raiz.style.removeProperty('--referral-banner-offset');
     };
   }, []);
 
-  return contenedorRef;
+  return { franjaRef, alto };
 }
 
 /** Icono real de WhatsApp, inline: sin imagen externa que pueda no cargar. */
@@ -161,7 +167,7 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
     guardarFranja(landingSlug, data);
   }, [landingSlug, data]);
 
-  const contenedorRef = useOffsetDeFranja();
+  const { franjaRef, alto } = useAltoDeFranja();
 
   /**
    * Qué estaba diciendo la franja, en las dos puntas del embudo.
@@ -219,10 +225,11 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
    * filas—. Estrenar `referral_banner_visible` costaba un deploy de ws2 para
    * medir peor mientras tanto, y de paso rompía la serie histórica.
    *
-   * Montar no es ver: la franja no es sticky, así que al navegar entre pasos con
-   * la página ya scrolleada puede montar completamente fuera del viewport. Con
-   * `IntersectionObserver` la impresión sólo se cuenta cuando el navegador
-   * confirma que entró en pantalla.
+   * Montar no era ver: cuando la franja se iba con el scroll, al navegar entre
+   * pasos con la página ya scrolleada podía montar completamente fuera del
+   * viewport. Siendo `fixed` eso ya no pasa y el observer confirma en el primer
+   * frame; se queda igual porque cuesta nada y es el que avisaría si alguna vez
+   * vuelve a montar donde no se ve.
    *
    * OJO con lo que esto NO cubre: `IntersectionObserver` mide contra el viewport,
    * no oclusión. La franja tapada por el navbar fijo —el bug que ya tuvo, con el
@@ -233,14 +240,13 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
    *
    * Un cuarto de la franja alcanza: es una tira de ~44 px y con eso ya se lee.
    *
-   * Una por página, no una por vez que entra al viewport: la franja sale y vuelve
-   * con el scroll y no son impresiones nuevas. `pathname` en las dependencias es
-   * a propósito —acompaña todo el recorrido y queremos saber en qué paso se vio—
-   * y el ref cubre el doble montaje de React en modo estricto.
+   * Una por página: `pathname` en las dependencias es a propósito —la franja
+   * acompaña todo el recorrido y queremos saber en qué paso se vio— y el ref
+   * cubre el doble montaje de React en modo estricto.
    */
   const pathnameVisto = useRef<string | null>(null);
   useEffect(() => {
-    const el = contenedorRef.current;
+    const el = franjaRef.current;
     if (!tracker || !el || pathnameVisto.current === pathname) return;
 
     const emitir = () => {
@@ -267,7 +273,7 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
     );
     observador.observe(el);
     return () => observador.disconnect();
-  }, [tracker, pathname, datosDelEvento, contenedorRef]);
+  }, [tracker, pathname, datosDelEvento, franjaRef]);
 
   const contenido = (
     <div className="mx-auto flex min-h-[44px] max-w-7xl items-center justify-center gap-2 px-3 py-2 sm:gap-3 sm:px-6">
@@ -288,32 +294,40 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   );
 
   /**
-   * Lo que baja la franja hasta debajo del header.
+   * La franja, pegada al borde de abajo del header.
    *
-   * `--header-total-height` la publica `Navbar` (preview + promo + navbar) y se
-   * actualiza sola: si cierran el promo de la institución, la franja sube con
-   * él. El fallback `6.5rem` es el mismo que usan los demás consumidores de la
-   * variable en el proyecto.
-   *
-   * `relative` + `z-30` la dejan por encima del fondo del contenido —que empieza
-   * en el mismo lugar, detrás del padding con el que reserva el alto del header—
-   * y por debajo del header (z-50/z-60) y de la barra secundaria del catálogo
-   * (z-40), a los que nunca tiene que taparles nada.
+   * `z-45` la deja por encima del contenido que le pasa por debajo al scrollear
+   * y de la barra secundaria del catálogo (z-40), y por debajo del header
+   * (z-50/z-60) y del backdrop del menú móvil, a los que nunca tiene que
+   * taparles nada. En la práctica no se pisa con ninguno —cada uno arranca donde
+   * termina el otro—, pero el orden importa el día que un alto cambie.
    */
   const estiloDeLaFranja: React.CSSProperties = {
+    position: 'fixed',
+    top: TOP_DE_LA_FRANJA,
+    left: 0,
+    right: 0,
+    zIndex: 45,
     backgroundColor: FONDO,
     color: TEXTO,
-    transform: 'translateY(var(--header-total-height, 6.5rem))',
   };
+
+  /**
+   * El hueco: reserva en el flujo los píxeles que la franja, siendo `fixed`, ya
+   * no ocupa. Va arriba de todo, detrás del header, donde no se ve.
+   *
+   * Arranca en el alto de una línea y se corrige al medir (ver `useAltoDeFranja`).
+   */
+  const hueco: React.CSSProperties = { height: alto };
 
   // Sin número no hay a dónde ir: se pinta como aviso y no como link. Un <a> sin
   // href no es enfocable ni se anuncia como link, así que sería un botón falso.
   if (!whatsappUrl) {
     return (
-      <div ref={contenedorRef} className="w-full">
+      <div style={hueco}>
         <div
+          ref={franjaRef as React.RefObject<HTMLDivElement>}
           data-testid="referral-banner"
-          className="relative z-30 w-full"
           style={estiloDeLaFranja}
         >
           {contenido}
@@ -323,10 +337,9 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   }
 
   return (
-    // El div de afuera es el hueco en el flujo: no se pinta, se mide (ver
-    // `useOffsetDeFranja`). El link es la franja, ya bajada a su lugar.
-    <div ref={contenedorRef} className="w-full">
+    <div style={hueco}>
       <a
+        ref={franjaRef as React.RefObject<HTMLAnchorElement>}
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
@@ -334,7 +347,7 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
         data-testid="referral-banner"
         // El testid del link ya no cuelga de un chip: ahora el link ES la franja.
         data-referral-banner-whatsapp="true"
-        className="relative z-30 block w-full transition-opacity hover:opacity-95"
+        className="block transition-opacity hover:opacity-95"
         style={estiloDeLaFranja}
       >
         {contenido}

@@ -69,10 +69,11 @@ interface CatalogSecondaryNavbarProps {
  *
  * `--header-total-height` es lo que mide el stack fijo (preview + promo +
  * navbar) y lo publica `Navbar`. Pero debajo del header puede haber una pieza
- * más: la franja de referido se dibuja justo ahí y publica cuánto de ella sigue
- * asomando en `--referral-banner-offset` (ver `components/referral/ReferralBanner`).
- * Sin sumar lo mismo acá la barra le pasa por encima; la variable vuelve a 0
- * sola cuando la franja termina de meterse detrás del header con el scroll.
+ * más: la franja de referido, que se pega justo ahí y publica su alto en
+ * `--referral-banner-offset` (ver `components/referral/ReferralBanner`). Sin
+ * sumar lo mismo acá la barra le pasa por encima. La franja no se va con el
+ * scroll, así que el valor es permanente mientras esté; vale 0 en las visitas
+ * que no vienen de un link de activación, que son la mayoría.
  *
  * Con `hidePromoBanner` se descuenta el promo a mano, porque el Navbar lo sigue
  * contando en el total aunque esta pantalla no lo pinte.
