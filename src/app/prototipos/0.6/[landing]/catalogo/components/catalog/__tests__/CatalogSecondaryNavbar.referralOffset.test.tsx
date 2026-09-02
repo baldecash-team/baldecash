@@ -1,10 +1,10 @@
 import { topDeLaBarra } from '../CatalogSecondaryNavbar';
 
 /**
- * La barra secundaria es `fixed` y se cuelga del header principal. Mientras la
- * franja de referido está a la vista, el header arranca `--referral-banner-offset`
- * píxeles más abajo; si la barra no suma lo mismo queda debajo del navbar y éste
- * la tapa (ver `components/referral/ReferralBanner`).
+ * La barra secundaria es `fixed` y se cuelga del header principal. Entre los dos
+ * puede aparecer la franja de referido, que se dibuja debajo del header y publica
+ * cuánto de ella asoma en `--referral-banner-offset`; si la barra no suma lo
+ * mismo le pasa por encima (ver `components/referral/ReferralBanner`).
  *
  * Se prueba el helper y no el DOM: jsdom descarta `var()`/`calc()` en `style.top`.
  */
