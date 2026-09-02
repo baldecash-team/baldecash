@@ -7,10 +7,18 @@
  * el `?promotor=` es una fracción mínima del tráfico, nadie lo vio hasta que
  * empezaron a llegar los flyers por `?ref=`.
  *
- * Lo que se protege acá es el contrato entre las dos piezas: la franja publica
- * `--referral-banner-offset` y el header lo consume. Si se rompe, la franja no
- * desaparece —vuelve a quedar tapada, que es peor: se ve igual de bien en los
- * tests y en el HTML, y no se ve nunca en pantalla.
+ * Ahora la franja va deliberadamente DEBAJO de ese header, corrida desde su
+ * hueco en el flujo con un `transform`. O sea que el mismo bug sigue a un
+ * descuido de distancia, y son dos los contratos a proteger:
+ *
+ *   1. la franja se dibuja bajada `--header-total-height`, no en su hueco;
+ *   2. publica `--referral-banner-offset` —lo que asoma por debajo del header—
+ *      midiendo el HUECO y no la franja pintada, y eso lo consumen la barra
+ *      secundaria del catálogo y las columnas sticky.
+ *
+ * Si cualquiera de los dos se rompe la franja no desaparece: vuelve a quedar
+ * tapada, que es peor —se ve igual de bien en el HTML y no se ve nunca en
+ * pantalla— o le pasa por encima la barra secundaria.
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
@@ -55,12 +63,46 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe('empuja al header fijo', () => {
+describe('se dibuja debajo del header', () => {
+  it('la franja baja el alto del header fijo, y su hueco no se mueve', () => {
+    // Con `transform` y no con un margen: el margen correría el flujo, y el
+    // contenido de la página ya reserva el alto del header con su padding.
+    simularBorde(ALTO);
+    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+
+    const franja = screen.getByTestId('referral-banner');
+    expect(franja.style.transform).toBe('translateY(var(--header-total-height, 6.5rem))');
+    expect(franja.style.marginTop).toBe('');
+  });
+
+  it('lo que se mide es el hueco del flujo, no la franja ya bajada', () => {
+    // Si el ref se mudara a la franja pintada, el offset saldría corrido un alto
+    // de header y la barra secundaria del catálogo quedaría a la deriva.
+    simularBorde(ALTO);
+    const { container } = render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+
+    const hueco = screen.getByTestId('referral-banner').parentElement as HTMLElement;
+    expect(hueco).toBe(container.firstElementChild);
+    expect(hueco.style.transform).toBe('');
+  });
+
+  it('en el apilado queda debajo del header y de la barra secundaria', () => {
+    // z-30: por encima del fondo del contenido, por debajo del navbar (z-50) y
+    // de la barra secundaria del catálogo (z-40).
+    simularBorde(ALTO);
+    render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
+
+    expect(screen.getByTestId('referral-banner').className).toContain('z-30');
+  });
+});
+
+describe('empuja lo que va debajo de ella', () => {
   it('publica su alto al montarse', () => {
     simularBorde(ALTO);
     render(<ReferralBanner data={DATOS} landingSlug="wiener" />);
 
-    // Sin esto el header arranca en top:0 y la franja queda debajo, invisible.
+    // Sin esto la barra secundaria del catálogo arranca pegada al navbar y la
+    // franja se la come.
     expect(offset()).toBe(`${ALTO}px`);
   });
 

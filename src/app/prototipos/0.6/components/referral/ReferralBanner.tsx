@@ -3,7 +3,7 @@
 /**
  * Franja "Te refirió Cynthia, si tienes dudas escríbele aquí".
  *
- * Aparece arriba de todo cuando la visita llega por un link de activación
+ * Aparece debajo del header cuando la visita llega por un link de activación
  * (`?promotor=` o `?ref=`). Los datos llegan resueltos —del server component en
  * la landing, de lo guardado en el resto del recorrido (`ReferralBannerGate`)—:
  * acá no se consulta nada.
@@ -17,13 +17,24 @@
  * - NO es `sticky`. Una franja fija le roba altura permanente al viewport móvil,
  *   y la mayor parte del tráfico entra por celular desde el QR. Se ve al entrar
  *   —que es cuando importa— y se va con el scroll; al cambiar de página vuelve.
+ * - Va DEBAJO del header fijo —el promo de la institución y la barra de logos—,
+ *   no arriba de todo. Lo primero que tiene que leerse al entrar es de quién es
+ *   la landing; quién refirió la visita viene después. Antes iba arriba y era el
+ *   header el que bajaba para no taparla; ahora el header queda pegado al borde.
  *
- *   Eso tiene una consecuencia que costó ver: el navbar y el banner promocional
- *   SÍ son `fixed` y arrancan en `top: 0`, así que tapaban esta franja por
- *   completo. Estaba en el HTML, con el nombre correcto, y no se veía nunca.
- *   Por eso `--referral-banner-offset`: la franja publica cuánto de ella queda
- *   por debajo del borde superior del viewport, el header fijo arranca ahí, y
- *   el valor llega solo a 0 cuando la franja termina de salir con el scroll.
+ *   Eso obliga a un rodeo, porque el header es `fixed` y esta franja vive en el
+ *   flujo del documento: su hueco en el flujo son los primeros ~44 px, que el
+ *   header tapa enteros, y de ahí se la baja `--header-total-height` con un
+ *   `transform`. Correr el flujo —un margen— no serviría: el contenido de la
+ *   página ya reserva el alto del header con su propio padding, y sumarlo otra
+ *   vez lo empujaría el doble. Con `transform` la franja se dibuja justo entre
+ *   el header y el contenido sin tocarle el layout a nadie.
+ *
+ *   Lo que sí sigue empujando es lo que va por debajo de ella: la barra
+ *   secundaria del catálogo y las columnas sticky se cuelgan del header y sin
+ *   corrección la franja las taparía. Para eso está `--referral-banner-offset`,
+ *   que publica cuánto de la franja sigue asomando por debajo del header y llega
+ *   a 0 sola cuando termina de meterse detrás con el scroll.
  * - No se puede cerrar. Antes tenía una X que recordaba el descarte en
  *   `sessionStorage`; se quitó cuando la franja pasó a acompañar todo el
  *   recorrido, porque un descarte en la landing la apagaba también en el
@@ -50,9 +61,20 @@ const ICONO_FONDO = '#03dbd0';
 const ICONO_COLOR = '#04302e';
 
 /**
- * Cuánto de la franja sigue visible, en px, publicado como `--referral-banner-offset`.
+ * Cuánto de la franja sigue asomando por debajo del header, en px, publicado
+ * como `--referral-banner-offset`.
  *
- * Lo lee el header fijo (`components/hero/Navbar.tsx`) para saber dónde empezar.
+ * Lo leen las piezas que se cuelgan del header y quedan debajo de la franja: la
+ * barra secundaria del catálogo (`CatalogSecondaryNavbar`), la columna de
+ * filtros, la caja de compra del detalle. Mientras la franja está a la vista
+ * arrancan esos píxeles más abajo, y vuelven solas cuando se va.
+ *
+ * El ref va en el HUECO que la franja ocupa en el flujo, no en la franja pintada.
+ * El hueco está en los primeros píxeles del documento, así que su `bottom` en
+ * coordenadas del viewport ya es exactamente lo que todavía asoma —su alto menos
+ * el scroll— y llega a 0 solo. La franja pintada está bajada por `transform`, y
+ * su rect daría ese mismo número corrido un alto de header.
+ *
  * Se recalcula en scroll y resize porque la altura cambia sola: en móvil el texto
  * puede pasar a dos líneas, y al hacer scroll la franja se va saliendo.
  *
@@ -60,9 +82,7 @@ const ICONO_COLOR = '#04302e';
  * y acá no se puede pagar un reflow por evento de rueda.
  */
 function useOffsetDeFranja() {
-  // `HTMLElement` y no un tipo concreto: la franja es un <a> cuando hay número y
-  // un <div> cuando no, y este hook sólo necesita medirla.
-  const contenedorRef = useRef<HTMLElement>(null);
+  const contenedorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const raiz = document.documentElement;
@@ -73,8 +93,8 @@ function useOffsetDeFranja() {
       pendiente = 0;
       const el = contenedorRef.current;
       if (!el) return;
-      // `bottom` del rect ya viene en coordenadas del viewport: mientras la
-      // franja baja del borde vale su alto, y llega a 0 sola cuando termina de
+      // `bottom` del rect ya viene en coordenadas del viewport: mientras el
+      // hueco baja del borde vale su alto, y llega a 0 solo cuando termina de
       // salir. No hace falta leer scrollY ni saber cuánto mide.
       raiz.style.setProperty(
         '--referral-banner-offset',
@@ -95,7 +115,8 @@ function useOffsetDeFranja() {
       window.removeEventListener('scroll', alFrame);
       window.removeEventListener('resize', alFrame);
       // Al desmontar se suelta la variable: si no, al navegar a una página sin
-      // franja el header arrancaría 44 px más abajo, dejando una banda vacía.
+      // franja la barra secundaria arrancaría 44 px más abajo, dejando una banda
+      // vacía entre ella y el navbar.
       limpiar();
     };
   }, []);
@@ -266,35 +287,58 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
     </div>
   );
 
+  /**
+   * Lo que baja la franja hasta debajo del header.
+   *
+   * `--header-total-height` la publica `Navbar` (preview + promo + navbar) y se
+   * actualiza sola: si cierran el promo de la institución, la franja sube con
+   * él. El fallback `6.5rem` es el mismo que usan los demás consumidores de la
+   * variable en el proyecto.
+   *
+   * `relative` + `z-30` la dejan por encima del fondo del contenido —que empieza
+   * en el mismo lugar, detrás del padding con el que reserva el alto del header—
+   * y por debajo del header (z-50/z-60) y de la barra secundaria del catálogo
+   * (z-40), a los que nunca tiene que taparles nada.
+   */
+  const estiloDeLaFranja: React.CSSProperties = {
+    backgroundColor: FONDO,
+    color: TEXTO,
+    transform: 'translateY(var(--header-total-height, 6.5rem))',
+  };
+
   // Sin número no hay a dónde ir: se pinta como aviso y no como link. Un <a> sin
   // href no es enfocable ni se anuncia como link, así que sería un botón falso.
   if (!whatsappUrl) {
     return (
-      <div
-        ref={contenedorRef as React.RefObject<HTMLDivElement>}
-        data-testid="referral-banner"
-        className="w-full"
-        style={{ backgroundColor: FONDO, color: TEXTO }}
-      >
-        {contenido}
+      <div ref={contenedorRef} className="w-full">
+        <div
+          data-testid="referral-banner"
+          className="relative z-30 w-full"
+          style={estiloDeLaFranja}
+        >
+          {contenido}
+        </div>
       </div>
     );
   }
 
   return (
-    <a
-      ref={contenedorRef as React.RefObject<HTMLAnchorElement>}
-      href={whatsappUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={handleWhatsApp}
-      data-testid="referral-banner"
-      // El testid del link ya no cuelga de un chip: ahora el link ES la franja.
-      data-referral-banner-whatsapp="true"
-      className="block w-full transition-opacity hover:opacity-95"
-      style={{ backgroundColor: FONDO, color: TEXTO }}
-    >
-      {contenido}
-    </a>
+    // El div de afuera es el hueco en el flujo: no se pinta, se mide (ver
+    // `useOffsetDeFranja`). El link es la franja, ya bajada a su lugar.
+    <div ref={contenedorRef} className="w-full">
+      <a
+        href={whatsappUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={handleWhatsApp}
+        data-testid="referral-banner"
+        // El testid del link ya no cuelga de un chip: ahora el link ES la franja.
+        data-referral-banner-whatsapp="true"
+        className="relative z-30 block w-full transition-opacity hover:opacity-95"
+        style={estiloDeLaFranja}
+      >
+        {contenido}
+      </a>
+    </div>
   );
 }
