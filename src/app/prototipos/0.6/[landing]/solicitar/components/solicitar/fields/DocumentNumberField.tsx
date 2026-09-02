@@ -17,14 +17,15 @@ import { useSessionOptional } from '../../../context/SessionContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
+import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
 
-// Validate that a name is not "-" and has at least 3 characters
-const isValidName = (value: string): boolean => {
-  if (!value) return false;
-  const trimmed = value.trim();
-  return trimmed !== "-" && trimmed.length >= 3;
-};
+// BAL-3634: antes esto era `trimmed !== "-" && trimmed.length >= 3`, que dejaba
+// pasar al prefill cualquier celular o email guardado en `person.first_name`.
+// Como `check-person` lee de esa misma tabla, los 30 registros sucios de prod
+// se re-inyectaban en el formulario cada vez que la persona reingresaba.
+// La regla ahora es la misma del backend (ver `nameValidation.ts`).
+const isValidName = isValidPersonName;
 
 function getSavedDni(slug: string): string | null {
   try {
