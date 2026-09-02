@@ -8,6 +8,7 @@
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
 import { sanitizeEmailInput } from '../../../../../services/emailValidation';
+import { isPersonNameField, sanitizeNameInput } from '../../../../../services/nameValidation';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
@@ -236,6 +237,15 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <TextInput
           {...commonProps}
+          // Los campos `text` son dinámicos (vienen de `form_field`), así que
+          // el filtro se aplica SOLO a los que son nombres de persona:
+          // "Empresa donde Labora" o "¿Qué beca tiene?" llevan números con
+          // todo derecho. Ver `PERSON_NAME_FIELD_CODES`.
+          onChange={
+            isPersonNameField(field.code)
+              ? (newValue: string) => updateField(field.code, sanitizeNameInput(newValue))
+              : commonProps.onChange
+          }
           type="text"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
