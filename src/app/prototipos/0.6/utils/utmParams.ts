@@ -104,3 +104,17 @@ export function withUtmParams(url: string, search?: string): string {
 export function kycBypassHabilitado(search?: string): boolean {
   return readUtmParams(search).utm_term === KYC_BYPASS_UTM_TERM;
 }
+
+/**
+ * Suelta los UTMs persistidos. `persistUtmParams` mezcla lo nuevo sobre lo
+ * viejo (`{ ...anterior, ...url }`), así que un link nuevo que no traiga
+ * `promotor` heredaría el de la visita anterior: antes de capturar otro link
+ * hay que vaciar el store, no sólo pisarlo.
+ */
+export function clearUtmParams(): void {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* sessionStorage no disponible: no había nada que borrar */
+  }
+}

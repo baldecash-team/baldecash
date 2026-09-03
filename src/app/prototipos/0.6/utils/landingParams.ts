@@ -194,3 +194,24 @@ export function getPromotorRef(landingSlug: string): string | null {
     return null;
   }
 }
+
+/**
+ * Borra la atribución de promotora guardada para la landing: el `ref` del hub y
+ * el `alk` del link de activación.
+ *
+ * Deliberadamente NO forma parte de `clearLandingSession`: cuando cambia la
+ * PERSONA (otro DNI en el mismo celular del stand) la promotora sigue siendo la
+ * misma y su atribución tiene que sobrevivir. Sólo cuando cambia el LINK —otra
+ * promotora abre el suyo en el mismo equipo— hay que soltarla, y eso lo decide
+ * `resetLandingSessionIfPromoterLinkChanged`.
+ */
+export function clearPromotorAttribution(landingSlug: string): void {
+  if (typeof window === 'undefined') return;
+  for (const key of [promotorRefKey(landingSlug), leadLinkKey(landingSlug)]) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage no disponible: seguir con el resto.
+    }
+  }
+}

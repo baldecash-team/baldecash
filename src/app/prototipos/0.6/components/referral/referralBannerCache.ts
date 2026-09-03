@@ -108,3 +108,20 @@ export function guardarFranja(landingSlug: string, data: ReferralBanner): void {
   }
   suscriptores.forEach((cb) => cb());
 }
+
+/**
+ * Borra la franja guardada de una landing y avisa a quien la esté mostrando.
+ *
+ * Se usa cuando en el mismo equipo se abre el link de OTRA promotora: la franja
+ * resuelta es de la anterior y, si el link nuevo no logra resolver la suya, la
+ * vieja seguiría acompañando todo el recorrido con el nombre equivocado.
+ */
+export function borrarFranja(landingSlug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(clave(landingSlug));
+  } catch {
+    // Sin storage no había nada guardado.
+  }
+  suscriptores.forEach((cb) => cb());
+}

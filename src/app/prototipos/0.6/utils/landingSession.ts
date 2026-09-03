@@ -1,5 +1,7 @@
 import { clearVipData, clearSavedDni, getSavedDni } from '../components/hero/DniModal';
-import { clearPendingParams } from './landingParams';
+import { clearPendingParams, clearPromotorAttribution, readPromotorRef } from './landingParams';
+import { clearUtmParams } from './utmParams';
+import { borrarFranja } from '../components/referral/referralBannerCache';
 import {
   clearWizardFormStorage,
   readWizardDocumentNumber,
@@ -182,5 +184,97 @@ export function resetLandingClientDataIfIdentityChanged(
   if (previousDni === dni) return false;
 
   clearLandingClientData(landing);
+  return true;
+}
+
+// ── Cambio de link de promotora ──────────────────────────────────────────────
+
+const promotorLinkKey = (landing: string) => `baldecash-${landing}-promotor-link`;
+
+/**
+ * Con qué promotora y activación se identifica un link, o null si el link no
+ * es de promotora.
+ *
+ * Toma los TRES identificadores que puede traer un link de activación, porque
+ * ninguno viaja siempre: `ref` lo estampa `/r/{codigo}` del hub, `promotor` sólo
+ * aparece cuando esa persona tiene su código en ws2, y los tokens `promo_`/`act_`
+ * del `utm_term` van en la URL que arma el hub directo. Con uno solo, un link
+ * "sin ref" parecería orgánico y no limpiaría.
+ *
+ * NO entran la pieza (`utm_source`/`utm_content`), el `punto_` ni el `fly_`: el
+ * mismo QR compartido después por WhatsApp, o el flyer del mismo paquete, es la
+ * misma promotora y no tiene por qué borrarle el formulario al alumno.
+ */
+export function huellaDelLinkDePromotor(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const ref = readPromotorRef(search) ?? '';
+  const promotor = params.get('promotor')?.trim().toLowerCase() ?? '';
+  const term = params.get('utm_term') ?? '';
+  const promo = term.match(/(?:^|__)promo_([^_]+)/)?.[1] ?? '';
+  const act = term.match(/(?:^|__)act_([^_]+)/)?.[1] ?? '';
+
+  if (!ref && !promotor && !promo && !act) return null;
+  return [ref, promotor, promo, act].join('|');
+}
+
+/**
+ * Cuando se abre el link de OTRA promotora en el mismo equipo, borra toda la
+ * visita anterior —datos, progreso, atribución, franja y sesión de tracking— y
+ * recuerda el link nuevo. Devuelve true cuando limpió.
+ *
+ * Por qué existe: un celular en un stand pasa por varias manos. La promotora A
+ * abre su link, un alumno deja la solicitud, y al rato la promotora B abre el
+ * suyo en el mismo equipo: veía la solicitud recibida de A con su propia franja
+ * encima, y el siguiente alumno heredaba el `ref`, los UTMs y el `session_uuid`
+ * de A. La venta se le acreditaba a la promotora equivocada.
+ *
+ * La identidad del link es la de `huellaDelLinkDePromotor`. El MISMO link que
+ * se vuelve a abrir —recarga, volver del catálogo— no limpia: el alumno que ya
+ * empezó su formulario lo conserva. Un link sin identificador de promotora
+ * (orgánico, un anuncio) tampoco limpia: la regla es de los links del hub.
+ *
+ * Sin link recordado igual limpia. Si el equipo venía de una visita orgánica,
+ * hay restos que no son de esta promotora; si es la primera visita, no hay nada
+ * y borrar en vacío no cuesta nada.
+ *
+ * A diferencia de `resetLandingSessionIfIdentityChanged`, acá también se suelta
+ * la ATRIBUCIÓN (`ref`, `alk`, UTMs, franja): cambió la promotora, no sólo la
+ * persona. Y la sesión de tracking se borra siempre: esto corre en la landing,
+ * donde todavía no hay `SessionProvider`, así que no hay sesión recién creada
+ * que perder — la próxima nace en el catálogo, ya con los parámetros del link
+ * nuevo que `captureLandingParams`/`persistUtmParams` guardan justo después.
+ *
+ * ORDEN: llamarla ANTES de capturar los parámetros del link nuevo y antes de que
+ * la franja se guarde (`ReferralBanner` la guarda en su efecto de montaje). Si
+ * corriera después, borraría justo lo que el link nuevo acaba de dejar.
+ */
+export function resetLandingSessionIfPromoterLinkChanged(
+  landing: string,
+  search: string
+): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const huella = huellaDelLinkDePromotor(search);
+  if (!huella) return false;
+
+  let anterior: string | null = null;
+  try {
+    anterior = localStorage.getItem(promotorLinkKey(landing));
+  } catch {
+    // Sin storage no hay nada guardado ni forma de guardar: no-op.
+    return false;
+  }
+  if (anterior === huella) return false;
+
+  clearLandingSession(landing);
+  clearPromotorAttribution(landing);
+  clearUtmParams();
+  borrarFranja(landing);
+
+  try {
+    localStorage.setItem(promotorLinkKey(landing), huella);
+  } catch {
+    // Si no se pudo recordar, la próxima carga volverá a limpiar. Aceptable.
+  }
   return true;
 }
