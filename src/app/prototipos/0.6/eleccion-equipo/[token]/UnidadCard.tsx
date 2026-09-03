@@ -55,11 +55,15 @@ export function UnidadCard({ unidad, onAbrir, mostrarGrado = true }: UnidadCardP
             src={portada.url}
             alt={`${titulo} — ${etiquetaFoto(0)}`}
             loading="lazy"
-            // `object-position` al 60% vertical (no el 50% centrado por defecto):
-            // el frame de portada trae la laptop en la mitad inferior del cuadro
-            // y bastante pared vacía arriba. Bajar el encuadre recorta más de
-            // esa pared y deja el equipo más centrado dentro del recuadro.
-            className="h-full w-full object-cover object-[50%_60%]"
+            // CENTRADO, no al 60% vertical como estaba antes. La estación de
+            // inspección encuadra el equipo en el medio del cuadro 1:1: en las
+            // fotos reales de producción la laptop ocupa de ~22% a ~76% de la
+            // altura, o sea su centro cae en ~49%. Bajar el encuadre al 60%
+            // recortaba el borde superior de la pantalla y metía en cuadro la
+            // base negra del plato giratorio. Solo se nota donde el recuadro es
+            // apaisado (esta card en desktop y el visor grande): en mobile el
+            // recuadro es cuadrado como la fuente y `object-position` no aplica.
+            className="h-full w-full object-cover object-center"
           />
         ) : (
           <span className="px-2 text-center text-[10px] font-semibold text-[#9a9aa8]">
