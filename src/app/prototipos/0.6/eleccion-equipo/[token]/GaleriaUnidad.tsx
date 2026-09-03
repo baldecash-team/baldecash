@@ -511,9 +511,13 @@ export function GaleriaUnidad({
                       // que capturar solo el rechazo de `play()` (en
                       // `VideoControls`) no alcanza.
                       onError={() => setErrorVideo(true)}
-                      // Centrado, igual que las fotos: la estación graba el
-                      // equipo en el medio del cuadro 1:1.
-                      className="h-full w-full object-cover object-center"
+                      // El mismo 67% que la foto grande de al lado, y por el
+                      // mismo motivo: la estación graba el video con el mismo
+                      // encuadre 1:1 que las fotos (`ASPECT_RATIO = 1` en
+                      // `useKioskRecorder`), así que comparte visor y comparte
+                      // corrección. Si algún día el video se grabara con otro
+                      // encuadre, este valor se separa del de la foto.
+                      className="h-full w-full object-cover object-[50%_67%]"
                     />
                     {errorVideo && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[#151744]/92 px-6 text-center">
@@ -535,16 +539,20 @@ export function GaleriaUnidad({
                   <img
                     src={fotoActual.url}
                     alt={`${titulo} — ${etiquetaFoto(fotoActualIndice)}`}
-                    // Mismo criterio de encuadre que la tira de miniaturas de acá
-                    // abajo y que la card de la lista (`UnidadCard`): CENTRADO.
-                    // El equipo viene centrado en el cuadro 1:1 de la estación,
-                    // así que el 60% vertical de antes cortaba el borde de
-                    // arriba de la pantalla y mostraba la base del plato.
+                    // 67%, y es un número distinto al 60% de la card A PROPÓSITO:
+                    // el object-position que centra al equipo depende de cuánto
+                    // recorta cada caja. Acá el visor de desktop (~537x425) deja
+                    // ver el 79% del alto de la fuente, contra el 48% de la
+                    // card, así que el mismo centro de sujeto (~54% del cuadro,
+                    // medido sobre las 7 unidades del link vivo) cae en 67%.
+                    // Compartir un solo valor entre las dos cajas es lo que
+                    // dejaba una de las dos siempre corrida.
+                    //
                     // `object-cover` (en vez de `object-contain`, que dejaba el
                     // equipo chico y con bandas) hace que el medio grande
                     // acompañe a la tira, que ya recorta; lo que quede fuera del
                     // recuadro se alcanza con el zoom, que es justo para eso.
-                    className="h-full w-full object-cover object-center"
+                    className="h-full w-full object-cover object-[50%_67%]"
                   />
                 ) : (
                   <p className="px-6 text-center text-[13px] text-[#5b5c6b]">

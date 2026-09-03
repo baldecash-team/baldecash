@@ -55,15 +55,23 @@ export function UnidadCard({ unidad, onAbrir, mostrarGrado = true }: UnidadCardP
             src={portada.url}
             alt={`${titulo} — ${etiquetaFoto(0)}`}
             loading="lazy"
-            // CENTRADO, no al 60% vertical como estaba antes. La estación de
-            // inspección encuadra el equipo en el medio del cuadro 1:1: en las
-            // fotos reales de producción la laptop ocupa de ~22% a ~76% de la
-            // altura, o sea su centro cae en ~49%. Bajar el encuadre al 60%
-            // recortaba el borde superior de la pantalla y metía en cuadro la
-            // base negra del plato giratorio. Solo se nota donde el recuadro es
-            // apaisado (esta card en desktop y el visor grande): en mobile el
-            // recuadro es cuadrado como la fuente y `object-position` no aplica.
-            className="h-full w-full object-cover object-center"
+            // 60% vertical, MEDIDO sobre las 7 unidades del link vivo de
+            // producción, no estimado: el equipo ocupa de ~23% a ~86% del alto
+            // del cuadro 1:1 (el plato giratorio negro entra en ese rango), o
+            // sea su centro cae en ~54%, no en el 50% del centro geométrico.
+            // Con la caja de la card (355x170 en desktop) se ve el 48% del alto
+            // de la fuente, y dejar ese centro en el medio del recuadro pide
+            // 57%; 60% redondea hacia mostrar un poco más del apoyo, que es lo
+            // que hace que la laptop no parezca colgada.
+            //
+            // Centrar en 50% —lo que estuvo un rato— empuja la ventana hacia
+            // arriba y deja el equipo pegado al borde de abajo: se lee como
+            // "la foto está corrida hacia abajo".
+            //
+            // Solo aplica donde el recuadro es apaisado, o sea esta card en
+            // desktop. En mobile es cuadrado como la fuente y `object-position`
+            // no hace nada.
+            className="h-full w-full object-cover object-[50%_60%]"
           />
         ) : (
           <span className="px-2 text-center text-[10px] font-semibold text-[#9a9aa8]">
