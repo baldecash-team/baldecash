@@ -7,12 +7,20 @@
  * leen de ahí después: en la ruta de KYC ya no están en la URL.
  */
 
+/**
+ * `promotor` viaja con los UTMs y no aparte: es la llave REAL del promotor en
+ * ws2 —`DiffusionAttributionService._apply_promoter` lo lee de este parámetro y
+ * nunca del `promo_` del `utm_term`, que es sólo un verificador del banner—. Si
+ * se persistieran los cinco UTMs y no éste, la sesión llegaría con la campaña
+ * pero sin a quién acreditarle la venta, que es justo lo que se está arreglando.
+ */
 const UTM_KEYS = [
   'utm_source',
   'utm_medium',
   'utm_campaign',
   'utm_term',
   'utm_content',
+  'promotor',
 ] as const;
 
 const STORAGE_KEY = 'baldecash-utm';

@@ -61,7 +61,20 @@ export function clearLandingClientData(landing: string): void {
   clearSessionStorage(landing);
 }
 
-export function clearLandingSession(landing: string): void {
+/**
+ * Options for {@link clearLandingSession}.
+ *
+ * `keepTrackingSession` exists for one caller: the identity reset when there is
+ * no previous identity to compare against. See the note there.
+ */
+interface ClearLandingSessionOptions {
+  keepTrackingSession?: boolean;
+}
+
+export function clearLandingSession(
+  landing: string,
+  { keepTrackingSession = false }: ClearLandingSessionOptions = {}
+): void {
   // Access: VIP token, name, welcome-pending and the locker-truck gate signals.
   clearVipData(landing);
 
@@ -81,7 +94,7 @@ export function clearLandingSession(landing: string): void {
   clearPendingParams(landing);
 
   // Tracking session, last: the next client must not inherit it.
-  clearSessionStorage(landing);
+  if (!keepTrackingSession) clearSessionStorage(landing);
 }
 
 /**
@@ -128,7 +141,19 @@ export function resetLandingSessionIfIdentityChanged(
   // returning from the home always keeps their reference. Losing it requires an
   // explicit wipe, and the only thing that does that is the activator's reset,
   // which clears everything anyway.
-  clearLandingSession(landing);
+  //
+  // EXCEPT the tracking session, and only in this branch. With no previous
+  // identity there is no evidence that a different person was here — the usual
+  // case is a FIRST visit, where the session being wiped is the one this very
+  // visitor created seconds ago on the landing, carrying the UTMs of the QR they
+  // scanned. Losing it made the next page open a fresh session on a clean URL
+  // (`routes.catalogo()` drops the querystring), the application hung off that
+  // one, and the promoter lost the sale. Clearing unattributable form data is
+  // right; paying for it with the current visit's attribution is not.
+  //
+  // When the identity DID change the session still goes, right above: there the
+  // wipe protects a real second person, which is the whole point of BAL-2661.
+  clearLandingSession(landing, { keepTrackingSession: !previousDni });
   return true;
 }
 

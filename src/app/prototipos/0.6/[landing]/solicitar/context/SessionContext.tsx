@@ -25,7 +25,8 @@ import {
   getUserAgentData,
   resolveOsVersion,
 } from '@/app/prototipos/0.6/analytics/clientHints';
-import { getPromotorRef, readPromotorRef } from '@/app/prototipos/0.6/utils/landingParams';
+import { getLeadLinkCode, getPromotorRef, readPromotorRef } from '@/app/prototipos/0.6/utils/landingParams';
+import { persistUtmParams, readUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 
 // Dynamic storage key based on landing slug
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
@@ -252,15 +253,28 @@ function getBrowserInfo(): { browser: string; browserVersion: string } {
 function getUtmParams(landingSlug: string): Record<string, string | undefined> {
   if (typeof window === 'undefined') return {};
 
-  const params = new URLSearchParams(window.location.search);
+  // Guardar ANTES de leer, y no sólo en la landing: así la atribución sobrevive
+  // aunque la visita entre directo a una ruta interna con el querystring puesto
+  // (un link compartido a mitad de camino), sin depender de que
+  // `LandingPageClient` se haya montado antes.
+  persistUtmParams();
+
+  // `readUtmParams` da los UTMs de la URL y, si no hay ninguno, los que dejó la
+  // entrada. La regla es la que pidió Activaciones: el que llega con parámetros
+  // gana, el que llega sin parámetros hereda. Nunca al revés.
+  const params = readUtmParams();
+  const enLaUrl = new URLSearchParams(window.location.search);
+
   return {
-    utm_source: params.get('utm_source') || undefined,
-    utm_medium: params.get('utm_medium') || undefined,
-    utm_campaign: params.get('utm_campaign') || undefined,
-    utm_term: params.get('utm_term') || undefined,
-    utm_content: params.get('utm_content') || undefined,
-    promotor: params.get('promotor') || undefined,
-    alk: params.get('alk') || undefined,
+    utm_source: params.utm_source || undefined,
+    utm_medium: params.utm_medium || undefined,
+    utm_campaign: params.utm_campaign || undefined,
+    utm_term: params.utm_term || undefined,
+    utm_content: params.utm_content || undefined,
+    promotor: params.promotor || undefined,
+    // `alk` y `ref` tienen su propio guardado, por landing y desde antes
+    // (`captureLandingParams`): se leen de ahí, no del store de UTMs.
+    alk: enLaUrl.get('alk') || getLeadLinkCode(landingSlug) || undefined,
     ref: readPromotorRef(window.location.search) || getPromotorRef(landingSlug) || undefined,
   };
 }

@@ -218,6 +218,39 @@ describe('resetLandingSessionIfIdentityChanged', () => {
     expect(localStorage.getItem(`baldecash-${LANDING}-solicitar-selected-product`)).toBeNull();
   });
 
+  // Attribution regression. The orphan-data clear above also took the tracking
+  // session uuid with it, and that uuid is what ties the visit to the QR the
+  // person scanned. On a FIRST visit there is no previous identity, so the
+  // session being wiped is the one this very visitor just created on the
+  // landing — with the campaign UTMs in it. The next page created a fresh
+  // session on a clean URL, the application hung off that one, and the promoter
+  // lost the sale. Clearing unattributable form data is right; throwing away
+  // the current visit's attribution to do it is not.
+  it('keeps the tracking session when there is no previous identity', () => {
+    const sessionUuid = `baldecash-${LANDING}-wizard-session-uuid`;
+    localStorage.setItem(sessionUuid, 'uuid-del-qr');
+    localStorage.setItem(`baldecash-${LANDING}-wizard-acceptTerms`, 'true');
+
+    resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    expect(localStorage.getItem(sessionUuid)).toBe('uuid-del-qr');
+    // La data huérfana sí se sigue limpiando: BAL-2657/2661 no se toca.
+    expect(localStorage.getItem(`baldecash-${LANDING}-wizard-acceptTerms`)).toBeNull();
+  });
+
+  // The protective case is untouched: a REAL change of person still takes the
+  // tracking session, so the next client's pageviews never merge into the
+  // previous one's session.
+  it('still wipes the tracking session when a different person validates', () => {
+    const sessionUuid = `baldecash-${LANDING}-wizard-session-uuid`;
+    localStorage.setItem(dniKey, PREVIOUS_DNI);
+    localStorage.setItem(sessionUuid, 'uuid-del-anterior');
+
+    resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI);
+
+    expect(localStorage.getItem(sessionUuid)).toBeNull();
+  });
+
   it('is a harmless no-op on a first visit, with nothing stored', () => {
     expect(() => resetLandingSessionIfIdentityChanged(LANDING, NEW_DNI)).not.toThrow();
     expect(localStorage.length).toBe(0);
