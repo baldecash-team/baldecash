@@ -314,6 +314,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // manda las specs de cada sibling; usarlas o caer a las del producto base.
   const displaySpecs = selectedColor?.specs ?? product.specs;
 
+  // El diferido tambien varia por hermano: en `copia-home` el Advance CN4058
+  // grado B esta diferido y el Semi Nuevo y el C no. El flag es del producto
+  // —con override por landing— y no de la familia, asi que resolverlo una sola
+  // vez con el producto del listado hacia que el aviso no cambiara al elegir
+  // otro grado: quien elegia el C creia que tambien esperaba (y al reves).
+  //
+  // El grado manda sobre el color cuando hay uno elegido, mismo orden que
+  // `displayName` y `displayPrice`.
+  //
+  // `??` y no `||`: `false` es un dato valido del hermano —"este NO es
+  // diferido"— y con `||` se caia al flag del padre, que es justo el bug.
+  // `undefined` (backend viejo, sin el campo) SI cae al padre: es la unica
+  // lectura segura cuando el dato no viaja.
+  const displayIsDeferred =
+    selectedGradeSibling?.isDeferredDelivery ??
+    selectedColor?.isDeferredDelivery ??
+    product.deferredDelivery?.isDeferred ??
+    false;
+
+  // La VENTANA de fechas sigue siendo la de la card: el hermano solo trae el
+  // booleano. Si las fechas difirieran entre hermanos el modal mostraria una
+  // que no es exactamente la suya — limitacion conocida y aceptada; traer el
+  // bloque completo por hermano es un cambio de contrato del backend.
+  const displayDeferredDelivery = displayIsDeferred
+    ? product.deferredDelivery
+    : undefined;
+
   // Detect if title is truncated (line-clamp-2) to show tooltip on hover
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [isTitleTruncated, setIsTitleTruncated] = useState(false);
@@ -496,7 +523,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // "Lo quiero": si el producto tiene entrega diferida, primero el aviso de fecha;
   // al confirmar se agrega al carrito.
   const handleQuieroClick = () => {
-    if (product.deferredDelivery?.isDeferred) {
+    if (displayIsDeferred) {
       setShowDeferredModal(true);
       return;
     }
@@ -1113,7 +1140,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         isOpen={showDeferredModal}
         onClose={() => setShowDeferredModal(false)}
         onConfirm={() => onAddToCart?.(createCartItem())}
-        deferredDelivery={product.deferredDelivery}
+        deferredDelivery={displayDeferredDelivery}
         productName={displayName}
       />
     </motion.div>

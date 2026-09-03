@@ -83,6 +83,13 @@ export interface ApiColorSibling {
   color_hex: string;
   image_url?: string;
   specs: Record<string, string | number | boolean>;
+  /**
+   * Entrega diferida de ESTE color. El flag es del producto —con override por
+   * landing— y no de la familia, así que basta con que uno de los colores esté
+   * diferido para que el resto herede un aviso que no es suyo. Opcional porque
+   * contra un backend viejo el campo no viene.
+   */
+  is_deferred_delivery?: boolean;
   pricing: {
     list_price: number;
     final_price: number;
@@ -158,6 +165,13 @@ export interface ApiCatalogProduct {
      * plazo más CORTO (S/90) y es la que usa el detalle en sus tarjetas.
      */
     lowest_quota?: number | null;
+    /**
+     * Entrega diferida de ESTE grado. En `copia-home` el Advance CN4058 grado B
+     * está diferido y el Semi Nuevo y el C no: el flag es del producto (con
+     * override por landing), no de la familia. Opcional porque contra un backend
+     * viejo el campo no viene.
+     */
+    is_deferred_delivery?: boolean;
   }[];
   short_description?: string;
   brand: ApiBrand;
@@ -671,6 +685,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
             discount: sib.pricing.discount_percent > 0 ? sib.pricing.discount_percent : undefined,
             specs: sibSpecs,
             rawSpecs: sib.specs && Object.keys(sib.specs).length > 0 ? sib.specs : undefined,
+            // El diferido es POR COLOR, igual que el pricing y las specs.
+            // `undefined` (backend viejo) deja que la card caiga al del padre.
+            isDeferredDelivery: sib.is_deferred_delivery,
             paymentHooks: sib.pricing.payment_hooks
               ? Object.fromEntries(
                   Object.entries(sib.pricing.payment_hooks).map(([freq, h]) => [
@@ -759,6 +776,10 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
       minTermQuota: s.min_term_quota ?? null,
       lowestQuota: s.lowest_quota ?? null,
       isAvailable: s.is_available,
+      // El diferido es POR GRADO. Sin esto la card resolvía el aviso una sola
+      // vez —con el producto del listado— y no cambiaba al elegir otro grado.
+      // `undefined` (backend viejo) deja que la card caiga al flag del padre.
+      isDeferredDelivery: s.is_deferred_delivery,
     })),
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response

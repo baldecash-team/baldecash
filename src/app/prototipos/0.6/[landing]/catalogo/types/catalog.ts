@@ -476,6 +476,11 @@ export interface ProductColor {
   /** Cuota por frecuencia de este color (semanal/quincenal). La tarjeta la
    *  usa cuando la landing no es mensual; sin esto cae a la del primario. */
   paymentHooks?: Record<string, { price: number; termMonths?: number; initialPercent?: number }>;
+  /**
+   * Entrega diferida de ESTE color. `undefined` = el backend no lo mandó (API
+   * vieja): quien lo lea debe caer al flag de la card, no asumir `false`.
+   */
+  isDeferredDelivery?: boolean;
 }
 
 export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: string; description: string }> = {
@@ -935,6 +940,11 @@ export interface CatalogGradeSibling {
   lowestQuota?: number | null;
   /** Con stock disponible. Los agotados SÍ se muestran, en gris. */
   isAvailable: boolean;
+  /**
+   * Entrega diferida de ESTE grado. `undefined` = el backend no lo mandó (API
+   * vieja): quien lo lea debe caer al flag de la card, no asumir `false`.
+   */
+  isDeferredDelivery?: boolean;
 }
 
 export interface BrandFilterProps {
