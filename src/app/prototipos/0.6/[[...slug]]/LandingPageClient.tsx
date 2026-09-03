@@ -20,6 +20,7 @@ import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { captureLandingParams } from '@/app/prototipos/0.6/utils/landingParams';
+import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
 import { persistUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
@@ -623,6 +624,12 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
 
 // Main export with Suspense wrapper + tracking providers
 export function LandingPageClient({ slug, initialData, landingConfig, referralBanner }: LandingPageClientProps) {
+  // Si este equipo venía del link de OTRA promotora, se borra su visita entera
+  // (formulario, sesión de tracking, `ref`, UTMs, franja) antes de que arranque
+  // nada de abajo. Tiene que ir acá, en el padre y antes de renderizar hijos:
+  // ver `usePromoterLinkReset` para el porqué del orden.
+  usePromoterLinkReset(slug);
+
   return (
     <SessionProvider landingSlug={slug}>
       <EventTrackerProvider>
