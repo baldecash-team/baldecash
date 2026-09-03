@@ -48,7 +48,9 @@
 - Produces:
   - `export type ContratoModo = 'aceptacion' | 'emitido';`
   - `export type ContratoEstado = 'generando' | 'listo' | 'error';`
-  - `export interface ContratoKyc { modo: ContratoModo; estado: ContratoEstado; disponible: boolean; url?: string; html?: string; hash?: string; external_id?: string; emitido_at?: string; }`
+  - `export type ContratoMotivo = 'sin_registro' | 'generacion';`
+  - `export interface ContratoKyc { modo: ContratoModo; estado: ContratoEstado; motivo?: ContratoMotivo; disponible: boolean; url?: string; html?: string; hash?: string; external_id?: string; emitido_at?: string; }`
+  - `motivo` sólo viene con `estado: 'error'`. `sin_registro` significa que la solicitud no llegó a legacy: reintentar no lo arregla, y el paso lo dice distinto (ver Task 4).
   - `getContrato(args: {applicationCode, documentNumber?, resumeToken?, reintentar?}): Promise<ContratoKyc | null>` — `null` ante error de red o HTTP no-OK. Una respuesta sin `modo`/`estado` (backend viejo) se adapta desde `disponible`.
   - `completeKycStep(args & {contractHash?: string}): Promise<{state: KycProgressState | null; outdated: boolean}>`.
   - `KycVeredicto` gana `motivo?: 'contrato_vencido'` y `firmado?: boolean`.
@@ -843,6 +845,21 @@ it('el error ofrece reintentar', async () => {
   await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
 });
 
+it('si la solicitud no quedó registrada lo dice, y no ofrece reintentar', async () => {
+  // Llegar acá implica que el submit resolvió OK (el wizard hace `await` y solo
+  // navega con `result.success`), así que esto es el alta en legacy fallando
+  // sola dentro de ese submit. Reintentar no lo arregla.
+  mockGet.mockResolvedValue({
+    modo: 'aceptacion', estado: 'error', motivo: 'sin_registro', disponible: false,
+  });
+
+  pintar();
+
+  await waitFor(() => expect(screen.getByTestId('contrato-sin-registro')).toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+});
+
 it('el link a pestaña nueva emite su evento', async () => {
   mockGet.mockResolvedValue(LISTO);
   const onTrack = jest.fn();
@@ -906,7 +923,27 @@ Cambios sobre el componente actual, conservando **intacta** la lógica de autori
         </div>
 ```
 
-   - `estado === 'error'` →
+   - `estado === 'error'` con `motivo === 'sin_registro'` → la solicitud no
+     quedó registrada del otro lado. **Reintentar no lo arregla**, así que ese
+     bloque no lleva botón: lleva el contacto. Es el único caso en que el paso
+     admite que el problema no se resuelve solo.
+
+```tsx
+        <div
+          data-testid="contrato-sin-registro"
+          className="w-full rounded-xl border border-[#fecaca] bg-[#fef2f2] p-6 text-center"
+        >
+          <p className="text-sm font-semibold text-[#991b1b]">
+            Tu solicitud no quedó registrada
+          </p>
+          <p className="mt-1 text-xs text-[#7f1d1d]">
+            No podemos preparar tu contrato hasta resolverlo. Escribinos y lo
+            vemos: {CONTACTO_SOPORTE}
+          </p>
+        </div>
+```
+
+   - `estado === 'error'` (cualquier otro motivo) →
 
 ```tsx
         <div
