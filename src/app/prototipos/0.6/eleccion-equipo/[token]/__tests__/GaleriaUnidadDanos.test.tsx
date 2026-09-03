@@ -92,6 +92,45 @@ describe('evaluada', () => {
     expect(screen.getByText('Golpe o deformación')).toBeInTheDocument();
   });
 
+  it('la lista arranca plegada, pero la cabecera ya dice cuántas y cuán serias', () => {
+    // Plegar no puede volverse esconder: sin abrir nada tiene que leerse que
+    // la unidad TIENE marcas y que una es severa.
+    render(
+      <GaleriaUnidad
+        unidad={unidad([
+          { etiqueta: 'Rayadura en la tapa', nivel: 'Severa' },
+          { etiqueta: 'Mancha en la carcasa', nivel: 'Leve' },
+          { etiqueta: 'Golpe o deformación', nivel: 'Leve' },
+        ])}
+        {...props}
+      />,
+    );
+
+    const detalle = screen.getByText('Marcas de esta unidad').closest('details');
+    expect(detalle).not.toBeNull();
+    expect(detalle).not.toHaveAttribute('open');
+    expect(screen.getByText('3 marcas · 1 severa')).toBeInTheDocument();
+  });
+
+  it('sin ninguna severa, la cabecera solo cuenta', () => {
+    render(
+      <GaleriaUnidad
+        unidad={unidad([{ etiqueta: 'Desgaste en el touchpad', nivel: 'Leve' }])}
+        {...props}
+      />,
+    );
+
+    expect(screen.getByText('1 marca')).toBeInTheDocument();
+  });
+
+  it('el caso "sin daños" NO se pliega: es una línea y conviene leerla de una', () => {
+    render(<GaleriaUnidad unidad={unidad([])} {...props} />);
+
+    expect(
+      screen.getByText(/no le encontramos daños estéticos/i).closest('details'),
+    ).toBeNull();
+  });
+
   it('no repite las specs del equipo: acá van los daños, nada más', () => {
     // El modelo ya se eligió antes de llegar a esta pantalla.
     render(
