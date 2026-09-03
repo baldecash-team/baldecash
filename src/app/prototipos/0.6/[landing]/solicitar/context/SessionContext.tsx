@@ -32,6 +32,23 @@ import { persistUtmParams, readUtmParams } from '@/app/prototipos/0.6/utils/utmP
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
 
 /**
+ * Uuid de la sesión que ya envió una solicitud.
+ *
+ * Es una MARCA, no un borrado, y esa es toda la diferencia: la solicitud se
+ * envía desde `/solicitar` y se confirma en `/solicitar/confirmacion`, dos
+ * rutas de la misma visita. Soltar la sesión en el medio —lo que se hacía—
+ * hacía que la confirmación abriera una fila de `session` nueva, así que el
+ * evento `application_submitted` caía sobre una sesión sin `application_id` y
+ * la que sí lo tenía nunca veía el envío. Pasaba en toda solicitud, no sólo en
+ * las de activación.
+ *
+ * La marca se consume cuando alguien arranca OTRA solicitud
+ * (`renovarSesionSiConvertida`, desde el layout de `/solicitar`).
+ */
+const getConvertedKey = (landing: string) =>
+  `baldecash-${landing}-wizard-session-converted`;
+
+/**
  * Drops the persisted tracking session for a landing.
  *
  * Exported as a plain function, not only as the context's `clearSession`, so
@@ -41,6 +58,10 @@ const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-
 export function clearSessionStorage(landing: string): void {
   // safeRemoveItem is hoisted; it already guards SSR and storage failures.
   safeRemoveItem(getSessionKey(landing));
+  // La marca se va con la sesión que describe. Si sobreviviera, la sesión que
+  // nace después del reset arrancaría marcada como convertida y se renovaría
+  // sola en la primera solicitud del cliente siguiente.
+  safeRemoveItem(getConvertedKey(landing));
 }
 
 /**
@@ -99,8 +120,21 @@ interface SessionContextValue {
   isCreating: boolean;
   /** Initialize or retrieve existing session */
   initSession: (landingSlug: string) => Promise<string | null>;
-  /** Clear the session (on successful submission or manual reset) */
+  /** Clear the session (on manual reset) */
   clearSession: () => void;
+  /**
+   * Marca que esta sesión ya envió una solicitud, SIN soltarla.
+   *
+   * La confirmación tiene que seguir emitiendo sobre la misma fila: es el único
+   * lugar donde el evento del envío trae el `application_code`, y por ahí se
+   * ata la sesión con su solicitud sin heurística.
+   */
+  marcarSesionConvertida: () => void;
+  /**
+   * Suelta la sesión y abre una nueva si la actual ya envió una solicitud.
+   * Devuelve true cuando renovó.
+   */
+  renovarSesionSiConvertida: () => boolean;
   /** Get the session ID (backend ID, not UUID) */
   sessionId: number | null;
 }
@@ -312,6 +346,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
   // Memoize storage key based on landing
   const sessionKey = useMemo(() => getSessionKey(landingSlug ?? 'default'), [landingSlug]);
+  const convertedKey = useMemo(
+    () => getConvertedKey(landingSlug ?? 'default'),
+    [landingSlug]
+  );
 
   /**
    * Create a new tracking session via API with retry logic
@@ -464,6 +502,39 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     safeRemoveItem(sessionKey);
   }, [sessionKey]);
 
+  /**
+   * Deja constancia de que esta sesión ya convirtió. No toca el uuid.
+   *
+   * Lee el uuid de storage además del estado porque el submit puede resolver
+   * antes de que el provider haya terminado de hidratar en una recarga.
+   */
+  const marcarSesionConvertida = useCallback(() => {
+    const uuid = sessionUuid ?? safeGetItem(sessionKey);
+    if (uuid) safeSetItem(convertedKey, uuid);
+  }, [sessionUuid, sessionKey, convertedKey]);
+
+  /**
+   * Renueva la sesión al arrancar una solicitud nueva sobre una que ya convirtió.
+   *
+   * Sólo renueva si la sesión guardada ES la que convirtió. Cuando no coincide,
+   * otra vía ya la soltó —el reset del activador, el cambio de link de
+   * promotora, un DNI distinto— y lo único que queda por hacer es descartar la
+   * marca vieja: tirar la sesión recién nacida le costaría al alumno que está
+   * entrando la atribución del link con el que entró.
+   */
+  const renovarSesionSiConvertida = useCallback((): boolean => {
+    const convertida = safeGetItem(convertedKey);
+    if (!convertida) return false;
+
+    safeRemoveItem(convertedKey);
+
+    const actual = safeGetItem(sessionKey);
+    if (actual && actual !== convertida) return false;
+
+    clearSession();
+    return true;
+  }, [convertedKey, sessionKey, clearSession]);
+
   // Auto-initialize session on mount for the current landing so tracking
   // starts from the first page the user visits (home, catálogo, producto).
   // The backend endpoint is idempotent: it recovers the existing session
@@ -483,6 +554,8 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         isCreating,
         initSession,
         clearSession,
+        marcarSesionConvertida,
+        renovarSesionSiConvertida,
         sessionId,
       }}
     >
