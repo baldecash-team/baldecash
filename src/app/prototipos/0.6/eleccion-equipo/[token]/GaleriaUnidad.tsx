@@ -511,7 +511,9 @@ export function GaleriaUnidad({
                       // que capturar solo el rechazo de `play()` (en
                       // `VideoControls`) no alcanza.
                       onError={() => setErrorVideo(true)}
-                      className="h-full w-full object-cover object-[50%_60%]"
+                      // Centrado, igual que las fotos: la estación graba el
+                      // equipo en el medio del cuadro 1:1.
+                      className="h-full w-full object-cover object-center"
                     />
                     {errorVideo && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[#151744]/92 px-6 text-center">
@@ -534,14 +536,15 @@ export function GaleriaUnidad({
                     src={fotoActual.url}
                     alt={`${titulo} — ${etiquetaFoto(fotoActualIndice)}`}
                     // Mismo criterio de encuadre que la tira de miniaturas de acá
-                    // abajo y que la card de la lista (`UnidadCard`): las
-                    // grabaciones de la estación de inspección traen pared vacía
-                    // arriba y el equipo cae hacia la mitad inferior del cuadro.
+                    // abajo y que la card de la lista (`UnidadCard`): CENTRADO.
+                    // El equipo viene centrado en el cuadro 1:1 de la estación,
+                    // así que el 60% vertical de antes cortaba el borde de
+                    // arriba de la pantalla y mostraba la base del plato.
                     // `object-cover` (en vez de `object-contain`, que dejaba el
                     // equipo chico y con bandas) hace que el medio grande
                     // acompañe a la tira, que ya recorta; lo que quede fuera del
                     // recuadro se alcanza con el zoom, que es justo para eso.
-                    className="h-full w-full object-cover object-[50%_60%]"
+                    className="h-full w-full object-cover object-center"
                   />
                 ) : (
                   <p className="px-6 text-center text-[13px] text-[#5b5c6b]">
