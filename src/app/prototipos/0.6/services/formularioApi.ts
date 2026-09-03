@@ -1,0 +1,246 @@
+/**
+ * Formulario posterior a la solicitud — cliente HTTP.
+ *
+ * Contrato: `docs/FORMULARIO_POSTERIOR_API.md` en ws2 (sección 2 público).
+ * El token de la URL es la ÚNICA prueba de titularidad: ni el id ni el código
+ * de la solicitud viajan. El FE no decide qué pedir: dibuja `modulos` tal
+ * como vienen, y los módulos comunes (resumen, contacto, dudas) siempre.
+ *
+ * Nada de lo que la persona escribe acá pisa datos de la solicitud: teléfono
+ * y dirección corregidos viven en el formulario del backend.
+ */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+
+export type ModuloCode =
+  | 'utility_bill' | 'payslip' | 'tax_report'
+  | 'fee_receipt_1' | 'fee_receipt_2' | 'fee_receipt_3'
+  | 'income_movements' | 'income_detail';
+
+export type ModuloStatus = 'pending' | 'uploaded' | 'verified' | 'rejected' | 'skipped';
+export type FulfilledBy = 'document' | 'text' | 'voice_note';
+export type ContactSlot = '09_12' | '12_14' | '15_18' | '18_20' | 'exact';
+export type ContactChannel = 'whatsapp' | 'call';
+export type FormularioStatus =
+  | 'not_applicable' | 'pending' | 'sent' | 'opened' | 'submitted' | 'expired';
+
+export interface DocumentoSubido {
+  id: number;
+  file_name: string;
+  mime_type: string | null;
+  uploaded_at: string | null;
+  view_url: string | null;
+}
+
+export interface DocumentType {
+  code: string;
+  name: string;
+  accepted_formats: string[] | null;
+  max_file_size_mb: number | null;
+  max_files: number | null;
+}
+
+export interface Modulo {
+  code: ModuloCode;
+  status: ModuloStatus;
+  fulfilled_by: FulfilledBy | null;
+  is_required: boolean;
+  min_files: number;
+  files_count: number;
+  attempt_count: number;
+  max_attempts: number;
+  last_rejected_at: string | null;
+  verified_at: string | null;
+  rejection_message: string | null;
+  document_type: DocumentType | null;
+  documents: DocumentoSubido[];
+}
+
+export interface ResumenItem {
+  nombre: string;
+  spec: string | null;
+  cuota: number;
+  imagen: string | null;
+  es_principal: boolean;
+}
+
+export interface Contacto {
+  contact_date: string | null;
+  contact_slot: ContactSlot | null;
+  contact_time: string | null;
+  contact_at: string | null;
+  contact_channel: ContactChannel | null;
+  contact_phone: string | null;
+  phone_changed: boolean;
+}
+
+export interface Pantalla {
+  status: FormularioStatus;
+  situation: string;
+  campaign: string | null;
+  requires_utility_bill: boolean;
+  numero_solicitud: string;
+  nombre: string;
+  telefono: string | null;
+  direccion: string | null;
+  direccion_tiene_numero: boolean;
+  resumen: {
+    items: ResumenItem[];
+    cuota: number;
+    plazo: number;
+    monto: number;
+    frecuencia: string;
+    primer_pago: string | null;
+    seguro: boolean;
+    garantia: boolean;
+  };
+  modulos: Modulo[];
+  contacto: Contacto;
+  respuesta: {
+    corrected_address: string | null;
+    income_description: string | null;
+    questions: string | null;
+  };
+  submitted_at: string | null;
+}
+
+export interface EnviarPayload {
+  contact_date: string;
+  contact_slot: ContactSlot;
+  contact_time?: string;
+  contact_channel: ContactChannel;
+  contact_phone: string;
+  corrected_address?: string;
+  questions?: string;
+}
+
+export interface EnviarRespuesta {
+  ok: true;
+  contacto: { dia: string; horario: string; canal: string; telefono: string };
+}
+
+export interface FormularioApiError {
+  error: string;
+  reason: string;
+  /** Códigos de módulos pendientes cuando `reason === 'modules_pending'`. */
+  modulos?: string[];
+}
+
+export function isFormularioApiError(x: unknown): x is FormularioApiError {
+  return typeof x === 'object' && x !== null && 'reason' in x && 'error' in x;
+}
+
+const NETWORK: FormularioApiError = {
+  reason: 'network', error: 'No pudimos conectarnos. Revisa tu conexión.',
+};
+
+/** Extrae `{reason, message}` del `detail` del backend. */
+async function toError(response: Response): Promise<FormularioApiError> {
+  try {
+    const data = await response.json();
+    const d = data?.detail;
+    // FastAPI devuelve los errores de validación de Pydantic como un ARRAY de
+    // `{loc, msg, type}`, no como el `{reason, message}` propio del dominio.
+    if (Array.isArray(d)) {
+      return { reason: 'validation_error', error: 'Revisa los datos e intenta nuevamente.' };
+    }
+    if (d && typeof d === 'object') {
+      return {
+        reason: d.reason || 'unknown',
+        error: d.message || 'Ocurrió un error.',
+        modulos: Array.isArray(d.modules) ? d.modules : undefined,
+      };
+    }
+    return { reason: 'unknown', error: typeof d === 'string' ? d : 'Ocurrió un error.' };
+  } catch {
+    return { reason: 'unknown', error: 'Ocurrió un error.' };
+  }
+}
+
+const base = (token: string) => `${API_BASE_URL}/public/formulario/${encodeURIComponent(token)}`;
+
+/** Canjea el token y devuelve lo que la pantalla muestra. Marca `opened`. */
+export async function getFormulario(token: string): Promise<Pantalla | FormularioApiError> {
+  try {
+    const response = await fetch(base(token));
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as Pantalla;
+  } catch {
+    return NETWORK;
+  }
+}
+
+/** Sube un archivo a un módulo. Devuelve el módulo actualizado. */
+export async function subirArchivo(
+  token: string,
+  code: ModuloCode,
+  file: File,
+  fulfilledBy: FulfilledBy = 'document',
+): Promise<Modulo | FormularioApiError> {
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('fulfilled_by', fulfilledBy);
+    const response = await fetch(`${base(token)}/modulos/${code}/archivo`, {
+      method: 'POST', body,
+    });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as Modulo;
+  } catch {
+    return NETWORK;
+  }
+}
+
+/** Cumple un módulo con texto (boleta → "cómo percibo mis ingresos", detalle). */
+export async function cumplirConTexto(
+  token: string,
+  code: ModuloCode,
+  text: string,
+): Promise<Modulo | FormularioApiError> {
+  try {
+    const response = await fetch(`${base(token)}/modulos/${code}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fulfilled_by: 'text', text }),
+    });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as Modulo;
+  } catch {
+    return NETWORK;
+  }
+}
+
+/** Quita un archivo subido por error. Devuelve el módulo actualizado. */
+export async function borrarArchivo(
+  token: string,
+  code: ModuloCode,
+  documentId: number,
+): Promise<Modulo | FormularioApiError> {
+  try {
+    const response = await fetch(`${base(token)}/modulos/${code}/archivos/${documentId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as Modulo;
+  } catch {
+    return NETWORK;
+  }
+}
+
+/** Botón Enviar: contacto, dirección corregida y dudas. Consume el link. */
+export async function enviarFormulario(
+  token: string,
+  payload: EnviarPayload,
+): Promise<EnviarRespuesta | FormularioApiError> {
+  try {
+    const response = await fetch(`${base(token)}/enviar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as EnviarRespuesta;
+  } catch {
+    return NETWORK;
+  }
+}
