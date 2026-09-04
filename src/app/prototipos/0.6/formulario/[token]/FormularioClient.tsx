@@ -43,6 +43,10 @@ import {
 } from '@/app/prototipos/0.6/services/formularioApi';
 import { Ic } from './icons';
 
+/** Logo de la marca sobre fondo claro, el mismo que usan el modal del cupón y
+ * los datos estructurados del sitio. */
+const LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+
 /** Enlace muerto pero conocido: existió, ya no sirve. */
 /** Enlace muerto pero conocido: existió, ya no sirve. `superseded` es el caso
  * en que se emitió uno más nuevo (no es error del estudiante); `submitted` es
@@ -1190,7 +1194,14 @@ const Chip = ({ on, onClick, b, s, disabled }: { on: boolean; onClick: () => voi
 
 const Header = () => (
   <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
-    <div className="mx-auto max-w-[560px] px-4 py-3 text-[18px] font-extrabold text-[#2F3A9E]">BaldeCash</div>
+    <div className="mx-auto flex max-w-[560px] items-center px-4 py-3">
+      {/* Alto fijo y ancho automatico: el archivo es 1082x305, asi que fijar
+          los dos lo deformaria. `next/image` no aporta acá --- es un logo
+          chico de un dominio externo --- y el repo ya lo carga asi en el
+          modal del cupon. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={LOGO_URL} alt="BaldeCash" className="block h-7 w-auto" />
+    </div>
   </header>
 );
 const Footer = () => (

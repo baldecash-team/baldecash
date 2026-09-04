@@ -122,8 +122,9 @@ describe('FormularioClient', () => {
       expect(await screen.findByText('Este enlace venció')).toBeInTheDocument();
       expect(screen.getByText(/cada enlace vale 8 horas/)).toBeInTheDocument();
       expect(await boton()).toBeEnabled();
-      // cabecera y fondo propios: no queda un <main> suelto
-      expect(screen.getByRole('banner')).toHaveTextContent('BaldeCash');
+      // cabecera y fondo propios: no queda un <main> suelto. La marca es el
+      // logo, asi que se busca por su texto alternativo y no por texto suelto.
+      expect(screen.getByRole('banner')).toContainElement(screen.getByAltText('BaldeCash'));
     });
 
     it('reemplazado por uno más nuevo → no es un error del estudiante', async () => {
