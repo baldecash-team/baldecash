@@ -285,7 +285,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
       setDetalleGuardado(res.respuesta.income_description);
     }
     // La sesion la da el backend (derivada del token, no el token).
-    iniciarTelemetria(res.telemetria_session, res.numero_solicitud);
+    iniciarTelemetria(res.telemetria_session, res.numero_solicitud, res.situation);
     if (res.status === 'submitted') {
       return setView({ status: 'done', datos: res, contacto: confirmacionDe(res) });
     }
@@ -763,7 +763,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
             izquierda en el monitor, sin duplicarlo en el DOM (dos botones
             "Enviar", aunque uno este oculto, rompen las busquedas por rol y
             confunden a un lector de pantalla). */}
-        <div className="flex flex-col lg:grid lg:grid-cols-[340px_minmax(0,600px)] lg:items-start lg:gap-x-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-[340px_minmax(0,600px)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8">
           {/* `contents` en movil disuelve este contenedor para que el `order`
               de sus hijos valga en el flex de arriba; en escritorio vuelve a
               ser una caja y se puede fijar. */}
@@ -782,7 +782,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
             </div>
           </div>
 
-          <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1">
+          <div className="order-2 lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
 
         {secciones.map((s) => {
           const m = s.modulos[0];

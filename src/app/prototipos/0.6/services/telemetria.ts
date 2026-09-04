@@ -27,6 +27,10 @@ type Evento = { event_type: string; client_ts: number; properties: Props };
 
 let sesion = '';
 let solicitud = '';
+/** Qué tipo de formulario le tocó (`payslip`, `fee_receipts`, …). Va en TODOS
+ * los eventos: sin eso los tiempos no se pueden leer, porque no se le pide lo
+ * mismo a cada casuística. */
+let casuistica = '';
 let inicio = 0;
 let pasoMaximo: Seccion | null = null;
 let cola: Evento[] = [];
@@ -76,10 +80,15 @@ export function medir(clave: string): number | undefined {
   return Date.now() - t0;
 }
 
-export function iniciarTelemetria(sessionId?: string | null, applicationCode?: string | null) {
+export function iniciarTelemetria(
+  sessionId?: string | null,
+  applicationCode?: string | null,
+  situacion?: string | null,
+) {
   if (!sessionId) return;
   sesion = sessionId;
   solicitud = applicationCode ?? '';
+  casuistica = situacion ?? '';
   inicio = Date.now();
   cerrado = false;
 }
@@ -89,7 +98,11 @@ export function evento(tipo: string, props: Props = {}) {
   cola.push({
     event_type: tipo,
     client_ts: Date.now(),
-    properties: { ...props, ...(solicitud ? { application_code: solicitud } : {}) },
+    properties: {
+      ...props,
+      ...(solicitud ? { application_code: solicitud } : {}),
+      ...(casuistica ? { situacion: casuistica } : {}),
+    },
   });
   programarEnvio();
 }
@@ -119,6 +132,7 @@ export function cerrarTelemetria(motivo: string) {
       paso_maximo: pasoMaximo,
       motivo,
       ...(solicitud ? { application_code: solicitud } : {}),
+      ...(casuistica ? { situacion: casuistica } : {}),
     },
   };
   const cuerpo = JSON.stringify({ session_id: sesion, events: [...cola, evento_final] });
@@ -143,7 +157,7 @@ export function cerrarTelemetria(motivo: string) {
 
 /** Para los tests: deja el módulo como recién cargado. */
 export function _reiniciarTelemetria() {
-  sesion = ''; solicitud = ''; inicio = 0; pasoMaximo = null; cola = []; cerrado = false;
+  sesion = ''; solicitud = ''; casuistica = ''; inicio = 0; pasoMaximo = null; cola = []; cerrado = false;
   relojes.clear();
   if (timer) { clearTimeout(timer); timer = null; }
 }

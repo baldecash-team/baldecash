@@ -8,7 +8,9 @@ import {
   _reiniciarTelemetria, cerrarTelemetria, cronometrar, evento, iniciarTelemetria, medir, verSeccion,
 } from '../telemetria';
 
-const beacon = jest.fn(() => true);
+// Tipado como el `sendBeacon` real: sin los argumentos, `mock.calls[0][1]`
+// es un acceso fuera de rango para TypeScript.
+const beacon = jest.fn((_url: string, _datos?: BodyInit | null) => true);
 
 beforeEach(() => {
   _reiniciarTelemetria();
@@ -36,7 +38,7 @@ test('el cierre manda la duración y hasta qué sección llegó', async () => {
   jest.spyOn(Date, 'now')
     .mockReturnValueOnce(1_000_000)   // inicio
     .mockReturnValue(1_154_000);      // cierre: 154 s después
-  iniciarTelemetria('sesion-derivada', 'SOL-123');
+  iniciarTelemetria('sesion-derivada', 'SOL-123', 'fee_receipts');
   verSeccion('documentos');
   verSeccion('resumen');              // volver atrás no borra lo alcanzado
   cerrarTelemetria('cierre');
@@ -48,6 +50,9 @@ test('el cierre manda la duración y hasta qué sección llegó', async () => {
   expect(salida.properties.duracion_ms).toBe(154_000);
   expect(salida.properties.paso_maximo).toBe('documentos');
   expect(salida.properties.application_code).toBe('SOL-123');
+  // Todo evento dice qué tipo de formulario le tocó: los tiempos de una
+  // casuística de cuatro papeles no se leen igual que los de una sin ninguno.
+  expect(salida.properties.situacion).toBe('fee_receipts');
 });
 
 test('el cierre se manda una sola vez: en móvil `visibilitychange` dispara varias', () => {
@@ -66,13 +71,15 @@ test('sin sesión no se manda nada: el token no se inventa', () => {
 });
 
 test('los eventos pendientes viajan en el mismo beacon del cierre', async () => {
-  iniciarTelemetria('sesion', 'SOL-9');
+  iniciarTelemetria('sesion', 'SOL-9', 'payslip');
   evento('followup_form_scroll', { profundidad: 75 });
   cerrarTelemetria('cierre');
   const cuerpo = await cuerpoDelBeacon();
   expect(cuerpo.events.map((e: { event_type: string }) => e.event_type)).toEqual([
     'followup_form_scroll', 'followup_form_exit',
   ]);
+  expect(cuerpo.events.every((e: { properties: { situacion?: string } }) =>
+    e.properties.situacion === 'payslip')).toBe(true);
 });
 
 test('el cronómetro mide una subida y no se puede leer dos veces', () => {
