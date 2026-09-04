@@ -24,6 +24,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import {
+  cerrarTelemetria, cronometrar, evento, iniciarTelemetria, medir, verSeccion,
+  type Seccion as SeccionMedida,
+} from '../../services/telemetria';
 import {
   borrarArchivo,
   cumplirConTexto,
@@ -46,6 +51,32 @@ import { Ic } from './icons';
 /** Logo de la marca sobre fondo claro, el mismo que usan el modal del cupón y
  * los datos estructurados del sitio. */
 const LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+
+/** Ejemplos de cada documento. Son capturas sinteticas (sin datos de nadie),
+ * las mismas que usa el validador de OCR, servidas desde S3 --- carpeta
+ * publica, WebP de ~100 KB --- para no atarlas al deploy de este front. */
+const EJEMPLOS: Partial<Record<ModuloCode, { url: string; alt: string; pie: string }>> = {
+  utility_bill: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/recibo.webp',
+    alt: 'Recibo de luz de ejemplo', pie: 'Que se lean la direccion y el mes.',
+  },
+  payslip: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/boleta.webp',
+    alt: 'Boleta de pago de ejemplo', pie: 'Que se vean tu nombre y el periodo.',
+  },
+  tax_report: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/rt.webp',
+    alt: 'Reporte tributario de SUNAT de ejemplo', pie: 'El reporte completo, no una sola pagina.',
+  },
+  fee_receipt_1: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/rxh.webp',
+    alt: 'Recibo por honorarios de ejemplo', pie: 'Uno por cada uno de tus 3 ultimos meses.',
+  },
+  income_movements: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/yape.webp',
+    alt: 'Captura de un pago recibido por Yape', pie: 'Que se vean el monto y la fecha.',
+  },
+};
 
 /** Enlace muerto pero conocido: existió, ya no sirve. */
 /** Enlace muerto pero conocido: existió, ya no sirve. `superseded` es el caso
@@ -206,6 +237,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const [errorModulo, setErrorModulo] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [abierto, setAbierto] = useState<Record<string, boolean>>({});
+  const [ejemplo, setEjemplo] = useState<ModuloCode | null>(null);
   const [detOpen, setDetOpen] = useState(false);
 
   // respuesta del estudiante
@@ -252,11 +284,64 @@ export function FormularioClient({ token }: FormularioClientProps) {
       setDetalle(res.respuesta.income_description);
       setDetalleGuardado(res.respuesta.income_description);
     }
+    // La sesion la da el backend (derivada del token, no el token).
+    iniciarTelemetria(res.telemetria_session, res.numero_solicitud);
     if (res.status === 'submitted') {
       return setView({ status: 'done', datos: res, contacto: confirmacionDe(res) });
     }
     setView({ status: 'ready', datos: res });
   }, [token]);
+
+  // Hasta que seccion llego y cuanto scrolleo. Un observer sobre los
+  // `data-seccion` en vez de un handler por tarjeta: el DOM ya dice cuales hay.
+  useEffect(() => {
+    if (view.status !== 'ready') return;
+    const nodos = Array.from(document.querySelectorAll<HTMLElement>('[data-seccion]'));
+    if (!('IntersectionObserver' in window) || nodos.length === 0) return;
+    const obs = new IntersectionObserver((entradas) => {
+      for (const e of entradas) {
+        const nombre = e.target.getAttribute('data-seccion');
+        if (e.isIntersecting && nombre) verSeccion(nombre as SeccionMedida);
+      }
+    }, { threshold: 0.35 });
+    nodos.forEach((n) => obs.observe(n));
+    return () => obs.disconnect();
+  }, [view.status]);
+
+  useEffect(() => {
+    if (view.status !== 'ready') return;
+    // Un evento por tramo, no uno por pixel: 25/50/75/100 alcanza para saber
+    // si la pantalla se leyo entera o se abandono arriba.
+    const hitos = [25, 50, 75, 100];
+    let maximo = 0;
+    const onScroll = () => {
+      const alto = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = alto <= 0 ? 100 : Math.min(100, Math.round((window.scrollY / alto) * 100));
+      for (const h of hitos) {
+        if (pct >= h && maximo < h) {
+          maximo = h;
+          evento('followup_form_scroll', { profundidad: h });
+        }
+      }
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [view.status]);
+
+  // El cierre es lo unico que puede cerrar el tiempo de una visita que
+  // abandona. `visibilitychange` cubre el celular (cambiar de app), donde
+  // `beforeunload` no dispara.
+  useEffect(() => {
+    const alOcultar = () => { if (document.visibilityState === 'hidden') cerrarTelemetria('oculto'); };
+    const alSalir = () => cerrarTelemetria('cierre');
+    document.addEventListener('visibilitychange', alOcultar);
+    window.addEventListener('pagehide', alSalir);
+    return () => {
+      document.removeEventListener('visibilitychange', alOcultar);
+      window.removeEventListener('pagehide', alSalir);
+    };
+  }, []);
 
   useEffect(() => {
     // Diferido un tick: `cargar` termina en setState y el linter de React lo
@@ -308,6 +393,12 @@ export function FormularioClient({ token }: FormularioClientProps) {
     setErrorModulo((e) => ({ ...e, [code]: '' }));
     setPrevias((p) => ({ ...p, [code]: [...(p[code] ?? []), previa] }));
     setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
+    // El cronometro arranca ACA: el servidor solo ve el request ya completo,
+    // asi que la espera real del estudiante --- su subida --- solo se puede
+    // medir del lado del navegador.
+    cronometrar(`subida:${code}`);
+    const kb = Math.round(file.size / 1024);
+    evento('followup_form_upload_start', { modulo: code, kb, mime: file.type });
 
     const res = await subirArchivo(token, code, file, fulfilledBy, (porcentaje) =>
       setPrevias((p) => ({
@@ -320,9 +411,16 @@ export function FormularioClient({ token }: FormularioClientProps) {
     setPrevias((p) => ({ ...p, [code]: (p[code] ?? []).filter((x) => x.id !== previa.id) }));
     revocarUrl(previa.url);
     if (isFormularioApiError(res)) {
+      evento('followup_form_upload_error', {
+        modulo: code, motivo: res.reason, duracion_ms: medir(`subida:${code}`), kb,
+      });
       setErrorModulo((e) => ({ ...e, [code]: res.error }));
       return false;
     }
+    evento('followup_form_upload_done', {
+      modulo: code, duracion_ms: medir(`subida:${code}`), kb, tamano_kb: kb,
+      estado: res.status,
+    });
     reemplazar(res);
     return true;
   };
@@ -343,6 +441,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     const res = await borrarArchivo(token, code, documentId);
     setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
     if (isFormularioApiError(res)) return setErrorModulo((e) => ({ ...e, [code]: res.error }));
+    evento('followup_form_file_removed', { modulo: code });
     reemplazar(res);
   };
 
@@ -353,6 +452,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     const res = await cumplirConTexto(token, code, texto);
     setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
     if (isFormularioApiError(res)) return setErrorModulo((e) => ({ ...e, [code]: res.error }));
+    evento('followup_form_text_saved', { modulo: code, largo: texto.length });
     setDetalleGuardado(texto);
     reemplazar(res);
   };
@@ -368,9 +468,11 @@ export function FormularioClient({ token }: FormularioClientProps) {
     const res = await guardarParcial(token, payload);
     setGuardando((g) => ({ ...g, [seccion]: false }));
     if (isFormularioApiError(res)) {
+      evento('followup_form_section_saved', { seccion, ok: false, motivo: res.reason });
       setErrorSeccion((e) => ({ ...e, [seccion]: res.error }));
       return false;
     }
+    evento('followup_form_section_saved', { seccion, ok: true });
     setView((v) => (v.status === 'ready' ? { ...v, datos: res } : v));
     setGuardadoSnap((g) => ({ ...g, [seccion]: JSON.stringify(payload) }));
     return true;
@@ -407,6 +509,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     if (!voz) return;
     const ext = voz.blob.type.includes('ogg') ? 'ogg' : voz.blob.type.includes('mp4') ? 'm4a' : 'webm';
     const file = new File([voz.blob], `nota-de-voz.${ext}`, { type: voz.blob.type || 'audio/webm' });
+    evento('followup_form_voice_recorded', { segundos: voz.seg });
     await subir('income_detail', file, 'voice_note');
   };
 
@@ -414,6 +517,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const enviar = async (datos: Pantalla, payloadBase: Omit<EnviarPayload, 'questions' | 'corrected_address'>) => {
     setError(null);
     setEnviando(true);
+    evento('followup_form_submit_click', { canal: payloadBase.contact_channel });
     const payload: EnviarPayload = { ...payloadBase };
     if (comentario.trim()) payload.questions = comentario.trim();
     if (dirNueva.trim()) payload.corrected_address = dirNueva.trim();
@@ -424,8 +528,11 @@ export function FormularioClient({ token }: FormularioClientProps) {
         const v = vistaDeError(res.reason);
         if (v.status !== 'invalid') return setView(v);
       }
+      evento('followup_form_submit_error', { motivo: res.reason });
       return setError(res.error);
     }
+    verSeccion('enviar');
+    cerrarTelemetria('enviado');
     setView({ status: 'done', datos, contacto: res.contacto });
   };
 
@@ -522,6 +629,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const vozAbierta = (k: string) => k === 'income_detail' && datos.modulos.find((m) => m.code === 'income_detail')?.fulfilled_by === 'voice_note';
   const sp = (k: string) => ({
     n: orden.indexOf(k) + 1, done: hecho[k],
+    seccion: (k === 'contacto' ? 'contacto' : k === 'ayuda' ? 'dudas' : 'documentos') as SeccionMedida,
     collapsed: hecho[k] && !abierto[k] && !vozAbierta(k),
     onToggle: hecho[k] ? () => setAbierto((a) => ({ ...a, [k]: !a[k] })) : undefined,
   });
@@ -531,6 +639,20 @@ export function FormularioClient({ token }: FormularioClientProps) {
 
   const nDocs = datos.modulos.length;
   const d3 = fecha('pasado');
+
+  /** "Ver ejemplo": el estudiante no sabe si su papel sirve hasta que ve uno.
+   * Tambien se mide (`followup_form_help_open`): si mucha gente lo abre justo
+   * antes de un rechazo, el problema es el texto del modulo, no el papel. */
+  const verEjemplo = (code: ModuloCode) => {
+    if (!EJEMPLOS[code]) return null;
+    return (
+      <button type="button"
+              onClick={() => { setEjemplo(code); evento('followup_form_help_open', { modulo: code }); }}
+              className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-[#C9CEF2] bg-white px-3 py-2 text-[13px] font-bold text-[#4654CD]">
+        <Ic.Eye className="h-4 w-4" />Ver ejemplo
+      </button>
+    );
+  };
 
   const inputArchivo = (m: Modulo, multiple = false) => (
     <input
@@ -622,6 +744,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
             <Ic.Upload className="h-4.5 w-4.5" />{rechazado ? 'Subir otro' : 'Subir'}
           </Btn>
         )}
+        {verEjemplo(m.code)}
         {inputArchivo(m)}
       </div>
     );
@@ -748,6 +871,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
             <Sec key={s.key} {...sp(s.key)} icon={<Ic.Doc className="h-5.5 w-5.5" />} titulo="Tus 3 últimos recibos por honorarios"
                  why="Los tres más recientes que hayas emitido, uno por uno. Deben estar a tu nombre, con tu RUC (10 + tu DNI).">
               <Guia pasos={TUT_RXH} />
+              {verEjemplo('fee_receipt_1')}
               <div className="mt-2.5 grid grid-cols-3 gap-2">
                 {s.modulos.map((rm, i) => {
                   const ok = moduloListo(rm) && rm.status !== 'rejected';
@@ -949,7 +1073,33 @@ export function FormularioClient({ token }: FormularioClientProps) {
             en cuanto esa sección se guardaba y se colapsaba. */}
           </div>
 
-          <div className="order-3 mt-5 lg:order-none lg:col-start-1 lg:row-start-2 lg:mt-4">
+          {ejemplo && EJEMPLOS[ejemplo] && (
+            <div role="dialog" aria-modal="true" aria-label="Ejemplo del documento"
+                 className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+                 onClick={() => setEjemplo(null)}>
+              <div className="max-h-[92vh] w-full max-w-[520px] overflow-auto rounded-t-2xl border border-gray-200 bg-white p-4 sm:rounded-2xl"
+                   onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <b className="block text-[16px] text-gray-900">Asi se ve</b>
+                    <span className="text-[13px] text-gray-500">{EJEMPLOS[ejemplo]!.pie}</span>
+                  </div>
+                  <button type="button" onClick={() => setEjemplo(null)} aria-label="Cerrar"
+                          className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#EEF0FB] text-[#2F3A9E]">
+                    <Ic.X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={EJEMPLOS[ejemplo]!.url} alt={EJEMPLOS[ejemplo]!.alt}
+                     className="mt-3 w-full rounded-xl border border-gray-200" loading="lazy" />
+                <p className="mt-3 text-[12.5px] text-gray-400">
+                  Es un ejemplo: los datos que ves no son de nadie.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div data-seccion="enviar" className="order-3 mt-5 lg:order-none lg:col-start-1 lg:row-start-2 lg:mt-4">
             {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <Btn disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
               <Ic.Send className="h-4.5 w-4.5" />{enviando ? 'Enviando…' : 'Enviar'}
@@ -995,7 +1145,7 @@ function Producto({ datos, open, onToggle }: { datos: Pantalla; open: boolean; o
   if (r.seguro) pills.push('Incluye seguro');
   if (r.garantia) pills.push('Incluye garantía extendida');
   return (
-    <div className="relative mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white text-left">
+    <div data-seccion="resumen" className="relative mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white text-left">
       <span className="absolute right-3 top-2 text-[10.5px] tabular-nums text-gray-400">Solicitud {datos.numero_solicitud}</span>
       <div className="grid grid-cols-[76px_1fr_auto] items-center gap-3.5 p-3.5 pt-5">
         <div className="flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-xl bg-[#EEF0FB]">
@@ -1201,11 +1351,13 @@ function Guia({ pasos }: { pasos: Paso[] }) {
   );
 }
 
-const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle }: {
+const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle, seccion }: {
   n?: number; icon: React.ReactNode; titulo: string; why: React.ReactNode; children: React.ReactNode;
   done?: boolean; collapsed?: boolean; onToggle?: () => void;
+  /** Nombre canonico para la telemetria ("hasta donde llego"). */
+  seccion?: SeccionMedida;
 }) => (
-  <section className={`mt-3.5 rounded-2xl border bg-white ${done ? 'border-emerald-200' : 'border-gray-200'} ${collapsed ? 'p-3' : 'p-4'}`}>
+  <section data-seccion={seccion} className={`mt-3.5 rounded-2xl border bg-white ${done ? 'border-emerald-200' : 'border-gray-200'} ${collapsed ? 'p-3' : 'p-4'}`}>
     <button type="button" onClick={onToggle} disabled={!onToggle} className={`flex w-full gap-2.5 text-left disabled:cursor-default ${collapsed ? 'items-center' : 'items-start'}`}>
       {n !== undefined && <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-[13px] font-bold ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-[#EEF0FB] text-[#2F3A9E]'}`}>{done ? <Ic.Check className="h-4 w-4" /> : n}</span>}
       <h2 className={`flex min-w-0 flex-1 items-start gap-2 font-bold leading-tight ${collapsed ? 'text-[16px] text-gray-500' : 'text-[18px] text-gray-900'}`}>
@@ -1368,6 +1520,7 @@ function EnlaceCaido({ reason, token, onSubmitted }: { reason: EnlaceCaidoReason
 
   const pedir = async () => {
     setEstado({ k: 'enviando' });
+    evento('followup_form_renew_requested', { motivo: reason });
     const res = await renovarEnlace(token);
     if (!isFormularioApiError(res)) return setEstado({ k: 'enviado', telefono: res.telefono, expiresAt: res.expires_at });
     if (res.reason === 'already_submitted') return onSubmitted();

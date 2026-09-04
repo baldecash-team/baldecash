@@ -102,6 +102,9 @@ export interface Pantalla {
     questions: string | null;
   };
   submitted_at: string | null;
+  /** Id de sesión para la telemetría, derivado del token por el backend. NO es
+   * el token: el token es la única credencial del formulario. */
+  telemetria_session?: string | null;
 }
 
 export interface EnviarPayload {
