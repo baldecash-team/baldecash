@@ -973,7 +973,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
                         placeholder="Ejemplo: vendo postres por Instagram, entrego en la universidad de lunes a viernes, gano unos S/ 900 al mes…"
                         className="min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
               <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado || ocupado(m.code)} onClick={() => void guardarTexto(m.code)}>
-                <Ic.Check className="h-4.5 w-4.5" />{m.fulfilled_by === 'text' && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar texto'}
+                <Ic.Check className="h-4.5 w-4.5" />{detalleGuardado && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar'}
               </Btn>
               <NotaVoz m={m} grabando={grabando} segs={segs} voz={voz}
                        onGrabar={() => void empezarGrabacion()} onDetener={detenerGrabacion}
@@ -1310,7 +1310,11 @@ function NotaVoz({ m, grabando, segs, voz, onGrabar, onDetener, onQuitar, onConf
   onGrabar: () => void; onDetener: () => void; onQuitar: () => void; onConfirmar: () => void;
 }) {
   const bars = Array.from({ length: 28 }, (_, i) => 6 + ((i * 7) % 20));
-  const subida = m.fulfilled_by === 'voice_note' && m.documents[m.documents.length - 1];
+  // El archivo del modulo ES la nota de voz; no se mira `fulfilled_by`, que
+  // guarda solo lo ULTIMO que hizo. Si escribia el texto despues de grabar, la
+  // nota desaparecia de la pantalla aunque siguiera guardada: los dos pueden
+  // convivir y los dos suman.
+  const subida = m.documents[m.documents.length - 1];
   if (grabando) return (
     <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border-[1.5px] border-[#C9CEF2] p-2.5">
       <button type="button" disabled={segs < MIN_VOZ} onClick={onDetener} aria-label="Detener" className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-red-50 text-red-600 disabled:opacity-40"><Ic.Stop className="h-5 w-5" /></button>
