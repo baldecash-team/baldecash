@@ -32,7 +32,7 @@ const LIQUIDACION = /en caso de cese, se aplique al saldo pendiente/;
 
 /** Monta el paso con contrato ya emitido y espera a que se pinte. */
 async function montar(landing?: string) {
-  mockGetContrato.mockResolvedValue({ disponible: true, html: '<p>Contrato de Juana Pérez</p>' });
+  mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato de Juana Pérez</p>' });
   const onDone = jest.fn();
   render(
     <ContratoStep onDone={onDone} applicationCode="APP-77" documentNumber="70020010" landing={landing} />,
@@ -97,7 +97,7 @@ describe('ContratoStep — autorizaciones del convenio', () => {
   });
 
   it('sin contrato emitido no hay nada que autorizar', async () => {
-    mockGetContrato.mockResolvedValue({ disponible: false });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
     render(
       <ContratoStep onDone={jest.fn()} applicationCode="APP-77" landing="family-farms-baldecash-a" />,
     );
