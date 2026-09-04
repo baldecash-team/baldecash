@@ -320,6 +320,29 @@ describe('FormularioClient', () => {
     expect(await screen.findByText('Listo')).toBeInTheDocument();
   });
 
+  it('el avance cuenta las secciones guardadas y Enviar queda despues de las tarjetas', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('utility_bill'), modulo('payslip')] }));
+    mockGuardar.mockImplementation(async () => pantalla({ modulos: [modulo('utility_bill'), modulo('payslip')] }));
+    render(<FormularioClient token="tok" />);
+    await screen.findByText(/Laptop Lenovo/);
+
+    // 4 secciones: los dos documentos, el contacto y las dudas.
+    const avance = screen.getByRole('progressbar', { name: 'Secciones completadas' });
+    expect(avance).toHaveAttribute('aria-valuemax', '4');
+    expect(avance).toHaveAttribute('aria-valuenow', '0');
+    expect(screen.getByText('0 de 4 secciones listas')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Dudas'), 'Quiero cambiar el color');
+    await userEvent.click(screen.getByTestId('guardar-ayuda'));
+    await waitFor(() => expect(screen.getByText('1 de 4 secciones listas')).toBeInTheDocument());
+
+    // Enviar sigue viviendo fuera de las tarjetas: en el DOM va despues de la
+    // ultima, que es lo que en movil lo deja al final de la pantalla.
+    const enviar = screen.getByRole('button', { name: /^Enviar$/ });
+    const ultimaTarjeta = screen.getByText(/¿Tienes alguna duda/);
+    expect(ultimaTarjeta.compareDocumentPosition(enviar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('muestra el porcentaje mientras el archivo viaja', async () => {
     mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
     let avisar: (p: number) => void = () => {};
@@ -333,17 +356,20 @@ describe('FormularioClient', () => {
     await userEvent.upload(screen.getByTestId('input-payslip') as HTMLInputElement,
                            new File(['x'], 'boleta.jpg', { type: 'image/jpeg' }));
 
-    expect(await screen.findByText('0%')).toBeInTheDocument();
-    const barra = screen.getByRole('progressbar');
-    expect(barra).toHaveAttribute('aria-valuenow', '0');
+    // Hay dos barras en pantalla: la del avance de secciones y la de esta
+    // subida. Se apunta a la de la subida por su etiqueta.
+    // Hay dos "0%" en pantalla (el avance de secciones y esta subida), asi que
+    // se mira la barra por su etiqueta y no el texto suelto.
+    const barraSubida = () => screen.queryByRole('progressbar', { name: 'Avance de la subida' });
+    await waitFor(() => expect(barraSubida()).toHaveAttribute('aria-valuenow', '0'));
 
     await act(async () => { avisar(45); });
-    expect(await screen.findByText('45%')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '45');
+    await waitFor(() => expect(barraSubida()).toHaveAttribute('aria-valuenow', '45'));
+    expect(screen.getByText('45%')).toBeInTheDocument();
 
     resolver(modulo('payslip', { status: 'uploaded', files_count: 1, fulfilled_by: 'document' }));
     expect(await screen.findByText('Listo')).toBeInTheDocument();
-    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(barraSubida()).not.toBeInTheDocument();
   });
 
   it('si la subida falla, se retira la previa y queda el error en el módulo', async () => {

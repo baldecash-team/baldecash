@@ -518,6 +518,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
   // horario, el botón Guardar desaparecería justo cuando recién se habilita.
   hecho.contacto = contactoOk && yaGuardada('contacto', payloadSeccionContacto());
   hecho.ayuda = comentario.trim().length > 0 && yaGuardada('ayuda', { questions: comentario.trim() });
+  const listas = orden.filter((k) => hecho[k]).length;
   const vozAbierta = (k: string) => k === 'income_detail' && datos.modulos.find((m) => m.code === 'income_detail')?.fulfilled_by === 'voice_note';
   const sp = (k: string) => ({
     n: orden.indexOf(k) + 1, done: hecho[k],
@@ -629,16 +630,36 @@ export function FormularioClient({ token }: FormularioClientProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-white text-gray-900">
       <Header />
-      <main className="formulario-posterior mx-auto w-full max-w-[560px] px-4 pb-16 pt-5">
-        <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-[#2F3A9E]">
-          Hola, {datos.nombre}: <span className="text-teal-600">ya falta poco</span> para evaluar tu solicitud
-        </h1>
-        <p className="mt-1.5 text-gray-500">
-          {nDocs === 0
-            ? 'Solo necesitamos saber cuándo puede conversar contigo tu asesor.'
-            : `Necesitamos ${nDocs === 1 ? 'un documento' : 'unos documentos'} y saber cuándo puede conversar contigo tu asesor. Toma 2 minutos.`}
-        </p>
-        <Producto datos={datos} open={detOpen} onToggle={() => setDetOpen((o) => !o)} />
+      <main className="formulario-posterior mx-auto w-full max-w-[560px] px-4 pb-16 pt-5 lg:max-w-[1000px]">
+        {/* En movil, una sola columna: saludo, equipo, secciones y Enviar al
+            final. En escritorio, dos: a la izquierda el equipo y el Enviar,
+            fijos al hacer scroll; a la derecha las secciones.
+
+            El `flex` con `order` en movil y `grid` en escritorio es lo que
+            permite que Enviar quede ULTIMO en el celular y ARRIBA a la
+            izquierda en el monitor, sin duplicarlo en el DOM (dos botones
+            "Enviar", aunque uno este oculto, rompen las busquedas por rol y
+            confunden a un lector de pantalla). */}
+        <div className="flex flex-col lg:grid lg:grid-cols-[340px_minmax(0,600px)] lg:items-start lg:gap-x-8">
+          {/* `contents` en movil disuelve este contenedor para que el `order`
+              de sus hijos valga en el flex de arriba; en escritorio vuelve a
+              ser una caja y se puede fijar. */}
+          <div className="contents lg:sticky lg:top-[76px] lg:block">
+            <div className="order-1 lg:order-none">
+              <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-[#2F3A9E]">
+                Hola, {datos.nombre}: <span className="text-teal-600">ya falta poco</span> para evaluar tu solicitud
+              </h1>
+              <p className="mt-1.5 text-gray-500">
+                {nDocs === 0
+                  ? 'Solo necesitamos saber cuándo puede conversar contigo tu asesor.'
+                  : `Necesitamos ${nDocs === 1 ? 'un documento' : 'unos documentos'} y saber cuándo puede conversar contigo tu asesor. Toma 2 minutos.`}
+              </p>
+              <Producto datos={datos} open={detOpen} onToggle={() => setDetOpen((o) => !o)} />
+              <Avance listas={listas} total={orden.length} />
+            </div>
+          </div>
+
+          <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1">
 
         {secciones.map((s) => {
           const m = s.modulos[0];
@@ -926,14 +947,17 @@ export function FormularioClient({ token }: FormularioClientProps) {
         {/* Enviar cierra el formulario entero, así que vive FUERA de las
             tarjetas, debajo de todas. Adentro de la última quedaba escondido
             en cuanto esa sección se guardaba y se colapsaba. */}
-        <div className="mt-5">
-          {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <Btn disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
-            <Ic.Send className="h-4.5 w-4.5" />{enviando ? 'Enviando…' : 'Enviar'}
-          </Btn>
-          {!completo && <div className="mt-2 text-center text-[12.5px] text-gray-400">El botón se activa cuando completes lo de arriba.</div>}
-          {completo && turno && <div className="mt-2 text-center text-[12.5px] text-gray-400">Te contactamos {dia && diaTxt(dia)} {turnoTxt()}.</div>}
-          <Footer />
+          </div>
+
+          <div className="order-3 mt-5 lg:order-none lg:col-start-1 lg:row-start-2 lg:mt-4">
+            {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+            <Btn disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
+              <Ic.Send className="h-4.5 w-4.5" />{enviando ? 'Enviando…' : 'Enviar'}
+            </Btn>
+            {!completo && <div className="mt-2 text-center text-[12.5px] text-gray-400">El botón se activa cuando completes lo de arriba.</div>}
+            {completo && turno && <div className="mt-2 text-center text-[12.5px] text-gray-400">Te contactamos {dia && diaTxt(dia)} {turnoTxt()}.</div>}
+            <Footer />
+          </div>
         </div>
       </main>
     </div>
@@ -1047,6 +1071,32 @@ function GuardarSeccion({ seccion, listo, guardando, guardado, error, faltante, 
   );
 }
 
+/** Cuántas secciones ya están guardadas. En escritorio queda fijo junto al
+ * equipo: sin esto, la columna izquierda no dice nada sobre lo que falta. */
+function Avance({ listas, total }: { listas: number; total: number }) {
+  const pct = total === 0 ? 0 : Math.round((listas / total) * 100);
+  return (
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-3.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[13.5px] font-bold text-[#2F3A9E]">
+          {listas} de {total} {total === 1 ? 'sección lista' : 'secciones listas'}
+        </span>
+        <span className="text-[12.5px] tabular-nums text-gray-400">{pct}%</span>
+      </div>
+      <div
+        className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#EEF0FB]"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={listas}
+        aria-label="Secciones completadas"
+      >
+        <div className="h-full rounded-full bg-teal-500 transition-[width] duration-300" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 /** Barra de avance de una subida. `aria-valuenow` para que un lector de
  * pantalla anuncie el porcentaje sin depender del texto de al lado. */
 function BarraProgreso({ valor }: { valor: number }) {
@@ -1141,7 +1191,7 @@ function Guia({ pasos }: { pasos: Paso[] }) {
         <ol className="mt-2 space-y-2 rounded-xl bg-[#EEF0FB] p-3 text-[13.5px]">
           {pasos.map((s, i) => (
             <li key={i} className="flex gap-2">
-              <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#4654CD] text-[12px] font-extrabold text-white">{i + 1}</span>
+              <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#4654CD] text-[12px] font-bold text-white">{i + 1}</span>
               <div><b className="block">{s.t}</b><span className="text-gray-500">{s.p}</span>{s.link && <a href={s.link[0]} target="_blank" rel="noopener" className="block font-bold text-[#4654CD] underline underline-offset-4">{s.link[1]}</a>}</div>
             </li>
           ))}
@@ -1157,7 +1207,7 @@ const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle }: {
 }) => (
   <section className={`mt-3.5 rounded-2xl border bg-white ${done ? 'border-emerald-200' : 'border-gray-200'} ${collapsed ? 'p-3' : 'p-4'}`}>
     <button type="button" onClick={onToggle} disabled={!onToggle} className={`flex w-full gap-2.5 text-left disabled:cursor-default ${collapsed ? 'items-center' : 'items-start'}`}>
-      {n !== undefined && <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-[13px] font-extrabold ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-[#EEF0FB] text-[#2F3A9E]'}`}>{done ? <Ic.Check className="h-4 w-4" /> : n}</span>}
+      {n !== undefined && <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-[13px] font-bold ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-[#EEF0FB] text-[#2F3A9E]'}`}>{done ? <Ic.Check className="h-4 w-4" /> : n}</span>}
       <h2 className={`flex min-w-0 flex-1 items-start gap-2 font-bold leading-tight ${collapsed ? 'text-[16px] text-gray-500' : 'text-[18px] text-gray-900'}`}>
         {!collapsed && <span className="text-[#4654CD]">{icon}</span>}<span className={collapsed ? 'truncate' : 'text-balance'}>{titulo}</span>
       </h2>
