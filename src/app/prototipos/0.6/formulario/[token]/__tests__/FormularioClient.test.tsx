@@ -167,6 +167,27 @@ describe('FormularioClient', () => {
       expect(await boton()).toBeEnabled();
     });
 
+    it('pedir uno nuevo → 200 con expires_at avisa hasta cuándo vale (hora Lima, sin correr el día)', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      const hoy = new Date();
+      const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}T11:55:00`;
+      mockRenovar.mockResolvedValue({ ok: true, telefono: '***-***-777', expires_at: iso });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByText(/Ábrelo pronto: vence hoy a las 11:55/)).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 409 sla_expired: se venció el plazo, sin reintentar', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'sla_expired', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByText('Se venció el plazo para completar el formulario')).toBeInTheDocument();
+      expect(screen.getByText(/Tu asesor se comunicará contigo/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /enlace nuevo|Reintentar/ })).not.toBeInTheDocument();
+      expect(screen.getByText(/Escríbenos por WhatsApp/)).toBeInTheDocument();
+    });
+
     it('pedir uno nuevo → 429 avisa del tope', async () => {
       mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
       mockRenovar.mockResolvedValue({ reason: 'rate_limited', error: 'x' });

@@ -1043,10 +1043,22 @@ const COPY_CAIDO: Record<EnlaceCaidoReason, { titulo: string; detalle: string; i
   },
 };
 
+/** "vence hoy a las 11:55" / "vence el 04/09 a las 11:55", partiendo el ISO
+ * (hora Lima sin zona) en vez de `new Date`, que lo tomaría como UTC. */
+export function venceTexto(iso: string | undefined, hoy = new Date()): string | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return null;
+  const [, y, mo, d, hh, mm] = m;
+  const esHoy = Number(y) === hoy.getFullYear() && Number(mo) === hoy.getMonth() + 1 && Number(d) === hoy.getDate();
+  return esHoy ? `vence hoy a las ${hh}:${mm}` : `vence el ${d}/${mo} a las ${hh}:${mm}`;
+}
+
 type EstadoRenovar =
   | { k: 'idle' }
   | { k: 'enviando' }
-  | { k: 'enviado'; telefono: string }
+  | { k: 'enviado'; telefono: string; expiresAt?: string }
+  | { k: 'plazo_vencido' }
   | { k: 'no_aplica' }
   | { k: 'tope' }
   | { k: 'fallo_envio' }
@@ -1063,8 +1075,9 @@ function EnlaceCaido({ reason, token, onSubmitted }: { reason: EnlaceCaidoReason
   const pedir = async () => {
     setEstado({ k: 'enviando' });
     const res = await renovarEnlace(token);
-    if (!isFormularioApiError(res)) return setEstado({ k: 'enviado', telefono: res.telefono });
+    if (!isFormularioApiError(res)) return setEstado({ k: 'enviado', telefono: res.telefono, expiresAt: res.expires_at });
     if (res.reason === 'already_submitted') return onSubmitted();
+    if (res.reason === 'sla_expired') return setEstado({ k: 'plazo_vencido' });
     if (res.reason === 'not_applicable') return setEstado({ k: 'no_aplica' });
     if (res.reason === 'rate_limited') return setEstado({ k: 'tope' });
     if (res.reason === 'send_failed') return setEstado({ k: 'fallo_envio' });
@@ -1086,7 +1099,21 @@ function EnlaceCaido({ reason, token, onSubmitted }: { reason: EnlaceCaidoReason
         <p className="mt-2 text-[15px] text-gray-500">
           Lo mandamos por WhatsApp al <b className="tabular-nums text-gray-900">{estado.telefono}</b>. Ábrelo desde WhatsApp para continuar.
         </p>
+        {venceTexto(estado.expiresAt) && (
+          <p className="mt-2 text-[14px] font-semibold text-amber-700">Ábrelo pronto: {venceTexto(estado.expiresAt)}.</p>
+        )}
         <button type="button" disabled className="mt-5 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white opacity-50">Enlace enviado</button>
+        {fallback}
+      </Pagina>
+    );
+  }
+
+  if (estado.k === 'plazo_vencido') {
+    return (
+      <Pagina>
+        <IconoEstado tipo="reloj" />
+        <h1 className="mt-4 text-[22px] font-bold leading-tight text-[#2F3A9E]">Se venció el plazo para completar el formulario</h1>
+        <p className="mt-2 text-[15px] text-gray-500">Tu asesor se comunicará contigo desde nuestra cuenta oficial de BaldeCash.</p>
         {fallback}
       </Pagina>
     );
@@ -1094,7 +1121,7 @@ function EnlaceCaido({ reason, token, onSubmitted }: { reason: EnlaceCaidoReason
 
   if (estado.k === 'no_aplica') {
     return (
-      <Mensaje icono="info" titulo="Tu asesor se va a comunicar contigo"
+      <Mensaje icono="info" titulo="Tu asesor se comunicará contigo"
                detalle="No necesitas completar este formulario. Te contactaremos desde nuestra cuenta oficial de BaldeCash." />
     );
   }

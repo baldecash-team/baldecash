@@ -249,6 +249,9 @@ export interface RenovarRespuesta {
   ok: true;
   /** Celular enmascarado al que se mandó el enlace nuevo (`***-***-777`). */
   telefono: string;
+  /** Cuándo vence el enlace nuevo, hora Lima sin zona (`2026-09-04T11:55:00`).
+   * Hereda el vencimiento del primero: renovar NO reinicia el plazo. */
+  expires_at?: string;
 }
 
 /**
