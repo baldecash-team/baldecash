@@ -721,6 +721,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     }
     const rechazado = m.status === 'rejected';
     const tope = rechazado && !puedeReintentar(m);
+    const restantes = Math.max(0, m.max_attempts - m.attempt_count);
     return (
       <div className={`mt-2.5 rounded-[13px] border-[1.5px] p-3.5 ${rechazado ? 'border-red-500 bg-red-50' : 'border-dashed border-[#C9CEF2] bg-white'}`}>
         <div className="flex items-center gap-3">
@@ -728,14 +729,28 @@ export function FormularioClient({ token }: FormularioClientProps) {
           <div><b className="block text-[14px]">{titulo}</b><span className="text-[12.5px] text-gray-500">{sub}</span></div>
         </div>
         {rechazado && (
-          <div className="mt-2.5 flex gap-2 rounded-xl bg-white p-2.5 text-[13.5px] text-red-600" role="alert">
-            <Ic.Alert className="mt-0.5 h-5 w-5 flex-none" />
-            <div>
-              <b className="block">{m.rejection_message || 'No pudimos validar este documento'}</b>
-              {tope
-                ? <span className="text-gray-900">Ya no puedes subir otro: un asesor lo revisará contigo.</span>
-                : <span className="text-gray-900">Intento {m.attempt_count} de {m.max_attempts}. Sube otro archivo.</span>}
+          <div className="mt-2.5 rounded-xl border border-red-200 bg-white p-3 text-[13.5px]" role="alert">
+            <div className="flex gap-2 text-red-600">
+              <Ic.Alert className="mt-0.5 h-5 w-5 flex-none" />
+              <b className="leading-snug">{m.rejection_message || 'No pudimos validar este documento'}</b>
             </div>
+            {/* Los intentos como puntos y no como «Intento 1 de 3»: lo que el
+                estudiante necesita saber es cuántos le QUEDAN, y el «sube otro
+                archivo» ya lo dice el botón de abajo — repetirlo era ruido. */}
+            {tope ? (
+              <p className="mt-2 text-gray-500">Ya no puedes subir otro. Un asesor lo revisará contigo.</p>
+            ) : (
+              <div className="mt-2.5 flex items-center gap-2">
+                <span className="flex gap-1" aria-hidden="true">
+                  {Array.from({ length: m.max_attempts }).map((_, i) => (
+                    <i key={i} className={`h-1.5 w-5 rounded-full ${i < m.attempt_count ? 'bg-red-400' : 'bg-gray-200'}`} />
+                  ))}
+                </span>
+                <span className="text-gray-500">
+                  {restantes === 1 ? 'Te queda 1 intento' : `Te quedan ${restantes} intentos`}
+                </span>
+              </div>
+            )}
           </div>
         )}
         {err && <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{err}</p>}
@@ -1096,8 +1111,12 @@ export function FormularioClient({ token }: FormularioClientProps) {
                   </button>
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
+                {/* Alto acotado: los ejemplos son documentos verticales (900x1200) y
+                    a ancho completo el modal quedaba con scroll propio. `contain`
+                    para que no se recorte lo que hay que mirar. */}
                 <img src={EJEMPLOS[ejemplo]!.url} alt={EJEMPLOS[ejemplo]!.alt}
-                     className="mt-3 w-full rounded-xl border border-gray-200" loading="lazy" />
+                     className="mt-3 max-h-[58vh] w-full rounded-xl border border-gray-200 object-contain"
+                     loading="lazy" />
                 <p className="mt-3 text-[12.5px] text-gray-400">
                   Es un ejemplo: los datos que ves no son de nadie.
                 </p>
