@@ -24,12 +24,14 @@ jest.mock('@/app/prototipos/0.6/services/formularioApi', () => {
     cumplirConTexto: jest.fn(),
     borrarArchivo: jest.fn(),
     enviarFormulario: jest.fn(),
+    renovarEnlace: jest.fn(),
   };
 });
 
 import {
   enviarFormulario,
   getFormulario,
+  renovarEnlace,
   subirArchivo,
   type Modulo,
   type Pantalla,
@@ -38,6 +40,7 @@ import { FormularioClient, agrupar, fechaIso, moduloListo } from '../FormularioC
 
 const mockGet = getFormulario as jest.Mock;
 const mockSubir = subirArchivo as jest.Mock;
+const mockRenovar = renovarEnlace as jest.Mock;
 const mockEnviar = enviarFormulario as jest.Mock;
 
 const modulo = (code: Modulo['code'], extra: Partial<Modulo> = {}): Modulo => ({
@@ -106,10 +109,71 @@ describe('FormularioClient', () => {
     expect(screen.queryByLabelText('Grabar')).not.toBeInTheDocument();
   });
 
-  it('enlace vencido → pantalla de vencido', async () => {
-    mockGet.mockResolvedValue({ reason: 'expired', error: 'Este enlace expiró.' });
-    render(<FormularioClient token="tok" />);
-    expect(await screen.findByText('Este enlace venció')).toBeInTheDocument();
+  describe('enlace caído (410)', () => {
+    const boton = () => screen.findByRole('button', { name: /Enviarme un enlace nuevo por WhatsApp/ });
+
+    it('vencido → explica y ofrece pedir uno nuevo', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'Este enlace expiró.' });
+      render(<FormularioClient token="tok" />);
+      expect(await screen.findByText('Este enlace venció')).toBeInTheDocument();
+      expect(screen.getByText(/cada enlace vale 8 horas/)).toBeInTheDocument();
+      expect(await boton()).toBeEnabled();
+      // cabecera y fondo propios: no queda un <main> suelto
+      expect(screen.getByRole('banner')).toHaveTextContent('BaldeCash');
+    });
+
+    it('reemplazado por uno más nuevo → no es un error del estudiante', async () => {
+      mockGet.mockResolvedValue({ reason: 'superseded', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      expect(await screen.findByText('Te enviamos un enlace más nuevo por WhatsApp')).toBeInTheDocument();
+      expect(screen.getByText(/Usa el último que recibiste/)).toBeInTheDocument();
+      expect(await boton()).toBeInTheDocument();
+    });
+
+    it('ya enviado → confirmación, sin botón de pedir otro', async () => {
+      mockGet.mockResolvedValue({ reason: 'submitted', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      expect(await screen.findByText('Ya recibimos tu formulario')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /enlace nuevo/ })).not.toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 200 muestra el celular enmascarado y deshabilita el botón', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ ok: true, telefono: '***-***-777' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(mockRenovar).toHaveBeenCalledWith('tok');
+      expect(await screen.findByText('Listo, te enviamos un enlace nuevo')).toBeInTheDocument();
+      expect(screen.getByText('***-***-777')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Enlace enviado' })).toBeDisabled();
+      expect(screen.getByText(/Escríbenos por WhatsApp/)).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 409 already_submitted pasa a "ya recibimos"', async () => {
+      mockGet.mockResolvedValue({ reason: 'revoked', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'already_submitted', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByText('Ya recibimos tu formulario')).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 502 deja el fallback de WhatsApp y permite reintentar', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'send_failed', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos enviarlo por WhatsApp');
+      expect(screen.getByText(/Escríbenos por WhatsApp/)).toBeInTheDocument();
+      expect(await boton()).toBeEnabled();
+    });
+
+    it('pedir uno nuevo → 429 avisa del tope', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'rate_limited', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByRole('alert')).toHaveTextContent('Ya te enviamos varios enlaces hoy');
+    });
   });
 
   it('enlace inválido o de otro flujo → mismo copy', async () => {

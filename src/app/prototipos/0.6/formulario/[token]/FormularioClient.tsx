@@ -30,6 +30,7 @@ import {
   enviarFormulario,
   getFormulario,
   isFormularioApiError,
+  renovarEnlace,
   subirArchivo,
   type ContactChannel,
   type ContactSlot,
@@ -41,7 +42,11 @@ import {
 import { Ic } from './icons';
 
 /** Enlace muerto pero conocido: existió, ya no sirve. */
-const EXPIRED_REASONS = new Set(['expired', 'revoked', 'consumed', 'inactive']);
+/** Enlace muerto pero conocido: existió, ya no sirve. `superseded` es el caso
+ * en que se emitió uno más nuevo (no es error del estudiante); `submitted` es
+ * que el formulario ya se envió con este enlace. */
+export type EnlaceCaidoReason = 'expired' | 'revoked' | 'consumed' | 'inactive' | 'superseded';
+const EXPIRED_REASONS = new Set<string>(['expired', 'revoked', 'consumed', 'inactive', 'superseded']);
 
 const MIN_VOZ = 10; // segundos mínimos de una nota de voz
 const MIN_TEXTO = 10;
@@ -51,9 +56,19 @@ type ViewState =
   | { status: 'loading' }
   | { status: 'ready'; datos: Pantalla }
   | { status: 'done'; datos: Pantalla | null; contacto: Confirmacion }
-  | { status: 'expired' }
+  | { status: 'expired'; reason: EnlaceCaidoReason }
+  | { status: 'submitted' }
   | { status: 'invalid' }
   | { status: 'network' };
+
+/** Traduce un error del API a la pantalla terminal que corresponde. Vale para
+ * la carga y para cualquier acción posterior (el enlace puede morir a mitad). */
+function vistaDeError(reason: string): ViewState {
+  if (reason === 'network') return { status: 'network' };
+  if (reason === 'submitted') return { status: 'submitted' };
+  if (EXPIRED_REASONS.has(reason)) return { status: 'expired', reason: reason as EnlaceCaidoReason };
+  return { status: 'invalid' };
+}
 
 type DiaKey = 'hoy' | 'manana' | 'pasado';
 type TurnoKey = 'manana' | 'mediodia' | 'tarde' | 'noche' | 'otro';
@@ -181,11 +196,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
   // desde el click. Así el efecto de montaje no hace setState síncrono.
   const cargar = useCallback(async () => {
     const res = await getFormulario(token);
-    if (isFormularioApiError(res)) {
-      if (res.reason === 'network') return setView({ status: 'network' });
-      if (EXPIRED_REASONS.has(res.reason)) return setView({ status: 'expired' });
-      return setView({ status: 'invalid' });
-    }
+    if (isFormularioApiError(res)) return setView(vistaDeError(res.reason));
     if (res.respuesta.income_description) {
       setDetalle(res.respuesta.income_description);
       setDetalleGuardado(res.respuesta.income_description);
@@ -313,7 +324,10 @@ export function FormularioClient({ token }: FormularioClientProps) {
     const res = await enviarFormulario(token, payload);
     setEnviando(false);
     if (isFormularioApiError(res)) {
-      if (EXPIRED_REASONS.has(res.reason)) return setView({ status: 'expired' });
+      if (res.reason !== 'network' && !res.modulos) {
+        const v = vistaDeError(res.reason);
+        if (v.status !== 'invalid') return setView(v);
+      }
       return setError(res.error);
     }
     setView({ status: 'done', datos, contacto: res.contacto });
@@ -328,7 +342,13 @@ export function FormularioClient({ token }: FormularioClientProps) {
     );
   }
   if (view.status === 'expired') {
-    return <Mensaje titulo="Este enlace venció" detalle="Escríbenos por WhatsApp y te enviamos uno nuevo." />;
+    return <EnlaceCaido reason={view.reason} token={token} onSubmitted={() => setView({ status: 'submitted' })} />;
+  }
+  if (view.status === 'submitted') {
+    return (
+      <Mensaje icono="ok" titulo="Ya recibimos tu formulario"
+               detalle="Gracias por completarlo. Tu asesor se comunicará contigo en el horario que elegiste, desde nuestra cuenta oficial de BaldeCash." />
+    );
   }
   if (view.status === 'invalid') {
     return <Mensaje titulo="Este enlace no es válido" detalle="Revisa que hayas abierto el enlace completo que te enviamos." />;
@@ -946,15 +966,168 @@ const Footer = () => (
   </div>
 );
 
-function Mensaje({ titulo, detalle, accion }: { titulo: string; detalle?: string; accion?: { texto: string; onClick: () => void } }) {
+/** Pantallas terminales (cargando, vencido, inválido, sin red, ya enviado).
+ *
+ * Llevan la misma cabecera que el formulario y un fondo blanco que ocupa toda
+ * la pantalla. Antes eran un `<main>` suelto sin cabecera ni fondo: con tan
+ * poco contenido, lo que hubiera detrás del `<body>` (el tema oscuro de la
+ * zona gamer si quedó en `localStorage`, o cualquier franja del layout)
+ * asomaba debajo de la tarjeta. */
+function Pagina({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col items-center px-4 py-16 text-center">
-      <h1 className="text-lg font-semibold text-gray-900">{titulo}</h1>
-      {detalle && <p className="mt-2 text-sm text-gray-600">{detalle}</p>}
+    <div className="flex min-h-dvh flex-col bg-white text-gray-900">
+      <Header />
+      <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col items-center px-4 py-12 text-center">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+const IconoEstado = ({ tipo }: { tipo: 'ok' | 'reloj' | 'info' | 'alerta' }) => {
+  const estilos = {
+    ok: 'bg-teal-50 text-teal-600',
+    reloj: 'bg-[#EEF0FB] text-[#4654CD]',
+    info: 'bg-[#EEF0FB] text-[#4654CD]',
+    alerta: 'bg-amber-50 text-amber-600',
+  }[tipo];
+  const Icono = { ok: Ic.Check, reloj: Ic.Cal, info: Ic.Wa, alerta: Ic.Alert }[tipo];
+  return (
+    <div className={`inline-flex h-[64px] w-[64px] items-center justify-center rounded-full ${estilos}`} aria-hidden="true">
+      <Icono className="h-8 w-8" />
+    </div>
+  );
+};
+
+function Mensaje({ titulo, detalle, accion, icono }: {
+  titulo: string; detalle?: string; accion?: { texto: string; onClick: () => void };
+  icono?: 'ok' | 'reloj' | 'info' | 'alerta';
+}) {
+  return (
+    <Pagina>
+      {icono && <IconoEstado tipo={icono} />}
+      <h1 className={`${icono ? 'mt-4' : ''} text-[22px] font-bold leading-tight text-[#2F3A9E]`}>{titulo}</h1>
+      {detalle && <p className="mt-2 text-[15px] text-gray-500">{detalle}</p>}
       {accion && (
-        <button type="button" onClick={accion.onClick} className="mt-4 rounded-lg bg-[#4654CD] px-4 py-2 text-sm font-medium text-white">{accion.texto}</button>
+        <button type="button" onClick={accion.onClick} className="mt-5 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white">{accion.texto}</button>
       )}
-    </main>
+    </Pagina>
+  );
+}
+
+const COPY_CAIDO: Record<EnlaceCaidoReason, { titulo: string; detalle: string; icono: 'reloj' | 'info' }> = {
+  expired: {
+    titulo: 'Este enlace venció',
+    detalle: 'Por seguridad, cada enlace vale 8 horas. Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+  superseded: {
+    titulo: 'Te enviamos un enlace más nuevo por WhatsApp',
+    detalle: 'Este quedó reemplazado. Usa el último que recibiste; si no lo encuentras, pide otro aquí.',
+    icono: 'info',
+  },
+  revoked: {
+    titulo: 'Este enlace ya no está activo',
+    detalle: 'Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+  consumed: {
+    titulo: 'Este enlace ya se usó',
+    detalle: 'Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+  inactive: {
+    titulo: 'Este enlace ya no está activo',
+    detalle: 'Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+};
+
+type EstadoRenovar =
+  | { k: 'idle' }
+  | { k: 'enviando' }
+  | { k: 'enviado'; telefono: string }
+  | { k: 'no_aplica' }
+  | { k: 'tope' }
+  | { k: 'fallo_envio' }
+  | { k: 'red' }
+  | { k: 'error'; texto: string };
+
+/** Enlace vencido / reemplazado / usado: explica el motivo y deja pedir uno
+ * nuevo desde la misma pantalla. El API manda el enlace nuevo por WhatsApp al
+ * celular registrado; nunca lo devuelve al navegador. */
+function EnlaceCaido({ reason, token, onSubmitted }: { reason: EnlaceCaidoReason; token: string; onSubmitted: () => void }) {
+  const [estado, setEstado] = useState<EstadoRenovar>({ k: 'idle' });
+  const copy = COPY_CAIDO[reason];
+
+  const pedir = async () => {
+    setEstado({ k: 'enviando' });
+    const res = await renovarEnlace(token);
+    if (!isFormularioApiError(res)) return setEstado({ k: 'enviado', telefono: res.telefono });
+    if (res.reason === 'already_submitted') return onSubmitted();
+    if (res.reason === 'not_applicable') return setEstado({ k: 'no_aplica' });
+    if (res.reason === 'rate_limited') return setEstado({ k: 'tope' });
+    if (res.reason === 'send_failed') return setEstado({ k: 'fallo_envio' });
+    if (res.reason === 'network') return setEstado({ k: 'red' });
+    setEstado({ k: 'error', texto: res.error });
+  };
+
+  const fallback = (
+    <p className="mt-4 text-[13.5px] text-gray-400">
+      ¿No te llega? <b className="font-semibold text-gray-500">Escríbenos por WhatsApp</b> y te enviamos uno nuevo.
+    </p>
+  );
+
+  if (estado.k === 'enviado') {
+    return (
+      <Pagina>
+        <IconoEstado tipo="ok" />
+        <h1 className="mt-4 text-[22px] font-bold leading-tight text-[#2F3A9E]">Listo, te enviamos un enlace nuevo</h1>
+        <p className="mt-2 text-[15px] text-gray-500">
+          Lo mandamos por WhatsApp al <b className="tabular-nums text-gray-900">{estado.telefono}</b>. Ábrelo desde WhatsApp para continuar.
+        </p>
+        <button type="button" disabled className="mt-5 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white opacity-50">Enlace enviado</button>
+        {fallback}
+      </Pagina>
+    );
+  }
+
+  if (estado.k === 'no_aplica') {
+    return (
+      <Mensaje icono="info" titulo="Tu asesor se va a comunicar contigo"
+               detalle="No necesitas completar este formulario. Te contactaremos desde nuestra cuenta oficial de BaldeCash." />
+    );
+  }
+
+  const enviando = estado.k === 'enviando';
+  return (
+    <Pagina>
+      <IconoEstado tipo={copy.icono} />
+      <h1 className="mt-4 text-[22px] font-bold leading-tight text-[#2F3A9E]">{copy.titulo}</h1>
+      <p className="mt-2 text-[15px] text-gray-500">{copy.detalle}</p>
+      <button
+        type="button"
+        onClick={() => void pedir()}
+        disabled={enviando}
+        className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white disabled:opacity-60"
+      >
+        <Ic.Send className="h-4 w-4" />
+        {enviando ? 'Enviando…' : estado.k === 'red' ? 'Reintentar' : 'Enviarme un enlace nuevo por WhatsApp'}
+      </button>
+      {estado.k === 'tope' && (
+        <p role="alert" className="mt-3 text-[14px] text-amber-700">Ya te enviamos varios enlaces hoy. Revisa tu WhatsApp o escríbenos.</p>
+      )}
+      {estado.k === 'fallo_envio' && (
+        <p role="alert" className="mt-3 text-[14px] text-red-600">No pudimos enviarlo por WhatsApp. Intenta de nuevo en un momento.</p>
+      )}
+      {estado.k === 'red' && (
+        <p role="alert" className="mt-3 text-[14px] text-red-600">No pudimos conectarnos. Revisa tu conexión e intenta nuevamente.</p>
+      )}
+      {estado.k === 'error' && (
+        <p role="alert" className="mt-3 text-[14px] text-red-600">{estado.texto}</p>
+      )}
+      {fallback}
+    </Pagina>
   );
 }
 
