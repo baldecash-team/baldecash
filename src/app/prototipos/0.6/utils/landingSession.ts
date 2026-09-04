@@ -1,12 +1,12 @@
 import { clearVipData, clearSavedDni, getSavedDni } from '../components/hero/DniModal';
 import { clearPendingParams, clearPromotorAttribution, readPromotorRef } from './landingParams';
-import { clearUtmParams } from './utmParams';
+import { clearUtmParams, persistUtmParams } from './utmParams';
 import { borrarFranja } from '../components/referral/referralBannerCache';
 import {
   clearWizardFormStorage,
   readWizardDocumentNumber,
 } from '../[landing]/solicitar/context/WizardContext';
-import { clearSessionStorage } from '../[landing]/solicitar/context/SessionContext';
+import { clearSessionStorage, sesionYaConvertida } from '../[landing]/solicitar/context/SessionContext';
 import { clearProductStorage } from '../[landing]/solicitar/context/ProductContext';
 import { clearConsentStorage } from '../[landing]/solicitar/utils/consentStorage';
 import {
@@ -233,6 +233,16 @@ export function huellaDelLinkDePromotor(search: string): string | null {
  * empezó su formulario lo conserva. Un link sin identificador de promotora
  * (orgánico, un anuncio) tampoco limpia: la regla es de los links del hub.
  *
+ * EXCEPTO cuando la sesión guardada ya envió una solicitud. Ahí el mismo link
+ * también limpia: la promotora volvió a abrir su QR para el siguiente alumno,
+ * y ese alumno no es el que acaba de enviar. Sin esto, su recorrido por el
+ * catálogo caía sobre la sesión convertida del anterior, y en ws2 esa sesión
+ * terminaba con dos, cuatro y hasta nueve solicitudes colgando.
+ *
+ * Al terminar deja el store de UTMs con los del link que está entrando (no
+ * vacío): la sesión nueva nace en el catálogo, sin querystring, y lee de ahí.
+ * Así el `utm_term` llega igual aunque nadie más vuelva a persistirlo.
+ *
  * Sin link recordado igual limpia. Si el equipo venía de una visita orgánica,
  * hay restos que no son de esta promotora; si es la primera visita, no hay nada
  * y borrar en vacío no cuesta nada.
@@ -264,12 +274,13 @@ export function resetLandingSessionIfPromoterLinkChanged(
     // Sin storage no hay nada guardado ni forma de guardar: no-op.
     return false;
   }
-  if (anterior === huella) return false;
+  if (anterior === huella && !sesionYaConvertida(landing)) return false;
 
   clearLandingSession(landing);
   clearPromotorAttribution(landing);
   clearUtmParams();
   borrarFranja(landing);
+  persistUtmParams(search);
 
   try {
     localStorage.setItem(promotorLinkKey(landing), huella);

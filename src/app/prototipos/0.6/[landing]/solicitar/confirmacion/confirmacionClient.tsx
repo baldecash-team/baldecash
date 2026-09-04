@@ -23,6 +23,7 @@ import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/Game
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { readOtpHandoff, type OtpHandoff } from '../utils/otpHandoff';
 import { isDemoLanding, readDemoApplication } from '../utils/demoApplication';
+import { reclamarEmisionDelEnvio } from '../utils/envioEmitido';
 import type { ApplicationStatusData } from './types/applicationStatus';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
@@ -438,9 +439,11 @@ function ConfirmacionContent() {
         if (data) {
           setApplicationData(data);
 
-          // Fire-and-forget: track application_submitted
+          // Fire-and-forget: track application_submitted. Una sola vez por
+          // solicitud: reabrir esta pantalla no vuelve a emitirlo (ver
+          // `reclamarEmisionDelEnvio`).
           const sessionId = getStoredSessionUuid(landing);
-          if (sessionId) {
+          if (sessionId && reclamarEmisionDelEnvio(landing, data.code)) {
             sendEventsBatch(sessionId, [
               {
                 event_type: 'application_submitted',
