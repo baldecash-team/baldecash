@@ -25,7 +25,7 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
     // Sin documento emitido: el paso no exige aceptar nada y el boton queda
     // habilitado. Lo que se prueba aca es la navegacion del cierre, no el
     // contrato (que tiene sus propios tests).
-    getContrato: jest.fn().mockResolvedValue({ disponible: false, html: null }),
+    getContrato: jest.fn().mockResolvedValue({ modo: 'emitido', estado: 'generando', disponible: false, html: null }),
   };
 });
 
@@ -99,7 +99,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUseSearchParams.mockReturnValue(new URLSearchParams('code=APP-1'));
   mockKycFlow.mockReturnValue({ kycEnabled: true, kycSteps: [{ type: 'contract' }], isLoading: false });
-  mockCompleteKycStep.mockResolvedValue({ ...estadoUnPaso, is_complete: true } as never);
+  mockCompleteKycStep.mockResolvedValue({ state: { ...estadoUnPaso, is_complete: true }, outdated: false } as never);
 });
 
 afterEach(() => jest.restoreAllMocks());
