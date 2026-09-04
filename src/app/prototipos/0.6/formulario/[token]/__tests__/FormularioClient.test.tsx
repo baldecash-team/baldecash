@@ -336,8 +336,11 @@ describe('FormularioClient', () => {
     await userEvent.click(screen.getByTestId('guardar-ayuda'));
     await waitFor(() => expect(screen.getByText('1 de 4 secciones listas')).toBeInTheDocument());
 
-    // Enviar sigue viviendo fuera de las tarjetas: en el DOM va despues de la
-    // ultima, que es lo que en movil lo deja al final de la pantalla.
+    // Enviar sigue viviendo fuera de las tarjetas y DESPUES de la ultima en el
+    // DOM: es lo que en movil lo deja al final y lo que leen el tabulador y un
+    // lector de pantalla. En escritorio lo sube al lado del producto la grilla
+    // (`lg:row-start-2` contra una columna de tarjetas que ocupa las dos filas),
+    // no el orden del DOM.
     const enviar = screen.getByRole('button', { name: /^Enviar$/ });
     const ultimaTarjeta = screen.getByText(/¿Tienes alguna duda/);
     expect(ultimaTarjeta.compareDocumentPosition(enviar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
