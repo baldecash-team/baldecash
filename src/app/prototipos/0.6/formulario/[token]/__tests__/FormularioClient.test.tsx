@@ -465,13 +465,14 @@ describe('FormularioClient', () => {
     expect(screen.getByRole('button', { name: /Subir otro/ })).toBeInTheDocument();
   });
 
-  it('módulo rechazado muestra el motivo y el intento', async () => {
+  it('módulo rechazado muestra el motivo y cuántos intentos le quedan', async () => {
     mockGet.mockResolvedValue(pantalla({
       modulos: [modulo('utility_bill', { status: 'rejected', attempt_count: 1, rejection_message: 'El recibo no es de los últimos 2 meses' })],
     }));
     render(<FormularioClient token="tok" />);
     expect(await screen.findByText('El recibo no es de los últimos 2 meses')).toBeInTheDocument();
-    expect(screen.getByText(/Intento 1 de 3/)).toBeInTheDocument();
+    // Cuántos le QUEDAN, no en cuál va: es lo que decide si vuelve a intentar.
+    expect(screen.getByText('Te quedan 2 intentos')).toBeInTheDocument();
   });
 
   it('ya enviado al abrir → confirmación directa', async () => {
