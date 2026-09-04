@@ -244,3 +244,30 @@ export async function enviarFormulario(
     return NETWORK;
   }
 }
+
+export interface RenovarRespuesta {
+  ok: true;
+  /** Celular enmascarado al que se mandó el enlace nuevo (`***-***-777`). */
+  telefono: string;
+  /** Cuándo vence el enlace nuevo, hora Lima sin zona (`2026-09-04T11:55:00`).
+   * Hereda el vencimiento del primero: renovar NO reinicia el plazo. */
+  expires_at?: string;
+}
+
+/**
+ * Pide un enlace nuevo desde uno vencido/reemplazado/usado. El backend lo
+ * manda por WhatsApp al celular registrado y NUNCA lo devuelve acá: quien
+ * tenga una URL vieja (un mensaje reenviado) no obtiene la nueva.
+ *
+ * Errores: 409 `already_submitted` | `not_applicable`, 429 `rate_limited`,
+ * 502 `send_failed`, 404 `invalid`.
+ */
+export async function renovarEnlace(token: string): Promise<RenovarRespuesta | FormularioApiError> {
+  try {
+    const response = await fetch(`${base(token)}/renovar`, { method: 'POST' });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as RenovarRespuesta;
+  } catch {
+    return NETWORK;
+  }
+}
