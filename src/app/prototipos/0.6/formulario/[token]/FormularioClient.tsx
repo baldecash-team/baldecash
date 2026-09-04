@@ -766,8 +766,14 @@ export function FormularioClient({ token }: FormularioClientProps) {
         <div className="flex flex-col lg:grid lg:grid-cols-[340px_minmax(0,600px)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8">
           {/* `contents` en movil disuelve este contenedor para que el `order`
               de sus hijos valga en el flex de arriba; en escritorio vuelve a
-              ser una caja y se puede fijar. */}
-          <div className="contents lg:sticky lg:top-[76px] lg:block">
+              ser una caja.
+
+              SIN `sticky`: pegada, la columna se quedaba quieta mientras el
+              bloque de Enviar --- que vive en la fila de abajo --- le pasaba
+              por encima al scrollear, y el boton terminaba tapando la tarjeta
+              del producto. Enviar tiene que estar SIEMPRE debajo, nunca
+              encima. */}
+          <div className="contents lg:block">
             <div className="order-1 lg:order-none">
               <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-[#2F3A9E]">
                 Hola, {datos.nombre}: <span className="text-teal-600">ya falta poco</span> para evaluar tu solicitud
