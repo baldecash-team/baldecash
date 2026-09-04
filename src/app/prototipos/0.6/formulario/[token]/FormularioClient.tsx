@@ -144,12 +144,19 @@ const horaTxt = (h: string, m: string, ap: string) => `${h}${m === '00' ? '' : '
 const fmtTel = (t: string) => t.replace(/\s+/g, '').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
 const fmtSeg = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+/** Un archivo rechazado que sigue adjunto. En un módulo de varios —las capturas
+ * de movimientos— el estado del módulo lo deja el ÚLTIMO que subió, así que una
+ * captura rechazada quedaba escondida detrás de una buena y el estudiante creía
+ * que podía enviar. */
+const tieneRechazado = (m: Modulo) => m.documents.some((d) => d.status === 'rejected');
+
 /** Un módulo cuenta como cumplido para el envío. */
 export const moduloListo = (m: Modulo) =>
-  m.status === 'uploaded' || m.status === 'verified' || m.status === 'skipped' ||
   // Al tope de intentos ya no puede subir otro: queda para revisión manual y no
   // debe trabarlo para siempre.
-  (m.status === 'rejected' && m.attempt_count >= m.max_attempts);
+  (m.status === 'rejected' && m.attempt_count >= m.max_attempts) ||
+  ((m.status === 'uploaded' || m.status === 'verified' || m.status === 'skipped') &&
+    !(tieneRechazado(m) && m.attempt_count < m.max_attempts));
 
 const puedeReintentar = (m: Modulo) => m.status !== 'rejected' || m.attempt_count < m.max_attempts;
 
@@ -925,8 +932,16 @@ export function FormularioClient({ token }: FormularioClientProps) {
                    why={<>Sube <b>capturas de pantalla de todos tus movimientos del último mes</b> de Yape, Plin o tu cuenta bancaria, todas las que necesites, con las fechas visibles.</>}>
                 <div className="grid grid-cols-4 gap-2">
                   {m.documents.map((doc) => (
-                    <div key={doc.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-[#C9CEF2] bg-[#EEF0FB]">
+                    // La rechazada se marca en rojo: en una grilla de capturas,
+                    // "hay una que no sirve" sin decir cuál deja al estudiante
+                    // adivinando cuál sacar.
+                    <div key={doc.id} className={`relative aspect-[3/4] overflow-hidden rounded-xl border bg-[#EEF0FB] ${doc.status === 'rejected' ? 'border-red-500' : 'border-[#C9CEF2]'}`}>
                       <Miniatura doc={doc} className="h-full w-full" />
+                      {doc.status === 'rejected' && (
+                        <span className="absolute inset-x-0 bottom-0 bg-red-600/90 py-0.5 text-center text-[10px] font-bold text-white">
+                          No sirve, quítala
+                        </span>
+                      )}
                       <button type="button" disabled={ocupado(m.code)} onClick={() => void quitar(m.code, doc.id)} aria-label="Quitar" className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900 disabled:opacity-40"><Ic.X className="h-3 w-3" /></button>
                     </div>
                   ))}
@@ -952,6 +967,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
                     </button>
                   )}
                 </div>
+                {verEjemplo(m.code)}
                 {inputArchivo(m, true)}
                 {m.status === 'rejected' && (
                   <div className="mt-2.5 flex gap-2 rounded-xl bg-red-50 p-2.5 text-[13.5px] text-red-600" role="alert"><Ic.Alert className="h-5 w-5 flex-none" /><div><b className="block">{m.rejection_message || 'No pudimos validar las capturas'}</b>{puedeReintentar(m) ? <span className="text-gray-900">Intento {m.attempt_count} de {m.max_attempts}. Agrega otras capturas.</span> : <span className="text-gray-900">Un asesor lo revisará contigo.</span>}</div></div>

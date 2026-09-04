@@ -26,6 +26,10 @@ export type FormularioStatus =
 
 export interface DocumentoSubido {
   id: number;
+  /** Estado del ARCHIVO, no del módulo: en uno de varios, el del módulo lo deja
+   * el último que subió. `rejected` acá bloquea el envío aunque el módulo se
+   * vea verde. */
+  status?: string | null;
   file_name: string;
   mime_type: string | null;
   uploaded_at: string | null;
