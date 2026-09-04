@@ -867,7 +867,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
                 ? cardDoc({ m, icon: <Ic.Doc className="h-6 w-6" />, titulo: 'Foto de tu última boleta', sub: 'Que se vean tu nombre y el mes' })
                 : (
                   <div className="mt-2.5 rounded-[13px] border-[1.5px] border-[#C9CEF2] p-3.5">
-                    <div className="flex items-center gap-3"><div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#EEF0FB] text-[#4654CD]"><Ic.Chat className="h-6 w-6" /></div><div><b className="block text-[14px]">Cuéntanos cómo percibes tus ingresos</b><span className="text-[12.5px] text-gray-500">Dónde trabajas, cómo te pagan y más o menos cuánto al mes.</span></div></div>
+                    <div className="flex items-center gap-3"><div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#EEF0FB] text-[#4654CD]"><Ic.Chat className="h-6 w-6" /></div><div><b className="block text-[14px]">Cuéntanos cómo percibes tus ingresos</b><span className="text-[12.5px] text-gray-500">Dónde trabajas, cómo te pagan y cuánto ganas al mes.</span></div></div>
                     <textarea value={detalle} onChange={(e) => setDetalle(e.target.value)} aria-label="Cómo percibes tus ingresos"
                               placeholder="Ejemplo: trabajo en una bodega en Comas, me pagan en efectivo cada semana, unos S/ 1,200 al mes…"
                               className="mt-2.5 min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
@@ -967,8 +967,8 @@ export function FormularioClient({ token }: FormularioClientProps) {
           if (s.key === 'income_detail') return (
             <Sec key={s.key} {...sp(s.key)} icon={<Ic.Chat className="h-5.5 w-5.5" />} titulo="Cuéntanos cómo percibes tus ingresos"
                  why={datos.situation === 'movements_no_proof'
-                   ? 'Nos dijiste que tienes un sueldo pero no un sustento a mano. Cuéntanos en qué trabajas, cómo te pagan y más o menos cuánto al mes. Escríbelo o grábanos una nota de voz.'
-                   : 'En qué trabajas, cómo te pagan y más o menos cuánto al mes. Escríbelo o grábanos una nota de voz.'}>
+                   ? 'Nos dijiste que tienes un sueldo pero no un sustento a mano. Cuéntanos en qué trabajas, cómo te pagan y cuánto ganas al mes. Escríbelo o grábanos una nota de voz.'
+                   : 'En qué trabajas, cómo te pagan y cuánto ganas al mes. Escríbelo o grábanos una nota de voz.'}>
               <textarea value={detalle} onChange={(e) => setDetalle(e.target.value)} aria-label="Cómo percibes tus ingresos"
                         placeholder="Ejemplo: vendo postres por Instagram, entrego en la universidad de lunes a viernes, gano unos S/ 900 al mes…"
                         className="min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
