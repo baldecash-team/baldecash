@@ -29,12 +29,14 @@ import {
   cumplirConTexto,
   enviarFormulario,
   getFormulario,
+  guardarParcial,
   isFormularioApiError,
   renovarEnlace,
   subirArchivo,
   type ContactChannel,
   type ContactSlot,
   type EnviarPayload,
+  type GuardarParcialPayload,
   type Modulo,
   type ModuloCode,
   type Pantalla,
@@ -148,9 +150,54 @@ export interface FormularioClientProps {
   token: string;
 }
 
+/** Archivo que el estudiante acaba de elegir y todavía viaja al servidor. Se
+ * dibuja igual que uno subido para que el módulo reaccione al instante. */
+interface PreviaLocal {
+  id: number;
+  url: string;
+  nombre: string;
+  esImagen: boolean;
+  /** 0..100. Arranca en 0 y el servidor confirma con 100. */
+  progreso: number;
+}
+
+/** `URL.createObjectURL` no existe en jsdom ni en navegadores antiguos. La
+ * subida es lo que importa; la miniatura es un lujo, así que si no se puede
+ * generar se devuelve vacío y la previa cae al ícono genérico. */
+const objectUrl = (file: File): string => {
+  try {
+    return URL.createObjectURL(file);
+  } catch {
+    return '';
+  }
+};
+
+const revocarUrl = (url: string): void => {
+  if (!url) return;
+  try {
+    URL.revokeObjectURL(url);
+  } catch {
+    /* nada que revocar */
+  }
+};
+
 export function FormularioClient({ token }: FormularioClientProps) {
   const [view, setView] = useState<ViewState>({ status: 'loading' });
-  const [subiendo, setSubiendo] = useState(false);
+  // Subidas en curso POR MÓDULO. Antes había un solo `subiendo` global que
+  // tapaba la pantalla entera con un "Cargando…": el estudiante quedaba
+  // bloqueado mirando un spinner por cada archivo. Ahora el archivo se ve al
+  // instante (`previas`) y el envío ocurre detrás.
+  const [subiendoEn, setSubiendoEn] = useState<Record<string, number>>({});
+  const [previas, setPrevias] = useState<Record<string, PreviaLocal[]>>({});
+  const previaId = useRef(0);
+  // Guardado por sección: cada una persiste lo suyo sin esperar al Enviar.
+  const [guardando, setGuardando] = useState<Record<string, boolean>>({});
+  // Lo último que se guardó de cada sección, serializado. Comparar contra lo
+  // que hay en pantalla es lo que hace que el botón vuelva a decir "Guardar"
+  // en cuanto el estudiante cambia algo, sin tener que apagar una bandera
+  // desde cada onChange.
+  const [guardadoSnap, setGuardadoSnap] = useState<Record<string, string>>({});
+  const [errorSeccion, setErrorSeccion] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [errorModulo, setErrorModulo] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
@@ -241,11 +288,33 @@ export function FormularioClient({ token }: FormularioClientProps) {
       ? { ...v, datos: { ...v.datos, modulos: v.datos.modulos.map((x) => (x.code === m.code ? m : x)) } }
       : v));
 
+  /** Sube en segundo plano: el archivo aparece en el módulo apenas se elige y
+   * el request viaja detrás. Sin pantalla de carga: si falla, se retira la
+   * vista previa y el módulo muestra el error. */
   const subir = async (code: ModuloCode, file: File, fulfilledBy: 'document' | 'voice_note' = 'document') => {
+    const previa: PreviaLocal = {
+      id: (previaId.current += 1),
+      // Sin `createObjectURL` (jsdom, navegadores viejos) la previa sale con
+      // el ícono genérico. La subida no puede depender de poder dibujarla.
+      url: objectUrl(file),
+      nombre: file.name,
+      esImagen: file.type.startsWith('image/'),
+      progreso: 0,
+    };
     setErrorModulo((e) => ({ ...e, [code]: '' }));
-    setSubiendo(true);
-    const res = await subirArchivo(token, code, file, fulfilledBy);
-    setSubiendo(false);
+    setPrevias((p) => ({ ...p, [code]: [...(p[code] ?? []), previa] }));
+    setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
+
+    const res = await subirArchivo(token, code, file, fulfilledBy, (porcentaje) =>
+      setPrevias((p) => ({
+        ...p,
+        [code]: (p[code] ?? []).map((x) => (x.id === previa.id ? { ...x, progreso: porcentaje } : x)),
+      })),
+    );
+
+    setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
+    setPrevias((p) => ({ ...p, [code]: (p[code] ?? []).filter((x) => x.id !== previa.id) }));
+    revocarUrl(previa.url);
     if (isFormularioApiError(res)) {
       setErrorModulo((e) => ({ ...e, [code]: res.error }));
       return false;
@@ -253,6 +322,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     reemplazar(res);
     return true;
   };
+
 
   const elegirArchivo = (code: ModuloCode) => inputs.current[code]?.click();
   const onArchivo = (code: ModuloCode) => async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,9 +335,9 @@ export function FormularioClient({ token }: FormularioClientProps) {
   };
 
   const quitar = async (code: ModuloCode, documentId: number) => {
-    setSubiendo(true);
+    setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
     const res = await borrarArchivo(token, code, documentId);
-    setSubiendo(false);
+    setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
     if (isFormularioApiError(res)) return setErrorModulo((e) => ({ ...e, [code]: res.error }));
     reemplazar(res);
   };
@@ -275,13 +345,35 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const guardarTexto = async (code: ModuloCode) => {
     const texto = detalle.trim();
     if (texto.length < MIN_TEXTO) return;
-    setSubiendo(true);
+    setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
     const res = await cumplirConTexto(token, code, texto);
-    setSubiendo(false);
+    setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
     if (isFormularioApiError(res)) return setErrorModulo((e) => ({ ...e, [code]: res.error }));
     setDetalleGuardado(texto);
     reemplazar(res);
   };
+
+  /** Hay un request en curso de ese módulo (quitar o guardar texto). Evita
+   * que un doble toque dispare dos veces la misma acción. */
+  const ocupado = (code: string) => (subiendoEn[code] ?? 0) > 0;
+
+  /** Guardar de una sección: persiste lo suyo sin cerrar el formulario. */
+  const guardarSeccion = async (seccion: string, payload: GuardarParcialPayload) => {
+    setGuardando((g) => ({ ...g, [seccion]: true }));
+    setErrorSeccion((e) => ({ ...e, [seccion]: '' }));
+    const res = await guardarParcial(token, payload);
+    setGuardando((g) => ({ ...g, [seccion]: false }));
+    if (isFormularioApiError(res)) {
+      setErrorSeccion((e) => ({ ...e, [seccion]: res.error }));
+      return false;
+    }
+    setView((v) => (v.status === 'ready' ? { ...v, datos: res } : v));
+    setGuardadoSnap((g) => ({ ...g, [seccion]: JSON.stringify(payload) }));
+    return true;
+  };
+
+  const yaGuardada = (seccion: string, payload: GuardarParcialPayload | null) =>
+    payload !== null && guardadoSnap[seccion] === JSON.stringify(payload);
 
   // ---------- nota de voz ----------
   const empezarGrabacion = async () => {
@@ -356,9 +448,9 @@ export function FormularioClient({ token }: FormularioClientProps) {
   if (view.status === 'done') {
     const c = view.contacto;
     return (
-      <>
+      <div className="flex min-h-dvh flex-col bg-white text-gray-900">
         <Header />
-        <main className="mx-auto max-w-[560px] px-4 py-6 text-center">
+        <main className="formulario-posterior mx-auto w-full max-w-[560px] px-4 py-6 text-center">
           <div className="inline-flex h-[72px] w-[72px] items-center justify-center rounded-full bg-teal-50 text-teal-600"><Ic.Check className="h-9 w-9" /></div>
           <h1 className="mt-3 text-2xl font-bold leading-tight text-[#2F3A9E]">
             Gracias{view.datos?.nombre ? `, ${view.datos.nombre}` : ''}. Ya recibimos tu información.
@@ -370,7 +462,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
           {view.datos && <Producto datos={view.datos} open={detOpen} onToggle={() => setDetOpen((o) => !o)} />}
           <Footer />
         </main>
-      </>
+      </div>
     );
   }
 
@@ -392,19 +484,6 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const contactoOk = Boolean(dia && turno && canal && telOk);
   const completo = secciones.every(listo) && contactoOk && dirOk;
 
-  const orden = [...secciones.map((s) => s.key), 'contacto', 'ayuda'];
-  const hecho: Record<string, boolean> = Object.fromEntries(secciones.map((s) => [s.key, listo(s)]));
-  hecho.contacto = contactoOk; hecho.ayuda = false;
-  const vozAbierta = (k: string) => k === 'income_detail' && datos.modulos.find((m) => m.code === 'income_detail')?.fulfilled_by === 'voice_note';
-  const sp = (k: string) => ({
-    n: orden.indexOf(k) + 1, done: hecho[k],
-    collapsed: hecho[k] && !abierto[k] && !vozAbierta(k),
-    onToggle: hecho[k] ? () => setAbierto((a) => ({ ...a, [k]: !a[k] })) : undefined,
-  });
-  const turnoTxt = () => (turno === 'otro'
-    ? `a las ${horaTxt(hh, mm, ap)}`
-    : turno ? `en la ${TURNO[turno][0].toLowerCase()} (${TURNO[turno][1]})` : '');
-
   const payloadContacto = (): Omit<EnviarPayload, 'questions' | 'corrected_address'> | null => {
     if (!dia || !turno || !canal) return null;
     const base = {
@@ -418,6 +497,32 @@ export function FormularioClient({ token }: FormularioClientProps) {
     }
     return { ...base, contact_slot: TURNO[turno][2] };
   };
+
+  /** Lo que guarda la sección de contacto: el horario elegido más la
+   * dirección corregida, que se edita ahí mismo. */
+  const payloadSeccionContacto = (): GuardarParcialPayload | null => {
+    const p = payloadContacto();
+    if (!p) return null;
+    const dir = dirNueva.trim();
+    return dir ? { ...p, corrected_address: dir } : p;
+  };
+
+  const orden = [...secciones.map((s) => s.key), 'contacto', 'ayuda'];
+  const hecho: Record<string, boolean> = Object.fromEntries(secciones.map((s) => [s.key, listo(s)]));
+  // Con guardado por sección, "Listo" pasa a significar GUARDADO y no solo
+  // completado: si la sección se colapsara apenas el estudiante elige su
+  // horario, el botón Guardar desaparecería justo cuando recién se habilita.
+  hecho.contacto = contactoOk && yaGuardada('contacto', payloadSeccionContacto());
+  hecho.ayuda = comentario.trim().length > 0 && yaGuardada('ayuda', { questions: comentario.trim() });
+  const vozAbierta = (k: string) => k === 'income_detail' && datos.modulos.find((m) => m.code === 'income_detail')?.fulfilled_by === 'voice_note';
+  const sp = (k: string) => ({
+    n: orden.indexOf(k) + 1, done: hecho[k],
+    collapsed: hecho[k] && !abierto[k] && !vozAbierta(k),
+    onToggle: hecho[k] ? () => setAbierto((a) => ({ ...a, [k]: !a[k] })) : undefined,
+  });
+  const turnoTxt = () => (turno === 'otro'
+    ? `a las ${horaTxt(hh, mm, ap)}`
+    : turno ? `en la ${TURNO[turno][0].toLowerCase()} (${TURNO[turno][1]})` : '');
 
   const nDocs = datos.modulos.length;
   const d3 = fecha('pasado');
@@ -434,6 +539,29 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const cardDoc = ({ m, icon, titulo, sub }: { m: Modulo; icon: React.ReactNode; titulo: string; sub: string }) => {
     const doc = m.documents[m.documents.length - 1];
     const err = errorModulo[m.code];
+    const enVuelo = previas[m.code] ?? [];
+    // Lo que el estudiante acaba de elegir se ve YA, mientras viaja. Va antes
+    // que el estado del servidor porque es lo último que hizo.
+    if (enVuelo.length > 0) {
+      const p = enVuelo[enVuelo.length - 1];
+      return (
+        <div className="mt-2.5 rounded-[13px] border-[1.5px] border-[#C9CEF2] bg-white p-3.5">
+          <div className="flex items-center gap-3">
+            <PreviaMini previa={p} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[14px] font-bold text-[#2F3A9E]">Guardando tu archivo…</span>
+                <span className="text-[13px] font-bold tabular-nums text-[#4654CD]">{p.progreso}%</span>
+              </div>
+              <div className="mt-0.5 truncate text-[12.5px] text-gray-500">{p.nombre}</div>
+              <BarraProgreso valor={p.progreso} />
+            </div>
+          </div>
+          <p className="mt-2 text-[12.5px] text-gray-500">Puedes seguir con las demás secciones.</p>
+          {inputArchivo(m)}
+        </div>
+      );
+    }
     if (moduloListo(m) && m.status !== 'rejected') {
       return (
         <div className="mt-2.5 rounded-[13px] border-[1.5px] border-emerald-200 bg-emerald-50 p-3.5">
@@ -444,9 +572,21 @@ export function FormularioClient({ token }: FormularioClientProps) {
               {doc?.file_name && <div className="mt-0.5 truncate text-[12.5px] text-emerald-700/80">{doc.file_name}</div>}
             </div>
           </div>
-          <div className="mt-2 flex justify-end gap-4 text-[13px] font-semibold">
-            {doc?.view_url && <a href={doc.view_url} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-emerald-700"><Ic.Eye className="h-4 w-4" />Ver</a>}
-            {puedeReintentar(m) && <button type="button" onClick={() => elegirArchivo(m.code)} className="inline-flex items-center gap-1 text-gray-500"><Ic.Redo className="h-4 w-4" />Subir otro</button>}
+          {/* Botones de verdad y no dos textos chicos alineados a la derecha:
+              se tocan en un celular (44 px de alto) y se ven como acciones. */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {doc?.view_url && (
+              <a href={doc.view_url} target="_blank" rel="noopener"
+                 className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-[13.5px] font-bold text-emerald-700">
+                <Ic.Eye className="h-4.5 w-4.5" />Ver
+              </a>
+            )}
+            {puedeReintentar(m) && (
+              <button type="button" onClick={() => elegirArchivo(m.code)}
+                      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-[13.5px] font-bold text-gray-600 ${doc?.view_url ? '' : 'col-span-2'}`}>
+                <Ic.Redo className="h-4.5 w-4.5" />Subir otro
+              </button>
+            )}
           </div>
           {inputArchivo(m)}
         </div>
@@ -483,9 +623,9 @@ export function FormularioClient({ token }: FormularioClientProps) {
   };
 
   return (
-    <>
+    <div className="flex min-h-dvh flex-col bg-white text-gray-900">
       <Header />
-      <main className="mx-auto max-w-[560px] px-4 pb-16 pt-5">
+      <main className="formulario-posterior mx-auto w-full max-w-[560px] px-4 pb-16 pt-5">
         <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-[#2F3A9E]">
           Hola, {datos.nombre}: <span className="text-teal-600">ya falta poco</span> para evaluar tu solicitud
         </h1>
@@ -563,7 +703,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
                               placeholder="Ejemplo: trabajo en una bodega en Comas, me pagan en efectivo cada semana, unos S/ 1,200 al mes…"
                               className="mt-2.5 min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
                     {errorModulo[m.code] && <p role="alert" className="mt-2 text-[13px] text-red-700">{errorModulo[m.code]}</p>}
-                    <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado} onClick={() => void guardarTexto(m.code)}>
+                    <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado || ocupado(m.code)} onClick={() => void guardarTexto(m.code)}>
                       <Ic.Check className="h-4.5 w-4.5" />{m.status === 'skipped' && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar'}
                     </Btn>
                   </div>
@@ -594,7 +734,10 @@ export function FormularioClient({ token }: FormularioClientProps) {
                       <b className={`block text-[13px] ${ok ? 'text-emerald-700' : 'text-gray-900'}`}>Recibo {i + 1}</b>
                       {rechazado && <span className="block leading-tight">{rm.rejection_message || 'No pudimos validarlo'}</span>}
                       {puedeReintentar(rm)
-                        ? <button type="button" onClick={() => elegirArchivo(rm.code)} className="mt-0.5 text-[11.5px] font-semibold text-[#4654CD]">{ok || rechazado ? 'Subir otro' : 'Toca para subir'}</button>
+                        ? <button type="button" onClick={() => elegirArchivo(rm.code)}
+                                  className={`mt-1.5 inline-flex min-h-9 w-full items-center justify-center rounded-lg border px-1 text-[11.5px] font-bold ${ok ? 'border-emerald-200 bg-white text-gray-600' : 'border-[#C9CEF2] bg-white text-[#4654CD]'}`}>
+                            {ok || rechazado ? 'Subir otro' : 'Subir'}
+                          </button>
                         : <span className="mt-0.5 block text-[11px]">Lo revisa un asesor</span>}
                       {errorModulo[rm.code] && <span role="alert" className="mt-1 block text-[11px] text-red-700">{errorModulo[rm.code]}</span>}
                       {inputArchivo(rm)}
@@ -614,10 +757,26 @@ export function FormularioClient({ token }: FormularioClientProps) {
                   {m.documents.map((doc) => (
                     <div key={doc.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-[#C9CEF2] bg-[#EEF0FB]">
                       <Miniatura doc={doc} className="h-full w-full" />
-                      <button type="button" onClick={() => void quitar(m.code, doc.id)} aria-label="Quitar" className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900"><Ic.X className="h-3 w-3" /></button>
+                      <button type="button" disabled={ocupado(m.code)} onClick={() => void quitar(m.code, doc.id)} aria-label="Quitar" className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900 disabled:opacity-40"><Ic.X className="h-3 w-3" /></button>
                     </div>
                   ))}
-                  {m.documents.length < maxFiles && puedeReintentar(m) && (
+                  {/* Las que todavía viajan se ven igual que las guardadas,
+                      apenas atenuadas. Sin esto la pantalla no reaccionaba
+                      hasta que respondía el servidor. */}
+                  {(previas[m.code] ?? []).map((p) => (
+                    <div key={p.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-[#C9CEF2] bg-[#EEF0FB] opacity-60">
+                      <PreviaMini previa={p} className="h-full w-full" />
+                      <span className="absolute inset-x-0 bottom-0 bg-white/90 py-0.5 text-center text-[10px] font-bold tabular-nums text-[#2F3A9E]">
+                        {p.progreso}%
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-0 h-[3px] bg-[#4654CD] transition-[width] duration-200"
+                        style={{ width: `${p.progreso}%` }}
+                      />
+                    </div>
+                  ))}
+                  {m.documents.length + (previas[m.code]?.length ?? 0) < maxFiles && puedeReintentar(m) && (
                     <button type="button" onClick={() => elegirArchivo(m.code)} className="flex aspect-[3/4] flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] border-dashed border-[#C9CEF2] bg-white text-[12px] font-semibold text-[#4654CD]">
                       <Ic.Plus className="h-5 w-5" />{m.documents.length ? 'Agregar otra' : 'Agregar captura'}
                     </button>
@@ -643,7 +802,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
               <textarea value={detalle} onChange={(e) => setDetalle(e.target.value)} aria-label="Cómo percibes tus ingresos"
                         placeholder="Ejemplo: vendo postres por Instagram, entrego en la universidad de lunes a viernes, gano unos S/ 900 al mes…"
                         className="min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
-              <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado} onClick={() => void guardarTexto(m.code)}>
+              <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado || ocupado(m.code)} onClick={() => void guardarTexto(m.code)}>
                 <Ic.Check className="h-4.5 w-4.5" />{m.fulfilled_by === 'text' && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar texto'}
               </Btn>
               <NotaVoz m={m} grabando={grabando} segs={segs} voz={voz}
@@ -731,32 +890,49 @@ export function FormularioClient({ token }: FormularioClientProps) {
               </>
             )}
           </div>
+          <GuardarSeccion
+            seccion="contacto"
+            listo={Boolean(dia && turno && canal && !editTel)}
+            guardando={guardando.contacto}
+            guardado={yaGuardada('contacto', payloadSeccionContacto())}
+            error={errorSeccion.contacto}
+            faltante="Elige el día, el horario y por dónde prefieres que te contacten."
+            onGuardar={() => {
+              const p = payloadSeccionContacto();
+              if (p) void guardarSeccion('contacto', p);
+            }}
+          />
         </Sec>
 
         <Sec {...sp('ayuda')} icon={<Ic.Help className="h-5.5 w-5.5" />} titulo="¿Tienes alguna duda o necesitas ayuda?" why="Cuéntanos en qué podemos ayudarte. Es opcional.">
           <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} aria-label="Dudas"
                     placeholder="Ejemplo: no estoy seguro de qué recibo subir, o quiero cambiar el color del equipo…"
                     className="min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
-          {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <Btn className="mt-3" disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
+          <GuardarSeccion
+            seccion="ayuda"
+            listo={comentario.trim().length > 0}
+            guardando={guardando.ayuda}
+            guardado={yaGuardada('ayuda', { questions: comentario.trim() })}
+            error={errorSeccion.ayuda}
+            faltante="Escribe tu duda para poder guardarla."
+            onGuardar={() => void guardarSeccion('ayuda', { questions: comentario.trim() })}
+          />
+        </Sec>
+
+        {/* Enviar cierra el formulario entero, así que vive FUERA de las
+            tarjetas, debajo de todas. Adentro de la última quedaba escondido
+            en cuanto esa sección se guardaba y se colapsaba. */}
+        <div className="mt-5">
+          {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <Btn disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
             <Ic.Send className="h-4.5 w-4.5" />{enviando ? 'Enviando…' : 'Enviar'}
           </Btn>
-          {!completo && <div className="mt-2 text-[12.5px] text-gray-400">El botón se activa cuando completes lo de arriba.</div>}
-          {completo && turno && <div className="mt-2 text-[12.5px] text-gray-400">Te contactamos {dia && diaTxt(dia)} {turnoTxt()}.</div>}
+          {!completo && <div className="mt-2 text-center text-[12.5px] text-gray-400">El botón se activa cuando completes lo de arriba.</div>}
+          {completo && turno && <div className="mt-2 text-center text-[12.5px] text-gray-400">Te contactamos {dia && diaTxt(dia)} {turnoTxt()}.</div>}
           <Footer />
-        </Sec>
-      </main>
-
-      {subiendo && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#f6f7fd]/95 p-6 text-center" aria-live="polite">
-          <div>
-            <div className="mx-auto mb-4 h-14 w-14 animate-spin rounded-full border-[5px] border-[#C9CEF2] border-t-[#4654CD]" />
-            <h3 className="text-xl font-bold text-[#2F3A9E]">Cargando…</h3>
-            <p className="mt-1 text-gray-500">Un momento, por favor.</p>
-          </div>
         </div>
-      )}
-    </>
+      </main>
+    </div>
   );
 }
 
@@ -839,6 +1015,62 @@ function Miniatura({ doc, className = 'h-[68px] w-14' }: { doc?: { file_name: st
       {doc?.view_url && esImagen
         // eslint-disable-next-line @next/next/no-img-element
         ? <img src={doc.view_url} alt={doc.file_name} className="h-full w-full object-cover" />
+        : <Ic.Doc className="h-6 w-6 text-[#8A94E0]" />}
+    </div>
+  );
+}
+
+/** Guardar de una sección. No cierra el formulario ni reemplaza al Enviar
+ * final: deja a salvo lo que el estudiante lleva escrito, para que abandonar a
+ * mitad de camino no borre su horario ni su duda. */
+function GuardarSeccion({ seccion, listo, guardando, guardado, error, faltante, onGuardar }: {
+  seccion: string; listo: boolean; guardando?: boolean; guardado?: boolean;
+  error?: string; faltante: string; onGuardar: () => void;
+}) {
+  return (
+    <div className="mt-3">
+      <Btn kind="sec" className="py-2.5 text-[13.5px]" disabled={!listo || guardando}
+           onClick={onGuardar} testId={`guardar-${seccion}`}>
+        <Ic.Check className="h-4.5 w-4.5" />
+        {guardando ? 'Guardando…' : guardado ? 'Guardado' : 'Guardar'}
+      </Btn>
+      {error
+        ? <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>
+        : guardado
+          ? <p className="mt-2 text-[12.5px] text-emerald-700" aria-live="polite">Listo, lo guardamos. Puedes cambiarlo antes de enviar.</p>
+          : !listo && <p className="mt-2 text-[12.5px] text-gray-400">{faltante}</p>}
+    </div>
+  );
+}
+
+/** Barra de avance de una subida. `aria-valuenow` para que un lector de
+ * pantalla anuncie el porcentaje sin depender del texto de al lado. */
+function BarraProgreso({ valor }: { valor: number }) {
+  return (
+    <div
+      className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#EEF0FB]"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={valor}
+      aria-label="Avance de la subida"
+    >
+      <div
+        className="h-full rounded-full bg-[#4654CD] transition-[width] duration-200"
+        style={{ width: `${valor}%` }}
+      />
+    </div>
+  );
+}
+
+/** Gemela de `Miniatura` para el archivo que todavía no llegó al servidor:
+ * pinta desde el blob local (`URL.createObjectURL`) en vez de `view_url`. */
+function PreviaMini({ previa, className = 'h-[68px] w-14' }: { previa: PreviaLocal; className?: string }) {
+  return (
+    <div className={`flex flex-none items-center justify-center overflow-hidden rounded-lg border border-white bg-white ${className}`}>
+      {previa.esImagen && previa.url
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={previa.url} alt={previa.nombre} className="h-full w-full object-cover" />
         : <Ic.Doc className="h-6 w-6 text-[#8A94E0]" />}
     </div>
   );
@@ -932,8 +1164,9 @@ const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle }: {
   </section>
 );
 
-const Btn = ({ children, onClick, kind = 'pri', disabled, className = '' }: {
-  children: React.ReactNode; onClick?: () => void; kind?: 'pri' | 'sec' | 'ghost'; disabled?: boolean; className?: string;
+const Btn = ({ children, onClick, kind = 'pri', disabled, className = '', testId }: {
+  children: React.ReactNode; onClick?: () => void; kind?: 'pri' | 'sec' | 'ghost';
+  disabled?: boolean; className?: string; testId?: string;
 }) => {
   const k = {
     pri: 'bg-[#4654CD] text-white hover:bg-[#3a47b3]',
@@ -941,7 +1174,7 @@ const Btn = ({ children, onClick, kind = 'pri', disabled, className = '' }: {
     ghost: 'border-[1.5px] border-[#C9CEF2] text-[#4654CD] bg-transparent',
   }[kind];
   return (
-    <button type="button" disabled={disabled} onClick={onClick}
+    <button type="button" disabled={disabled} onClick={onClick} data-testid={testId}
             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[14.5px] font-bold disabled:cursor-not-allowed disabled:opacity-45 ${k} ${className}`}>
       {children}
     </button>

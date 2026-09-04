@@ -489,6 +489,19 @@ select:focus-visible {
   cursor: pointer;
 }
 
+/* Formulario posterior a la solicitud: mismo criterio que `.admision-flow`.
+   Los deshabilitados quedan FUERA de la regla a proposito: asi conservan el
+   cursor por defecto de Tailwind v4 y siguen valiendo las utilidades que ya
+   declara el componente (`Sec` usa `disabled:cursor-default` para su cabecera
+   no plegable). */
+.formulario-posterior button:not(:disabled),
+.formulario-posterior a,
+.formulario-posterior label[for],
+.formulario-posterior summary,
+.formulario-posterior [role="button"] {
+  cursor: pointer;
+}
+
 /* Confirmación: borde animado del CTA "Validar mi correo". Un anillo cónico gira
    sobre el borde existente para llamar la atención sin tocar el layout del card.
    Se pinta en un ::before enmascarado (mask xor) para que solo se vea el contorno.
