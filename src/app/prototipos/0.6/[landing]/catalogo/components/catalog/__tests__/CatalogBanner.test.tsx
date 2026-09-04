@@ -2,11 +2,33 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import CatalogBanner from '../CatalogBanner';
 
+// `matchMedia` no existe en jsdom. `estrecho` decide si la media query de móvil
+// hace match, que es lo que elige cuál de los dos enlaces se usa.
+function mockMatchMedia(estrecho: boolean) {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: (query: string) => ({
+      matches: estrecho,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
 describe('CatalogBanner', () => {
   const defaultProps = {
     desktopImageUrl: 'https://cdn.example.com/desktop.webp',
     mobileImageUrl: 'https://cdn.example.com/mobile.webp',
   };
+
+  // Por defecto, pantalla ancha: es el caso que asumen los tests de siempre.
+  beforeEach(() => mockMatchMedia(false));
 
   it('renders picture element with desktop and mobile sources', () => {
     const { container } = render(<CatalogBanner {...defaultProps} />);
@@ -170,6 +192,127 @@ describe('CatalogBanner', () => {
         <CatalogBanner {...defaultProps} linkUrl="//evil.com" />
       );
       expect(container.querySelector('a')).not.toBeInTheDocument();
+    });
+  });
+
+  // Un destino por pieza: el asesor puede mandar al visitante de escritorio a
+  // un filtro y al de móvil a otro.
+  describe('destino distinto por viewport', () => {
+    const conLinks = {
+      ...defaultProps,
+      landing: 'seminuevos',
+      desktopLinkUrl: 'catalogo?device=laptop',
+      mobileLinkUrl: 'catalogo?device=celular',
+    };
+
+    it('en pantalla ancha usa el enlace de desktop', () => {
+      mockMatchMedia(false);
+      render(<CatalogBanner {...conLinks} />);
+      expect(screen.getByTestId('catalog-banner-link'))
+        .toHaveAttribute('href', '/prototipos/0.6/seminuevos/catalogo?device=laptop');
+    });
+
+    it('en pantalla angosta usa el enlace de movil', () => {
+      mockMatchMedia(true);
+      render(<CatalogBanner {...conLinks} />);
+      expect(screen.getByTestId('catalog-banner-link'))
+        .toHaveAttribute('href', '/prototipos/0.6/seminuevos/catalogo?device=celular');
+    });
+
+    // Un banner clicable en desktop y muerto en móvil se leería como un bug.
+    it('sin enlace de movil propio, en movil cae al de desktop', () => {
+      mockMatchMedia(true);
+      render(
+        <CatalogBanner
+          {...defaultProps}
+          landing="seminuevos"
+          desktopLinkUrl="catalogo"
+          mobileLinkUrl=""
+        />
+      );
+      expect(screen.getByTestId('catalog-banner-link'))
+        .toHaveAttribute('href', '/prototipos/0.6/seminuevos/catalogo');
+    });
+
+    it('sin ningun enlace sigue sin envolverse en <a>', () => {
+      const { container } = render(
+        <CatalogBanner {...defaultProps} landing="seminuevos" />
+      );
+      expect(container.querySelector('a')).not.toBeInTheDocument();
+      expect(screen.getByTestId('catalog-banner')).toBeInTheDocument();
+    });
+
+    // El orden importa: transformConfigHref primero, safeLinkUrl despues. Si se
+    // invierte, `catalogo` no pasa el filtro y el enlace desaparece en silencio.
+    it('resuelve el href relativo ANTES de sanitizarlo', () => {
+      render(
+        <CatalogBanner {...defaultProps} landing="seminuevos" desktopLinkUrl="catalogo" />
+      );
+      expect(screen.getByTestId('catalog-banner-link'))
+        .toHaveAttribute('href', '/prototipos/0.6/seminuevos/catalogo');
+    });
+
+    // transformConfigHref no conoce `javascript:`, asi que le antepondria el
+    // home de la landing y el resultado --al empezar con '/'-- pasaria
+    // safeLinkUrl sin problema. Por eso el esquema se mira tambien en crudo.
+    it('descarta un javascript: guardado en el campo nuevo', () => {
+      const { container } = render(
+        <CatalogBanner
+          {...defaultProps}
+          landing="seminuevos"
+          desktopLinkUrl="javascript:alert(1)"
+        />
+      );
+      expect(container.querySelector('a')).not.toBeInTheDocument();
+      expect(screen.getByAltText('Banner promocional')).toBeInTheDocument();
+    });
+
+    it('descarta data: y vbscript:', () => {
+      for (const malo of ['data:text/html,<script>x</script>', 'vbscript:msgbox(1)']) {
+        const { container, unmount } = render(
+          <CatalogBanner {...defaultProps} landing="seminuevos" desktopLinkUrl={malo} />
+        );
+        expect(container.querySelector('a')).not.toBeInTheDocument();
+        unmount();
+      }
+    });
+
+    // `tel:` y `mailto:` tampoco generan enlace, y es a proposito: safeLinkUrl
+    // solo admite internas y http(s) (ver su docstring). Un banner del catalogo
+    // que dispare una llamada no es un caso de uso pedido; si algun dia lo es,
+    // el cambio va en safeLinkUrl, no aca. Se deja el test para que ese dia se
+    // vea como una decision y no como una regresion.
+    it('tel: y mailto: tampoco generan enlace', () => {
+      for (const esquema of ['tel:+51999888777', 'mailto:hola@baldecash.com']) {
+        const { container, unmount } = render(
+          <CatalogBanner {...defaultProps} landing="seminuevos" desktopLinkUrl={esquema} />
+        );
+        expect(container.querySelector('a')).not.toBeInTheDocument();
+        // La imagen se sigue viendo: el banner no desaparece por eso.
+        expect(screen.getByAltText('Banner promocional')).toBeInTheDocument();
+        unmount();
+      }
+    });
+
+    it('deja intacto un enlace externo', () => {
+      render(
+        <CatalogBanner
+          {...defaultProps}
+          landing="seminuevos"
+          desktopLinkUrl="https://baldecash.com/promo"
+        />
+      );
+      expect(screen.getByTestId('catalog-banner-link'))
+        .toHaveAttribute('href', 'https://baldecash.com/promo');
+    });
+
+    // `linkUrl` es el campo viejo; los banners guardados antes lo usan.
+    it('sigue respetando el linkUrl anterior cuando no hay campos nuevos', () => {
+      render(
+        <CatalogBanner {...defaultProps} landing="seminuevos" linkUrl="/prototipos/0.6/x#y" />
+      );
+      expect(screen.getByTestId('catalog-banner-link'))
+        .toHaveAttribute('href', '/prototipos/0.6/x#y');
     });
   });
 });
