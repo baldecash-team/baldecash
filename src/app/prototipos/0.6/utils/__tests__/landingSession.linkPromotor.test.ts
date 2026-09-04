@@ -7,6 +7,7 @@
  * el siguiente alumno heredaba el `ref`, los UTMs y la sesión de tracking de A.
  */
 import { resetLandingSessionIfPromoterLinkChanged } from '../landingSession';
+import { readUtmParams } from '../utmParams';
 
 const LANDING = 'ucv';
 const SIBLING = 'ucv-express';
@@ -21,6 +22,7 @@ const linkConRef = (ref: string) =>
 const keys = (slug: string) => ({
   wizardForm: `baldecash-wizard-${slug}-data`,
   sessionUuid: `baldecash-${slug}-wizard-session-uuid`,
+  sessionConvertida: `baldecash-${slug}-wizard-session-converted`,
   dni: `baldecash-dni-${slug}`,
   promotorRef: `baldecash-${slug}-promotor-ref`,
   pendingAlk: `baldecash-${slug}-pending-alk`,
@@ -48,11 +50,13 @@ function sobrevivientes(slug: string): string[] {
     ['utmStore', UTM_STORE] as const,
     ['franja', franjaKey(slug)] as const,
   ]
-    .filter(([name, key]) =>
-      name === 'utmStore' || name === 'franja'
-        ? sessionStorage.getItem(key) !== null
-        : true
-    )
+    .filter(([name, key]) => {
+      // El store de UTMs puede quedar con los del link NUEVO: sólo es un resto
+      // si todavía tiene el `promotor` de la visita anterior.
+      if (name === 'utmStore') return sessionStorage.getItem(key)?.includes('promoA') ?? false;
+      if (name === 'franja') return sessionStorage.getItem(key) !== null;
+      return true;
+    })
     .map(([name]) => name);
 }
 
@@ -178,5 +182,36 @@ describe('resetLandingSessionIfPromoterLinkChanged', () => {
 
     expect(resetLandingSessionIfPromoterLinkChanged(LANDING, linkConRef(REF_B))).toBe(false);
     expect(localStorage.getItem(keys(LANDING).wizardForm)).not.toBeNull();
+  });
+
+  it('el mismo link abierto sobre una sesión que ya envió una solicitud estrena sesión', () => {
+    resetLandingSessionIfPromoterLinkChanged(LANDING, linkConRef(REF_A));
+    visitaPrevia(LANDING, REF_A);
+    // El submit dejó la marca: esta sesión ya convirtió.
+    localStorage.setItem(keys(LANDING).sessionConvertida, 'uuid-de-la-visita-anterior');
+
+    const limpio = resetLandingSessionIfPromoterLinkChanged(LANDING, linkConRef(REF_A));
+
+    expect(limpio).toBe(true);
+    expect(sobrevivientes(LANDING)).toEqual([]);
+    expect(localStorage.getItem(keys(LANDING).sessionConvertida)).toBeNull();
+  });
+
+  it('deja el store de UTMs con los del link nuevo, no vacío', () => {
+    resetLandingSessionIfPromoterLinkChanged(LANDING, linkConRef(REF_A));
+    visitaPrevia(LANDING, REF_A);
+
+    resetLandingSessionIfPromoterLinkChanged(LANDING, linkConRef(REF_B) + '&promotor=promoB');
+
+    // Sin querystring (como nace la sesión en el catálogo) el store responde
+    // por el link nuevo: el utm_term llega igual.
+    expect(readUtmParams('')).toEqual({
+      utm_campaign: 'activacion_ucv_2026_09',
+      utm_source: 'qr',
+      utm_medium: 'offline',
+      utm_content: 'qr',
+      utm_term: 'punto_lima-norte__promo_1vlqax8__act_1odsq6r',
+      promotor: 'promoB',
+    });
   });
 });

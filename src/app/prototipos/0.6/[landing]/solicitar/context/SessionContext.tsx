@@ -55,6 +55,18 @@ const getConvertedKey = (landing: string) =>
  * callers outside the `/solicitar` provider tree can clear it without
  * re-deriving the key. The key stays defined once, here.
  */
+/**
+ * True si la sesión guardada para la landing ya envió una solicitud.
+ *
+ * Lo consulta el reset por link de promotora: sobre una sesión que ya
+ * convirtió, volver a abrir el MISMO link también estrena sesión — el que
+ * está llegando es otro alumno, no el que acaba de enviar.
+ */
+export function sesionYaConvertida(landing: string): boolean {
+  const convertida = safeGetItem(getConvertedKey(landing));
+  return !!convertida && convertida === safeGetItem(getSessionKey(landing));
+}
+
 export function clearSessionStorage(landing: string): void {
   // safeRemoveItem is hoisted; it already guards SSR and storage failures.
   safeRemoveItem(getSessionKey(landing));
