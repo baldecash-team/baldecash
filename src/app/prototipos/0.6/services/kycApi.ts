@@ -488,6 +488,26 @@ export interface ContratoKyc {
   hash?: string;
   external_id?: string;
   emitido_at?: string;
+  /**
+   * Los textos de la aceptación, tal como los sirve ws2. Solo en `aceptacion`.
+   *
+   * NO se escriben acá: la misma redacción que se muestra es la que el backend
+   * sella como evidencia de qué se aceptó, así que componerla en el front la
+   * haría poder desviarse de lo aprobado sin que nadie se entere.
+   */
+  aceptacion?: TextosAceptacion;
+}
+
+/** Lo que ws2 manda para armar la pantalla de aceptación. */
+export interface TextosAceptacion {
+  /** Número de la redacción. Es lo que queda grabado en la evidencia. */
+  version: number;
+  /** Aviso previo al checkbox: qué se está por hacer y a qué queda asociado. */
+  aviso: string;
+  /** La declaración del checkbox, con el código de la operación adentro. */
+  declaracion: string;
+  /** El botón que dispara la aceptación. */
+  boton: string;
 }
 
 /**
@@ -542,7 +562,33 @@ function adaptarContrato(raw: Record<string, unknown>): ContratoKyc {
     hash: (raw.hash as string) || undefined,
     external_id: (raw.external_id as string) || undefined,
     emitido_at: (raw.emitido_at as string) || undefined,
+    aceptacion: adaptarTextos(raw.aceptacion),
   };
+}
+
+/**
+ * Los textos, solo si vienen COMPLETOS.
+ *
+ * A medias no sirven: media pantalla con la redacción aprobada y media con un
+ * texto de relleno es peor que la de siempre, porque no se distingue mirándola.
+ * Sin esto el paso cae al texto genérico, que es lo que ya hacía.
+ */
+function adaptarTextos(raw: unknown): TextosAceptacion | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const t = raw as Record<string, unknown>;
+  if (
+    typeof t.version !== 'number' ||
+    typeof t.aviso !== 'string' ||
+    typeof t.declaracion !== 'string' ||
+    typeof t.boton !== 'string' ||
+    !t.aviso ||
+    !t.declaracion ||
+    !t.boton
+  ) {
+    return undefined;
+  }
+
+  return { version: t.version, aviso: t.aviso, declaracion: t.declaracion, boton: t.boton };
 }
 
 /** El resultado del avance: el estado nuevo, o que el contrato quedó viejo. */

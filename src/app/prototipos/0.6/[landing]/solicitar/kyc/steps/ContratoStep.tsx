@@ -89,6 +89,9 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing,
 }: ContratoStepProps, ref) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
+  // El clic final no puede ejecutarse dos veces (§4 paso 9): un doble toque en
+  // móvil crearía dos aceptaciones de la misma operación.
+  const [enviando, setEnviando] = useState(false);
   const [autorizaciones, setAutorizaciones] = useState<Record<string, boolean>>({});
   const track = useKycTracker(onTrack);
 
@@ -114,6 +117,13 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
       marcarVencido();
     },
   }), [marcarVencido]);
+
+  // Los textos los sirve ws2 y se pintan tal cual: la redacción que la persona
+  // ve es la que después queda sellada como evidencia de qué aceptó. Si el
+  // front la compusiera, podría desviarse de lo aprobado sin que nadie se
+  // entere. Cuando no vienen —un ws2 sin desplegar— el paso se comporta como
+  // siempre en vez de mostrar media pantalla con relleno.
+  const textos = contrato?.aceptacion;
 
   // El snapshot gana sobre el PDF: es el documento congelado, con su hash
   // detrás. El camino `aceptacion` trae PDF; el `emitido` puede traer los dos.
@@ -162,6 +172,8 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
    * que el botón se había habilitado.
    */
   const handleContinuar = () => {
+    if (enviando) return;
+    setEnviando(true);
     track('kyc_contract_signed', {
       application_code: applicationCode,
       contract_hash: contrato?.hash,
@@ -169,6 +181,9 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
       autorizaciones: autorizacionesAplicables
         .filter((a) => autorizaciones[a.id])
         .map((a) => a.id),
+      // La redacción que estaba en pantalla. Queda en el evento además de en la
+      // firma: si algún día no coinciden, se ve dónde se rompió.
+      declaracion_version: textos?.version,
     });
     // El hash solo viaja en el camino de firma por aceptación: es lo que ata
     // esta aceptación al PDF que se mostró. En `emitido` no hay hash que atar.
@@ -279,9 +294,21 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
 
       {hayDocumento && (
         <div className="space-y-4">
+          {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
+              hacer y a qué queda asociado, para que marcarla no sea un clic a
+              ciegas. */}
+          {textos && (
+            <p
+              data-testid="contrato-aviso"
+              className="rounded-xl bg-[#F5F6FE] border border-[#DDDFF7] p-3 text-xs leading-relaxed text-[#374151]"
+            >
+              {textos.aviso}
+            </p>
+          )}
+
           <CheckboxField
             id="accept-contract"
-            label="He leído y acepto el contrato"
+            label={textos?.declaracion ?? 'He leído y acepto el contrato'}
             value={accepted}
             onChange={handleAcceptChange}
             required
@@ -324,14 +351,19 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           // de esta pantalla—, así que su ausencia no puede trabar el flujo:
           // ahí solo se exige aceptar cuando SÍ hay documento.
           disabled={
-            exigeAceptar
-              ? !hayDocumento || accepted !== 'true' || faltaAlgunaAutorizacion
-              : hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)
+            enviando || (
+              exigeAceptar
+                ? !hayDocumento || accepted !== 'true' || faltaAlgunaAutorizacion
+                : hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)
+            )
           }
           onClick={handleContinuar}
           className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
         >
-          Continuar
+          {/* El texto también lo manda ws2: "ACEPTAR Y CONTRATAR" dice qué hace
+              el botón, y "Continuar" no. Solo cuando hay documento que aceptar:
+              en la espera y en el error sigue siendo un Continuar. */}
+          {hayDocumento && textos ? textos.boton : 'Continuar'}
         </button>
       </div>
     </div>
