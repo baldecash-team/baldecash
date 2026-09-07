@@ -462,6 +462,74 @@ export async function getCronograma(args: {
 }
 
 /**
+ * La identidad validada y el contacto de la solicitud.
+ *
+ * `nombre` y `documento` son de solo lectura: corresponden a la identidad que
+ * ya se validó y el backend no tiene forma de cambiarlos. `aviso_identidad` lo
+ * sirve ws2 y se pinta tal cual — es la explicación de por qué esos campos no
+ * se pueden tocar, y decirla de dos maneras distintas en dos pantallas es peor
+ * que no decirla.
+ */
+export interface ContactoKyc {
+  nombre?: string | null;
+  documento?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  aviso_identidad: string;
+}
+
+export async function getContacto(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<ContactoKyc | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/contacto?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as ContactoKyc;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Actualiza correo y/o teléfono. Son los únicos dos campos que se pueden
+ * cambiar; mandar cualquier otro no hace nada, porque el backend no lo declara.
+ *
+ * Devuelve el contacto ya guardado, o `null` si no se pudo: la pantalla avisa
+ * en vez de dejar creer que quedó.
+ */
+export async function actualizarContacto(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+  email?: string;
+  telefono?: string;
+}): Promise<ContactoKyc | null> {
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/contacto`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_code: args.applicationCode,
+        document_number: args.resumeToken ? undefined : args.documentNumber,
+        resume_token: args.resumeToken,
+        email: args.email,
+        telefono: args.telefono,
+      }),
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as ContactoKyc;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Los números de la operación, para mostrarlos ANTES del contrato.
  *
  * Todo opcional y todo string: son importes, y un `number` los redondea

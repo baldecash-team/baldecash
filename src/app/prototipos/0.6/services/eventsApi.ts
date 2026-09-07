@@ -311,6 +311,10 @@ export type EventType =
   // KYC. Es la evidencia del lado del front de la puesta a disposicion que pide
   // el §4 paso 12; la fecha del lado de Balde K la graba legacy en la solicitud.
   | 'kyc_contract_copy_available'
+  // El solicitante actualizo su correo o su celular antes de aceptar. `campos`
+  // dice cuales. La evidencia con el valor anterior la guarda ws2; esto es para
+  // poder ver en el embudo cuanta gente los corrige en esta pantalla.
+  | 'kyc_contact_updated'
   // El check de documento (verify-dni) fallo y el titular confirmo su DNI
   // tipeandolo: se salta Textract pero compare-faces corre igual.
   | 'kyc_document_check_bypassed'

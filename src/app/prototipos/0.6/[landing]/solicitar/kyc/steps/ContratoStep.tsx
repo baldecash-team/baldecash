@@ -18,6 +18,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'r
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
 import { useContratoKyc } from '../useContratoKyc';
+import { ConfirmarDatosCard } from './ConfirmarDatosCard';
 import { ResumenOperacionCard } from './ResumenOperacionCard';
 import {
   getResumenOperacion,
@@ -313,8 +314,18 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </div>
       )}
 
-      {/* Arriba del documento y no debajo: es lo que la persona necesita para
+      {/* El orden del §5: primero quién es (identidad bloqueada, contacto
+          editable), después cuánto (los números), y recién ahí el documento.
+          Los dos van arriba y no debajo: son lo que la persona necesita para
           leer el contrato con criterio, no un resumen de lo que ya leyó. */}
+      <ConfirmarDatosCard
+        applicationCode={applicationCode}
+        documentNumber={documentNumber}
+        resumeToken={resumeToken}
+        onCambio={(campos) =>
+          track('kyc_contact_updated', { application_code: applicationCode, campos })
+        }
+      />
       <ResumenOperacionCard resumen={resumen} />
 
       {hayDocumento && (
