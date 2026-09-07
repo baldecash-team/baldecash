@@ -307,6 +307,10 @@ export type EventType =
   // "Abrir en pestana nueva": en movil el visor embebido no siempre carga, y
   // este evento es lo unico que dice si esa salida se usa.
   | 'kyc_contract_opened_external'
+  // La copia del contrato —con su constancia— quedo a disposicion al cerrar el
+  // KYC. Es la evidencia del lado del front de la puesta a disposicion que pide
+  // el §4 paso 12; la fecha del lado de Balde K la graba legacy en la solicitud.
+  | 'kyc_contract_copy_available'
   // El check de documento (verify-dni) fallo y el titular confirmo su DNI
   // tipeandolo: se salta Textract pero compare-faces corre igual.
   | 'kyc_document_check_bypassed'

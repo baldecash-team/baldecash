@@ -293,6 +293,13 @@ export interface KycVeredicto {
    * El paso `contract` se reabre con el contrato nuevo.
    */
   motivo?: 'contrato_vencido';
+  /**
+   * La constancia de aceptación: el contrato aceptado con el hash estampado y
+   * la hoja de constancia. Es la copia que hay que poner a disposición en el
+   * acto (§4 paso 12). `null` cuando legacy no pudo emitirla: la operación
+   * vale igual, lo que falta es el PDF que la muestra.
+   */
+  constancia_url?: string | null;
 }
 
 /**

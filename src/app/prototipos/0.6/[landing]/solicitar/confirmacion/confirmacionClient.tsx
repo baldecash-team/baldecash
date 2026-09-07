@@ -318,6 +318,8 @@ function RealConfirmationContent({
       overlayVariant={overlayVariant}
       otpCta={otpCta}
       modoCierreKyc={modoCierreKyc}
+      landing={landing}
+      applicationCode={applicationCode}
     />
   );
 }

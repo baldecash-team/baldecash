@@ -27,6 +27,7 @@ import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { guardarConstancia } from './constanciaStorage';
 import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
@@ -643,6 +644,14 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       cerrandoRef.current = false;
       setCerrando(false);
       return;
+    }
+
+    // La copia, a disposición en el acto (§4 paso 12). Se guarda para la
+    // pantalla siguiente porque acá mismo se navega; si no vino, la pantalla no
+    // la ofrece y no pasa nada: sigue archivada del lado de Balde K.
+    if (veredicto?.constancia_url && code) {
+      guardarConstancia(landing, code, veredicto.constancia_url);
+      track('kyc_contract_copy_available', { application_code: code });
     }
 
     track('kyc_completed', { application_code: code });
