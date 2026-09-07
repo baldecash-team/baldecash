@@ -454,6 +454,53 @@ export async function getCronograma(args: {
   }
 }
 
+/**
+ * Los números de la operación, para mostrarlos ANTES del contrato.
+ *
+ * Todo opcional y todo string: son importes, y un `number` los redondea
+ * distinto de como los redondeó quien emitió el contrato. `null` es "la
+ * solicitud no tiene este dato" y NO cero — un cero se lee como una condición
+ * pactada.
+ */
+export interface ResumenOperacion {
+  equipo?: string | null;
+  sku?: string | null;
+  precio?: string | null;
+  cuota_inicial?: string | null;
+  cuotas?: number | null;
+  monto_cuota?: string | null;
+  frecuencia?: string | null;
+  tea?: string | null;
+  tcea?: string | null;
+  seguro?: string | null;
+  total?: string | null;
+}
+
+/**
+ * El resumen económico de la solicitud.
+ *
+ * Misma prueba de titularidad que el resto de las lecturas del KYC. Fail-safe:
+ * `null` ante error — el paso muestra el contrato sin la tarjeta antes que
+ * números que no son los de esta persona.
+ */
+export async function getResumenOperacion(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<ResumenOperacion | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/resumen?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as ResumenOperacion;
+  } catch {
+    return null;
+  }
+}
+
 /** De dónde sale el contrato y, por lo tanto, qué se le puede exigir al cliente. */
 export type ContratoModo =
   /** La landing tiene la firma por aceptación: el contrato existe ANTES de

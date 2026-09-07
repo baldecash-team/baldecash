@@ -18,6 +18,11 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'r
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
 import { useContratoKyc } from '../useContratoKyc';
+import { ResumenOperacionCard } from './ResumenOperacionCard';
+import {
+  getResumenOperacion,
+  type ResumenOperacion,
+} from '@/app/prototipos/0.6/services/kycApi';
 import {
   esFamilyFarms,
   esFamilyFarmsAdministrativo,
@@ -92,6 +97,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   // El clic final no puede ejecutarse dos veces (§4 paso 9): un doble toque en
   // móvil crearía dos aceptaciones de la misma operación.
   const [enviando, setEnviando] = useState(false);
+  // Los números de la operación, para que aceptar el contrato no sea aceptar
+  // cifras que la persona nunca vio ordenadas (§5). Fail-safe: sin resumen la
+  // tarjeta no se pinta y el paso sigue igual.
+  const [resumen, setResumen] = useState<ResumenOperacion | null>(null);
   const [autorizaciones, setAutorizaciones] = useState<Record<string, boolean>>({});
   const track = useKycTracker(onTrack);
 
@@ -105,6 +114,18 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
     track('kyc_contract_view', { application_code: applicationCode });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Sin código de solicitud no hay qué resumir: el paso se puede montar
+    // antes de que exista (los prototipos lo hacen).
+    if (!applicationCode) return;
+
+    let vivo = true;
+    getResumenOperacion({ applicationCode, documentNumber, resumeToken })
+      .then((r) => { if (vivo) setResumen(r); });
+
+    return () => { vivo = false; };
+  }, [applicationCode, documentNumber, resumeToken]);
 
   /**
    * El orquestador reabre el paso cuando el backend dice que lo aceptado ya no
@@ -291,6 +312,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           </p>
         </div>
       )}
+
+      {/* Arriba del documento y no debajo: es lo que la persona necesita para
+          leer el contrato con criterio, no un resumen de lo que ya leyó. */}
+      <ResumenOperacionCard resumen={resumen} />
 
       {hayDocumento && (
         <div className="space-y-4">
