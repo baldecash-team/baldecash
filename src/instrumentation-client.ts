@@ -41,10 +41,26 @@ Sentry.init({
 
   integrations: [Sentry.replayIntegration()],
 
-  tracesSampleRate: 1,
+  // 2026-09-08 — control de cuota. Medicion del periodo Ago 20 - Sep 19 sobre
+  // la org entera: spans 723% del plan, replays 16 532%, logs 304%. Este
+  // archivo era el mayor aportante de dos de esos tres numeros.
+  //
+  // tracesSampleRate: 1 trazaba el 100% de las sesiones de www.baldecash.com,
+  // y cada sesion emite un span por script, imagen, navegacion y
+  // long-animation-frame: 12,2M de spans en 30 dias (7% del consumo de la org)
+  // para medir la red del visitante. Con este volumen de trafico, 2% deja
+  // muestra de sobra para p75/p95 de Web Vitals.
+  tracesSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_TRACES ?? 0.02),
   enableLogs: true,
 
-  replaysSessionSampleRate: 0.1,
+  // replaysSessionSampleRate: 0.1 grababa entera 1 de cada 10 sesiones sanas:
+  // 8 266 replays contra un plan de 50/mes (16 532%). El valor de un replay
+  // esta en la sesion que reventó, no en las nueve que anduvieron bien — esas
+  // ya se miden con analytics. Con 0 + onError 1.0 se sigue teniendo el replay
+  // COMPLETO de toda sesion con error: el SDK mantiene el buffer en memoria y
+  // recien lo sube cuando algo falla. Mismo criterio que ya usa el portal de
+  // promotores (activaciones-hub).
+  replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1.0,
 
   sendDefaultPii: true,
