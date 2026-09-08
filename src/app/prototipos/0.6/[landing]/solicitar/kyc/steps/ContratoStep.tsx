@@ -246,12 +246,13 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           Antes era un párrafo gris de 12px entre dos tarjetas, y se leía como
           la letra chica que se saltea. Es lo contrario: es lo único de la
           pantalla que explica qué significa aceptar. Ahora lleva título, un
-          borde de color a la izquierda que lo separa del resto y el cuerpo al
-          mismo tamaño que se lee todo lo demás. */}
+          el cuerpo al mismo tamaño que se lee todo lo demás. Sin barra de color
+          al costado: el título y el ícono ya lo distinguen, y la barra lo hacía
+          leer como una alerta cuando es una explicación. */}
       {textos && (
         <div
           data-testid="contrato-aviso"
-          className="rounded-xl border border-[#DDDFF7] border-l-4 border-l-[#4654CD] bg-[#F5F6FE] p-4"
+          className="rounded-xl border border-[#DDDFF7] bg-[#F5F6FE] p-4"
         >
           <div className="flex items-center gap-2">
             <svg
