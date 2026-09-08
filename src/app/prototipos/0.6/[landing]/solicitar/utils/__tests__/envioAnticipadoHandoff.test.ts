@@ -59,3 +59,33 @@ it('se puede limpiar', () => {
 
   expect(readEnvioAnticipadoHandoff('a')).toBeNull();
 });
+
+describe('atado a la sesion que lo creo', () => {
+  it('la sesion de otra solicitud lo descarta', () => {
+    // Sin esto el wizard cree que ya envio, pasa de largo el submit y muestra
+    // el contrato de la solicitud vieja. Paso probando en local.
+    saveEnvioAnticipadoHandoff('a', { applicationCode: 'APP-1', sessionUuid: 's1' });
+
+    expect(readEnvioAnticipadoHandoff('a', 's2')).toBeNull();
+  });
+
+  it('la misma sesion lo conserva', () => {
+    saveEnvioAnticipadoHandoff('a', { applicationCode: 'APP-1', sessionUuid: 's1' });
+
+    expect(readEnvioAnticipadoHandoff('a', 's1')?.applicationCode).toBe('APP-1');
+  });
+
+  it('un handoff sin sesion anotada es viejo', () => {
+    saveEnvioAnticipadoHandoff('a', { applicationCode: 'APP-1' });
+
+    expect(readEnvioAnticipadoHandoff('a', 's1')).toBeNull();
+  });
+
+  it('sin sesion todavia resuelta no se descarta nada', () => {
+    // Primer render: la sesion aun no existe. Descartar ahi haria parpadear la
+    // pantalla del contrato justo despues de enviar.
+    saveEnvioAnticipadoHandoff('a', { applicationCode: 'APP-1', sessionUuid: 's1' });
+
+    expect(readEnvioAnticipadoHandoff('a', null)?.applicationCode).toBe('APP-1');
+  });
+});

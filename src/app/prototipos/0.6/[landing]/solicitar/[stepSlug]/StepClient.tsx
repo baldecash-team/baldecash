@@ -32,6 +32,7 @@ import { useProduct } from '../context/ProductContext';
 
 // Hooks
 import { ContratoEnWizard } from './ContratoEnWizard';
+import { useSessionOptional } from '../context/SessionContext';
 import {
   readEnvioAnticipadoHandoff,
   type EnvioAnticipadoHandoff,
@@ -225,12 +226,21 @@ function StepContent() {
    * leerlo directo rompe la hidratación.
    */
   const [handoff, setHandoff] = useState<EnvioAnticipadoHandoff | null>(null);
+  const sesion = useSessionOptional();
+  const sessionUuid = sesion?.sessionUuid ?? null;
   useEffect(() => {
-    setHandoff(readEnvioAnticipadoHandoff(landing));
+    // Con la sesión: un handoff de OTRA sesión es de una solicitud anterior, y
+    // tomarlo por bueno hace que el wizard crea que ya envió y pase de largo el
+    // submit — la persona llena el formulario, aprieta Enviar y ve el contrato
+    // de la solicitud vieja, sin un solo POST. Pasó probando en local.
+    //
+    // Mientras la sesión todavía no resolvió (`null`) no se descarta nada: es
+    // el primer render, no una sesión distinta.
+    setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid));
     // `stepSlug` en las dependencias: al pasar de la pantalla que envía a la
     // siguiente el componente no se desmonta, y sin esto el handoff recién
     // guardado no se vería hasta un refresh.
-  }, [landing, stepSlug]);
+  }, [landing, stepSlug, sessionUuid]);
 
   /** Ya se envió (envío anticipado): no se puede volver a crear la solicitud. */
   const yaEnviada = handoff !== null;

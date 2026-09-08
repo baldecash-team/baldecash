@@ -604,6 +604,7 @@ export function useSubmitApplication(
                 resumeToken: result.kyc_resume_token || undefined,
                 documentNumber: capturedDocumentNumber,
                 conContrato,
+                sessionUuid,
               });
             }
             return true;
