@@ -319,6 +319,7 @@ function RealConfirmationContent({
       overlayVariant={overlayVariant}
       otpCta={otpCta}
       modoCierreKyc={modoCierreKyc}
+      cierre={applicationData?.cierre ?? null}
       landing={landing}
       applicationCode={applicationCode}
       onDescargarConstancia={() => {
