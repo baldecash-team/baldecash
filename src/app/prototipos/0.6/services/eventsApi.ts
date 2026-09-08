@@ -315,6 +315,10 @@ export type EventType =
   // dice cuales. La evidencia con el valor anterior la guarda ws2; esto es para
   // poder ver en el embudo cuanta gente los corrige en esta pantalla.
   | 'kyc_contact_updated'
+  // La persona abrio su copia del contrato desde la pantalla de cierre. Que se
+  // le OFRECIO ya queda registrado del lado de Balde K al emitir la constancia;
+  // esto es lo otro que el §4 paso 12 pide poder decir: que la tomo.
+  | 'kyc_contract_copy_downloaded'
   // El check de documento (verify-dni) fallo y el titular confirmo su DNI
   // tipeandolo: se salta Textract pero compare-faces corre igual.
   | 'kyc_document_check_bypassed'
