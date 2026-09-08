@@ -524,10 +524,30 @@ function StepContent() {
     if (step) {
       markStepCompleted(step.url_slug || step.code);
     }
+
+    // El paso que ENVÍA no celebra: la celebración dice "paso 1 de 2" y felicita
+    // por avanzar, y lo que está pasando es que se está creando la solicitud.
+    // Se va directo al envío, que tiene su propia pantalla ("Creando
+    // solicitud…"). Celebrar acá además metía 1,3 s de espera antes de empezar.
+    if (enviaEnEstePaso) {
+      enviarYSeguir();
+      return;
+    }
+
     setShowCelebration(true);
   };
 
   const handleCelebrationComplete = () => {
+    enviarYSeguir();
+  };
+
+  /**
+   * Crea la solicitud y pasa a la pantalla siguiente, que es la del contrato.
+   *
+   * Lo llaman los dos caminos —el paso que envía, directo; el que solo avanza,
+   * al terminar la celebración— y por eso el pestillo vive acá.
+   */
+  function enviarYSeguir() {
     if (enviaEnEstePaso && !yaEnviada) {
       // Pestillo: enviar es lo único de esta pantalla que no se puede repetir.
       // `isAppSubmitting` no sirve de guard —es estado y no se ve dentro del
