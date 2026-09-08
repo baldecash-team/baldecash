@@ -26,20 +26,32 @@ interface SelectedProductBarProps {
   mobileOnly?: boolean;
   /** Hide insurance and accessories cards in desktop view (e.g., on complementos page where they're shown separately) */
   hideAddons?: boolean;
+  /**
+   * Las condiciones de la operación no se pueden mover: se esconden el
+   * selector de plazo y el de inicial.
+   *
+   * Es para el flujo con contrato: el documento se emite con ESTE plazo y ESTA
+   * inicial y el hash lo sella, así que cambiarlos dejaría la pantalla diciendo
+   * una cuota y el contrato otra. Lo decide quien monta el wizard, que es quien
+   * conoce la config del flujo; la barra no la consulta —se monta en todas las
+   * pantallas y no va a arrastrar un fetch para pintar un selector—.
+   */
+  condicionesFijas?: boolean;
 }
 
-export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
+export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false, condicionesFijas = false }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
   const { landingId, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
   const params = useParams();
   const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
   /**
-   * Solicitud ya creada (envío anticipado): las condiciones quedan congeladas.
-   * El contrato que la persona está por leer se emitió con este plazo y esta
-   * inicial; moverlos dejaría la pantalla diciendo una cuota y el PDF otra.
+   * O bien la landing tiene el módulo del contrato (y entonces nunca se
+   * eligieron acá), o bien la solicitud ya se creó y el contrato salió con
+   * estos números. En los dos casos, no se tocan.
    */
-  const congelada = useSolicitudCongelada(landingSlug);
+  const yaEnviada = useSolicitudCongelada(landingSlug);
+  const congelada = condicionesFijas || yaEnviada;
 
   // Wrappers que disparan analytics antes de mutar el state global
   const handleTermChange = (term: number) => {

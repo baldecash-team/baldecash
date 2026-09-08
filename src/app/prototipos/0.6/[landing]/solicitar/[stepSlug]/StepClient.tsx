@@ -235,6 +235,13 @@ function StepContent() {
   /** Ya se envió (envío anticipado): no se puede volver a crear la solicitud. */
   const yaEnviada = handoff !== null;
 
+  /**
+   * Con el módulo del contrato prendido, la operación no se edita en el wizard:
+   * el documento se emite con ese plazo y esa inicial y el hash lo sella, así
+   * que moverlos dejaría la pantalla diciendo una cuota y el contrato otra.
+   */
+  const condicionesFijas = isKycStepEnabled('contract');
+
   // Separate regular steps from summary steps
   const { regularSteps, summarySteps } = useMemo(() => {
     const regular = steps.filter(s => !s.is_summary_step);
@@ -782,6 +789,7 @@ function StepContent() {
           onStepClick={handleStepClick}
           isLastStep
           sinNavegacion
+          condicionesFijas={condicionesFijas}
           hideNavbar={isGamer}
           navbarProps={isGamer ? undefined : (navbarProps || undefined)}
           motivational={step.motivational}
@@ -825,6 +833,7 @@ function StepContent() {
         onNext={nextHandler}
         onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
         onStepClick={handleStepClick}
+        condicionesFijas={condicionesFijas}
         isLastStep={isActuallyLastStep}
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
@@ -1021,6 +1030,7 @@ function StepContent() {
         // de movil, que nunca distinguio entre continuar y enviar.
         onSubmit={handleNext}
         onStepClick={handleStepClick}
+        condicionesFijas={condicionesFijas}
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
         isSubmitting={isAppSubmitting}

@@ -49,6 +49,8 @@ interface WizardLayoutProps {
    * arriba no sabría nada de las casillas.
    */
   sinNavegacion?: boolean;
+  /** Las condiciones de la operación no se pueden mover: ver `SelectedProductBar`. */
+  condicionesFijas?: boolean;
   isFirstStep?: boolean;
   isSubmitting?: boolean;
   canProceed?: boolean;
@@ -83,6 +85,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   onStepClick,
   isLastStep = false,
   sinNavegacion = false,
+  condicionesFijas = false,
   isFirstStep = false,
   isSubmitting = false,
   canProceed = true,
@@ -124,7 +127,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
             {/* Selected Product Bar (Desktop: top position) */}
             <div className="mt-6">
-              <SelectedProductBar />
+              <SelectedProductBar condicionesFijas={condicionesFijas} />
             </div>
 
             {/* Header */}

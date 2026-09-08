@@ -74,6 +74,15 @@ it('con la solicitud ya creada desaparecen los dos', () => {
   expect(screen.queryByText('Plazo:')).not.toBeInTheDocument();
 });
 
+it('con el modulo del contrato prendido no se eligen, ni antes de enviar', () => {
+  // El contrato sale con ESE plazo y ESA inicial: no son una eleccion del
+  // wizard, y ofrecerlas para despues ignorarlas es peor que no ofrecerlas.
+  render(<SelectedProductBar condicionesFijas />);
+
+  expect(screen.queryByText('Plazo:')).not.toBeInTheDocument();
+  expect(screen.queryByText('Inicial:')).not.toBeInTheDocument();
+});
+
 it('sin el modulo del contrato no se congela nada', () => {
   // Sin contrato emitido no hay documento que pueda quedar desfasado: congelar
   // las condiciones seria quitarle al postulante una opcion por nada.
