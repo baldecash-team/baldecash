@@ -17,6 +17,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { TermSelect, getTermUnit } from './TermSelect';
+import { useSolicitudCongelada } from '../../../hooks/useSolicitudCongelada';
 import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
 import Image from 'next/image';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -33,6 +34,12 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const params = useParams();
   const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
+  /**
+   * Solicitud ya creada (envío anticipado): las condiciones quedan congeladas.
+   * El contrato que la persona está por leer se emitió con este plazo y esta
+   * inicial; moverlos dejaría la pantalla diciendo una cuota y el PDF otra.
+   */
+  const congelada = useSolicitudCongelada(landingSlug);
 
   // Wrappers que disparan analytics antes de mutar el state global
   const handleTermChange = (term: number) => {
@@ -245,7 +252,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           {/* Initial Payment Selector - Mobile */}
                           {(() => {
                             const initialOptions = getInitialOptionsForProduct(product.id);
-                            if (initialOptions.length === 0) return null;
+                            if (initialOptions.length === 0 || congelada) return null;
                             return (
                               <div className="mt-2">
                                 <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
@@ -340,7 +347,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       </div>
                     </div>
                     {/* Term Selector - Mobile */}
-                    {puedeCambiarPlazo && (
+                    {puedeCambiarPlazo && !congelada && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
@@ -398,7 +405,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               </span>
             </div>
             {/* Term Selector - Desktop */}
-            {puedeCambiarPlazo && (
+            {puedeCambiarPlazo && !congelada && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
@@ -454,7 +461,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {/* Initial Payment Selector - Desktop */}
                   {(() => {
                     const initialOptions = getInitialOptionsForProduct(product.id);
-                    if (initialOptions.length === 0) return null;
+                    if (initialOptions.length === 0 || congelada) return null;
                     return (
                       <div className="mt-2">
                         <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
