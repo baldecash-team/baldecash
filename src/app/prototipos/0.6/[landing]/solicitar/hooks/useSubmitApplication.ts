@@ -524,17 +524,24 @@ export function useSubmitApplication(
           // Capturar el DNI ANTES de limpiar el form, para prellenar el gate de OTP.
           const capturedDocumentNumber = extractDocumentNumber(mappedFormData);
 
+          // La sesión de tracking NO se suelta acá: la confirmación es la que
+          // emite `application_submitted` con el `application_code`, y tiene
+          // que caer sobre la misma fila que ws2 acaba de marcar con el
+          // `application_id`. Se marca y se renueva al arrancar otra solicitud
+          // (`solicitar/layout.tsx`).
+          //
+          // Se marca SIEMPRE, tambien con `stayInWizard`: la sesión convirtió,
+          // creó una solicitud. Si no se marcara, la siguiente solicitud de la
+          // pestaña reusaría esta sesión y el submit idempotente de ws2 le
+          // devolvería la solicitud vieja —200, sin crear nada y sin avisar a
+          // legacy— para siempre. Es lo que pasó probando en local.
+          if (!keepData) marcarSesionConvertida();
+
           // Clear all wizard state (skip if keepData param is set for testing)
           // Con `stayInWizard` tampoco: los pasos que faltan muestran el
           // resumen de lo que la persona acaba de completar, y limpiarlo los
           // dejaría en blanco.
           if (!keepData && !stayInWizard) {
-            // La sesión de tracking NO se suelta acá: la confirmación es la
-            // que emite `application_submitted` con el `application_code`, y
-            // tiene que caer sobre la misma fila que ws2 acaba de marcar con
-            // el `application_id`. Se marca y se renueva al arrancar otra
-            // solicitud (`solicitar/layout.tsx`).
-            marcarSesionConvertida();
             resetFormStartTracking();
             resetForm();
             clearProduct();
