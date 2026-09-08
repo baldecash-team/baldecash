@@ -138,7 +138,7 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, envioAnticipadoStep, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -196,6 +196,23 @@ function StepContent() {
     isFirst: true,
     isLast: true
   };
+
+  /**
+   * Esta pantalla es la que la landing eligió para crear la solicitud sin
+   * esperar al final del wizard (`envio_anticipado` en Flujo de Solicitud).
+   *
+   * Cuando se dispara, el wizard TERMINA acá: el submit navega a donde ya
+   * navegaba —la pantalla del KYC con el contrato si la landing lo tiene, o la
+   * confirmación— y las pantallas siguientes, complementos incluidos, no se
+   * muestran. Es lo que hace que la persona pueda leer y aceptar su contrato
+   * antes de que la solicitud se apruebe.
+   *
+   * `null` —el default— es el comportamiento de siempre.
+   */
+  const enviaEnEstePaso =
+    envioAnticipadoStep !== null &&
+    navigation.currentIndex >= 0 &&
+    navigation.currentIndex + 1 === envioAnticipadoStep;
 
   // Separate regular steps from summary steps
   const { regularSteps, summarySteps } = useMemo(() => {
@@ -470,6 +487,11 @@ function StepContent() {
   };
 
   const handleCelebrationComplete = () => {
+    if (enviaEnEstePaso) {
+      // El wizard termina acá aunque queden pasos: ver `enviaEnEstePaso`.
+      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
+      return;
+    }
     if (navigation.nextStep) {
       const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
       router.push(routes.solicitarStep(landing, nextSlug));
@@ -596,6 +618,11 @@ function StepContent() {
       markStepCompleted(step.url_slug || step.code);
     }
 
+    if (enviaEnEstePaso) {
+      void submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
+      return;
+    }
+
     // Navegar al siguiente paso
     if (navigation.nextStep) {
       const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
@@ -695,7 +722,7 @@ function StepContent() {
   if (isSummaryStep) {
     // Determinar dinámicamente si es el último paso del wizard
     // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-    const isActuallyLastStep = navigation.isLast && !shouldShowComplementos;
+    const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);
 
     // Determinar el handler correcto para el botón:
     // - Si NO es el último paso real: onNext maneja "Continuar"
@@ -882,7 +909,8 @@ function StepContent() {
   // Render regular form step content
   // Determinar dinámicamente si es el último paso del wizard
   // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-  const isActuallyLastRegularStep = navigation.isLast && !shouldShowComplementos;
+  // El paso que envía muestra el CTA de envío aunque queden pasos detrás.
+  const isActuallyLastRegularStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);
 
   const pageContent = (
     <>

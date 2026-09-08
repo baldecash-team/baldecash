@@ -5,6 +5,7 @@ import {
   getSolicitarConfig,
   getEnabledSections,
   isSectionEnabled,
+  getEnvioAnticipadoStep,
   getKycSteps,
   isKycStepEnabled,
   isKycEnabled,
@@ -114,6 +115,12 @@ interface UseSolicitarFlowResult {
    * `isEnabled('kyc')` (que hace `?? true` y abriría el gate por defecto).
    */
   kycEnabled: boolean;
+  /**
+   * Pantalla del wizard al terminar la cual se crea la solicitud, o `null` si
+   * la landing no configuró envío anticipado (el caso normal: se crea al
+   * final). 1 = la primera pantalla.
+   */
+  envioAnticipadoStep: number | null;
 }
 
 /**
@@ -194,6 +201,8 @@ export function useSolicitarFlow({
 
   const kycEnabled = useMemo(() => isKycEnabled(config), [config]);
 
+  const envioAnticipadoStep = useMemo(() => getEnvioAnticipadoStep(config), [config]);
+
   const isKycStepEnabledFn = useMemo(
     () => (type: KycStepType) => isKycStepEnabled(config, type),
     [config]
@@ -253,6 +262,7 @@ export function useSolicitarFlow({
     kycSteps,
     isKycStepEnabled: isKycStepEnabledFn,
     kycEnabled,
+    envioAnticipadoStep,
   };
 }
 
