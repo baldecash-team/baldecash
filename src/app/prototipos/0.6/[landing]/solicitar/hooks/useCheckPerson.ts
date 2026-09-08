@@ -127,6 +127,7 @@ export function useCheckPerson(
             document_type: documentType as 'dni' | 'ce' | 'passport',
             document_number: cleanNumber,
             landing_slug: landingSlug,
+            session_uuid: sessionUuid,
           });
 
           setResponse(result);

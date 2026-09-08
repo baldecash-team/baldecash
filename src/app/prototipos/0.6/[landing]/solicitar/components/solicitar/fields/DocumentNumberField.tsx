@@ -182,6 +182,36 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     prefilledRef.current = true;
   }, [prefillConfig, formData, updateField]);
 
+  // Los campos que el prefill de este documento llena (y por lo tanto los
+  // unicos que puede vaciar). Cubre las dos formas de configuracion y el modo
+  // legacy sin config.
+  const clearPrefilledFields = useCallback(() => {
+    const targets = prefillConfig?.prefill_fields
+      ? Object.keys(prefillConfig.prefill_fields)
+      : prefillConfig?.fields_to_fill ?? null;
+
+    if (targets) {
+      for (const formFieldCode of targets) {
+        updateField(formFieldCode, '');
+        updateField(`_prefill_empty_${formFieldCode}`, '');
+      }
+      return;
+    }
+
+    // Legacy mode
+    const formFieldCodes = Object.keys(formData);
+    for (const [prefillKey, possibleCodes] of Object.entries(DEFAULT_PREFILL_MAP)) {
+      if (prefillKey === 'source') continue;
+      for (const code of possibleCodes) {
+        if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
+          updateField(code, '');
+          updateField(`_prefill_empty_${code}`, '');
+          break;
+        }
+      }
+    }
+  }, [prefillConfig, formData, updateField]);
+
   // Handle clearing fields when no prefill data is available
   // Only clear if fields were previously auto-filled (not manually entered)
   const handleNoPrefillData = useCallback(() => {
@@ -190,35 +220,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
     if (!prefilledRef.current) return; // Don't clear manually entered data
 
-    const targets = prefillConfig?.prefill_fields
-      ? Object.keys(prefillConfig.prefill_fields)
-      : prefillConfig?.fields_to_fill ?? null;
-
-    if (targets) {
-      // Clear fields and their empty markers (covers both legacy and new shapes)
-      for (const formFieldCode of targets) {
-        updateField(formFieldCode, '');
-        updateField(`_prefill_empty_${formFieldCode}`, '');
-      }
-    } else {
-      // Legacy mode
-      const formFieldCodes = Object.keys(formData);
-
-      for (const [prefillKey, possibleCodes] of Object.entries(DEFAULT_PREFILL_MAP)) {
-        if (prefillKey === 'source') continue;
-
-        for (const code of possibleCodes) {
-          if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
-            updateField(code, '');
-            updateField(`_prefill_empty_${code}`, '');
-            break;
-          }
-        }
-      }
-    }
-
+    clearPrefilledFields();
     prefilledRef.current = false;
-  }, [prefillConfig, formData, updateField]);
+  }, [clearPrefilledFields, updateField, field.code]);
 
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
@@ -272,12 +276,23 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       // DNI, CE: digits only
       filtered = newValue.replace(/\D/g, '');
     }
+    const previous = (getFieldValue(field.code) as string) || '';
     updateField(field.code, filtered);
     // Always reset prefill status when user modifies the document number
     // so prefill-dependent fields hide until next lookup completes
     updateField(`_prefill_status_${field.code}`, '');
+
+    // Otro documento => los datos que autocompleto el anterior ya no son de
+    // esta persona. Se vacian hasta que vuelva el prefill del documento nuevo:
+    // si el check no llega a correr (o no encuentra nada), el formulario queda
+    // vacio en vez de quedar con el nombre de otro. Ver L-126380.
+    if (filtered !== previous) {
+      clearPrefilledFields();
+      prefilledRef.current = false;
+    }
+
     resetCheck(); // Allow re-checking when DNI changes
-  }, [field.code, documentType, updateField, resetCheck]);
+  }, [field.code, documentType, updateField, getFieldValue, clearPrefilledFields, resetCheck]);
 
   // Build tooltip from API help_text
   const tooltip = field.help_text ? {

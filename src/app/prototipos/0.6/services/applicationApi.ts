@@ -131,6 +131,13 @@ export interface CheckPersonRequest {
   document_number: string;
   /** Slug de la landing (p. ej. "canal-preferente"). El backend lo usa para evaluar whitelist. */
   landing_slug?: string;
+  /**
+   * Sesión que pide el prefill. El backend registra cada consulta con esta
+   * sesión (`person_lookup_log`), que es lo único que permite reconstruir qué
+   * documentos pasaron por un formulario: un check que sale del caché no deja
+   * fila propia en `equifax_query`.
+   */
+  session_uuid?: string | null;
 }
 
 /** Resultado de whitelist devuelto por check-person. allowed=false bloquea el flujo. */
