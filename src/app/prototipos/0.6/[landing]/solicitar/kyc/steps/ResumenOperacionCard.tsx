@@ -37,6 +37,15 @@ function porcentaje(valor?: string | null): string | null {
   })} %`;
 }
 
+/** `2026-09-15` -> `15/09/2026`. Sin `Date`: un ISO de solo fecha lo interpreta
+ *  en UTC y en Lima puede correrse un dia para atras. */
+function fecha(valor?: string | null): string | null {
+  if (!valor) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor);
+
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : null;
+}
+
 function Fila({ etiqueta, valor, fuerte }: {
   etiqueta: string;
   valor: string | null;
@@ -76,6 +85,7 @@ export function ResumenOperacionCard({ resumen }: { resumen: ResumenOperacion | 
     { etiqueta: 'TEA', valor: porcentaje(resumen.tea) },
     { etiqueta: 'TCEA', valor: porcentaje(resumen.tcea) },
     { etiqueta: 'Seguro', valor: soles(resumen.seguro) },
+    { etiqueta: 'Entrega estimada', valor: fecha(resumen.fecha_entrega) },
   ].filter((f) => f.valor);
 
   // Sin ninguna fila la tarjeta no aporta nada y ocupa lugar arriba del

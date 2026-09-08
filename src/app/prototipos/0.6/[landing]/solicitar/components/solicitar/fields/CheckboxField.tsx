@@ -37,6 +37,14 @@ interface CheckboxFieldProps {
   tooltip?: FieldTooltipInfo;
   disabled?: boolean;
   required?: boolean;
+  /**
+   * Alinea la casilla con la PRIMERA LÍNEA en vez de con el centro.
+   *
+   * Con etiquetas de una línea da igual, y por eso el default no cambia. Con
+   * un texto largo —una declaración contractual, por ejemplo— centrar deja la
+   * casilla flotando a mitad del párrafo, lejos de donde uno la busca.
+   */
+  alignTop?: boolean;
 }
 
 export const CheckboxField: React.FC<CheckboxFieldProps> = ({
@@ -53,6 +61,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   tooltip,
   disabled = false,
   required = true,
+  alignTop = false,
 }) => {
   // Determinar si es modo simple (sin opciones) o múltiple (con opciones)
   const isSimpleMode = !options || options.length === 0;
@@ -96,13 +105,15 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       onClick={onToggle}
       disabled={isDisabled || disabled}
       className={`
-        flex items-center gap-3 w-full text-left py-2 min-h-[44px]
+        flex gap-3 w-full text-left py-2 min-h-[44px]
+        ${alignTop ? 'items-start' : 'items-center'}
         ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
     >
       <div
         className={`
           w-5 h-5 rounded flex items-center justify-center border-2 transition-all flex-shrink-0
+          ${alignTop ? 'mt-0.5' : ''}
           ${checked
             ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
             : error
@@ -114,7 +125,9 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
         {checked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
       </div>
       {checkboxLabel && (
-        <span className="text-sm text-neutral-700">{checkboxLabel}</span>
+        <span className={`text-sm text-neutral-700${alignTop ? ' leading-relaxed' : ''}`}>
+          {checkboxLabel}
+        </span>
       )}
     </button>
   );

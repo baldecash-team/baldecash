@@ -549,6 +549,8 @@ export interface ResumenOperacion {
   tcea?: string | null;
   seguro?: string | null;
   total?: string | null;
+  /** ISO `YYYY-MM-DD`. Las fechas de PAGO las trae `getCronograma`. */
+  fecha_entrega?: string | null;
 }
 
 /**

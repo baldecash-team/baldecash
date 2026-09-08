@@ -225,6 +225,32 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </p>
       </div>
 
+      {/* El orden del §5: primero quién es (identidad bloqueada, contacto
+          editable), después cuánto (los números), y recién ahí el documento.
+          Los dos van arriba y no debajo: son lo que la persona necesita para
+          leer el contrato con criterio, no un resumen de lo que ya leyó. */}
+      <ConfirmarDatosCard
+        applicationCode={applicationCode}
+        documentNumber={documentNumber}
+        resumeToken={resumeToken}
+        onCambio={(campos) =>
+          track('kyc_contact_updated', { application_code: applicationCode, campos })
+        }
+      />
+      <ResumenOperacionCard resumen={resumen} />
+
+        {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
+            hacer y a qué queda asociado, para que marcarla no sea un clic a
+            ciegas. */}
+        {textos && (
+          <p
+            data-testid="contrato-aviso"
+            className="rounded-xl bg-[#F5F6FE] border border-[#DDDFF7] p-3 text-xs leading-relaxed text-[#374151]"
+          >
+            {textos.aviso}
+          </p>
+        )}
+
       {/* El skeleton es solo la PRIMERA carga (todavía no contestó nadie). Una
           vez que hay respuesta, "generando" tiene su propio bloque, que explica
           la espera en vez de simular que el documento está por pintarse. */}
@@ -314,40 +340,25 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </div>
       )}
 
-      {/* El orden del §5: primero quién es (identidad bloqueada, contacto
-          editable), después cuánto (los números), y recién ahí el documento.
-          Los dos van arriba y no debajo: son lo que la persona necesita para
-          leer el contrato con criterio, no un resumen de lo que ya leyó. */}
-      <ConfirmarDatosCard
-        applicationCode={applicationCode}
-        documentNumber={documentNumber}
-        resumeToken={resumeToken}
-        onCambio={(campos) =>
-          track('kyc_contact_updated', { application_code: applicationCode, campos })
-        }
-      />
-      <ResumenOperacionCard resumen={resumen} />
 
+      {/* Las casillas van DEBAJO del documento: marcarlas sin haberlo tenido
+          delante es exactamente lo que el §4 evita. Agrupadas en su propio
+          bloque para que se lean como una unidad —lo que se acepta— y no como
+          dos campos sueltos del formulario. */}
       {hayDocumento && (
-        <div className="space-y-4">
-          {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
-              hacer y a qué queda asociado, para que marcarla no sea un clic a
-              ciegas. */}
-          {textos && (
-            <p
-              data-testid="contrato-aviso"
-              className="rounded-xl bg-[#F5F6FE] border border-[#DDDFF7] p-3 text-xs leading-relaxed text-[#374151]"
-            >
-              {textos.aviso}
-            </p>
-          )}
-
+        <div
+          data-testid="contrato-casillas"
+          className="space-y-1 rounded-xl border border-[#DDDFF7] bg-white p-4"
+        >
           <CheckboxField
             id="accept-contract"
             label={textos?.declaracion ?? 'He leído y acepto el contrato'}
             value={accepted}
             onChange={handleAcceptChange}
             required
+            // La declaración del §6 son varias líneas: centrada, la casilla
+            // queda flotando a mitad del párrafo.
+            alignTop
           />
 
           {/* Autorizaciones del convenio: van DEBAJO de la aceptación del
@@ -363,6 +374,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
               value={autorizaciones[a.id] ? 'true' : 'false'}
               onChange={(value) => handleAutorizacionChange(a.id, value)}
               required
+              alignTop
             />
           ))}
         </div>
