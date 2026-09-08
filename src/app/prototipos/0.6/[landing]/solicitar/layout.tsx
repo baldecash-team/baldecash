@@ -17,6 +17,8 @@
  */
 
 import { useEffect } from 'react';
+
+import { clearEnvioAnticipadoHandoff } from './utils/envioAnticipadoHandoff';
 import { useParams, usePathname } from 'next/navigation';
 import { useSessionOptional } from './context/SessionContext';
 import { debeRenovarSesionAlEntrar } from './utils/renovacionDeSesion';
@@ -54,7 +56,16 @@ export default function WizardPreviewLayout({
    */
   useEffect(() => {
     if (!debeRenovarSesionAlEntrar(pathname)) return;
-    sesion?.renovarSesionSiConvertida();
+    const renovada = sesion?.renovarSesionSiConvertida();
+
+    // Solicitud nueva ⇒ el handoff del envío anticipado de la anterior no puede
+    // sobrevivir. Si sobreviviera, la pantalla del contrato mostraría el
+    // contrato de la solicitud VIEJA y —peor— el guard de "ya enviada" haría
+    // que esta segunda solicitud no se creara nunca.
+    //
+    // Se ata a que la sesión se haya renovado de verdad, no a entrar al
+    // subárbol: entrar y salir a mitad del flujo no es empezar de nuevo.
+    if (renovada) clearEnvioAnticipadoHandoff(landing);
     // Sólo al montar: el objetivo es la ENTRADA al subárbol, no cada render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

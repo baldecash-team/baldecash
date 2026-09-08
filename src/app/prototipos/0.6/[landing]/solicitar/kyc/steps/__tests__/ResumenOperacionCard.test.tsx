@@ -80,3 +80,17 @@ it('un resumen vacío tampoco se pinta', () => {
 
   expect(container).toBeEmptyDOMElement();
 });
+
+it('muestra la fecha de entrega sin correrla un día', () => {
+  // Un ISO de solo fecha parseado con `Date` se interpreta en UTC, y en Lima
+  // (-5) eso lo tira al día anterior. Se formatea a mano.
+  render(<ResumenOperacionCard resumen={{ ...COMPLETO, fecha_entrega: '2026-09-15' }} />);
+
+  expect(screen.getByText('15/09/2026')).toBeInTheDocument();
+});
+
+it('sin fecha de entrega no muestra la fila', () => {
+  render(<ResumenOperacionCard resumen={{ ...COMPLETO, fecha_entrega: null }} />);
+
+  expect(screen.queryByText('Entrega estimada')).not.toBeInTheDocument();
+});

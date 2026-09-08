@@ -19,9 +19,22 @@ interface ReceivedMessageProps {
    * contactar—.
    */
   modoCierreKyc?: ModoCierreKyc | null;
+  /**
+   * Cómo terminó, según ws2. Gana sobre `modoCierreKyc`: es un hecho —hay una
+   * firma vigente con su hash— y no una deducción a partir de la landing.
+   *
+   * Quien firmó aceptando el contrato no dejó una solicitud en evaluación:
+   * firmó una operación. Decirle "estamos revisando" es falso y, peor, la manda
+   * a esperar un veredicto en vez de hacer lo único que falta.
+   */
+  cierre?: {
+    firmada: boolean;
+    pendiente: { pago_inicial: boolean; formulario: boolean };
+  } | null;
 }
 
-export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayVariant, modoCierreKyc }) => {
+export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayVariant, modoCierreKyc, cierre }) => {
+  const firmada = cierre?.firmada === true;
   const isCade = overlayVariant === 'cade';
 
   return (
@@ -32,7 +45,9 @@ export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayV
       className="text-center mb-6 sm:mb-8"
     >
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight break-words">
-        {modoCierreKyc === 'completado'
+        {firmada
+          ? <>¡Solicitud firmada, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
+          : modoCierreKyc === 'completado'
           ? <>¡Felicitaciones por finalizar todo el proceso, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
           : modoCierreKyc === 'aprobado'
             ? <>¡Solicitud aprobada, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
@@ -41,7 +56,16 @@ export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayV
               : <>¡Hemos recibido tu solicitud, {data.userName}!</>
         }
       </h1>
-      {modoCierreKyc === 'completado' ? (
+      {firmada ? (
+        <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
+          Tu contrato quedó <span className="font-semibold text-[var(--color-primary)]">firmado</span>.{' '}
+          {cierre?.pendiente.pago_inicial
+            ? 'Para coordinar la entrega de tu equipo, solo falta que pagues tu cuota inicial desde Zona Clientes.'
+            : cierre?.pendiente.formulario
+              ? 'Solo falta que completes el formulario que te enviamos por WhatsApp y correo.'
+              : 'Te enviamos por WhatsApp y correo tu copia y los siguientes pasos.'}
+        </p>
+      ) : modoCierreKyc === 'completado' ? (
         <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
           Tu contrato quedó <span className="font-semibold text-[var(--color-primary)]">firmado</span>. Te enviamos por
           WhatsApp y correo los siguientes pasos.

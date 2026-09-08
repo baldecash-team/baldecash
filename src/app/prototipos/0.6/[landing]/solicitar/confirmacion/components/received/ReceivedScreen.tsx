@@ -28,18 +28,20 @@ interface ReceivedScreenProps {
    * contrario de lo que acaba de pasar.
    */
   modoCierreKyc?: ModoCierreKyc | null;
+  /** Cómo terminó, según ws2. Ver `ReceivedMessage`. */
+  cierre?: { firmada: boolean; pendiente: { pago_inicial: boolean; formulario: boolean } } | null;
   /** Para ofrecer la copia del contrato que dejó el cierre del KYC. */
   landing?: string;
   applicationCode?: string | null;
   onDescargarConstancia?: () => void;
 }
 
-export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant, showGoHome = true, otpCta, modoCierreKyc, landing, applicationCode, onDescargarConstancia }) => {
+export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant, showGoHome = true, otpCta, modoCierreKyc, cierre, landing, applicationCode, onDescargarConstancia }) => {
   return (
     <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
         <Illustration overlayVariant={overlayVariant} />
-        <ReceivedMessage data={data} overlayVariant={overlayVariant} modoCierreKyc={modoCierreKyc} />
+        <ReceivedMessage data={data} overlayVariant={overlayVariant} modoCierreKyc={modoCierreKyc} cierre={cierre} />
         {otpCta}
         {!modoCierreKyc && <ApplicationStatus notificationChannels={data.notificationChannels} />}
         <ProductSummary data={data} />

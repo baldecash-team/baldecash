@@ -225,6 +225,59 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </p>
       </div>
 
+      {/* El orden del §5: primero quién es (identidad bloqueada, contacto
+          editable), después cuánto (los números), y recién ahí el documento.
+          Los dos van arriba y no debajo: son lo que la persona necesita para
+          leer el contrato con criterio, no un resumen de lo que ya leyó. */}
+      <ConfirmarDatosCard
+        applicationCode={applicationCode}
+        documentNumber={documentNumber}
+        resumeToken={resumeToken}
+        onCambio={(campos) =>
+          track('kyc_contact_updated', { application_code: applicationCode, campos })
+        }
+      />
+      <ResumenOperacionCard resumen={resumen} />
+
+      {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
+          hacer y a qué queda asociado, para que marcarla no sea un clic a
+          ciegas.
+
+          Antes era un párrafo gris de 12px entre dos tarjetas, y se leía como
+          la letra chica que se saltea. Es lo contrario: es lo único de la
+          pantalla que explica qué significa aceptar. Ahora lleva título, un
+          el cuerpo al mismo tamaño que se lee todo lo demás. Sin barra de color
+          al costado: el título y el ícono ya lo distinguen, y la barra lo hacía
+          leer como una alerta cuando es una explicación. */}
+      {textos && (
+        <div
+          data-testid="contrato-aviso"
+          className="rounded-xl border border-[#DDDFF7] bg-[#F5F6FE] p-4"
+        >
+          <div className="flex items-center gap-2">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 flex-shrink-0 text-[#4654CD]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <p className="text-sm font-semibold text-[#1f2937]">
+              Aviso de aceptación electrónica
+            </p>
+          </div>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#374151]">
+            {textos.aviso}
+          </p>
+        </div>
+      )}
+
       {/* El skeleton es solo la PRIMERA carga (todavía no contestó nadie). Una
           vez que hay respuesta, "generando" tiene su propio bloque, que explica
           la espera en vez de simular que el documento está por pintarse. */}
@@ -314,40 +367,25 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </div>
       )}
 
-      {/* El orden del §5: primero quién es (identidad bloqueada, contacto
-          editable), después cuánto (los números), y recién ahí el documento.
-          Los dos van arriba y no debajo: son lo que la persona necesita para
-          leer el contrato con criterio, no un resumen de lo que ya leyó. */}
-      <ConfirmarDatosCard
-        applicationCode={applicationCode}
-        documentNumber={documentNumber}
-        resumeToken={resumeToken}
-        onCambio={(campos) =>
-          track('kyc_contact_updated', { application_code: applicationCode, campos })
-        }
-      />
-      <ResumenOperacionCard resumen={resumen} />
 
+      {/* Las casillas van DEBAJO del documento: marcarlas sin haberlo tenido
+          delante es exactamente lo que el §4 evita. Agrupadas en su propio
+          bloque para que se lean como una unidad —lo que se acepta— y no como
+          dos campos sueltos del formulario. */}
       {hayDocumento && (
-        <div className="space-y-4">
-          {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
-              hacer y a qué queda asociado, para que marcarla no sea un clic a
-              ciegas. */}
-          {textos && (
-            <p
-              data-testid="contrato-aviso"
-              className="rounded-xl bg-[#F5F6FE] border border-[#DDDFF7] p-3 text-xs leading-relaxed text-[#374151]"
-            >
-              {textos.aviso}
-            </p>
-          )}
-
+        <div
+          data-testid="contrato-casillas"
+          className="space-y-1 rounded-xl border border-[#DDDFF7] bg-white p-4"
+        >
           <CheckboxField
             id="accept-contract"
             label={textos?.declaracion ?? 'He leído y acepto el contrato'}
             value={accepted}
             onChange={handleAcceptChange}
             required
+            // La declaración del §6 son varias líneas: centrada, la casilla
+            // queda flotando a mitad del párrafo.
+            alignTop
           />
 
           {/* Autorizaciones del convenio: van DEBAJO de la aceptación del
@@ -363,6 +401,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
               value={autorizaciones[a.id] ? 'true' : 'false'}
               onChange={(value) => handleAutorizacionChange(a.id, value)}
               required
+              alignTop
             />
           ))}
         </div>

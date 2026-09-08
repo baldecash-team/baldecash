@@ -1429,6 +1429,19 @@ export interface KycStep {
 }
 
 /**
+ * Cuándo se crea la solicitud (solo en la sección `wizard_steps`).
+ *
+ * Prendido: se crea al terminar la pantalla `step` del wizard, en vez de al
+ * final. Es lo que permite que la pantalla siguiente muestre el contrato —sin
+ * solicitud no hay nada que emitir—.
+ */
+export interface EnvioAnticipadoConfig {
+  enabled: boolean;
+  /** Pantalla al terminar la cual se envía. 1 = la primera. */
+  step?: number;
+}
+
+/**
  * Configuración de una sección del flujo
  */
 export interface SolicitarSection {
@@ -1437,6 +1450,16 @@ export interface SolicitarSection {
   order: number;
   /** Solo presente en la sección `kyc`: sub-pasos configurables. */
   steps?: KycStep[];
+  /** Solo presente en la sección `wizard_steps`: en qué paso se envía. */
+  envio_anticipado?: EnvioAnticipadoConfig;
+  /**
+   * Solo presente en la sección `kyc`: la aceptación del contrato ES la firma.
+   *
+   * No alcanza con que el sub-paso `contract` esté prendido: `copia-home` y las
+   * tres de Family Farms lo tienen desde antes, con el contrato que sale al
+   * aprobar y la firma por Keynua. Esto distingue un flujo del otro.
+   */
+  firma?: { enabled: boolean };
 }
 
 /**
@@ -1576,6 +1599,40 @@ export function getKycSteps(config: SolicitarFlowConfig): KycStep[] {
   return kyc.steps
     .filter(step => step.enabled)
     .sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Pantalla del wizard al terminar la cual se crea la solicitud, o `null` si la
+ * landing no tiene envío anticipado (el caso normal: se crea al final).
+ *
+ * Fail-safe en los dos sentidos: sin bloque, apagado, o con cualquier cosa que
+ * no sea `enabled === true`, devuelve `null` —crear solicitudes reales a mitad
+ * del formulario no puede pasar por un valor raro—; y prendido sin un `step`
+ * válido cae en la primera pantalla en vez de quedarse sin ninguna.
+ */
+export function getEnvioAnticipadoStep(config: SolicitarFlowConfig): number | null {
+  const wizard = config.sections.find(s => s.type === 'wizard_steps');
+  if (!wizard?.enabled) return null;
+
+  const envio = wizard.envio_anticipado;
+  if (envio?.enabled !== true) return null;
+
+  const step = envio.step;
+
+  return Number.isInteger(step) && (step as number) >= 1 ? (step as number) : 1;
+}
+
+/**
+ * True si la landing firma el contrato aceptándolo en pantalla.
+ *
+ * Fail-safe: sección ausente, apagada o sin el bloque ⇒ false, que es el
+ * comportamiento de siempre (contrato al aprobar, firma por Keynua).
+ */
+export function isFirmaPorAceptacion(config: SolicitarFlowConfig): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc?.enabled) return false;
+
+  return kyc.firma?.enabled === true;
 }
 
 /** True si el sub-paso `type` está habilitado y la sección `kyc` también. */

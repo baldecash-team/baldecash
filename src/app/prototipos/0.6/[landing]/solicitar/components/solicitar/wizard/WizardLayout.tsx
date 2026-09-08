@@ -42,6 +42,15 @@ interface WizardLayoutProps {
   onSubmit?: () => void;
   onStepClick?: (stepId: WizardStepId) => void;
   isLastStep?: boolean;
+  /**
+   * Oculta la navegación del wizard. Para pantallas cuyo contenido trae sus
+   * propios botones —el contrato, que valida sus casillas antes de aceptar—:
+   * con la navegación puesta quedarían dos acciones principales, y la de
+   * arriba no sabría nada de las casillas.
+   */
+  sinNavegacion?: boolean;
+  /** Las condiciones de la operación no se pueden mover: ver `SelectedProductBar`. */
+  condicionesFijas?: boolean;
   isFirstStep?: boolean;
   isSubmitting?: boolean;
   canProceed?: boolean;
@@ -75,6 +84,8 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   onSubmit,
   onStepClick,
   isLastStep = false,
+  sinNavegacion = false,
+  condicionesFijas = false,
   isFirstStep = false,
   isSubmitting = false,
   canProceed = true,
@@ -116,7 +127,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
             {/* Selected Product Bar (Desktop: top position) */}
             <div className="mt-6">
-              <SelectedProductBar />
+              <SelectedProductBar condicionesFijas={condicionesFijas} />
             </div>
 
             {/* Header */}
@@ -133,7 +144,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             </div>
 
             {/* Navigation */}
-            <WizardNavigation
+            {!sinNavegacion && <WizardNavigation
               onBack={onBack}
               onNext={onNext}
               onSubmit={onSubmit}
@@ -143,7 +154,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               canProceed={canProceed}
               submitMessage={submitMessage}
               hideOnMobile={ocultarNavEnMovil}
-            />
+            />}
 
             {/* Bottom Spacer for Mobile fixed product bar */}
             <SelectedProductSpacer />

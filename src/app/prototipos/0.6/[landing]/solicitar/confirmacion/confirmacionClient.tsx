@@ -319,8 +319,25 @@ function RealConfirmationContent({
       overlayVariant={overlayVariant}
       otpCta={otpCta}
       modoCierreKyc={modoCierreKyc}
+      cierre={applicationData?.cierre ?? null}
       landing={landing}
       applicationCode={applicationCode}
+      onDescargarConstancia={() => {
+        // Que la copia se haya ofrecido ya queda registrado al cerrar el KYC;
+        // esto es lo otro que el §4 paso 12 pide poder decir: que la persona
+        // efectivamente la tomo. Fire-and-forget, como el resto de esta
+        // pantalla: si el envio del evento falla, la descarga sigue.
+        const sessionId = getStoredSessionUuid(landing);
+        if (!sessionId || !applicationCode) return;
+        sendEventsBatch(sessionId, [
+          {
+            event_type: 'kyc_contract_copy_downloaded',
+            client_ts: Date.now(),
+            page_url: window.location.pathname,
+            properties: { application_code: applicationCode },
+          },
+        ]);
+      }}
     />
   );
 }

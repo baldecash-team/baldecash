@@ -133,10 +133,30 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
 }) => {
   const isGamer = theme === 'gamer';
 
+  /**
+   * `onComplete` se avisa UNA sola vez por montaje.
+   *
+   * Era una función inline del padre, o sea identidad nueva en cada render, y
+   * estaba en las dependencias del efecto: cada re-render reprogramaba el
+   * temporizador. Mientras esto solo navegaba no se notaba —dos `router.push`
+   * al mismo lugar son uno—, pero desde que el paso puede ENVIAR la solicitud
+   * cada aviso de más era un submit de más: se vieron tres en 27 ms, y solo la
+   * idempotencia de ws2 evitó tres solicitudes.
+   *
+   * El ref sostiene el callback vigente sin que el efecto dependa de él.
+   */
+  const avisar = React.useRef(onComplete);
+  avisar.current = onComplete;
+  const avisado = React.useRef(false);
+
   React.useEffect(() => {
-    const timer = setTimeout(() => onComplete?.(), isGamer ? 1700 : 1300);
+    const timer = setTimeout(() => {
+      if (avisado.current) return;
+      avisado.current = true;
+      avisar.current?.();
+    }, isGamer ? 1700 : 1300);
     return () => clearTimeout(timer);
-  }, [onComplete, isGamer]);
+  }, [isGamer]);
 
   const message = getMessage(stepNumber, totalSteps, isGamer);
 

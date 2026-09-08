@@ -20,13 +20,22 @@ jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext'
 
 jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
   const actual = jest.requireActual('@/app/prototipos/0.6/services/kycApi');
-  return { ...actual, getContrato: jest.fn() };
+  return {
+    ...actual,
+    getContrato: jest.fn(),
+    getResumenOperacion: jest.fn(),
+    getContacto: jest.fn(),
+  };
 });
 
 import { ContratoStep } from '../ContratoStep';
-import { getContrato } from '@/app/prototipos/0.6/services/kycApi';
+import {
+  getContrato, getResumenOperacion, getContacto,
+} from '@/app/prototipos/0.6/services/kycApi';
 
 const mockGet = getContrato as jest.MockedFunction<typeof getContrato>;
+const mockResumen = getResumenOperacion as jest.MockedFunction<typeof getResumenOperacion>;
+const mockContacto = getContacto as jest.MockedFunction<typeof getContacto>;
 
 const TEXTOS = {
   version: 1,
@@ -62,6 +71,10 @@ function montar(onDone = jest.fn()) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Por defecto las dos tarjetas no traen nada: los tests que las necesitan lo
+  // dicen explicitamente.
+  mockResumen.mockResolvedValue(null);
+  mockContacto.mockResolvedValue(null);
 });
 
 it('muestra el aviso antes de la casilla', async () => {
@@ -126,4 +139,30 @@ it('sin textos del backend cae al comportamiento de siempre', async () => {
 
   expect(await screen.findByText('He leído y acepto el contrato')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Continuar/i })).toBeInTheDocument();
+});
+
+it('el orden de la pantalla es resumen, aviso, contrato y recien las casillas', async () => {
+  // El orden importa y por eso se fija: el aviso explica que lo que sigue es una
+  // aceptacion electronica, asi que va ANTES del documento; y las casillas van
+  // DESPUES, porque marcarlas sin haber tenido el contrato delante es
+  // exactamente lo que el §4 evita.
+  mockGet.mockResolvedValue(contratoListo());
+  mockResumen.mockResolvedValue({ equipo: 'iPhone 15', total: '4249.40' });
+  montar();
+
+  await screen.findByTestId('contrato-documento');
+  await screen.findByTestId('resumen-operacion');
+  const nodos = Array.from(
+    document.querySelectorAll(
+      '[data-testid="resumen-operacion"],[data-testid="contrato-aviso"],' +
+      '[data-testid="contrato-documento"],[data-testid="contrato-casillas"]',
+    ),
+  ).map((n) => n.getAttribute('data-testid'));
+
+  expect(nodos).toEqual([
+    'resumen-operacion',
+    'contrato-aviso',
+    'contrato-documento',
+    'contrato-casillas',
+  ]);
 });

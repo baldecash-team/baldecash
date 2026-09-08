@@ -84,6 +84,21 @@ export interface ApplicationStatusData {
 
   total_monthly_payment?: number;
 
+  /**
+   * Cómo terminó la solicitud. Lo responde ws2 con datos —hay firma vigente,
+   * queda inicial por pagar, queda formulario— y no se deduce del slug de la
+   * landing.
+   */
+  cierre?: {
+    firmada: boolean;
+    metodo: string | null;
+    firmada_at: string | null;
+    pendiente: {
+      pago_inicial: boolean;
+      formulario: boolean;
+    };
+  } | null;
+
   status_history: Array<{
     previous_status: string | null;
     new_status: string;

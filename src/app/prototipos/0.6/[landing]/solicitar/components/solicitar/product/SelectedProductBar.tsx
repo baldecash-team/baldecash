@@ -17,6 +17,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { TermSelect, getTermUnit } from './TermSelect';
+import { useSolicitudCongelada } from '../../../hooks/useSolicitudCongelada';
 import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
 import Image from 'next/image';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -25,14 +26,32 @@ interface SelectedProductBarProps {
   mobileOnly?: boolean;
   /** Hide insurance and accessories cards in desktop view (e.g., on complementos page where they're shown separately) */
   hideAddons?: boolean;
+  /**
+   * Las condiciones de la operación no se pueden mover: se esconden el
+   * selector de plazo y el de inicial.
+   *
+   * Es para el flujo con contrato: el documento se emite con ESTE plazo y ESTA
+   * inicial y el hash lo sella, así que cambiarlos dejaría la pantalla diciendo
+   * una cuota y el contrato otra. Lo decide quien monta el wizard, que es quien
+   * conoce la config del flujo; la barra no la consulta —se monta en todas las
+   * pantallas y no va a arrastrar un fetch para pintar un selector—.
+   */
+  condicionesFijas?: boolean;
 }
 
-export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
+export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false, condicionesFijas = false }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
   const { landingId, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
   const params = useParams();
   const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
+  /**
+   * O bien la landing tiene el módulo del contrato (y entonces nunca se
+   * eligieron acá), o bien la solicitud ya se creó y el contrato salió con
+   * estos números. En los dos casos, no se tocan.
+   */
+  const yaEnviada = useSolicitudCongelada(landingSlug);
+  const congelada = condicionesFijas || yaEnviada;
 
   // Wrappers que disparan analytics antes de mutar el state global
   const handleTermChange = (term: number) => {
@@ -245,7 +264,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           {/* Initial Payment Selector - Mobile */}
                           {(() => {
                             const initialOptions = getInitialOptionsForProduct(product.id);
-                            if (initialOptions.length === 0) return null;
+                            if (initialOptions.length === 0 || congelada) return null;
                             return (
                               <div className="mt-2">
                                 <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
@@ -340,7 +359,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       </div>
                     </div>
                     {/* Term Selector - Mobile */}
-                    {puedeCambiarPlazo && (
+                    {puedeCambiarPlazo && !congelada && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
@@ -398,7 +417,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               </span>
             </div>
             {/* Term Selector - Desktop */}
-            {puedeCambiarPlazo && (
+            {puedeCambiarPlazo && !congelada && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
@@ -454,7 +473,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {/* Initial Payment Selector - Desktop */}
                   {(() => {
                     const initialOptions = getInitialOptionsForProduct(product.id);
-                    if (initialOptions.length === 0) return null;
+                    if (initialOptions.length === 0 || congelada) return null;
                     return (
                       <div className="mt-2">
                         <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
