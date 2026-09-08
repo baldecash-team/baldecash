@@ -27,10 +27,11 @@ import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { guardarConstancia } from './constanciaStorage';
 import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
-import { ContratoStep } from './steps/ContratoStep';
+import { ContratoStep, type ContratoStepHandle } from './steps/ContratoStep';
 import { DocumentosStep } from './steps/DocumentosStep';
 import { PausarModal } from './PausarModal';
 import { KycLayout } from './KycLayout';
@@ -131,7 +132,8 @@ function readWizardDni(landing: string): string | undefined {
 
 interface RenderStepArgs {
   type: KycStepType;
-  onDone: () => void;
+  /** El paso `contract` devuelve el hash de lo aceptado; el resto, nada. */
+  onDone: (datos?: { contractHash?: string; externalId?: string }) => void;
   onBack?: () => void;
   applicationCode?: string;
   onTrack?: KycTrack;
@@ -147,13 +149,15 @@ interface RenderStepArgs {
    * Family Farms dependen del perfil, y el perfil se deduce de la landing.
    */
   landing?: string;
+  /** Solo lo consume `contract`: por ahí se lo reabre cuando quedó viejo. */
+  contratoRef?: React.RefObject<ContratoStepHandle | null>;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing, contratoRef,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -170,6 +174,9 @@ function renderStep({
     case 'contract':
       return (
         <ContratoStep
+          // El orquestador necesita poder reabrir este paso: el 409 al avanzar
+          // y el `contrato_vencido` al cerrar llegan acá, no al paso.
+          ref={contratoRef}
           onDone={onDone}
           onBack={onBack}
           applicationCode={applicationCode}
@@ -314,6 +321,12 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
    * estaba muerto: de ahi el "Tu enlace expiro o no es valido".
    */
   const cerrandoRef = useRef(false);
+  /**
+   * El paso del contrato, para poder reabrirlo. Las dos noticias de "lo que
+   * aceptaste ya no es el contrato vigente" —el 409 al avanzar y el
+   * `contrato_vencido` al cerrar— llegan al orquestador, no al paso.
+   */
+  const contratoRef = useRef<ContratoStepHandle | null>(null);
   // Estado de progreso completo (no solo el índice): necesario para leer
   // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
   const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
@@ -494,10 +507,33 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   const safeIndex = Math.min(index, pasos.length - 1);
   const currentStep = pasos[safeIndex];
 
-  const goNext = () => {
+  const goNext = (datos?: { contractHash?: string; externalId?: string }) => {
     track('kyc_step_complete', {
       step: currentStep.type, index: safeIndex, application_code: code,
     });
+
+    // El paso del contrato es el ÚNICO que espera la respuesta: un 409
+    // (`contract_outdated`) no puede avanzar, porque lo que la persona aceptó
+    // ya no es el contrato vigente. El resto sigue siendo fire-and-forget: ahí
+    // un fallo se reconcilia en el próximo montaje y no hay nada que invalidar.
+    if (code && currentStep.type === 'contract' && datos?.contractHash) {
+      const proofDni = resumeToken ? undefined : effectiveDni;
+      void completeKycStep({
+        applicationCode: code,
+        stepType: 'contract',
+        resumeToken,
+        documentNumber: proofDni,
+        contractHash: datos.contractHash,
+      }).then(({ state, outdated }) => {
+        if (outdated) {
+          contratoRef.current?.marcarVencido();
+          return;
+        }
+        if (state?.link_pago) setLinkPago(state.link_pago);
+        avanzar();
+      });
+      return;
+    }
 
     // Fire-and-forget: la UI no espera al backend. Si falla, el localStorage
     // sostiene el flujo en este dispositivo y el próximo montaje reconcilia.
@@ -523,7 +559,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
           stepType: currentStep.type,
           resumeToken,                        // flujo por link
           documentNumber: proofDni,           // en sesión
-        }).then((state) => {
+        }).then(({ state }) => {
           if (!state) {
             track('error', {
               scope: 'kyc_step_persist', reason: 'request_failed',
@@ -541,6 +577,11 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       }
     }
 
+    avanzar();
+  };
+
+  /** Lo que pasa cuando el sub-paso quedó cerrado: siguiente, o cierre del KYC. */
+  const avanzar = () => {
     if (safeIndex + 1 < pasos.length) {
       const next = safeIndex + 1;
       setIndex(next);
@@ -576,6 +617,21 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     // Misma prueba de titularidad que usa `completeKycStep`.
     const veredicto = code ? await completarKyc(code, effectiveDni, resumeToken) : null;
 
+    // El contrato aceptado quedo viejo: legacy NO aprobo. Se vuelve al paso
+    // para que la persona lea el nuevo y lo acepte; ws2 ya lo regenero y
+    // reabrio el sub-paso.
+    if (veredicto?.motivo === 'contrato_vencido') {
+      const indiceContrato = pasos.findIndex((s) => s.type === 'contract');
+      if (indiceContrato >= 0) {
+        setIndex(indiceContrato);
+        writeKycStep(landing, code, indiceContrato);
+      }
+      contratoRef.current?.marcarVencido();
+      cerrandoRef.current = false;
+      setCerrando(false);
+      return;
+    }
+
     if (veredicto?.aprobado && veredicto.tiene_cuota_inicial && veredicto.link_pago) {
       track('kyc_payment_step_shown', { application_code: code });
       setLinkPago(veredicto.link_pago);
@@ -588,6 +644,14 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       cerrandoRef.current = false;
       setCerrando(false);
       return;
+    }
+
+    // La copia, a disposición en el acto (§4 paso 12). Se guarda para la
+    // pantalla siguiente porque acá mismo se navega; si no vino, la pantalla no
+    // la ofrece y no pasa nada: sigue archivada del lado de Balde K.
+    if (veredicto?.constancia_url && code) {
+      guardarConstancia(landing, code, veredicto.constancia_url);
+      track('kyc_contract_copy_available', { application_code: code });
     }
 
     track('kyc_completed', { application_code: code });
@@ -664,6 +728,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             linkPago,
             resumeToken,
             landing,
+            contratoRef,
           })}
 
           {canPause && code && (

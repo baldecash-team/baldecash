@@ -291,6 +291,30 @@ export type EventType =
   // `autorizaciones`. NO reemplaza al `kyc_step_complete` del wizard —ese sigue
   // midiendo el avance—; este dice QUE se autorizo.
   | 'kyc_contract_signed'
+  // El contrato se emite en legacy al arrancar el KYC y el paso lo espera.
+  // `reason`: missing (no se habia pedido) | outdated (era de otro dia) |
+  // retry (el solicitante toco Reintentar).
+  | 'kyc_contract_generation_requested'
+  // Ya se puede leer. `wait_ms` es lo que espero, `external_id` cual es.
+  | 'kyc_contract_ready'
+  // Se agoto la espera o legacy no pudo emitirlo. `reason`: timeout |
+  // legacy_error | sin_registro (la solicitud no llego a legacy).
+  | 'kyc_contract_generation_failed'
+  // Acepto (o cerro el KYC) sobre un PDF que ya no era el vigente: se regenera
+  // y vuelve a aceptarlo. Distinto de `generation_requested` con
+  // reason=outdated, que es la deteccion temprana al entrar al paso.
+  | 'kyc_contract_outdated'
+  // "Abrir en pestana nueva": en movil el visor embebido no siempre carga, y
+  // este evento es lo unico que dice si esa salida se usa.
+  | 'kyc_contract_opened_external'
+  // La copia del contrato —con su constancia— quedo a disposicion al cerrar el
+  // KYC. Es la evidencia del lado del front de la puesta a disposicion que pide
+  // el §4 paso 12; la fecha del lado de Balde K la graba legacy en la solicitud.
+  | 'kyc_contract_copy_available'
+  // El solicitante actualizo su correo o su celular antes de aceptar. `campos`
+  // dice cuales. La evidencia con el valor anterior la guarda ws2; esto es para
+  // poder ver en el embudo cuanta gente los corrige en esta pantalla.
+  | 'kyc_contact_updated'
   // El check de documento (verify-dni) fallo y el titular confirmo su DNI
   // tipeandolo: se salta Textract pero compare-faces corre igual.
   | 'kyc_document_check_bypassed'

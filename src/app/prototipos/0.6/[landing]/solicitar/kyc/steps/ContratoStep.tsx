@@ -14,17 +14,30 @@
  * que se está generando. Lo que no puede pasar es mostrar un documento ajeno.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
-import { getContrato, type ContratoEmitido } from '@/app/prototipos/0.6/services/kycApi';
+import { useContratoKyc } from '../useContratoKyc';
+import { ConfirmarDatosCard } from './ConfirmarDatosCard';
+import { ResumenOperacionCard } from './ResumenOperacionCard';
+import {
+  getResumenOperacion,
+  type ResumenOperacion,
+} from '@/app/prototipos/0.6/services/kycApi';
 import {
   esFamilyFarms,
   esFamilyFarmsAdministrativo,
 } from '@/app/prototipos/0.6/utils/familyFarms';
 
+/** Lo que el paso expone al orquestador: reabrirlo cuando el backend dice
+ *  que el contrato aceptado quedo viejo (409 / `contrato_vencido`). */
+export interface ContratoStepHandle {
+  marcarVencido: () => void;
+}
+
 export interface ContratoStepProps {
-  onDone: () => void;
+  /** Con firma por aceptacion lleva el hash de lo aceptado; si no, nada. */
+  onDone: (datos?: { contractHash?: string; externalId?: string }) => void;
   onBack?: () => void;
   /** application_code, para que los eventos de este sub-paso sean rastreables. */
   applicationCode?: string;
@@ -78,14 +91,25 @@ const AUTORIZACIONES_FAMILY_FARMS: AutorizacionConvenio[] = [
   },
 ];
 
-export function ContratoStep({
+export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(function ContratoStep({
   onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing,
-}: ContratoStepProps) {
+}: ContratoStepProps, ref) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
+  // El clic final no puede ejecutarse dos veces (§4 paso 9): un doble toque en
+  // móvil crearía dos aceptaciones de la misma operación.
+  const [enviando, setEnviando] = useState(false);
+  // Los números de la operación, para que aceptar el contrato no sea aceptar
+  // cifras que la persona nunca vio ordenadas (§5). Fail-safe: sin resumen la
+  // tarjeta no se pinta y el paso sigue igual.
+  const [resumen, setResumen] = useState<ResumenOperacion | null>(null);
   const [autorizaciones, setAutorizaciones] = useState<Record<string, boolean>>({});
-  const [contrato, setContrato] = useState<ContratoEmitido | null>(null);
-  const [cargando, setCargando] = useState(true);
   const track = useKycTracker(onTrack);
+
+  // La espera del contrato vive en el hook: polling, tope y reintento. Acá solo
+  // se decide qué se pinta con cada estado.
+  const {
+    contrato, estado, hayDocumento, exigeAceptar, sinRegistro, reintentar, marcarVencido,
+  } = useContratoKyc({ applicationCode, documentNumber, resumeToken, track });
 
   useEffect(() => {
     track('kyc_contract_view', { application_code: applicationCode });
@@ -93,53 +117,40 @@ export function ContratoStep({
   }, []);
 
   useEffect(() => {
-    let cancelado = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Sin código de solicitud no hay qué resumir: el paso se puede montar
+    // antes de que exista (los prototipos lo hacen).
+    if (!applicationCode) return;
 
-    // El contrato lo emite legacy al aprobar, y eso tarda unos segundos: en
-    // producción el paso preguntó a las 03:27:30 y el documento se emitió a las
-    // 03:27:31. Con una sola consulta al montar, esa ventana dejaba el paso en
-    // «se está generando» para siempre aunque el contrato existiera un segundo
-    // después.
-    //
-    // Se reintenta unas pocas veces y se abandona: antes de la aprobación el
-    // contrato NO existe y puede tardar mucho más, así que insistir sin techo
-    // sería pedir indefinidamente por algo que no va a llegar en esta pantalla.
-    const INTENTOS = 6;
-    const ESPERA_MS = 5000;
+    let vivo = true;
+    getResumenOperacion({ applicationCode, documentNumber, resumeToken })
+      .then((r) => { if (vivo) setResumen(r); });
 
-    void (async () => {
-      if (!applicationCode) { setCargando(false); return; }
-
-      for (let intento = 0; intento < INTENTOS && !cancelado; intento += 1) {
-        const r = await getContrato({ applicationCode, documentNumber, resumeToken });
-        if (cancelado) return;
-
-        setContrato(r);
-        setCargando(false);
-
-        if (r?.disponible && (r.html || r.url)) return;
-
-        if (intento < INTENTOS - 1) {
-          await new Promise<void>((resolve) => { timer = setTimeout(resolve, ESPERA_MS); });
-        }
-      }
-    })();
-
-    return () => {
-      cancelado = true;
-      if (timer) clearTimeout(timer);
-    };
+    return () => { vivo = false; };
   }, [applicationCode, documentNumber, resumeToken]);
 
-  // Sin html no hay nada que aceptar. `getContrato` ya devuelve `null` ante un
-  // error, así que la red caída y el "todavía no se emitió" caen al mismo lado:
-  // esperar, nunca un documento equivocado.
+  /**
+   * El orquestador reabre el paso cuando el backend dice que lo aceptado ya no
+   * es el contrato vigente. Se desmarca la aceptación: lo que se aceptó dejó de
+   * existir, y dejar el check puesto sobre un documento nuevo sería mentir.
+   */
+  useImperativeHandle(ref, () => ({
+    marcarVencido: () => {
+      setAccepted('false');
+      marcarVencido();
+    },
+  }), [marcarVencido]);
+
+  // Los textos los sirve ws2 y se pintan tal cual: la redacción que la persona
+  // ve es la que después queda sellada como evidencia de qué aceptó. Si el
+  // front la compusiera, podría desviarse de lo aprobado sin que nadie se
+  // entere. Cuando no vienen —un ws2 sin desplegar— el paso se comporta como
+  // siempre en vez de mostrar media pantalla con relleno.
+  const textos = contrato?.aceptacion;
+
   // El snapshot gana sobre el PDF: es el documento congelado, con su hash
-  // detrás. Hoy llega el PDF, porque `contrato_emitido` no tiene escritor.
-  const html = contrato?.disponible ? contrato.html : undefined;
-  const pdf = contrato?.disponible && !html ? contrato.url : undefined;
-  const hayDocumento = !!html || !!pdf;
+  // detrás. El camino `aceptacion` trae PDF; el `emitido` puede traer los dos.
+  const html = hayDocumento ? contrato?.html : undefined;
+  const pdf = hayDocumento && !html ? contrato?.url : undefined;
 
   // Las que le corresponden a ESTE postulante. Fuera del convenio la lista
   // queda vacía y el paso se comporta igual que siempre.
@@ -183,13 +194,26 @@ export function ContratoStep({
    * que el botón se había habilitado.
    */
   const handleContinuar = () => {
+    if (enviando) return;
+    setEnviando(true);
     track('kyc_contract_signed', {
       application_code: applicationCode,
+      contract_hash: contrato?.hash,
+      external_id: contrato?.external_id,
       autorizaciones: autorizacionesAplicables
         .filter((a) => autorizaciones[a.id])
         .map((a) => a.id),
+      // La redacción que estaba en pantalla. Queda en el evento además de en la
+      // firma: si algún día no coinciden, se ve dónde se rompió.
+      declaracion_version: textos?.version,
     });
-    onDone();
+    // El hash solo viaja en el camino de firma por aceptación: es lo que ata
+    // esta aceptación al PDF que se mostró. En `emitido` no hay hash que atar.
+    onDone(
+      exigeAceptar
+        ? { contractHash: contrato?.hash, externalId: contrato?.external_id }
+        : undefined,
+    );
   };
 
   return (
@@ -201,7 +225,10 @@ export function ContratoStep({
         </p>
       </div>
 
-      {cargando ? (
+      {/* El skeleton es solo la PRIMERA carga (todavía no contestó nadie). Una
+          vez que hay respuesta, "generando" tiene su propio bloque, que explica
+          la espera en vez de simular que el documento está por pintarse. */}
+      {!contrato && estado === 'generando' ? (
         <div className="w-full h-80 rounded-xl border border-[#e5e7eb] bg-[#fafafa] animate-pulse" />
       ) : html ? (
         <div
@@ -225,10 +252,49 @@ export function ContratoStep({
             href={pdf}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => track('kyc_contract_opened_external', {
+              application_code: applicationCode,
+              external_id: contrato?.external_id,
+            })}
             className="inline-block text-xs font-semibold text-[#4654CD] hover:underline"
           >
             Abrir en pestaña nueva
           </a>
+        </div>
+      ) : sinRegistro ? (
+        /* El único error que no se resuelve reintentando: la solicitud no llegó
+           al sistema que emite el contrato. Por eso no lleva botón, lleva
+           contacto. */
+        <div
+          data-testid="contrato-sin-registro"
+          className="w-full rounded-xl border border-[#fecaca] bg-[#fef2f2] p-6 text-center"
+        >
+          <p className="text-sm font-semibold text-[#991b1b]">
+            Tu solicitud no quedó registrada
+          </p>
+          <p className="mt-1 text-xs text-[#7f1d1d]">
+            No podemos preparar tu contrato hasta resolverlo. Escríbenos al
+            957 082 347 y lo vemos.
+          </p>
+        </div>
+      ) : estado === 'error' ? (
+        <div
+          data-testid="contrato-error"
+          className="w-full rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-6 text-center"
+        >
+          <p className="text-sm font-semibold text-[#374151]">
+            No pudimos preparar tu contrato
+          </p>
+          <p className="mt-1 text-xs text-[#6b7280]">
+            Puede ser algo momentáneo. Inténtalo de nuevo.
+          </p>
+          <button
+            type="button"
+            onClick={reintentar}
+            className="mt-3 rounded-xl border border-[#4654CD] px-4 py-2 text-sm font-semibold text-[#4654CD] hover:bg-[#ECECFB] transition-colors cursor-pointer"
+          >
+            Reintentar
+          </button>
         </div>
       ) : (
         <div
@@ -236,20 +302,49 @@ export function ContratoStep({
           className="w-full rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-6 text-center"
         >
           <p className="text-sm font-semibold text-[#374151]">
-            Tu contrato se está generando
+            {estado === 'outdated'
+              ? 'Tu contrato se actualizó'
+              : 'Tu contrato se está generando'}
           </p>
           <p className="mt-1 text-xs text-[#6b7280]">
-            Se emite cuando aprobamos tu solicitud. Te avisamos apenas esté listo
-            para que lo revises y lo firmes.
+            {estado === 'outdated'
+              ? 'Preparamos una versión nueva. Revísala y acéptala de nuevo.'
+              : 'Tarda unos segundos. Te lo mostramos apenas esté listo para que lo revises y lo firmes.'}
           </p>
         </div>
       )}
 
+      {/* El orden del §5: primero quién es (identidad bloqueada, contacto
+          editable), después cuánto (los números), y recién ahí el documento.
+          Los dos van arriba y no debajo: son lo que la persona necesita para
+          leer el contrato con criterio, no un resumen de lo que ya leyó. */}
+      <ConfirmarDatosCard
+        applicationCode={applicationCode}
+        documentNumber={documentNumber}
+        resumeToken={resumeToken}
+        onCambio={(campos) =>
+          track('kyc_contact_updated', { application_code: applicationCode, campos })
+        }
+      />
+      <ResumenOperacionCard resumen={resumen} />
+
       {hayDocumento && (
         <div className="space-y-4">
+          {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
+              hacer y a qué queda asociado, para que marcarla no sea un clic a
+              ciegas. */}
+          {textos && (
+            <p
+              data-testid="contrato-aviso"
+              className="rounded-xl bg-[#F5F6FE] border border-[#DDDFF7] p-3 text-xs leading-relaxed text-[#374151]"
+            >
+              {textos.aviso}
+            </p>
+          )}
+
           <CheckboxField
             id="accept-contract"
-            label="He leído y acepto el contrato"
+            label={textos?.declaracion ?? 'He leído y acepto el contrato'}
             value={accepted}
             onChange={handleAcceptChange}
             required
@@ -285,19 +380,30 @@ export function ContratoStep({
         )}
         <button
           type="button"
-          // Con documento hay que aceptarlo, y con él las autorizaciones del
-          // convenio que le toquen a este perfil. Sin documento no hay nada que
-          // aceptar y bloquear el botón dejaría el KYC trabado esperando algo
-          // que solo llega con la aprobación.
-          disabled={hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)}
+          // Con firma por aceptación el documento es OBLIGATORIO: aceptarlo ES
+          // firmarlo, así que sin leerlo no hay nada que firmar.
+          //
+          // En el camino `emitido` el contrato nace con la aprobación —después
+          // de esta pantalla—, así que su ausencia no puede trabar el flujo:
+          // ahí solo se exige aceptar cuando SÍ hay documento.
+          disabled={
+            enviando || (
+              exigeAceptar
+                ? !hayDocumento || accepted !== 'true' || faltaAlgunaAutorizacion
+                : hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)
+            )
+          }
           onClick={handleContinuar}
           className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
         >
-          Continuar
+          {/* El texto también lo manda ws2: "ACEPTAR Y CONTRATAR" dice qué hace
+              el botón, y "Continuar" no. Solo cuando hay documento que aceptar:
+              en la espera y en el error sigue siendo un Continuar. */}
+          {hayDocumento && textos ? textos.boton : 'Continuar'}
         </button>
       </div>
     </div>
   );
-}
+});
 
 export default ContratoStep;

@@ -24,7 +24,7 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
     // El sub-paso de contrato pide el documento emitido al montar y sin él no
     // ofrece aceptar nada. Acá el contrato es solo el vehículo para avanzar el
     // flujo, así que se da por emitido.
-    getContrato: jest.fn().mockResolvedValue({ disponible: true, html: '<p>Contrato</p>' }),
+    getContrato: jest.fn().mockResolvedValue({ modo: 'emitido', estado: 'listo', disponible: true, html: '<p>Contrato</p>' }),
   };
 });
 
@@ -164,7 +164,7 @@ it('restaura desde el API incluso bajo StrictMode (mount→cleanup→mount)', as
 it('usa el application_code de `initialState` cuando no hay `?code=` en la URL (ruta tokenizada)', async () => {
   mockUseSearchParams.mockReturnValue(new URLSearchParams()); // sin ?code=
   mockKycSteps.mockReturnValue([{ type: 'contract' }]); // 1 sub-paso: alcanza con 1 click para avanzar
-  mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+  mockCompleteKycStep.mockResolvedValue({ state: state('contract', 0), outdated: false } as never);
 
   const initialState = linkState('contract', 0); // next_step_index=0 → arranca directo en 'contract'
 
@@ -233,7 +233,7 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
   const setupUnPaso = () => {
     mockKycSteps.mockReturnValue([{ type: 'contract' }]);
     mockGetKycProgress.mockResolvedValue(state('contract', 0) as never);
-    mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+    mockCompleteKycStep.mockResolvedValue({ state: state('contract', 0), outdated: false } as never);
   };
 
   const avanzar = async () => {
@@ -364,7 +364,7 @@ describe('onTrack (sink de eventos de la ruta tokenizada)', () => {
     const onTrack = jest.fn();
     mockUseSearchParams.mockReturnValue(new URLSearchParams()); // ruta tokenizada: sin ?code=
     mockKycSteps.mockReturnValue([{ type: 'contract' }]);
-    mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+    mockCompleteKycStep.mockResolvedValue({ state: state('contract', 0), outdated: false } as never);
 
     render(
       <KycClient
@@ -570,10 +570,10 @@ describe('el link de pago que aparece despues de cargar', () => {
     // Sin prueba de titularidad `completeKycStep` ni se llama.
     window.localStorage.setItem('baldecash-dni-copia-home', '48509924');
     mockGetKycProgress.mockResolvedValue(state('contract', 0) as never);
-    mockCompleteKycStep.mockResolvedValue({
+    mockCompleteKycStep.mockResolvedValue({ state: {
       ...state('contract', 0),
       link_pago: 'https://zona.baldecash.com/magic/abc',
-    } as never);
+    }, outdated: false } as never);
 
     render(<KycClient />);
 
@@ -596,7 +596,7 @@ describe('el link de pago que aparece despues de cargar', () => {
   it('sin link en la respuesta, nada cambia', async () => {
     mockKycSteps.mockReturnValue([{ type: 'contract' }, { type: 'payment' }] as never);
     mockGetKycProgress.mockResolvedValue(state('contract', 0) as never);
-    mockCompleteKycStep.mockResolvedValue(state('contract', 0) as never);
+    mockCompleteKycStep.mockResolvedValue({ state: state('contract', 0), outdated: false } as never);
 
     render(<KycClient />);
 

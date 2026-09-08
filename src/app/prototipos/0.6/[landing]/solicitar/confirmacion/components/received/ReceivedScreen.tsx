@@ -8,6 +8,7 @@ import { ReceivedMessage } from './message';
 import { ApplicationStatus } from './status';
 import { ProductSummary } from './summary';
 import { ContactInfo } from './contact';
+import { DescargarConstancia } from './DescargarConstancia';
 
 interface ReceivedScreenProps {
   data: ReceivedData;
@@ -27,9 +28,13 @@ interface ReceivedScreenProps {
    * contrario de lo que acaba de pasar.
    */
   modoCierreKyc?: ModoCierreKyc | null;
+  /** Para ofrecer la copia del contrato que dejó el cierre del KYC. */
+  landing?: string;
+  applicationCode?: string | null;
+  onDescargarConstancia?: () => void;
 }
 
-export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant, showGoHome = true, otpCta, modoCierreKyc }) => {
+export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant, showGoHome = true, otpCta, modoCierreKyc, landing, applicationCode, onDescargarConstancia }) => {
   return (
     <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
@@ -38,6 +43,15 @@ export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome
         {otpCta}
         {!modoCierreKyc && <ApplicationStatus notificationChannels={data.notificationChannels} />}
         <ProductSummary data={data} />
+        {/* Va antes del contacto: es lo último accionable que le queda por
+            hacer a la persona, no una nota al pie. */}
+        {landing && (
+          <DescargarConstancia
+            landing={landing}
+            applicationCode={applicationCode}
+            onDescargar={onDescargarConstancia}
+          />
+        )}
         <ContactInfo onGoToHome={onGoToHome} showGoHome={showGoHome} />
       </div>
     </div>

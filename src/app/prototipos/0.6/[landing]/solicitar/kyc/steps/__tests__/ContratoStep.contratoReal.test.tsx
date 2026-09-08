@@ -58,7 +58,7 @@ describe('el paso de firma sobre el componente', () => {
 
   it('pinta el contrato emitido de la solicitud', async () => {
     mockGetContrato.mockResolvedValue({
-      disponible: true, html: '<p>Contrato de Juana Pérez</p>',
+      modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato de Juana Pérez</p>',
     });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
@@ -69,7 +69,7 @@ describe('el paso de firma sobre el componente', () => {
   });
 
   it('sin contrato emitido espera, y no ofrece aceptar nada', async () => {
-    mockGetContrato.mockResolvedValue({ disponible: false });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
@@ -78,16 +78,34 @@ describe('el paso de firma sobre el componente', () => {
     expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
   });
 
+  it('en modo emitido, sin documento, deja continuar', async () => {
+    // El contrato de este camino nace con la aprobacion, que en el KYC corre
+    // DESPUES de esta pantalla: bloquear el boton dejaria el flujo trabado
+    // esperando algo que no llega aca.
+    mockGetContrato.mockResolvedValue({
+      modo: 'emitido' as const, estado: 'generando' as const, disponible: false,
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+  });
+
   it('un error de red tampoco cae a un documento ajeno', async () => {
     mockGetContrato.mockResolvedValue(null);
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
-    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    // Un fallo de red se muestra como error reintentable —no como una espera
+    // eterna—, pero lo que este test protege sigue siendo lo mismo: NUNCA se
+    // pinta un documento cuando no se pudo traer el propio.
+    await waitFor(() => expect(screen.getByTestId('contrato-error')).toBeInTheDocument());
+    expect(screen.queryByTestId('contrato-documento')).not.toBeInTheDocument();
   });
 
   it('manda la prueba de titularidad que corresponde al flujo por link', async () => {
-    mockGetContrato.mockResolvedValue({ disponible: false });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" resumeToken="TOK" />);
 
@@ -109,7 +127,7 @@ describe('el contrato como PDF', () => {
 
   it('lo embebe cuando llega la url', async () => {
     mockGetContrato.mockResolvedValue({
-      disponible: true, url: 'https://ws.baldecash.com/storage/contrato-v3-abc.pdf',
+      modo: 'emitido' as const, estado: 'listo' as const, disponible: true, url: 'https://ws.baldecash.com/storage/contrato-v3-abc.pdf',
     });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
@@ -123,7 +141,7 @@ describe('el contrato como PDF', () => {
     // El snapshot es el documento congelado; el PDF es el archivo. Si estan los
     // dos, el snapshot es el que tiene el hash que lo respalda.
     mockGetContrato.mockResolvedValue({
-      disponible: true, html: '<p>Contrato de Juana</p>', url: 'https://ws.baldecash.com/x.pdf',
+      modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato de Juana</p>', url: 'https://ws.baldecash.com/x.pdf',
     });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
@@ -132,7 +150,7 @@ describe('el contrato como PDF', () => {
   });
 
   it('disponible sin html ni url sigue siendo esperar', async () => {
-    mockGetContrato.mockResolvedValue({ disponible: true });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
@@ -154,8 +172,8 @@ describe('el contrato que todavía se está emitiendo', () => {
 
   it('reintenta y lo muestra cuando aparece', async () => {
     mockGetContrato
-      .mockResolvedValueOnce({ disponible: false })
-      .mockResolvedValue({ disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
+      .mockResolvedValueOnce({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false })
+      .mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
@@ -167,7 +185,7 @@ describe('el contrato que todavía se está emitiendo', () => {
   });
 
   it('deja de reintentar cuando ya lo tiene', async () => {
-    mockGetContrato.mockResolvedValue({ disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
@@ -180,7 +198,7 @@ describe('el contrato que todavía se está emitiendo', () => {
   it('no reintenta para siempre: se rinde y deja el paso utilizable', async () => {
     // Antes de la aprobación el contrato NO existe, y puede tardar mucho más que
     // unos segundos. Reintentar sin techo dejaría el paso pidiendo indefinidamente.
-    mockGetContrato.mockResolvedValue({ disponible: false });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 

@@ -32,7 +32,7 @@ const mockGetContrato = getContrato as jest.MockedFunction<typeof getContrato>;
 describe('ContratoStep — application_code en el tracking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetContrato.mockResolvedValue({ disponible: true, html: '<p>Contrato</p>' });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato</p>' });
   });
 
   it('kyc_contract_view lleva application_code al montar', async () => {
@@ -76,7 +76,7 @@ describe('ContratoStep — autorizaciones en el tracking', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetContrato.mockResolvedValue({ disponible: true, html: '<p>Contrato</p>' });
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato</p>' });
   });
 
   async function montar(landing?: string) {

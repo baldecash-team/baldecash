@@ -286,6 +286,20 @@ export interface KycVeredicto {
   tiene_cuota_inicial: boolean;
   /** Magic link a Zona Estudiantes (`/zona/payDues`). Null si no hay qué cobrar. */
   link_pago: string | null;
+  /** Legacy además aplicó la firma (Airtable, firmado, hito). */
+  firmado?: boolean;
+  /**
+   * `contrato_vencido`: no se aprobó porque el contrato aceptado quedó viejo.
+   * El paso `contract` se reabre con el contrato nuevo.
+   */
+  motivo?: 'contrato_vencido';
+  /**
+   * La constancia de aceptación: el contrato aceptado con el hash estampado y
+   * la hoja de constancia. Es la copia que hay que poner a disposición en el
+   * acto (§4 paso 12). `null` cuando legacy no pudo emitirla: la operación
+   * vale igual, lo que falta es el PDF que la muestra.
+   */
+  constancia_url?: string | null;
 }
 
 /**
@@ -447,30 +461,183 @@ export async function getCronograma(args: {
   }
 }
 
-/** El contrato emitido de la solicitud, tal como quedó congelado en legacy. */
-export interface ContratoEmitido {
-  /**
-   * `false` NO es un error: el contrato nace con la aprobación, así que antes
-   * de eso su ausencia es el estado normal del flujo.
-   */
+/**
+ * La identidad validada y el contacto de la solicitud.
+ *
+ * `nombre` y `documento` son de solo lectura: corresponden a la identidad que
+ * ya se validó y el backend no tiene forma de cambiarlos. `aviso_identidad` lo
+ * sirve ws2 y se pinta tal cual — es la explicación de por qué esos campos no
+ * se pueden tocar, y decirla de dos maneras distintas en dos pantallas es peor
+ * que no decirla.
+ */
+export interface ContactoKyc {
+  nombre?: string | null;
+  documento?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  aviso_identidad: string;
+}
+
+export async function getContacto(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<ContactoKyc | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/contacto?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as ContactoKyc;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Actualiza correo y/o teléfono. Son los únicos dos campos que se pueden
+ * cambiar; mandar cualquier otro no hace nada, porque el backend no lo declara.
+ *
+ * Devuelve el contacto ya guardado, o `null` si no se pudo: la pantalla avisa
+ * en vez de dejar creer que quedó.
+ */
+export async function actualizarContacto(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+  email?: string;
+  telefono?: string;
+}): Promise<ContactoKyc | null> {
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/contacto`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        application_code: args.applicationCode,
+        document_number: args.resumeToken ? undefined : args.documentNumber,
+        resume_token: args.resumeToken,
+        email: args.email,
+        telefono: args.telefono,
+      }),
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as ContactoKyc;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Los números de la operación, para mostrarlos ANTES del contrato.
+ *
+ * Todo opcional y todo string: son importes, y un `number` los redondea
+ * distinto de como los redondeó quien emitió el contrato. `null` es "la
+ * solicitud no tiene este dato" y NO cero — un cero se lee como una condición
+ * pactada.
+ */
+export interface ResumenOperacion {
+  equipo?: string | null;
+  sku?: string | null;
+  precio?: string | null;
+  cuota_inicial?: string | null;
+  cuotas?: number | null;
+  monto_cuota?: string | null;
+  frecuencia?: string | null;
+  tea?: string | null;
+  tcea?: string | null;
+  seguro?: string | null;
+  total?: string | null;
+}
+
+/**
+ * El resumen económico de la solicitud.
+ *
+ * Misma prueba de titularidad que el resto de las lecturas del KYC. Fail-safe:
+ * `null` ante error — el paso muestra el contrato sin la tarjeta antes que
+ * números que no son los de esta persona.
+ */
+export async function getResumenOperacion(args: {
+  applicationCode: string;
+  documentNumber?: string;
+  resumeToken?: string;
+}): Promise<ResumenOperacion | null> {
+  const params = new URLSearchParams({ application_code: args.applicationCode });
+  if (args.resumeToken) params.set('resume_token', args.resumeToken);
+  else if (args.documentNumber) params.set('document_number', args.documentNumber);
+
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/kyc/resumen?${params.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as ResumenOperacion;
+  } catch {
+    return null;
+  }
+}
+
+/** De dónde sale el contrato y, por lo tanto, qué se le puede exigir al cliente. */
+export type ContratoModo =
+  /** La landing tiene la firma por aceptación: el contrato existe ANTES de
+   *  aprobar y aceptarlo ES firmarlo. Sin documento no se puede continuar. */
+  | 'aceptacion'
+  /** El camino de siempre: el contrato lo emite la aprobación, que en el KYC
+   *  corre al final. Su ausencia es normal y NO puede trabar el flujo. */
+  | 'emitido';
+
+export type ContratoEstado = 'generando' | 'listo' | 'error';
+
+/** Por qué falló. Solo viene con `estado: 'error'`. */
+export type ContratoMotivo =
+  /** La solicitud no llegó a legacy: nadie puede emitirle un contrato.
+   *  Reintentar no lo arregla. */
+  | 'sin_registro'
+  /** Legacy no pudo emitirlo, o se agotó la espera. Reintentar sí sirve. */
+  | 'generacion';
+
+/** El contrato que el paso de firma muestra. */
+export interface ContratoKyc {
+  modo: ContratoModo;
+  estado: ContratoEstado;
+  motivo?: ContratoMotivo;
+  /** `estado === 'listo'`. Se mantiene por compatibilidad de lectura. */
   disponible: boolean;
-  html?: string;
-  /**
-   * URL del PDF que la solicitud ya tiene en su documentación. Es el camino
-   * normal hoy: `contrato_emitido` no tiene escritor en legacy, así que el
-   * snapshot HTML no llega y lo que responde es el archivo — el mismo que
-   * después se firma.
-   */
+  /** PDF (presignado en el camino `aceptacion`). */
   url?: string;
+  /** Snapshot congelado; solo lo trae el camino `emitido`. */
+  html?: string;
+  /** sha256 del PDF. Es lo que viaja al aceptar, y solo existe en `aceptacion`. */
   hash?: string;
-  version?: number;
+  external_id?: string;
   emitido_at?: string;
+  /**
+   * Los textos de la aceptación, tal como los sirve ws2. Solo en `aceptacion`.
+   *
+   * NO se escriben acá: la misma redacción que se muestra es la que el backend
+   * sella como evidencia de qué se aceptó, así que componerla en el front la
+   * haría poder desviarse de lo aprobado sin que nadie se entere.
+   */
+  aceptacion?: TextosAceptacion;
+}
+
+/** Lo que ws2 manda para armar la pantalla de aceptación. */
+export interface TextosAceptacion {
+  /** Número de la redacción. Es lo que queda grabado en la evidencia. */
+  version: number;
+  /** Aviso previo al checkbox: qué se está por hacer y a qué queda asociado. */
+  aviso: string;
+  /** La declaración del checkbox, con el código de la operación adentro. */
+  declaracion: string;
+  /** El botón que dispara la aceptación. */
+  boton: string;
 }
 
 /**
  * Trae el contrato de la solicitud. Misma prueba de titularidad que el resto
  * de las lecturas sensibles: el DNI (flujo en sesión) o el token (flujo por
  * link), nunca las dos.
+ *
+ * `reintentar` fuerza a pedirle otro a legacy cuando el anterior falló.
  *
  * Fail-safe: `null` ante error de red o de permisos. El paso lo trata igual
  * que «todavía no hay contrato» — nunca cae a un documento genérico.
@@ -479,37 +646,103 @@ export async function getContrato(args: {
   applicationCode: string;
   documentNumber?: string;
   resumeToken?: string;
-}): Promise<ContratoEmitido | null> {
+  reintentar?: boolean;
+}): Promise<ContratoKyc | null> {
   const params = new URLSearchParams({ application_code: args.applicationCode });
   if (args.resumeToken) params.set('resume_token', args.resumeToken);
   else if (args.documentNumber) params.set('document_number', args.documentNumber);
+  if (args.reintentar) params.set('reintentar', '1');
 
   try {
     const r = await fetch(`${API_BASE_URL}/public/kyc/contrato?${params.toString()}`);
     if (!r.ok) return null;
-    return (await r.json()) as ContratoEmitido;
+    return adaptarContrato(await r.json());
   } catch {
     return null;
   }
 }
 
 /**
+ * Tolera la respuesta del backend anterior a la firma por aceptación, que solo
+ * traía `disponible` + `html`/`url`. Sin esto, un front nuevo contra un ws2 sin
+ * desplegar dejaría el paso en un estado indefinido.
+ */
+function adaptarContrato(raw: Record<string, unknown>): ContratoKyc {
+  const modo: ContratoModo = raw.modo === 'aceptacion' ? 'aceptacion' : 'emitido';
+  const estado: ContratoEstado =
+    raw.estado === 'listo' || raw.estado === 'error' || raw.estado === 'generando'
+      ? raw.estado
+      : raw.disponible ? 'listo' : 'generando';
+
+  return {
+    modo,
+    estado,
+    motivo: (raw.motivo as ContratoMotivo) || undefined,
+    disponible: estado === 'listo',
+    url: (raw.url as string) || undefined,
+    html: (raw.html as string) || undefined,
+    hash: (raw.hash as string) || undefined,
+    external_id: (raw.external_id as string) || undefined,
+    emitido_at: (raw.emitido_at as string) || undefined,
+    aceptacion: adaptarTextos(raw.aceptacion),
+  };
+}
+
+/**
+ * Los textos, solo si vienen COMPLETOS.
+ *
+ * A medias no sirven: media pantalla con la redacción aprobada y media con un
+ * texto de relleno es peor que la de siempre, porque no se distingue mirándola.
+ * Sin esto el paso cae al texto genérico, que es lo que ya hacía.
+ */
+function adaptarTextos(raw: unknown): TextosAceptacion | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const t = raw as Record<string, unknown>;
+  if (
+    typeof t.version !== 'number' ||
+    typeof t.aviso !== 'string' ||
+    typeof t.declaracion !== 'string' ||
+    typeof t.boton !== 'string' ||
+    !t.aviso ||
+    !t.declaracion ||
+    !t.boton
+  ) {
+    return undefined;
+  }
+
+  return { version: t.version, aviso: t.aviso, declaracion: t.declaracion, boton: t.boton };
+}
+
+/** El resultado del avance: el estado nuevo, o que el contrato quedó viejo. */
+export interface CompleteStepResult {
+  state: KycProgressState | null;
+  /** 409 `contract_outdated`: hay que recargar el contrato y aceptarlo de nuevo. */
+  outdated: boolean;
+}
+
+/**
  * Marca un sub-paso completado. Requiere EXACTAMENTE una prueba: el DNI (flujo
  * en sesión) o el token (flujo por link). Si llegan las dos, se prioriza el
  * token y se omite el DNI — mandar ambas devuelve 422 `missing_proof`.
+ *
+ * `contractHash` solo aplica al sub-paso `contract` con firma por aceptación:
+ * es lo que ata la aceptación al PDF que se mostró. Un 409 significa que el
+ * contrato cambió mientras la persona lo leía.
  */
 export async function completeKycStep(args: {
   applicationCode: string;
   stepType: string;
   documentNumber?: string;
   resumeToken?: string;
-}): Promise<KycProgressState | null> {
+  contractHash?: string;
+}): Promise<CompleteStepResult> {
   const body: Record<string, string> = {
     application_code: args.applicationCode,
     step_type: args.stepType,
   };
   if (args.resumeToken) body.resume_token = args.resumeToken;
   else if (args.documentNumber) body.document_number = args.documentNumber;
+  if (args.contractHash) body.contract_hash = args.contractHash;
 
   try {
     const r = await fetch(`${API_BASE_URL}/public/kyc/progress/step-complete`, {
@@ -517,10 +750,11 @@ export async function completeKycStep(args: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!r.ok) return null;
-    return (await r.json()) as KycProgressState;
+    if (r.status === 409) return { state: null, outdated: true };
+    if (!r.ok) return { state: null, outdated: false };
+    return { state: (await r.json()) as KycProgressState, outdated: false };
   } catch {
-    return null;
+    return { state: null, outdated: false };
   }
 }
 
