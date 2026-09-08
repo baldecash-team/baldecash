@@ -239,17 +239,43 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
       />
       <ResumenOperacionCard resumen={resumen} />
 
-        {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
-            hacer y a qué queda asociado, para que marcarla no sea un clic a
-            ciegas. */}
-        {textos && (
-          <p
-            data-testid="contrato-aviso"
-            className="rounded-xl bg-[#F5F6FE] border border-[#DDDFF7] p-3 text-xs leading-relaxed text-[#374151]"
-          >
+      {/* El aviso va ANTES de la casilla (§4 paso 7): dice qué se está por
+          hacer y a qué queda asociado, para que marcarla no sea un clic a
+          ciegas.
+
+          Antes era un párrafo gris de 12px entre dos tarjetas, y se leía como
+          la letra chica que se saltea. Es lo contrario: es lo único de la
+          pantalla que explica qué significa aceptar. Ahora lleva título, un
+          borde de color a la izquierda que lo separa del resto y el cuerpo al
+          mismo tamaño que se lee todo lo demás. */}
+      {textos && (
+        <div
+          data-testid="contrato-aviso"
+          className="rounded-xl border border-[#DDDFF7] border-l-4 border-l-[#4654CD] bg-[#F5F6FE] p-4"
+        >
+          <div className="flex items-center gap-2">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 flex-shrink-0 text-[#4654CD]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <p className="text-sm font-semibold text-[#1f2937]">
+              Aviso de aceptación electrónica
+            </p>
+          </div>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#374151]">
             {textos.aviso}
           </p>
-        )}
+        </div>
+      )}
 
       {/* El skeleton es solo la PRIMERA carga (todavía no contestó nadie). Una
           vez que hay respuesta, "generando" tiene su propio bloque, que explica

@@ -245,6 +245,9 @@ function StepContent() {
   /** Ya se envió (envío anticipado): no se puede volver a crear la solicitud. */
   const yaEnviada = handoff !== null;
 
+  /** Ver el pestillo en `handleCelebrationComplete`. */
+  const enviandoRef = useRef(false);
+
   /**
    * Con el módulo del contrato prendido, la operación no se edita en el wizard:
    * el documento se emite con ese plazo y esa inicial y el hash lo sella, así
@@ -526,6 +529,12 @@ function StepContent() {
 
   const handleCelebrationComplete = () => {
     if (enviaEnEstePaso && !yaEnviada) {
+      // Pestillo: enviar es lo único de esta pantalla que no se puede repetir.
+      // `isAppSubmitting` no sirve de guard —es estado y no se ve dentro del
+      // mismo tick—, así que va en un ref.
+      if (enviandoRef.current) return;
+      enviandoRef.current = true;
+
       // Se crea la solicitud y se sigue en el wizard: la pantalla siguiente es
       // la que muestra el contrato. Sin paso siguiente no hay dónde seguir, y
       // ahí el hook navega como siempre (KYC o confirmación).
