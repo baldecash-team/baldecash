@@ -6,6 +6,7 @@ import {
   getEnabledSections,
   isSectionEnabled,
   getEnvioAnticipadoStep,
+  isFirmaPorAceptacion,
   getKycSteps,
   isKycStepEnabled,
   isKycEnabled,
@@ -121,6 +122,12 @@ interface UseSolicitarFlowResult {
    * final). 1 = la primera pantalla.
    */
   envioAnticipadoStep: number | null;
+  /**
+   * La landing firma el contrato aceptándolo en pantalla. NO es lo mismo que
+   * tener el sub-paso `contract` prendido: `copia-home` y Family Farms lo
+   * tienen desde antes, con el contrato que sale al aprobar y Keynua.
+   */
+  firmaPorAceptacion: boolean;
 }
 
 /**
@@ -203,6 +210,8 @@ export function useSolicitarFlow({
 
   const envioAnticipadoStep = useMemo(() => getEnvioAnticipadoStep(config), [config]);
 
+  const firmaPorAceptacion = useMemo(() => isFirmaPorAceptacion(config), [config]);
+
   const isKycStepEnabledFn = useMemo(
     () => (type: KycStepType) => isKycStepEnabled(config, type),
     [config]
@@ -263,6 +272,7 @@ export function useSolicitarFlow({
     isKycStepEnabled: isKycStepEnabledFn,
     kycEnabled,
     envioAnticipadoStep,
+    firmaPorAceptacion,
   };
 }
 

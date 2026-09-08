@@ -144,7 +144,7 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -249,11 +249,16 @@ function StepContent() {
   const enviandoRef = useRef(false);
 
   /**
-   * Con el módulo del contrato prendido, la operación no se edita en el wizard:
-   * el documento se emite con ese plazo y esa inicial y el hash lo sella, así
-   * que moverlos dejaría la pantalla diciendo una cuota y el contrato otra.
+   * Con la firma por aceptación, la operación no se edita en el wizard: el
+   * documento se emite con ese plazo y esa inicial y el hash lo sella, así que
+   * moverlos dejaría la pantalla diciendo una cuota y el contrato otra.
+   *
+   * NO alcanza con que el sub-paso `contract` esté prendido: `copia-home` y las
+   * tres de Family Farms lo tienen desde antes, con el contrato que sale al
+   * aprobar y la firma por Keynua. Ahí el plazo se sigue eligiendo, y quitarles
+   * el selector seria cambiarles el flujo sin que nadie lo pidiera.
    */
-  const condicionesFijas = isKycStepEnabled('contract');
+  const condicionesFijas = firmaPorAceptacion && isKycStepEnabled('contract');
 
   // Separate regular steps from summary steps
   const { regularSteps, summarySteps } = useMemo(() => {
@@ -819,7 +824,7 @@ function StepContent() {
       fuera de la vista— y no lleva la navegación del wizard: el paso valida
       sus casillas y acepta con sus propios botones.
     */
-    if (handoff && isKycStepEnabled('contract')) {
+    if (handoff && condicionesFijas) {
       const contenido = (
         <WizardLayout
           currentStep={step.url_slug || step.code}

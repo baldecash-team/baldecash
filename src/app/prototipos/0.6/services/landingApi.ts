@@ -1452,6 +1452,14 @@ export interface SolicitarSection {
   steps?: KycStep[];
   /** Solo presente en la sección `wizard_steps`: en qué paso se envía. */
   envio_anticipado?: EnvioAnticipadoConfig;
+  /**
+   * Solo presente en la sección `kyc`: la aceptación del contrato ES la firma.
+   *
+   * No alcanza con que el sub-paso `contract` esté prendido: `copia-home` y las
+   * tres de Family Farms lo tienen desde antes, con el contrato que sale al
+   * aprobar y la firma por Keynua. Esto distingue un flujo del otro.
+   */
+  firma?: { enabled: boolean };
 }
 
 /**
@@ -1612,6 +1620,19 @@ export function getEnvioAnticipadoStep(config: SolicitarFlowConfig): number | nu
   const step = envio.step;
 
   return Number.isInteger(step) && (step as number) >= 1 ? (step as number) : 1;
+}
+
+/**
+ * True si la landing firma el contrato aceptándolo en pantalla.
+ *
+ * Fail-safe: sección ausente, apagada o sin el bloque ⇒ false, que es el
+ * comportamiento de siempre (contrato al aprobar, firma por Keynua).
+ */
+export function isFirmaPorAceptacion(config: SolicitarFlowConfig): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc?.enabled) return false;
+
+  return kyc.firma?.enabled === true;
 }
 
 /** True si el sub-paso `type` está habilitado y la sección `kyc` también. */
