@@ -93,6 +93,13 @@ interface SubmitOptions {
    * Quien lo prende se hace cargo de navegar.
    */
   stayInWizard?: boolean;
+  /**
+   * La landing muestra el contrato en el flujo (sub-paso `contract`). Viaja al
+   * handoff: con contrato emitido las condiciones de la operación quedan
+   * congeladas, y quien pinta los selectores no tiene por qué consultar la
+   * config para saberlo.
+   */
+  conContrato?: boolean;
 }
 
 /**
@@ -290,7 +297,7 @@ export function useSubmitApplication(
   const submit = useCallback(
     async (submitOptions: SubmitOptions = {}): Promise<boolean> => {
       const { insuranceId = null, insuranceIds, otpEnabled = false, kycEnabled = false,
-              stayInWizard = false } = submitOptions;
+              stayInWizard = false, conContrato = false } = submitOptions;
 
       setError(null);
 
@@ -589,6 +596,7 @@ export function useSubmitApplication(
                 applicationCode: result.application_code,
                 resumeToken: result.kyc_resume_token || undefined,
                 documentNumber: capturedDocumentNumber,
+                conContrato,
               });
             }
             return true;

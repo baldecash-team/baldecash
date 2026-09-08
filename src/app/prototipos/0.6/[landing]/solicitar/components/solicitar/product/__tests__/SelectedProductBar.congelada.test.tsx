@@ -42,10 +42,6 @@ jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext', () 
   }),
 }));
 
-jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
-  useSolicitarFlow: () => ({ isKycStepEnabled: (t: string) => contratoHabilitado && t === 'contract' }),
-}));
-
 let contratoHabilitado = true;
 
 import { SelectedProductBar } from '../SelectedProductBar';
@@ -58,7 +54,7 @@ beforeEach(() => {
 function conSolicitudCreada() {
   sessionStorage.setItem(
     'baldecash-renueva-tu-equipo-1-envio-anticipado',
-    JSON.stringify({ applicationCode: 'APP-2026-00023' }),
+    JSON.stringify({ applicationCode: 'APP-2026-00023', conContrato: contratoHabilitado }),
   );
 }
 

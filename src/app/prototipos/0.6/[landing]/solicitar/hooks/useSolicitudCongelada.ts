@@ -17,18 +17,20 @@
 
 import { useEffect, useState } from 'react';
 
-import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { readEnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
 
 export function useSolicitudCongelada(landing: string): boolean {
-  const [yaEnviada, setYaEnviada] = useState(false);
-  const { isKycStepEnabled } = useSolicitarFlow({ slug: landing });
+  const [congelada, setCongelada] = useState(false);
 
   // En un efecto y no en el render: `sessionStorage` no existe en el servidor,
   // y leerlo directo rompe la hidratación.
+  //
+  // El dato de si hay contrato viene en el propio handoff: pedir la config acá
+  // metería un fetch en la barra del producto, que se monta en todo el wizard,
+  // solo para decidir si pinta un selector.
   useEffect(() => {
-    setYaEnviada(readEnvioAnticipadoHandoff(landing) !== null);
+    setCongelada(readEnvioAnticipadoHandoff(landing)?.conContrato === true);
   }, [landing]);
 
-  return yaEnviada && isKycStepEnabled('contract');
+  return congelada;
 }

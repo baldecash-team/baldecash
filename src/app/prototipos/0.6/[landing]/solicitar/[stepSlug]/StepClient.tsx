@@ -518,6 +518,7 @@ function StepContent() {
         otpEnabled: isEnabled('otp_verification'),
         kycEnabled,
         stayInWizard: !!seguir,
+        conContrato: isKycStepEnabled('contract'),
       }).then((ok) => {
         if (ok && seguir) {
           router.push(routes.solicitarStep(landing, seguir.url_slug || seguir.code));

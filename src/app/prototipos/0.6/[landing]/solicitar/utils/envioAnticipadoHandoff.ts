@@ -23,6 +23,15 @@ export interface EnvioAnticipadoHandoff {
   resumeToken?: string;
   /** DNI capturado del formulario, para el caso sin token. */
   documentNumber?: string;
+  /**
+   * La landing tenía el sub-paso `contract` prendido cuando se envió: la
+   * pantalla siguiente muestra el contrato y las condiciones quedan congeladas.
+   *
+   * Se guarda acá, y no se vuelve a consultar la config, para que quien
+   * necesite saberlo —la barra del producto, por ejemplo— no arrastre un fetch
+   * de configuración solo para pintar o no un selector.
+   */
+  conContrato?: boolean;
 }
 
 function key(landing: string): string {
