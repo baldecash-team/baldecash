@@ -32,6 +32,7 @@ import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
 import { ContratoStep, type ContratoStepHandle } from './steps/ContratoStep';
+import { useAceptarContrato } from './useAceptarContrato';
 import { DocumentosStep } from './steps/DocumentosStep';
 import { PausarModal } from './PausarModal';
 import { KycLayout } from './KycLayout';
@@ -507,6 +508,20 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   const safeIndex = Math.min(index, pasos.length - 1);
   const currentStep = pasos[safeIndex];
 
+  // La regla del 409 vive en `useAceptarContrato`: la comparte con la pantalla
+  // del contrato dentro del wizard (envio anticipado), y escrita dos veces se
+  // desincroniza justo en el caso que nadie prueba a mano.
+  const { aceptar: aceptarContrato } = useAceptarContrato({
+    applicationCode: code,
+    resumeToken,
+    documentNumber: effectiveDni,
+    onAceptado: (state) => {
+      if (state?.link_pago) setLinkPago(state.link_pago);
+      avanzar();
+    },
+    ref: contratoRef,
+  });
+
   const goNext = (datos?: { contractHash?: string; externalId?: string }) => {
     track('kyc_step_complete', {
       step: currentStep.type, index: safeIndex, application_code: code,
@@ -517,21 +532,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     // ya no es el contrato vigente. El resto sigue siendo fire-and-forget: ahí
     // un fallo se reconcilia en el próximo montaje y no hay nada que invalidar.
     if (code && currentStep.type === 'contract' && datos?.contractHash) {
-      const proofDni = resumeToken ? undefined : effectiveDni;
-      void completeKycStep({
-        applicationCode: code,
-        stepType: 'contract',
-        resumeToken,
-        documentNumber: proofDni,
-        contractHash: datos.contractHash,
-      }).then(({ state, outdated }) => {
-        if (outdated) {
-          contratoRef.current?.marcarVencido();
-          return;
-        }
-        if (state?.link_pago) setLinkPago(state.link_pago);
-        avanzar();
-      });
+      aceptarContrato(datos);
       return;
     }
 

@@ -31,6 +31,11 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { useProduct } from '../context/ProductContext';
 
 // Hooks
+import { ContratoEnWizard } from './ContratoEnWizard';
+import {
+  readEnvioAnticipadoHandoff,
+  type EnvioAnticipadoHandoff,
+} from '../utils/envioAnticipadoHandoff';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
@@ -138,7 +143,7 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, envioAnticipadoStep, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -213,6 +218,22 @@ function StepContent() {
     envioAnticipadoStep !== null &&
     navigation.currentIndex >= 0 &&
     navigation.currentIndex + 1 === envioAnticipadoStep;
+
+  /**
+   * La solicitud que el envío anticipado ya creó, si la hay. Se lee en un
+   * efecto y no en el render porque `sessionStorage` no existe en el servidor:
+   * leerlo directo rompe la hidratación.
+   */
+  const [handoff, setHandoff] = useState<EnvioAnticipadoHandoff | null>(null);
+  useEffect(() => {
+    setHandoff(readEnvioAnticipadoHandoff(landing));
+    // `stepSlug` en las dependencias: al pasar de la pantalla que envía a la
+    // siguiente el componente no se desmonta, y sin esto el handoff recién
+    // guardado no se vería hasta un refresh.
+  }, [landing, stepSlug]);
+
+  /** Ya se envió (envío anticipado): no se puede volver a crear la solicitud. */
+  const yaEnviada = handoff !== null;
 
   // Separate regular steps from summary steps
   const { regularSteps, summarySteps } = useMemo(() => {
@@ -487,9 +508,29 @@ function StepContent() {
   };
 
   const handleCelebrationComplete = () => {
-    if (enviaEnEstePaso) {
-      // El wizard termina acá aunque queden pasos: ver `enviaEnEstePaso`.
-      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
+    if (enviaEnEstePaso && !yaEnviada) {
+      // Se crea la solicitud y se sigue en el wizard: la pantalla siguiente es
+      // la que muestra el contrato. Sin paso siguiente no hay dónde seguir, y
+      // ahí el hook navega como siempre (KYC o confirmación).
+      const seguir = navigation.nextStep;
+      void submitApplication({
+        insuranceId: null,
+        otpEnabled: isEnabled('otp_verification'),
+        kycEnabled,
+        stayInWizard: !!seguir,
+      }).then((ok) => {
+        if (ok && seguir) {
+          router.push(routes.solicitarStep(landing, seguir.url_slug || seguir.code));
+        }
+      });
+      return;
+    }
+
+    // Ya enviada: la solicitud existe y volver a mandarla crearía otra. Se
+    // sigue navegando; el final del wizard lleva a la confirmación.
+    if (enviaEnEstePaso && yaEnviada && navigation.nextStep) {
+      const seguir = navigation.nextStep;
+      router.push(routes.solicitarStep(landing, seguir.url_slug || seguir.code));
       return;
     }
     if (navigation.nextStep) {
@@ -585,6 +626,10 @@ function StepContent() {
       setIsSubmitting(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
       router.push(routes.solicitarComplementos(landing));
+    } else if (yaEnviada && handoff) {
+      // El envío anticipado ya creó la solicitud: mandarla otra vez crearía una
+      // segunda con los mismos datos.
+      router.push(routes.solicitarConfirmacion(landing, handoff.applicationCode));
     } else {
       // No sections after wizard - submit application directly
       await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
@@ -720,6 +765,44 @@ function StepContent() {
 
   // Render summary step content
   if (isSummaryStep) {
+    /*
+      Envío anticipado: la solicitud ya existe y esta pantalla es la del
+      contrato. Sustituye al resumen de campos —el contrato ya trae su propio
+      resumen de la operación, y repetir los datos arriba empuja el documento
+      fuera de la vista— y no lleva la navegación del wizard: el paso valida
+      sus casillas y acepta con sus propios botones.
+    */
+    if (handoff && isKycStepEnabled('contract')) {
+      const contenido = (
+        <WizardLayout
+          currentStep={step.url_slug || step.code}
+          title={step.title}
+          description={step.description}
+          onStepClick={handleStepClick}
+          isLastStep
+          sinNavegacion
+          hideNavbar={isGamer}
+          navbarProps={isGamer ? undefined : (navbarProps || undefined)}
+          motivational={step.motivational}
+        >
+          <ContratoEnWizard
+            landing={landing}
+            handoff={handoff}
+            onBack={handleSummaryBack}
+          />
+        </WizardLayout>
+      );
+
+      return isGamer ? (
+        <GamerWizardWrapper footerData={footerData}>{contenido}</GamerWizardWrapper>
+      ) : (
+        <>
+          {contenido}
+          <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        </>
+      );
+    }
+
     // Determinar dinámicamente si es el último paso del wizard
     // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
     const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);

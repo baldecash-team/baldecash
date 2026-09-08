@@ -20,6 +20,7 @@ import { resetFormStartTracking } from './useFieldTracking';
 import { clearConsentStorage } from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
+import { saveEnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
 import { resolveComboId } from '../utils/comboFromSlug';
 import {
   isDemoLanding,
@@ -82,6 +83,16 @@ interface SubmitOptions {
    */
   otpEnabled?: boolean;
   kycEnabled?: boolean;
+  /**
+   * Envío anticipado: la solicitud se crea al terminar una pantalla del medio
+   * del wizard, no al final. Con esto en `true` el hook NO navega y NO limpia
+   * el wizard —la persona sigue adentro y a las pantallas que faltan les hace
+   * falta el formulario—; en cambio deja el handoff (código + token) para que
+   * la siguiente pueda pedir y mostrar el contrato.
+   *
+   * Quien lo prende se hace cargo de navegar.
+   */
+  stayInWizard?: boolean;
 }
 
 /**
@@ -278,7 +289,8 @@ export function useSubmitApplication(
    */
   const submit = useCallback(
     async (submitOptions: SubmitOptions = {}): Promise<boolean> => {
-      const { insuranceId = null, insuranceIds, otpEnabled = false, kycEnabled = false } = submitOptions;
+      const { insuranceId = null, insuranceIds, otpEnabled = false, kycEnabled = false,
+              stayInWizard = false } = submitOptions;
 
       setError(null);
 
@@ -506,7 +518,10 @@ export function useSubmitApplication(
           const capturedDocumentNumber = extractDocumentNumber(mappedFormData);
 
           // Clear all wizard state (skip if keepData param is set for testing)
-          if (!keepData) {
+          // Con `stayInWizard` tampoco: los pasos que faltan muestran el
+          // resumen de lo que la persona acaba de completar, y limpiarlo los
+          // dejaría en blanco.
+          if (!keepData && !stayInWizard) {
             // La sesión de tracking NO se suelta acá: la confirmación es la
             // que emite `application_submitted` con el `application_code`, y
             // tiene que caer sobre la misma fila que ws2 acaba de marcar con
@@ -561,6 +576,24 @@ export function useSubmitApplication(
           // los pasos posteriores de verificación antes del resumen. En el resto
           // de landings (kyc apagado) el comportamiento es el de siempre: directo
           // a confirmación.
+          // Envío anticipado: la solicitud ya existe pero el wizard sigue. Se
+          // deja el handoff y se devuelve el control a quien llamó, que sabe
+          // cuál es la pantalla siguiente. Navegar acá mandaría a la persona
+          // fuera del formulario que todavía está llenando.
+          if (stayInWizard) {
+            // Sin código no hay handoff: la pantalla siguiente no tendría de
+            // qué hablar, y un handoff a medias es peor que ninguno porque la
+            // haría creer que ya hay solicitud.
+            if (result.application_code) {
+              saveEnvioAnticipadoHandoff(landing, {
+                applicationCode: result.application_code,
+                resumeToken: result.kyc_resume_token || undefined,
+                documentNumber: capturedDocumentNumber,
+              });
+            }
+            return true;
+          }
+
           if (kycEnabled) {
             // Con el token del submit se va a la pagina tokenizada: el KYC lo
             // usa como prueba de titularidad y NO tiene que pedir el DNI. Es el
