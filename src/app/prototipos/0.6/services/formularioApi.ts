@@ -26,6 +26,10 @@ export type FormularioStatus =
 
 export interface DocumentoSubido {
   id: number;
+  /** Estado del ARCHIVO, no del módulo: en uno de varios, el del módulo lo deja
+   * el último que subió. `rejected` acá bloquea el envío aunque el módulo se
+   * vea verde. */
+  status?: string | null;
   file_name: string;
   mime_type: string | null;
   uploaded_at: string | null;
@@ -102,6 +106,9 @@ export interface Pantalla {
     questions: string | null;
   };
   submitted_at: string | null;
+  /** Id de sesión para la telemetría, derivado del token por el backend. NO es
+   * el token: el token es la única credencial del formulario. */
+  telemetria_session?: string | null;
 }
 
 export interface EnviarPayload {
@@ -119,6 +126,9 @@ export interface EnviarRespuesta {
   contacto: { dia: string; horario: string; canal: string; telefono: string };
 }
 
+/** Guardado por sección: todo opcional, solo viaja lo que la sección tocó. */
+export type GuardarParcialPayload = Partial<EnviarPayload>;
+
 export interface FormularioApiError {
   error: string;
   reason: string;
@@ -134,24 +144,32 @@ const NETWORK: FormularioApiError = {
   reason: 'network', error: 'No pudimos conectarnos. Revisa tu conexión.',
 };
 
+/** Traduce el `detail` del backend a `{reason, error}`.
+ *
+ * Vive aparte de `toError` porque la subida va por XHR y ahí el cuerpo ya
+ * viene parseado: el mapeo del `detail` es el mismo y no puede divergir. */
+function errorDeDetail(d: unknown): FormularioApiError {
+  // FastAPI devuelve los errores de validación de Pydantic como un ARRAY de
+  // `{loc, msg, type}`, no como el `{reason, message}` propio del dominio.
+  if (Array.isArray(d)) {
+    return { reason: 'validation_error', error: 'Revisa los datos e intenta nuevamente.' };
+  }
+  if (d && typeof d === 'object') {
+    const o = d as { reason?: string; message?: string; modules?: unknown };
+    return {
+      reason: o.reason || 'unknown',
+      error: o.message || 'Ocurrió un error.',
+      modulos: Array.isArray(o.modules) ? (o.modules as string[]) : undefined,
+    };
+  }
+  return { reason: 'unknown', error: typeof d === 'string' ? d : 'Ocurrió un error.' };
+}
+
 /** Extrae `{reason, message}` del `detail` del backend. */
 async function toError(response: Response): Promise<FormularioApiError> {
   try {
     const data = await response.json();
-    const d = data?.detail;
-    // FastAPI devuelve los errores de validación de Pydantic como un ARRAY de
-    // `{loc, msg, type}`, no como el `{reason, message}` propio del dominio.
-    if (Array.isArray(d)) {
-      return { reason: 'validation_error', error: 'Revisa los datos e intenta nuevamente.' };
-    }
-    if (d && typeof d === 'object') {
-      return {
-        reason: d.reason || 'unknown',
-        error: d.message || 'Ocurrió un error.',
-        modulos: Array.isArray(d.modules) ? d.modules : undefined,
-      };
-    }
-    return { reason: 'unknown', error: typeof d === 'string' ? d : 'Ocurrió un error.' };
+    return errorDeDetail(data?.detail);
   } catch {
     return { reason: 'unknown', error: 'Ocurrió un error.' };
   }
@@ -170,25 +188,64 @@ export async function getFormulario(token: string): Promise<Pantalla | Formulari
   }
 }
 
-/** Sube un archivo a un módulo. Devuelve el módulo actualizado. */
+/** Sube un archivo a un módulo. Devuelve el módulo actualizado.
+ *
+ * Va por XHR y no por `fetch` para poder informar el avance: `fetch` no expone
+ * el progreso de SUBIDA (su `ReadableStream` es solo de bajada), y en un
+ * celular con señal pobre una foto tarda lo suficiente como para que sin
+ * porcentaje la pantalla parezca colgada.
+ *
+ * `onProgress` recibe 0..100 y se llama solo cuando el navegador puede medir
+ * (`lengthComputable`). Al terminar de subir, el servidor todavía guarda y
+ * valida, así que el porcentaje se queda en 99 hasta que llega la respuesta:
+ * mostrar 100 y seguir esperando es peor que no mostrarlo. */
 export async function subirArchivo(
   token: string,
   code: ModuloCode,
   file: File,
   fulfilledBy: FulfilledBy = 'document',
+  onProgress?: (porcentaje: number) => void,
 ): Promise<Modulo | FormularioApiError> {
-  try {
-    const body = new FormData();
-    body.append('file', file);
-    body.append('fulfilled_by', fulfilledBy);
-    const response = await fetch(`${base(token)}/modulos/${code}/archivo`, {
-      method: 'POST', body,
-    });
-    if (!response.ok) return await toError(response);
-    return (await response.json()) as Modulo;
-  } catch {
-    return NETWORK;
-  }
+  const body = new FormData();
+  body.append('file', file);
+  body.append('fulfilled_by', fulfilledBy);
+
+  return new Promise((resolve) => {
+    let xhr: XMLHttpRequest;
+    try {
+      xhr = new XMLHttpRequest();
+    } catch {
+      resolve(NETWORK);
+      return;
+    }
+    xhr.open('POST', `${base(token)}/modulos/${code}/archivo`);
+
+    xhr.upload.onprogress = (e) => {
+      if (!onProgress || !e.lengthComputable || e.total === 0) return;
+      // Tope en 99: lo que falta es el guardado del servidor, no la subida.
+      onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      let cuerpo: unknown = null;
+      try {
+        cuerpo = JSON.parse(xhr.responseText);
+      } catch {
+        /* respuesta sin JSON: cae al manejo de abajo */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve(cuerpo as Modulo);
+        return;
+      }
+      resolve(errorDeDetail((cuerpo as { detail?: unknown } | null)?.detail));
+    };
+    xhr.onerror = () => resolve(NETWORK);
+    xhr.ontimeout = () => resolve(NETWORK);
+    xhr.onabort = () => resolve(NETWORK);
+
+    xhr.send(body);
+  });
 }
 
 /** Cumple un módulo con texto (boleta → "cómo percibo mis ingresos", detalle). */
@@ -227,6 +284,29 @@ export async function borrarArchivo(
   }
 }
 
+/** Guarda lo que la sección lleva escrito, sin cerrar el formulario.
+ *
+ * No crea la cita ni consume el link: eso sigue siendo del botón Enviar. Sirve
+ * para que el estudiante que abandona a mitad de camino igual nos deje su
+ * horario, su teléfono o su dirección corregida. Devuelve la pantalla entera,
+ * ya con lo guardado. */
+export async function guardarParcial(
+  token: string,
+  payload: GuardarParcialPayload,
+): Promise<Pantalla | FormularioApiError> {
+  try {
+    const response = await fetch(base(token), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as Pantalla;
+  } catch {
+    return NETWORK;
+  }
+}
+
 /** Botón Enviar: contacto, dirección corregida y dudas. Consume el link. */
 export async function enviarFormulario(
   token: string,
@@ -240,6 +320,33 @@ export async function enviarFormulario(
     });
     if (!response.ok) return await toError(response);
     return (await response.json()) as EnviarRespuesta;
+  } catch {
+    return NETWORK;
+  }
+}
+
+export interface RenovarRespuesta {
+  ok: true;
+  /** Celular enmascarado al que se mandó el enlace nuevo (`***-***-777`). */
+  telefono: string;
+  /** Cuándo vence el enlace nuevo, hora Lima sin zona (`2026-09-04T11:55:00`).
+   * Hereda el vencimiento del primero: renovar NO reinicia el plazo. */
+  expires_at?: string;
+}
+
+/**
+ * Pide un enlace nuevo desde uno vencido/reemplazado/usado. El backend lo
+ * manda por WhatsApp al celular registrado y NUNCA lo devuelve acá: quien
+ * tenga una URL vieja (un mensaje reenviado) no obtiene la nueva.
+ *
+ * Errores: 409 `already_submitted` | `not_applicable`, 429 `rate_limited`,
+ * 502 `send_failed`, 404 `invalid`.
+ */
+export async function renovarEnlace(token: string): Promise<RenovarRespuesta | FormularioApiError> {
+  try {
+    const response = await fetch(`${base(token)}/renovar`, { method: 'POST' });
+    if (!response.ok) return await toError(response);
+    return (await response.json()) as RenovarRespuesta;
   } catch {
     return NETWORK;
   }

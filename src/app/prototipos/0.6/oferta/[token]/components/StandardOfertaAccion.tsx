@@ -470,6 +470,22 @@ export function StandardOfertaAccion({
   // haya dos números conviviendo en pantalla.
   const cuotaVigente = cuotaConSeleccion ?? shownMonthly;
 
+  // Desglose de la barra fija: cuanto de la cuota es el equipo y cuanto lo que
+  // el cliente agrego. La barra mostraba solo el total y con accesorios
+  // marcados no habia forma de saber que parte era cual.
+  //
+  // Los preexistentes van del lado de ACCESORIOS: son accesorios igual, no se
+  // listan como items (el catalogo del link ya los excluye) y su cuota esta
+  // horneada en la base vigente. Contarlos con el equipo mostraria una cuota de
+  // equipo que no es la del equipo.
+  const desgloseAccesorios =
+    keptDelta + (usaBaseVigente ? preexistentesMonthly : 0);
+  const desgloseEquipo = usaBaseVigente
+    ? (info?.equipmentMonthlyPayment ?? null)
+    : equipoMonthly;
+  // Sin accesorios en la cuota no hay nada que desglosar: la cuota ES el equipo.
+  const hayDesglose = desgloseAccesorios > 0 && desgloseEquipo != null;
+
   // Título por modalidad (WEB-04). `esOfertaDeAccesorios` se declara arriba.
   const nombre = offer.clientName?.trim();
   const saludo = esOfertaDeAccesorios
@@ -913,6 +929,17 @@ export function StandardOfertaAccion({
                   {cuotaSuffix(frecuencia)}
                 </span>
               </div>
+              {hayDesglose ? (
+                <div
+                  data-testid="desglose-cuota"
+                  className="text-[10.5px] font-semibold leading-tight"
+                  style={{ color: OFERTA_COLORS.textSoft }}
+                >
+                  Equipo S/{Math.round(desgloseEquipo as number)}
+                  {' + '}
+                  Accesorios S/{Math.round(desgloseAccesorios)}
+                </div>
+              ) : null}
             </div>
           ) : null}
           <div className="flex flex-1 items-center justify-end gap-2">

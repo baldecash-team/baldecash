@@ -11,7 +11,7 @@
  * módulo completo — mismo patrón que `EntregaClient.test.tsx`.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
@@ -24,12 +24,16 @@ jest.mock('@/app/prototipos/0.6/services/formularioApi', () => {
     cumplirConTexto: jest.fn(),
     borrarArchivo: jest.fn(),
     enviarFormulario: jest.fn(),
+    renovarEnlace: jest.fn(),
+    guardarParcial: jest.fn(),
   };
 });
 
 import {
   enviarFormulario,
   getFormulario,
+  guardarParcial,
+  renovarEnlace,
   subirArchivo,
   type Modulo,
   type Pantalla,
@@ -38,7 +42,9 @@ import { FormularioClient, agrupar, fechaIso, moduloListo } from '../FormularioC
 
 const mockGet = getFormulario as jest.Mock;
 const mockSubir = subirArchivo as jest.Mock;
+const mockRenovar = renovarEnlace as jest.Mock;
 const mockEnviar = enviarFormulario as jest.Mock;
+const mockGuardar = guardarParcial as jest.Mock;
 
 const modulo = (code: Modulo['code'], extra: Partial<Modulo> = {}): Modulo => ({
   code, status: 'pending', fulfilled_by: null, is_required: true, min_files: 1,
@@ -69,6 +75,7 @@ beforeEach(() => {
   mockGet.mockReset();
   mockSubir.mockReset();
   mockEnviar.mockReset();
+  mockGuardar.mockReset();
   // 10:00 de la mañana: "hoy" tiene bloques disponibles y la hora exacta no
   // depende de a qué hora corra la suite.
   jest.useFakeTimers({ now: new Date(2026, 8, 4, 10, 0, 0), advanceTimers: true });
@@ -106,10 +113,93 @@ describe('FormularioClient', () => {
     expect(screen.queryByLabelText('Grabar')).not.toBeInTheDocument();
   });
 
-  it('enlace vencido → pantalla de vencido', async () => {
-    mockGet.mockResolvedValue({ reason: 'expired', error: 'Este enlace expiró.' });
-    render(<FormularioClient token="tok" />);
-    expect(await screen.findByText('Este enlace venció')).toBeInTheDocument();
+  describe('enlace caído (410)', () => {
+    const boton = () => screen.findByRole('button', { name: /Enviarme un enlace nuevo por WhatsApp/ });
+
+    it('vencido → explica y ofrece pedir uno nuevo', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'Este enlace expiró.' });
+      render(<FormularioClient token="tok" />);
+      expect(await screen.findByText('Este enlace venció')).toBeInTheDocument();
+      expect(screen.getByText(/cada enlace vale 8 horas/)).toBeInTheDocument();
+      expect(await boton()).toBeEnabled();
+      // cabecera y fondo propios: no queda un <main> suelto. La marca es el
+      // logo, asi que se busca por su texto alternativo y no por texto suelto.
+      expect(screen.getByRole('banner')).toContainElement(screen.getByAltText('BaldeCash'));
+    });
+
+    it('reemplazado por uno más nuevo → no es un error del estudiante', async () => {
+      mockGet.mockResolvedValue({ reason: 'superseded', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      expect(await screen.findByText('Te enviamos un enlace más nuevo por WhatsApp')).toBeInTheDocument();
+      expect(screen.getByText(/Usa el último que recibiste/)).toBeInTheDocument();
+      expect(await boton()).toBeInTheDocument();
+    });
+
+    it('ya enviado → confirmación, sin botón de pedir otro', async () => {
+      mockGet.mockResolvedValue({ reason: 'submitted', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      expect(await screen.findByText('Ya recibimos tu formulario')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /enlace nuevo/ })).not.toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 200 muestra el celular enmascarado y deshabilita el botón', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ ok: true, telefono: '***-***-777' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(mockRenovar).toHaveBeenCalledWith('tok');
+      expect(await screen.findByText('Listo, te enviamos un enlace nuevo')).toBeInTheDocument();
+      expect(screen.getByText('***-***-777')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Enlace enviado' })).toBeDisabled();
+      expect(screen.getByText(/Escríbenos por WhatsApp/)).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 409 already_submitted pasa a "ya recibimos"', async () => {
+      mockGet.mockResolvedValue({ reason: 'revoked', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'already_submitted', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByText('Ya recibimos tu formulario')).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 502 deja el fallback de WhatsApp y permite reintentar', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'send_failed', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos enviarlo por WhatsApp');
+      expect(screen.getByText(/Escríbenos por WhatsApp/)).toBeInTheDocument();
+      expect(await boton()).toBeEnabled();
+    });
+
+    it('pedir uno nuevo → 200 con expires_at avisa hasta cuándo vale (hora Lima, sin correr el día)', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      const hoy = new Date();
+      const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}T11:55:00`;
+      mockRenovar.mockResolvedValue({ ok: true, telefono: '***-***-777', expires_at: iso });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByText(/Ábrelo pronto: vence hoy a las 11:55/)).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 409 sla_expired: se venció el plazo, sin reintentar', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'sla_expired', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByText('Se venció el plazo para completar el formulario')).toBeInTheDocument();
+      expect(screen.getByText(/Tu asesor se comunicará contigo/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /enlace nuevo|Reintentar/ })).not.toBeInTheDocument();
+      expect(screen.getByText(/Escríbenos por WhatsApp/)).toBeInTheDocument();
+    });
+
+    it('pedir uno nuevo → 429 avisa del tope', async () => {
+      mockGet.mockResolvedValue({ reason: 'expired', error: 'x' });
+      mockRenovar.mockResolvedValue({ reason: 'rate_limited', error: 'x' });
+      render(<FormularioClient token="tok" />);
+      await userEvent.click(await boton());
+      expect(await screen.findByRole('alert')).toHaveTextContent('Ya te enviamos varios enlaces hoy');
+    });
   });
 
   it('enlace inválido o de otro flujo → mismo copy', async () => {
@@ -204,18 +294,185 @@ describe('FormularioClient', () => {
     const input = screen.getByTestId('input-payslip') as HTMLInputElement;
     await userEvent.upload(input, new File(['x'], 'boleta.jpg', { type: 'image/jpeg' }));
 
-    await waitFor(() => expect(mockSubir).toHaveBeenCalledWith('tok', 'payslip', expect.any(File), 'document'));
+    await waitFor(() => expect(mockSubir).toHaveBeenCalledWith('tok', 'payslip', expect.any(File), 'document', expect.any(Function)));
     // Al completarse, la sección se colapsa a "Listo".
     expect(await screen.findByText('Listo')).toBeInTheDocument();
   });
 
-  it('módulo rechazado muestra el motivo y el intento', async () => {
+  it('la subida no bloquea la pantalla: el archivo se ve mientras viaja', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
+    let resolver: (m: Modulo) => void = () => {};
+    mockSubir.mockReturnValue(new Promise<Modulo>((r) => { resolver = r; }));
+    render(<FormularioClient token="tok" />);
+
+    await screen.findByText(/Laptop Lenovo/);
+    const input = screen.getByTestId('input-payslip') as HTMLInputElement;
+    await userEvent.upload(input, new File(['x'], 'boleta.jpg', { type: 'image/jpeg' }));
+
+    // Mientras el request viaja: se ve el archivo, NO una pantalla de carga
+    // que tape todo, y las demas secciones siguen ahi.
+    expect(await screen.findByText('Guardando tu archivo…')).toBeInTheDocument();
+    expect(screen.getByText('boleta.jpg')).toBeInTheDocument();
+    expect(screen.queryByText('Cargando…')).not.toBeInTheDocument();
+    expect(screen.getByText(/¿Cuándo puede conversar contigo tu asesor\?/)).toBeInTheDocument();
+
+    resolver(modulo('payslip', { status: 'uploaded', files_count: 1, fulfilled_by: 'document' }));
+    expect(await screen.findByText('Listo')).toBeInTheDocument();
+  });
+
+  it('el avance cuenta las secciones guardadas y Enviar queda despues de las tarjetas', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('utility_bill'), modulo('payslip')] }));
+    mockGuardar.mockImplementation(async () => pantalla({ modulos: [modulo('utility_bill'), modulo('payslip')] }));
+    render(<FormularioClient token="tok" />);
+    await screen.findByText(/Laptop Lenovo/);
+
+    // 4 secciones: los dos documentos, el contacto y las dudas.
+    const avance = screen.getByRole('progressbar', { name: 'Secciones completadas' });
+    expect(avance).toHaveAttribute('aria-valuemax', '4');
+    expect(avance).toHaveAttribute('aria-valuenow', '0');
+    expect(screen.getByText('0 de 4 secciones listas')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Dudas'), 'Quiero cambiar el color');
+    await userEvent.click(screen.getByTestId('guardar-ayuda'));
+    await waitFor(() => expect(screen.getByText('1 de 4 secciones listas')).toBeInTheDocument());
+
+    // Enviar sigue viviendo fuera de las tarjetas y DESPUES de la ultima en el
+    // DOM: es lo que en movil lo deja al final y lo que leen el tabulador y un
+    // lector de pantalla. En escritorio lo sube al lado del producto la grilla
+    // (`lg:row-start-2` contra una columna de tarjetas que ocupa las dos filas),
+    // no el orden del DOM.
+    const enviar = screen.getByRole('button', { name: /^Enviar$/ });
+    const ultimaTarjeta = screen.getByText(/¿Tienes alguna duda/);
+    expect(ultimaTarjeta.compareDocumentPosition(enviar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('muestra el porcentaje mientras el archivo viaja', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
+    let avisar: (p: number) => void = () => {};
+    let resolver: (m: Modulo) => void = () => {};
+    mockSubir.mockImplementation((_t, _c, _f, _fb, onProgress) => {
+      avisar = onProgress;
+      return new Promise<Modulo>((r) => { resolver = r; });
+    });
+    render(<FormularioClient token="tok" />);
+    await screen.findByText(/Laptop Lenovo/);
+    await userEvent.upload(screen.getByTestId('input-payslip') as HTMLInputElement,
+                           new File(['x'], 'boleta.jpg', { type: 'image/jpeg' }));
+
+    // Hay dos barras en pantalla: la del avance de secciones y la de esta
+    // subida. Se apunta a la de la subida por su etiqueta.
+    // Hay dos "0%" en pantalla (el avance de secciones y esta subida), asi que
+    // se mira la barra por su etiqueta y no el texto suelto.
+    const barraSubida = () => screen.queryByRole('progressbar', { name: 'Avance de la subida' });
+    await waitFor(() => expect(barraSubida()).toHaveAttribute('aria-valuenow', '0'));
+
+    await act(async () => { avisar(45); });
+    await waitFor(() => expect(barraSubida()).toHaveAttribute('aria-valuenow', '45'));
+    expect(screen.getByText('45%')).toBeInTheDocument();
+
+    resolver(modulo('payslip', { status: 'uploaded', files_count: 1, fulfilled_by: 'document' }));
+    expect(await screen.findByText('Listo')).toBeInTheDocument();
+    expect(barraSubida()).not.toBeInTheDocument();
+  });
+
+  it('si la subida falla, se retira la previa y queda el error en el módulo', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
+    mockSubir.mockResolvedValue({ reason: 'file_size', error: 'El archivo pesa mas de 5 MB.' });
+    render(<FormularioClient token="tok" />);
+
+    await screen.findByText(/Laptop Lenovo/);
+    await userEvent.upload(screen.getByTestId('input-payslip') as HTMLInputElement,
+                           new File(['x'], 'boleta.jpg', { type: 'image/jpeg' }));
+
+    expect(await screen.findByText('El archivo pesa mas de 5 MB.')).toBeInTheDocument();
+    expect(screen.queryByText('Guardando tu archivo…')).not.toBeInTheDocument();
+  });
+
+  it('la sección de contacto guarda lo suyo sin enviar el formulario', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
+    mockGuardar.mockImplementation(async () => pantalla({ modulos: [modulo('payslip')] }));
+    render(<FormularioClient token="tok" />);
+
+    await screen.findByText(/Laptop Lenovo/);
+    // `/^Hoy/` y no "Mañana": el chip del día y el bloque de la mañana
+    // comparten texto y la consulta encuentra dos botones.
+    await userEvent.click(screen.getByRole('button', { name: /^Hoy/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Tarde/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'WhatsApp' }));
+
+    const guardar = screen.getByTestId('guardar-contacto');
+    await waitFor(() => expect(guardar).toBeEnabled());
+    await userEvent.click(guardar);
+
+    await waitFor(() => expect(mockGuardar).toHaveBeenCalledWith('tok', expect.objectContaining({
+      contact_date: '2026-09-04', contact_slot: '15_18', contact_channel: 'whatsapp',
+    })));
+    // Guardar por seccion NO envia el formulario.
+    expect(mockEnviar).not.toHaveBeenCalled();
+    // Guardada, la seccion se colapsa a "Listo".
+    expect(await screen.findByText('Listo')).toBeInTheDocument();
+
+    // Al reabrirla y cambiar algo, vuelve a ofrecer guardar.
+    await userEvent.click(screen.getByText(/¿Cuándo puede conversar contigo tu asesor\?/));
+    await userEvent.click(screen.getByRole('button', { name: 'Llamada' }));
+    await waitFor(() => expect(screen.getByTestId('guardar-contacto')).toHaveTextContent('Guardar'));
+    expect(screen.queryByText('Listo')).not.toBeInTheDocument();
+  });
+
+  it('la sección de dudas tiene su propio guardar', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
+    mockGuardar.mockImplementation(async () => pantalla({ modulos: [modulo('payslip')] }));
+    render(<FormularioClient token="tok" />);
+
+    await screen.findByText(/Laptop Lenovo/);
+    await userEvent.type(screen.getByLabelText('Dudas'), 'Quiero cambiar el color');
+    await userEvent.click(screen.getByTestId('guardar-ayuda'));
+
+    await waitFor(() => expect(mockGuardar).toHaveBeenCalledWith('tok', { questions: 'Quiero cambiar el color' }));
+    expect(mockEnviar).not.toHaveBeenCalled();
+  });
+
+  it('Enviar vive fuera de las tarjetas: sigue visible al guardar la última', async () => {
+    mockGet.mockResolvedValue(pantalla({ modulos: [modulo('payslip')] }));
+    mockGuardar.mockImplementation(async () => pantalla({ modulos: [modulo('payslip')] }));
+    render(<FormularioClient token="tok" />);
+    await screen.findByText(/Laptop Lenovo/);
+
+    await userEvent.type(screen.getByLabelText('Dudas'), 'Quiero cambiar el color');
+    await userEvent.click(screen.getByTestId('guardar-ayuda'));
+
+    // La seccion de dudas se colapsa, pero el Enviar y su aviso no viven
+    // adentro: quedan debajo de todas las tarjetas.
+    await waitFor(() => expect(screen.queryByLabelText('Dudas')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^Enviar$/ })).toBeInTheDocument();
+    expect(screen.getByText('El botón se activa cuando completes lo de arriba.')).toBeInTheDocument();
+    expect(screen.getByText(/Tus documentos están seguros/)).toBeInTheDocument();
+  });
+
+  it('el módulo completo ofrece Ver y Subir otro como botones', async () => {
+    mockGet.mockResolvedValue(pantalla({
+      modulos: [modulo('payslip', {
+        status: 'uploaded', files_count: 1, attempt_count: 1,
+        documents: [{ id: 9, file_name: 'boleta.jpg', mime_type: 'image/jpeg', uploaded_at: null, view_url: 'https://s3.test/boleta.jpg' }],
+      })],
+    }));
+    render(<FormularioClient token="tok" />);
+
+    // Completo, el modulo se colapsa a "Listo": se abre para ver sus acciones.
+    await userEvent.click(await screen.findByText('Tu boleta de pago'));
+    const ver = await screen.findByRole('link', { name: /Ver/ });
+    expect(ver).toHaveAttribute('href', 'https://s3.test/boleta.jpg');
+    expect(screen.getByRole('button', { name: /Subir otro/ })).toBeInTheDocument();
+  });
+
+  it('módulo rechazado muestra el motivo y cuántos intentos le quedan', async () => {
     mockGet.mockResolvedValue(pantalla({
       modulos: [modulo('utility_bill', { status: 'rejected', attempt_count: 1, rejection_message: 'El recibo no es de los últimos 2 meses' })],
     }));
     render(<FormularioClient token="tok" />);
     expect(await screen.findByText('El recibo no es de los últimos 2 meses')).toBeInTheDocument();
-    expect(screen.getByText(/Intento 1 de 3/)).toBeInTheDocument();
+    // Cuántos le QUEDAN, no en cuál va: es lo que decide si vuelve a intentar.
+    expect(screen.getByText('Te quedan 2 intentos')).toBeInTheDocument();
   });
 
   it('ya enviado al abrir → confirmación directa', async () => {

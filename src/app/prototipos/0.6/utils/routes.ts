@@ -30,6 +30,41 @@ export function catalogo(landing: string, query?: string): string {
 }
 
 /**
+ * Convierte un href guardado desde el admin en una URL navegable de esta landing.
+ *
+ * El selector del admin (`NavigationLinkSelect`) guarda los hrefs SIN barra
+ * inicial --`catalogo`, `catalogo?device=laptop`, `proximamente/becas`--, que
+ * no son rutas validas por si solas: hay que anteponerles el home de la landing.
+ *
+ * Es la misma logica que `transformLink` en `components/hero/Navbar.tsx`. Se
+ * copio esa variante y no la del Footer: el Footer manda `#ancla` por la rama
+ * de "dejar intacto", asi que desde una subpagina el ancla se busca en la
+ * pagina actual en vez de llevar al home de la landing.
+ *
+ * OJO con el orden: esta funcion NO sanitiza. El resultado tiene que pasar
+ * despues por `safeLinkUrl`. Al reves no funciona -- `safeLinkUrl('catalogo')`
+ * devuelve '' porque no empieza con '/', '#', '?' ni 'http', y el enlace
+ * desaparece sin ningun error.
+ *
+ * Devuelve '' cuando no hay href, para que el consumidor decida no renderizar
+ * el enlace (mismo contrato que `safeLinkUrl`).
+ */
+export function transformConfigHref(href: string, landing: string): string {
+  if (!href) return '';
+
+  if (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:')) {
+    return href;
+  }
+
+  const home = landingHome(landing.replace(/\/+$/, ''));
+
+  if (href.startsWith('#')) return `${home}${href}`;
+  if (href.startsWith(`${BASE_PATH}/`)) return href;
+
+  return `${home}/${href}`;
+}
+
+/**
  * Selección de institución: /{landing}/universidad
  *
  * Primera pantalla del producto de matrícula. Reemplaza al catálogo: acá no se

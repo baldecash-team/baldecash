@@ -581,4 +581,58 @@ describe('StandardOfertaAccion', () => {
     expect(terminos().queryByText(porTextoCompleto('S/220/mes'))).not.toBeInTheDocument();
     expect(terminos().queryByText(/Incluye S\//i)).not.toBeInTheDocument();
   });
+
+  // ------------------------------------------------------- desglose en barra
+
+  describe('desglose de la cuota en la barra fija', () => {
+    /** La barra mostraba solo el total: con accesorios marcados el cliente no
+     *  sabia cuanto era del equipo y cuanto de lo que habia agregado. */
+
+    const marcar = (nombre: RegExp) => {
+      fireEvent.click(screen.getByRole('checkbox', { name: nombre }));
+    };
+
+    it('sin accesorios marcados no muestra desglose', () => {
+      renderView(conAccesorios());
+
+      expect(barra().queryByTestId('desglose-cuota')).not.toBeInTheDocument();
+    });
+
+    it('al marcar un accesorio desglosa equipo y accesorios', () => {
+      renderView(conAccesorios());
+
+      marcar(/Incluir Mochila Lenovo/i);
+
+      // Equipo 299 (340 de la oferta menos los 41 de los dos add-ons) + 20.
+      expect(barra().getByTestId('desglose-cuota')).toHaveTextContent(
+        'Equipo S/299 + Accesorios S/20',
+      );
+    });
+
+    it('el desglose suma exactamente la cuota que muestra la barra', () => {
+      renderView(conAccesorios());
+
+      marcar(/Incluir Mochila Lenovo/i);
+      marcar(/Incluir Mouse inalambrico/i);
+
+      // 299 + 41 = 340, el total de la oferta con los dos accesorios.
+      expect(barra().getByTestId('desglose-cuota')).toHaveTextContent(
+        'Equipo S/299 + Accesorios S/41',
+      );
+    });
+
+    it('con accesorios preexistentes los cuenta del lado de accesorios', () => {
+      /** La base vigente ya trae accesorios que el cliente TIENE y que no se
+       *  listan como items. Van del lado de accesorios para que la suma cierre:
+       *  equipo 200 + (20 preexistentes + 15 del marcado) = 235. */
+      renderView(conBaseVigente());
+
+      marcar(/Incluir Garantía extendida/i);
+
+      expect(barra().getByTestId('desglose-cuota')).toHaveTextContent(
+        'Equipo S/200 + Accesorios S/35',
+      );
+    });
+  });
+
 });

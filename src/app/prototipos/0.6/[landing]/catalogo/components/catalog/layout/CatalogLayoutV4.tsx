@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
@@ -72,6 +73,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const analytics = useAnalytics();
+
+  // La landing sale de la ruta ([landing]/catalogo). El banner la necesita
+  // para resolver los enlaces que guarda el admin, que vienen sin barra
+  // inicial (`catalogo?device=laptop`). Mismo patrón que ProductCard.
+  const routeParams = useParams();
+  const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
 
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
@@ -676,6 +683,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               desktopImageUrl={catalogBanner.desktop_image_url as string}
               mobileImageUrl={catalogBanner.mobile_image_url as string}
               linkUrl={catalogBanner.link_url as string | undefined}
+              desktopLinkUrl={catalogBanner.desktop_link_url as string | undefined}
+              mobileLinkUrl={catalogBanner.mobile_link_url as string | undefined}
+              landing={landingSlug ?? undefined}
               linkTarget={catalogBanner.link_target as string | undefined}
               altText={catalogBanner.alt_text as string | undefined}
             />

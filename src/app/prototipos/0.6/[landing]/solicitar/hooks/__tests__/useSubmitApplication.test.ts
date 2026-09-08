@@ -48,7 +48,7 @@ const mockFormData = {
 
 const mockSessionUuid = 'test-session-uuid';
 
-const mockClearSession = jest.fn();
+const mockMarcarSesionConvertida = jest.fn();
 const mockResetForm = jest.fn();
 const mockClearProduct = jest.fn();
 const mockClearCartProducts = jest.fn();
@@ -88,7 +88,7 @@ jest.mock('../../context/WizardContext', () => ({
 jest.mock('../../context/SessionContext', () => ({
   useSession: () => ({
     sessionUuid: mockSessionUuid,
-    clearSession: mockClearSession,
+    marcarSesionConvertida: mockMarcarSesionConvertida,
   }),
 }));
 
@@ -159,8 +159,10 @@ describe('useSubmitApplication', () => {
         })
       );
 
-      // Should clear all state
-      expect(mockClearSession).toHaveBeenCalled();
+      // Should clear all state. La sesión de tracking se MARCA, no se borra:
+      // la confirmación tiene que emitir `application_submitted` sobre la misma
+      // fila que ws2 acaba de atar a la solicitud.
+      expect(mockMarcarSesionConvertida).toHaveBeenCalled();
       expect(mockResetForm).toHaveBeenCalled();
       expect(mockClearProduct).toHaveBeenCalled();
       expect(mockClearCartProducts).toHaveBeenCalled();
@@ -295,7 +297,7 @@ describe('useSubmitApplication', () => {
 
       expect(success).toBe(false);
       expect(onToast).toHaveBeenCalledWith('Error del servidor', 'error');
-      expect(mockClearSession).not.toHaveBeenCalled();
+      expect(mockMarcarSesionConvertida).not.toHaveBeenCalled();
       expect(mockPush).not.toHaveBeenCalled();
     });
 
@@ -547,7 +549,7 @@ describe('useSubmitApplication', () => {
         await result.current.submit();
       });
 
-      expect(mockClearSession).toHaveBeenCalled();
+      expect(mockMarcarSesionConvertida).toHaveBeenCalled();
       expect(mockResetForm).toHaveBeenCalled();
       expect(mockClearProduct).toHaveBeenCalled();
       expect(mockClearAccessories).toHaveBeenCalled();

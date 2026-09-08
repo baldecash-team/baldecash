@@ -511,7 +511,13 @@ export function GaleriaUnidad({
                       // que capturar solo el rechazo de `play()` (en
                       // `VideoControls`) no alcanza.
                       onError={() => setErrorVideo(true)}
-                      className="h-full w-full object-cover object-[50%_60%]"
+                      // El mismo 67% que la foto grande de al lado, y por el
+                      // mismo motivo: la estación graba el video con el mismo
+                      // encuadre 1:1 que las fotos (`ASPECT_RATIO = 1` en
+                      // `useKioskRecorder`), así que comparte visor y comparte
+                      // corrección. Si algún día el video se grabara con otro
+                      // encuadre, este valor se separa del de la foto.
+                      className="h-full w-full object-cover object-[50%_67%]"
                     />
                     {errorVideo && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[#151744]/92 px-6 text-center">
@@ -533,15 +539,20 @@ export function GaleriaUnidad({
                   <img
                     src={fotoActual.url}
                     alt={`${titulo} — ${etiquetaFoto(fotoActualIndice)}`}
-                    // Mismo criterio de encuadre que la tira de miniaturas de acá
-                    // abajo y que la card de la lista (`UnidadCard`): las
-                    // grabaciones de la estación de inspección traen pared vacía
-                    // arriba y el equipo cae hacia la mitad inferior del cuadro.
+                    // 67%, y es un número distinto al 60% de la card A PROPÓSITO:
+                    // el object-position que centra al equipo depende de cuánto
+                    // recorta cada caja. Acá el visor de desktop (~537x425) deja
+                    // ver el 79% del alto de la fuente, contra el 48% de la
+                    // card, así que el mismo centro de sujeto (~54% del cuadro,
+                    // medido sobre las 7 unidades del link vivo) cae en 67%.
+                    // Compartir un solo valor entre las dos cajas es lo que
+                    // dejaba una de las dos siempre corrida.
+                    //
                     // `object-cover` (en vez de `object-contain`, que dejaba el
                     // equipo chico y con bandas) hace que el medio grande
                     // acompañe a la tira, que ya recorta; lo que quede fuera del
                     // recuadro se alcanza con el zoom, que es justo para eso.
-                    className="h-full w-full object-cover object-[50%_60%]"
+                    className="h-full w-full object-cover object-[50%_67%]"
                   />
                 ) : (
                   <p className="px-6 text-center text-[13px] text-[#5b5c6b]">
@@ -759,6 +770,14 @@ export function GaleriaUnidad({
  * ámbar "leve") exigiría conocer el vocabulario completo de Airtable, y un
  * valor nuevo caería en el color del default — diciéndole al cliente algo que
  * nadie decidió.
+ *
+ * La lista va PLEGADA, porque una unidad con las nueve casillas cargadas
+ * empujaba el botón de elegir fuera de pantalla. Plegar no puede volverse
+ * esconder: la cabecera —lo único visible sin abrir— dice cuántas marcas hay
+ * y cuántas son severas, así que la existencia y la gravedad se leen sin
+ * tocar nada, y lo que queda adentro es el detalle de cada una. El caso "sin
+ * daños" NO se pliega: es una sola línea y es justamente la que conviene
+ * leer de una.
  */
 function DanosDeLaUnidad({ defectos }: { defectos?: EleccionDefecto[] | null }) {
   if (defectos == null) return null;
@@ -780,12 +799,49 @@ function DanosDeLaUnidad({ defectos }: { defectos?: EleccionDefecto[] | null }) 
     );
   }
 
+  // El RESUMEN va en la cabecera, y no es decorativo: este bloque arranca
+  // plegado, así que lo único que se lee sin abrirlo es esta línea. Tiene que
+  // alcanzar para saber que la unidad TIENE marcas y qué tan serias son —si
+  // dijera solo "Marcas de esta unidad", plegarlo sería esconderle al cliente
+  // justo el dato que distingue una unidad de la de al lado.
+  //
+  // `startsWith('sever')` cubre "Severa"/"Severo" sin castillos: el
+  // vocabulario de Airtable es abierto y un valor nuevo simplemente no suma
+  // al conteo de severas, en vez de romper. Mismo criterio que el chip
+  // neutro de cada fila: no se colorea lo que no se conoce entero.
+  const severas = defectos.filter((d) =>
+    (d.nivel ?? '').trim().toLowerCase().startsWith('sever'),
+  ).length;
+  const resumen = [
+    `${defectos.length} ${defectos.length === 1 ? 'marca' : 'marcas'}`,
+    severas ? `${severas} ${severas === 1 ? 'severa' : 'severas'}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <div className="mt-4 rounded-2xl border border-[#ffe0b2] bg-[#fff8ef] p-4">
-      <p className="text-[13px] font-extrabold text-[#151744]">
-        Marcas de esta unidad
-      </p>
-      <ul className="mt-2 flex flex-col gap-1.5">
+    // `<details>` nativo, no un `useState`: se abre con teclado y con lector
+    // de pantalla sin que haya que cablear `aria-expanded`, y el contenido
+    // sigue en el DOM plegado (los tests lo encuentran igual).
+    <details className="group mt-4 rounded-2xl border border-[#ffe0b2] bg-[#fff8ef] p-4 [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4654CD]">
+        <span className="text-[13px] font-extrabold text-[#151744]">
+          Marcas de esta unidad
+        </span>
+        <span className="flex flex-none items-center gap-2">
+          <span className="rounded-full bg-white px-2 py-[3px] text-[11px] font-bold text-[#8a6a3a]">
+            {resumen}
+          </span>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+            className="text-[#8a6a3a] transition-transform group-open:rotate-180 motion-reduce:transition-none"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
+      </summary>
+      <ul className="mt-3 flex flex-col gap-1.5">
         {defectos.map((d, i) => (
           <li
             key={`${d.etiqueta}-${i}`}
@@ -803,7 +859,7 @@ function DanosDeLaUnidad({ defectos }: { defectos?: EleccionDefecto[] | null }) 
       <p className="mt-2.5 text-[12px] leading-[1.4] text-[#8a6a3a]">
         Míralas en el video y las fotos de arriba: son de esta unidad.
       </p>
-    </div>
+    </details>
   );
 }
 

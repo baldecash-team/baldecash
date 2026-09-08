@@ -49,6 +49,10 @@ interface FormErrors {
 type TextFormField = 'document_number' | 'first_name' | 'last_name' | 'phone' | 'study_center_id';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+/** Pausa de tipeo antes de buscar (igual que el wizard). */
+const SEARCH_DEBOUNCE_MS = 300;
+/** Mínimo de caracteres para pegarle al API de centros de estudio (el backend rechaza < 3). */
+const DEFAULT_MIN_SEARCH_LENGTH = 3;
 const APP_BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
 
 // Campos hardcodeados usados cuando la landing no tiene configuración dinámica en BD
@@ -195,37 +199,64 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     studyCenters.map((sc) => ({ value: String(sc.id), label: sc.shortName || sc.name }))
   );
 
-  const handleStudyCenterSearch = useCallback(async (search: string) => {
-    try {
-      const url = buildSearchUrl(search, studyCenterField?.options_filter);
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const data = await res.json();
-      setStudyCenterOptions((data.options || []).map((o: { value: number; label: string }) => ({
-        value: String(o.value),
-        label: o.label,
-      })));
-    } catch { /* ignore */ }
-  }, [studyCenterField?.options_filter]);
+  // Búsquedas remotas: una request por pausa de tipeo, no una por tecla, y se
+  // aborta la anterior para que una respuesta vieja no pise a la nueva.
+  // 2026-09-04: una activación masiva pegó "U", "Uc", "Ucv"... letra por letra
+  // (~1.300 req/min) a /public/options/study-centers y puso Aurora en CPU 100 %.
+  // El wizard (CascadingSelectField) ya debounceaba; el lead form no.
+  const searchTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const searchAbortsRef = useRef<Record<string, AbortController>>({});
+
+  const debouncedFetchOptions = useCallback((
+    key: string,
+    url: string,
+    onOptions: (options: { value: number | string; label: string }[]) => void,
+  ) => {
+    const timers = searchTimersRef.current;
+    if (timers[key]) clearTimeout(timers[key]);
+    timers[key] = setTimeout(async () => {
+      delete timers[key];
+      searchAbortsRef.current[key]?.abort();
+      const controller = new AbortController();
+      searchAbortsRef.current[key] = controller;
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok || controller.signal.aborted) return;
+        const data = await res.json();
+        if (controller.signal.aborted) return;
+        onOptions(data.options || []);
+      } catch { /* abort o red: ignorar */ }
+    }, SEARCH_DEBOUNCE_MS);
+  }, []);
+
+  useEffect(() => () => {
+    Object.values(searchTimersRef.current).forEach(clearTimeout);
+    Object.values(searchAbortsRef.current).forEach((c) => c.abort());
+  }, []);
+
+  const handleStudyCenterSearch = useCallback((search: string) => {
+    const minLength = studyCenterField?.min_search_length ?? DEFAULT_MIN_SEARCH_LENGTH;
+    if (search.length > 0 && search.length < minLength) {
+      // Mismo resultado que devolvía el API para < 3 caracteres, sin la request.
+      setStudyCenterOptions([]);
+      return;
+    }
+    debouncedFetchOptions('study-centers', buildSearchUrl(search, studyCenterField?.options_filter), (options) => {
+      setStudyCenterOptions(options.map((o) => ({ value: String(o.value), label: o.label })));
+    });
+  }, [debouncedFetchOptions, studyCenterField?.options_filter, studyCenterField?.min_search_length]);
 
   // Búsqueda remota genérica para autocompletes con options_source distinto de 'study-centers'
   // (p.ej. 'careers', 'geo-units/districts'). Reusa el mismo endpoint /public/options/{source}.
-  const handleGenericAutocompleteSearch = useCallback(async (field: LeadFormFieldConfig, search: string) => {
+  const handleGenericAutocompleteSearch = useCallback((field: LeadFormFieldConfig, search: string) => {
     if (!field.options_source) return;
-    try {
-      const url = buildOptionsSearchUrl(field.options_source, search, field.options_filter);
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const data = await res.json();
+    debouncedFetchOptions(field.code, buildOptionsSearchUrl(field.options_source, search, field.options_filter), (options) => {
       setRemoteOptions((prev) => ({
         ...prev,
-        [field.code]: (data.options || []).map((o: { value: number | string; label: string }) => ({
-          value: String(o.value),
-          label: o.label,
-        })),
+        [field.code]: options.map((o) => ({ value: String(o.value), label: o.label })),
       }));
-    } catch { /* ignore */ }
-  }, []);
+    });
+  }, [debouncedFetchOptions]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};

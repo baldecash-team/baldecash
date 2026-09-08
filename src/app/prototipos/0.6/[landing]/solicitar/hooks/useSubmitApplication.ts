@@ -223,7 +223,7 @@ export function useSubmitApplication(
   } = useProduct();
 
   const { formData, resetForm } = useWizard();
-  const { sessionUuid, clearSession } = useSession();
+  const { sessionUuid, marcarSesionConvertida } = useSession();
 
   /**
    * Maps WizardContext formData to the API form_data format
@@ -380,7 +380,12 @@ export function useSubmitApplication(
           // de cero. `saveDemoApplication` ya corrió, así que el resumen
           // sobrevive a la limpieza.
           if (!keepData) {
-            clearSession();
+            // La sesión de tracking NO se suelta acá: la confirmación es la
+            // que emite `application_submitted` con el `application_code`, y
+            // tiene que caer sobre la misma fila que ws2 acaba de marcar con
+            // el `application_id`. Se marca y se renueva al arrancar otra
+            // solicitud (`solicitar/layout.tsx`).
+            marcarSesionConvertida();
             resetFormStartTracking();
             resetForm();
             clearProduct();
@@ -502,7 +507,12 @@ export function useSubmitApplication(
 
           // Clear all wizard state (skip if keepData param is set for testing)
           if (!keepData) {
-            clearSession();
+            // La sesión de tracking NO se suelta acá: la confirmación es la
+            // que emite `application_submitted` con el `application_code`, y
+            // tiene que caer sobre la misma fila que ws2 acaba de marcar con
+            // el `application_id`. Se marca y se renueva al arrancar otra
+            // solicitud (`solicitar/layout.tsx`).
+            marcarSesionConvertida();
             resetFormStartTracking();
             resetForm();
             clearProduct();
@@ -623,7 +633,7 @@ export function useSubmitApplication(
       getDiscountAmount,
       getDiscountedMonthlyPayment,
       getTotalPrice,
-      clearSession,
+      marcarSesionConvertida,
       resetForm,
       clearProduct,
       clearCartProducts,

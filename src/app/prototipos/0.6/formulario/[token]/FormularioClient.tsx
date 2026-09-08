@@ -24,24 +24,66 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import {
+  cerrarTelemetria, cronometrar, evento, iniciarTelemetria, medir, verSeccion,
+  type Seccion as SeccionMedida,
+} from '../../services/telemetria';
 import {
   borrarArchivo,
   cumplirConTexto,
   enviarFormulario,
   getFormulario,
+  guardarParcial,
   isFormularioApiError,
+  renovarEnlace,
   subirArchivo,
   type ContactChannel,
   type ContactSlot,
   type EnviarPayload,
+  type GuardarParcialPayload,
   type Modulo,
   type ModuloCode,
   type Pantalla,
 } from '@/app/prototipos/0.6/services/formularioApi';
 import { Ic } from './icons';
 
+/** Logo de la marca sobre fondo claro, el mismo que usan el modal del cupón y
+ * los datos estructurados del sitio. */
+const LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+
+/** Ejemplos de cada documento. Son capturas sinteticas (sin datos de nadie),
+ * las mismas que usa el validador de OCR, servidas desde S3 --- carpeta
+ * publica, WebP de ~100 KB --- para no atarlas al deploy de este front. */
+const EJEMPLOS: Partial<Record<ModuloCode, { url: string; alt: string; pie: string }>> = {
+  utility_bill: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/recibo.webp',
+    alt: 'Recibo de luz de ejemplo', pie: 'Que se lean la direccion y el mes.',
+  },
+  payslip: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/boleta.webp',
+    alt: 'Boleta de pago de ejemplo', pie: 'Que se vean tu nombre y el periodo.',
+  },
+  tax_report: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/rt.webp',
+    alt: 'Reporte tributario de SUNAT de ejemplo', pie: 'El reporte completo, no una sola pagina.',
+  },
+  fee_receipt_1: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/rxh.webp',
+    alt: 'Recibo por honorarios de ejemplo', pie: 'Uno por cada uno de tus 3 ultimos meses.',
+  },
+  income_movements: {
+    url: 'https://baldecash.s3.amazonaws.com/illustrations/formulario-posterior/yape.webp',
+    alt: 'Captura de un pago recibido por Yape', pie: 'Que se vean el monto y la fecha.',
+  },
+};
+
 /** Enlace muerto pero conocido: existió, ya no sirve. */
-const EXPIRED_REASONS = new Set(['expired', 'revoked', 'consumed', 'inactive']);
+/** Enlace muerto pero conocido: existió, ya no sirve. `superseded` es el caso
+ * en que se emitió uno más nuevo (no es error del estudiante); `submitted` es
+ * que el formulario ya se envió con este enlace. */
+export type EnlaceCaidoReason = 'expired' | 'revoked' | 'consumed' | 'inactive' | 'superseded';
+const EXPIRED_REASONS = new Set<string>(['expired', 'revoked', 'consumed', 'inactive', 'superseded']);
 
 const MIN_VOZ = 10; // segundos mínimos de una nota de voz
 const MIN_TEXTO = 10;
@@ -51,9 +93,19 @@ type ViewState =
   | { status: 'loading' }
   | { status: 'ready'; datos: Pantalla }
   | { status: 'done'; datos: Pantalla | null; contacto: Confirmacion }
-  | { status: 'expired' }
+  | { status: 'expired'; reason: EnlaceCaidoReason }
+  | { status: 'submitted' }
   | { status: 'invalid' }
   | { status: 'network' };
+
+/** Traduce un error del API a la pantalla terminal que corresponde. Vale para
+ * la carga y para cualquier acción posterior (el enlace puede morir a mitad). */
+function vistaDeError(reason: string): ViewState {
+  if (reason === 'network') return { status: 'network' };
+  if (reason === 'submitted') return { status: 'submitted' };
+  if (EXPIRED_REASONS.has(reason)) return { status: 'expired', reason: reason as EnlaceCaidoReason };
+  return { status: 'invalid' };
+}
 
 type DiaKey = 'hoy' | 'manana' | 'pasado';
 type TurnoKey = 'manana' | 'mediodia' | 'tarde' | 'noche' | 'otro';
@@ -92,12 +144,19 @@ const horaTxt = (h: string, m: string, ap: string) => `${h}${m === '00' ? '' : '
 const fmtTel = (t: string) => t.replace(/\s+/g, '').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
 const fmtSeg = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+/** Un archivo rechazado que sigue adjunto. En un módulo de varios —las capturas
+ * de movimientos— el estado del módulo lo deja el ÚLTIMO que subió, así que una
+ * captura rechazada quedaba escondida detrás de una buena y el estudiante creía
+ * que podía enviar. */
+const tieneRechazado = (m: Modulo) => m.documents.some((d) => d.status === 'rejected');
+
 /** Un módulo cuenta como cumplido para el envío. */
 export const moduloListo = (m: Modulo) =>
-  m.status === 'uploaded' || m.status === 'verified' || m.status === 'skipped' ||
   // Al tope de intentos ya no puede subir otro: queda para revisión manual y no
   // debe trabarlo para siempre.
-  (m.status === 'rejected' && m.attempt_count >= m.max_attempts);
+  (m.status === 'rejected' && m.attempt_count >= m.max_attempts) ||
+  ((m.status === 'uploaded' || m.status === 'verified' || m.status === 'skipped') &&
+    !(tieneRechazado(m) && m.attempt_count < m.max_attempts));
 
 const puedeReintentar = (m: Modulo) => m.status !== 'rejected' || m.attempt_count < m.max_attempts;
 
@@ -133,13 +192,59 @@ export interface FormularioClientProps {
   token: string;
 }
 
+/** Archivo que el estudiante acaba de elegir y todavía viaja al servidor. Se
+ * dibuja igual que uno subido para que el módulo reaccione al instante. */
+interface PreviaLocal {
+  id: number;
+  url: string;
+  nombre: string;
+  esImagen: boolean;
+  /** 0..100. Arranca en 0 y el servidor confirma con 100. */
+  progreso: number;
+}
+
+/** `URL.createObjectURL` no existe en jsdom ni en navegadores antiguos. La
+ * subida es lo que importa; la miniatura es un lujo, así que si no se puede
+ * generar se devuelve vacío y la previa cae al ícono genérico. */
+const objectUrl = (file: File): string => {
+  try {
+    return URL.createObjectURL(file);
+  } catch {
+    return '';
+  }
+};
+
+const revocarUrl = (url: string): void => {
+  if (!url) return;
+  try {
+    URL.revokeObjectURL(url);
+  } catch {
+    /* nada que revocar */
+  }
+};
+
 export function FormularioClient({ token }: FormularioClientProps) {
   const [view, setView] = useState<ViewState>({ status: 'loading' });
-  const [subiendo, setSubiendo] = useState(false);
+  // Subidas en curso POR MÓDULO. Antes había un solo `subiendo` global que
+  // tapaba la pantalla entera con un "Cargando…": el estudiante quedaba
+  // bloqueado mirando un spinner por cada archivo. Ahora el archivo se ve al
+  // instante (`previas`) y el envío ocurre detrás.
+  const [subiendoEn, setSubiendoEn] = useState<Record<string, number>>({});
+  const [previas, setPrevias] = useState<Record<string, PreviaLocal[]>>({});
+  const previaId = useRef(0);
+  // Guardado por sección: cada una persiste lo suyo sin esperar al Enviar.
+  const [guardando, setGuardando] = useState<Record<string, boolean>>({});
+  // Lo último que se guardó de cada sección, serializado. Comparar contra lo
+  // que hay en pantalla es lo que hace que el botón vuelva a decir "Guardar"
+  // en cuanto el estudiante cambia algo, sin tener que apagar una bandera
+  // desde cada onChange.
+  const [guardadoSnap, setGuardadoSnap] = useState<Record<string, string>>({});
+  const [errorSeccion, setErrorSeccion] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [errorModulo, setErrorModulo] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [abierto, setAbierto] = useState<Record<string, boolean>>({});
+  const [ejemplo, setEjemplo] = useState<ModuloCode | null>(null);
   const [detOpen, setDetOpen] = useState(false);
 
   // respuesta del estudiante
@@ -181,20 +286,69 @@ export function FormularioClient({ token }: FormularioClientProps) {
   // desde el click. Así el efecto de montaje no hace setState síncrono.
   const cargar = useCallback(async () => {
     const res = await getFormulario(token);
-    if (isFormularioApiError(res)) {
-      if (res.reason === 'network') return setView({ status: 'network' });
-      if (EXPIRED_REASONS.has(res.reason)) return setView({ status: 'expired' });
-      return setView({ status: 'invalid' });
-    }
+    if (isFormularioApiError(res)) return setView(vistaDeError(res.reason));
     if (res.respuesta.income_description) {
       setDetalle(res.respuesta.income_description);
       setDetalleGuardado(res.respuesta.income_description);
     }
+    // La sesion la da el backend (derivada del token, no el token).
+    iniciarTelemetria(res.telemetria_session, res.numero_solicitud, res.situation);
     if (res.status === 'submitted') {
       return setView({ status: 'done', datos: res, contacto: confirmacionDe(res) });
     }
     setView({ status: 'ready', datos: res });
   }, [token]);
+
+  // Hasta que seccion llego y cuanto scrolleo. Un observer sobre los
+  // `data-seccion` en vez de un handler por tarjeta: el DOM ya dice cuales hay.
+  useEffect(() => {
+    if (view.status !== 'ready') return;
+    const nodos = Array.from(document.querySelectorAll<HTMLElement>('[data-seccion]'));
+    if (!('IntersectionObserver' in window) || nodos.length === 0) return;
+    const obs = new IntersectionObserver((entradas) => {
+      for (const e of entradas) {
+        const nombre = e.target.getAttribute('data-seccion');
+        if (e.isIntersecting && nombre) verSeccion(nombre as SeccionMedida);
+      }
+    }, { threshold: 0.35 });
+    nodos.forEach((n) => obs.observe(n));
+    return () => obs.disconnect();
+  }, [view.status]);
+
+  useEffect(() => {
+    if (view.status !== 'ready') return;
+    // Un evento por tramo, no uno por pixel: 25/50/75/100 alcanza para saber
+    // si la pantalla se leyo entera o se abandono arriba.
+    const hitos = [25, 50, 75, 100];
+    let maximo = 0;
+    const onScroll = () => {
+      const alto = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = alto <= 0 ? 100 : Math.min(100, Math.round((window.scrollY / alto) * 100));
+      for (const h of hitos) {
+        if (pct >= h && maximo < h) {
+          maximo = h;
+          evento('followup_form_scroll', { profundidad: h });
+        }
+      }
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [view.status]);
+
+  // El cierre es lo unico que puede cerrar el tiempo de una visita que
+  // abandona. `visibilitychange` cubre el celular (cambiar de app), donde
+  // `beforeunload` no dispara.
+  useEffect(() => {
+    const alOcultar = () => { if (document.visibilityState === 'hidden') cerrarTelemetria('oculto'); };
+    const alSalir = () => cerrarTelemetria('cierre');
+    document.addEventListener('visibilitychange', alOcultar);
+    window.addEventListener('pagehide', alSalir);
+    return () => {
+      document.removeEventListener('visibilitychange', alOcultar);
+      window.removeEventListener('pagehide', alSalir);
+    };
+  }, []);
 
   useEffect(() => {
     // Diferido un tick: `cargar` termina en setState y el linter de React lo
@@ -230,18 +384,54 @@ export function FormularioClient({ token }: FormularioClientProps) {
       ? { ...v, datos: { ...v.datos, modulos: v.datos.modulos.map((x) => (x.code === m.code ? m : x)) } }
       : v));
 
+  /** Sube en segundo plano: el archivo aparece en el módulo apenas se elige y
+   * el request viaja detrás. Sin pantalla de carga: si falla, se retira la
+   * vista previa y el módulo muestra el error. */
   const subir = async (code: ModuloCode, file: File, fulfilledBy: 'document' | 'voice_note' = 'document') => {
+    const previa: PreviaLocal = {
+      id: (previaId.current += 1),
+      // Sin `createObjectURL` (jsdom, navegadores viejos) la previa sale con
+      // el ícono genérico. La subida no puede depender de poder dibujarla.
+      url: objectUrl(file),
+      nombre: file.name,
+      esImagen: file.type.startsWith('image/'),
+      progreso: 0,
+    };
     setErrorModulo((e) => ({ ...e, [code]: '' }));
-    setSubiendo(true);
-    const res = await subirArchivo(token, code, file, fulfilledBy);
-    setSubiendo(false);
+    setPrevias((p) => ({ ...p, [code]: [...(p[code] ?? []), previa] }));
+    setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
+    // El cronometro arranca ACA: el servidor solo ve el request ya completo,
+    // asi que la espera real del estudiante --- su subida --- solo se puede
+    // medir del lado del navegador.
+    cronometrar(`subida:${code}`);
+    const kb = Math.round(file.size / 1024);
+    evento('followup_form_upload_start', { modulo: code, kb, mime: file.type });
+
+    const res = await subirArchivo(token, code, file, fulfilledBy, (porcentaje) =>
+      setPrevias((p) => ({
+        ...p,
+        [code]: (p[code] ?? []).map((x) => (x.id === previa.id ? { ...x, progreso: porcentaje } : x)),
+      })),
+    );
+
+    setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
+    setPrevias((p) => ({ ...p, [code]: (p[code] ?? []).filter((x) => x.id !== previa.id) }));
+    revocarUrl(previa.url);
     if (isFormularioApiError(res)) {
+      evento('followup_form_upload_error', {
+        modulo: code, motivo: res.reason, duracion_ms: medir(`subida:${code}`), kb,
+      });
       setErrorModulo((e) => ({ ...e, [code]: res.error }));
       return false;
     }
+    evento('followup_form_upload_done', {
+      modulo: code, duracion_ms: medir(`subida:${code}`), kb, tamano_kb: kb,
+      estado: res.status,
+    });
     reemplazar(res);
     return true;
   };
+
 
   const elegirArchivo = (code: ModuloCode) => inputs.current[code]?.click();
   const onArchivo = (code: ModuloCode) => async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -254,23 +444,49 @@ export function FormularioClient({ token }: FormularioClientProps) {
   };
 
   const quitar = async (code: ModuloCode, documentId: number) => {
-    setSubiendo(true);
+    setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
     const res = await borrarArchivo(token, code, documentId);
-    setSubiendo(false);
+    setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
     if (isFormularioApiError(res)) return setErrorModulo((e) => ({ ...e, [code]: res.error }));
+    evento('followup_form_file_removed', { modulo: code });
     reemplazar(res);
   };
 
   const guardarTexto = async (code: ModuloCode) => {
     const texto = detalle.trim();
     if (texto.length < MIN_TEXTO) return;
-    setSubiendo(true);
+    setSubiendoEn((s) => ({ ...s, [code]: (s[code] ?? 0) + 1 }));
     const res = await cumplirConTexto(token, code, texto);
-    setSubiendo(false);
+    setSubiendoEn((s) => ({ ...s, [code]: Math.max(0, (s[code] ?? 1) - 1) }));
     if (isFormularioApiError(res)) return setErrorModulo((e) => ({ ...e, [code]: res.error }));
+    evento('followup_form_text_saved', { modulo: code, largo: texto.length });
     setDetalleGuardado(texto);
     reemplazar(res);
   };
+
+  /** Hay un request en curso de ese módulo (quitar o guardar texto). Evita
+   * que un doble toque dispare dos veces la misma acción. */
+  const ocupado = (code: string) => (subiendoEn[code] ?? 0) > 0;
+
+  /** Guardar de una sección: persiste lo suyo sin cerrar el formulario. */
+  const guardarSeccion = async (seccion: string, payload: GuardarParcialPayload) => {
+    setGuardando((g) => ({ ...g, [seccion]: true }));
+    setErrorSeccion((e) => ({ ...e, [seccion]: '' }));
+    const res = await guardarParcial(token, payload);
+    setGuardando((g) => ({ ...g, [seccion]: false }));
+    if (isFormularioApiError(res)) {
+      evento('followup_form_section_saved', { seccion, ok: false, motivo: res.reason });
+      setErrorSeccion((e) => ({ ...e, [seccion]: res.error }));
+      return false;
+    }
+    evento('followup_form_section_saved', { seccion, ok: true });
+    setView((v) => (v.status === 'ready' ? { ...v, datos: res } : v));
+    setGuardadoSnap((g) => ({ ...g, [seccion]: JSON.stringify(payload) }));
+    return true;
+  };
+
+  const yaGuardada = (seccion: string, payload: GuardarParcialPayload | null) =>
+    payload !== null && guardadoSnap[seccion] === JSON.stringify(payload);
 
   // ---------- nota de voz ----------
   const empezarGrabacion = async () => {
@@ -300,6 +516,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     if (!voz) return;
     const ext = voz.blob.type.includes('ogg') ? 'ogg' : voz.blob.type.includes('mp4') ? 'm4a' : 'webm';
     const file = new File([voz.blob], `nota-de-voz.${ext}`, { type: voz.blob.type || 'audio/webm' });
+    evento('followup_form_voice_recorded', { segundos: voz.seg });
     await subir('income_detail', file, 'voice_note');
   };
 
@@ -307,15 +524,22 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const enviar = async (datos: Pantalla, payloadBase: Omit<EnviarPayload, 'questions' | 'corrected_address'>) => {
     setError(null);
     setEnviando(true);
+    evento('followup_form_submit_click', { canal: payloadBase.contact_channel });
     const payload: EnviarPayload = { ...payloadBase };
     if (comentario.trim()) payload.questions = comentario.trim();
     if (dirNueva.trim()) payload.corrected_address = dirNueva.trim();
     const res = await enviarFormulario(token, payload);
     setEnviando(false);
     if (isFormularioApiError(res)) {
-      if (EXPIRED_REASONS.has(res.reason)) return setView({ status: 'expired' });
+      if (res.reason !== 'network' && !res.modulos) {
+        const v = vistaDeError(res.reason);
+        if (v.status !== 'invalid') return setView(v);
+      }
+      evento('followup_form_submit_error', { motivo: res.reason });
       return setError(res.error);
     }
+    verSeccion('enviar');
+    cerrarTelemetria('enviado');
     setView({ status: 'done', datos, contacto: res.contacto });
   };
 
@@ -328,7 +552,13 @@ export function FormularioClient({ token }: FormularioClientProps) {
     );
   }
   if (view.status === 'expired') {
-    return <Mensaje titulo="Este enlace venció" detalle="Escríbenos por WhatsApp y te enviamos uno nuevo." />;
+    return <EnlaceCaido reason={view.reason} token={token} onSubmitted={() => setView({ status: 'submitted' })} />;
+  }
+  if (view.status === 'submitted') {
+    return (
+      <Mensaje icono="ok" titulo="Ya recibimos tu formulario"
+               detalle="Gracias por completarlo. Tu asesor se comunicará contigo en el horario que elegiste, desde nuestra cuenta oficial de BaldeCash." />
+    );
   }
   if (view.status === 'invalid') {
     return <Mensaje titulo="Este enlace no es válido" detalle="Revisa que hayas abierto el enlace completo que te enviamos." />;
@@ -336,9 +566,9 @@ export function FormularioClient({ token }: FormularioClientProps) {
   if (view.status === 'done') {
     const c = view.contacto;
     return (
-      <>
+      <div className="flex min-h-dvh flex-col bg-white text-gray-900">
         <Header />
-        <main className="mx-auto max-w-[560px] px-4 py-6 text-center">
+        <main className="formulario-posterior mx-auto w-full max-w-[560px] px-4 py-6 text-center">
           <div className="inline-flex h-[72px] w-[72px] items-center justify-center rounded-full bg-teal-50 text-teal-600"><Ic.Check className="h-9 w-9" /></div>
           <h1 className="mt-3 text-2xl font-bold leading-tight text-[#2F3A9E]">
             Gracias{view.datos?.nombre ? `, ${view.datos.nombre}` : ''}. Ya recibimos tu información.
@@ -350,7 +580,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
           {view.datos && <Producto datos={view.datos} open={detOpen} onToggle={() => setDetOpen((o) => !o)} />}
           <Footer />
         </main>
-      </>
+      </div>
     );
   }
 
@@ -372,19 +602,6 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const contactoOk = Boolean(dia && turno && canal && telOk);
   const completo = secciones.every(listo) && contactoOk && dirOk;
 
-  const orden = [...secciones.map((s) => s.key), 'contacto', 'ayuda'];
-  const hecho: Record<string, boolean> = Object.fromEntries(secciones.map((s) => [s.key, listo(s)]));
-  hecho.contacto = contactoOk; hecho.ayuda = false;
-  const vozAbierta = (k: string) => k === 'income_detail' && datos.modulos.find((m) => m.code === 'income_detail')?.fulfilled_by === 'voice_note';
-  const sp = (k: string) => ({
-    n: orden.indexOf(k) + 1, done: hecho[k],
-    collapsed: hecho[k] && !abierto[k] && !vozAbierta(k),
-    onToggle: hecho[k] ? () => setAbierto((a) => ({ ...a, [k]: !a[k] })) : undefined,
-  });
-  const turnoTxt = () => (turno === 'otro'
-    ? `a las ${horaTxt(hh, mm, ap)}`
-    : turno ? `en la ${TURNO[turno][0].toLowerCase()} (${TURNO[turno][1]})` : '');
-
   const payloadContacto = (): Omit<EnviarPayload, 'questions' | 'corrected_address'> | null => {
     if (!dia || !turno || !canal) return null;
     const base = {
@@ -399,8 +616,50 @@ export function FormularioClient({ token }: FormularioClientProps) {
     return { ...base, contact_slot: TURNO[turno][2] };
   };
 
+  /** Lo que guarda la sección de contacto: el horario elegido más la
+   * dirección corregida, que se edita ahí mismo. */
+  const payloadSeccionContacto = (): GuardarParcialPayload | null => {
+    const p = payloadContacto();
+    if (!p) return null;
+    const dir = dirNueva.trim();
+    return dir ? { ...p, corrected_address: dir } : p;
+  };
+
+  const orden = [...secciones.map((s) => s.key), 'contacto', 'ayuda'];
+  const hecho: Record<string, boolean> = Object.fromEntries(secciones.map((s) => [s.key, listo(s)]));
+  // Con guardado por sección, "Listo" pasa a significar GUARDADO y no solo
+  // completado: si la sección se colapsara apenas el estudiante elige su
+  // horario, el botón Guardar desaparecería justo cuando recién se habilita.
+  hecho.contacto = contactoOk && yaGuardada('contacto', payloadSeccionContacto());
+  hecho.ayuda = comentario.trim().length > 0 && yaGuardada('ayuda', { questions: comentario.trim() });
+  const listas = orden.filter((k) => hecho[k]).length;
+  const vozAbierta = (k: string) => k === 'income_detail' && datos.modulos.find((m) => m.code === 'income_detail')?.fulfilled_by === 'voice_note';
+  const sp = (k: string) => ({
+    n: orden.indexOf(k) + 1, done: hecho[k],
+    seccion: (k === 'contacto' ? 'contacto' : k === 'ayuda' ? 'dudas' : 'documentos') as SeccionMedida,
+    collapsed: hecho[k] && !abierto[k] && !vozAbierta(k),
+    onToggle: hecho[k] ? () => setAbierto((a) => ({ ...a, [k]: !a[k] })) : undefined,
+  });
+  const turnoTxt = () => (turno === 'otro'
+    ? `a las ${horaTxt(hh, mm, ap)}`
+    : turno ? `en la ${TURNO[turno][0].toLowerCase()} (${TURNO[turno][1]})` : '');
+
   const nDocs = datos.modulos.length;
   const d3 = fecha('pasado');
+
+  /** "Ver ejemplo": el estudiante no sabe si su papel sirve hasta que ve uno.
+   * Tambien se mide (`followup_form_help_open`): si mucha gente lo abre justo
+   * antes de un rechazo, el problema es el texto del modulo, no el papel. */
+  const verEjemplo = (code: ModuloCode) => {
+    if (!EJEMPLOS[code]) return null;
+    return (
+      <button type="button"
+              onClick={() => { setEjemplo(code); evento('followup_form_help_open', { modulo: code }); }}
+              className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-[#C9CEF2] bg-white px-3 py-2 text-[13px] font-bold text-[#4654CD]">
+        <Ic.Eye className="h-4 w-4" />Ver ejemplo
+      </button>
+    );
+  };
 
   const inputArchivo = (m: Modulo, multiple = false) => (
     <input
@@ -414,6 +673,29 @@ export function FormularioClient({ token }: FormularioClientProps) {
   const cardDoc = ({ m, icon, titulo, sub }: { m: Modulo; icon: React.ReactNode; titulo: string; sub: string }) => {
     const doc = m.documents[m.documents.length - 1];
     const err = errorModulo[m.code];
+    const enVuelo = previas[m.code] ?? [];
+    // Lo que el estudiante acaba de elegir se ve YA, mientras viaja. Va antes
+    // que el estado del servidor porque es lo último que hizo.
+    if (enVuelo.length > 0) {
+      const p = enVuelo[enVuelo.length - 1];
+      return (
+        <div className="mt-2.5 rounded-[13px] border-[1.5px] border-[#C9CEF2] bg-white p-3.5">
+          <div className="flex items-center gap-3">
+            <PreviaMini previa={p} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[14px] font-bold text-[#2F3A9E]">Guardando tu archivo…</span>
+                <span className="text-[13px] font-bold tabular-nums text-[#4654CD]">{p.progreso}%</span>
+              </div>
+              <div className="mt-0.5 truncate text-[12.5px] text-gray-500">{p.nombre}</div>
+              <BarraProgreso valor={p.progreso} />
+            </div>
+          </div>
+          <p className="mt-2 text-[12.5px] text-gray-500">Puedes seguir con las demás secciones.</p>
+          {inputArchivo(m)}
+        </div>
+      );
+    }
     if (moduloListo(m) && m.status !== 'rejected') {
       return (
         <div className="mt-2.5 rounded-[13px] border-[1.5px] border-emerald-200 bg-emerald-50 p-3.5">
@@ -424,9 +706,21 @@ export function FormularioClient({ token }: FormularioClientProps) {
               {doc?.file_name && <div className="mt-0.5 truncate text-[12.5px] text-emerald-700/80">{doc.file_name}</div>}
             </div>
           </div>
-          <div className="mt-2 flex justify-end gap-4 text-[13px] font-semibold">
-            {doc?.view_url && <a href={doc.view_url} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-emerald-700"><Ic.Eye className="h-4 w-4" />Ver</a>}
-            {puedeReintentar(m) && <button type="button" onClick={() => elegirArchivo(m.code)} className="inline-flex items-center gap-1 text-gray-500"><Ic.Redo className="h-4 w-4" />Subir otro</button>}
+          {/* Botones de verdad y no dos textos chicos alineados a la derecha:
+              se tocan en un celular (44 px de alto) y se ven como acciones. */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {doc?.view_url && (
+              <a href={doc.view_url} target="_blank" rel="noopener"
+                 className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-[13.5px] font-bold text-emerald-700">
+                <Ic.Eye className="h-4.5 w-4.5" />Ver
+              </a>
+            )}
+            {puedeReintentar(m) && (
+              <button type="button" onClick={() => elegirArchivo(m.code)}
+                      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-[13.5px] font-bold text-gray-600 ${doc?.view_url ? '' : 'col-span-2'}`}>
+                <Ic.Redo className="h-4.5 w-4.5" />Subir otro
+              </button>
+            )}
           </div>
           {inputArchivo(m)}
         </div>
@@ -434,6 +728,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
     }
     const rechazado = m.status === 'rejected';
     const tope = rechazado && !puedeReintentar(m);
+    const restantes = Math.max(0, m.max_attempts - m.attempt_count);
     return (
       <div className={`mt-2.5 rounded-[13px] border-[1.5px] p-3.5 ${rechazado ? 'border-red-500 bg-red-50' : 'border-dashed border-[#C9CEF2] bg-white'}`}>
         <div className="flex items-center gap-3">
@@ -441,14 +736,28 @@ export function FormularioClient({ token }: FormularioClientProps) {
           <div><b className="block text-[14px]">{titulo}</b><span className="text-[12.5px] text-gray-500">{sub}</span></div>
         </div>
         {rechazado && (
-          <div className="mt-2.5 flex gap-2 rounded-xl bg-white p-2.5 text-[13.5px] text-red-600" role="alert">
-            <Ic.Alert className="mt-0.5 h-5 w-5 flex-none" />
-            <div>
-              <b className="block">{m.rejection_message || 'No pudimos validar este documento'}</b>
-              {tope
-                ? <span className="text-gray-900">Ya no puedes subir otro: un asesor lo revisará contigo.</span>
-                : <span className="text-gray-900">Intento {m.attempt_count} de {m.max_attempts}. Sube otro archivo.</span>}
+          <div className="mt-2.5 rounded-xl border border-red-200 bg-white p-3 text-[13.5px]" role="alert">
+            <div className="flex gap-2 text-red-600">
+              <Ic.Alert className="mt-0.5 h-5 w-5 flex-none" />
+              <b className="leading-snug">{m.rejection_message || 'No pudimos validar este documento'}</b>
             </div>
+            {/* Los intentos como puntos y no como «Intento 1 de 3»: lo que el
+                estudiante necesita saber es cuántos le QUEDAN, y el «sube otro
+                archivo» ya lo dice el botón de abajo — repetirlo era ruido. */}
+            {tope ? (
+              <p className="mt-2 text-gray-500">Ya no puedes subir otro. Un asesor lo revisará contigo.</p>
+            ) : (
+              <div className="mt-2.5 flex items-center gap-2">
+                <span className="flex gap-1" aria-hidden="true">
+                  {Array.from({ length: m.max_attempts }).map((_, i) => (
+                    <i key={i} className={`h-1.5 w-5 rounded-full ${i < m.attempt_count ? 'bg-red-400' : 'bg-gray-200'}`} />
+                  ))}
+                </span>
+                <span className="text-gray-500">
+                  {restantes === 1 ? 'Te queda 1 intento' : `Te quedan ${restantes} intentos`}
+                </span>
+              </div>
+            )}
           </div>
         )}
         {err && <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{err}</p>}
@@ -457,24 +766,51 @@ export function FormularioClient({ token }: FormularioClientProps) {
             <Ic.Upload className="h-4.5 w-4.5" />{rechazado ? 'Subir otro' : 'Subir'}
           </Btn>
         )}
+        {verEjemplo(m.code)}
         {inputArchivo(m)}
       </div>
     );
   };
 
   return (
-    <>
+    <div className="flex min-h-dvh flex-col bg-white text-gray-900">
       <Header />
-      <main className="mx-auto max-w-[560px] px-4 pb-16 pt-5">
-        <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-[#2F3A9E]">
-          Hola, {datos.nombre}: <span className="text-teal-600">ya falta poco</span> para evaluar tu solicitud
-        </h1>
-        <p className="mt-1.5 text-gray-500">
-          {nDocs === 0
-            ? 'Solo necesitamos saber cuándo puede conversar contigo tu asesor.'
-            : `Necesitamos ${nDocs === 1 ? 'un documento' : 'unos documentos'} y saber cuándo puede conversar contigo tu asesor. Toma 2 minutos.`}
-        </p>
-        <Producto datos={datos} open={detOpen} onToggle={() => setDetOpen((o) => !o)} />
+      <main className="formulario-posterior mx-auto w-full max-w-[560px] px-4 pb-16 pt-5 lg:max-w-[1000px]">
+        {/* En movil, una sola columna: saludo, equipo, secciones y Enviar al
+            final. En escritorio, dos: a la izquierda el equipo y el Enviar,
+            fijos al hacer scroll; a la derecha las secciones.
+
+            El `flex` con `order` en movil y `grid` en escritorio es lo que
+            permite que Enviar quede ULTIMO en el celular y ARRIBA a la
+            izquierda en el monitor, sin duplicarlo en el DOM (dos botones
+            "Enviar", aunque uno este oculto, rompen las busquedas por rol y
+            confunden a un lector de pantalla). */}
+        <div className="flex flex-col lg:grid lg:grid-cols-[340px_minmax(0,600px)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8">
+          {/* `contents` en movil disuelve este contenedor para que el `order`
+              de sus hijos valga en el flex de arriba; en escritorio vuelve a
+              ser una caja.
+
+              SIN `sticky`: pegada, la columna se quedaba quieta mientras el
+              bloque de Enviar --- que vive en la fila de abajo --- le pasaba
+              por encima al scrollear, y el boton terminaba tapando la tarjeta
+              del producto. Enviar tiene que estar SIEMPRE debajo, nunca
+              encima. */}
+          <div className="contents lg:block">
+            <div className="order-1 lg:order-none">
+              <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-[#2F3A9E]">
+                Hola, {datos.nombre}: <span className="text-teal-600">ya falta poco</span> para evaluar tu solicitud
+              </h1>
+              <p className="mt-1.5 text-gray-500">
+                {nDocs === 0
+                  ? 'Solo necesitamos saber cuándo puede conversar contigo tu asesor.'
+                  : `Necesitamos ${nDocs === 1 ? 'un documento' : 'unos documentos'} y saber cuándo puede conversar contigo tu asesor. Toma 2 minutos.`}
+              </p>
+              <Producto datos={datos} open={detOpen} onToggle={() => setDetOpen((o) => !o)} />
+              <Avance listas={listas} total={orden.length} />
+            </div>
+          </div>
+
+          <div className="order-2 lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1">
 
         {secciones.map((s) => {
           const m = s.modulos[0];
@@ -538,12 +874,12 @@ export function FormularioClient({ token }: FormularioClientProps) {
                 ? cardDoc({ m, icon: <Ic.Doc className="h-6 w-6" />, titulo: 'Foto de tu última boleta', sub: 'Que se vean tu nombre y el mes' })
                 : (
                   <div className="mt-2.5 rounded-[13px] border-[1.5px] border-[#C9CEF2] p-3.5">
-                    <div className="flex items-center gap-3"><div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#EEF0FB] text-[#4654CD]"><Ic.Chat className="h-6 w-6" /></div><div><b className="block text-[14px]">Cuéntanos cómo percibes tus ingresos</b><span className="text-[12.5px] text-gray-500">Dónde trabajas, cómo te pagan y más o menos cuánto al mes.</span></div></div>
+                    <div className="flex items-center gap-3"><div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#EEF0FB] text-[#4654CD]"><Ic.Chat className="h-6 w-6" /></div><div><b className="block text-[14px]">Cuéntanos cómo percibes tus ingresos</b><span className="text-[12.5px] text-gray-500">Dónde trabajas, cómo te pagan y cuánto ganas al mes.</span></div></div>
                     <textarea value={detalle} onChange={(e) => setDetalle(e.target.value)} aria-label="Cómo percibes tus ingresos"
                               placeholder="Ejemplo: trabajo en una bodega en Comas, me pagan en efectivo cada semana, unos S/ 1,200 al mes…"
                               className="mt-2.5 min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
                     {errorModulo[m.code] && <p role="alert" className="mt-2 text-[13px] text-red-700">{errorModulo[m.code]}</p>}
-                    <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado} onClick={() => void guardarTexto(m.code)}>
+                    <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado || ocupado(m.code)} onClick={() => void guardarTexto(m.code)}>
                       <Ic.Check className="h-4.5 w-4.5" />{m.status === 'skipped' && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar'}
                     </Btn>
                   </div>
@@ -563,6 +899,7 @@ export function FormularioClient({ token }: FormularioClientProps) {
             <Sec key={s.key} {...sp(s.key)} icon={<Ic.Doc className="h-5.5 w-5.5" />} titulo="Tus 3 últimos recibos por honorarios"
                  why="Los tres más recientes que hayas emitido, uno por uno. Deben estar a tu nombre, con tu RUC (10 + tu DNI).">
               <Guia pasos={TUT_RXH} />
+              {verEjemplo('fee_receipt_1')}
               <div className="mt-2.5 grid grid-cols-3 gap-2">
                 {s.modulos.map((rm, i) => {
                   const ok = moduloListo(rm) && rm.status !== 'rejected';
@@ -574,7 +911,10 @@ export function FormularioClient({ token }: FormularioClientProps) {
                       <b className={`block text-[13px] ${ok ? 'text-emerald-700' : 'text-gray-900'}`}>Recibo {i + 1}</b>
                       {rechazado && <span className="block leading-tight">{rm.rejection_message || 'No pudimos validarlo'}</span>}
                       {puedeReintentar(rm)
-                        ? <button type="button" onClick={() => elegirArchivo(rm.code)} className="mt-0.5 text-[11.5px] font-semibold text-[#4654CD]">{ok || rechazado ? 'Subir otro' : 'Toca para subir'}</button>
+                        ? <button type="button" onClick={() => elegirArchivo(rm.code)}
+                                  className={`mt-1.5 inline-flex min-h-9 w-full items-center justify-center rounded-lg border px-1 text-[11.5px] font-bold ${ok ? 'border-emerald-200 bg-white text-gray-600' : 'border-[#C9CEF2] bg-white text-[#4654CD]'}`}>
+                            {ok || rechazado ? 'Subir otro' : 'Subir'}
+                          </button>
                         : <span className="mt-0.5 block text-[11px]">Lo revisa un asesor</span>}
                       {errorModulo[rm.code] && <span role="alert" className="mt-1 block text-[11px] text-red-700">{errorModulo[rm.code]}</span>}
                       {inputArchivo(rm)}
@@ -592,17 +932,42 @@ export function FormularioClient({ token }: FormularioClientProps) {
                    why={<>Sube <b>capturas de pantalla de todos tus movimientos del último mes</b> de Yape, Plin o tu cuenta bancaria, todas las que necesites, con las fechas visibles.</>}>
                 <div className="grid grid-cols-4 gap-2">
                   {m.documents.map((doc) => (
-                    <div key={doc.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-[#C9CEF2] bg-[#EEF0FB]">
+                    // La rechazada se marca en rojo: en una grilla de capturas,
+                    // "hay una que no sirve" sin decir cuál deja al estudiante
+                    // adivinando cuál sacar.
+                    <div key={doc.id} className={`relative aspect-[3/4] overflow-hidden rounded-xl border bg-[#EEF0FB] ${doc.status === 'rejected' ? 'border-red-500' : 'border-[#C9CEF2]'}`}>
                       <Miniatura doc={doc} className="h-full w-full" />
-                      <button type="button" onClick={() => void quitar(m.code, doc.id)} aria-label="Quitar" className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900"><Ic.X className="h-3 w-3" /></button>
+                      {doc.status === 'rejected' && (
+                        <span className="absolute inset-x-0 bottom-0 bg-red-600/90 py-0.5 text-center text-[10px] font-bold text-white">
+                          No sirve, quítala
+                        </span>
+                      )}
+                      <button type="button" disabled={ocupado(m.code)} onClick={() => void quitar(m.code, doc.id)} aria-label="Quitar" className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900 disabled:opacity-40"><Ic.X className="h-3 w-3" /></button>
                     </div>
                   ))}
-                  {m.documents.length < maxFiles && puedeReintentar(m) && (
+                  {/* Las que todavía viajan se ven igual que las guardadas,
+                      apenas atenuadas. Sin esto la pantalla no reaccionaba
+                      hasta que respondía el servidor. */}
+                  {(previas[m.code] ?? []).map((p) => (
+                    <div key={p.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-[#C9CEF2] bg-[#EEF0FB] opacity-60">
+                      <PreviaMini previa={p} className="h-full w-full" />
+                      <span className="absolute inset-x-0 bottom-0 bg-white/90 py-0.5 text-center text-[10px] font-bold tabular-nums text-[#2F3A9E]">
+                        {p.progreso}%
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-0 h-[3px] bg-[#4654CD] transition-[width] duration-200"
+                        style={{ width: `${p.progreso}%` }}
+                      />
+                    </div>
+                  ))}
+                  {m.documents.length + (previas[m.code]?.length ?? 0) < maxFiles && puedeReintentar(m) && (
                     <button type="button" onClick={() => elegirArchivo(m.code)} className="flex aspect-[3/4] flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] border-dashed border-[#C9CEF2] bg-white text-[12px] font-semibold text-[#4654CD]">
                       <Ic.Plus className="h-5 w-5" />{m.documents.length ? 'Agregar otra' : 'Agregar captura'}
                     </button>
                   )}
                 </div>
+                {verEjemplo(m.code)}
                 {inputArchivo(m, true)}
                 {m.status === 'rejected' && (
                   <div className="mt-2.5 flex gap-2 rounded-xl bg-red-50 p-2.5 text-[13.5px] text-red-600" role="alert"><Ic.Alert className="h-5 w-5 flex-none" /><div><b className="block">{m.rejection_message || 'No pudimos validar las capturas'}</b>{puedeReintentar(m) ? <span className="text-gray-900">Intento {m.attempt_count} de {m.max_attempts}. Agrega otras capturas.</span> : <span className="text-gray-900">Un asesor lo revisará contigo.</span>}</div></div>
@@ -618,13 +983,13 @@ export function FormularioClient({ token }: FormularioClientProps) {
           if (s.key === 'income_detail') return (
             <Sec key={s.key} {...sp(s.key)} icon={<Ic.Chat className="h-5.5 w-5.5" />} titulo="Cuéntanos cómo percibes tus ingresos"
                  why={datos.situation === 'movements_no_proof'
-                   ? 'Nos dijiste que tienes un sueldo pero no un sustento a mano. Cuéntanos en qué trabajas, cómo te pagan y más o menos cuánto al mes. Escríbelo o grábanos una nota de voz.'
-                   : 'En qué trabajas, cómo te pagan y más o menos cuánto al mes. Escríbelo o grábanos una nota de voz.'}>
+                   ? 'Nos dijiste que tienes un sueldo pero no un sustento a mano. Cuéntanos en qué trabajas, cómo te pagan y cuánto ganas al mes. Escríbelo o grábanos una nota de voz.'
+                   : 'En qué trabajas, cómo te pagan y cuánto ganas al mes. Escríbelo o grábanos una nota de voz.'}>
               <textarea value={detalle} onChange={(e) => setDetalle(e.target.value)} aria-label="Cómo percibes tus ingresos"
                         placeholder="Ejemplo: vendo postres por Instagram, entrego en la universidad de lunes a viernes, gano unos S/ 900 al mes…"
                         className="min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
-              <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado} onClick={() => void guardarTexto(m.code)}>
-                <Ic.Check className="h-4.5 w-4.5" />{m.fulfilled_by === 'text' && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar texto'}
+              <Btn kind="sec" className="mt-2 py-2.5 text-[13.5px]" disabled={detalle.trim().length < MIN_TEXTO || detalle.trim() === detalleGuardado || ocupado(m.code)} onClick={() => void guardarTexto(m.code)}>
+                <Ic.Check className="h-4.5 w-4.5" />{detalleGuardado && detalle.trim() === detalleGuardado ? 'Guardado' : 'Guardar'}
               </Btn>
               <NotaVoz m={m} grabando={grabando} segs={segs} voz={voz}
                        onGrabar={() => void empezarGrabacion()} onDetener={detenerGrabacion}
@@ -711,32 +1076,82 @@ export function FormularioClient({ token }: FormularioClientProps) {
               </>
             )}
           </div>
+          <GuardarSeccion
+            seccion="contacto"
+            listo={Boolean(dia && turno && canal && !editTel)}
+            guardando={guardando.contacto}
+            guardado={yaGuardada('contacto', payloadSeccionContacto())}
+            error={errorSeccion.contacto}
+            faltante="Elige el día, el horario y por dónde prefieres que te contacten."
+            onGuardar={() => {
+              const p = payloadSeccionContacto();
+              if (p) void guardarSeccion('contacto', p);
+            }}
+          />
         </Sec>
 
         <Sec {...sp('ayuda')} icon={<Ic.Help className="h-5.5 w-5.5" />} titulo="¿Tienes alguna duda o necesitas ayuda?" why="Cuéntanos en qué podemos ayudarte. Es opcional.">
           <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} aria-label="Dudas"
                     placeholder="Ejemplo: no estoy seguro de qué recibo subir, o quiero cambiar el color del equipo…"
                     className="min-h-[84px] w-full rounded-xl border border-[#C9CEF2] px-3 py-2.5 text-[15px]" />
-          {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <Btn className="mt-3" disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
-            <Ic.Send className="h-4.5 w-4.5" />{enviando ? 'Enviando…' : 'Enviar'}
-          </Btn>
-          {!completo && <div className="mt-2 text-[12.5px] text-gray-400">El botón se activa cuando completes lo de arriba.</div>}
-          {completo && turno && <div className="mt-2 text-[12.5px] text-gray-400">Te contactamos {dia && diaTxt(dia)} {turnoTxt()}.</div>}
-          <Footer />
+          <GuardarSeccion
+            seccion="ayuda"
+            listo={comentario.trim().length > 0}
+            guardando={guardando.ayuda}
+            guardado={yaGuardada('ayuda', { questions: comentario.trim() })}
+            error={errorSeccion.ayuda}
+            faltante="Escribe tu duda para poder guardarla."
+            onGuardar={() => void guardarSeccion('ayuda', { questions: comentario.trim() })}
+          />
         </Sec>
-      </main>
 
-      {subiendo && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#f6f7fd]/95 p-6 text-center" aria-live="polite">
-          <div>
-            <div className="mx-auto mb-4 h-14 w-14 animate-spin rounded-full border-[5px] border-[#C9CEF2] border-t-[#4654CD]" />
-            <h3 className="text-xl font-bold text-[#2F3A9E]">Cargando…</h3>
-            <p className="mt-1 text-gray-500">Un momento, por favor.</p>
+        {/* Enviar cierra el formulario entero, así que vive FUERA de las
+            tarjetas, debajo de todas. Adentro de la última quedaba escondido
+            en cuanto esa sección se guardaba y se colapsaba. */}
+          </div>
+
+          {ejemplo && EJEMPLOS[ejemplo] && (
+            <div role="dialog" aria-modal="true" aria-label="Ejemplo del documento"
+                 className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+                 onClick={() => setEjemplo(null)}>
+              <div className="max-h-[92vh] w-full max-w-[520px] overflow-auto rounded-t-2xl border border-gray-200 bg-white p-4 sm:rounded-2xl"
+                   onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <b className="block text-[16px] text-gray-900">Asi se ve</b>
+                    <span className="text-[13px] text-gray-500">{EJEMPLOS[ejemplo]!.pie}</span>
+                  </div>
+                  <button type="button" onClick={() => setEjemplo(null)} aria-label="Cerrar"
+                          className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#EEF0FB] text-[#2F3A9E]">
+                    <Ic.X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {/* Alto acotado: los ejemplos son documentos verticales (900x1200) y
+                    a ancho completo el modal quedaba con scroll propio. `contain`
+                    para que no se recorte lo que hay que mirar. */}
+                <img src={EJEMPLOS[ejemplo]!.url} alt={EJEMPLOS[ejemplo]!.alt}
+                     className="mt-3 max-h-[58vh] w-full rounded-xl border border-gray-200 object-contain"
+                     loading="lazy" />
+                <p className="mt-3 text-[12.5px] text-gray-400">
+                  Es un ejemplo: los datos que ves no son de nadie.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div data-seccion="enviar" className="order-3 mt-5 lg:order-none lg:col-start-1 lg:row-start-2 lg:mt-4">
+            {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+            <Btn disabled={!completo || enviando} onClick={() => { const p = payloadContacto(); if (p) void enviar(datos, p); }}>
+              <Ic.Send className="h-4.5 w-4.5" />{enviando ? 'Enviando…' : 'Enviar'}
+            </Btn>
+            {!completo && <div className="mt-2 text-center text-[12.5px] text-gray-400">El botón se activa cuando completes lo de arriba.</div>}
+            {completo && turno && <div className="mt-2 text-center text-[12.5px] text-gray-400">Te contactamos {dia && diaTxt(dia)} {turnoTxt()}.</div>}
+            <Footer />
           </div>
         </div>
-      )}
-    </>
+      </main>
+    </div>
   );
 }
 
@@ -771,7 +1186,7 @@ function Producto({ datos, open, onToggle }: { datos: Pantalla; open: boolean; o
   if (r.seguro) pills.push('Incluye seguro');
   if (r.garantia) pills.push('Incluye garantía extendida');
   return (
-    <div className="relative mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white text-left">
+    <div data-seccion="resumen" className="relative mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white text-left">
       <span className="absolute right-3 top-2 text-[10.5px] tabular-nums text-gray-400">Solicitud {datos.numero_solicitud}</span>
       <div className="grid grid-cols-[76px_1fr_auto] items-center gap-3.5 p-3.5 pt-5">
         <div className="flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-xl bg-[#EEF0FB]">
@@ -824,12 +1239,98 @@ function Miniatura({ doc, className = 'h-[68px] w-14' }: { doc?: { file_name: st
   );
 }
 
+/** Guardar de una sección. No cierra el formulario ni reemplaza al Enviar
+ * final: deja a salvo lo que el estudiante lleva escrito, para que abandonar a
+ * mitad de camino no borre su horario ni su duda. */
+function GuardarSeccion({ seccion, listo, guardando, guardado, error, faltante, onGuardar }: {
+  seccion: string; listo: boolean; guardando?: boolean; guardado?: boolean;
+  error?: string; faltante: string; onGuardar: () => void;
+}) {
+  return (
+    <div className="mt-3">
+      <Btn kind="sec" className="py-2.5 text-[13.5px]" disabled={!listo || guardando}
+           onClick={onGuardar} testId={`guardar-${seccion}`}>
+        <Ic.Check className="h-4.5 w-4.5" />
+        {guardando ? 'Guardando…' : guardado ? 'Guardado' : 'Guardar'}
+      </Btn>
+      {error
+        ? <p role="alert" className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>
+        : guardado
+          ? <p className="mt-2 text-[12.5px] text-emerald-700" aria-live="polite">Listo, lo guardamos. Puedes cambiarlo antes de enviar.</p>
+          : !listo && <p className="mt-2 text-[12.5px] text-gray-400">{faltante}</p>}
+    </div>
+  );
+}
+
+/** Cuántas secciones ya están guardadas. En escritorio queda fijo junto al
+ * equipo: sin esto, la columna izquierda no dice nada sobre lo que falta. */
+function Avance({ listas, total }: { listas: number; total: number }) {
+  const pct = total === 0 ? 0 : Math.round((listas / total) * 100);
+  return (
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-3.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[13.5px] font-bold text-[#2F3A9E]">
+          {listas} de {total} {total === 1 ? 'sección lista' : 'secciones listas'}
+        </span>
+        <span className="text-[12.5px] tabular-nums text-gray-400">{pct}%</span>
+      </div>
+      <div
+        className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#EEF0FB]"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={listas}
+        aria-label="Secciones completadas"
+      >
+        <div className="h-full rounded-full bg-teal-500 transition-[width] duration-300" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/** Barra de avance de una subida. `aria-valuenow` para que un lector de
+ * pantalla anuncie el porcentaje sin depender del texto de al lado. */
+function BarraProgreso({ valor }: { valor: number }) {
+  return (
+    <div
+      className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#EEF0FB]"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={valor}
+      aria-label="Avance de la subida"
+    >
+      <div
+        className="h-full rounded-full bg-[#4654CD] transition-[width] duration-200"
+        style={{ width: `${valor}%` }}
+      />
+    </div>
+  );
+}
+
+/** Gemela de `Miniatura` para el archivo que todavía no llegó al servidor:
+ * pinta desde el blob local (`URL.createObjectURL`) en vez de `view_url`. */
+function PreviaMini({ previa, className = 'h-[68px] w-14' }: { previa: PreviaLocal; className?: string }) {
+  return (
+    <div className={`flex flex-none items-center justify-center overflow-hidden rounded-lg border border-white bg-white ${className}`}>
+      {previa.esImagen && previa.url
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={previa.url} alt={previa.nombre} className="h-full w-full object-cover" />
+        : <Ic.Doc className="h-6 w-6 text-[#8A94E0]" />}
+    </div>
+  );
+}
+
 function NotaVoz({ m, grabando, segs, voz, onGrabar, onDetener, onQuitar, onConfirmar }: {
   m: Modulo; grabando: boolean; segs: number; voz: { seg: number; url: string } | null;
   onGrabar: () => void; onDetener: () => void; onQuitar: () => void; onConfirmar: () => void;
 }) {
   const bars = Array.from({ length: 28 }, (_, i) => 6 + ((i * 7) % 20));
-  const subida = m.fulfilled_by === 'voice_note' && m.documents[m.documents.length - 1];
+  // El archivo del modulo ES la nota de voz; no se mira `fulfilled_by`, que
+  // guarda solo lo ULTIMO que hizo. Si escribia el texto despues de grabar, la
+  // nota desaparecia de la pantalla aunque siguiera guardada: los dos pueden
+  // convivir y los dos suman.
+  const subida = m.documents[m.documents.length - 1];
   if (grabando) return (
     <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border-[1.5px] border-[#C9CEF2] p-2.5">
       <button type="button" disabled={segs < MIN_VOZ} onClick={onDetener} aria-label="Detener" className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-red-50 text-red-600 disabled:opacity-40"><Ic.Stop className="h-5 w-5" /></button>
@@ -885,7 +1386,7 @@ function Guia({ pasos }: { pasos: Paso[] }) {
         <ol className="mt-2 space-y-2 rounded-xl bg-[#EEF0FB] p-3 text-[13.5px]">
           {pasos.map((s, i) => (
             <li key={i} className="flex gap-2">
-              <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#4654CD] text-[12px] font-extrabold text-white">{i + 1}</span>
+              <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#4654CD] text-[12px] font-bold text-white">{i + 1}</span>
               <div><b className="block">{s.t}</b><span className="text-gray-500">{s.p}</span>{s.link && <a href={s.link[0]} target="_blank" rel="noopener" className="block font-bold text-[#4654CD] underline underline-offset-4">{s.link[1]}</a>}</div>
             </li>
           ))}
@@ -895,13 +1396,15 @@ function Guia({ pasos }: { pasos: Paso[] }) {
   );
 }
 
-const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle }: {
+const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle, seccion }: {
   n?: number; icon: React.ReactNode; titulo: string; why: React.ReactNode; children: React.ReactNode;
   done?: boolean; collapsed?: boolean; onToggle?: () => void;
+  /** Nombre canonico para la telemetria ("hasta donde llego"). */
+  seccion?: SeccionMedida;
 }) => (
-  <section className={`mt-3.5 rounded-2xl border bg-white ${done ? 'border-emerald-200' : 'border-gray-200'} ${collapsed ? 'p-3' : 'p-4'}`}>
+  <section data-seccion={seccion} className={`mt-3.5 rounded-2xl border bg-white ${done ? 'border-emerald-200' : 'border-gray-200'} ${collapsed ? 'p-3' : 'p-4'}`}>
     <button type="button" onClick={onToggle} disabled={!onToggle} className={`flex w-full gap-2.5 text-left disabled:cursor-default ${collapsed ? 'items-center' : 'items-start'}`}>
-      {n !== undefined && <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-[13px] font-extrabold ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-[#EEF0FB] text-[#2F3A9E]'}`}>{done ? <Ic.Check className="h-4 w-4" /> : n}</span>}
+      {n !== undefined && <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-[13px] font-bold ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-[#EEF0FB] text-[#2F3A9E]'}`}>{done ? <Ic.Check className="h-4 w-4" /> : n}</span>}
       <h2 className={`flex min-w-0 flex-1 items-start gap-2 font-bold leading-tight ${collapsed ? 'text-[16px] text-gray-500' : 'text-[18px] text-gray-900'}`}>
         {!collapsed && <span className="text-[#4654CD]">{icon}</span>}<span className={collapsed ? 'truncate' : 'text-balance'}>{titulo}</span>
       </h2>
@@ -912,8 +1415,9 @@ const Sec = ({ n, icon, titulo, why, children, done, collapsed, onToggle }: {
   </section>
 );
 
-const Btn = ({ children, onClick, kind = 'pri', disabled, className = '' }: {
-  children: React.ReactNode; onClick?: () => void; kind?: 'pri' | 'sec' | 'ghost'; disabled?: boolean; className?: string;
+const Btn = ({ children, onClick, kind = 'pri', disabled, className = '', testId }: {
+  children: React.ReactNode; onClick?: () => void; kind?: 'pri' | 'sec' | 'ghost';
+  disabled?: boolean; className?: string; testId?: string;
 }) => {
   const k = {
     pri: 'bg-[#4654CD] text-white hover:bg-[#3a47b3]',
@@ -921,7 +1425,7 @@ const Btn = ({ children, onClick, kind = 'pri', disabled, className = '' }: {
     ghost: 'border-[1.5px] border-[#C9CEF2] text-[#4654CD] bg-transparent',
   }[kind];
   return (
-    <button type="button" disabled={disabled} onClick={onClick}
+    <button type="button" disabled={disabled} onClick={onClick} data-testid={testId}
             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[14.5px] font-bold disabled:cursor-not-allowed disabled:opacity-45 ${k} ${className}`}>
       {children}
     </button>
@@ -937,7 +1441,14 @@ const Chip = ({ on, onClick, b, s, disabled }: { on: boolean; onClick: () => voi
 
 const Header = () => (
   <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
-    <div className="mx-auto max-w-[560px] px-4 py-3 text-[18px] font-extrabold text-[#2F3A9E]">BaldeCash</div>
+    <div className="mx-auto flex max-w-[560px] items-center px-4 py-3">
+      {/* Alto fijo y ancho automatico: el archivo es 1082x305, asi que fijar
+          los dos lo deformaria. `next/image` no aporta acá --- es un logo
+          chico de un dominio externo --- y el repo ya lo carga asi en el
+          modal del cupon. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={LOGO_URL} alt="BaldeCash" className="block h-7 w-auto" />
+    </div>
   </header>
 );
 const Footer = () => (
@@ -946,15 +1457,196 @@ const Footer = () => (
   </div>
 );
 
-function Mensaje({ titulo, detalle, accion }: { titulo: string; detalle?: string; accion?: { texto: string; onClick: () => void } }) {
+/** Pantallas terminales (cargando, vencido, inválido, sin red, ya enviado).
+ *
+ * Llevan la misma cabecera que el formulario y un fondo blanco que ocupa toda
+ * la pantalla. Antes eran un `<main>` suelto sin cabecera ni fondo: con tan
+ * poco contenido, lo que hubiera detrás del `<body>` (el tema oscuro de la
+ * zona gamer si quedó en `localStorage`, o cualquier franja del layout)
+ * asomaba debajo de la tarjeta. */
+function Pagina({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col items-center px-4 py-16 text-center">
-      <h1 className="text-lg font-semibold text-gray-900">{titulo}</h1>
-      {detalle && <p className="mt-2 text-sm text-gray-600">{detalle}</p>}
+    <div className="flex min-h-dvh flex-col bg-white text-gray-900">
+      <Header />
+      <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col items-center px-4 py-12 text-center">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+const IconoEstado = ({ tipo }: { tipo: 'ok' | 'reloj' | 'info' | 'alerta' }) => {
+  const estilos = {
+    ok: 'bg-teal-50 text-teal-600',
+    reloj: 'bg-[#EEF0FB] text-[#4654CD]',
+    info: 'bg-[#EEF0FB] text-[#4654CD]',
+    alerta: 'bg-amber-50 text-amber-600',
+  }[tipo];
+  const Icono = { ok: Ic.Check, reloj: Ic.Cal, info: Ic.Wa, alerta: Ic.Alert }[tipo];
+  return (
+    <div className={`inline-flex h-[64px] w-[64px] items-center justify-center rounded-full ${estilos}`} aria-hidden="true">
+      <Icono className="h-8 w-8" />
+    </div>
+  );
+};
+
+function Mensaje({ titulo, detalle, accion, icono }: {
+  titulo: string; detalle?: string; accion?: { texto: string; onClick: () => void };
+  icono?: 'ok' | 'reloj' | 'info' | 'alerta';
+}) {
+  return (
+    <Pagina>
+      {icono && <IconoEstado tipo={icono} />}
+      <h1 className={`${icono ? 'mt-4' : ''} text-[22px] font-bold leading-tight text-[#2F3A9E]`}>{titulo}</h1>
+      {detalle && <p className="mt-2 text-[15px] text-gray-500">{detalle}</p>}
       {accion && (
-        <button type="button" onClick={accion.onClick} className="mt-4 rounded-lg bg-[#4654CD] px-4 py-2 text-sm font-medium text-white">{accion.texto}</button>
+        <button type="button" onClick={accion.onClick} className="mt-5 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white">{accion.texto}</button>
       )}
-    </main>
+    </Pagina>
+  );
+}
+
+const COPY_CAIDO: Record<EnlaceCaidoReason, { titulo: string; detalle: string; icono: 'reloj' | 'info' }> = {
+  expired: {
+    titulo: 'Este enlace venció',
+    detalle: 'Por seguridad, cada enlace vale 8 horas. Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+  superseded: {
+    titulo: 'Te enviamos un enlace más nuevo por WhatsApp',
+    detalle: 'Este quedó reemplazado. Usa el último que recibiste; si no lo encuentras, pide otro aquí.',
+    icono: 'info',
+  },
+  revoked: {
+    titulo: 'Este enlace ya no está activo',
+    detalle: 'Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+  consumed: {
+    titulo: 'Este enlace ya se usó',
+    detalle: 'Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+  inactive: {
+    titulo: 'Este enlace ya no está activo',
+    detalle: 'Pide uno nuevo y te lo enviamos por WhatsApp al instante.',
+    icono: 'reloj',
+  },
+};
+
+/** "vence hoy a las 11:55" / "vence el 04/09 a las 11:55", partiendo el ISO
+ * (hora Lima sin zona) en vez de `new Date`, que lo tomaría como UTC. */
+export function venceTexto(iso: string | undefined, hoy = new Date()): string | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return null;
+  const [, y, mo, d, hh, mm] = m;
+  const esHoy = Number(y) === hoy.getFullYear() && Number(mo) === hoy.getMonth() + 1 && Number(d) === hoy.getDate();
+  return esHoy ? `vence hoy a las ${hh}:${mm}` : `vence el ${d}/${mo} a las ${hh}:${mm}`;
+}
+
+type EstadoRenovar =
+  | { k: 'idle' }
+  | { k: 'enviando' }
+  | { k: 'enviado'; telefono: string; expiresAt?: string }
+  | { k: 'plazo_vencido' }
+  | { k: 'no_aplica' }
+  | { k: 'tope' }
+  | { k: 'fallo_envio' }
+  | { k: 'red' }
+  | { k: 'error'; texto: string };
+
+/** Enlace vencido / reemplazado / usado: explica el motivo y deja pedir uno
+ * nuevo desde la misma pantalla. El API manda el enlace nuevo por WhatsApp al
+ * celular registrado; nunca lo devuelve al navegador. */
+function EnlaceCaido({ reason, token, onSubmitted }: { reason: EnlaceCaidoReason; token: string; onSubmitted: () => void }) {
+  const [estado, setEstado] = useState<EstadoRenovar>({ k: 'idle' });
+  const copy = COPY_CAIDO[reason];
+
+  const pedir = async () => {
+    setEstado({ k: 'enviando' });
+    evento('followup_form_renew_requested', { motivo: reason });
+    const res = await renovarEnlace(token);
+    if (!isFormularioApiError(res)) return setEstado({ k: 'enviado', telefono: res.telefono, expiresAt: res.expires_at });
+    if (res.reason === 'already_submitted') return onSubmitted();
+    if (res.reason === 'sla_expired') return setEstado({ k: 'plazo_vencido' });
+    if (res.reason === 'not_applicable') return setEstado({ k: 'no_aplica' });
+    if (res.reason === 'rate_limited') return setEstado({ k: 'tope' });
+    if (res.reason === 'send_failed') return setEstado({ k: 'fallo_envio' });
+    if (res.reason === 'network') return setEstado({ k: 'red' });
+    setEstado({ k: 'error', texto: res.error });
+  };
+
+  const fallback = (
+    <p className="mt-4 text-[13.5px] text-gray-400">
+      ¿No te llega? <b className="font-semibold text-gray-500">Escríbenos por WhatsApp</b> y te enviamos uno nuevo.
+    </p>
+  );
+
+  if (estado.k === 'enviado') {
+    return (
+      <Pagina>
+        <IconoEstado tipo="ok" />
+        <h1 className="mt-4 text-[22px] font-bold leading-tight text-[#2F3A9E]">Listo, te enviamos un enlace nuevo</h1>
+        <p className="mt-2 text-[15px] text-gray-500">
+          Lo mandamos por WhatsApp al <b className="tabular-nums text-gray-900">{estado.telefono}</b>. Ábrelo desde WhatsApp para continuar.
+        </p>
+        {venceTexto(estado.expiresAt) && (
+          <p className="mt-2 text-[14px] font-semibold text-amber-700">Ábrelo pronto: {venceTexto(estado.expiresAt)}.</p>
+        )}
+        <button type="button" disabled className="mt-5 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white opacity-50">Enlace enviado</button>
+        {fallback}
+      </Pagina>
+    );
+  }
+
+  if (estado.k === 'plazo_vencido') {
+    return (
+      <Pagina>
+        <IconoEstado tipo="reloj" />
+        <h1 className="mt-4 text-[22px] font-bold leading-tight text-[#2F3A9E]">Se venció el plazo para completar el formulario</h1>
+        <p className="mt-2 text-[15px] text-gray-500">Tu asesor se comunicará contigo desde nuestra cuenta oficial de BaldeCash.</p>
+        {fallback}
+      </Pagina>
+    );
+  }
+
+  if (estado.k === 'no_aplica') {
+    return (
+      <Mensaje icono="info" titulo="Tu asesor se comunicará contigo"
+               detalle="No necesitas completar este formulario. Te contactaremos desde nuestra cuenta oficial de BaldeCash." />
+    );
+  }
+
+  const enviando = estado.k === 'enviando';
+  return (
+    <Pagina>
+      <IconoEstado tipo={copy.icono} />
+      <h1 className="mt-4 text-[22px] font-bold leading-tight text-[#2F3A9E]">{copy.titulo}</h1>
+      <p className="mt-2 text-[15px] text-gray-500">{copy.detalle}</p>
+      <button
+        type="button"
+        onClick={() => void pedir()}
+        disabled={enviando}
+        className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#4654CD] px-5 py-2.5 text-[15px] font-bold text-white disabled:opacity-60"
+      >
+        <Ic.Send className="h-4 w-4" />
+        {enviando ? 'Enviando…' : estado.k === 'red' ? 'Reintentar' : 'Enviarme un enlace nuevo por WhatsApp'}
+      </button>
+      {estado.k === 'tope' && (
+        <p role="alert" className="mt-3 text-[14px] text-amber-700">Ya te enviamos varios enlaces hoy. Revisa tu WhatsApp o escríbenos.</p>
+      )}
+      {estado.k === 'fallo_envio' && (
+        <p role="alert" className="mt-3 text-[14px] text-red-600">No pudimos enviarlo por WhatsApp. Intenta de nuevo en un momento.</p>
+      )}
+      {estado.k === 'red' && (
+        <p role="alert" className="mt-3 text-[14px] text-red-600">No pudimos conectarnos. Revisa tu conexión e intenta nuevamente.</p>
+      )}
+      {estado.k === 'error' && (
+        <p role="alert" className="mt-3 text-[14px] text-red-600">{estado.texto}</p>
+      )}
+      {fallback}
+    </Pagina>
   );
 }
 
