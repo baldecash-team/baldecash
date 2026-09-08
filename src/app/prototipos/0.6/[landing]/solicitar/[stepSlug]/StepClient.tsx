@@ -932,9 +932,15 @@ function StepContent() {
         description={step.description}
         onBack={handleBack}
         onNext={handleNext}
+        // `handleNext` tambien envia: valida, marca el paso y dispara el submit
+        // al terminar la celebracion. Es el mismo camino que ya usa el CTA fijo
+        // de movil, que nunca distinguio entre continuar y enviar.
+        onSubmit={handleNext}
         onStepClick={handleStepClick}
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
+        isSubmitting={isAppSubmitting}
+        submitMessage={submitMessage}
         canProceed={true}
         ctaFijoEnMovil
         hideNavbar={isGamer}

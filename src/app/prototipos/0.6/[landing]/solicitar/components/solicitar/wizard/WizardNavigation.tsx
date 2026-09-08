@@ -66,7 +66,12 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
       {isLastStep ? (
         <button
           type="button"
-          onClick={onSubmit}
+          /* `onNext` de respaldo: un paso puede volverse "el que envia" sin ser
+             el ultimo (envio anticipado), y ahi quien lo renderiza pasa `onNext`
+             pero no `onSubmit`. Sin el respaldo el boton principal queda con
+             onClick undefined: el clic no hace nada, no loguea nada y no manda
+             nada. */
+          onClick={onSubmit ?? onNext}
           disabled={isSubmitting || !canProceed}
           className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl
                      font-semibold hover:brightness-90 transition-colors shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]
