@@ -106,7 +106,10 @@ export function Confirmacion({ unidad, producto, cuota, token, onIrAFirmar }: Co
           target="_blank"
           rel="noopener noreferrer"
           onClick={onIrAFirmar}
-          className="mt-5 block w-full rounded-full bg-[#4654CD] px-5 py-3.5 text-[15px] font-bold text-white transition-opacity hover:opacity-90"
+          // Mismo radio y mismo alto que `BotonWhatsApp`, que va justo debajo:
+          // son los dos botones de esta pantalla y con radios distintos se
+          // ven como piezas de dos diseños.
+          className="mt-[18px] block w-full rounded-2xl bg-[#4654CD] p-[15px] text-center text-[15px] font-bold text-white transition-opacity hover:opacity-90"
         >
           Revisar y firmar mi contrato
         </a>
