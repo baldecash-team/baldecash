@@ -638,9 +638,30 @@ export function useSubmitApplication(
             stage: 'api_response',
           });
           setSubmitStage('error');
-          const msg = result.error_code === 'PRODUCT_DISABLED'
-            ? 'Uno o más productos de tu solicitud ya no están disponibles. Por favor vuelve atrás y revisa tu selección.'
-            : (result.error || 'Error al enviar la solicitud. Por favor intenta nuevamente.');
+          // Mensajes por código. Se escriben acá y no se toma el del API
+          // porque el backend los manda sin tildes (viajan por varios sistemas
+          // que no siempre respetan el encoding) y porque el texto tiene que
+          // decir qué hacer, no solo qué pasó.
+          const MENSAJES: Record<string, string> = {
+            PRODUCT_DISABLED:
+              'Uno o más productos de tu solicitud ya no están disponibles. ' +
+              'Por favor vuelve atrás y revisa tu selección.',
+            // Reacondicionados: cada equipo es una unidad única con su serial,
+            // así que dos personas no pueden llevarse la misma laptop.
+            //
+            // El texto NO dice "otra persona la tomó": el backend responde lo
+            // mismo cuando alguien se adelantó y cuando la card ya estaba sin
+            // stock en una pestaña vieja. Afirmar la causa equivocada suena a
+            // excusa. Lo que importa es qué hacer.
+            OUT_OF_STOCK:
+              'Este equipo ya no está disponible. Es la última unidad de ese ' +
+              'modelo y se agotó mientras completabas la solicitud. Vuelve al ' +
+              'catálogo y elige otro equipo para continuar.',
+          };
+          const msg =
+            (result.error_code ? MENSAJES[result.error_code] : undefined) ||
+            result.error ||
+            'Error al enviar la solicitud. Por favor intenta nuevamente.';
           setError(msg);
           onToast?.(msg, 'error');
           return false;
