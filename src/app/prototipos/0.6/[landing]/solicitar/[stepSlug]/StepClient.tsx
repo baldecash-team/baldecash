@@ -43,7 +43,7 @@ import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
-import { useToast } from '@/app/prototipos/_shared';
+import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -153,9 +153,31 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
+  // La unidad quedo tomada por otra solicitud. Va en modal y no en toast: el
+  // toast dura 4 segundos y `StepClient` no renderiza el `error` del hook, asi
+  // que seria la unica superficie del mensaje — y este mensaje pide una accion
+  // (volver al catalogo y elegir otro equipo) justo cuando el envio fallo y la
+  // persona no sabe si su solicitud entro.
+  const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
+    onUnidadTomada: setUnidadTomada,
   });
+
+  const modalUnidadTomada = unidadTomada ? (
+    <ModalAviso
+      titulo="Ese equipo ya no está disponible"
+      mensaje={unidadTomada}
+      textoBoton="Elegir otro equipo"
+      // El boton principal LLEVA al catalogo, no cierra y ya: cerrar deja a la
+      // persona en un formulario que no va a poder enviar. `onCerrar` tambien
+      // navega porque es lo que corren Escape y el clic en el fondo, y los tres
+      // caminos tienen que terminar en el mismo lugar.
+      onCerrar={() => router.push(routes.catalogo(landing))}
+      tono="error"
+    />
+  ) : null;
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
@@ -1122,6 +1144,7 @@ function StepContent() {
         {pageContent}
         {stickyCtaPaso}
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        {modalUnidadTomada}
       </GamerWizardWrapper>
     );
   }
@@ -1132,6 +1155,7 @@ function StepContent() {
       {stickyCtaPaso}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+      {modalUnidadTomada}
     </>
   );
 }
