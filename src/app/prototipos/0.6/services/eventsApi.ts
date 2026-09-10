@@ -376,7 +376,11 @@ export type EventType =
   | 'equipment_selection_click'
   | 'equipment_selection_confirmed'
   | 'equipment_selection_error'
-  | 'equipment_selection_link_expired';
+  | 'equipment_selection_link_expired'
+  // Tocó el botón para ir a firmar. Tiene que estar TAMBIÉN en
+  // `EQUIPMENT_SELECTION_EVENT_TYPES` del backend: un tipo fuera de ese
+  // catálogo se descarta en silencio, con 200 OK y sin dato.
+  | 'equipment_selection_contract_open';
 
 /** Properties that are BLOCKED for privacy reasons — dni permitido para tracking VIP overlay */
 const BLOCKED_PROPERTIES = new Set([

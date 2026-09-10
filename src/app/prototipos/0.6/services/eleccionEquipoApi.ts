@@ -149,3 +149,27 @@ export async function elegirUnidad(
     return { reason: 'network', error: 'No pudimos conectarnos. Revisa tu conexión.' };
   }
 }
+
+/**
+ * El enlace para firmar el contrato de esta solicitud.
+ *
+ * Endpoint aparte de `getEleccion` a propósito: resolverlo le cuesta al backend
+ * una llamada a Keynua, y ese token de firma expira — no se puede guardar ni
+ * cachear. La vista principal se recarga sola tras un 409, y pagar esa llamada
+ * en cada recarga retrasaría la grilla para nada.
+ *
+ * `signing_url: null` con 200 NO es un error: significa que el contrato todavía
+ * no está listo, o que ya no admite firma. Quien llama simplemente no muestra
+ * el botón.
+ */
+export async function getLinkDeFirma(token: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/eleccion-equipo/${token}/contrato`);
+    if (!response.ok) return null;
+    const datos = (await response.json()) as { signing_url?: string | null };
+    return datos?.signing_url || null;
+  } catch {
+    // Sin link, sin botón. La pantalla de confirmación vale por sí sola.
+    return null;
+  }
+}

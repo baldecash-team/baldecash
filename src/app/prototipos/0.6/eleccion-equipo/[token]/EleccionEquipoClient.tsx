@@ -316,6 +316,17 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
           unidad={view.unidad}
           producto={view.datos.product}
           cuota={view.datos.application.monthly_payment}
+          token={token}
+          onIrAFirmar={() => {
+            // Es el último paso que esta pantalla puede ver: la firma sigue en
+            // Keynua, en otra pestaña, y de ahí no vuelve ninguna señal. Sin
+            // este evento no hay forma de separar "eligió y se fue a firmar"
+            // de "eligió y abandonó".
+            events.track('equipment_selection_contract_open', {
+              unit_id: view.unidad.unit_id,
+              display_number: view.unidad.display_number,
+            });
+          }}
         />
       </Chrome>
     );
