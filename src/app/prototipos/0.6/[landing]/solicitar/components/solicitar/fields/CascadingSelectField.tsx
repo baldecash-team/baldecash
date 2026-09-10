@@ -43,11 +43,13 @@ import { SelectInput } from './SelectInput';
  *
  * Es un mapa a mano a propósito y no una columna: hoy es un caso, y una
  * landing acá es una decisión comercial, no un dato que alguien administre.
- * Si aparece un tercero, conviene mover esto a `landing.sede_agreement_id`.
+ * Ya son tres y el mapa está duplicado en el backend: la próxima conviene
+ * moverlo a `landing.sede_agreement_id` en vez de duplicarlo otra vez.
  */
 const SEDES_SIN_CONVENIO: Record<string, number> = {
   'lead-flujo-normal': 16, // SENATI
   'lead-flujo-ucv': 32, // UCV — clon de captación A365 para UCV (Ate/Callao)
+  'lead-flujo-uss': 48, // USS — clon de captación A365 para la Señor de Sipán
 };
 
 interface CascadingSelectFieldProps {

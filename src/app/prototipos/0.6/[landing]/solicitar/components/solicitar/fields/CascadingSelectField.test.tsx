@@ -150,6 +150,29 @@ describe('CascadingSelectField — gate de agreement-branches', () => {
     );
   });
 
+  it('pide las sedes del convenio USS en lead-flujo-uss', async () => {
+    // Clon de captacion A365 para USS (`ce-569`), hermano de `lead-flujo-ucv`.
+    // Sin la entrada en el mapa el campo sede se esconde en silencio y el
+    // push del socio con sede termina rechazado.
+    mockLanding = 'lead-flujo-uss';
+    mockFetchOptionsFromSource.mockResolvedValueOnce([
+      { value: 166, label: 'USS - Chiclayo' },
+      { value: 205, label: 'USS - San Juan de Miraflores' },
+    ]);
+
+    render(<CascadingSelectField field={sedeField} staticOptions={[]} />);
+
+    expect(screen.getByTestId('select-input')).toBeInTheDocument();
+    expect(mockFetchOptionsFromSource).toHaveBeenCalledWith(
+      'agreement-branches',
+      { agreement_id: 48 }
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('select-input')).toHaveAttribute('data-disabled', 'false')
+    );
+  });
+
   it('el mapa no filtra a otras landings sin convenio', () => {
     mockLanding = 'otra-landing-sin-convenio';
 
