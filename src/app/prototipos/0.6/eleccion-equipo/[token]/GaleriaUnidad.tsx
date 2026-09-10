@@ -725,9 +725,28 @@ export function GaleriaUnidad({
               type="button"
               onClick={onElegir}
               disabled={enviando}
+              // `aria-busy` es lo que le dice a un lector de pantalla que la
+              // acción está en curso: el cambio de texto solo lo nota quien ve.
+              aria-busy={enviando}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4654CD] p-4 text-base font-extrabold text-white shadow-[0_10px_24px_rgba(70,84,205,.35)] disabled:opacity-60 md:mt-auto"
             >
-              {!enviando && (
+              {enviando ? (
+                /* Reservar no es instantáneo: el backend toma el lock de la
+                   unidad, revalida contra Airtable —hasta 30 s de timeout—,
+                   reanuda el workflow y emite el contrato. Con el botón solo
+                   atenuado, esos segundos se leen como que no pasó nada, y la
+                   persona vuelve a tocar. El spinner dice que sigue vivo. */
+                <svg
+                  className="animate-spin"
+                  width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" />
+                  <path
+                    d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
                 <svg
                   width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
@@ -735,7 +754,7 @@ export function GaleriaUnidad({
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
               )}
-              {enviando ? 'Reservando...' : 'Elegir esta unidad'}
+              {enviando ? 'Reservando tu unidad...' : 'Elegir esta unidad'}
             </button>
             <p className="mt-2.5 text-center text-xs text-[#9a9aa8]">
               Al elegir, reservamos esta unidad para ti.
