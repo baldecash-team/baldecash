@@ -38,13 +38,15 @@ beforeEach(() => jest.clearAllMocks());
 const montar = (props = {}) =>
   render(<ConfirmarDatosCard applicationCode="SOL-1" documentNumber="76826846" {...props} />);
 
-it('muestra la identidad y explica por qué no se toca', async () => {
+it('muestra la identidad sin el aviso del §5', async () => {
   mockGet.mockResolvedValue(DATOS);
   montar();
 
   expect(await screen.findByText('YANNIS NICOL FLORES CALDERÓN')).toBeInTheDocument();
   expect(screen.getByText('76826846')).toBeInTheDocument();
-  expect(screen.getByText(AVISO)).toBeInTheDocument();
+  // El aviso llega igual en la respuesta, pero la tarjeta ya no lo pinta: los
+  // campos deshabilitados dicen lo mismo sin ocupar cuatro renglones.
+  expect(screen.queryByText(AVISO)).not.toBeInTheDocument();
 });
 
 it('el nombre y el DNI no son campos editables', async () => {
