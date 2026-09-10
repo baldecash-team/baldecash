@@ -42,7 +42,7 @@ import { GaleriaUnidad } from './GaleriaUnidad';
 import { UnidadCard } from './UnidadCard';
 import { eleccionEvents } from './eleccionEvents';
 import { etiquetaGrado, formatearCuota } from './formato';
-import ModalAviso, { type ModalAvisoProps } from './ModalAviso';
+import { ModalAviso, type ModalAvisoProps } from '@/app/prototipos/_shared';
 
 /** Catálogo de reacondicionados. La salida cuando la unidad que se quería ya
  *  no está: cada equipo es una pieza única, así que "elegir otra" muchas veces

@@ -17,7 +17,7 @@ import { useProduct } from '../context/ProductContext';
 import { SelectedProductBar, SelectedProductSpacer } from '../components/solicitar/product/SelectedProductBar';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
-import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, useScrollToTop, Toast, useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
@@ -71,9 +71,24 @@ function ComplementosContent() {
   }, []);
 
   // Submit application hook
+  // Mismo criterio que en `StepClient`: la unidad tomada va en modal, no en un
+  // toast que se borra a los 4 segundos, porque el mensaje pide una accion.
+  const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+
   const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded, error: submitError } = useSubmitApplication({
     onToast: showToast,
+    onUnidadTomada: setUnidadTomada,
   });
+
+  const modalUnidadTomada = unidadTomada ? (
+    <ModalAviso
+      titulo="Ese equipo ya no está disponible"
+      mensaje={unidadTomada}
+      textoBoton="Elegir otro equipo"
+      onCerrar={() => router.push(routes.catalogo(landing))}
+      tono="error"
+    />
+  ) : null;
   const isProductDisabled = submitError?.includes('ya no están disponibles') ?? false;
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
@@ -416,6 +431,7 @@ function ComplementosContent() {
         {toast && (
           <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
         )}
+        {modalUnidadTomada}
       </GamerComplementosWrapper>
     );
   }
@@ -461,6 +477,7 @@ function ComplementosContent() {
           duration={4000}
         />
       )}
+      {modalUnidadTomada}
     </>
   );
 }

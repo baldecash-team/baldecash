@@ -62,6 +62,23 @@ interface UseSubmitApplicationOptions {
    * Callback for showing toast notifications
    */
   onToast?: (message: string, type: 'success' | 'error') => void;
+  /**
+   * La unidad que se pidió ya está tomada por otra solicitud.
+   *
+   * Va por un canal aparte del toast a propósito. El toast dura 4 segundos y
+   * después no queda nada: `StepClient` no renderiza el `error` de este hook,
+   * así que ese mensaje es la ÚNICA superficie donde aparece. Y este mensaje
+   * pide una acción —volver al catálogo y elegir otro equipo—, además de
+   * llegar justo cuando el envío falló y la persona no sabe si su solicitud
+   * entró. Un aviso que se borra solo no sirve para eso.
+   *
+   * Solo se dispara con `UNIT_OUT_OF_STOCK`, que emite únicamente la guarda de
+   * stock por unidad física — o sea, solo en las landings de
+   * `catalog_unit_stock.landing_ids`. `OUT_OF_STOCK`, el del stock por conteo
+   * que está vivo en una decena de landings ajenas, sigue yendo al toast como
+   * siempre.
+   */
+  onUnidadTomada?: (mensaje: string) => void;
 }
 
 interface SubmitOptions {
@@ -184,7 +201,7 @@ interface UseSubmitApplicationResult {
 export function useSubmitApplication(
   options: UseSubmitApplicationOptions = {}
 ): UseSubmitApplicationResult {
-  const { onToast } = options;
+  const { onToast, onUnidadTomada } = options;
 
   const router = useRouter();
   const params = useParams();
@@ -662,17 +679,26 @@ export function useSubmitApplication(
             // decena de landings ajenas (copia-home, renueva-tu-equipo,
             // family-farms, remate-ucv...) que nunca pidieron este texto y a
             // las que hay que dejarles el mensaje que ya tenían.
+            // Sin repetir "ya no está disponible": eso lo dice el título del
+            // modal. Acá va el porqué y el qué hacer.
             UNIT_OUT_OF_STOCK:
-              'Este equipo ya no está disponible. Es la última unidad de ese ' +
-              'modelo y se agotó mientras completabas la solicitud. Vuelve al ' +
-              'catálogo y elige otro equipo para continuar.',
+              'Era la última unidad de ese modelo y se agotó mientras ' +
+              'completabas la solicitud. Elige otro equipo del catálogo para ' +
+              'continuar.',
           };
           const msg =
             (result.error_code ? MENSAJES[result.error_code] : undefined) ||
             result.error ||
             'Error al enviar la solicitud. Por favor intenta nuevamente.';
           setError(msg);
-          onToast?.(msg, 'error');
+          // La unidad tomada va al modal si el caller lo maneja; si no, cae al
+          // toast, que es el comportamiento de siempre. Nunca los dos: dos
+          // avisos del mismo hecho se leen como dos problemas distintos.
+          if (result.error_code === 'UNIT_OUT_OF_STOCK' && onUnidadTomada) {
+            onUnidadTomada(msg);
+          } else {
+            onToast?.(msg, 'error');
+          }
           return false;
         }
       } catch (err) {
@@ -703,6 +729,7 @@ export function useSubmitApplication(
     },
     [
       sessionUuid,
+      onUnidadTomada,
       getAllProducts,
       selectedAccessories,
       selectedInsurance,

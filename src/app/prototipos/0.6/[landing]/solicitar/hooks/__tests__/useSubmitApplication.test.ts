@@ -140,7 +140,7 @@ describe('useSubmitApplication', () => {
 
       expect(ok).toBe(false);
       const msg = onToast.mock.calls[0][0] as string;
-      expect(msg).toContain('ya no está disponible');
+      expect(msg).toContain('última unidad de ese modelo');
       expect(msg).toContain('catálogo');
       // No se cuela el texto crudo del API.
       expect(msg).not.toContain('Alguien acaba de tomar la ultima unidad');
@@ -168,6 +168,72 @@ describe('useSubmitApplication', () => {
       const msg = onToast.mock.calls[0][0] as string;
       expect(msg).toBe('Sin stock disponible para este equipo');
       expect(msg).not.toContain('última unidad de ese modelo');
+    });
+
+    it('UNIT_OUT_OF_STOCK va al MODAL, no al toast', async () => {
+      // El toast dura 4 segundos y `StepClient` no renderiza el `error` del
+      // hook: seria la unica superficie del mensaje. Y este mensaje pide una
+      // accion —volver al catalogo— justo cuando el envio fallo.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'UNIT_OUT_OF_STOCK',
+        error: 'Alguien acaba de tomar la ultima unidad de este equipo.',
+      });
+
+      const onToast = jest.fn();
+      const onUnidadTomada = jest.fn();
+      const { result } = renderHook(() =>
+        useSubmitApplication({ onToast, onUnidadTomada }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onUnidadTomada).toHaveBeenCalledTimes(1);
+      expect(onUnidadTomada.mock.calls[0][0]).toContain('catálogo');
+      // Nunca los dos: dos avisos del mismo hecho se leen como dos problemas.
+      expect(onToast).not.toHaveBeenCalled();
+    });
+
+    it('OUT_OF_STOCK sigue yendo al toast aunque haya modal', async () => {
+      // El aislamiento, del lado del front: el stock por conteo esta vivo en
+      // una decena de landings ajenas y su aviso no cambia.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'OUT_OF_STOCK',
+        error: 'Sin stock disponible para este equipo',
+      });
+
+      const onToast = jest.fn();
+      const onUnidadTomada = jest.fn();
+      const { result } = renderHook(() =>
+        useSubmitApplication({ onToast, onUnidadTomada }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onUnidadTomada).not.toHaveBeenCalled();
+      expect(onToast).toHaveBeenCalledTimes(1);
+    });
+
+    it('sin modal, UNIT_OUT_OF_STOCK cae al toast de siempre', async () => {
+      // Un caller que no maneje el canal nuevo no puede quedarse sin aviso.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'UNIT_OUT_OF_STOCK',
+        error: 'Alguien acaba de tomar la ultima unidad de este equipo.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledTimes(1);
+      expect(onToast.mock.calls[0][0]).toContain('catálogo');
     });
 
     it('un codigo desconocido cae al mensaje del API', async () => {
