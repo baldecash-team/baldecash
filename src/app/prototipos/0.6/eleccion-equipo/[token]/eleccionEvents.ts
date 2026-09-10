@@ -29,7 +29,7 @@ const defaultSink: EventSink = (sessionId, events) => {
 /** Propiedades permitidas en un evento de esta ruta (sin PII, sin serial). */
 export type EleccionEventProps = Record<string, string | number | boolean | null>;
 
-/** Los 10 eventos de esta pantalla, ya dados de alta en el backend. */
+/** Los 11 eventos de esta pantalla, ya dados de alta en el backend. */
 export type EleccionEventType =
   | 'equipment_selection_link_open'
   | 'equipment_selection_already_chosen'
@@ -40,7 +40,12 @@ export type EleccionEventType =
   | 'equipment_selection_click'
   | 'equipment_selection_confirmed'
   | 'equipment_selection_error'
-  | 'equipment_selection_link_expired';
+  | 'equipment_selection_link_expired'
+  /** Tocó el botón para ir a firmar. Es el último paso que esta pantalla ve:
+   *  la firma ocurre en Keynua, en otra pestaña, y de ahí no vuelve ninguna
+   *  señal. Sin esto no hay forma de separar "eligió y se fue a firmar" de
+   *  "eligió y abandonó". */
+  | 'equipment_selection_contract_open';
 
 export interface EleccionEvents {
   track: (type: EleccionEventType, props?: EleccionEventProps) => void;

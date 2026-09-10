@@ -14,7 +14,10 @@
  * existe.
  */
 
+import { useEffect, useState } from 'react';
+
 import type { EleccionProducto, EleccionUnidad } from '../../services/eleccionEquipoApi';
+import { getLinkDeFirma } from '../../services/eleccionEquipoApi';
 import { BotonWhatsApp } from './Chrome';
 import { etiquetaGrado, formatearCuota, nombreUnidad } from './formato';
 
@@ -22,12 +25,34 @@ export interface ConfirmacionProps {
   unidad: EleccionUnidad;
   producto: EleccionProducto;
   cuota: number | string | null;
+  /** El token del link. Con él se pide el enlace de firma. */
+  token: string;
+  /** Se avisa cuando la persona toca el botón para ir a firmar. */
+  onIrAFirmar?: () => void;
 }
 
-export function Confirmacion({ unidad, producto, cuota }: ConfirmacionProps) {
+export function Confirmacion({ unidad, producto, cuota, token, onIrAFirmar }: ConfirmacionProps) {
   const titulo = nombreUnidad(unidad.display_number);
   const grado = etiquetaGrado(unidad.grado, unidad.grado_label);
   const cuotaTexto = formatearCuota(cuota);
+
+  // El enlace de firma se pide al montar, no al hacer clic: el token de Keynua
+  // expira, así que no se puede tener listo de antes, pero pedirlo recién al
+  // tocar el botón dejaría a la persona mirando un botón que no responde
+  // mientras viaja la llamada.
+  //
+  // `null` cubre dos estados que valen lo mismo para la pantalla —todavía no
+  // llegó, y no hay— porque en ambos la respuesta es la misma: no mostrar el
+  // botón y dejar los pasos que ya explican qué sigue.
+  const [firmaUrl, setFirmaUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    void getLinkDeFirma(token).then((url) => {
+      if (vivo) setFirmaUrl(url);
+    });
+    return () => { vivo = false; };
+  }, [token]);
 
   return (
     <div className="mx-auto max-w-[560px] pt-5 text-center">
@@ -54,13 +79,38 @@ export function Confirmacion({ unidad, producto, cuota }: ConfirmacionProps) {
 
       <div className="rounded-2xl bg-[#EEF0FC] p-[18px] text-left">
         <div className="mb-3.5 text-base font-extrabold">Próximos pasos</div>
+        {/* El paso 1 cambia según haya botón o no. Prometer "te lo enviaremos a
+            tu WhatsApp" cuando el contrato está a un clic manda a esperar algo
+            que ya está; y prometerlo cuando el envío está apagado sería
+            directamente falso. */}
         <Paso n={1}>
-          Te enviaremos tu <b>contrato para firma digital</b> a tu WhatsApp.
+          {firmaUrl ? (
+            <>Revisa y firma tu <b>contrato digital</b> desde el botón de abajo.</>
+          ) : (
+            <>Estamos preparando tu <b>contrato para firma digital</b>.</>
+          )}
         </Paso>
         <Paso n={2}>
           Al firmar, coordinamos la <b>entrega o recojo</b> de tu equipo.
         </Paso>
       </div>
+
+      {firmaUrl && (
+        <a
+          href={firmaUrl}
+          // Otra pestaña: la firma es un proceso largo de Keynua —selfie,
+          // documento, validaciones— y navegar en la misma pestaña destruiría
+          // esta pantalla, que es el único lugar donde consta qué unidad quedó
+          // reservada. `noopener` además evita que la pestaña nueva pueda tocar
+          // esta por `window.opener`.
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onIrAFirmar}
+          className="mt-5 block w-full rounded-full bg-[#4654CD] px-5 py-3.5 text-[15px] font-bold text-white transition-opacity hover:opacity-90"
+        >
+          Revisar y firmar mi contrato
+        </a>
+      )}
 
       <BotonWhatsApp />
     </div>
