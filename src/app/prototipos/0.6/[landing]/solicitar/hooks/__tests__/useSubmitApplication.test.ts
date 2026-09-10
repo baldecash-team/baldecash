@@ -118,6 +118,67 @@ describe('useSubmitApplication', () => {
     jest.clearAllMocks();
   });
 
+  describe('mensajes de error por codigo', () => {
+    // El backend manda `error` sin tildes (viaja por varios sistemas) y a
+    // veces con un texto que solo dice que paso, no que hacer. El hook los
+    // reescribe por `error_code`.
+
+    it('OUT_OF_STOCK: dice que el equipo se agoto y que vuelva al catalogo', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'OUT_OF_STOCK',
+        error: 'Sin stock disponible para este equipo',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      let ok: boolean = true;
+      await act(async () => {
+        ok = await result.current.submit();
+      });
+
+      expect(ok).toBe(false);
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toContain('ya no está disponible');
+      expect(msg).toContain('catálogo');
+      // No se cuela el texto crudo del API.
+      expect(msg).not.toContain('Sin stock disponible para este equipo');
+      expect(result.current.error).toBe(msg);
+    });
+
+    it('un codigo desconocido cae al mensaje del API', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'ALGO_NUEVO',
+        error: 'Mensaje del backend',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledWith('Mensaje del backend', 'error');
+    });
+
+    it('sin codigo ni mensaje cae al texto generico', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({ success: false });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledWith(
+        'Error al enviar la solicitud. Por favor intenta nuevamente.',
+        'error'
+      );
+    });
+  });
+
   describe('successful submission', () => {
     it('submits application and redirects on success', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
