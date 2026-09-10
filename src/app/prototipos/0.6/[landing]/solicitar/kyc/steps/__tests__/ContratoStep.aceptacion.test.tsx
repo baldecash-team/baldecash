@@ -61,11 +61,23 @@ it('con el documento listo pide aceptarlo antes de continuar', async () => {
 
   await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
   const continuar = screen.getByRole('button', { name: 'Continuar' });
-  expect(continuar).toBeDisabled();
+
+  // El botón se puede tocar sin marcar nada: el click es el que señala qué
+  // falta. Deshabilitado, la casilla sin marcar no se distingue de una pantalla
+  // que todavía está cargando.
+  expect(continuar).toBeEnabled();
+  await userEvent.click(continuar);
+  expect(onDone).not.toHaveBeenCalled();
+  expect(
+    screen.getByText('Necesitamos que aceptes el contrato para continuar'),
+  ).toBeInTheDocument();
 
   await userEvent.click(screen.getByText('He leído y acepto el contrato'));
 
-  expect(continuar).toBeEnabled();
+  // El aviso se va solo al marcar: sale del estado, no de un flag aparte.
+  expect(
+    screen.queryByText('Necesitamos que aceptes el contrato para continuar'),
+  ).not.toBeInTheDocument();
   await userEvent.click(continuar);
   expect(onDone).toHaveBeenCalledWith({ contractHash: 'a'.repeat(64), externalId: 'kyc-1' });
 });

@@ -46,8 +46,10 @@ const marcar = (texto: RegExp | string) => fireEvent.click(screen.getByText(text
 describe('ContratoStep — autorizaciones del convenio', () => {
   beforeEach(() => jest.clearAllMocks());
 
+  // El botón está siempre habilitado: lo que se comprueba es que no avance
+  // hasta tener las tres marcas, y que el click señale la que falta.
   it('administrativo: las dos, con el descuento por planilla primero', async () => {
-    const { continuar } = await montar('family-farms-baldecash-a');
+    const { continuar, onDone } = await montar('family-farms-baldecash-a');
 
     const planilla = screen.getByText(PLANILLA);
     const liquidacion = screen.getByText(LIQUIDACION);
@@ -57,25 +59,31 @@ describe('ContratoStep — autorizaciones del convenio', () => {
     expect(planilla.compareDocumentPosition(liquidacion))
       .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 
-    expect(continuar).toBeDisabled();
+    fireEvent.click(continuar);
+    expect(onDone).not.toHaveBeenCalled();
     marcar('He leído y acepto el contrato');
-    expect(continuar).toBeDisabled();
+    fireEvent.click(continuar);
+    expect(onDone).not.toHaveBeenCalled();
     marcar(PLANILLA);
-    expect(continuar).toBeDisabled();
+    fireEvent.click(continuar);
+    expect(onDone).not.toHaveBeenCalled();
     marcar(LIQUIDACION);
-    expect(continuar).toBeEnabled();
+    fireEvent.click(continuar);
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 
   it('perfiles no administrativos: solo la de liquidación', async () => {
-    const { continuar } = await montar('family-farms-baldecash-b');
+    const { continuar, onDone } = await montar('family-farms-baldecash-b');
 
     expect(screen.queryByText(PLANILLA)).not.toBeInTheDocument();
     expect(screen.getByText(LIQUIDACION)).toBeInTheDocument();
 
     marcar('He leído y acepto el contrato');
-    expect(continuar).toBeDisabled();
+    fireEvent.click(continuar);
+    expect(onDone).not.toHaveBeenCalled();
     marcar(LIQUIDACION);
-    expect(continuar).toBeEnabled();
+    fireEvent.click(continuar);
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 
   it('fuera del convenio no se pide ninguna: aceptar el contrato basta', async () => {

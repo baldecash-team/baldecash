@@ -7,7 +7,7 @@
  * condición pactada, y esta tarjeta está justo antes de aceptar el contrato.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { ResumenOperacionCard } from '../ResumenOperacionCard';
@@ -93,4 +93,22 @@ it('sin fecha de entrega no muestra la fila', () => {
   render(<ResumenOperacionCard resumen={{ ...COMPLETO, fecha_entrega: null }} />);
 
   expect(screen.queryByText('Entrega estimada')).not.toBeInTheDocument();
+});
+
+it('el detalle arranca plegado y el equipo con el total quedan a la vista', () => {
+  render(<ResumenOperacionCard resumen={COMPLETO} />);
+
+  // Ocho filas entre el contacto y el PDF empujaban el documento fuera de la
+  // primera pantalla en movil. El equipo y el total no se pliegan.
+  expect(screen.getByText('iPhone 15 128GB')).toBeVisible();
+  expect(screen.getByText('S/ 4,249.40')).toBeVisible();
+  expect(screen.getByText('TEA')).not.toBeVisible();
+
+  fireEvent.click(screen.getByRole('button', { name: /Ver el detalle/i }));
+
+  expect(screen.getByText('TEA')).toBeVisible();
+  expect(screen.getByText('39.90 %')).toBeVisible();
+
+  fireEvent.click(screen.getByRole('button', { name: /Ocultar el detalle/i }));
+  expect(screen.getByText('TEA')).not.toBeVisible();
 });

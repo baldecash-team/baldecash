@@ -15,6 +15,9 @@
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+// Del módulo del hook y no del barril `_shared`: media pantalla de tests mockea
+// el barril entero, y de ahí `useIsMobile` volvería undefined.
+import { useIsMobile } from '@/app/prototipos/_shared/hooks/useIsMobile';
 import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
 import { useContratoKyc } from '../useContratoKyc';
@@ -152,6 +155,12 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   const html = hayDocumento ? contrato?.html : undefined;
   const pdf = hayDocumento && !html ? contrato?.url : undefined;
 
+  // En móvil el visor arranca al 75%: a tamaño completo la hoja A4 entra por la
+  // mitad y el contrato se lee a fuerza de arrastrar de costado. El `#zoom` es
+  // un fragmento, así que no viaja al servidor ni invalida la firma del enlace.
+  const isMobile = useIsMobile();
+  const pdfSrc = pdf && isMobile ? `${pdf}#zoom=75` : pdf;
+
   // Las que le corresponden a ESTE postulante. Fuera del convenio la lista
   // queda vacía y el paso se comporta igual que siempre.
   const autorizacionesAplicables = useMemo(() => {
@@ -161,6 +170,18 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   }, [landing]);
 
   const faltaAlgunaAutorizacion = autorizacionesAplicables.some((a) => !autorizaciones[a.id]);
+
+  // Sin documento no hay nada que firmar: ahí el botón sí queda deshabilitado,
+  // porque no es que falte marcar algo, es que todavía no existe el contrato.
+  const sinQueFirmar = exigeAceptar && !hayDocumento;
+  const faltaAceptacion = hayDocumento && accepted !== 'true';
+  const faltaAutorizacion = hayDocumento && faltaAlgunaAutorizacion;
+
+  // El botón queda clickeable con las casillas sin marcar, y es el click el que
+  // las señala en rojo. Deshabilitado, la persona no tiene forma de saber qué le
+  // falta: el botón apagado no dice nada y la casilla tampoco. Se limpia solo al
+  // marcar, porque el error se deriva del estado actual, no de un flag pegado.
+  const [intentoIncompleto, setIntentoIncompleto] = useState(false);
 
   const handleAcceptChange = (value: string | string[]) => {
     const next = value as 'true' | 'false';
@@ -195,6 +216,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
    */
   const handleContinuar = () => {
     if (enviando) return;
+    if (faltaAceptacion || faltaAutorizacion) {
+      setIntentoIncompleto(true);
+      return;
+    }
     setEnviando(true);
     track('kyc_contract_signed', {
       application_code: applicationCode,
@@ -295,7 +320,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         <div className="space-y-2">
           <iframe
             data-testid="contrato-documento"
-            src={pdf}
+            src={pdfSrc}
             title="Contrato"
             className="w-full h-80 rounded-xl border border-[#e5e7eb]"
           />
@@ -383,6 +408,11 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
             value={accepted}
             onChange={handleAcceptChange}
             required
+            error={
+              intentoIncompleto && accepted !== 'true'
+                ? 'Necesitamos que aceptes el contrato para continuar'
+                : undefined
+            }
             // La declaración del §6 son varias líneas: centrada, la casilla
             // queda flotando a mitad del párrafo.
             alignTop
@@ -401,6 +431,11 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
               value={autorizaciones[a.id] ? 'true' : 'false'}
               onChange={(value) => handleAutorizacionChange(a.id, value)}
               required
+              error={
+                intentoIncompleto && !autorizaciones[a.id]
+                  ? 'Necesitamos esta autorización para continuar'
+                  : undefined
+              }
               alignTop
             />
           ))}
@@ -425,13 +460,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           // En el camino `emitido` el contrato nace con la aprobación —después
           // de esta pantalla—, así que su ausencia no puede trabar el flujo:
           // ahí solo se exige aceptar cuando SÍ hay documento.
-          disabled={
-            enviando || (
-              exigeAceptar
-                ? !hayDocumento || accepted !== 'true' || faltaAlgunaAutorizacion
-                : hayDocumento && (accepted !== 'true' || faltaAlgunaAutorizacion)
-            )
-          }
+          disabled={enviando || sinQueFirmar}
           onClick={handleContinuar}
           className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
         >
