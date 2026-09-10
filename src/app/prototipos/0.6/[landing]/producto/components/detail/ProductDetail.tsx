@@ -50,6 +50,7 @@ import {
 import type { PricingSelection } from './pricing/PricingCalculator';
 import { RefurbishedInfoBanner } from './RefurbishedInfoBanner';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition';
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
 interface ProductDetailProps {
@@ -241,8 +242,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
 
-  // Reacondicionado: aviso de confirmación antes de pasar a solicitar.
+  // Reacondicionado: el banner informativo de la ficha.
   const isRefurbished = isRefurbishedCondition(product.condition);
+  // Y si además hay que INTERRUMPIR el "Lo quiero" con el aviso de
+  // confirmación. Son dos cosas distintas: en `reacondicionados` el banner se
+  // queda —la condición es información útil— pero el modal sobra, porque esa
+  // landing entera trata de eso y más adelante la persona ve las fotos, el
+  // video y los daños de su unidad concreta antes de reservarla.
+  const confirmaSemiNuevo = pideConfirmacionSemiNuevo(landing, product.condition);
   const [showRefurbModal, setShowRefurbModal] = useState(false);
 
   // Entrega diferida: aviso de fecha de entrega antes de pasar a solicitar.
@@ -528,7 +535,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Gate: en reacondicionados, primero confirmar el aviso; luego (si aplica) el
   // aviso de entrega diferida; luego proceder.
   const handleSolicitar = () => {
-    if (isRefurbished) {
+    if (confirmaSemiNuevo) {
       setShowRefurbModal(true);
       return;
     }

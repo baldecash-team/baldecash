@@ -45,7 +45,8 @@ import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
-import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { RefurbishedWarningModal } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition';
 import { hidesEquipmentStateBadges } from '@/app/prototipos/0.6/utils/condition';
 
 // Empty state
@@ -1932,7 +1933,7 @@ function CatalogoContent() {
                   // ya trae el id resuelto, asi que resolver aca da el mismo target
                   // que usara `proceedAddToCart` despues de confirmar.
                   const elegido = resolveWizardTarget(product, cartItem.productId);
-                  if (isRefurbishedCondition(product.conditionCode || product.condition)) {
+                  if (pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
                     setPendingRefurb({ cartItem, product: elegido });
                     return;
                   }
