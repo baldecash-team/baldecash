@@ -109,8 +109,20 @@ export function Confirmacion({ unidad, producto, cuota, token, onIrAFirmar }: Co
           // Mismo radio y mismo alto que `BotonWhatsApp`, que va justo debajo:
           // son los dos botones de esta pantalla y con radios distintos se
           // ven como piezas de dos diseños.
-          className="mt-[18px] block w-full rounded-2xl bg-[#4654CD] p-[15px] text-center text-[15px] font-bold text-white transition-opacity hover:opacity-90"
+          className="mt-[18px] flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#4654CD] p-[15px] text-[15px] font-bold text-white transition-opacity hover:opacity-90"
         >
+          {/* Un documento con una firma trazada encima. Mismo tamaño y misma
+              separación que el ícono del botón de WhatsApp, que va justo
+              debajo. `aria-hidden` porque no agrega nada al texto del botón:
+              anunciarlo solo alarga lo que el lector de pantalla lee. */}
+          <svg
+            width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          >
+            <path d="M15 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7z" />
+            <path d="M15 3v4h4" />
+            <path d="M8.5 15c1.2-2.4 2-2.4 2.7-1.2.6 1.2 1.4 1.2 2.6-1.4" />
+          </svg>
           Revisar y firmar mi contrato
         </a>
       )}
