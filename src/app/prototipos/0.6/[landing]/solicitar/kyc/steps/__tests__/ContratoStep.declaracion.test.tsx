@@ -92,24 +92,35 @@ it('la casilla dice la declaración del backend, no una del front', async () => 
   expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
 });
 
-it('la casilla arranca vacía: el botón nace deshabilitado', async () => {
+it('la casilla arranca vacía: continuar sin marcarla no avanza', async () => {
   // "No debe haber casillas pre-marcadas" (§6). Se comprueba por su efecto,
   // que es lo que le importa a quien usa la pantalla.
   mockGet.mockResolvedValue(contratoListo());
-  montar();
+  const onDone = montar();
 
-  expect(await screen.findByRole('button', { name: TEXTOS.boton })).toBeDisabled();
+  fireEvent.click(await screen.findByRole('button', { name: TEXTOS.boton }));
+
+  expect(onDone).not.toHaveBeenCalled();
 });
 
-it('el botón lleva el texto del backend y no se puede tocar sin marcar', async () => {
+it('el botón lleva el texto del backend y sin marcar señala la casilla', async () => {
   mockGet.mockResolvedValue(contratoListo());
   const onDone = montar();
 
   const boton = await screen.findByRole('button', { name: TEXTOS.boton });
-  expect(boton).toBeDisabled();
+
+  fireEvent.click(boton);
+  expect(onDone).not.toHaveBeenCalled();
+  expect(
+    screen.getByText('Necesitamos que aceptes el contrato para continuar'),
+  ).toBeInTheDocument();
 
   fireEvent.click(await screen.findByText(TEXTOS.declaracion));
-  await waitFor(() => expect(boton).toBeEnabled());
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Necesitamos que aceptes el contrato para continuar'),
+    ).not.toBeInTheDocument(),
+  );
 
   fireEvent.click(boton);
   expect(onDone).toHaveBeenCalledTimes(1);

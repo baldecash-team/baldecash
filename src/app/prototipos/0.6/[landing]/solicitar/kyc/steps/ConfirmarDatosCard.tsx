@@ -110,8 +110,6 @@ export function ConfirmarDatosCard({
         <Campo etiqueta="DNI" valor={datos.documento} />
       </div>
 
-      <p className="mt-2 text-xs leading-relaxed text-[#6b7280]">{datos.aviso_identidad}</p>
-
       {!editando ? (
         <>
           <div className="mt-2 divide-y divide-[#F1F1F6]">

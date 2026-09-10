@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Los números de la operación, arriba del contrato.
  *
@@ -7,10 +9,18 @@
  * cuerpo y la Hoja Resumen del Anexo 2, y a esa altura la persona ya está
  * leyendo un PDF de diecisiete hojas.
  *
+ * El detalle —precio, cuotas, TEA, TCEA, seguro, entrega— va plegado. Son ocho
+ * filas entre el contacto y el documento, y empujaban el PDF fuera de la
+ * primera pantalla en móvil. Lo que queda siempre a la vista es el equipo y el
+ * total: lo demás está a un toque, y sigue estando ANTES de la casilla, que es
+ * lo que el §5 exige.
+ *
  * La regla: no se inventa nada. Una fila cuyo dato la solicitud no tiene
  * directamente no se pinta. Mostrar «S/ 0.00» donde en realidad no hay dato es
  * peor que no mostrar la fila, porque se lee como una condición pactada.
  */
+import { useState } from 'react';
+
 import type { ResumenOperacion } from '@/app/prototipos/0.6/services/kycApi';
 
 /** `3899.00` -> `S/ 3,899.00`. Se formatea, no se recalcula. */
@@ -70,6 +80,8 @@ function Fila({ etiqueta, valor, fuerte }: {
 }
 
 export function ResumenOperacionCard({ resumen }: { resumen: ResumenOperacion | null }) {
+  const [abierto, setAbierto] = useState(false);
+
   if (!resumen) return null;
 
   const cuotas =
@@ -104,11 +116,43 @@ export function ResumenOperacionCard({ resumen }: { resumen: ResumenOperacion | 
         </div>
       )}
 
-      <div className="divide-y divide-[#EDEDF7]">
-        {filas.map((f) => (
-          <Fila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
-        ))}
-      </div>
+      {filas.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setAbierto((v) => !v)}
+            aria-expanded={abierto}
+            aria-controls="resumen-operacion-detalle"
+            className="flex w-full items-center justify-between gap-2 py-1 text-xs font-semibold text-[#4654CD] cursor-pointer"
+          >
+            <span>{abierto ? 'Ocultar el detalle' : 'Ver el detalle'}</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className={`h-4 w-4 flex-shrink-0 transition-transform ${abierto ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          {/* `hidden` y no desmontar: el detalle es corto y así el navegador lo
+              encuentra al buscar en la página aunque esté plegado. */}
+          <div
+            id="resumen-operacion-detalle"
+            hidden={!abierto}
+            className="divide-y divide-[#EDEDF7]"
+          >
+            {filas.map((f) => (
+              <Fila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
+            ))}
+          </div>
+        </>
+      )}
 
       {soles(resumen.total) && (
         <div className="mt-2 border-t-2 border-[#DDDFF7] pt-2">
