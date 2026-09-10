@@ -12,7 +12,7 @@
  * módulo completo — mismo patrón que `EntregaClient.test.tsx`.
  */
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
@@ -229,12 +229,16 @@ describe('galería', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Unidad 01/ }));
     await userEvent.click(await screen.findByRole('button', { name: /Elegir esta unidad/ }));
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(/Alguien eligió/i));
+    // El desenlace ahora es un diálogo: la lista se refresca debajo en este
+    // mismo instante y un texto arriba se perdía entre las cards moviéndose.
+    const dialogo = await screen.findByRole('dialog');
+    expect(dialogo).toHaveTextContent(/ya no está disponible/i);
+
+    await userEvent.click(screen.getByRole('button', { name: /Ver las disponibles/ }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /Unidad 02/ }));
-
-    // Ya siguió adelante: el aviso cumplió y dejarlo pegado es ruido.
+    // La galería vuelve a abrir sin arrastrar el aviso anterior.
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
@@ -361,15 +365,19 @@ describe('confirmar la elección', () => {
     mockGet.mockResolvedValue({ ...datos, units: [unidad(2), unidad(3)] });
     await userEvent.click(await screen.findByRole('button', { name: /Elegir esta unidad/ }));
 
-    // La región live ya está montada desde antes (por eso `waitFor` sobre el
-    // texto y no `findByRole`): una que nace junto con su contenido no se
-    // anuncia de forma confiable.
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(/Alguien eligió esa unidad/i));
+    // Diálogo, no banner: explica que la unidad es única y ofrece la salida.
+    const modal = await screen.findByRole('dialog');
+    expect(modal).toHaveTextContent(/ya no está disponible/i);
+    expect(modal).toHaveTextContent(/unidad única/i);
+    expect(
+      within(modal).getByRole('link', { name: /catálogo/i }),
+    ).toHaveAttribute('href', expect.stringContaining('/reacondicionados/catalogo'));
+
     await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
     // El refresco NO pasa por "Cargando...": el chrome nunca se desmonta.
     expect(screen.queryByText('Cargando...')).not.toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // La GALERÍA sí se cerró; el diálogo que queda es el modal del aviso.
+    expect(screen.queryByRole('button', { name: /Elegir esta unidad/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Unidad 01/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Unidad 02/ })).toBeInTheDocument();
 
@@ -410,8 +418,14 @@ describe('confirmar la elección', () => {
       resolver({ reason: 'network', error: 'No pudimos conectarnos.' });
     });
 
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(/No pudimos reservar esa unidad/i));
+    // El error tiene que caer en una superficie que SOBREVIVIÓ al cierre de la
+    // galería. En diálogo, además, para que no se lo lleve por delante la
+    // grilla: es el peor desenlace posible y no puede pasar desapercibido.
+    const modal = await screen.findByRole('dialog');
+    expect(modal).toHaveTextContent(/No pudimos reservar esa unidad/i);
+    // Y ofrece las dos salidas: reintentar, o irse a elegir otro equipo.
+    expect(within(modal).getByRole('button', { name: /Reintentar/i })).toBeInTheDocument();
+    expect(within(modal).getByRole('link', { name: /catálogo/i })).toBeInTheDocument();
   });
 });
 

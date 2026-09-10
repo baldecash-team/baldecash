@@ -42,6 +42,12 @@ import { GaleriaUnidad } from './GaleriaUnidad';
 import { UnidadCard } from './UnidadCard';
 import { eleccionEvents } from './eleccionEvents';
 import { etiquetaGrado, formatearCuota } from './formato';
+import ModalAviso, { type ModalAvisoProps } from './ModalAviso';
+
+/** Catálogo de reacondicionados. La salida cuando la unidad que se quería ya
+ *  no está: cada equipo es una pieza única, así que "elegir otra" muchas veces
+ *  significa elegir otro modelo. */
+const CATALOGO_URL = 'https://www.baldecash.com/reacondicionados/catalogo/';
 
 /** Enlace muerto pero conocido: existió, ya no sirve. */
 const EXPIRED_REASONS = new Set(['expired', 'revoked', 'consumed', 'inactive']);
@@ -70,6 +76,9 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
   const [errorGaleria, setErrorGaleria] = useState<string | null>(null);
   /** Aviso arriba de la lista, p. ej. cuando otro se llevó la unidad. */
   const [aviso, setAviso] = useState<string | null>(null);
+  // El desenlace de una reserva que no salió va en diálogo, no en el banner:
+  // la lista se refresca debajo en ese mismo momento y el motivo se perdía.
+  const [modal, setModal] = useState<ModalAvisoProps | null>(null);
 
   // Espejo síncrono de `abierta`: cuando el POST vuelve, el estado de React
   // puede haber cambiado y el closure de `confirmar` lo tendría viejo. Se
@@ -200,9 +209,22 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
     if (res.reason === 'unit_unavailable') {
       // Desenlace esperado, no falla: alguien la eligió primero. Se cierra la
       // galería y se refresca (sin parpadeo) para que la lista deje de mentir.
+      //
+      // El aviso va en diálogo y no en el banner porque la grilla cambia sola
+      // en este mismo instante: con la galería recién cerrada y las cards
+      // moviéndose, un texto arriba se pierde y es fácil creer que se reservó.
       cerrarGaleria();
-      setAviso('Alguien eligió esa unidad antes que tú. Estas son las que siguen disponibles.');
       void cargar(true);
+      setModal({
+        titulo: 'Esa unidad ya no está disponible',
+        mensaje:
+          'Alguien la eligió unos segundos antes que tú. Cada equipo es una unidad ' +
+          'única, así que no podemos reservarla dos veces. Abajo están las que siguen ' +
+          'libres.',
+        textoBoton: 'Ver las disponibles',
+        onCerrar: () => setModal(null),
+        enlace: { texto: 'Ver otros equipos del catálogo', href: CATALOGO_URL },
+      });
       return;
     }
     if (EXPIRED_REASONS.has(res.reason)) {
@@ -229,7 +251,21 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
     if (abiertaRef.current) {
       setErrorGaleria(res.error);
     } else {
-      setAviso(`No pudimos reservar esa unidad: ${res.error}`);
+      setModal({
+        titulo: 'No pudimos reservar esa unidad',
+        mensaje: res.error,
+        textoBoton: 'Entendido',
+        onCerrar: () => setModal(null),
+        secundario: {
+          texto: 'Reintentar',
+          onClick: () => {
+            setModal(null);
+            void confirmar(unidad);
+          },
+        },
+        enlace: { texto: 'Ver otros equipos del catálogo', href: CATALOGO_URL },
+        tono: 'error',
+      });
     }
   };
 
@@ -431,6 +467,11 @@ export function EleccionEquipoClient({ token }: EleccionEquipoClientProps) {
           }
         />
       )}
+
+      {/* Va DESPUÉS de la galería a propósito: cuando los dos coinciden —el
+          error llega con la galería todavía abierta— el modal tiene que quedar
+          por encima, y sin z-index peleado. */}
+      {modal && <ModalAviso {...modal} />}
     </Chrome>
   );
 }
