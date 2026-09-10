@@ -123,11 +123,11 @@ describe('useSubmitApplication', () => {
     // veces con un texto que solo dice que paso, no que hacer. El hook los
     // reescribe por `error_code`.
 
-    it('OUT_OF_STOCK: dice que el equipo se agoto y que vuelva al catalogo', async () => {
+    it('UNIT_OUT_OF_STOCK: dice que el equipo se agoto y que vuelva al catalogo', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: false,
-        error_code: 'OUT_OF_STOCK',
-        error: 'Sin stock disponible para este equipo',
+        error_code: 'UNIT_OUT_OF_STOCK',
+        error: 'Alguien acaba de tomar la ultima unidad de este equipo.',
       });
 
       const onToast = jest.fn();
@@ -143,8 +143,31 @@ describe('useSubmitApplication', () => {
       expect(msg).toContain('ya no está disponible');
       expect(msg).toContain('catálogo');
       // No se cuela el texto crudo del API.
-      expect(msg).not.toContain('Sin stock disponible para este equipo');
+      expect(msg).not.toContain('Alguien acaba de tomar la ultima unidad');
       expect(result.current.error).toBe(msg);
+    });
+
+    it('OUT_OF_STOCK (stock por conteo) conserva el mensaje del API', async () => {
+      // Ese codigo lo emite `stock_ws2_managed`, que esta vivo en landings que
+      // no son reacondicionados: copia-home, renueva-tu-equipo, family-farms,
+      // remate-ucv. El texto de unidades unicas no les corresponde y no puede
+      // volver a colarseles.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'OUT_OF_STOCK',
+        error: 'Sin stock disponible para este equipo',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toBe('Sin stock disponible para este equipo');
+      expect(msg).not.toContain('última unidad de ese modelo');
     });
 
     it('un codigo desconocido cae al mensaje del API', async () => {
