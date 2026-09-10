@@ -1,3 +1,5 @@
+import { isReacondicionadosLanding } from './theme';
+
 /**
  * Helpers de condición de producto.
  *
@@ -21,6 +23,31 @@
  * sin respaldo se caería al código crudo de BD, "Reacondicionada".
  */
 export const REFURBISHED_DISPLAY_LABEL = 'Reacondicionado';
+
+/**
+ * ¿Hay que pedir confirmación del aviso "equipo semi nuevo" antes de solicitar?
+ *
+ * En cualquier landing, sí: el aviso es lo único que le dice a la persona que
+ * el equipo puede tener señales de uso, y confirmarlo queda como constancia.
+ *
+ * En `reacondicionados`, NO. Ahí la condición no es un detalle escondido en la
+ * ficha: es de lo que trata la landing entera, el grado va en el nombre del
+ * producto y en un chip de la card, y después de aprobar la persona ve las
+ * FOTOS Y EL VIDEO REALES de la unidad que le toca, con sus daños estéticos
+ * listados uno por uno, antes de reservarla. Un modal que interrumpe el "Lo
+ * quiero" para anunciar lo que la pantalla ya viene diciendo —y que se vuelve a
+ * decir, mucho mejor, más adelante— solo agrega un clic.
+ *
+ * Se decide por slug exacto, igual que el resto de lo específico de esta
+ * landing, para que ninguna otra lo herede por accidente.
+ */
+export function pideConfirmacionSemiNuevo(
+  landing: string | null | undefined,
+  condition?: string | null,
+): boolean {
+  if (!isRefurbishedCondition(condition)) return false;
+  return !isReacondicionadosLanding(landing ?? '');
+}
 
 /** ¿El código de condición corresponde a un reacondicionado? (match contra el valor crudo de BD) */
 export function isRefurbishedCondition(condition?: string | null): boolean {
