@@ -653,7 +653,16 @@ export function useSubmitApplication(
             // mismo cuando alguien se adelantó y cuando la card ya estaba sin
             // stock en una pestaña vieja. Afirmar la causa equivocada suena a
             // excusa. Lo que importa es qué hacer.
-            OUT_OF_STOCK:
+            //
+            // El código es UNIT_OUT_OF_STOCK y no OUT_OF_STOCK a propósito.
+            // Este mensaje es de reacondicionados y solo de reacondicionados:
+            // el stock por unidad física rige únicamente en las landings de
+            // `catalog_unit_stock.landing_ids`. `OUT_OF_STOCK` es el otro
+            // stock —el de conteo, `stock_ws2_managed`— y está vivo en una
+            // decena de landings ajenas (copia-home, renueva-tu-equipo,
+            // family-farms, remate-ucv...) que nunca pidieron este texto y a
+            // las que hay que dejarles el mensaje que ya tenían.
+            UNIT_OUT_OF_STOCK:
               'Este equipo ya no está disponible. Es la última unidad de ese ' +
               'modelo y se agotó mientras completabas la solicitud. Vuelve al ' +
               'catálogo y elige otro equipo para continuar.',
