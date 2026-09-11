@@ -49,68 +49,38 @@ it('muestra la identidad sin el aviso del §5', async () => {
   expect(screen.queryByText(AVISO)).not.toBeInTheDocument();
 });
 
-it('el nombre y el DNI no son campos editables', async () => {
+it('los cuatro campos son de solo lectura: no hay nada que editar', async () => {
   mockGet.mockResolvedValue(DATOS);
   montar();
-  await screen.findByText('YANNIS NICOL FLORES CALDERÓN');
+  fireEvent.click(await screen.findByRole('button', { name: /Confirma tus datos/i }));
 
-  fireEvent.click(screen.getByRole('button', { name: /Actualizar celular o correo/i }));
-
-  // Los dos únicos inputs de la tarjeta son celular y correo.
-  const inputs = screen.getAllByRole('textbox');
-  expect(inputs).toHaveLength(2);
-  expect(screen.queryByDisplayValue('YANNIS NICOL FLORES CALDERÓN')).not.toBeInTheDocument();
-  expect(screen.queryByDisplayValue('76826846')).not.toBeInTheDocument();
-});
-
-it('guarda el correo nuevo y avisa qué cambió', async () => {
-  mockGet.mockResolvedValue(DATOS);
-  mockPatch.mockResolvedValue({ ...DATOS, email: 'nuevo@correo.com' });
-  const onCambio = jest.fn();
-  montar({ onCambio });
-  await screen.findByText('viejo@correo.com');
-
-  fireEvent.click(screen.getByRole('button', { name: /Actualizar celular o correo/i }));
-  fireEvent.change(screen.getByDisplayValue('viejo@correo.com'), {
-    target: { value: 'nuevo@correo.com' },
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-  await waitFor(() => expect(onCambio).toHaveBeenCalledWith(['email']));
-  expect(await screen.findByText('nuevo@correo.com')).toBeInTheDocument();
-});
-
-it('si no se pudo guardar lo dice en vez de dejar creer que quedó', async () => {
-  mockGet.mockResolvedValue(DATOS);
-  mockPatch.mockResolvedValue(null);
-  const onCambio = jest.fn();
-  montar({ onCambio });
-  await screen.findByText('viejo@correo.com');
-
-  fireEvent.click(screen.getByRole('button', { name: /Actualizar celular o correo/i }));
-  fireEvent.change(screen.getByDisplayValue('viejo@correo.com'), {
-    target: { value: 'roto' },
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-  expect(await screen.findByText(/No pudimos guardar los cambios/)).toBeInTheDocument();
-  expect(onCambio).not.toHaveBeenCalled();
-});
-
-it('cancelar devuelve los valores que estaban', async () => {
-  mockGet.mockResolvedValue(DATOS);
-  montar();
-  await screen.findByText('viejo@correo.com');
-
-  fireEvent.click(screen.getByRole('button', { name: /Actualizar celular o correo/i }));
-  fireEvent.change(screen.getByDisplayValue('viejo@correo.com'), {
-    target: { value: 'otro@correo.com' },
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-
-  expect(screen.getByText('viejo@correo.com')).toBeInTheDocument();
+  // El celular y el correo los pidio el wizard dos pantallas antes; ofrecer
+  // editarlos de nuevo justo antes de firmar agregaba un formulario a la
+  // pantalla mas cargada del recorrido.
+  expect(screen.queryByRole('button', { name: /Actualizar celular o correo/i }))
+    .not.toBeInTheDocument();
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   expect(mockPatch).not.toHaveBeenCalled();
 });
+
+it('arranca plegada y al abrirla muestra los cuatro campos', async () => {
+  mockGet.mockResolvedValue(DATOS);
+  montar();
+
+  const titulo = await screen.findByRole('button', { name: /Confirma tus datos/i });
+  expect(screen.getByText(DATOS.nombre)).not.toBeVisible();
+
+  fireEvent.click(titulo);
+
+  expect(screen.getByText(DATOS.nombre)).toBeVisible();
+  expect(screen.getByText(DATOS.documento)).toBeVisible();
+  expect(screen.getByText(DATOS.telefono)).toBeVisible();
+  expect(screen.getByText(DATOS.email)).toBeVisible();
+
+  fireEvent.click(titulo);
+  expect(screen.getByText(DATOS.nombre)).not.toBeVisible();
+});
+
 
 it('sin datos no ocupa lugar', async () => {
   mockGet.mockResolvedValue(null);

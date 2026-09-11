@@ -118,6 +118,12 @@ function esRutaInterna(pathname: string): boolean {
     // esta línea el rewrite la manda al catch-all [[...slug]] de landings y
     // toda la vinculación por QR devuelve 404 en produccion.
     pathname.startsWith('/inspeccion') ||
+    // Verificación de una constancia: vive en la raíz, NO bajo /prototipos/0.6,
+    // porque es la URL que va impresa en el QR del documento. Sin esta línea el
+    // rewrite la manda al catch-all [[...slug]] de landings y CUALQUIER QR
+    // emitido devuelve 404 en producción. Segunda vez que pasa lo mismo: ver
+    // /inspeccion, tres líneas arriba.
+    pathname.startsWith('/verificar') ||
     esArchivo(pathname)
   );
 }

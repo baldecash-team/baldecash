@@ -258,9 +258,6 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         applicationCode={applicationCode}
         documentNumber={documentNumber}
         resumeToken={resumeToken}
-        onCambio={(campos) =>
-          track('kyc_contact_updated', { application_code: applicationCode, campos })
-        }
       />
       <ResumenOperacionCard resumen={resumen} />
 
