@@ -25,6 +25,19 @@ interface InsuranceDetailModalProps {
   offerImageUrl?: string | null;
 }
 
+const COPAY_TAG_STYLE: React.CSSProperties = {
+  flexShrink: 0,
+  marginTop: 1,
+  background: '#fee2e2',
+  color: '#b91c1c',
+  fontSize: 9,
+  fontWeight: 700,
+  letterSpacing: 0.4,
+  textTransform: 'uppercase',
+  padding: '3px 6px',
+  borderRadius: 4,
+};
+
 function useGamerTheme() {
   const params = useParams<{ landing?: string }>();
   const landing = params?.landing ?? '';
@@ -49,7 +62,11 @@ const MODAL_CONFIG: Record<string, {
   icon: typeof ShieldCheck;
   title: string;
   description: string;
-  coverageItems: string[];
+  coverageItems?: string[];
+  /** Detalle agrupado por tipo de asistencia. Cuando viene, reemplaza a coverageItems. */
+  coverageGroups?: { title: string; items: { text: string; copay?: boolean }[] }[];
+  coversText?: string;
+  copayNote?: string;
   legalText?: string;
   conditionsText?: string;
   moreInfoUrl?: string;
@@ -88,16 +105,41 @@ const MODAL_CONFIG: Record<string, {
   multiasistencia: {
     icon: HeartPulse,
     title: 'Multiasistencia BaldeCash',
-    description: 'Cubre a titular, cónyuge, hijos menores de 18 y padres del mismo hogar (hasta 4 personas) · todo el plazo del crédito.',
-    coverageItems: [
-      'Orientación médica y telemedicina 24h',
-      'Ambulancia y orientación psicológica',
-      'Médico a domicilio (pago aparte S/45)',
-      'Asesoría legal telefónica',
-      'Soporte técnico ilimitado, diagnóstico y config.',
-      'Técnico a domicilio (pago aparte S/60)',
+    description: 'Asistencia médica, legal y tecnológica para ti y tu familia durante todo el plazo de tu crédito.',
+    coverageGroups: [
+      {
+        title: 'Salud',
+        items: [
+          { text: 'Orientación médica telefónica ilimitada.' },
+          { text: 'Telemedicina (videoconsulta).' },
+          { text: 'Ambulancia — hasta S/ 450 por evento.', copay: true },
+          { text: 'Médico a domicilio — pagas solo S/ 45 por visita.', copay: true },
+          { text: 'Laboratorios y medicamentos.', copay: true },
+          { text: 'Especialistas, clínicas y hospitales.' },
+          { text: 'Orientación psicológica.' },
+        ],
+      },
+      {
+        title: 'Legal',
+        items: [
+          { text: 'Asesoría legal telefónica.' },
+          { text: 'Honorarios de abogados y trámites legales.', copay: true },
+        ],
+      },
+      {
+        title: 'Tecnología',
+        items: [
+          { text: 'Soporte técnico ilimitado.' },
+          { text: 'Diagnóstico de PC, laptop, tablet y celular.' },
+          { text: 'Configuración de software y periféricos.' },
+          { text: 'Medición de señal WiFi.', copay: true },
+          { text: 'Visita de técnico a domicilio — pagas solo S/ 60 por visita.', copay: true },
+        ],
+      },
     ],
-    conditionsText: 'Asistencia provista por A365. El "pago aparte" es un monto fijo reducido que asumes solo al usar ese servicio puntual (médico o técnico a domicilio). El resto de servicios no tiene pago extra.',
+    coversText: 'A ti y hasta 3 familiares más: cónyuge, hijos menores de 18 años y/o padres que vivan en el mismo domicilio.',
+    copayNote: '¿Qué significa "pago aparte"? Es un monto adicional que pagas solo cuando utilizas determinados servicios. El resto de la atención está cubierto por tu Multiasistencia.',
+    conditionsText: 'Asistencia provista por Impulsa365 S.A.C. (A365).',
     moreInfoUrl: 'https://baldecash.com/multiasistencia',
     moreInfoLabel: 'baldecash.com/multiasistencia',
   },
@@ -161,14 +203,47 @@ const ModalContentShared: React.FC<{
           )}
           <p style={{ fontSize: 13, color: muted, lineHeight: 1.6 }}>{config.description}</p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px 16px' }}>
-            {config.coverageItems.map((item) => (
-              <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <Check style={{ width: 14, height: 14, color: CYAN, flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 12, color: muted }}>{item}</span>
-              </div>
-            ))}
-          </div>
+          {config.coverageGroups ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {config.coverageGroups.map((group) => (
+                <div key={group.title}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: muted, marginBottom: 6 }}>{group.title}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {group.items.map((item) => (
+                      <div key={item.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        {item.copay ? (
+                          <span style={COPAY_TAG_STYLE}>Pago aparte</span>
+                        ) : (
+                          <Check style={{ width: 14, height: 14, color: CYAN, flexShrink: 0, marginTop: 2 }} />
+                        )}
+                        <span style={{ fontSize: 12, color: muted }}>{item.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {config.coversText && (
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: muted, marginBottom: 6 }}>¿A quién cubre?</p>
+                  <span style={{ fontSize: 12, color: muted }}>{config.coversText}</span>
+                </div>
+              )}
+              {config.copayNote && (
+                <p style={{ fontSize: 11, color: muted, background: legalBg, borderRadius: 8, padding: 10, lineHeight: 1.6 }}>
+                  {config.copayNote}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px 16px' }}>
+              {(config.coverageItems ?? []).map((item) => (
+                <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <Check style={{ width: 14, height: 14, color: CYAN, flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ fontSize: 12, color: muted }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {(config.legalText || config.conditionsText) && (
             <details style={{ fontSize: 11 }}>
@@ -261,17 +336,57 @@ const ModalContentShared: React.FC<{
           {config.description}
         </p>
 
-        {/* Coverage - chips en dos columnas (desktop) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {config.coverageItems.map((item) => (
-            <div key={item} className="flex items-start gap-2 rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2">
-              <span className="w-4 h-4 rounded-full bg-[rgba(var(--color-secondary-rgb),0.15)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Check className="w-2.5 h-2.5 text-[var(--color-secondary)]" strokeWidth={3} />
-              </span>
-              <span className="text-xs text-neutral-700 leading-snug">{item}</span>
-            </div>
-          ))}
-        </div>
+        {/* Coverage - agrupada por tipo de asistencia, o chips en dos columnas */}
+        {config.coverageGroups ? (
+          <div className="flex flex-col gap-3">
+            {config.coverageGroups.map((group) => (
+              <div key={group.title} className="rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2.5">
+                <p className="text-xs font-semibold text-neutral-800 mb-1.5">{group.title}</p>
+                <ul className="flex flex-col gap-1.5">
+                  {group.items.map((item) => (
+                    <li key={item.text} className="flex items-start gap-2">
+                      {item.copay ? (
+                        <span className="flex-shrink-0 mt-px rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-700">
+                          Pago aparte
+                        </span>
+                      ) : (
+                        <span className="w-4 h-4 rounded-full bg-[rgba(var(--color-secondary-rgb),0.15)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-2.5 h-2.5 text-[var(--color-secondary)]" strokeWidth={3} />
+                        </span>
+                      )}
+                      <span className="text-xs text-neutral-700 leading-snug">{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {config.coversText && (
+              <div className="rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2.5">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-800 mb-1">
+                  <Users className="w-3.5 h-3.5" />
+                  ¿A quién cubre?
+                </p>
+                <p className="text-xs text-neutral-700 leading-snug">{config.coversText}</p>
+              </div>
+            )}
+            {config.copayNote && (
+              <p className="rounded-lg bg-[rgba(var(--color-secondary-rgb),0.06)] px-3 py-2.5 text-[11px] text-neutral-600 leading-relaxed">
+                {config.copayNote}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(config.coverageItems ?? []).map((item) => (
+              <div key={item} className="flex items-start gap-2 rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2">
+                <span className="w-4 h-4 rounded-full bg-[rgba(var(--color-secondary-rgb),0.15)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-2.5 h-2.5 text-[var(--color-secondary)]" strokeWidth={3} />
+                </span>
+                <span className="text-xs text-neutral-700 leading-snug">{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Legal - collapsed */}
         {(config.legalText || config.conditionsText) && (
