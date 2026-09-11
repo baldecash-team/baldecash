@@ -51,5 +51,13 @@ export default async function VerificarPage({
     // sirve a nadie que tenga el papel delante.
   }
 
-  return <VerificacionResultado datos={datos} noExiste={noExiste} />;
+  // El documento en sí, servido por ws2 con el MISMO token: quien tiene este
+  // enlace ya tiene acceso al contrato —es el que le llegó por correo y por
+  // WhatsApp—, así que no agrega exposición. Cada visita firma el S3 de nuevo
+  // con su propia expiración, y por eso el link se arma y no se guarda.
+  const documentoUrl = `${API_BASE_URL}/public/kyc/documento/${encodeURIComponent(token)}`;
+
+  return (
+    <VerificacionResultado datos={datos} noExiste={noExiste} documentoUrl={documentoUrl} />
+  );
 }

@@ -85,9 +85,12 @@ function fecha(iso?: string): string {
 export function VerificacionResultado({
   datos,
   noExiste,
+  documentoUrl,
 }: {
   datos: Verificacion | null;
   noExiste: boolean;
+  /** El contrato aceptado, servido por ws2 con este mismo token. */
+  documentoUrl?: string;
 }) {
   if (noExiste || !datos) {
     return (
@@ -145,6 +148,21 @@ export function VerificacionResultado({
           monoLargo
         />
       </Tarjeta>
+
+      {/* El documento, no solo sus datos. Quien llega acá —por el QR del papel
+          o por el enlace del correo— viene a ver el contrato aceptado, y la
+          huella de arriba no sirve de nada sin el archivo al que corresponde.
+          Lo sirve ws2 con este mismo token y firma el S3 en cada visita. */}
+      {documentoUrl && (
+        <a
+          href={documentoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 flex w-full items-center justify-center rounded-xl bg-[#4654CD] px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Ver el contrato aceptado
+        </a>
+      )}
 
       <p className="mt-4 px-2 text-xs leading-relaxed text-[#6B7280]">
         La huella identifica al documento exacto que se aceptó. Para comprobar que el archivo que

@@ -92,3 +92,22 @@ it('avisa que lo que muestra es solo una parte', () => {
 
   expect(screen.getByText(/reservado al titular y a las autoridades/)).toBeInTheDocument();
 });
+
+it('ofrece el contrato aceptado, no solo su huella', () => {
+  const URL_DOC = 'https://api.baldecash.com/api/v1/public/kyc/documento/tok123';
+  render(
+    <VerificacionResultado datos={VALIDA} noExiste={false} documentoUrl={URL_DOC} />,
+  );
+
+  // Quien llega por el QR del papel viene a ver el documento. La huella sola
+  // no sirve sin el archivo al que corresponde.
+  const boton = screen.getByRole('link', { name: /Ver el contrato aceptado/i });
+  expect(boton).toHaveAttribute('href', URL_DOC);
+  expect(boton).toHaveAttribute('target', '_blank');
+});
+
+it('sin documento no inventa el boton', () => {
+  render(<VerificacionResultado datos={VALIDA} noExiste={false} />);
+
+  expect(screen.queryByRole('link', { name: /Ver el contrato aceptado/i })).toBeNull();
+});
