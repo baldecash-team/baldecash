@@ -19,12 +19,14 @@ describe('cardSelectorMode', () => {
     })).toBe('grades');
   });
 
-  // Un grado solo no es elegible: no es un selector.
-  it('con un solo grado cae a colores', () => {
+  // Un grado solo SÍ se informa: no es una opción a elegir, es lo que el equipo
+  // ES, y el cliente necesita verlo en el catálogo antes de entrar. Antes esta
+  // card caía a colores y el grado se perdía (quedaba un hueco de 44px).
+  it('con un solo grado manda grados, aunque haya colores', () => {
     expect(cardSelectorMode({
       gradeSiblings: [grado('B')],
       colors: [{}, {}],
-    })).toBe('colors');
+    })).toBe('grades');
   });
 
   it('sin grados y con 2+ colores manda colores', () => {
