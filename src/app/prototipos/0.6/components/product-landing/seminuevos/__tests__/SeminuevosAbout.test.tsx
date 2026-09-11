@@ -22,10 +22,10 @@ describe('SeminuevosAbout', () => {
     expect(screen.getByText(/Superintendencia de Banca, Seguros y AFP/i)).toBeInTheDocument();
   });
 
-  it('muestra las 4 redes, con target y rel seguros', () => {
+  it('muestra las 3 redes, con target y rel seguros', () => {
     render(<SeminuevosAbout />);
     const links = screen.getAllByTestId('about-social');
-    expect(links).toHaveLength(4);
+    expect(links).toHaveLength(3);
     links.forEach((a) => {
       expect(a).toHaveAttribute('target', '_blank');
       expect(a).toHaveAttribute('rel', expect.stringContaining('noopener'));

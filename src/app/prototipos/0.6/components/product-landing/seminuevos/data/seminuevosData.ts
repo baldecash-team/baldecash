@@ -88,7 +88,6 @@ export const about = {
     { red: 'instagram' as const, href: 'https://instagram.com/baldecash', handle: '@baldecash' },
     { red: 'facebook' as const, href: 'https://facebook.com/baldecash', handle: '@baldecash' },
     { red: 'tiktok' as const, href: 'https://tiktok.com/@baldecash_2026', handle: '@baldecash_2026' },
-    { red: 'whatsapp' as const, href: 'https://wa.me/51958823053', handle: '958823053' },
   ],
 };
 
