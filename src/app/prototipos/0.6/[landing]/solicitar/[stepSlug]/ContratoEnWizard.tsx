@@ -132,7 +132,7 @@ export function ContratoEnWizard({
         isOpen={cerrando}
         stage="processing"
         pasos={PASOS_FIRMA}
-        titulo="Registrando tu solicitud"
+        titulo="Firmando tu solicitud"
         subtitulo="Estamos sellando tu firma. Esto solo toma unos segundos."
         tituloProgreso="Progreso de tu firma"
       />
