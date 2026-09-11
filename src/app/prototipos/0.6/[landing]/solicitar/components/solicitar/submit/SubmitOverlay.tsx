@@ -2,30 +2,55 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Check, Send, FileUp, ShieldCheck } from 'lucide-react';
+import { Loader2, Check, Send, FileUp, ShieldCheck, FileSignature } from 'lucide-react';
 import type { SubmitStage } from '../../../hooks/useSubmitApplication';
+
+export interface PasoOverlay {
+  /** Tiene que coincidir con el `stage` que lo pone en curso. */
+  id: SubmitStage;
+  icon: keyof typeof ICON_MAP;
+  title: string;
+  description: string;
+}
 
 interface SubmitOverlayProps {
   isOpen: boolean;
   stage: SubmitStage;
+  /**
+   * Los pasos del progreso. Por defecto, los del envío de la solicitud.
+   *
+   * Existe porque la firma del contrato usa este mismo overlay y no sube
+   * archivos ni envía una solicitud: decirle a alguien "Subiendo archivos"
+   * mientras se registra su firma es describirle mal lo que está pasando.
+   */
+  pasos?: readonly PasoOverlay[];
+  titulo?: string;
+  subtitulo?: string;
+  tituloProgreso?: string;
 }
 
 // Steps matching the confirmation page style
-const STEPS = [
+const STEPS: readonly PasoOverlay[] = [
   { id: 'validating', icon: 'ShieldCheck', title: 'Validando datos', description: 'Verificando tu información' },
   { id: 'uploading', icon: 'FileUp', title: 'Subiendo archivos', description: 'Enviando documentos' },
   { id: 'processing', icon: 'Send', title: 'Enviando solicitud', description: 'Procesando tu solicitud' },
 ] as const;
 
-const ICON_MAP: Record<string, React.ReactNode> = {
+const ICON_MAP = {
   ShieldCheck: <ShieldCheck className="w-6 h-6" />,
   FileUp: <FileUp className="w-6 h-6" />,
   Send: <Send className="w-6 h-6" />,
+  FileSignature: <FileSignature className="w-6 h-6" />,
 };
 
-function getStepStatus(stepId: string, currentStage: SubmitStage): 'completed' | 'current' | 'pending' {
-  const order = ['validating', 'uploading', 'processing'];
-  const currentIdx = order.indexOf(currentStage === 'slow' ? 'processing' : currentStage);
+function getStepStatus(
+  stepId: SubmitStage,
+  currentStage: SubmitStage,
+  pasos: readonly PasoOverlay[],
+): 'completed' | 'current' | 'pending' {
+  const order = pasos.map((p) => p.id);
+  const ultimo = order[order.length - 1];
+  const currentIdx = order.indexOf(currentStage === 'slow' ? ultimo : currentStage);
   const stepIdx = order.indexOf(stepId);
 
   if (currentStage === 'success') return 'completed';
@@ -34,7 +59,9 @@ function getStepStatus(stepId: string, currentStage: SubmitStage): 'completed' |
   return 'pending';
 }
 
-export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) => {
+export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({
+  isOpen, stage, pasos = STEPS, titulo, subtitulo, tituloProgreso = 'Progreso del envío',
+}) => {
   const isActive = isOpen && stage !== 'idle' && stage !== 'error';
 
   return (
@@ -82,7 +109,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                 ? '¡Solicitud enviada!'
                 : stage === 'slow'
                   ? 'Un momento, por favor'
-                  : 'Enviando tu solicitud'}
+                  : (titulo ?? 'Enviando tu solicitud')}
             </motion.h1>
 
             {/* Subtitle */}
@@ -97,16 +124,16 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                 ? 'Redirigiendo a tu confirmación...'
                 : stage === 'slow'
                   ? 'Está tardando un poco más de lo esperado...'
-                  : 'Esto solo tomará unos segundos.'}
+                  : (subtitulo ?? 'Esto solo tomará unos segundos.')}
             </motion.p>
 
             {/* Timeline - matching ApplicationStatus style */}
             <div className="bg-white border border-neutral-200 rounded-xl p-6 w-full">
-              <h3 className="font-semibold text-neutral-800 mb-6">Progreso del envío</h3>
+              <h3 className="font-semibold text-neutral-800 mb-6">{tituloProgreso}</h3>
 
               <div className="flex items-center justify-between">
-                {STEPS.map((step, index) => {
-                  const status = getStepStatus(step.id, stage);
+                {pasos.map((step, index) => {
+                  const status = getStepStatus(step.id, stage, pasos);
 
                   return (
                     <React.Fragment key={step.id}>
@@ -144,7 +171,7 @@ export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({ isOpen, stage }) =
                       </motion.div>
 
                       {/* Connector line */}
-                      {index < STEPS.length - 1 && (
+                      {index < pasos.length - 1 && (
                         <div
                           className={`h-0.5 flex-1 mx-2 mb-6 transition-all duration-500 ${
                             status === 'completed' ? 'bg-green-500' : 'bg-neutral-200'

@@ -23,11 +23,35 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { ContratoStep } from '../kyc/steps/ContratoStep';
+import { SubmitOverlay, type PasoOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { useAceptarContrato } from '../kyc/useAceptarContrato';
 import { guardarConstancia } from '../kyc/constanciaStorage';
 import { completarKyc } from '@/app/prototipos/0.6/services/kycApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { EnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
+
+/**
+ * El progreso de la firma, con las palabras de lo que de verdad está pasando.
+ *
+ * Es el mismo overlay del envío de la solicitud —la espera se parece y no hay
+ * motivo para inventarle otra pantalla—, pero sus pasos hablan de subir
+ * archivos y enviar una solicitud, y acá no se sube nada: se registra una
+ * firma y se emite una constancia.
+ */
+const PASOS_FIRMA: readonly PasoOverlay[] = [
+  {
+    id: 'validating',
+    icon: 'FileSignature',
+    title: 'Registrando tu firma',
+    description: 'Sellando lo que aceptaste',
+  },
+  {
+    id: 'processing',
+    icon: 'Send',
+    title: 'Emitiendo tu constancia',
+    description: 'Preparando tu copia',
+  },
+];
 
 export function ContratoEnWizard({
   landing,
@@ -40,8 +64,10 @@ export function ContratoEnWizard({
 }) {
   const router = useRouter();
   const cerrandoRef = useRef(false);
-  // Solo para que un segundo aviso del paso no re-dispare el cierre; la
-  // pantalla no cambia: el propio paso ya deshabilita su boton al aceptar.
+  // Enciende el overlay de carga y evita que un segundo aviso del paso
+  // re-dispare el cierre. Arranca con el clic, no con la respuesta de
+  // `aceptar`: entre las dos cosas hay un viaje al backend, y dejarlo sin
+  // pintar era la unica parte del recorrido donde el boton parecia muerto.
   const [cerrando, setCerrando] = useState(false);
 
   const { contratoRef, aceptar } = useAceptarContrato({
@@ -49,7 +75,16 @@ export function ContratoEnWizard({
     resumeToken: handoff.resumeToken,
     documentNumber: handoff.documentNumber,
     onAceptado: () => { void cerrar(); },
+    // 409: el paso se reabre con el documento nuevo, asi que el overlay se
+    // apaga. Sin esto se quedaba tapando una pantalla que pide releer.
+    onVencido: () => setCerrando(false),
   });
+
+  /** El clic en aceptar: primero se pinta la espera, despues se registra. */
+  function firmar(datos?: { contractHash?: string; externalId?: string }) {
+    setCerrando(true);
+    aceptar(datos);
+  }
 
   /**
    * Cierra el KYC contra el backend, igual que la pantalla del KYC.
@@ -92,15 +127,25 @@ export function ContratoEnWizard({
   }
 
   return (
-    <ContratoStep
-      ref={contratoRef}
-      onDone={aceptar}
-      onBack={onBack}
-      applicationCode={handoff.applicationCode}
-      resumeToken={handoff.resumeToken}
-      documentNumber={handoff.documentNumber}
-      landing={landing}
-    />
+    <>
+      <SubmitOverlay
+        isOpen={cerrando}
+        stage="processing"
+        pasos={PASOS_FIRMA}
+        titulo="Registrando tu solicitud"
+        subtitulo="Estamos sellando tu firma. Esto solo toma unos segundos."
+        tituloProgreso="Progreso de tu firma"
+      />
+      <ContratoStep
+        ref={contratoRef}
+        onDone={firmar}
+        onBack={onBack}
+        applicationCode={handoff.applicationCode}
+        resumeToken={handoff.resumeToken}
+        documentNumber={handoff.documentNumber}
+        landing={landing}
+      />
+    </>
   );
 }
 

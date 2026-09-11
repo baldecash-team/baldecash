@@ -28,6 +28,14 @@ export interface AceptarContratoArgs {
   /** Se llama solo si la aceptación quedó registrada. */
   onAceptado: (state: KycProgressState | null) => void;
   /**
+   * El 409: lo aceptado ya no es el contrato vigente y el paso se reabre.
+   *
+   * Existe para quien haya encendido algo al empezar a aceptar —un overlay de
+   * carga, por ejemplo—: sin este aviso ese estado queda prendido para
+   * siempre, porque por este camino `onAceptado` no llega nunca.
+   */
+  onVencido?: () => void;
+  /**
    * Ref del paso, para quien ya tiene uno propio (el KYC se lo pasa a
    * `renderStep`). Sin esto habría dos refs y el `marcarVencido` iría al que
    * no está montado.
@@ -36,7 +44,7 @@ export interface AceptarContratoArgs {
 }
 
 export function useAceptarContrato({
-  applicationCode, resumeToken, documentNumber, onAceptado, ref,
+  applicationCode, resumeToken, documentNumber, onAceptado, onVencido, ref,
 }: AceptarContratoArgs) {
   const propio = useRef<ContratoStepHandle | null>(null);
   const contratoRef = ref ?? propio;
@@ -62,12 +70,13 @@ export function useAceptarContrato({
       }).then(({ state, outdated }) => {
         if (outdated) {
           contratoRef.current?.marcarVencido();
+          onVencido?.();
           return;
         }
         onAceptado(state);
       });
     },
-    [applicationCode, resumeToken, documentNumber, onAceptado],
+    [applicationCode, resumeToken, documentNumber, onAceptado, onVencido],
   );
 
   return { contratoRef, aceptar };
