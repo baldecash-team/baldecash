@@ -93,6 +93,11 @@ export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProp
             ? GRADE_COPY[sib.grade as GradeKey].titulo
             : '';
 
+          // La cifra que acompaña a "Desde". Ver el comentario del render.
+          const quotaDesde = typeof sib.lowestQuota === 'number' && sib.lowestQuota > 0
+            ? sib.lowestQuota
+            : sib.minTermQuota;
+
           return (
             <button
               key={sib.grade}
@@ -119,7 +124,13 @@ export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProp
                 // `typeof` y no `!== undefined`: el API puede mandar null, y
                 // `null !== undefined` es true. El `> 0` descarta el cero que
                 // anunciaría un equipo regalado.
-                typeof sib.minTermQuota === 'number' && sib.minTermQuota > 0 && (
+                // "Desde" promete el MÍNIMO: va `lowestQuota` (plazo más largo),
+                // no `minTermQuota` (plazo más corto, la cuota más CARA). Con el
+                // segundo la tarjeta decía "Desde S/674" mientras la calculadora
+                // de abajo ofrecía S/168 a 24 meses. Se mantiene como respaldo
+                // por si un backend viejo no manda `lowest_quota`: un número
+                // impreciso avisa mejor que una tarjeta muda.
+                typeof quotaDesde === 'number' && quotaDesde > 0 && (
                   <span className={styles.colQuota}>
                     {/* "Desde" solo cuando hay sitio: apilado ocuparía una línea
                         entera para una palabra que la cifra ya sugiere. */}
@@ -127,7 +138,7 @@ export const ReacondicionadosGradoCuota: React.FC<ReacondicionadosGradoCuotaProp
                       Desde
                       <br />
                     </span>
-                    <b>S/{formatMoneyNoDecimals(Math.floor(sib.minTermQuota))}</b>
+                    <b>S/{formatMoneyNoDecimals(Math.floor(quotaDesde))}</b>
                     {FREQ_SUFFIX[paymentFrequency ?? 'mensual'] ?? FREQ_SUFFIX.mensual}
                   </span>
                 )

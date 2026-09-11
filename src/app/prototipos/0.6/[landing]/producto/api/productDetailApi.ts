@@ -66,8 +66,13 @@ interface ApiGradeSibling {
   price: number | null;
   stock_available: number;
   is_available: boolean;
-  /** Cuota del plazo más corto (BAL-2864). La tarjeta de grado muestra esta. */
+  /** Cuota del plazo más corto (BAL-2864). Es la más CARA del grado. */
   min_term_quota?: number | null;
+  /**
+   * Cuota más baja del grado (la del plazo más largo). Es la que muestra la
+   * tarjeta de grado, porque es lo que promete la palabra "Desde".
+   */
+  lowest_quota?: number | null;
 }
 
 interface ApiProductBadge {
@@ -560,6 +565,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
       // No es lo que impide el "S/0" — de eso se ocupa el guard del render, que
       // además descarta el 0. Son dos defensas distintas, no la misma dos veces.
       minTermQuota: sib.min_term_quota ?? undefined,
+      lowestQuota: sib.lowest_quota ?? undefined,
     })),
     description: apiProduct.description,
     shortDescription: apiProduct.short_description,

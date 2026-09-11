@@ -130,11 +130,19 @@ export interface GradeSibling {
   stockAvailable: number;
   isAvailable: boolean;
   /**
-   * Cuota del plazo más corto del grado (BAL-2864). Es la que muestra la
-   * tarjeta del selector; `price` se queda para el panel de ahorro.
-   * `undefined` = no calculable, la tarjeta no muestra número.
+   * Cuota del plazo más corto del grado (BAL-2864). YA NO es la que muestra la
+   * tarjeta del selector: decía "Desde S/674" cuando 674 es la cuota MÁS CARA
+   * del grado (6 meses). Se conserva porque el campo llega del backend y otras
+   * pantallas lo leen. `price` se queda para el panel de ahorro.
    */
   minTermQuota?: number;
+  /**
+   * Cuota más baja del grado, la del plazo más largo (`lowest_quota` del API).
+   * Es la que muestra la tarjeta del selector: es lo que la palabra "Desde"
+   * promete, y coincide con lo que la calculadora de abajo ofrece por defecto.
+   * `undefined` = no calculable, la tarjeta no muestra número.
+   */
+  lowestQuota?: number;
 }
 
 export interface ProductDetail {
