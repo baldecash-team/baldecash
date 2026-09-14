@@ -29,7 +29,7 @@
  * se comparan entre si. La unica salida es sacarlo del subarbol.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface Props {
@@ -56,11 +56,28 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
   // monta recien en el cliente; hasta entonces no se pinta nada.
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []);
+
+  // Al abrirse, sacarle el foco a lo que lo tenga. El modal se dispara desde
+  // el campo del DNI, que queda con el cursor puesto: sin esto se puede
+  // seguir escribiendo detras del overlay, y lo que se escribe no se ve.
+  //
+  // Se le pasa el foco al dialogo (tabIndex={-1}) en vez de solo hacer blur:
+  // si el foco se va al body, el Tab siguiente vuelve al principio de la
+  // pagina en vez de entrar al modal, y el lector de pantalla no anuncia nada.
+  const dialogoRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!montado) return;
+    (document.activeElement as HTMLElement | null)?.blur();
+    dialogoRef.current?.focus();
+  }, [montado]);
+
   if (!montado) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/60 p-4"
+      ref={dialogoRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/60 p-4 outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dni-no-invitado-titulo"
