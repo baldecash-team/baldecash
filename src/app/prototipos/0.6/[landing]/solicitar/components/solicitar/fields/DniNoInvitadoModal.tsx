@@ -75,7 +75,7 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
           {esRedireccion ? (
             <a
               href={`/${hermana!.slug}/catalogo/`}
-              className="flex-1 rounded-xl bg-[#4654CD] px-4 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
+              className="flex-1 cursor-pointer rounded-xl bg-[#4654CD] px-4 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
             >
               Ir a esa campaña
             </a>
@@ -84,7 +84,7 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
               href={WHATSAPP_SOPORTE}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-xl bg-[#4654CD] px-4 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
+              className="flex-1 cursor-pointer rounded-xl bg-[#4654CD] px-4 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
             >
               Escribir por WhatsApp
             </a>
@@ -93,7 +93,7 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
           <button
             type="button"
             onClick={onCerrar}
-            className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            className="flex-1 cursor-pointer rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
           >
             {esRedireccion ? 'Cancelar' : 'Cerrar'}
           </button>
