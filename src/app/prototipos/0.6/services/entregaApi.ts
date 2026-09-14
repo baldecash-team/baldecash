@@ -15,6 +15,8 @@ export interface EntregaDireccion {
   departamento: string | null;
   provincia: string | null;
   distrito: string | null;
+  /** `GeoUnit.id` del distrito, para precargar la cascada. Null sin ubigeo. */
+  distrito_id: string | null;
 }
 
 export interface EntregaDatos {
@@ -34,6 +36,12 @@ export interface EntregaPayload {
   departamento: string;
   provincia: string;
   distrito: string;
+  /**
+   * `GeoUnit.id` del distrito elegido en la cascada. Obligatorio: con él el
+   * despacho registra la dirección como tal (ubigeo incluido), lo que hace
+   * posible coordinar la entrega de una solicitud aprobada sin dirección.
+   */
+  distrito_id: string;
   es_titular: boolean;
   nombres: string;
   nrodocumento: string;

@@ -17,9 +17,15 @@
  *
  * La fecha se formatea partiendo el string y NO con `new Date`: el constructor
  * interpreta "2026-08-20" como UTC y en Lima (-5) lo corre al 19.
+ *
+ * El ubigeo se elige en la cascada departamento > provincia > distrito
+ * (`GeoCascadeField`), no se tipea: el despacho lo necesita como código, y es
+ * lo que permite coordinar la entrega de una solicitud que se aprobó sin
+ * dirección (Renueva / segundo financiamiento).
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
 import {
   getEntrega,
   isEntregaApiError,
@@ -55,7 +61,7 @@ export function EntregaClient({ token }: EntregaClientProps) {
   const [view, setView] = useState<ViewState>({ status: 'loading' });
   const [form, setForm] = useState<EntregaPayload>({
     direccion: '', calle: '', referencia: '',
-    departamento: '', provincia: '', distrito: '',
+    departamento: '', provincia: '', distrito: '', distrito_id: '',
     es_titular: true, nombres: '', nrodocumento: '', telefono: '', parentesco: '',
   });
   const [enviando, setEnviando] = useState(false);
@@ -77,6 +83,7 @@ export function EntregaClient({ token }: EntregaClientProps) {
       departamento: vacio(res.direccion.departamento),
       provincia: vacio(res.direccion.provincia),
       distrito: vacio(res.direccion.distrito),
+      distrito_id: vacio(res.direccion.distrito_id),
     }));
     setView({ status: 'ready', datos: res });
   }, [token]);
@@ -93,6 +100,12 @@ export function EntregaClient({ token }: EntregaClientProps) {
     // Se valida acá además del backend para no gastarle un viaje a alguien con
     // mala señal; el backend igual la exige, es la causa de reintento de
     // entrega más común.
+    if (!form.direccion.trim()) {
+      return setError('Necesitamos tu dirección para enviarte el equipo.');
+    }
+    if (!form.distrito_id) {
+      return setError('Elige el departamento, provincia y distrito de tu dirección.');
+    }
     if (!form.referencia.trim()) {
       return setError('Necesitamos una referencia para encontrar tu dirección.');
     }
@@ -170,17 +183,19 @@ export function EntregaClient({ token }: EntregaClientProps) {
         <fieldset className="space-y-3">
           <legend className="text-sm font-semibold text-gray-900">¿Dónde lo dejamos?</legend>
 
-          <Campo label="Dirección" value={form.direccion}
+          <Campo label="Dirección" required value={form.direccion}
                  onChange={(v) => set('direccion', v)} />
           <Campo label="N°, Dpto, Mz, Lote y/o Km" value={form.calle}
                  onChange={(v) => set('calle', v)} />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Campo label="Departamento" value={form.departamento}
-                   onChange={(v) => set('departamento', v)} />
-            <Campo label="Provincia" value={form.provincia}
-                   onChange={(v) => set('provincia', v)} />
-            <Campo label="Distrito" value={form.distrito}
-                   onChange={(v) => set('distrito', v)} />
+            <GeoCascadeField
+              value={form.distrito_id}
+              districtLabel={form.distrito}
+              small
+              onChange={(id, label) =>
+                setForm((f) => ({ ...f, distrito_id: id, distrito: label ?? '' }))
+              }
+            />
           </div>
           <Campo
             label="Referencia"

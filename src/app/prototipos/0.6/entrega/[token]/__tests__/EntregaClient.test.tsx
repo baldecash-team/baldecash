@@ -39,7 +39,7 @@ const datos = {
   equipo: { nombre: 'iPhone 15 128GB', sku: 'IP15-128' },
   direccion: {
     direccion: 'Av. Siempre Viva', calle: null, referencia: null,
-    departamento: 'Lima', provincia: 'Lima', distrito: 'Miraflores',
+    departamento: 'Lima', provincia: 'Lima', distrito: 'Miraflores', distrito_id: '557',
   },
   titular: { nombre: 'Ana Quispe', documento: '45678912' },
 };
@@ -74,7 +74,42 @@ describe('EntregaClient', () => {
 
     await waitFor(() =>
       expect(screen.getByDisplayValue('Av. Siempre Viva')).toBeInTheDocument());
-    expect(screen.getByDisplayValue('Miraflores')).toBeInTheDocument();
+    // El distrito es un select (cascada), no una caja de texto: se muestra la
+    // etiqueta guardada aunque las listas no se hayan cargado.
+    expect(screen.getByText('Miraflores')).toBeInTheDocument();
+  });
+
+  it('no envía sin dirección', async () => {
+    mockGet.mockResolvedValue({
+      ...datos,
+      direccion: { ...datos.direccion, direccion: null, referencia: 'Frente al parque' },
+    });
+    render(<EntregaClient token="tok" />);
+    await screen.findByText(/iPhone 15 128GB/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar entrega/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/dirección/i);
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+
+  it('no envía sin ubigeo', async () => {
+    // Renueva se aprueba sin dirección: el formulario llega vacío y el
+    // distrito tiene que elegirse en la cascada, no tipearse.
+    mockGet.mockResolvedValue({
+      ...datos,
+      direccion: {
+        ...datos.direccion, referencia: 'Frente al parque',
+        departamento: null, provincia: null, distrito: null, distrito_id: null,
+      },
+    });
+    render(<EntregaClient token="tok" />);
+    await screen.findByText(/iPhone 15 128GB/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar entrega/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/distrito/i);
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
   it('no envía sin referencia', async () => {
@@ -117,7 +152,9 @@ describe('EntregaClient', () => {
     expect(await screen.findByText(/¡Listo!/)).toBeInTheDocument();
     expect(mockPost).toHaveBeenCalledWith(
       'tok',
-      expect.objectContaining({ referencia: 'Frente al parque', es_titular: true }),
+      expect.objectContaining({
+        referencia: 'Frente al parque', es_titular: true, distrito_id: '557',
+      }),
     );
   });
 
