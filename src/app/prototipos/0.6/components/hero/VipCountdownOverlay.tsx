@@ -29,7 +29,9 @@ export interface VipWelcomeData {
   firstName: string;
 }
 
-export type DniCaptureMode = 'modal' | 'inline';
+// Duplica el tipo de `types/landingConfig.ts` a proposito (el overlay se usa
+// suelto en storybook). Si se agrega un modo alla, agregarlo aca tambien.
+export type DniCaptureMode = 'modal' | 'inline' | 'form';
 
 interface VipCountdownOverlayProps {
   /** ISO date string for countdown end (e.g. "2026-04-25T05:00:00.000Z") */
@@ -359,7 +361,18 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                   que no vas a ver en ningún otro lado y no se repetirán.
                 </p>
 
-                {captureMode === 'inline' ? (
+                {captureMode === 'form' ? (
+                  /* La puerta queda como bienvenida: mantiene el mensaje y el
+                     countdown, pero no pide el DNI. El filtro de whitelist vive
+                     en el formulario de solicitud. */
+                  <button
+                    onClick={() => { window.location.assign(`/prototipos/0.6/${catalogSlug}/catalogo/`); }}
+                    className="w-full py-3.5 rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                    style={{ backgroundColor: '#E5A823', color: '#4654CD' }}
+                  >
+                    Ver el catálogo
+                  </button>
+                ) : captureMode === 'inline' ? (
                   <>
                     <div className="flex items-stretch gap-2 w-full">
                       <input

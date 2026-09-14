@@ -1452,6 +1452,7 @@ const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: 
  *       overlay_variant → custom overlay component (e.g. 'cade')
  *       dni_capture_mode 'inline' → InlineDniGate (default fullscreen)
  *       dni_capture_mode 'modal'  → DniModal (popup)
+ *       dni_capture_mode 'form'   → no bloquea: el DNI se pide en el formulario
  */
 function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
   const router = useRouter();
@@ -1460,7 +1461,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const preview = usePreview();
   const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
-  const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
+  const [captureMode, setCaptureMode] = useState<'modal' | 'inline' | 'form'>('modal');
   const [overlayVariant, setOverlayVariant] = useState('');
   const [overlayDeadline, setOverlayDeadline] = useState('');
   const [showWelcome, setShowWelcome] = useState(false);
@@ -1624,6 +1625,15 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         if (vipAuto && vipAuto !== getVipToken(landing)) {
           saveVipToken(landing, vipAuto);
         }
+      }
+
+      // En modo `form` la puerta no es un guard: el DNI se pide y se valida
+      // dentro del formulario de solicitud. Sin este corte, el gate seguiria
+      // bloqueando -- o redirigiendo al home -- a quien no tiene token, que es
+      // justo lo que este modo quiere evitar.
+      if (cfg.features.dni_capture_mode === 'form') {
+        setStatus('allowed');
+        return;
       }
 
       if (hasWhitelist && !getVipToken(landing)) {
