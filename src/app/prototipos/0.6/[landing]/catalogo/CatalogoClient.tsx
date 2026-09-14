@@ -138,6 +138,7 @@ import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { captureLandingParams, consumePendingCategoria, clearPendingCoupon, readCouponParam } from '@/app/prototipos/0.6/utils/landingParams';
+import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
@@ -205,6 +206,12 @@ export function CatalogoClient() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
+
+  // Los links de socio (A365) y algunos del hub aterrizan acá directo, sin
+  // pasar por la portada de la landing, donde vive el otro reset. Tiene que
+  // correr antes de renderizar hijos y antes de `captureLandingParams` (que
+  // guarda el `alk` del link nuevo en su efecto): ver `usePromoterLinkReset`.
+  usePromoterLinkReset(landing);
 
   if (isGamerLanding(landing)) {
     return (

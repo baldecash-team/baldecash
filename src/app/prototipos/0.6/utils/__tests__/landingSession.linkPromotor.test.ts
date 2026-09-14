@@ -197,6 +197,46 @@ describe('resetLandingSessionIfPromoterLinkChanged', () => {
     expect(localStorage.getItem(keys(LANDING).sessionConvertida)).toBeNull();
   });
 
+  describe('link de socio (A365): trae `alk`, no `ref`', () => {
+    const linkDeSocio = (alk: string) =>
+      '?utm_source=partner&utm_medium=referral&utm_campaign=partner_a365' +
+      `&utm_content=A365-1789414953116&coupon=A365EC7VXD&alk=${alk}`;
+
+    it('limpia la visita anterior aunque el link no traiga ref ni utm_term del hub', () => {
+      visitaPrevia(LANDING, REF_A);
+
+      const limpio = resetLandingSessionIfPromoterLinkChanged(LANDING, linkDeSocio('TJ3cGjNP'));
+
+      expect(limpio).toBe(true);
+      expect(sobrevivientes(LANDING)).toEqual([]);
+    });
+
+    it('el MISMO alk abierto de nuevo también limpia: cada apertura del link es un inicio', () => {
+      // El postulante abrió el link, tocó el formulario (o lo hizo el agente en
+      // su equipo) y lo vuelve a abrir en otra ventana. Lo que hay guardado es
+      // de esa visita a medias; los datos del socio se vuelven a traer del
+      // servidor igual, así que arrancar de cero no pierde nada que no se
+      // recupere.
+      resetLandingSessionIfPromoterLinkChanged(LANDING, linkDeSocio('TJ3cGjNP'));
+      visitaPrevia(LANDING, REF_A);
+      localStorage.setItem(keys(LANDING).pendingAlk, 'TJ3cGjNP');
+
+      const limpio = resetLandingSessionIfPromoterLinkChanged(LANDING, linkDeSocio('TJ3cGjNP'));
+
+      expect(limpio).toBe(true);
+      expect(localStorage.getItem(keys(LANDING).wizardForm)).toBeNull();
+      expect(localStorage.getItem(keys(LANDING).sessionUuid)).toBeNull();
+    });
+
+    it('otro alk (otra persona) limpia igual', () => {
+      resetLandingSessionIfPromoterLinkChanged(LANDING, linkDeSocio('7ZUepkAR'));
+      visitaPrevia(LANDING, REF_A);
+
+      expect(resetLandingSessionIfPromoterLinkChanged(LANDING, linkDeSocio('TJ3cGjNP'))).toBe(true);
+      expect(sobrevivientes(LANDING)).toEqual([]);
+    });
+  });
+
   it('deja el store de UTMs con los del link nuevo, no vacío', () => {
     resetLandingSessionIfPromoterLinkChanged(LANDING, linkConRef(REF_A));
     visitaPrevia(LANDING, REF_A);

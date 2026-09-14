@@ -212,9 +212,26 @@ export function huellaDelLinkDePromotor(search: string): string | null {
   const term = params.get('utm_term') ?? '';
   const promo = term.match(/(?:^|__)promo_([^_]+)/)?.[1] ?? '';
   const act = term.match(/(?:^|__)act_([^_]+)/)?.[1] ?? '';
+  // `alk` = link de activación de un socio (A365). No trae `ref` ni `utm_term`
+  // del hub: sin esto un link de socio parecía orgánico y no limpiaba nada.
+  // NO entra en la huella: el formato guardado en los equipos es de cuatro
+  // segmentos y cambiarlo haría que cada link del hub limpiara una vez de más.
+  // No hace falta: un link de socio limpia siempre, sin comparar huellas.
+  const esDeSocio = codigoDeLinkDeSocio(search) !== null;
 
-  if (!ref && !promotor && !promo && !act) return null;
+  if (!ref && !promotor && !promo && !act && !esDeSocio) return null;
   return [ref, promotor, promo, act].join('|');
+}
+
+/**
+ * `alk` del link de un socio (A365), o null si el link no es de socio.
+ *
+ * Cada `alk` es UNA persona: el socio ya empujó sus datos y el formulario los
+ * trae del servidor contra ese código (`useLeadPrefill`).
+ */
+export function codigoDeLinkDeSocio(search: string): string | null {
+  const alk = new URLSearchParams(search).get('alk')?.trim();
+  return alk ? alk : null;
 }
 
 /**
@@ -231,7 +248,8 @@ export function huellaDelLinkDePromotor(search: string): string | null {
  * La identidad del link es la de `huellaDelLinkDePromotor`. El MISMO link que
  * se vuelve a abrir —recarga, volver del catálogo— no limpia: el alumno que ya
  * empezó su formulario lo conserva. Un link sin identificador de promotora
- * (orgánico, un anuncio) tampoco limpia: la regla es de los links del hub.
+ * (orgánico, un anuncio) tampoco limpia: la regla es de los links del hub y
+ * de los links de socio (`alk`), que limpian siempre — ver abajo.
  *
  * EXCEPTO cuando la sesión guardada ya envió una solicitud. Ahí el mismo link
  * también limpia: la promotora volvió a abrir su QR para el siguiente alumno,
@@ -274,7 +292,14 @@ export function resetLandingSessionIfPromoterLinkChanged(
     // Sin storage no hay nada guardado ni forma de guardar: no-op.
     return false;
   }
-  if (anterior === huella && !sesionYaConvertida(landing)) return false;
+  // Un link de socio limpia SIEMPRE, aunque sea el mismo `alk`: cada apertura
+  // es un inicio. El postulante (o el agente, desde su equipo) abre el link en
+  // otra ventana y lo que hay guardado es una visita a medias, muchas veces con
+  // un campo prellenado a partir de datos del lead que después se corrigieron
+  // del lado del socio. Los datos del socio se vuelven a traer del servidor de
+  // todos modos, así que arrancar de cero no pierde nada que no se recupere.
+  const esDeSocio = codigoDeLinkDeSocio(search) !== null;
+  if (anterior === huella && !sesionYaConvertida(landing) && !esDeSocio) return false;
 
   clearLandingSession(landing);
   clearPromotorAttribution(landing);
