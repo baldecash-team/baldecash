@@ -1545,6 +1545,18 @@ function VipGate({ landing, children }: { landing: string; children: React.React
     if (!preview.isHydrated) return;
 
     fetchLandingConfig(landing).then((cfg) => {
+      // En modo `form` el gate no bloquea NADA: ni el catalogo, ni el producto,
+      // ni el formulario. El DNI se pide y se valida dentro de /solicitar.
+      //
+      // Va PRIMERO, antes de cualquier otra rama, porque mas abajo hay varios
+      // `return` que cortan la funcion. Uno de ellos redirige /solicitar al
+      // catalogo cuando no hay token; con este corte mas abajo, el estado
+      // quedaba en `loading` para siempre y /solicitar se veia EN BLANCO.
+      if (cfg.features.dni_capture_mode === 'form') {
+        setStatus('allowed');
+        return;
+      }
+
       // Admin preview bypasses all access checks — no redirect, no block
       if (preview.isPreviewingLanding(landing)) {
         setStatus('allowed');
@@ -1625,15 +1637,6 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         if (vipAuto && vipAuto !== getVipToken(landing)) {
           saveVipToken(landing, vipAuto);
         }
-      }
-
-      // En modo `form` la puerta no es un guard: el DNI se pide y se valida
-      // dentro del formulario de solicitud. Sin este corte, el gate seguiria
-      // bloqueando -- o redirigiendo al home -- a quien no tiene token, que es
-      // justo lo que este modo quiere evitar.
-      if (cfg.features.dni_capture_mode === 'form') {
-        setStatus('allowed');
-        return;
       }
 
       if (hasWhitelist && !getVipToken(landing)) {
