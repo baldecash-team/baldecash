@@ -524,7 +524,7 @@ function StepContent() {
     setSubmitted(true);
 
     // Bloqueo por whitelist (check-person): si el backend marcó allowed === false,
-    // no se permite avanzar. El mensaje ya se muestra en el campo del documento.
+    // no se permite avanzar. El motivo lo explica el modal de DocumentNumberField.
     if (formData['_whitelist_blocked']?.value === 'true') {
       const wlField = formData['_whitelist_field']?.value as string | undefined;
       if (wlField) {

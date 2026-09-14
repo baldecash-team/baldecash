@@ -17,6 +17,7 @@ import { useSessionOptional } from '../../../context/SessionContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
+import { DniNoInvitadoModal } from './DniNoInvitadoModal';
 import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
 
@@ -236,6 +237,12 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // el mensaje del backend como error del campo.
   const whitelist = response?.whitelist;
   const isWhitelistBlocked = whitelist?.allowed === false;
+
+  // El modal se cierra a mano, pero tiene que volver a abrirse si la persona
+  // prueba OTRO documento que tampoco esta. Sin la clave del dni, cerrarlo una
+  // vez lo dejaba mudo para el resto de la sesion.
+  const [modalCerradoPara, setModalCerradoPara] = useState<string | null>(null);
+  const mostrarModal = isWhitelistBlocked && modalCerradoPara !== value;
   const whitelistMessage = isWhitelistBlocked
     ? (whitelist?.message || 'No es posible continuar con este documento.')
     : '';
@@ -288,7 +295,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
   // El mensaje de whitelist (bloqueo) tiene prioridad y se muestra siempre,
   // aunque el campo todavía no haya sido marcado como "submitted".
-  const displayError = isWhitelistBlocked ? whitelistMessage : error;
+  // El bloqueo de whitelist lo comunica el modal, no un texto al pie: son dos
+  // cosas distintas y mostrarlas juntas es ruido. El campo solo pinta los
+  // errores de formato.
+  const displayError = error;
 
   // Determine success state
   const hasValue = !!value;
@@ -297,22 +307,42 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const isPassport = documentType === 'pasaporte' || documentType === 'passport';
 
   return (
-    <TextInput
-      id={field.code}
-      label={field.label}
-      value={value}
-      onChange={handleChange}
-      error={displayError}
-      required={field.required}
-      disabled={field.readonly || lockedByModal || isLockedFromLead}
-      tooltip={tooltip}
-      type="text"
-      inputMode={isPassport ? 'text' : 'numeric'}
-      placeholder={field.placeholder || undefined}
-      maxLength={field.max_length || undefined}
-      success={isSuccess}
-      isLoading={isChecking}
-    />
+    <>
+      <TextInput
+        id={field.code}
+        label={field.label}
+        value={value}
+        onChange={handleChange}
+        error={displayError}
+        required={field.required}
+        disabled={field.readonly || lockedByModal || isLockedFromLead}
+        tooltip={tooltip}
+        type="text"
+        inputMode={isPassport ? 'text' : 'numeric'}
+        placeholder={field.placeholder || undefined}
+        maxLength={field.max_length || undefined}
+        success={isSuccess}
+        isLoading={isChecking}
+      />
+
+      {mostrarModal && (
+        // El documento NO se limpia al cerrar: quien se equivoco en un digito
+        // no tiene que escribir los ocho de nuevo para corregirlo.
+        <DniNoInvitadoModal
+          dni={value}
+          hermana={
+            whitelist?.found_in_sibling && whitelist.sibling_landing_slug
+              ? {
+                  slug: whitelist.sibling_landing_slug,
+                  name: whitelist.sibling_landing_name || 'la otra campaña',
+                }
+              : null
+          }
+          firstName={whitelist?.first_name ?? null}
+          onCerrar={() => setModalCerradoPara(value)}
+        />
+      )}
+    </>
   );
 };
 
