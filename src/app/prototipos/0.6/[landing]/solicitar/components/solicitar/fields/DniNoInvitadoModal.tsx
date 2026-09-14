@@ -38,7 +38,7 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dni-no-invitado-titulo"

@@ -238,11 +238,21 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const whitelist = response?.whitelist;
   const isWhitelistBlocked = whitelist?.allowed === false;
 
-  // El modal se cierra a mano, pero tiene que volver a abrirse si la persona
-  // prueba OTRO documento que tampoco esta. Sin la clave del dni, cerrarlo una
-  // vez lo dejaba mudo para el resto de la sesion.
-  const [modalCerradoPara, setModalCerradoPara] = useState<string | null>(null);
-  const mostrarModal = isWhitelistBlocked && modalCerradoPara !== value;
+  // El modal se cierra a mano, y el cierre vale SOLO para la respuesta que se
+  // esta viendo: apenas el documento cambia, la marca se borra.
+  //
+  // Antes esto guardaba el dni cerrado (`modalCerradoPara !== value`) y nunca
+  // lo limpiaba, asi que cerrar el modal para un documento lo silenciaba para
+  // siempre: al volver a ese mismo dni despues de probar otro, ya no salia.
+  // Comparar contra `value` ademas lo reabria en mitad del tipeo, porque el
+  // valor cambia con cada tecla mientras el backend todavia responde por el
+  // numero anterior.
+  const [modalCerrado, setModalCerrado] = useState(false);
+  useEffect(() => {
+    setModalCerrado(false);
+  }, [value, documentType]);
+
+  const mostrarModal = isWhitelistBlocked && !modalCerrado;
   const whitelistMessage = isWhitelistBlocked
     ? (whitelist?.message || 'No es posible continuar con este documento.')
     : '';
@@ -339,7 +349,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
               : null
           }
           firstName={whitelist?.first_name ?? null}
-          onCerrar={() => setModalCerradoPara(value)}
+          onCerrar={() => setModalCerrado(true)}
         />
       )}
     </>
