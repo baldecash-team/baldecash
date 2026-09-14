@@ -29,7 +29,9 @@ export interface FloatingCtaConfig {
   url: string;
 }
 
-export type DniCaptureMode = 'modal' | 'inline';
+// 'form' no captura el DNI en la puerta: se pide dentro del formulario de
+// solicitud, donde tambien se valida contra la whitelist.
+export type DniCaptureMode = 'modal' | 'inline' | 'form';
 
 export interface LandingConfigFeatures {
   /** Whether to show the DNI modal on landing load. */
