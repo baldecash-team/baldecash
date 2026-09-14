@@ -37,18 +37,26 @@ function getSavedDni(slug: string): string | null {
 }
 
 /**
- * ¿La puerta VIP valido el DNI contra la whitelist en ESTA landing?
+ * ¿La puerta VIP aprobo ESTE documento en ESTA landing?
  *
- * El token solo existe si `validate-dni` respondio que si. Es la unica senal
- * de que el documento guardado fue aprobado, y por lo tanto lo unico que
- * justifica dejar el campo de solo lectura.
+ * El token solo existe si `validate-dni` respondio que si, pero el token por
+ * si solo dice «esta persona valido algun DNI», no cual. Hay que compararlo
+ * contra el documento que se esta por fijar.
+ *
+ * Sin esa comparacion, quien valido un DNI y despues vuelve con otro se
+ * encontraba el documento VIEJO fijo y `disabled`, sin poder corregirlo: el
+ * token de la validacion anterior seguia ahi y bloqueaba cualquier documento.
+ * La unica salida era limpiar el localStorage a mano (le paso a Haru).
  *
  * En modo `form` no hay puerta, asi que nunca hay token: el DNI guardado es
  * apenas una comodidad de prellenado y tiene que poder corregirse.
  */
-function hayTokenVipValidado(slug: string): boolean {
+function tokenVipApruebaEsteDni(slug: string, dni: string): boolean {
   try {
-    return localStorage.getItem(`baldecash-vip-token-${slug}`) !== null;
+    if (localStorage.getItem(`baldecash-vip-token-${slug}`) === null) return false;
+    // El documento que la puerta guardo al validar. Si el que estamos por
+    // fijar no es ese, el token no lo respalda.
+    return localStorage.getItem(`baldecash-dni-${slug}`) === dni;
   } catch {
     return false;
   }
@@ -102,7 +110,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     if (!current) {
       updateField(field.code, savedDni);
     }
-    if (hayTokenVipValidado(landing)) {
+    if (tokenVipApruebaEsteDni(landing, savedDni)) {
       setLockedByModal(true);
     }
   }, []);
@@ -116,7 +124,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     if (!leadDni) return;
     const current = getFieldValue(field.code) as string;
     if (!current) updateField(field.code, leadDni);
-    if (hayTokenVipValidado(landing)) {
+    if (tokenVipApruebaEsteDni(landing, leadDni)) {
       setLockedByModal(true);
     }
   }, []);
