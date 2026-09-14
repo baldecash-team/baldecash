@@ -325,9 +325,25 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const isAdminPreview = preview.isPreviewingLanding(slug);
   const isVipLanding = !!landingConfig.features.vip_countdown && !isAdminPreview;
   const hasWhitelist = landingConfig.features.has_dni_whitelist;
-  const [countdownActive, setCountdownActive] = useState(isVipLanding);
+
+  // La puerta a pantalla completa NO se muestra en modo `form`.
+  //
+  // El countdown y la puerta venian pegados: tener fecha implicaba tapar la
+  // landing. Eso tenia sentido cuando la puerta pedia el DNI, porque filtraba.
+  // En modo `form` el DNI se pide dentro del formulario, asi que la puerta ya
+  // no filtra nada — solo tapa la landing sin motivo. El catalogo, de hecho,
+  // ya se puede abrir sin pasar por ella.
+  //
+  // Se separa solo la PUERTA, no el countdown: `isVipLanding` sigue igual, asi
+  // que el contador del catalogo (VipCountdownBanner) y el resto del estilo VIP
+  // no se tocan. Apagar el preset los habria apagado a todos.
+  // Se lee de `features` y no de `dniCaptureMode`, que se declara mas abajo.
+  const mostrarPuertaVip =
+    isVipLanding && landingConfig.features.dni_capture_mode !== 'form';
+
+  const [countdownActive, setCountdownActive] = useState(mostrarPuertaVip);
   const [vipExpired, setVipExpired] = useState(() => {
-    if (!isVipLanding) return false;
+    if (!mostrarPuertaVip) return false;
     const end = new Date(landingConfig.features.vip_countdown);
     return new Date().getTime() >= end.getTime();
   });
@@ -370,7 +386,8 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     // Inline capture owns the DNI UX — the modal never auto-opens in this mode.
     if (isInlineCapture) return;
     // VIP landing: don't auto-open DNI modal, it's triggered by the countdown overlay button
-    if (isVipLanding) return;
+    // Solo cuando la puerta existe: en modo `form` no hay boton que lo dispare.
+    if (mostrarPuertaVip) return;
 
     if (showDniFeature && !isLoading) {
       // Whitelist without countdown: open modal even without heroData (403 expected)
@@ -380,7 +397,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         }
       }
     }
-  }, [showDniFeature, slug, isLoading, heroData, dniRequired, isVipLanding, hasWhitelist, isInlineCapture]);
+  }, [showDniFeature, slug, isLoading, heroData, dniRequired, mostrarPuertaVip, hasWhitelist, isInlineCapture]);
 
   const handleDniModalClose = useCallback(() => {
     setIsDniModalOpen(false);
@@ -602,7 +619,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           <FloatingCtaButton config={landingConfig.features.floating_cta} />
 
           {/* VIP Countdown overlay - blocks page until countdown expires */}
-          {isVipLanding && (
+          {mostrarPuertaVip && (
             <VipCountdownOverlay
               endDate={landingConfig.features.vip_countdown}
               onExpired={() => { setCountdownActive(false); setVipExpired(true); }}
