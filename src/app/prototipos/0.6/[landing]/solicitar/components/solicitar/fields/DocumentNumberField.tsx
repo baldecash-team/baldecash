@@ -36,6 +36,24 @@ function getSavedDni(slug: string): string | null {
   }
 }
 
+/**
+ * ¿La puerta VIP valido el DNI contra la whitelist en ESTA landing?
+ *
+ * El token solo existe si `validate-dni` respondio que si. Es la unica senal
+ * de que el documento guardado fue aprobado, y por lo tanto lo unico que
+ * justifica dejar el campo de solo lectura.
+ *
+ * En modo `form` no hay puerta, asi que nunca hay token: el DNI guardado es
+ * apenas una comodidad de prellenado y tiene que poder corregirse.
+ */
+function hayTokenVipValidado(slug: string): boolean {
+  try {
+    return localStorage.getItem(`baldecash-vip-token-${slug}`) !== null;
+  } catch {
+    return false;
+  }
+}
+
 interface DocumentNumberFieldProps {
   field: WizardField;
   showError?: boolean;
@@ -67,6 +85,16 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const [lockedByModal, setLockedByModal] = useState(false);
 
   // Pre-fill from DNI overlay (VIP gate, CADE, InlineDniGate)
+  //
+  // Prellenar SIEMPRE; bloquear SOLO si la puerta valido ese DNI contra la
+  // whitelist (o sea, si dejo token VIP).
+  //
+  // Antes bloqueaba con solo encontrar el DNI guardado, y eso rompia a quien
+  // volvia a la campana por tercera o cuarta vez: el documento de una visita
+  // anterior quedaba fijo y `disabled`, asi que si no estaba en la lista la
+  // persona no podia corregirlo y quedaba trabada. La unica salida era limpiar
+  // el localStorage a mano. En modo `form` no hay puerta ni token, con lo cual
+  // el campo nunca debe bloquearse por esta via.
   useEffect(() => {
     const savedDni = getSavedDni(landing);
     if (!savedDni) return;
@@ -74,16 +102,23 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     if (!current) {
       updateField(field.code, savedDni);
     }
-    setLockedByModal(true);
+    if (hayTokenVipValidado(landing)) {
+      setLockedByModal(true);
+    }
   }, []);
 
   // Pre-fill + lock DNI from lead form capture
+  //
+  // Mismo criterio: el dni que dejo el formulario de captura prellena, pero
+  // solo queda fijo si ademas hubo validacion de whitelist.
   useEffect(() => {
     const leadDni = localStorage.getItem(`baldecash-${landing}-wizard-field-document_number`);
     if (!leadDni) return;
     const current = getFieldValue(field.code) as string;
     if (!current) updateField(field.code, leadDni);
-    setLockedByModal(true);
+    if (hayTokenVipValidado(landing)) {
+      setLockedByModal(true);
+    }
   }, []);
 
   // Get prefill config from field configuration
