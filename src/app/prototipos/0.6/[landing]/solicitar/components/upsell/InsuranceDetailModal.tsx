@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
-import { ShieldCheck, Lock, Check, Plus, X, Users, ExternalLink, HeartPulse } from 'lucide-react';
+import { ShieldCheck, Lock, Check, Plus, X, Users, ExternalLink, HeartPulse, Scale, Laptop } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
@@ -64,7 +64,7 @@ const MODAL_CONFIG: Record<string, {
   description: string;
   coverageItems?: string[];
   /** Detalle agrupado por tipo de asistencia. Cuando viene, reemplaza a coverageItems. */
-  coverageGroups?: { title: string; items: { text: string; copay?: boolean }[] }[];
+  coverageGroups?: { title: string; icon: typeof ShieldCheck; tint: string; items: { text: string; copay?: boolean }[] }[];
   coversText?: string;
   copayNote?: string;
   legalText?: string;
@@ -109,6 +109,8 @@ const MODAL_CONFIG: Record<string, {
     coverageGroups: [
       {
         title: 'Salud',
+        icon: HeartPulse,
+        tint: '#e7f7f1',
         items: [
           { text: 'Orientación médica telefónica ilimitada.' },
           { text: 'Telemedicina (videoconsulta).' },
@@ -121,13 +123,19 @@ const MODAL_CONFIG: Record<string, {
       },
       {
         title: 'Legal',
+        icon: Scale,
+        tint: '#edecfb',
         items: [
-          { text: 'Asesoría legal telefónica.' },
+          { text: 'Asesoría legal telefónica para consultas familiares, civiles y penales.' },
+          { text: 'Orientación sobre divorcios y sucesiones.' },
+          { text: 'Apoyo en consultas sobre cobro de cheques y pagarés.' },
           { text: 'Honorarios de abogados y trámites legales.', copay: true },
         ],
       },
       {
         title: 'Tecnología',
+        icon: Laptop,
+        tint: '#e8f0ff',
         items: [
           { text: 'Soporte técnico ilimitado.' },
           { text: 'Diagnóstico de PC, laptop, tablet y celular.' },
@@ -207,7 +215,12 @@ const ModalContentShared: React.FC<{
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {config.coverageGroups.map((group) => (
                 <div key={group.title}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: muted, marginBottom: 6 }}>{group.title}</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: muted, marginBottom: 6 }}>
+                    <span style={{ width: 24, height: 24, borderRadius: 8, background: group.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <group.icon style={{ width: 14, height: 14, color: '#3f3f46' }} />
+                    </span>
+                    {group.title}
+                  </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {group.items.map((item) => (
                       <div key={item.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
@@ -341,7 +354,12 @@ const ModalContentShared: React.FC<{
           <div className="flex flex-col gap-3">
             {config.coverageGroups.map((group) => (
               <div key={group.title} className="rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2.5">
-                <p className="text-xs font-semibold text-neutral-800 mb-1.5">{group.title}</p>
+                <p className="flex items-center gap-2 text-xs font-semibold text-neutral-800 mb-1.5">
+                  <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: group.tint }}>
+                    <group.icon className="w-3.5 h-3.5 text-neutral-700" />
+                  </span>
+                  {group.title}
+                </p>
                 <ul className="flex flex-col gap-1.5">
                   {group.items.map((item) => (
                     <li key={item.text} className="flex items-start gap-2">
