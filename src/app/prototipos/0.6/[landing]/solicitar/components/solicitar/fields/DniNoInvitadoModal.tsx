@@ -19,9 +19,18 @@
  * La salida era un link de WhatsApp («escribinos y lo revisamos»), pero eso
  * prometia una revision que no existe: no estar en la lista no es un error a
  * corregir. El catalogo abierto es una salida real y inmediata.
+ *
+ * Va montado en document.body con un portal, y eso NO es opcional. El modal
+ * se renderiza dentro de `<div class="relative z-10">`, que abre un contexto
+ * de apilamiento propio: adentro de esa caja el z-[10002] manda, pero contra
+ * el resto de la pagina el subarbol entero vale 10, y el header (z-50) le
+ * pasa por encima. Subir el numero no arregla nada — se probo 9999 -> 10002
+ * y el header seguia ganando — porque los z-index de contextos distintos no
+ * se comparan entre si. La unica salida es sacarlo del subarbol.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   dni: string;
@@ -43,7 +52,13 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
 }) => {
   const esRedireccion = !!hermana;
 
-  return (
+  // El portal necesita el DOM, que en el render del servidor no existe. Se
+  // monta recien en el cliente; hasta entonces no se pinta nada.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
+  if (!montado) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/60 p-4"
       role="dialog"
@@ -73,7 +88,7 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
               invitados a esta campaña.
             </p>
             <p className="mb-5 text-sm text-gray-600">
-              Podés ver nuestro catálogo principal, abierto para todos.
+              Puedes ver nuestro catálogo principal, abierto para todos.
             </p>
           </>
         )}
@@ -104,7 +119,8 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
