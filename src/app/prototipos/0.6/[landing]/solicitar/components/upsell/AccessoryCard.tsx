@@ -51,7 +51,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
       <Card
         isPressable
         onPress={onToggle}
-        className={`transition-all !cursor-pointer h-full border-2 ${
+        className={`transition-all !cursor-pointer w-full h-full border-2 ${
           isSelected
             ? 'border-[#22c55e] bg-[#22c55e]/5'
             : isMoltiTop
