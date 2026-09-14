@@ -12,9 +12,13 @@
  *   - Con landing hermana -> es una REDIRECCION, no un rechazo. La persona si
  *     esta invitada, solo que al grupo de al lado. Decirle «no estas
  *     habilitado» seria falso.
- *   - Sin hermana -> rechazo, pero nunca sin salida: siempre se ofrece a donde
- *     ir. Un modal con solo «Cerrar» deja a alguien mirando un formulario que
- *     ya sabe que no puede llenar.
+ *   - Sin hermana -> rechazo, pero nunca sin salida: se ofrece el catalogo
+ *     principal, que no pide invitacion. Un modal con solo «Cerrar» deja a
+ *     alguien mirando un formulario que ya sabe que no puede llenar.
+ *
+ * La salida era un link de WhatsApp («escribinos y lo revisamos»), pero eso
+ * prometia una revision que no existe: no estar en la lista no es un error a
+ * corregir. El catalogo abierto es una salida real y inmediata.
  */
 
 import React from 'react';
@@ -26,7 +30,10 @@ interface Props {
   onCerrar: () => void;
 }
 
-const WHATSAPP_SOPORTE = 'https://wa.link/qqmbg0';
+/** El catalogo abierto, el que no pide invitacion. Es la salida para quien no
+ *  esta en la lista de esta campana: en vez de mandarlo a escribir por
+ *  WhatsApp y esperar respuesta, puede seguir comprando ahora mismo. */
+const CATALOGO_PRINCIPAL = 'https://baldecash.com/home/catalogo/';
 
 export const DniNoInvitadoModal: React.FC<Props> = ({
   dni,
@@ -66,7 +73,7 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
               invitados a esta campaña.
             </p>
             <p className="mb-5 text-sm text-gray-600">
-              Si creés que es un error, escribinos y lo revisamos.
+              Podés ver nuestro catálogo principal, abierto para todos.
             </p>
           </>
         )}
@@ -81,12 +88,10 @@ export const DniNoInvitadoModal: React.FC<Props> = ({
             </a>
           ) : (
             <a
-              href={WHATSAPP_SOPORTE}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={CATALOGO_PRINCIPAL}
               className="flex-1 cursor-pointer rounded-xl bg-[#4654CD] px-4 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
             >
-              Escribir por WhatsApp
+              Ver el catálogo principal
             </a>
           )}
 
