@@ -82,13 +82,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
 
   /**
-   * Segundo financiamiento: el catálogo va sin el filtro por uso.
+   * Segundo financiamiento: el catálogo va sin la barra de búsqueda por uso.
    *
-   * "Encuentra tu equipo ideal / Selecciona según tu necesidad principal" y sus
-   * cuatro tarjetas existen para quien está explorando qué comprar. Acá la
-   * persona ya es cliente, vuelve por un equipo concreto y la oferta es de unos
-   * pocos: el bloque ocupaba media pantalla para filtrar tres equipos. Queda el
-   * contador, que es lo único que informa —cuántos hay— y que además ordena.
+   * "Encuentra tu equipo ideal / Selecciona según tu necesidad principal", sus
+   * cuatro tarjetas y el orden existen para quien está explorando qué comprar.
+   * Acá la persona ya es cliente, vuelve por un equipo concreto y la oferta es
+   * de unos pocos que entran en pantalla: la franja entera ocupaba el primer
+   * golpe de vista para filtrar y ordenar lo que no hace falta ni filtrar ni
+   * ordenar. La grilla arranca arriba.
    */
   const catalogoAcotado = isSecondFinancingLanding(landingSlug ?? '');
 
@@ -618,10 +619,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         )}
 
         {/* Full Width Header Section - Inside Card.
-            En la variante compacta se cae la tarjeta (sombra + borde) y su
-            padding interno: sin título ni tarjetas de uso, el marco envolvía
-            una sola línea y se leía como una sección vacía. El contador y el
-            orden quedan sueltos sobre la grilla. */}
+            En segundo financiamiento no se pinta: sin el filtro por uso queda
+            una tarjeta con sombra y borde envolviendo una sola línea, que se
+            lee como una sección vacía. El orden y el conteo no valen esa
+            franja cuando la oferta es de unos pocos equipos que entran en
+            pantalla. */}
+        {!catalogoAcotado && (
         <div className="w-full p-3 sm:p-4 lg:p-6">
           <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
             <CardBody className="p-4 sm:p-5 md:p-6">
@@ -629,29 +632,21 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={
-                  catalogoAcotado
-                    ? 'flex items-center justify-end'
-                    : 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4'
-                }
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
               >
-                {/* El título es el rótulo del filtro por uso: sin las tarjetas
-                    debajo, "selecciona según tu necesidad" no nombra nada. */}
-                {!catalogoAcotado && (
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-                      <Search className="w-5 h-5 text-[var(--color-primary)]" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
-                        Encuentra tu equipo ideal
-                      </h2>
-                      <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
-                        Selecciona según tu necesidad principal
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                    <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
-                )}
+                  <div className="min-w-0">
+                    <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
+                      Encuentra tu equipo ideal
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
+                      Selecciona según tu necesidad principal
+                    </p>
+                  </div>
+                </div>
 
                 <div id="onboarding-sort">
                   <SortDropdown
@@ -663,19 +658,18 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
-              {!catalogoAcotado && (
-                <div id="onboarding-quick-cards">
-                  <QuickUsageCards
-                    selected={filters.usage}
-                    onChange={(usage) => updateFilter('usage', usage)}
-                    className=""
-                  />
-                </div>
-              )}
+              <div id="onboarding-quick-cards">
+                <QuickUsageCards
+                  selected={filters.usage}
+                  onChange={(usage) => updateFilter('usage', usage)}
+                  className=""
+                />
+              </div>
 
             </CardBody>
           </Card>
         </div>
+        )}
 
         {/* VIP Countdown Banner */}
         {vipCountdownDate && (
