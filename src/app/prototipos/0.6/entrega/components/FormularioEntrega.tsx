@@ -268,7 +268,7 @@ export function FormularioEntrega({
         aria-live="polite"
       >
         <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-[#E4E6FF] border-t-[#4654CD]" />
-        <p className="text-base font-semibold text-[#222226]">Estamos registrando tu envío</p>
+        <p className="text-xl font-bold text-[#4654CD]">Estamos registrando tu envío</p>
         <p className="text-sm text-[#5F6070]">Tarda solo unos segundos. No cierres esta ventana.</p>
       </div>
     );
@@ -289,9 +289,19 @@ export function FormularioEntrega({
         </button>
       )}
 
-      <h2 className="mb-4 text-xl font-bold leading-snug text-[#222226]">
-        {editandoDireccion ? '¿A dónde enviamos tu equipo?' : 'Confirma tu envío'}
-      </h2>
+      {/* El único título de la fase: va en el azul de la marca y con una regla
+          debajo, para que se lea como el encabezado de lo que sigue y no como
+          una línea más de texto entre las tarjetas. */}
+      <header className="mb-5 border-b border-[#E3E4EC] pb-3">
+        <h2 className="text-[22px] font-bold leading-snug text-[#4654CD]">
+          {editandoDireccion ? '¿A dónde enviamos tu equipo?' : 'Confirma tu envío'}
+        </h2>
+        <p className="mt-1 text-sm text-[#5F6070]">
+          {editandoDireccion
+            ? 'Escribe la dirección donde quieres recibirlo.'
+            : 'Revisa que todo esté bien antes de finalizar.'}
+        </p>
+      </header>
 
       <TarjetaEquipo
         equipo={equipo}

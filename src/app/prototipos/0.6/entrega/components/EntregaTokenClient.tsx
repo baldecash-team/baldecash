@@ -236,7 +236,10 @@ function Aviso({
       {cargando && (
         <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-[#E4E6FF] border-t-[#4654CD]" />
       )}
-      <p className="text-lg font-bold text-[#222226]">{titulo}</p>
+      {/* Mismo azul que el título de la fase: estas pantallas centradas son el
+          encabezado de lo que está pasando (cargando, enlace vencido), no un
+          párrafo más. */}
+      <p className="text-xl font-bold text-[#4654CD]">{titulo}</p>
       {detalle && <p className="max-w-[46ch] text-sm text-[#5F6070]">{detalle}</p>}
       {accion && (
         <button
