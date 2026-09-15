@@ -55,6 +55,16 @@ export interface ContratoStepProps {
    * él no se muestran, que es el comportamiento correcto fuera de Family Farms.
    */
   landing?: string;
+  /**
+   * El contrato de esta solicitud YA fue aceptado: el sub-paso está cerrado en
+   * el estado del KYC, o se aceptó recién en esta sesión.
+   *
+   * Pasa cuando la persona retrocede desde un sub-paso posterior. Volver a
+   * pedirle la casilla le diría que lo que ya hizo no contó, y cada Continuar
+   * sería una firma nueva sobre el mismo documento. Acá la pantalla queda de
+   * lectura: el contrato sigue a la vista para releerlo y el botón continúa.
+   */
+  yaAceptado?: boolean;
 }
 
 /**
@@ -95,9 +105,13 @@ const AUTORIZACIONES_FAMILY_FARMS: AutorizacionConvenio[] = [
 ];
 
 export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(function ContratoStep({
-  onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing,
+  onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing, yaAceptado,
 }: ContratoStepProps, ref) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
+  // El contrato aceptado quedó viejo (409 / `contrato_vencido`): lo que se
+  // aceptó ya no existe, así que la aceptación previa deja de valer y la
+  // pantalla vuelve a pedirla sobre el documento nuevo.
+  const [vencidoTrasAceptar, setVencidoTrasAceptar] = useState(false);
   // El clic final no puede ejecutarse dos veces (§4 paso 9): un doble toque en
   // móvil crearía dos aceptaciones de la misma operación.
   const [enviando, setEnviando] = useState(false);
@@ -108,6 +122,9 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   const [autorizaciones, setAutorizaciones] = useState<Record<string, boolean>>({});
   const track = useKycTracker(onTrack);
 
+  /** Se volvió a este paso con el contrato ya firmado: nada que aceptar de nuevo. */
+  const aceptadoPreviamente = Boolean(yaAceptado) && !vencidoTrasAceptar;
+
   // La espera del contrato vive en el hook: polling, tope y reintento. Acá solo
   // se decide qué se pinta con cada estado.
   const {
@@ -115,7 +132,12 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   } = useContratoKyc({ applicationCode, documentNumber, resumeToken, track });
 
   useEffect(() => {
-    track('kyc_contract_view', { application_code: applicationCode });
+    // `ya_aceptado` separa la primera lectura de la revisita: sin eso, quien
+    // mire los eventos ve dos vistas del contrato y una sola firma.
+    track('kyc_contract_view', {
+      application_code: applicationCode,
+      ya_aceptado: aceptadoPreviamente,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -139,6 +161,9 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   useImperativeHandle(ref, () => ({
     marcarVencido: () => {
       setAccepted('false');
+      // Y se cae la aceptación previa: el documento que se aceptó ya no es el
+      // vigente, así que la pantalla vuelve a exigir la casilla.
+      setVencidoTrasAceptar(true);
       marcarVencido();
     },
   }), [marcarVencido]);
@@ -174,8 +199,11 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   // Sin documento no hay nada que firmar: ahí el botón sí queda deshabilitado,
   // porque no es que falte marcar algo, es que todavía no existe el contrato.
   const sinQueFirmar = exigeAceptar && !hayDocumento;
-  const faltaAceptacion = hayDocumento && accepted !== 'true';
-  const faltaAutorizacion = hayDocumento && faltaAlgunaAutorizacion;
+  // Con el contrato ya aceptado no falta nada que marcar: las casillas ni se
+  // muestran, y exigirlas dejaría el botón señalando en rojo campos que no
+  // están en pantalla.
+  const faltaAceptacion = hayDocumento && !aceptadoPreviamente && accepted !== 'true';
+  const faltaAutorizacion = hayDocumento && !aceptadoPreviamente && faltaAlgunaAutorizacion;
 
   // El botón queda clickeable con las casillas sin marcar, y es el click el que
   // las señala en rojo. Deshabilitado, la persona no tiene forma de saber qué le
@@ -221,17 +249,21 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
       return;
     }
     setEnviando(true);
-    track('kyc_contract_signed', {
-      application_code: applicationCode,
-      contract_hash: contrato?.hash,
-      external_id: contrato?.external_id,
-      autorizaciones: autorizacionesAplicables
-        .filter((a) => autorizaciones[a.id])
-        .map((a) => a.id),
-      // La redacción que estaba en pantalla. Queda en el evento además de en la
-      // firma: si algún día no coinciden, se ve dónde se rompió.
-      declaracion_version: textos?.version,
-    });
+    // En la revisita no se firma nada nuevo: no se emite otra firma. El avance
+    // queda igual en `kyc_step_complete`, que lo manda el orquestador.
+    if (!aceptadoPreviamente) {
+      track('kyc_contract_signed', {
+        application_code: applicationCode,
+        contract_hash: contrato?.hash,
+        external_id: contrato?.external_id,
+        autorizaciones: autorizacionesAplicables
+          .filter((a) => autorizaciones[a.id])
+          .map((a) => a.id),
+        // La redacción que estaba en pantalla. Queda en el evento además de en
+        // la firma: si algún día no coinciden, se ve dónde se rompió.
+        declaracion_version: textos?.version,
+      });
+    }
     // El hash solo viaja en el camino de firma por aceptación: es lo que ata
     // esta aceptación al PDF que se mostró. En `emitido` no hay hash que atar.
     onDone(
@@ -246,7 +278,9 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
       <div>
         <h2 className="text-xl font-bold text-[#1f2937]">Contrato</h2>
         <p className="text-[#6b7280] text-sm mt-1">
-          Revisa y acepta los términos de tu contrato antes de continuar.
+          {aceptadoPreviamente
+            ? 'Ya aceptaste este contrato. Puedes releerlo y seguir con tu solicitud.'
+            : 'Revisa y acepta los términos de tu contrato antes de continuar.'}
         </p>
       </div>
 
@@ -271,7 +305,40 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           el cuerpo al mismo tamaño que se lee todo lo demás. Sin barra de color
           al costado: el título y el ícono ya lo distinguen, y la barra lo hacía
           leer como una alerta cuando es una explicación. */}
-      {textos && (
+      {/* Retroceder con el contrato ya firmado: se dice que ya está aceptado en
+          vez de volver a pedir la casilla, que es lo que haría dudar de si la
+          aceptación anterior contó. */}
+      {aceptadoPreviamente && (
+        <div
+          data-testid="contrato-ya-aceptado"
+          className="rounded-xl border border-[#BBE7CE] bg-[#F1FAF5] p-4"
+        >
+          <div className="flex items-center gap-2">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 flex-shrink-0 text-[#1E7F50]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="m8 12 3 3 5-6" />
+            </svg>
+            <p className="text-sm font-semibold text-[#14603B]">
+              Ya aceptaste este contrato
+            </p>
+          </div>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#1f2937]">
+            Tu aceptación quedó registrada. Lo dejamos acá para que puedas
+            releerlo; no hace falta aceptarlo otra vez para continuar.
+          </p>
+        </div>
+      )}
+
+      {textos && !aceptadoPreviamente && (
         <div
           data-testid="contrato-aviso"
           className="rounded-xl border border-[#DDDFF7] bg-[#F5F6FE] p-4"
@@ -304,11 +371,16 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           vez que hay respuesta, "generando" tiene su propio bloque, que explica
           la espera en vez de simular que el documento está por pintarse. */}
       {!contrato && estado === 'generando' ? (
-        <div className="w-full h-80 rounded-xl border border-[#e5e7eb] bg-[#fafafa] animate-pulse" />
+        <div className="w-full h-[60vh] md:h-80 rounded-xl border border-[#e5e7eb] bg-[#fafafa] animate-pulse" />
       ) : html ? (
         <div
           data-testid="contrato-documento"
-          className="w-full h-80 overflow-y-auto rounded-xl border border-[#e5e7eb] bg-white p-4 text-sm leading-relaxed text-[#374151]"
+          className="w-full h-[60vh] md:h-80 overflow-auto overscroll-contain rounded-xl border border-[#e5e7eb] bg-white p-4 text-sm leading-relaxed text-[#374151]"
+          // Scroll en los dos ejes y no solo vertical: el snapshot de legacy
+          // trae tablas (el cronograma) más anchas que un teléfono, y
+          // recortadas no hay forma de leerlas. `overscroll-contain` evita que
+          // al llegar al final del documento el gesto arrastre la página.
+          style={{ WebkitOverflowScrolling: 'touch' }}
           // El html viene del snapshot congelado en legacy, no de entrada del
           // usuario: es el mismo documento que quedó guardado al aprobar.
           dangerouslySetInnerHTML={{ __html: html }}
@@ -319,7 +391,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
             data-testid="contrato-documento"
             src={pdfSrc}
             title="Contrato"
-            className="w-full h-80 rounded-xl border border-[#e5e7eb]"
+            className="w-full h-[60vh] md:h-80 rounded-xl border border-[#e5e7eb]"
           />
           {/* En movil el visor embebido de PDF es incomodo o directamente no
               carga: el link es la salida para poder leerlo antes de aceptar. */}
@@ -394,7 +466,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           delante es exactamente lo que el §4 evita. Agrupadas en su propio
           bloque para que se lean como una unidad —lo que se acepta— y no como
           dos campos sueltos del formulario. */}
-      {hayDocumento && (
+      {hayDocumento && !aceptadoPreviamente && (
         <div
           data-testid="contrato-casillas"
           className="space-y-1 rounded-xl border border-[#DDDFF7] bg-white p-4"
@@ -439,12 +511,16 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </div>
       )}
 
-      <div className="flex gap-3">
+      {/* En el teléfono uno encima del otro y no dos botones a medio ancho: la
+          acción principal arriba, con el ancho completo para el pulgar.
+          `flex-col-reverse` mantiene "Atrás" primero en el DOM (orden de
+          tabulación) y lo pinta debajo. Desde `sm` vuelve la fila de siempre. */}
+      <div className="flex flex-col-reverse gap-3 sm:flex-row">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
+            className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-3 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
           >
             Atrás
           </button>
@@ -464,7 +540,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           {/* El texto también lo manda ws2: "ACEPTAR Y CONTRATAR" dice qué hace
               el botón, y "Continuar" no. Solo cuando hay documento que aceptar:
               en la espera y en el error sigue siendo un Continuar. */}
-          {hayDocumento && textos ? textos.boton : 'Continuar'}
+          {hayDocumento && textos && !aceptadoPreviamente ? textos.boton : 'Continuar'}
         </button>
       </div>
     </div>

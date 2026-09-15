@@ -152,13 +152,15 @@ interface RenderStepArgs {
   landing?: string;
   /** Solo lo consume `contract`: por ahí se lo reabre cuando quedó viejo. */
   contratoRef?: React.RefObject<ContratoStepHandle | null>;
+  /** Solo lo consume `contract`: se volvió al paso con el contrato ya firmado. */
+  contratoYaAceptado?: boolean;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing, contratoRef,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing, contratoRef, contratoYaAceptado,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -187,6 +189,10 @@ function renderStep({
           documentNumber={documentNumber}
           resumeToken={resumeToken}
           landing={landing}
+          // Retroceder desde un sub-paso posterior trae de vuelta a esta
+          // pantalla con el contrato ya aceptado: ahí no se pide la casilla de
+          // nuevo, se ofrece releerlo y continuar.
+          yaAceptado={contratoYaAceptado}
         />
       );
     case 'documents':
@@ -331,6 +337,10 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // Estado de progreso completo (no solo el índice): necesario para leer
   // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
   const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
+  // La aceptación de ESTA sesión: `progressState` se pide una vez al montar,
+  // así que después de aceptar sigue diciendo `pending` y retroceder volvería a
+  // pedir la casilla del contrato que se acaba de firmar.
+  const [contratoAceptado, setContratoAceptado] = useState(false);
   const [showPausarModal, setShowPausarModal] = useState(false);
   // `onTrack` (ruta tokenizada) o el tracker del contexto (flujo en sesión).
   const track = useKycTracker(onTrack);
@@ -454,6 +464,16 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       .every((p) => p.status === 'completed');
   }, [progressState]);
 
+  /**
+   * El contrato ya está firmado: o se aceptó recién, o el estado del KYC dice
+   * que el sub-paso está cerrado. Lo segundo vale también al retomar por el
+   * link o desde otro dispositivo, donde el flag de sesión vale cero.
+   */
+  const contratoYaAceptado = contratoAceptado
+    || (progressState?.steps ?? []).some(
+      (paso) => paso.type === 'contract' && paso.status === 'completed',
+    );
+
   /** Hay pago pendiente y todavia no llego el link: se esta resolviendo. */
   const resolviendoPago = pagoPendienteRemoto && !linkPago;
 
@@ -517,6 +537,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     documentNumber: effectiveDni,
     onAceptado: (state) => {
       if (state?.link_pago) setLinkPago(state.link_pago);
+      setContratoAceptado(true);
       avanzar();
     },
     ref: contratoRef,
@@ -730,6 +751,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             resumeToken,
             landing,
             contratoRef,
+            contratoYaAceptado,
           })}
 
           {canPause && code && (
