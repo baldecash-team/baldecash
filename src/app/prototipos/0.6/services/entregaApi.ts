@@ -23,7 +23,19 @@ export interface EntregaDatos {
   application_code: string;
   /** Fecha en que BaldeCash envía el equipo (YYYY-MM-DD). La define BaldeCash. */
   fecha_entrega: string | null;
-  equipo: { nombre: string | null; sku: string | null };
+  equipo: {
+    nombre: string | null;
+    sku: string | null;
+    /** Foto de la variante elegida. Null si el catálogo no tiene imagen. */
+    imagen?: string | null;
+    /** Hasta cuatro características destacadas, ya formateadas por ws2. */
+    specs?: Array<{ label: string; valor: string }>;
+    /** Lo que viaja en la misma caja: regalos del combo y accesorios sumados. */
+    accesorios?: string[];
+    cuota?: string | null;
+    cuotas?: number | null;
+    inicial?: string | null;
+  };
   /** Precargada desde lo que la persona declaró al postular, para corregir. */
   direccion: EntregaDireccion;
   titular: { nombre: string | null; documento: string | null };

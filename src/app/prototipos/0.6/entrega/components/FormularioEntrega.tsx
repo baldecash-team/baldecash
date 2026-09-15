@@ -18,8 +18,11 @@
  * es acá donde la declaran.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
+import { useGooglePlacesAutocomplete } from '@/app/prototipos/0.6/[landing]/solicitar/hooks/useGooglePlacesAutocomplete';
+import { resolveGeoUnits } from '@/app/prototipos/0.6/services/wizardApi';
+import type { ParsedAddress } from '@/app/prototipos/0.6/types/googleMaps';
 
 /** Equipo que se va a entregar. Todo opcional salvo el nombre: la tarjeta se
  *  arma con lo que haya y no se rompe si falta el precio o la imagen. */
@@ -30,6 +33,8 @@ export interface EntregaEquipo {
   cuotas?: number | null;
   cuotaInicial?: string | null;
   accesorios?: string[];
+  /** Características destacadas, ya formateadas por el backend. */
+  specs?: Array<{ label: string; valor: string }>;
 }
 
 /** Lo que ya sabemos de la dirección. Sin `distritoId` no hay ubigeo y el
@@ -120,6 +125,58 @@ export function FormularioEntrega({
   const [distritoId, setDistritoId] = useState(limpio(inicial.distritoId));
   const [distrito, setDistrito] = useState(limpio(inicial.distrito));
   const [ubicacion, setUbicacion] = useState(limpio(inicial.ubicacion) || limpio(inicial.distrito));
+
+  // Google Maps sobre el campo de direccion: el mismo hook que usa el
+  // formulario de solicitud, para que el comportamiento sea el de siempre.
+  // Ref por estado y no `useRef`: el campo de direccion se monta recien al
+  // entrar a editar, y el hook de Google engancha en un efecto que depende de
+  // la IDENTIDAD del ref. Con un `useRef` estable ese efecto ya habia corrido
+  // con el input todavia sin montar, y el autocompletado nunca aparecia.
+  const [nodoDireccion, setNodoDireccion] = useState<HTMLInputElement | null>(null);
+  const inputDireccion = useMemo(() => ({ current: nodoDireccion }), [nodoDireccion]);
+  const [preset, setPreset] = useState<{ departmentId?: string; provinceId?: string }>({});
+
+  const alElegirLugar = useCallback(async (lugar: ParsedAddress) => {
+    // La calle y el numero, no la direccion entera: el distrito, la provincia y
+    // el departamento son los selects de abajo, y repetirlos en el renglon de
+    // la calle es lo que despues llega impreso en la guia del courier.
+    const calleYNumero = [lugar.street, lugar.number].filter(Boolean).join(' ').trim();
+    setDireccion(calleYNumero || lugar.formattedAddress);
+    limpiaError('direccion');
+
+    if (!lugar.department && !lugar.province && !lugar.district) return;
+
+    // Google devuelve nombres; el ubigeo son ids. Los resuelve el backend, que
+    // es el que conoce el catalogo (y sus acentos).
+    const geo = await resolveGeoUnits({
+      department: lugar.department || '',
+      province: lugar.province || undefined,
+      district: lugar.district || undefined,
+    });
+    if (!geo) return;
+
+    setPreset({
+      departmentId: geo.department ? String(geo.department.id) : undefined,
+      provinceId: geo.province ? String(geo.province.id) : undefined,
+    });
+    if (geo.district) {
+      setDistritoId(String(geo.district.id));
+      setDistrito(geo.district.label);
+      limpiaError('distrito');
+    }
+    setUbicacion([
+      geo.district?.label, geo.province?.label, geo.department?.label,
+    ].filter(Boolean).join(', '));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fail-safe: si Google no carga —sin key, sin red, bloqueado— el campo sigue
+  // siendo un input de texto y el formulario se completa a mano.
+  useGooglePlacesAutocomplete({
+    inputRef: inputDireccion,
+    countryRestriction: 'pe',
+    onPlaceSelected: alElegirLugar,
+  });
 
   const [esTitular, setEsTitular] = useState(true);
   const [nombres, setNombres] = useState('');
@@ -258,15 +315,17 @@ export function FormularioEntrega({
             id="entrega-direccion"
             label="Dirección"
             requerido
+            ayuda="Empieza a escribir y elige tu dirección de la lista."
             error={marca('direccion') && !direccion.trim() ? 'Escribe tu dirección' : null}
             icono={<IconoPin />}
           >
             <input
               id="entrega-direccion"
+              ref={setNodoDireccion}
               className={inputClase(marca('direccion') && !direccion.trim(), true)}
               type="text"
               autoComplete="off"
-              placeholder="Ej: Av. Benavides 1238"
+              placeholder="Escribe y elige tu dirección (ej: Av. Benavides 1238)"
               value={direccion}
               onChange={(e) => { setDireccion(e.target.value); limpiaError('direccion'); }}
             />
@@ -288,7 +347,7 @@ export function FormularioEntrega({
               <GeoCascadeField
                 value={distritoId}
                 districtLabel={distrito}
-                small
+                preset={preset}
                 hideErrorText
                 // `error` es el texto; con `hideErrorText` solo pinta los tres
                 // campos en rojo y el mensaje lo ponemos una vez, abajo.
@@ -615,29 +674,77 @@ function Hero({ paso }: { paso: 'direccion' | 'envio' }) {
   );
 }
 
+/**
+ * Los nombres del catalogo son de ficha tecnica y en un chip ocupan mas que el
+ * dato: "Tamaño de Pantalla 8.7 pulgadas" empuja al resto a otra linea. Se
+ * acortan solo los conocidos; lo que no este en la lista se muestra tal cual.
+ */
+const ETIQUETAS_CORTAS: Record<string, string> = {
+  'Memoria RAM': 'RAM',
+  'Tamaño de Pantalla': 'Pantalla',
+  'Resolución de Pantalla': 'Resolución',
+  'Tipo de Almacenamiento': 'Disco',
+  'Sistema Operativo': 'SO',
+  'Capacidad de Batería': 'Batería',
+};
+
+function etiquetaCorta(label: string): string {
+  return ETIQUETAS_CORTAS[label] ?? label;
+}
+
 function TarjetaEquipo({
   equipo, abierto, onToggle,
 }: { equipo: EntregaEquipo; abierto: boolean; onToggle: () => void }) {
   const accesorios = equipo.accesorios ?? [];
   return (
     <section className="flex gap-3.5 rounded-2xl border border-[#E3E4EC] bg-white p-3.5" aria-label="Equipo solicitado">
-      <div className="grid h-20 w-20 flex-none place-items-center rounded-xl bg-[#F4F4F8]">
+      <div className="grid h-24 w-24 flex-none place-items-center rounded-xl bg-[#F4F4F8] p-1">
         {equipo.imagen
           ? <img src={equipo.imagen} alt="" className="h-full w-full rounded-xl object-contain" />
           : <IconoCaja />}
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="font-bold leading-snug text-[#222226]">{equipo.nombre}</h3>
-        {equipo.cuotaMensual && (
-          <p className="text-[#5F6070]">
-            <strong className="font-bold text-[#222226]">S/ {equipo.cuotaMensual}</strong> al mes
+
+        {/* El precio y el plazo son una sola frase: "39.00 al mes, 24 cuotas,
+            sin cuota inicial". Separados en dos renglones se leian como dos
+            datos sueltos, y con las specs en el medio ni siquiera quedaban
+            juntos. */}
+        {(equipo.cuotaMensual || equipo.cuotas != null) && (
+          <p className="text-[13px] leading-snug text-[#5F6070]">
+            {equipo.cuotaMensual && (
+              <>
+                <strong className="text-[15px] font-bold text-[#222226]">S/ {equipo.cuotaMensual}</strong>
+                {' al mes'}
+              </>
+            )}
+            {equipo.cuotaMensual && equipo.cuotas != null && ' · '}
+            {equipo.cuotas != null && (
+              <>
+                {equipo.cuotas} cuotas,{' '}
+                {equipo.cuotaInicial ? `inicial S/ ${equipo.cuotaInicial}` : 'sin cuota inicial'}
+              </>
+            )}
           </p>
         )}
-        {equipo.cuotas != null && (
-          <p className="text-[13px] text-[#5F6070]">
-            {equipo.cuotas} cuotas,{' '}
-            {equipo.cuotaInicial ? `cuota inicial S/ ${equipo.cuotaInicial}` : 'sin cuota inicial'}
-          </p>
+
+        {/* Las caracteristicas, como chips: cada una entera en su linea propia
+            —el nombre y el valor no se separan— y las que no entran pasan a la
+            siguiente. En lista, "Tamaño de Pantalla:" y "8.7 pulgadas" caian en
+            renglones distintos y habia que leer de a saltos. */}
+        {equipo.specs && equipo.specs.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {equipo.specs.map((s) => (
+              <li
+                key={s.label}
+                className="whitespace-nowrap rounded-full bg-[#F4F4F8] px-2.5 py-1 text-[12px] text-[#5F6070]"
+                title={`${s.label}: ${s.valor}`}
+              >
+                <span className="text-[#8A8B99]">{etiquetaCorta(s.label)}</span>{' '}
+                <span className="font-semibold text-[#222226]">{s.valor}</span>
+              </li>
+            ))}
+          </ul>
         )}
         {accesorios.length > 0 && (
           <div className="mt-1.5">
