@@ -1460,6 +1460,12 @@ export interface SolicitarSection {
    * aprobar y la firma por Keynua. Esto distingue un flujo del otro.
    */
   firma?: { enabled: boolean };
+  /**
+   * Solo en la sección `kyc`: al terminar, la pantalla final muestra el
+   * formulario de entrega en vez de mandar el enlace por WhatsApp. Se prende
+   * por landing desde admin2 y viene apagado por default.
+   */
+  entrega?: { enabled: boolean };
 }
 
 /**
@@ -1633,6 +1639,19 @@ export function isFirmaPorAceptacion(config: SolicitarFlowConfig): boolean {
   if (!kyc?.enabled) return false;
 
   return kyc.firma?.enabled === true;
+}
+
+/**
+ * True si la landing coordina la entrega dentro del flujo.
+ *
+ * Fail-safe: sección ausente, apagada o sin el bloque ⇒ false, que es el
+ * comportamiento de siempre (el enlace del formulario llega por WhatsApp).
+ */
+export function isEntregaEnElCierre(config: SolicitarFlowConfig): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc?.enabled) return false;
+
+  return kyc.entrega?.enabled === true;
 }
 
 /** True si el sub-paso `type` está habilitado y la sección `kyc` también. */

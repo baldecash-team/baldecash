@@ -19,13 +19,15 @@
  * token es prueba de titularidad y no tiene por qué quedar en el historial.
  */
 
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { ContratoStep } from '../kyc/steps/ContratoStep';
 import { SubmitOverlay, type PasoOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { useAceptarContrato } from '../kyc/useAceptarContrato';
 import { guardarConstancia } from '../kyc/constanciaStorage';
+import { guardarEntregaToken } from '../kyc/entregaStorage';
+import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { completarKyc } from '@/app/prototipos/0.6/services/kycApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { EnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
@@ -53,6 +55,21 @@ const PASOS_FIRMA: readonly PasoOverlay[] = [
   },
 ];
 
+/**
+ * Con la entrega prendida en la landing hay un paso más, y conviene anunciarlo:
+ * la pantalla siguiente le va a pedir a dónde mandar el equipo, y llegar ahí sin
+ * aviso se lee como un formulario que aparece de la nada.
+ */
+const PASO_ENTREGA: PasoOverlay = {
+  // `success` es el ultimo de la escala del overlay: con la firma en curso
+  // (`processing`) queda pendiente, que es justo como tiene que verse — es lo
+  // que viene despues, no algo que este pasando ahora.
+  id: 'success',
+  icon: 'Truck',
+  title: 'Preparando tu formulario de entrega',
+  description: 'Para que nos digas a dónde va tu equipo',
+};
+
 export function ContratoEnWizard({
   landing,
   handoff,
@@ -63,6 +80,11 @@ export function ContratoEnWizard({
   onBack?: () => void;
 }) {
   const router = useRouter();
+  const { entregaEnElCierre } = useSolicitarFlow({ slug: landing });
+  const pasosFirma = useMemo(
+    () => (entregaEnElCierre ? [...PASOS_FIRMA, PASO_ENTREGA] : PASOS_FIRMA),
+    [entregaEnElCierre],
+  );
   const cerrandoRef = useRef(false);
   // Enciende el overlay de carga y evita que un segundo aviso del paso
   // re-dispare el cierre. Arranca con el clic, no con la respuesta de
@@ -119,6 +141,13 @@ export function ContratoEnWizard({
 
     // La copia, a disposición en el acto (§4 paso 12). Se guarda para la
     // pantalla siguiente porque acá mismo se navega.
+    // El formulario de entrega de la pantalla siguiente. Sin esto, el token que
+    // devuelve el cierre se perdía y la confirmación no tenía qué mostrar: la
+    // persona terminaba de firmar y se quedaba esperando el WhatsApp.
+    if (veredicto?.entrega_token) {
+      guardarEntregaToken(landing, handoff.applicationCode, veredicto.entrega_token);
+    }
+
     if (veredicto?.constancia_url) {
       guardarConstancia(landing, handoff.applicationCode, veredicto.constancia_url);
     }
@@ -131,7 +160,7 @@ export function ContratoEnWizard({
       <SubmitOverlay
         isOpen={cerrando}
         stage="processing"
-        pasos={PASOS_FIRMA}
+        pasos={pasosFirma}
         titulo="Firmando tu solicitud"
         subtitulo="Estamos sellando tu firma. Esto solo toma unos segundos."
         tituloProgreso="Progreso de tu firma"
