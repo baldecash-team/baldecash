@@ -12,7 +12,9 @@
  */
 
 import React, { useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { Check } from 'lucide-react';
+import { isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
 import { WizardStepId } from '../../../types/solicitar';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useWizard } from '../../../context/WizardContext';
@@ -75,6 +77,8 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 }) => {
   const { steps: apiSteps, isLoading } = useWizardConfig();
   const { formData } = useWizard();
+  const params = useParams();
+  const soloContador = isSecondFinancingLanding((params?.landing as string) || '');
 
   // Build form values object for completion check
   const formValues = useMemo(() => {
@@ -146,6 +150,25 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 
   // Loading state - show skeleton
   if (isLoading || progressSteps.length === 0) {
+    // El esqueleto tiene que prometer lo que va a aparecer. Con los cuatro
+    // circulos, la pantalla de segundo financiamiento mostraba el recorrido
+    // completo un instante y despues lo cambiaba por una linea.
+    if (soloContador) {
+      return (
+        <>
+          <div className="lg:hidden">
+            <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 animate-pulse">
+              <div className="w-14 h-14 bg-neutral-200 rounded-full" />
+              <div className="h-5 bg-neutral-200 rounded w-28" />
+            </div>
+          </div>
+          <div className="hidden lg:flex justify-center animate-pulse">
+            <div className="h-4 bg-neutral-200 rounded w-24" />
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         {/* Mobile Skeleton */}
@@ -175,6 +198,40 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
             </React.Fragment>
           ))}
         </div>
+      </>
+    );
+  }
+
+  /**
+   * Segundo financiamiento: solo el contador.
+   *
+   * El recorrido de estas landings es corto y no se navega — la persona ya es
+   * cliente y viene a confirmar, no a explorar—. Los cuatro pasos con su título
+   * y su círculo ocupaban el ancho entero prometiendo una navegación que acá no
+   * lleva a ninguna parte. Queda "Paso X de Y", que es lo único que se mira:
+   * cuánto falta.
+   */
+  if (soloContador) {
+    return (
+      <>
+        <div className="lg:hidden">
+          <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100">
+            <img
+              src={getIllustration(currentStep)}
+              alt="Baldi"
+              className="w-14 h-14 object-contain flex-shrink-0"
+            />
+            {/* Sin el título del paso: el encabezado de la pantalla ya lo dice,
+                y repetirlo acá era la única línea que sobraba. */}
+            <p className="text-base font-bold text-neutral-800">
+              Paso {currentIndex + 1} de {totalSteps}
+            </p>
+          </div>
+        </div>
+
+        <p className="hidden lg:block text-center text-sm font-semibold text-neutral-600">
+          Paso {currentIndex + 1} de {totalSteps}
+        </p>
       </>
     );
   }
