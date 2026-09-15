@@ -473,7 +473,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         >
           <CheckboxField
             id="accept-contract"
-            label={textos?.declaracion ?? 'He leído y acepto el contrato'}
+            // `||` y no `??`: una declaración vacía (ws2 sin desplegar, o un
+            // texto que no llegó) dejaba la casilla sin nada al lado, y una
+            // casilla sin texto no dice qué se está aceptando.
+            label={textos?.declaracion || 'He leído y acepto el contrato'}
             value={accepted}
             onChange={handleAcceptChange}
             required
