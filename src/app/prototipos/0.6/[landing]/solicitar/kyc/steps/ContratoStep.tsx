@@ -84,6 +84,15 @@ interface AutorizacionConvenio {
   soloAdministrativo?: boolean;
 }
 
+/**
+ * Lo que dice el botón mientras ws2 todavía no mandó su texto.
+ *
+ * El mismo de siempre y no un "Continuar" de transición: el botón hace una sola
+ * cosa en esta pantalla, y cambiarle el nombre según si el documento ya llegó
+ * hace dudar de si se está por firmar o por avanzar.
+ */
+const TEXTO_BOTON_FIRMA = 'Firmar electrónicamente';
+
 const AUTORIZACIONES_FAMILY_FARMS: AutorizacionConvenio[] = [
   {
     // Primero: es la que condiciona cómo se cobra todos los meses, mientras que
@@ -367,12 +376,12 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
         </div>
       )}
 
-      {/* El skeleton es solo la PRIMERA carga (todavía no contestó nadie). Una
-          vez que hay respuesta, "generando" tiene su propio bloque, que explica
-          la espera en vez de simular que el documento está por pintarse. */}
-      {!contrato && estado === 'generando' ? (
-        <div className="w-full h-[60vh] md:h-80 rounded-xl border border-[#e5e7eb] bg-[#fafafa] animate-pulse" />
-      ) : html ? (
+      {/* La espera tiene UN solo estado, y dice lo que está pasando desde el
+          primer segundo. Antes había un skeleton gris para la primera carga y
+          recién después el bloque con el texto: el resultado era una caja en
+          blanco que a los segundos cambiaba de forma, como si algo hubiera
+          fallado y se hubiera recuperado. */}
+      {html ? (
         <div
           data-testid="contrato-documento"
           className="w-full h-[60vh] md:h-80 overflow-auto overscroll-contain rounded-xl border border-[#e5e7eb] bg-white p-4 text-sm leading-relaxed text-[#374151]"
@@ -543,7 +552,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           {/* El texto también lo manda ws2: "ACEPTAR Y CONTRATAR" dice qué hace
               el botón, y "Continuar" no. Solo cuando hay documento que aceptar:
               en la espera y en el error sigue siendo un Continuar. */}
-          {hayDocumento && textos && !aceptadoPreviamente ? textos.boton : 'Continuar'}
+          {aceptadoPreviamente ? 'Continuar' : (textos?.boton || TEXTO_BOTON_FIRMA)}
         </button>
       </div>
     </div>

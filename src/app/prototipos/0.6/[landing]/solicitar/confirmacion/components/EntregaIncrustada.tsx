@@ -40,9 +40,17 @@ export function EntregaIncrustada({ landing, applicationCode }: EntregaIncrustad
   return (
     <section
       data-testid="entrega-incrustada"
-      className="mx-auto w-full max-w-3xl px-4 pb-12"
+      className="mx-auto w-full max-w-3xl px-4 pt-8 pb-4"
       aria-label="Coordina la entrega de tu equipo"
     >
+      <div className="mb-3 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#8A8B99]">
+          Falta un paso
+        </p>
+        <h2 className="mt-1 text-lg font-bold text-[#222226]">
+          Dinos a dónde enviamos tu equipo
+        </h2>
+      </div>
       <div className="rounded-2xl border border-[#E3E4EC] bg-white p-4 sm:p-6">
         <EntregaTokenClient
           token={token}

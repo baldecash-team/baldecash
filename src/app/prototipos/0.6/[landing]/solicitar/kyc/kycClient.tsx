@@ -28,7 +28,6 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
 import { guardarConstancia } from './constanciaStorage';
-import { guardarEntregaToken } from './entregaStorage';
 import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
@@ -677,14 +676,21 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
       track('kyc_contract_copy_available', { application_code: code });
     }
 
-    // Coordinar la entrega es lo único que queda por hacer: el formulario va
-    // en la pantalla siguiente, no en un WhatsApp que hay que esperar.
-    if (veredicto?.entrega_token && code) {
-      guardarEntregaToken(landing, code, veredicto.entrega_token);
-    }
-
     track('kyc_completed', { application_code: code });
     clearKycStep(landing, code);
+
+    // Coordinar la entrega es el paso que sigue, en su propia pantalla: se
+    // firmó y no queda inicial por pagar, así que lo único que falta es decir a
+    // dónde va el equipo. Al terminar, el formulario devuelve a la
+    // confirmación.
+    if (veredicto?.entrega_token) {
+      router.push(withUtmParams(routes.entregaPorToken(
+        veredicto.entrega_token,
+        routes.solicitarConfirmacion(landing, code, true),
+      )));
+      return;
+    }
+
     goToConfirmacion(true);
   }
   const goBack =

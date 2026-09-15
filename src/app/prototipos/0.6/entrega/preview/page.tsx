@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import { EntregaLayout } from '../components/EntregaLayout';
 import {
   FormularioEntrega,
   type EntregaDireccionInicial,
@@ -73,7 +74,7 @@ export default function EntregaPreviewPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7F7FB] px-4 py-8">
+    <EntregaLayout>
       <div className="mx-auto mb-6 w-full max-w-[600px]">
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#8A8B99]">
           Muestra · datos de ejemplo, no registra nada
@@ -110,7 +111,7 @@ export default function EntregaPreviewPage() {
           </pre>
         </div>
       )}
-    </main>
+    </EntregaLayout>
   );
 }
 

@@ -23,16 +23,22 @@ export const metadata: Metadata = {
 
 export default async function EntregaPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ volver?: string }>;
 }) {
   const { token } = await params;
+  // A dónde sigue el flujo al terminar. Lo pone quien manda acá (el cierre del
+  // KYC); abierto desde el WhatsApp no viene, y ahí el formulario cierra en su
+  // propia pantalla de "envío registrado".
+  const { volver } = await searchParams;
   // El formulario portado de Zona Clientes (hero con pasos, tarjeta del equipo,
   // direccion con Google Maps y cascada de ubigeo, quien recibe, tipo de envio
   // y cierre con resumen). `EntregaClient` era la version anterior, sin diseno.
   return (
     <EntregaLayout>
-      <EntregaTokenClient token={token} />
+      <EntregaTokenClient token={token} volver={volver} />
     </EntregaLayout>
   );
 }

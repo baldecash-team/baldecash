@@ -149,7 +149,7 @@ it('sin textos del backend cae al comportamiento de siempre', async () => {
   montar();
 
   expect(await screen.findByText('He leído y acepto el contrato')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Continuar/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Firmar electr/i })).toBeInTheDocument();
 });
 
 it('el orden de la pantalla es resumen, aviso, contrato y recien las casillas', async () => {

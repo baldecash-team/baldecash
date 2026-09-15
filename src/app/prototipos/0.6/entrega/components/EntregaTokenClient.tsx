@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   getEntrega,
   isEntregaApiError,
@@ -87,11 +88,18 @@ type Vista =
 
 export interface EntregaTokenClientProps {
   token: string;
-  /** A dónde manda el botón del cierre. Sin esto no se pinta. */
+  /**
+   * A dónde sigue el flujo al terminar: la confirmación de la solicitud cuando
+   * se llega acá desde el cierre del KYC. Sin esto el cierre no ofrece salida
+   * —es el caso del enlace por WhatsApp, donde no hay a dónde volver—.
+   */
+  volver?: string;
+  /** Alternativa a `volver` para quien monta el componente por su cuenta. */
   onVerSolicitud?: () => void;
 }
 
-export function EntregaTokenClient({ token, onVerSolicitud }: EntregaTokenClientProps) {
+export function EntregaTokenClient({ token, volver, onVerSolicitud }: EntregaTokenClientProps) {
+  const router = useRouter();
   const [vista, setVista] = useState<Vista>({ estado: 'cargando' });
   const [enviando, setEnviando] = useState(false);
   const [errorSistema, setErrorSistema] = useState<string | null>(null);
@@ -208,7 +216,9 @@ export function EntregaTokenClient({ token, onVerSolicitud }: EntregaTokenClient
       errorSistema={errorSistema}
       listo={registrado}
       onEnviar={registrar}
-      onVerSolicitud={onVerSolicitud}
+      onVerSolicitud={
+        onVerSolicitud ?? (volver ? () => router.push(volver) : undefined)
+      }
     />
   );
 }

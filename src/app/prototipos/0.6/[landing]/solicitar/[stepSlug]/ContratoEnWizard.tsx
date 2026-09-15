@@ -26,7 +26,6 @@ import { ContratoStep } from '../kyc/steps/ContratoStep';
 import { SubmitOverlay, type PasoOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { useAceptarContrato } from '../kyc/useAceptarContrato';
 import { guardarConstancia } from '../kyc/constanciaStorage';
-import { guardarEntregaToken } from '../kyc/entregaStorage';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { completarKyc } from '@/app/prototipos/0.6/services/kycApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -141,18 +140,21 @@ export function ContratoEnWizard({
 
     // La copia, a disposición en el acto (§4 paso 12). Se guarda para la
     // pantalla siguiente porque acá mismo se navega.
-    // El formulario de entrega de la pantalla siguiente. Sin esto, el token que
-    // devuelve el cierre se perdía y la confirmación no tenía qué mostrar: la
-    // persona terminaba de firmar y se quedaba esperando el WhatsApp.
-    if (veredicto?.entrega_token) {
-      guardarEntregaToken(landing, handoff.applicationCode, veredicto.entrega_token);
-    }
-
     if (veredicto?.constancia_url) {
       guardarConstancia(landing, handoff.applicationCode, veredicto.constancia_url);
     }
 
-    router.push(routes.solicitarConfirmacion(landing, handoff.applicationCode));
+    const confirmacion = routes.solicitarConfirmacion(landing, handoff.applicationCode);
+
+    // Coordinar la entrega es un paso más del flujo, no un anexo de la
+    // confirmación: firmado y sin inicial que pagar, lo único que falta es
+    // decir a dónde va el equipo. Va en su propia pantalla —con su layout y su
+    // marca— y al terminar sí cae en la confirmación.
+    router.push(
+      veredicto?.entrega_token
+        ? routes.entregaPorToken(veredicto.entrega_token, confirmacion)
+        : confirmacion,
+    );
   }
 
   return (
