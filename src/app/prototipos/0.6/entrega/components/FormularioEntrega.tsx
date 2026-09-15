@@ -276,8 +276,6 @@ export function FormularioEntrega({
 
   return (
     <div className="mx-auto w-full max-w-[600px] text-[15px] leading-normal text-[#222226] md:max-w-[620px]">
-      <Hero paso={editandoDireccion ? 'direccion' : 'envio'} />
-
       {editandoDireccion && !sinUbigeo && (
         <button
           type="button"
@@ -291,7 +289,7 @@ export function FormularioEntrega({
         </button>
       )}
 
-      <h2 className="mb-3 text-lg font-bold text-[#222226]">
+      <h2 className="mb-4 text-xl font-bold leading-snug text-[#222226]">
         {editandoDireccion ? '¿A dónde enviamos tu equipo?' : 'Confirma tu envío'}
       </h2>
 
@@ -392,7 +390,7 @@ export function FormularioEntrega({
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-5">
-          <section className="flex gap-3 rounded-[14px] bg-[#F3F4FF] p-3.5" aria-label="Dirección de entrega">
+          <section className="flex gap-3 rounded-[14px] border border-[#E3E4EC] bg-[#F7F7FB] p-3.5" aria-label="Dirección de entrega">
             <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-[#4654CD] text-white" aria-hidden="true">
               <IconoCasa />
             </span>
@@ -543,7 +541,7 @@ export function FormularioEntrega({
                         ? 'cursor-not-allowed border-[#E3E4EC] bg-[#F7F7FB] opacity-70'
                         : 'cursor-pointer',
                       elegida && !noDisponible
-                        ? 'border-[#4654CD] bg-[#F3F4FF]'
+                        ? 'border-[#4654CD] bg-white ring-1 ring-[#4654CD]'
                         : !noDisponible
                           ? 'border-[#C9CBD8] hover:border-[#AEB0C2]'
                           : '',
@@ -638,40 +636,6 @@ function inputClase(conError: boolean, conIcono = false) {
       ? 'border-[#C4371E] focus:ring-[3px] focus:ring-[#F6CFC7]'
       : 'border-[#C9CBD8] hover:border-[#AEB0C2] focus:border-[#4654CD] focus:ring-[3px] focus:ring-[#E4E6FF]',
   ].join(' ');
-}
-
-function Hero({ paso }: { paso: 'direccion' | 'envio' }) {
-  const pasos = [
-    { nombre: 'Dirección', activo: paso === 'direccion', hecho: paso === 'envio' },
-    { nombre: 'Envío', activo: paso === 'envio', hecho: false },
-  ];
-  return (
-    <header className="mb-4 flex flex-wrap items-center gap-3.5 rounded-2xl bg-[#4654CD] px-5 py-4 text-white">
-      <span className="grid h-[52px] w-[52px] flex-none place-items-center rounded-full bg-white/15" aria-hidden="true">
-        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
-          <path d="M6 8h11v11H6zM17 12h4.5l3.5 3.5V19h-8z" />
-          <circle cx="10" cy="20.5" r="2" fill="#4654CD" />
-          <circle cx="21" cy="20.5" r="2" fill="#4654CD" />
-          <path d="M1.5 12h3M1.5 15.5h2" />
-        </svg>
-      </span>
-      <div className="min-w-[200px] flex-1">
-        <h1 className="text-[22px] font-bold leading-tight">Coordina tu entrega</h1>
-        <p className="mt-0.5 text-sm text-white/85">Confirma dónde y cómo quieres recibir tu equipo.</p>
-      </div>
-      <ol className="flex flex-none basis-[160px] list-none gap-2 p-0" aria-label="Progreso de la entrega">
-        {pasos.map((p) => (
-          <li key={p.nombre} className={['flex-1 text-xs font-semibold', p.activo ? 'text-white' : 'text-white/60'].join(' ')}>
-            {p.nombre}
-            <span
-              aria-hidden="true"
-              className={['mt-1 block h-1 rounded-full', p.activo || p.hecho ? 'bg-white' : 'bg-white/30'].join(' ')}
-            />
-          </li>
-        ))}
-      </ol>
-    </header>
-  );
 }
 
 /**
@@ -820,7 +784,9 @@ function Eleccion({
     <label
       className={[
         'flex cursor-pointer items-center gap-2.5 rounded-xl border-[1.5px] p-3 transition-colors',
-        seleccionada ? 'border-[#4654CD] bg-[#F3F4FF]' : 'border-[#C9CBD8] hover:border-[#AEB0C2]',
+        seleccionada
+          ? 'border-[#4654CD] bg-white ring-1 ring-[#4654CD]'
+          : 'border-[#C9CBD8] bg-white hover:border-[#AEB0C2]',
       ].join(' ')}
     >
       <input
@@ -878,7 +844,7 @@ function Cierre({
         </div>
       </header>
 
-      <section className="flex flex-col gap-3.5 rounded-[14px] bg-[#F3F4FF] p-4" aria-label="Resumen del envío">
+      <section className="flex flex-col gap-3.5 rounded-[14px] border border-[#E3E4EC] bg-[#F7F7FB] p-4" aria-label="Resumen del envío">
         <div className="flex gap-3">
           <span className="mt-0.5 flex-none text-[#4654CD]" aria-hidden="true"><IconoCasa /></span>
           <div className="min-w-0">
