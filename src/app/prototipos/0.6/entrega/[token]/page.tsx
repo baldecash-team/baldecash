@@ -12,7 +12,7 @@
  */
 
 import type { Metadata } from 'next';
-import { EntregaClient } from './EntregaClient';
+import { EntregaTokenClient } from '../components/EntregaTokenClient';
 
 export const metadata: Metadata = {
   title: 'Coordina tu entrega | BaldeCash',
@@ -26,5 +26,12 @@ export default async function EntregaPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  return <EntregaClient token={token} />;
+  // El formulario portado de Zona Clientes (hero con pasos, tarjeta del equipo,
+  // direccion con Google Maps y cascada de ubigeo, quien recibe, tipo de envio
+  // y cierre con resumen). `EntregaClient` era la version anterior, sin diseno.
+  return (
+    <main className="min-h-screen bg-[#F7F7FB] px-4 py-8">
+      <EntregaTokenClient token={token} />
+    </main>
+  );
 }
