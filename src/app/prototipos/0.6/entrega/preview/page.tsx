@@ -23,6 +23,12 @@ const EQUIPO = {
   cuotas: 24,
   cuotaInicial: null,
   accesorios: ['Mouse inalámbrico'],
+  specs: [
+    { label: 'Procesador', valor: 'Intel Core i5-1235U' },
+    { label: 'Memoria RAM', valor: '16 GB' },
+    { label: 'Almacenamiento', valor: '512 GB' },
+    { label: 'Tamaño de Pantalla', valor: '14 pulgadas' },
+  ],
 };
 
 const OPCIONES: OpcionEnvio[] = [
