@@ -67,6 +67,8 @@ const MODAL_CONFIG: Record<string, {
   coverageGroups?: { title: string; icon: typeof ShieldCheck; tint: string; items: { text: string; copay?: boolean }[] }[];
   coversText?: string;
   copayNote?: string;
+  /** El modal solo informa: cierra con "Entendido" y no ofrece contratar. */
+  infoOnly?: boolean;
   legalText?: string;
   conditionsText?: string;
   moreInfoUrl?: string;
@@ -145,6 +147,7 @@ const MODAL_CONFIG: Record<string, {
         ],
       },
     ],
+    infoOnly: true,
     coversText: 'A ti y hasta 3 familiares más: cónyuge, hijos menores de 18 años y/o padres que vivan en el mismo domicilio.',
     copayNote: '¿Qué significa "pago aparte"? Es un monto adicional que pagas solo cuando utilizas determinados servicios. El resto de la atención está cubierto por tu Multiasistencia.',
     conditionsText: 'Asistencia provista por Impulsa365 S.A.C. (A365).',
@@ -273,7 +276,21 @@ const ModalContentShared: React.FC<{
           )}
         </div>
 
-        {/* Footer - Price + CTA */}
+        {/* Footer - Price + CTA, o solo cierre cuando el modal no vende */}
+        {config.infoOnly ? (
+          <div style={{ padding: '4px 20px 20px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 8, fontWeight: 700, fontSize: 13,
+                cursor: 'pointer', border: 'none', background: CYAN, color: '#0e0e0e',
+                fontFamily: "'Share Tech Mono', monospace", letterSpacing: 1,
+              }}
+            >
+              ENTENDIDO
+            </button>
+          </div>
+        ) : (
         <div style={{ padding: '4px 20px 20px' }}>
           <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -315,6 +332,7 @@ const ModalContentShared: React.FC<{
             </p>
           )}
         </div>
+        )}
       </div>
     );
   }
@@ -440,7 +458,17 @@ const ModalContentShared: React.FC<{
         )}
       </div>
 
-      {/* Footer - Price + CTA */}
+      {/* Footer - Price + CTA, o solo cierre cuando el modal no vende */}
+      {config.infoOnly ? (
+        <div className="px-5 pb-5 pt-1">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm bg-[var(--color-primary)] text-white hover:brightness-90 transition-all cursor-pointer"
+          >
+            Entendido
+          </button>
+        </div>
+      ) : (
       <div className="px-5 pb-5 pt-1">
         <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl px-4 py-3 flex items-center justify-between mb-3">
           <div className="flex items-baseline gap-1">
@@ -478,6 +506,7 @@ const ModalContentShared: React.FC<{
           </p>
         )}
       </div>
+      )}
     </div>
   );
 };
