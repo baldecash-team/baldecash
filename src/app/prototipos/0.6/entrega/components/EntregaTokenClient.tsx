@@ -96,8 +96,14 @@ export interface EntregaTokenClientProps {
   token: string;
   /**
    * A dónde sigue el flujo al terminar: la confirmación de la solicitud cuando
-   * se llega acá desde el cierre del KYC. Sin esto el cierre no ofrece salida
-   * —es el caso del enlace por WhatsApp, donde no hay a dónde volver—.
+   * se llega acá desde el cierre del KYC.
+   *
+   * Con esto, registrar el envío navega DERECHO y este componente no pinta
+   * ningún cierre propio: coordinar la entrega era el último paso y lo que
+   * sigue es la confirmación, no otra pantalla de final.
+   *
+   * Sin esto —el enlace de WhatsApp, que se abre fuera del wizard— sí se pinta
+   * el cierre, porque no hay ninguna pantalla a la que seguir.
    */
   volver?: string;
   /** Alternativa a `volver` para quien monta el componente por su cuenta. */
@@ -146,15 +152,30 @@ export function EntregaTokenClient({ token, volver, onVerSolicitud }: EntregaTok
     };
 
     const respuesta = await registrarEntrega(token, payload);
-    setEnviando(false);
 
     if (isEntregaApiError(respuesta)) {
+      setEnviando(false);
       // El enlace pudo vencer mientras la persona completaba: eso no es un
       // error del formulario, es otra pantalla.
       if (VENCIDOS.has(respuesta.reason)) return setVista({ estado: 'vencido' });
       setErrorSistema(respuesta.error);
       return;
     }
+
+    // Venir del cierre del KYC significa que coordinar la entrega era el
+    // ÚLTIMO paso: lo que sigue es la confirmación de la solicitud, y se va
+    // derecho. Antes aparecía un cierre propio —"Tu envío quedó registrado"—
+    // con un botón que llevaba exactamente ahí: dos pantallas de final y un
+    // clic de más para leer lo mismo.
+    //
+    // `enviando` queda encendido a propósito: apagarlo pintaría el formulario
+    // de nuevo por un instante mientras el router navega.
+    if (volver) {
+      router.push(volver);
+      return;
+    }
+
+    setEnviando(false);
     setRegistrado(true);
   };
 
@@ -222,11 +243,10 @@ export function EntregaTokenClient({ token, volver, onVerSolicitud }: EntregaTok
       errorSistema={errorSistema}
       listo={registrado}
       onEnviar={registrar}
+      // Solo se usa en el cierre propio, que ya únicamente se pinta cuando NO
+      // hay a dónde volver: con `volver` la navegación ocurre al registrar.
       onVerSolicitud={
-        onVerSolicitud ??
-        (volver
-          ? () => router.push(volver)
-          : () => { window.location.href = URL_SEGUIMIENTO; })
+        onVerSolicitud ?? (() => { window.location.href = URL_SEGUIMIENTO; })
       }
     />
   );
