@@ -18,7 +18,7 @@
  * es acá donde la declaran.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
 import { useGooglePlacesAutocomplete } from '@/app/prototipos/0.6/[landing]/solicitar/hooks/useGooglePlacesAutocomplete';
 import { resolveGeoUnits } from '@/app/prototipos/0.6/services/wizardApi';
@@ -128,7 +128,12 @@ export function FormularioEntrega({
 
   // Google Maps sobre el campo de direccion: el mismo hook que usa el
   // formulario de solicitud, para que el comportamiento sea el de siempre.
-  const inputDireccion = useRef<HTMLInputElement>(null);
+  // Ref por estado y no `useRef`: el campo de direccion se monta recien al
+  // entrar a editar, y el hook de Google engancha en un efecto que depende de
+  // la IDENTIDAD del ref. Con un `useRef` estable ese efecto ya habia corrido
+  // con el input todavia sin montar, y el autocompletado nunca aparecia.
+  const [nodoDireccion, setNodoDireccion] = useState<HTMLInputElement | null>(null);
+  const inputDireccion = useMemo(() => ({ current: nodoDireccion }), [nodoDireccion]);
   const [preset, setPreset] = useState<{ departmentId?: string; provinceId?: string }>({});
 
   const alElegirLugar = useCallback(async (lugar: ParsedAddress) => {
@@ -316,7 +321,7 @@ export function FormularioEntrega({
           >
             <input
               id="entrega-direccion"
-              ref={inputDireccion}
+              ref={setNodoDireccion}
               className={inputClase(marca('direccion') && !direccion.trim(), true)}
               type="text"
               autoComplete="off"
@@ -669,39 +674,77 @@ function Hero({ paso }: { paso: 'direccion' | 'envio' }) {
   );
 }
 
+/**
+ * Los nombres del catalogo son de ficha tecnica y en un chip ocupan mas que el
+ * dato: "Tamaño de Pantalla 8.7 pulgadas" empuja al resto a otra linea. Se
+ * acortan solo los conocidos; lo que no este en la lista se muestra tal cual.
+ */
+const ETIQUETAS_CORTAS: Record<string, string> = {
+  'Memoria RAM': 'RAM',
+  'Tamaño de Pantalla': 'Pantalla',
+  'Resolución de Pantalla': 'Resolución',
+  'Tipo de Almacenamiento': 'Disco',
+  'Sistema Operativo': 'SO',
+  'Capacidad de Batería': 'Batería',
+};
+
+function etiquetaCorta(label: string): string {
+  return ETIQUETAS_CORTAS[label] ?? label;
+}
+
 function TarjetaEquipo({
   equipo, abierto, onToggle,
 }: { equipo: EntregaEquipo; abierto: boolean; onToggle: () => void }) {
   const accesorios = equipo.accesorios ?? [];
   return (
     <section className="flex gap-3.5 rounded-2xl border border-[#E3E4EC] bg-white p-3.5" aria-label="Equipo solicitado">
-      <div className="grid h-20 w-20 flex-none place-items-center rounded-xl bg-[#F4F4F8]">
+      <div className="grid h-24 w-24 flex-none place-items-center rounded-xl bg-[#F4F4F8] p-1">
         {equipo.imagen
           ? <img src={equipo.imagen} alt="" className="h-full w-full rounded-xl object-contain" />
           : <IconoCaja />}
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="font-bold leading-snug text-[#222226]">{equipo.nombre}</h3>
-        {equipo.cuotaMensual && (
-          <p className="text-[#5F6070]">
-            <strong className="font-bold text-[#222226]">S/ {equipo.cuotaMensual}</strong> al mes
+
+        {/* El precio y el plazo son una sola frase: "39.00 al mes, 24 cuotas,
+            sin cuota inicial". Separados en dos renglones se leian como dos
+            datos sueltos, y con las specs en el medio ni siquiera quedaban
+            juntos. */}
+        {(equipo.cuotaMensual || equipo.cuotas != null) && (
+          <p className="text-[13px] leading-snug text-[#5F6070]">
+            {equipo.cuotaMensual && (
+              <>
+                <strong className="text-[15px] font-bold text-[#222226]">S/ {equipo.cuotaMensual}</strong>
+                {' al mes'}
+              </>
+            )}
+            {equipo.cuotaMensual && equipo.cuotas != null && ' · '}
+            {equipo.cuotas != null && (
+              <>
+                {equipo.cuotas} cuotas,{' '}
+                {equipo.cuotaInicial ? `inicial S/ ${equipo.cuotaInicial}` : 'sin cuota inicial'}
+              </>
+            )}
           </p>
         )}
+
+        {/* Las caracteristicas, como chips: cada una entera en su linea propia
+            —el nombre y el valor no se separan— y las que no entran pasan a la
+            siguiente. En lista, "Tamaño de Pantalla:" y "8.7 pulgadas" caian en
+            renglones distintos y habia que leer de a saltos. */}
         {equipo.specs && equipo.specs.length > 0 && (
-          <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-[#5F6070]">
+          <ul className="mt-2 flex flex-wrap gap-1.5">
             {equipo.specs.map((s) => (
-              <li key={s.label} className="flex gap-1">
-                <span className="text-[#8A8B99]">{s.label}:</span>
-                <span className="font-medium text-[#222226]">{s.valor}</span>
+              <li
+                key={s.label}
+                className="whitespace-nowrap rounded-full bg-[#F4F4F8] px-2.5 py-1 text-[12px] text-[#5F6070]"
+                title={`${s.label}: ${s.valor}`}
+              >
+                <span className="text-[#8A8B99]">{etiquetaCorta(s.label)}</span>{' '}
+                <span className="font-semibold text-[#222226]">{s.valor}</span>
               </li>
             ))}
           </ul>
-        )}
-        {equipo.cuotas != null && (
-          <p className="text-[13px] text-[#5F6070]">
-            {equipo.cuotas} cuotas,{' '}
-            {equipo.cuotaInicial ? `cuota inicial S/ ${equipo.cuotaInicial}` : 'sin cuota inicial'}
-          </p>
         )}
         {accesorios.length > 0 && (
           <div className="mt-1.5">
