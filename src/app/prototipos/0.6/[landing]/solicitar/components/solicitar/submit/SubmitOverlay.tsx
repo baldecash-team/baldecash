@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Check, Send, FileUp, ShieldCheck, FileSignature } from 'lucide-react';
+import { Loader2, Check, Send, FileUp, ShieldCheck, FileSignature, Truck } from 'lucide-react';
 import type { SubmitStage } from '../../../hooks/useSubmitApplication';
 
 export interface PasoOverlay {
@@ -41,6 +41,7 @@ const ICON_MAP = {
   FileUp: <FileUp className="w-6 h-6" />,
   Send: <Send className="w-6 h-6" />,
   FileSignature: <FileSignature className="w-6 h-6" />,
+  Truck: <Truck className="w-6 h-6" />,
 };
 
 function getStepStatus(

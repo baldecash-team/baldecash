@@ -8,6 +8,7 @@ import {
   getEnvioAnticipadoStep,
   isFirmaPorAceptacion,
   getKycSteps,
+  isEntregaEnElCierre,
   isKycStepEnabled,
   isKycEnabled,
   DEFAULT_SOLICITAR_FLOW,
@@ -128,6 +129,11 @@ interface UseSolicitarFlowResult {
    * tienen desde antes, con el contrato que sale al aprobar y Keynua.
    */
   firmaPorAceptacion: boolean;
+  /**
+   * La landing coordina la entrega dentro del flujo: al terminar, la pantalla
+   * final muestra el formulario en vez de que el enlace llegue por WhatsApp.
+   */
+  entregaEnElCierre: boolean;
 }
 
 /**
@@ -212,6 +218,8 @@ export function useSolicitarFlow({
 
   const firmaPorAceptacion = useMemo(() => isFirmaPorAceptacion(config), [config]);
 
+  const entregaEnElCierre = useMemo(() => isEntregaEnElCierre(config), [config]);
+
   const isKycStepEnabledFn = useMemo(
     () => (type: KycStepType) => isKycStepEnabled(config, type),
     [config]
@@ -273,6 +281,7 @@ export function useSolicitarFlow({
     kycEnabled,
     envioAnticipadoStep,
     firmaPorAceptacion,
+    entregaEnElCierre,
   };
 }
 
