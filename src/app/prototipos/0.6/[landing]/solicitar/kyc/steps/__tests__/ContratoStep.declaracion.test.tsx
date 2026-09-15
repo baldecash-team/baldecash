@@ -177,3 +177,15 @@ it('el orden de la pantalla es resumen, aviso, contrato y recien las casillas', 
     'contrato-casillas',
   ]);
 });
+
+it('sin declaración la casilla igual dice qué se acepta', async () => {
+  // ws2 sin desplegar, o un texto que no llegó: la casilla no puede quedarse
+  // sin nada al lado.
+  mockGet.mockResolvedValue(contratoListo({
+    aceptacion: { ...TEXTOS, declaracion: '' },
+  }));
+
+  montar();
+
+  expect(await screen.findByText('He leído y acepto el contrato')).toBeInTheDocument();
+});

@@ -1452,6 +1452,7 @@ const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: 
  *       overlay_variant → custom overlay component (e.g. 'cade')
  *       dni_capture_mode 'inline' → InlineDniGate (default fullscreen)
  *       dni_capture_mode 'modal'  → DniModal (popup)
+ *       dni_capture_mode 'form'   → no bloquea: el DNI se pide en el formulario
  */
 function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
   const router = useRouter();
@@ -1460,7 +1461,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const preview = usePreview();
   const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
-  const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
+  const [captureMode, setCaptureMode] = useState<'modal' | 'inline' | 'form'>('modal');
   const [overlayVariant, setOverlayVariant] = useState('');
   const [overlayDeadline, setOverlayDeadline] = useState('');
   const [showWelcome, setShowWelcome] = useState(false);
@@ -1544,6 +1545,18 @@ function VipGate({ landing, children }: { landing: string; children: React.React
     if (!preview.isHydrated) return;
 
     fetchLandingConfig(landing).then((cfg) => {
+      // En modo `form` el gate no bloquea NADA: ni el catalogo, ni el producto,
+      // ni el formulario. El DNI se pide y se valida dentro de /solicitar.
+      //
+      // Va PRIMERO, antes de cualquier otra rama, porque mas abajo hay varios
+      // `return` que cortan la funcion. Uno de ellos redirige /solicitar al
+      // catalogo cuando no hay token; con este corte mas abajo, el estado
+      // quedaba en `loading` para siempre y /solicitar se veia EN BLANCO.
+      if (cfg.features.dni_capture_mode === 'form') {
+        setStatus('allowed');
+        return;
+      }
+
       // Admin preview bypasses all access checks — no redirect, no block
       if (preview.isPreviewingLanding(landing)) {
         setStatus('allowed');

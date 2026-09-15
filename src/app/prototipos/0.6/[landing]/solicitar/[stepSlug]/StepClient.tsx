@@ -103,6 +103,7 @@ function StepContent() {
   // State
   const [showCelebration, setShowCelebration] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Reacondicionado: aceptación obligatoria antes de enviar la solicitud
   const [showRefurbAcceptance, setShowRefurbAcceptance] = useState(false);
@@ -130,6 +131,12 @@ function StepContent() {
     getFieldLabel,
     getAllDynamicOptions,
   } = useWizard();
+
+  // El DNI quedo fuera de la whitelist: el boton Continuar se DESHABILITA, no
+  // solo rechaza al pulsarlo. Un boton que se ve activo y no hace nada se lee
+  // como que la pagina fallo; deshabilitado dice "falta algo" sin ambiguedad.
+  // El motivo lo explica el modal de DocumentNumberField.
+  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true';
 
   // Lead de un socio (A365): si entró por su link, el API ya tiene sus datos.
   // Va acá y no en cada paso porque `steps` trae los campos de TODOS los pasos:
@@ -524,7 +531,7 @@ function StepContent() {
     setSubmitted(true);
 
     // Bloqueo por whitelist (check-person): si el backend marcó allowed === false,
-    // no se permite avanzar. El mensaje ya se muestra en el campo del documento.
+    // no se permite avanzar. El motivo lo explica el modal de DocumentNumberField.
     if (formData['_whitelist_blocked']?.value === 'true') {
       const wlField = formData['_whitelist_field']?.value as string | undefined;
       if (wlField) {
@@ -903,7 +910,7 @@ function StepContent() {
         isLastStep={isActuallyLastStep}
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
-        canProceed={true}
+        canProceed={!bloqueadoPorWhitelist}
         hideNavbar={isGamer}
         navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
@@ -1040,7 +1047,7 @@ function StepContent() {
         isBusy={isSubmitting}
         isSubmitting={isAppSubmitting}
         submitMessage={submitMessage}
-        canProceed={true}
+        canProceed={!bloqueadoPorWhitelist}
       />
     );
 
@@ -1101,7 +1108,7 @@ function StepContent() {
         isLastStep={isActuallyLastRegularStep}
         isSubmitting={isAppSubmitting}
         submitMessage={submitMessage}
-        canProceed={true}
+        canProceed={!bloqueadoPorWhitelist}
         ctaFijoEnMovil
         hideNavbar={isGamer}
         navbarProps={isGamer ? undefined : (navbarProps || undefined)}
@@ -1132,7 +1139,7 @@ function StepContent() {
       isBusy={isSubmitting}
       isSubmitting={isAppSubmitting}
       submitMessage={submitMessage}
-      canProceed={true}
+      canProceed={!bloqueadoPorWhitelist}
       oculto={showCelebration}
     />
   );

@@ -137,6 +137,13 @@ export interface CheckPersonRequest {
 export interface CheckPersonWhitelist {
   allowed: boolean;
   message: string;
+  /** true si el DNI esta invitado a otra landing del mismo `whitelist_group`. */
+  found_in_sibling?: boolean;
+  /** Slug de esa landing hermana, para ofrecer ir alla en vez de rechazar. */
+  sibling_landing_slug?: string | null;
+  sibling_landing_name?: string | null;
+  /** Nombre de pila en la whitelist de la hermana. Puede venir vacio. */
+  first_name?: string | null;
 }
 
 export interface PrefillData {

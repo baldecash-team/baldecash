@@ -17,6 +17,7 @@ import { useSessionOptional } from '../../../context/SessionContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
+import { DniNoInvitadoModal } from './DniNoInvitadoModal';
 import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
 
@@ -32,6 +33,32 @@ function getSavedDni(slug: string): string | null {
     return localStorage.getItem(`baldecash-dni-${slug}`);
   } catch {
     return null;
+  }
+}
+
+/**
+ * ¿La puerta VIP aprobo ESTE documento en ESTA landing?
+ *
+ * El token solo existe si `validate-dni` respondio que si, pero el token por
+ * si solo dice «esta persona valido algun DNI», no cual. Hay que compararlo
+ * contra el documento que se esta por fijar.
+ *
+ * Sin esa comparacion, quien valido un DNI y despues vuelve con otro se
+ * encontraba el documento VIEJO fijo y `disabled`, sin poder corregirlo: el
+ * token de la validacion anterior seguia ahi y bloqueaba cualquier documento.
+ * La unica salida era limpiar el localStorage a mano (le paso a Haru).
+ *
+ * En modo `form` no hay puerta, asi que nunca hay token: el DNI guardado es
+ * apenas una comodidad de prellenado y tiene que poder corregirse.
+ */
+function tokenVipApruebaEsteDni(slug: string, dni: string): boolean {
+  try {
+    if (localStorage.getItem(`baldecash-vip-token-${slug}`) === null) return false;
+    // El documento que la puerta guardo al validar. Si el que estamos por
+    // fijar no es ese, el token no lo respalda.
+    return localStorage.getItem(`baldecash-dni-${slug}`) === dni;
+  } catch {
+    return false;
   }
 }
 
@@ -66,6 +93,16 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const [lockedByModal, setLockedByModal] = useState(false);
 
   // Pre-fill from DNI overlay (VIP gate, CADE, InlineDniGate)
+  //
+  // Prellenar SIEMPRE; bloquear SOLO si la puerta valido ese DNI contra la
+  // whitelist (o sea, si dejo token VIP).
+  //
+  // Antes bloqueaba con solo encontrar el DNI guardado, y eso rompia a quien
+  // volvia a la campana por tercera o cuarta vez: el documento de una visita
+  // anterior quedaba fijo y `disabled`, asi que si no estaba en la lista la
+  // persona no podia corregirlo y quedaba trabada. La unica salida era limpiar
+  // el localStorage a mano. En modo `form` no hay puerta ni token, con lo cual
+  // el campo nunca debe bloquearse por esta via.
   useEffect(() => {
     const savedDni = getSavedDni(landing);
     if (!savedDni) return;
@@ -73,16 +110,23 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     if (!current) {
       updateField(field.code, savedDni);
     }
-    setLockedByModal(true);
+    if (tokenVipApruebaEsteDni(landing, savedDni)) {
+      setLockedByModal(true);
+    }
   }, []);
 
   // Pre-fill + lock DNI from lead form capture
+  //
+  // Mismo criterio: el dni que dejo el formulario de captura prellena, pero
+  // solo queda fijo si ademas hubo validacion de whitelist.
   useEffect(() => {
     const leadDni = localStorage.getItem(`baldecash-${landing}-wizard-field-document_number`);
     if (!leadDni) return;
     const current = getFieldValue(field.code) as string;
     if (!current) updateField(field.code, leadDni);
-    setLockedByModal(true);
+    if (tokenVipApruebaEsteDni(landing, leadDni)) {
+      setLockedByModal(true);
+    }
   }, []);
 
   // Get prefill config from field configuration
@@ -236,6 +280,22 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // el mensaje del backend como error del campo.
   const whitelist = response?.whitelist;
   const isWhitelistBlocked = whitelist?.allowed === false;
+
+  // El modal se cierra a mano, y el cierre vale SOLO para la respuesta que se
+  // esta viendo: apenas el documento cambia, la marca se borra.
+  //
+  // Antes esto guardaba el dni cerrado (`modalCerradoPara !== value`) y nunca
+  // lo limpiaba, asi que cerrar el modal para un documento lo silenciaba para
+  // siempre: al volver a ese mismo dni despues de probar otro, ya no salia.
+  // Comparar contra `value` ademas lo reabria en mitad del tipeo, porque el
+  // valor cambia con cada tecla mientras el backend todavia responde por el
+  // numero anterior.
+  const [modalCerrado, setModalCerrado] = useState(false);
+  useEffect(() => {
+    setModalCerrado(false);
+  }, [value, documentType]);
+
+  const mostrarModal = isWhitelistBlocked && !modalCerrado;
   const whitelistMessage = isWhitelistBlocked
     ? (whitelist?.message || 'No es posible continuar con este documento.')
     : '';
@@ -288,7 +348,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
   // El mensaje de whitelist (bloqueo) tiene prioridad y se muestra siempre,
   // aunque el campo todavía no haya sido marcado como "submitted".
-  const displayError = isWhitelistBlocked ? whitelistMessage : error;
+  // El bloqueo de whitelist lo comunica el modal, no un texto al pie: son dos
+  // cosas distintas y mostrarlas juntas es ruido. El campo solo pinta los
+  // errores de formato.
+  const displayError = error;
 
   // Determine success state
   const hasValue = !!value;
@@ -297,22 +360,42 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const isPassport = documentType === 'pasaporte' || documentType === 'passport';
 
   return (
-    <TextInput
-      id={field.code}
-      label={field.label}
-      value={value}
-      onChange={handleChange}
-      error={displayError}
-      required={field.required}
-      disabled={field.readonly || lockedByModal || isLockedFromLead}
-      tooltip={tooltip}
-      type="text"
-      inputMode={isPassport ? 'text' : 'numeric'}
-      placeholder={field.placeholder || undefined}
-      maxLength={field.max_length || undefined}
-      success={isSuccess}
-      isLoading={isChecking}
-    />
+    <>
+      <TextInput
+        id={field.code}
+        label={field.label}
+        value={value}
+        onChange={handleChange}
+        error={displayError}
+        required={field.required}
+        disabled={field.readonly || lockedByModal || isLockedFromLead}
+        tooltip={tooltip}
+        type="text"
+        inputMode={isPassport ? 'text' : 'numeric'}
+        placeholder={field.placeholder || undefined}
+        maxLength={field.max_length || undefined}
+        success={isSuccess}
+        isLoading={isChecking}
+      />
+
+      {mostrarModal && (
+        // El documento NO se limpia al cerrar: quien se equivoco en un digito
+        // no tiene que escribir los ocho de nuevo para corregirlo.
+        <DniNoInvitadoModal
+          dni={value}
+          hermana={
+            whitelist?.found_in_sibling && whitelist.sibling_landing_slug
+              ? {
+                  slug: whitelist.sibling_landing_slug,
+                  name: whitelist.sibling_landing_name || 'la otra campaña',
+                }
+              : null
+          }
+          firstName={whitelist?.first_name ?? null}
+          onCerrar={() => setModalCerrado(true)}
+        />
+      )}
+    </>
   );
 };
 

@@ -176,7 +176,16 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
           >
             {isCheckedSimple && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
           </div>
-          <span className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+          {/*
+            `alignTop` es para etiquetas largas —una declaración contractual—:
+            ahí el texto se lee como párrafo (interlineado suelto, alineado
+            arriba) y no como el nombre de un campo.
+          */}
+          <span
+            className={`flex gap-1.5 text-sm font-medium text-neutral-700 ${
+              alignTop ? 'items-start leading-relaxed' : 'items-center'
+            }`}
+          >
             {label}
             {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
             {tooltip && <span onClick={(e) => e.stopPropagation()}><FieldTooltip tooltip={tooltip} /></span>}
