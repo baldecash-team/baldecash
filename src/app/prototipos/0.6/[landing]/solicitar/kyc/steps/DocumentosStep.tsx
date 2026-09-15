@@ -151,13 +151,17 @@ export function DocumentosStep({
         </p>
       )}
 
-      <div className="flex gap-3">
+      {/* En el teléfono uno encima del otro y no dos botones a medio ancho: la
+          acción principal arriba, con el ancho completo para el pulgar.
+          `flex-col-reverse` mantiene "Atrás" primero en el DOM (orden de
+          tabulación) y lo pinta debajo. Desde `sm` vuelve la fila de siempre. */}
+      <div className="flex flex-col-reverse gap-3 sm:flex-row">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
             disabled={uploading}
-            className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-3 rounded-xl hover:bg-[#ECECFB] transition-colors disabled:opacity-50 cursor-pointer"
           >
             Atrás
           </button>

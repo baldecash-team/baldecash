@@ -837,11 +837,13 @@ export function DniSelfieStep({
           <div className={`relative rounded-xl overflow-hidden bg-black mx-auto w-full ${config.maxWidth} ${config.aspect} border border-[#e5e7eb]`}>
             <img src={pendingShot} alt="Foto capturada" className="w-full h-full object-cover" />
           </div>
-          <div className="flex gap-3">
+          {/* Igual que el resto de los pasos: en el teléfono uno encima del
+              otro, con la accion principal arriba. */}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <button
               type="button"
               onClick={handleRepeat}
-              className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-2 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
+              className="flex-1 border border-[#4654CD] text-[#4654CD] font-semibold py-3 rounded-xl hover:bg-[#ECECFB] transition-colors cursor-pointer"
             >
               Repetir
             </button>
