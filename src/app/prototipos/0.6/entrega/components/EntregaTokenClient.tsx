@@ -179,7 +179,15 @@ export function EntregaTokenClient({ token, onVerSolicitud }: EntregaTokenClient
 
   return (
     <FormularioEntrega
-      equipo={{ nombre: datos.equipo.nombre || 'Tu equipo' }}
+      equipo={{
+        nombre: datos.equipo.nombre || 'Tu equipo',
+        imagen: datos.equipo.imagen,
+        specs: datos.equipo.specs,
+        accesorios: datos.equipo.accesorios,
+        cuotaMensual: datos.equipo.cuota,
+        cuotas: datos.equipo.cuotas,
+        cuotaInicial: datos.equipo.inicial,
+      }}
       direccionInicial={{
         direccion: datos.direccion.direccion,
         calle: datos.direccion.calle,

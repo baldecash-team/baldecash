@@ -33,6 +33,8 @@ export interface EntregaEquipo {
   cuotas?: number | null;
   cuotaInicial?: string | null;
   accesorios?: string[];
+  /** Características destacadas, ya formateadas por el backend. */
+  specs?: Array<{ label: string; valor: string }>;
 }
 
 /** Lo que ya sabemos de la dirección. Sin `distritoId` no hay ubigeo y el
@@ -684,6 +686,16 @@ function TarjetaEquipo({
           <p className="text-[#5F6070]">
             <strong className="font-bold text-[#222226]">S/ {equipo.cuotaMensual}</strong> al mes
           </p>
+        )}
+        {equipo.specs && equipo.specs.length > 0 && (
+          <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-[#5F6070]">
+            {equipo.specs.map((s) => (
+              <li key={s.label} className="flex gap-1">
+                <span className="text-[#8A8B99]">{s.label}:</span>
+                <span className="font-medium text-[#222226]">{s.valor}</span>
+              </li>
+            ))}
+          </ul>
         )}
         {equipo.cuotas != null && (
           <p className="text-[13px] text-[#5F6070]">
