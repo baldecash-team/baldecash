@@ -12,6 +12,7 @@
  */
 
 import type { Metadata } from 'next';
+import { EntregaLayout } from '../components/EntregaLayout';
 import { EntregaTokenClient } from '../components/EntregaTokenClient';
 
 export const metadata: Metadata = {
@@ -30,8 +31,8 @@ export default async function EntregaPage({
   // direccion con Google Maps y cascada de ubigeo, quien recibe, tipo de envio
   // y cierre con resumen). `EntregaClient` era la version anterior, sin diseno.
   return (
-    <main className="min-h-screen bg-[#F7F7FB] px-4 py-8">
+    <EntregaLayout>
       <EntregaTokenClient token={token} />
-    </main>
+    </EntregaLayout>
   );
 }
