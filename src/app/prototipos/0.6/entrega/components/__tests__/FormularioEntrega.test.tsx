@@ -27,7 +27,6 @@ import { FormularioEntrega, type OpcionEnvio } from '../FormularioEntrega';
 
 const OPCIONES: OpcionEnvio[] = [
   { id: 'gratis', nombre: 'Envío gratis', condicion: 'Envío hasta 5 días hábiles.', costo: 0 },
-  { id: 'express', nombre: 'Envío Express', costo: 25, disponible: false },
 ];
 
 const CON_DIRECCION = {
@@ -86,13 +85,27 @@ it('finalizar exige el nombre y el DNI de quien recibe, los dos juntos', async (
   expect(screen.getByText('Completa los datos de quien recibe el pedido.')).toBeInTheDocument();
 });
 
-it('el envío express no se puede elegir', () => {
+it('con una sola opción el envío se muestra como dato, sin elegir nada', () => {
   pintar({ direccionInicial: CON_DIRECCION });
 
-  expect(screen.getByRole('radio', { name: /Envío Express/ })).toBeDisabled();
-  expect(screen.getByText('No disponible')).toBeInTheDocument();
-  // El gratis viene marcado: es el único elegible.
-  expect(screen.getByRole('radio', { name: /Envío gratis/ })).toBeChecked();
+  const envio = screen.getByTestId('entrega-envio-unico');
+  expect(envio).toHaveTextContent('Envío gratis');
+  expect(envio).toHaveTextContent('Gratis');
+  // Nada que elegir: el selector no se pinta.
+  expect(screen.queryByRole('radio', { name: /Envío/ })).not.toBeInTheDocument();
+});
+
+it('si hubiera dos opciones elegibles vuelve el selector', () => {
+  pintar({
+    direccionInicial: CON_DIRECCION,
+    opcionesEnvio: [
+      ...OPCIONES,
+      { id: 'express', nombre: 'Envío Express', costo: 25 },
+    ],
+  });
+
+  expect(screen.getByRole('radio', { name: /Envío Express/ })).toBeEnabled();
+  expect(screen.queryByTestId('entrega-envio-unico')).not.toBeInTheDocument();
 });
 
 it('declarar la dirección y finalizar devuelve lo completado', async () => {

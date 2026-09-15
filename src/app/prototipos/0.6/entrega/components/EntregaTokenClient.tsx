@@ -38,12 +38,25 @@ const VENCIDOS = new Set(['expired', 'revoked', 'consumed', 'inactive']);
 const NUM_LOGISTICA = '957 082 347';
 
 /**
+ * A donde va «Ver el estado de mi solicitud» cuando nadie dijo a donde.
+ *
+ * Pasa con el enlace de WhatsApp: se entra directo al formulario, fuera del
+ * wizard, y no hay una confirmacion a la que volver. Antes esa pantalla
+ * terminaba sin salida —la persona quedaba mirando «Tu envio quedo
+ * registrado»—, asi que cae en Zona Clientes, que es el seguimiento del que
+ * habla el propio texto de la pantalla.
+ */
+const URL_SEGUIMIENTO = 'https://zonaclientes.baldecash.com';
+
+/**
  * Envío gratis, la única opción de este flujo.
  *
  * ws2 todavía no sirve las opciones de envío por token —en Zona Clientes vienen
- * del legacy—, así que se arman acá con la fecha que sí manda. El express se
- * muestra para que la persona vea que existe y que no le corresponde, igual que
- * en Zona Clientes.
+ * del legacy—, así que se arma acá con la fecha que sí manda.
+ *
+ * El express aparecía al lado, apagado y con un «No disponible», como en Zona
+ * Clientes. Acá no hay nada que elegir: la única opción es esta y viaja sola,
+ * así que mostrar la otra solo agregaba un precio que nadie puede pagar.
  */
 function opcionesDeEnvio(fechaEntrega: string | null): OpcionEnvio[] {
   return [
@@ -54,13 +67,6 @@ function opcionesDeEnvio(fechaEntrega: string | null): OpcionEnvio[] {
         ? `Llega el ${fechaLarga(fechaEntrega)}.`
         : 'Envío hasta 5 días hábiles.',
       costo: 0,
-    },
-    {
-      id: 'express',
-      nombre: 'Envío Express',
-      condicion: 'Envío hasta 2 días hábiles.',
-      costo: 25,
-      disponible: false,
     },
   ];
 }
@@ -217,7 +223,10 @@ export function EntregaTokenClient({ token, volver, onVerSolicitud }: EntregaTok
       listo={registrado}
       onEnviar={registrar}
       onVerSolicitud={
-        onVerSolicitud ?? (volver ? () => router.push(volver) : undefined)
+        onVerSolicitud ??
+        (volver
+          ? () => router.push(volver)
+          : () => { window.location.href = URL_SEGUIMIENTO; })
       }
     />
   );
