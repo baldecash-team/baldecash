@@ -17,6 +17,12 @@
  *   reason no reconocido: no revela si la solicitud existe).
  * - `network` → pantalla de reintento.
  *
+ * Progreso parcial: cada respuesta marcada viaja de inmediato por `PATCH`
+ * (`guardarProgresoEncuesta`), y los textos al salir del campo o tras ~800 ms
+ * sin escribir. Así admin2 ve las sesiones incompletas con lo que el cliente
+ * alcanzó a contestar. Es fire-and-forget: un PATCH fallido no cambia la UI,
+ * y después del `POST` exitoso (o si ya estaba respondida) no sale ninguno.
+ *
  * Segmento ESTÁTICO hermano de `[landing]`: no hereda su chrome ni sus
  * providers, y no los necesita.
  */
@@ -28,9 +34,11 @@ import { BALDECASH_LOGO_SVG_URL } from '@/app/prototipos/0.6/admision/_component
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import {
   getEncuesta,
+  guardarProgresoEncuesta,
   responderEncuesta,
   isEncuestaApiError,
   type EncuestaInfo,
+  type EncuestaParcial,
   type EncuestaRespuesta,
 } from '@/app/prototipos/0.6/services/encuestaApi';
 import { formatearFechaSolicitud } from './fecha';
@@ -57,6 +65,20 @@ function gruposRequeridos(conAnalista: boolean): Grupo[] {
     : ['nps', 'ces', 'm_solicitud', 'm_envio'];
 }
 
+/** Campo del API para cada grupo de la pantalla. */
+const CAMPO_DE_GRUPO: Record<Grupo, keyof EncuestaParcial> = {
+  nps: 'nps',
+  ces: 'ces',
+  m_solicitud: 'sat_web',
+  m_evaluacion: 'sat_analyst',
+  m_envio: 'sat_delivery',
+};
+
+type CampoTexto = 'nps_reason' | 'comment';
+
+/** Espera sin tipear antes de guardar un texto a medio escribir. */
+const DEBOUNCE_TEXTO_MS = 800;
+
 const NUMS_1_5 = [1, 2, 3, 4, 5];
 const NUMS_0_10 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -73,6 +95,58 @@ export function EncuestaClient({ token }: EncuestaClientProps) {
   const fx = useEncuestaFx(bgRef, topRef);
   const wasComplete = useRef(false);
 
+  // Encuesta cerrada (respondida al abrir o POST exitoso): no sale más PATCH.
+  const cerrada = useRef(false);
+  // Último texto guardado por campo, para no mandar lo mismo dos veces
+  // (blur después del debounce, o viceversa).
+  const ultimoTexto = useRef<Record<CampoTexto, string>>({ nps_reason: '', comment: '' });
+  const timersTexto = useRef<Partial<Record<CampoTexto, ReturnType<typeof setTimeout>>>>({});
+
+  const guardarParcial = useCallback(
+    (parcial: EncuestaParcial) => {
+      if (cerrada.current) return;
+      void guardarProgresoEncuesta(token, parcial);
+    },
+    [token],
+  );
+
+  const cancelarTimerTexto = useCallback((campo: CampoTexto) => {
+    const t = timersTexto.current[campo];
+    if (t !== undefined) {
+      clearTimeout(t);
+      delete timersTexto.current[campo];
+    }
+  }, []);
+
+  /** Guarda el texto ahora (blur), sólo si cambió desde la última vez. */
+  const guardarTexto = useCallback(
+    (campo: CampoTexto, valor: string) => {
+      cancelarTimerTexto(campo);
+      const limpio = valor.trim();
+      if (limpio === ultimoTexto.current[campo]) return;
+      ultimoTexto.current[campo] = limpio;
+      guardarParcial({ [campo]: limpio });
+    },
+    [cancelarTimerTexto, guardarParcial],
+  );
+
+  /** Reprograma el guardado del texto para cuando el cliente deje de tipear. */
+  const programarTexto = useCallback(
+    (campo: CampoTexto, valor: string) => {
+      cancelarTimerTexto(campo);
+      timersTexto.current[campo] = setTimeout(() => guardarTexto(campo, valor), DEBOUNCE_TEXTO_MS);
+    },
+    [cancelarTimerTexto, guardarTexto],
+  );
+
+  // Al desmontar no queda ningún timer vivo apuntando a un componente muerto.
+  useEffect(() => {
+    const timers = timersTexto.current;
+    return () => {
+      Object.values(timers).forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
   // Sin ref-guard síncrono delante del fetch (StrictMode monta→desmonta→monta
   // en dev): el único guard es `cancelled` en el cleanup. `getEncuesta` es
   // una lectura, un segundo canje idéntico no tiene efecto adverso.
@@ -86,6 +160,7 @@ export function EncuestaClient({ token }: EncuestaClientProps) {
         return;
       }
       if (result.answered) {
+        cerrada.current = true;
         setView({ status: 'thanks' });
         return;
       }
@@ -114,10 +189,11 @@ export function EncuestaClient({ token }: EncuestaClientProps) {
   const elegir = useCallback(
     (grupo: Grupo, valor: number, el: HTMLButtonElement) => {
       setAnswers((prev) => ({ ...prev, [grupo]: valor }));
+      guardarParcial({ [CAMPO_DE_GRUPO[grupo]]: valor });
       const r = el.getBoundingClientRect();
       fx.pop(r.left + r.width / 2, r.top + r.height / 2);
     },
-    [fx],
+    [fx, guardarParcial],
   );
 
   const enviar = useCallback(async () => {
@@ -140,11 +216,16 @@ export function EncuestaClient({ token }: EncuestaClientProps) {
       setSendError(result.error);
       return;
     }
+    // Cerrada: ningún PATCH pendiente (debounce de un texto) debe salir después
+    // del POST, que ya llevó todo.
+    cerrada.current = true;
+    cancelarTimerTexto('nps_reason');
+    cancelarTimerTexto('comment');
     setView({ status: 'thanks' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     fx.celebrate();
     setTimeout(() => fx.celebrate(), 550);
-  }, [view.status, completo, sending, answers, conAnalista, npsReason, comment, token, fx]);
+  }, [view.status, completo, sending, answers, conAnalista, npsReason, comment, token, fx, cancelarTimerTexto]);
 
   if (view.status === 'invalid') {
     return (
@@ -258,7 +339,11 @@ export function EncuestaClient({ token }: EncuestaClientProps) {
                   className={styles.textarea}
                   placeholder="¿Qué influyó en tu puntaje? Nos ayuda mucho saberlo…"
                   value={npsReason}
-                  onChange={(e) => setNpsReason(e.target.value)}
+                  onChange={(e) => {
+                    setNpsReason(e.target.value);
+                    programarTexto('nps_reason', e.target.value);
+                  }}
+                  onBlur={(e) => guardarTexto('nps_reason', e.target.value)}
                   aria-label="Motivo de tu calificación"
                 />
               </div>
@@ -344,7 +429,11 @@ export function EncuestaClient({ token }: EncuestaClientProps) {
                   className={styles.textarea}
                   placeholder="Escríbenos aquí…"
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  onChange={(e) => {
+                    setComment(e.target.value);
+                    programarTexto('comment', e.target.value);
+                  }}
+                  onBlur={(e) => guardarTexto('comment', e.target.value)}
                   aria-label="Algo más sobre estas interacciones"
                 />
               </div>

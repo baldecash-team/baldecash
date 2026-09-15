@@ -83,6 +83,35 @@ export async function getEncuesta(token: string): Promise<EncuestaInfo | Encuest
   }
 }
 
+/** Cualquier subconjunto de la respuesta: lo que el cliente ya marcó. */
+export type EncuestaParcial = Partial<EncuestaRespuesta>;
+
+/**
+ * Guarda el progreso parcial (una respuesta a la vez, a medida que el cliente
+ * marca) para que en admin2 se vean las sesiones incompletas con lo que
+ * alcanzó a contestar. No cierra la encuesta: el `POST` final sigue igual.
+ *
+ * Fire-and-forget: nunca lanza ni bloquea la UI; devuelve `false` si el
+ * servidor rechazó o no hubo red. `keepalive` para que el último PATCH
+ * sobreviva si el cliente cierra la pestaña justo después de marcar.
+ */
+export async function guardarProgresoEncuesta(
+  token: string,
+  parcial: EncuestaParcial,
+): Promise<boolean> {
+  try {
+    const r = await fetch(`${API_BASE_URL}/public/encuesta/${encodeURIComponent(token)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parcial),
+      keepalive: true,
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Envía las respuestas. `{ ok: true }` o el error de dominio. */
 export async function responderEncuesta(
   token: string,

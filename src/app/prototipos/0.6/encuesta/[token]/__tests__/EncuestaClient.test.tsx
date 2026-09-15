@@ -4,7 +4,9 @@
  *
  * Cubre: carga con analista (bloque visible, 5 grupos), sin analista (bloque
  * ausente, 4 grupos, `sat_analyst` no viaja), token inválido, ya respondida,
- * envío OK y envío con error de red.
+ * envío OK, envío con error de red, y el progreso parcial (PATCH por cada
+ * respuesta marcada, textos al salir del campo, nada después del POST, un
+ * PATCH fallido no toca la UI).
  *
  * jest.spyOn sobre imports de módulo NO funciona en este repo (Next 16/SWC):
  * se mockea el módulo completo, parcial sobre el real vía requireActual.
@@ -16,7 +18,12 @@ import '@testing-library/jest-dom';
 
 jest.mock('@/app/prototipos/0.6/services/encuestaApi', () => {
   const actual = jest.requireActual('@/app/prototipos/0.6/services/encuestaApi');
-  return { ...actual, getEncuesta: jest.fn(), responderEncuesta: jest.fn() };
+  return {
+    ...actual,
+    getEncuesta: jest.fn(),
+    responderEncuesta: jest.fn(),
+    guardarProgresoEncuesta: jest.fn(),
+  };
 });
 
 jest.mock('next/navigation', () => ({
@@ -24,15 +31,21 @@ jest.mock('next/navigation', () => ({
 }));
 
 import { EncuestaClient } from '../EncuestaClient';
-import { getEncuesta, responderEncuesta } from '@/app/prototipos/0.6/services/encuestaApi';
+import {
+  getEncuesta,
+  guardarProgresoEncuesta,
+  responderEncuesta,
+} from '@/app/prototipos/0.6/services/encuestaApi';
 import { formatearFechaSolicitud } from '../fecha';
 
 const mockGet = getEncuesta as jest.MockedFunction<typeof getEncuesta>;
 const mockPost = responderEncuesta as jest.MockedFunction<typeof responderEncuesta>;
+const mockPatch = guardarProgresoEncuesta as jest.MockedFunction<typeof guardarProgresoEncuesta>;
 
 beforeAll(() => {
   window.scrollTo = jest.fn();
 });
+beforeEach(() => mockPatch.mockResolvedValue(true));
 afterEach(() => jest.clearAllMocks());
 
 const conAnalista = {
@@ -181,6 +194,124 @@ it('ya respondida al enviar (409): igual muestra gracias', async () => {
   await user.click(screen.getByRole('button', { name: 'Enviar respuesta' }));
 
   await screen.findByText('¡Gracias por tu tiempo!');
+});
+
+describe('progreso parcial (sesiones incompletas)', () => {
+  it('cada respuesta marcada viaja por PATCH con el campo del API', async () => {
+    mockGet.mockResolvedValue(conAnalista);
+    const user = userEvent.setup();
+
+    render(<EncuestaClient token="TOK" />);
+    await screen.findByText(/Gracias por confiar en BaldeCash/);
+
+    await elegir(user, 'nps', 9);
+    expect(mockPatch).toHaveBeenCalledWith('TOK', { nps: 9 });
+    await elegir(user, 'm_solicitud', 5);
+    expect(mockPatch).toHaveBeenCalledWith('TOK', { sat_web: 5 });
+    await elegir(user, 'm_evaluacion', 4);
+    expect(mockPatch).toHaveBeenCalledWith('TOK', { sat_analyst: 4 });
+    await elegir(user, 'm_envio', 2);
+    expect(mockPatch).toHaveBeenCalledWith('TOK', { sat_delivery: 2 });
+    // Cambiar de opinión manda el valor nuevo.
+    await elegir(user, 'nps', 3);
+    expect(mockPatch).toHaveBeenLastCalledWith('TOK', { nps: 3 });
+  });
+
+  it('el motivo se guarda al salir del campo, con el texto completo', async () => {
+    mockGet.mockResolvedValue(conAnalista);
+    const user = userEvent.setup();
+
+    render(<EncuestaClient token="TOK" />);
+    await screen.findByText(/Gracias por confiar en BaldeCash/);
+
+    await user.type(screen.getByLabelText('Motivo de tu calificación'), 'Todo rápido');
+    await user.tab();
+    expect(mockPatch).toHaveBeenLastCalledWith('TOK', { nps_reason: 'Todo rápido' });
+
+    // Volver a salir del campo sin cambios no repite el envío.
+    const llamadas = mockPatch.mock.calls.length;
+    await user.click(screen.getByLabelText('Motivo de tu calificación'));
+    await user.tab();
+    expect(mockPatch.mock.calls.length).toBe(llamadas);
+  });
+
+  it('el comentario se guarda solo tras dejar de escribir (debounce)', async () => {
+    jest.useFakeTimers();
+    try {
+      mockGet.mockResolvedValue({ ...conAnalista, analyst_name: null });
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+      render(<EncuestaClient token="TOK" />);
+      await screen.findByText(/Gracias por confiar en BaldeCash/);
+
+      await user.type(screen.getByLabelText('Algo más sobre estas interacciones'), 'Gracias');
+      expect(mockPatch).not.toHaveBeenCalledWith('TOK', expect.objectContaining({ comment: expect.anything() }));
+
+      jest.advanceTimersByTime(850);
+      expect(mockPatch).toHaveBeenLastCalledWith('TOK', { comment: 'Gracias' });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('después del POST exitoso no sale ningún PATCH más', async () => {
+    jest.useFakeTimers();
+    try {
+      mockGet.mockResolvedValue({ ...conAnalista, analyst_name: null });
+      mockPost.mockResolvedValue({ ok: true });
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+      render(<EncuestaClient token="TOK" />);
+      await screen.findByText(/Gracias por confiar en BaldeCash/);
+
+      await elegir(user, 'nps', 7);
+      await elegir(user, 'ces', 3);
+      await elegir(user, 'm_solicitud', 3);
+      await elegir(user, 'm_envio', 4);
+      // Comentario a medio guardar (debounce pendiente) cuando se envía.
+      await user.type(screen.getByLabelText('Algo más sobre estas interacciones'), 'Gracias');
+      await user.click(screen.getByRole('button', { name: 'Enviar respuesta' }));
+      await screen.findByText('¡Gracias por tu tiempo!');
+
+      // Al hacer clic en Enviar el textarea pierde el foco: ese blur guarda el
+      // comentario ANTES del POST (correcto). Lo que no puede pasar es un PATCH
+      // después del POST, ni por el debounce que quedó programado.
+      const llamadas = mockPatch.mock.calls.length;
+      const ordenPost = mockPost.mock.invocationCallOrder[0];
+      expect(mockPatch.mock.invocationCallOrder.every((o) => o < ordenPost)).toBe(true);
+      jest.advanceTimersByTime(2000);
+      expect(mockPatch.mock.calls.length).toBe(llamadas);
+      // El POST sí llevó el comentario.
+      expect(mockPost.mock.calls[0][1]).toEqual({ nps: 7, ces: 3, sat_web: 3, sat_delivery: 4, comment: 'Gracias' });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('ya respondida al abrir: no manda PATCH', async () => {
+    mockGet.mockResolvedValue({ ...conAnalista, answered: true });
+
+    render(<EncuestaClient token="TOK" />);
+    await screen.findByText('¡Gracias por tu tiempo!');
+
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('un PATCH que falla no cambia la UI: el progreso y el botón siguen igual', async () => {
+    mockGet.mockResolvedValue({ ...conAnalista, analyst_name: null });
+    mockPatch.mockResolvedValue(false);
+    const user = userEvent.setup();
+
+    render(<EncuestaClient token="TOK" />);
+    await screen.findByText(/Gracias por confiar en BaldeCash/);
+
+    await elegir(user, 'nps', 8);
+    await elegir(user, 'ces', 4);
+    expect(mockPatch).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('pct')).toHaveTextContent('50%');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar respuesta' })).toBeDisabled();
+  });
 });
 
 describe('formatearFechaSolicitud', () => {
