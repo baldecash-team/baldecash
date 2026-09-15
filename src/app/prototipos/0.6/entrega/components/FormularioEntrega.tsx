@@ -18,8 +18,11 @@
  * es acá donde la declaran.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
+import { useGooglePlacesAutocomplete } from '@/app/prototipos/0.6/[landing]/solicitar/hooks/useGooglePlacesAutocomplete';
+import { resolveGeoUnits } from '@/app/prototipos/0.6/services/wizardApi';
+import type { ParsedAddress } from '@/app/prototipos/0.6/types/googleMaps';
 
 /** Equipo que se va a entregar. Todo opcional salvo el nombre: la tarjeta se
  *  arma con lo que haya y no se rompe si falta el precio o la imagen. */
@@ -120,6 +123,53 @@ export function FormularioEntrega({
   const [distritoId, setDistritoId] = useState(limpio(inicial.distritoId));
   const [distrito, setDistrito] = useState(limpio(inicial.distrito));
   const [ubicacion, setUbicacion] = useState(limpio(inicial.ubicacion) || limpio(inicial.distrito));
+
+  // Google Maps sobre el campo de direccion: el mismo hook que usa el
+  // formulario de solicitud, para que el comportamiento sea el de siempre.
+  const inputDireccion = useRef<HTMLInputElement>(null);
+  const [preset, setPreset] = useState<{ departmentId?: string; provinceId?: string }>({});
+
+  const alElegirLugar = useCallback(async (lugar: ParsedAddress) => {
+    // La calle y el numero, no la direccion entera: el distrito, la provincia y
+    // el departamento son los selects de abajo, y repetirlos en el renglon de
+    // la calle es lo que despues llega impreso en la guia del courier.
+    const calleYNumero = [lugar.street, lugar.number].filter(Boolean).join(' ').trim();
+    setDireccion(calleYNumero || lugar.formattedAddress);
+    limpiaError('direccion');
+
+    if (!lugar.department && !lugar.province && !lugar.district) return;
+
+    // Google devuelve nombres; el ubigeo son ids. Los resuelve el backend, que
+    // es el que conoce el catalogo (y sus acentos).
+    const geo = await resolveGeoUnits({
+      department: lugar.department || '',
+      province: lugar.province || undefined,
+      district: lugar.district || undefined,
+    });
+    if (!geo) return;
+
+    setPreset({
+      departmentId: geo.department ? String(geo.department.id) : undefined,
+      provinceId: geo.province ? String(geo.province.id) : undefined,
+    });
+    if (geo.district) {
+      setDistritoId(String(geo.district.id));
+      setDistrito(geo.district.label);
+      limpiaError('distrito');
+    }
+    setUbicacion([
+      geo.district?.label, geo.province?.label, geo.department?.label,
+    ].filter(Boolean).join(', '));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fail-safe: si Google no carga —sin key, sin red, bloqueado— el campo sigue
+  // siendo un input de texto y el formulario se completa a mano.
+  useGooglePlacesAutocomplete({
+    inputRef: inputDireccion,
+    countryRestriction: 'pe',
+    onPlaceSelected: alElegirLugar,
+  });
 
   const [esTitular, setEsTitular] = useState(true);
   const [nombres, setNombres] = useState('');
@@ -258,15 +308,17 @@ export function FormularioEntrega({
             id="entrega-direccion"
             label="Dirección"
             requerido
+            ayuda="Empieza a escribir y elige tu dirección de la lista."
             error={marca('direccion') && !direccion.trim() ? 'Escribe tu dirección' : null}
             icono={<IconoPin />}
           >
             <input
               id="entrega-direccion"
+              ref={inputDireccion}
               className={inputClase(marca('direccion') && !direccion.trim(), true)}
               type="text"
               autoComplete="off"
-              placeholder="Ej: Av. Benavides 1238"
+              placeholder="Escribe y elige tu dirección (ej: Av. Benavides 1238)"
               value={direccion}
               onChange={(e) => { setDireccion(e.target.value); limpiaError('direccion'); }}
             />
@@ -288,7 +340,7 @@ export function FormularioEntrega({
               <GeoCascadeField
                 value={distritoId}
                 districtLabel={distrito}
-                small
+                preset={preset}
                 hideErrorText
                 // `error` es el texto; con `hideErrorText` solo pinta los tres
                 // campos en rojo y el mensaje lo ponemos una vez, abajo.

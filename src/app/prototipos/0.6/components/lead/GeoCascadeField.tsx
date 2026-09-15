@@ -39,11 +39,18 @@ interface GeoCascadeFieldProps {
   compact?: boolean;
   hideErrorText?: boolean;
   districtLabelText?: string;
+  /**
+   * Departamento y provincia a mostrar, cuando los eligio otra cosa —Google
+   * Maps, por ejemplo—. Solo mueve los dos primeros selects: el distrito lo
+   * sigue mandando `value`, asi que no hay dos fuentes para el mismo dato ni
+   * un `onChange` que se llame a si mismo.
+   */
+  preset?: { departmentId?: string; provinceId?: string };
 }
 
 export const GeoCascadeField: React.FC<GeoCascadeFieldProps> = ({
   value, districtLabel, onChange, error, small, compact, hideErrorText,
-  districtLabelText = 'Distrito',
+  districtLabelText = 'Distrito', preset,
 }) => {
   const [departments, setDepartments] = useState<Opt[]>([]);
   const [provinces, setProvinces] = useState<Opt[]>([]);
@@ -53,6 +60,19 @@ export const GeoCascadeField: React.FC<GeoCascadeFieldProps> = ({
   const [distLabel, setDistLabel] = useState(districtLabel ?? '');
 
   useEffect(() => { fetchGeo('departments').then(setDepartments); }, []);
+
+  // El preset llega despues (hay que resolver los nombres de Google contra el
+  // catalogo), asi que se aplica cuando cambia y no solo al montar.
+  useEffect(() => {
+    if (preset?.departmentId) setDept(preset.departmentId);
+    if (preset?.provinceId) setProv(preset.provinceId);
+  }, [preset?.departmentId, preset?.provinceId]);
+
+  // Y la etiqueta del distrito, para que el tercer select muestre el nombre
+  // aunque su lista todavia no haya cargado.
+  useEffect(() => {
+    if (districtLabel) setDistLabel(districtLabel);
+  }, [districtLabel]);
 
   useEffect(() => {
     if (!dept) { setProvinces([]); return; }
