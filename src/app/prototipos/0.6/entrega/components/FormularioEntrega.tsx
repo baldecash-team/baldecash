@@ -275,7 +275,7 @@ export function FormularioEntrega({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[600px] text-[15px] leading-normal text-[#222226]">
+    <div className="mx-auto w-full max-w-[600px] text-[15px] leading-normal text-[#222226] md:max-w-[620px]">
       <Hero paso={editandoDireccion ? 'direccion' : 'envio'} />
 
       {editandoDireccion && !sinUbigeo && (
