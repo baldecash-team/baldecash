@@ -174,7 +174,9 @@ const ModalContentShared: React.FC<{
   hideHeader?: boolean;
   hideCuotas?: boolean;
   offerImageUrl?: string | null;
-}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false, hideCuotas = false, offerImageUrl = null }) => {
+  /** Encabezado y pie fijos, con scroll solo en el contenido del medio. */
+  scrollBody?: boolean;
+}> = ({ plan, isSelected, onToggle, onClose, badgeText, isGamer = false, isDark = true, hideHeader = false, hideCuotas = false, offerImageUrl = null, scrollBody = false }) => {
   const config = getModalConfig(plan.insuranceType);
   const Icon = config.icon;
   const CYAN = isDark ? '#00ffd5' : '#00897a';
@@ -338,11 +340,11 @@ const ModalContentShared: React.FC<{
   }
 
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col ${scrollBody ? 'min-h-0 max-h-[90vh]' : ''}`}>
       {/* Header (se oculta en el drawer mobile, que trae su propio header morado
           fijo con la X). */}
       {!hideHeader && (
-        <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3">
+        <div className="bg-[var(--color-primary)] px-5 py-4 flex items-center gap-3 flex-shrink-0">
           <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden">
             <Icon className="w-4.5 h-4.5 text-white" />
           </div>
@@ -354,7 +356,7 @@ const ModalContentShared: React.FC<{
       )}
 
       {/* Body */}
-      <div className="px-5 py-4 space-y-4">
+      <div className={`px-5 py-4 space-y-4 ${scrollBody ? 'flex-1 min-h-0 overflow-y-auto overscroll-contain' : ''}`}>
         {/* Imagen del seguro (solo oferta) */}
         {offerImageUrl && (
           <div className="flex justify-center py-2">
@@ -460,7 +462,7 @@ const ModalContentShared: React.FC<{
 
       {/* Footer - Price + CTA, o solo cierre cuando el modal no vende */}
       {config.infoOnly ? (
-        <div className="px-5 pb-5 pt-1">
+        <div className="px-5 pb-5 pt-1 flex-shrink-0">
           <button
             onClick={onClose}
             className="w-full py-2.5 rounded-xl font-semibold text-sm bg-[var(--color-primary)] text-white hover:brightness-90 transition-all cursor-pointer"
@@ -469,7 +471,7 @@ const ModalContentShared: React.FC<{
           </button>
         </div>
       ) : (
-      <div className="px-5 pb-5 pt-1">
+      <div className="px-5 pb-5 pt-1 flex-shrink-0">
         <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl px-4 py-3 flex items-center justify-between mb-3">
           <div className="flex items-baseline gap-1">
             <span className="text-xl font-bold text-[var(--color-primary)]">
@@ -523,14 +525,14 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan; 
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
-      base: `rounded-2xl overflow-hidden ${isGamer ? (isDark ? 'bg-[#141414]' : 'bg-[#f0f0f0]') : 'bg-white'}`,
+      base: `m-4 max-h-[90vh] rounded-2xl overflow-hidden ${isGamer ? (isDark ? 'bg-[#141414]' : 'bg-[#f0f0f0]') : 'bg-white'}`,
       body: 'p-0',
       closeButton: `top-3 right-3 z-10 backdrop-blur cursor-pointer ${isGamer ? 'bg-black/30 hover:bg-black/50 text-[#00ffd5]' : 'bg-white/30 hover:bg-white/50 text-white'}`,
     }}
   >
     <ModalContent>
       <ModalBody>
-        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideCuotas={hideCuotas} offerImageUrl={offerImageUrl} />
+        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} isGamer={isGamer} isDark={isDark} hideCuotas={hideCuotas} offerImageUrl={offerImageUrl} scrollBody />
       </ModalBody>
     </ModalContent>
   </Modal>
