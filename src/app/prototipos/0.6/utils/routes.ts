@@ -121,6 +121,18 @@ export function solicitarComplementos(landing: string): string {
  * esperar. Viaja en la URL porque la confirmación se puede recargar y volver a
  * abrir desde cero.
  */
+/**
+ * Formulario de entrega por token.
+ *
+ * `volver` es a dónde sigue el flujo cuando la persona termina de coordinar
+ * —la confirmación de su solicitud—. Viaja en la URL porque el formulario es
+ * una pantalla propia, fuera del wizard: sin eso no sabría a dónde devolverla.
+ */
+export function entregaPorToken(token: string, volver?: string): string {
+  const base = `${BASE_PATH}/entrega/${token}`;
+  return volver ? `${base}?volver=${encodeURIComponent(volver)}` : base;
+}
+
 export function solicitarConfirmacion(
   landing: string,
   code?: string,
@@ -234,6 +246,7 @@ export const routes = {
   solicitar,
   solicitarStep,
   solicitarComplementos,
+  entregaPorToken,
   solicitarConfirmacion,
   solicitarVerificacion,
   solicitarKyc,

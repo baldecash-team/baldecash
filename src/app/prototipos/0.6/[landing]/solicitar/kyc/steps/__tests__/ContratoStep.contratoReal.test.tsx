@@ -89,7 +89,7 @@ describe('el paso de firma sobre el componente', () => {
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
     await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeEnabled();
   });
 
   it('un error de red tampoco cae a un documento ajeno', async () => {

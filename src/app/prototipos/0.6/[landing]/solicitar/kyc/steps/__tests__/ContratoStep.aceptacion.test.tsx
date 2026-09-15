@@ -48,9 +48,12 @@ it('mientras se genera no ofrece aceptar ni deja continuar', async () => {
 
   pintar();
 
-  await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+  // La espera se ve desde el primer paint (ya no hay skeleton), así que lo que
+  // marca que el estado del contrato llegó es el botón bloqueado.
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeDisabled());
+  expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument();
   expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
 });
 
 it('con el documento listo pide aceptarlo antes de continuar', async () => {
@@ -60,7 +63,7 @@ it('con el documento listo pide aceptarlo antes de continuar', async () => {
   pintar({ onDone });
 
   await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
-  const continuar = screen.getByRole('button', { name: 'Continuar' });
+  const continuar = screen.getByRole('button', { name: 'Firmar electrónicamente' });
 
   // El botón se puede tocar sin marcar nada: el click es el que señala qué
   // falta. Deshabilitado, la casilla sin marcar no se distingue de una pantalla
@@ -106,7 +109,7 @@ it('si la solicitud no quedó registrada lo dice, y no ofrece reintentar', async
 
   await waitFor(() => expect(screen.getByTestId('contrato-sin-registro')).toBeInTheDocument());
   expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeDisabled();
 });
 
 it('el link a pestaña nueva emite su evento', async () => {
@@ -129,7 +132,7 @@ it('la firma emitida lleva el hash de lo aceptado', async () => {
 
   await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
   await userEvent.click(screen.getByText('He leído y acepto el contrato'));
-  await userEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
   expect(onTrack).toHaveBeenCalledWith(
     'kyc_contract_signed',

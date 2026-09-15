@@ -110,7 +110,7 @@ async function aceptarYContinuar() {
   render(<KycClient />);
   await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
   await userEvent.click(screen.getByText('He leído y acepto el contrato'));
-  await userEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 }
 
 it('manda el hash del contrato aceptado', async () => {

@@ -38,7 +38,7 @@ async function montar(landing?: string) {
     <ContratoStep onDone={onDone} applicationCode="APP-77" documentNumber="70020010" landing={landing} />,
   );
   await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
-  return { onDone, continuar: screen.getByRole('button', { name: 'Continuar' }) };
+  return { onDone, continuar: screen.getByRole('button', { name: 'Firmar electrónicamente' }) };
 }
 
 const marcar = (texto: RegExp | string) => fireEvent.click(screen.getByText(texto));
@@ -114,6 +114,6 @@ describe('ContratoStep — autorizaciones del convenio', () => {
     expect(screen.queryByText(PLANILLA)).not.toBeInTheDocument();
     expect(screen.queryByText(LIQUIDACION)).not.toBeInTheDocument();
     // Y el paso no queda trabado esperando algo que solo llega con la aprobación.
-    expect(screen.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeEnabled();
   });
 });

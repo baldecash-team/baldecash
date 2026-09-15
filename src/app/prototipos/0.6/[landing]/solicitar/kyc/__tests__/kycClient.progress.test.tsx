@@ -176,7 +176,7 @@ it('usa el application_code de `initialState` cuando no hay `?code=` en la URL (
 
   const user = userEvent.setup();
   await user.click(screen.getByText('He leído y acepto el contrato'));
-  await user.click(screen.getByRole('button', { name: 'Continuar' }));
+  await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
   // (b) completeKycStep se llama con el código derivado de `initialState` y el
   // `resumeToken` como prueba (NUNCA el DNI cuando hay token).
@@ -243,7 +243,7 @@ describe('DNI del wizard (prueba de titularidad en sesión)', () => {
     // «se está generando».
     await screen.findByText('He leído y acepto el contrato');
     await user.click(screen.getByText('He leído y acepto el contrato'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
   };
 
   it('fuente 2: blob del wizard estándar (el caso real de copia-home)', async () => {
@@ -378,7 +378,7 @@ describe('onTrack (sink de eventos de la ruta tokenizada)', () => {
 
     const user = userEvent.setup();
     await user.click(screen.getByText('He leído y acepto el contrato'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
     expect(onTrack).toHaveBeenCalledWith(
       'kyc_step_complete',
@@ -583,7 +583,7 @@ describe('el link de pago que aparece despues de cargar', () => {
     const user = userEvent.setup();
     await screen.findByText('He leído y acepto el contrato');
     await user.click(screen.getByText('He leído y acepto el contrato'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
     // El paso de pago entra en la lista sin pedir nada extra.
     await waitFor(() => expect(mockCompleteKycStep).toHaveBeenCalled());

@@ -109,7 +109,7 @@ it('al terminar el ultimo sub-paso navega a la confirmacion con el flag de KYC c
 
   render(<KycClient />);
 
-  const continuar = await screen.findByRole('button', { name: /continuar/i });
+  const continuar = await screen.findByRole('button', { name: /firmar electr/i });
   await userEvent.click(continuar);
 
   await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled());

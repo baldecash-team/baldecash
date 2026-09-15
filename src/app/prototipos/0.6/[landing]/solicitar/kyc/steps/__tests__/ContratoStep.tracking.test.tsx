@@ -123,7 +123,7 @@ describe('ContratoStep — autorizaciones en el tracking', () => {
     await user.click(screen.getByText('He leído y acepto el contrato'));
     await user.click(screen.getByText(PLANILLA));
     await user.click(screen.getByText(LIQUIDACION));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
     expect(mockTrack).toHaveBeenCalledWith(
       'kyc_contract_signed',
@@ -141,7 +141,7 @@ describe('ContratoStep — autorizaciones en el tracking', () => {
     await montar();
 
     await user.click(screen.getByText('He leído y acepto el contrato'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
     expect(mockTrack).toHaveBeenCalledWith(
       'kyc_contract_signed',
@@ -155,7 +155,7 @@ describe('ContratoStep — autorizaciones en el tracking', () => {
 
     await user.click(screen.getByText('He leído y acepto el contrato'));
     await user.click(screen.getByText(LIQUIDACION));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
 
     const tipos = mockTrack.mock.calls.map(([tipo]) => tipo);
     expect(tipos).toEqual(expect.arrayContaining([
