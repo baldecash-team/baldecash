@@ -6,6 +6,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
 import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
@@ -79,6 +80,17 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   // inicial (`catalogo?device=laptop`). Mismo patrón que ProductCard.
   const routeParams = useParams();
   const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
+
+  /**
+   * Segundo financiamiento: el catálogo va sin el filtro por uso.
+   *
+   * "Encuentra tu equipo ideal / Selecciona según tu necesidad principal" y sus
+   * cuatro tarjetas existen para quien está explorando qué comprar. Acá la
+   * persona ya es cliente, vuelve por un equipo concreto y la oferta es de unos
+   * pocos: el bloque ocupaba media pantalla para filtrar tres equipos. Queda el
+   * contador, que es lo único que informa —cuántos hay— y que además ordena.
+   */
+  const catalogoAcotado = isSecondFinancingLanding(landingSlug ?? '');
 
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
@@ -617,21 +629,29 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
+                className={
+                  catalogoAcotado
+                    ? 'flex items-center justify-end'
+                    : 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4'
+                }
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-                    <Search className="w-5 h-5 text-[var(--color-primary)]" />
+                {/* El título es el rótulo del filtro por uso: sin las tarjetas
+                    debajo, "selecciona según tu necesidad" no nombra nada. */}
+                {!catalogoAcotado && (
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                      <Search className="w-5 h-5 text-[var(--color-primary)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
+                        Encuentra tu equipo ideal
+                      </h2>
+                      <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
+                        Selecciona según tu necesidad principal
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-semibold text-[var(--text-strong,#1f2937)] font-['Baloo_2',_sans-serif] leading-tight">
-                      Encuentra tu equipo ideal
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[var(--text-muted,#6b7280)]">
-                      Selecciona según tu necesidad principal
-                    </p>
-                  </div>
-                </div>
+                )}
 
                 <div id="onboarding-sort">
                   <SortDropdown
@@ -643,13 +663,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
-              <div id="onboarding-quick-cards">
-                <QuickUsageCards
-                  selected={filters.usage}
-                  onChange={(usage) => updateFilter('usage', usage)}
-                  className=""
-                />
-              </div>
+              {!catalogoAcotado && (
+                <div id="onboarding-quick-cards">
+                  <QuickUsageCards
+                    selected={filters.usage}
+                    onChange={(usage) => updateFilter('usage', usage)}
+                    className=""
+                  />
+                </div>
+              )}
 
             </CardBody>
           </Card>
