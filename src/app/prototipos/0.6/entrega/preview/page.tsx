@@ -34,7 +34,6 @@ const EQUIPO = {
 
 const OPCIONES: OpcionEnvio[] = [
   { id: 'gratis', nombre: 'Envío gratis', condicion: 'Envío hasta 5 días hábiles.', costo: 0 },
-  { id: 'express', nombre: 'Envío Express', condicion: 'Envío hasta 2 días hábiles.', costo: 25, disponible: false },
 ];
 
 const CON_DIRECCION: EntregaDireccionInicial = {

@@ -184,11 +184,19 @@ export function FormularioEntrega({
   const [telefono, setTelefono] = useState('');
   const [parentesco, setParentesco] = useState('');
 
-  const gratis = useMemo(
-    () => opcionesEnvio.filter((o) => o.costo === 0 && o.disponible !== false),
+  // Lo que la persona puede efectivamente elegir. Una opcion marcada como no
+  // disponible no es una opcion: ocupa lugar y no lleva a ninguna parte.
+  const elegibles = useMemo(
+    () => opcionesEnvio.filter((o) => o.disponible !== false),
     [opcionesEnvio],
   );
-  const [tipoEnvioId, setTipoEnvioId] = useState(gratis.length === 1 ? gratis[0].id : '');
+  /**
+   * Con una sola opcion no hay eleccion que hacer: el envio se muestra como
+   * dato y viaja solo. El selector aparece recien cuando hay dos caminos
+   * posibles —hoy no los hay: el envio de este flujo es gratis y siempre—.
+   */
+  const unicaOpcion = elegibles.length === 1 ? elegibles[0] : null;
+  const [tipoEnvioId, setTipoEnvioId] = useState(unicaOpcion ? unicaOpcion.id : '');
 
   const marca = (campo: Campo) => errores.has(campo);
   const limpiaError = (campo: Campo) =>
@@ -535,6 +543,32 @@ export function FormularioEntrega({
             )}
           </fieldset>
 
+          {unicaOpcion ? (
+            <section aria-label="Envío">
+              <h3 className="mb-2.5 text-[15px] font-semibold text-[#222226]">Envío</h3>
+              <div
+                data-testid="entrega-envio-unico"
+                className="flex items-start gap-3 rounded-xl border-[1.5px] border-[#E3E4EC] bg-[#F7F7FB] p-3.5"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{unicaOpcion.nombre}</span>
+                  {unicaOpcion.condicion && (
+                    <span className="mt-0.5 block text-[13px] font-normal text-[#5F6070]">
+                      {unicaOpcion.condicion}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={[
+                    'whitespace-nowrap font-bold',
+                    unicaOpcion.costo === 0 ? 'text-[#1E7F50]' : 'text-[#222226]',
+                  ].join(' ')}
+                >
+                  {unicaOpcion.costo === 0 ? 'Gratis' : `S/ ${unicaOpcion.costo.toFixed(2)}`}
+                </span>
+              </div>
+            </section>
+          ) : (
           <fieldset className="border-0 p-0">
             <legend className="mb-2.5 text-[15px] font-semibold text-[#222226]">Tipo de envío</legend>
             <div className="flex flex-col gap-2.5">
@@ -595,6 +629,7 @@ export function FormularioEntrega({
             </div>
             {marca('tipoEnvio') && !tipoEnvioId && <TextoError>Elige un tipo de envío</TextoError>}
           </fieldset>
+          )}
 
           <div className="mt-2 flex flex-col gap-2">
             {errores.size > 0 && (
