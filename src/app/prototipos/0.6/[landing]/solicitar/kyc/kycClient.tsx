@@ -28,6 +28,7 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
 import { guardarConstancia } from './constanciaStorage';
+import { guardarEntregaToken } from './entregaStorage';
 import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
@@ -674,6 +675,12 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     if (veredicto?.constancia_url && code) {
       guardarConstancia(landing, code, veredicto.constancia_url);
       track('kyc_contract_copy_available', { application_code: code });
+    }
+
+    // Coordinar la entrega es lo único que queda por hacer: el formulario va
+    // en la pantalla siguiente, no en un WhatsApp que hay que esperar.
+    if (veredicto?.entrega_token && code) {
+      guardarEntregaToken(landing, code, veredicto.entrega_token);
     }
 
     track('kyc_completed', { application_code: code });
