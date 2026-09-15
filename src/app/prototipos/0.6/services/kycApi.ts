@@ -300,6 +300,12 @@ export interface KycVeredicto {
    * vale igual, lo que falta es el PDF que la muestra.
    */
   constancia_url?: string | null;
+  /**
+   * Token del formulario de entrega, para mostrarlo incrustado en la pantalla
+   * final. Solo viene cuando la solicitud quedó firmada y no hay inicial
+   * pendiente: con inicial, el siguiente paso es pagar.
+   */
+  entrega_token?: string | null;
 }
 
 /**

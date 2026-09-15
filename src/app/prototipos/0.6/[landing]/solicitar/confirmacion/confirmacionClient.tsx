@@ -31,6 +31,7 @@ import { displayMonths } from '../../../utils/paymentTerm';
 import { ReceivedScreen } from './components/received';
 import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
+import { EntregaIncrustada } from './components/EntregaIncrustada';
 
 /**
  * Reads the wizard session UUID from localStorage.
@@ -313,6 +314,7 @@ function RealConfirmationContent({
   const modoCierreKyc = modoCierreDelKyc(searchParams, landing);
 
   return (
+    <>
     <ReceivedScreen
       data={receivedData}
       onGoToHome={onGoHome}
@@ -339,6 +341,10 @@ function RealConfirmationContent({
         ]);
       }}
     />
+    {/* Firmado y sin inicial pendiente: el formulario de entrega va acá mismo.
+        Sin token no se pinta nada. */}
+    <EntregaIncrustada landing={landing} applicationCode={applicationCode} />
+    </>
   );
 }
 
