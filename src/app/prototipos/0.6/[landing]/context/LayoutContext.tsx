@@ -90,6 +90,16 @@ interface LayoutContextValue {
    * de plazo.
    */
   mostrarImagenProducto: boolean;
+  /**
+   * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
+   * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
+   *
+   * A diferencia de los flags de arriba, este preset es opt-in: ninguna
+   * landing lo trae hoy y el default es APAGADO. Por eso abajo se compara
+   * contra `=== true` y no contra `!== false` — con `!== false` los chips se
+   * prenderían de golpe en las 100+ landings que no tienen la clave.
+   */
+  chipsDeUso: boolean;
 }
 
 /**
@@ -142,6 +152,7 @@ export function LayoutProvider({
   const [showAgreementLogo, setShowAgreementLogo] = useState(true);
   const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
   const [mostrarImagenProducto, setMostrarImagenProducto] = useState(true);
+  const [chipsDeUso, setChipsDeUso] = useState(false);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -163,6 +174,11 @@ export function LayoutProvider({
       // nuevo, así que ninguna landing existente trae la clave; comparar contra
       // verdadero les borraría la imagen a todas de golpe.
       setMostrarImagenProducto(cfg.features?.show_product_image !== false);
+      // Al reves que los flags de arriba: este preset es opt-in y ninguna
+      // landing lo trae todavia, asi que ausencia significa APAGADO. Copiar
+      // el `!== false` del vecino prenderia los chips en las 100+ landings
+      // existentes de golpe.
+      setChipsDeUso(cfg.features?.has_usage_chips === true);
     });
   }, [landing]);
 
@@ -413,7 +429,8 @@ export function LayoutProvider({
     calculadora,
     puedeCambiarPlazo,
     mostrarImagenProducto,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto]);
+    chipsDeUso,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso]);
 
   return (
     <LayoutContext.Provider value={value}>
