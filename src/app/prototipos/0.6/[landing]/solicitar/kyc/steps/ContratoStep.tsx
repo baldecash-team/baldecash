@@ -22,6 +22,7 @@ import { CheckboxField } from '../../components/solicitar/fields/CheckboxField';
 import { useKycTracker, type KycTrack } from '../useKycTracker';
 import { useContratoKyc } from '../useContratoKyc';
 import { ConfirmarDatosCard } from './ConfirmarDatosCard';
+import { ContratoEsperando } from './ContratoEsperando';
 import { ResumenOperacionCard } from './ResumenOperacionCard';
 import {
   getResumenOperacion,
@@ -208,6 +209,18 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   // Sin documento no hay nada que firmar: ahí el botón sí queda deshabilitado,
   // porque no es que falte marcar algo, es que todavía no existe el contrato.
   const sinQueFirmar = exigeAceptar && !hayDocumento;
+
+  // En `emitido` el contrato lo emite legacy AL APROBAR, y en el KYC la
+  // aprobación corre después de esta pantalla: acá no hay nada que esperar.
+  // Antes se pintaba «Tu contrato se está generando» y, a los 90 s, «No pudimos
+  // preparar tu contrato» con un botón Reintentar. Las dos cosas prometían un
+  // documento que en este paso no puede llegar. Ahora no se pinta nada: el paso
+  // queda con los datos, los números y el Continuar habilitado, que es lo único
+  // que hay para hacer.
+  //
+  // `contrato === null` NO entra acá: mientras no llegó la primera respuesta no
+  // se sabe el modo, y ahí esperar es lo correcto.
+  const nadaQueEsperar = contrato?.modo === 'emitido' && !hayDocumento;
   // Con el contrato ya aceptado no falta nada que marcar: las casillas ni se
   // muestran, y exigirlas dejaría el botón señalando en rojo campos que no
   // están en pantalla.
@@ -433,7 +446,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
             957 082 347 y lo vemos.
           </p>
         </div>
-      ) : estado === 'error' ? (
+      ) : nadaQueEsperar ? null : estado === 'error' ? (
         <div
           data-testid="contrato-error"
           className="w-full rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-6 text-center"
@@ -453,21 +466,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           </button>
         </div>
       ) : (
-        <div
-          data-testid="contrato-esperando"
-          className="w-full rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-6 text-center"
-        >
-          <p className="text-sm font-semibold text-[#374151]">
-            {estado === 'outdated'
-              ? 'Tu contrato se actualizó'
-              : 'Tu contrato se está generando'}
-          </p>
-          <p className="mt-1 text-xs text-[#6b7280]">
-            {estado === 'outdated'
-              ? 'Preparamos una versión nueva. Revísala y acéptala de nuevo.'
-              : 'Tarda unos segundos. Te lo mostramos apenas esté listo para que lo revises y lo firmes.'}
-          </p>
-        </div>
+        <ContratoEsperando outdated={estado === 'outdated'} />
       )}
 
 
