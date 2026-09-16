@@ -79,7 +79,7 @@ describe('ReferralBanner · qué se muestra', () => {
   it('dice quién refirió e invita a escribirle', () => {
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
     expect(screen.getByTestId('referral-banner')).toHaveTextContent(
-      'Te refirió Marco, si tienes dudas escríbele aquí',
+      'Te refirió Marco, si tienes dudas escríbele al 999888777',
     );
   });
 
@@ -108,12 +108,28 @@ describe('ReferralBanner · qué se muestra', () => {
     expect(franja.tagName).toBe('DIV');
     expect(franja).not.toHaveAttribute('href');
     expect(franja).toHaveTextContent('Te refirió Marco');
-    expect(franja).not.toHaveTextContent('escríbele aquí');
+    expect(franja).not.toHaveTextContent('escríbele al');
+    expect(franja.textContent).not.toMatch(/\d{3}/);
   });
 
-  it('nunca pinta el número: el texto invita, no lo dicta', () => {
+  it('dicta el número que abre el toque, en local y sin el país', () => {
+    // El que se lee y el que se abre salen de la misma URL: nunca discrepan.
     render(<ReferralBanner data={COMPLETO} landingSlug="upn" />);
-    expect(screen.getByTestId('referral-banner').textContent).not.toMatch(/\d{3}/);
+    const franja = screen.getByTestId('referral-banner');
+    expect(franja).toHaveTextContent('999888777');
+    expect(franja).not.toHaveTextContent('51999888777');
+  });
+
+  it('un número que no es celular peruano va completo y con +', () => {
+    render(
+      <ReferralBanner
+        data={{ ...COMPLETO, whatsappUrl: 'https://wa.me/5491155551234?text=hola' }}
+        landingSlug="upn"
+      />,
+    );
+    expect(screen.getByTestId('referral-banner')).toHaveTextContent(
+      'escríbele al +5491155551234',
+    );
   });
 
   it('no se puede cerrar', () => {
