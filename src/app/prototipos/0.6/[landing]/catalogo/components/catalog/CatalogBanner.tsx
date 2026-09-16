@@ -28,7 +28,34 @@ interface CatalogBannerProps {
   linkTarget?: string;
   /** Texto alternativo. Cuando el banner es enlace, además hace de texto del enlace. */
   altText?: string;
+  /**
+   * Discriminador del layout. `'tira_remate'` pinta la tira compacta;
+   * cualquier otro valor (incluido `undefined`) pinta la imagen de siempre.
+   *
+   * CRÍTICO: se resuelve por AUSENCIA, no por igualdad a `'imagen'`. Las
+   * landings con banner en producción antes de esta clave tienen
+   * `banner_type` undefined, no `'imagen'`. Comparar con `=== 'imagen'`
+   * apagaría esos banners.
+   */
+  bannerType?: string;
+  /** Título de la tira, ej. "Gran remate laptop seminuevas". */
+  stripTitle?: string;
+  /** Texto de precio de la tira, ej. "Desde S/45 al mes". */
+  stripPriceText?: string;
+  /** Texto del botón de la tira, ej. "Ver". */
+  stripCtaText?: string;
+  /** Destino al hacer clic en la tira. Mismo contrato de link que el tipo imagen. */
+  stripCtaUrl?: string;
+  /** PNG recortado con fondo transparente. Opcional: sin ella la tira igual se ve bien. */
+  stripImageUrl?: string;
+  /** Fondo de la tira. Default aqua. */
+  stripBgColor?: string;
+  /** Color de texto de la tira. Default navy. */
+  stripTextColor?: string;
 }
+
+const STRIP_BG_DEFAULT = '#03DBD0';
+const STRIP_TEXT_DEFAULT = '#151744';
 
 // El mismo corte que usan el <picture> y el skeleton de abajo.
 const MEDIA_MOVIL = "(max-width: 768px)";
@@ -48,7 +75,68 @@ const SKELETON_ASPECT_STYLE = `
   }
 `;
 
-export default function CatalogBanner({
+/**
+ * Resuelve + sanitiza un href de banner. Compartido por los dos tipos de
+ * banner (imagen y tira), es el MISMO pipeline y el mismo orden que ya
+ * probaban los tests de seguridad del tipo imagen.
+ *
+ * El ORDEN IMPORTA:
+ * 1. `transformConfigHref` resuelve el href contra la landing. El admin los
+ *    guarda sin barra inicial (`catalogo?device=laptop`), que no es una ruta
+ *    navegable por sí sola.
+ * 2. `safeLinkUrl` descarta esquemas peligrosos: la URL sale de un campo de
+ *    texto libre del admin.
+ *
+ * Invertir los dos pasos no da error: `safeLinkUrl('catalogo')` devuelve ''
+ * --no empieza con '/', '#', '?' ni 'http'-- y el banner se queda sin enlace
+ * en silencio.
+ *
+ * El esquema se chequea ADEMÁS sobre el valor crudo. `transformConfigHref`
+ * no conoce `javascript:`, así que le antepondría el home de la landing y
+ * devolvería `/prototipos/0.6/x/javascript:alert(1)`: al empezar con '/' eso
+ * pasa `safeLinkUrl` sin problema, y la sanitización quedaría anulada. No
+ * llega a ser ejecutable --el navegador lo lee como ruta-- pero pintaría un
+ * enlace roto donde no debería haber ninguno.
+ * Lista blanca alineada con `safeLinkUrl`, que solo admite http(s) e
+ * internas. `tel:`/`mailto:` quedan afuera igual que allá.
+ */
+function resolveHref(crudo: string, landing?: string): string {
+  const esquemaProhibido = /^[a-z][a-z0-9+.-]*:/i.test(crudo)
+    && !/^https?:/i.test(crudo);
+
+  return esquemaProhibido
+    ? ''
+    : safeLinkUrl(landing ? transformConfigHref(crudo, landing) : crudo);
+}
+
+/**
+ * Discrimina por AUSENCIA, no por igualdad a 'imagen': las 16 landings con
+ * banner ya en producción tienen `banner_type` undefined, no `'imagen'`.
+ * Comparar con `=== 'imagen'` apagaría esos banners.
+ */
+export default function CatalogBanner(props: CatalogBannerProps) {
+  const tipo = props.bannerType ?? 'imagen';
+
+  if (tipo === 'tira_remate') {
+    return (
+      <CatalogBannerStrip
+        title={props.stripTitle}
+        priceText={props.stripPriceText}
+        ctaText={props.stripCtaText}
+        ctaUrl={props.stripCtaUrl}
+        imageUrl={props.stripImageUrl}
+        bgColor={props.stripBgColor}
+        textColor={props.stripTextColor}
+        landing={props.landing}
+        linkTarget={props.linkTarget}
+      />
+    );
+  }
+
+  return <CatalogBannerImage {...props} />;
+}
+
+function CatalogBannerImage({
   desktopImageUrl,
   mobileImageUrl,
   linkUrl,
@@ -86,32 +174,8 @@ export default function CatalogBanner({
   // `linkUrl` es el campo anterior: solo manda si no hay ninguno de los nuevos.
   const crudo = elegido || linkUrl || '';
 
-  // Resolver + sanitizar, y el ORDEN IMPORTA:
-  //
-  // 1. `transformConfigHref` resuelve el href contra la landing. El admin los
-  //    guarda sin barra inicial (`catalogo?device=laptop`), que no es una ruta
-  //    navegable por sí sola.
-  // 2. `safeLinkUrl` descarta esquemas peligrosos: la URL sale de un campo de
-  //    texto libre del admin.
-  //
-  // Invertir los dos pasos no da error: `safeLinkUrl('catalogo')` devuelve ''
-  // --no empieza con '/', '#', '?' ni 'http'-- y el banner se queda sin enlace
-  // en silencio.
-  //
-  // El esquema se chequea ADEMÁS sobre el valor crudo. `transformConfigHref`
-  // no conoce `javascript:`, así que le antepondría el home de la landing y
-  // devolvería `/prototipos/0.6/x/javascript:alert(1)`: al empezar con '/' eso
-  // pasa `safeLinkUrl` sin problema, y la sanitización quedaría anulada. No
-  // llega a ser ejecutable --el navegador lo lee como ruta-- pero pintaría un
-  // enlace roto donde no debería haber ninguno.
-  // Lista blanca alineada con `safeLinkUrl`, que solo admite http(s) e
-  // internas. `tel:`/`mailto:` quedan afuera igual que allá.
-  const esquemaProhibido = /^[a-z][a-z0-9+.-]*:/i.test(crudo)
-    && !/^https?:/i.test(crudo);
-
-  const href = esquemaProhibido
-    ? ''
-    : safeLinkUrl(landing ? transformConfigHref(crudo, landing) : crudo);
+  // Resolver + sanitizar: ver docstring de `resolveHref` para el porqué del orden.
+  const href = resolveHref(crudo, landing);
   const nuevaPestana = linkTarget === '_blank';
   const alt = altText?.trim() || 'Banner promocional';
 
@@ -185,6 +249,163 @@ export default function CatalogBanner({
       data-testid="catalog-banner-link"
       {...(nuevaPestana ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className={`${claseVisibilidad}relative block w-full cursor-pointer overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--azul,#5a63e0)] focus-visible:ring-offset-2`}
+    >
+      {contenido}
+    </a>
+  );
+}
+
+interface CatalogBannerStripProps {
+  title?: string;
+  priceText?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  imageUrl?: string;
+  bgColor?: string;
+  textColor?: string;
+  landing?: string;
+  linkTarget?: string;
+}
+
+// A sangre: sin márgenes ni border-radius, de borde a borde. `min-height`
+// 72px en móvil, 84px desde 768px; imagen desbordada por abajo/izquierda
+// (spec del bloque `.bcr` del HTML de Haru). Se resuelve en CSS puro -no
+// clases utilitarias- porque las medidas (76px/88px bajo 340px, 120px/136px
+// desde 768px) no tienen equivalente directo en la escala de Tailwind.
+const STRIP_STYLE = `
+  .catalog-banner-strip {
+    display: flex;
+    align-items: center;
+    min-height: 72px;
+    width: 100%;
+    text-decoration: none;
+    overflow: hidden;
+  }
+  .catalog-banner-strip__media {
+    position: relative;
+    flex: 0 0 auto;
+    align-self: stretch;
+    overflow: hidden;
+    width: 92px;
+  }
+  .catalog-banner-strip__media img {
+    position: absolute;
+    left: -4px;
+    bottom: -10px;
+    width: 104px;
+    max-width: none;
+  }
+  .catalog-banner-strip__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+  .catalog-banner-strip__title {
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .catalog-banner-strip__price {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(21, 23, 68, .7);
+    margin: 2px 0 0;
+  }
+  .catalog-banner-strip__price b {
+    font-size: 16px;
+    font-weight: 800;
+    color: inherit;
+  }
+  .catalog-banner-strip__cta {
+    flex: 0 0 auto;
+    margin: 0 12px 0 8px;
+    padding: 10px 13px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #fff;
+  }
+  .catalog-banner-strip:focus-visible {
+    outline: 3px solid var(--azul, #5a63e0);
+    outline-offset: -3px;
+  }
+  @media (max-width: 340px) {
+    .catalog-banner-strip__media { width: 76px; }
+    .catalog-banner-strip__media img { width: 88px; }
+    .catalog-banner-strip__title { font-size: 13px; }
+  }
+  @media (min-width: 768px) {
+    .catalog-banner-strip { min-height: 84px; justify-content: center; gap: 16px; }
+    .catalog-banner-strip__media { width: 120px; }
+    .catalog-banner-strip__media img { width: 136px; }
+    .catalog-banner-strip__title { font-size: 17px; }
+    .catalog-banner-strip__price b { font-size: 19px; }
+  }
+`;
+
+/**
+ * Tira compacta de remate: piezas separadas (imagen desbordada, título,
+ * precio, botón) en vez de una sola imagen full-width. A sangre -sin el
+ * padding del wrapper del catálogo-, ver CatalogLayoutV4 donde se neutraliza
+ * ese padding solo para este tipo.
+ */
+function CatalogBannerStrip({
+  title,
+  priceText,
+  ctaText,
+  ctaUrl,
+  imageUrl,
+  bgColor,
+  textColor,
+  landing,
+  linkTarget,
+}: CatalogBannerStripProps) {
+  // Mismo pipeline que el tipo imagen (ver `resolveHref`): mismo orden,
+  // misma sanitización, mismos dos casos de seguridad cubiertos.
+  const href = resolveHref(ctaUrl || '', landing);
+  const nuevaPestana = linkTarget === '_blank';
+  const bg = bgColor || STRIP_BG_DEFAULT;
+  const color = textColor || STRIP_TEXT_DEFAULT;
+
+  const contenido = (
+    <>
+      <style>{STRIP_STYLE}</style>
+      {/* Si falta la imagen, el contenedor queda vacío pero el layout no se
+          rompe: no hay <img> que dispare un ícono de "rota". */}
+      <div className="catalog-banner-strip__media">
+        {imageUrl && <img src={imageUrl} alt="" loading="lazy" />}
+      </div>
+      <div className="catalog-banner-strip__body">
+        {title && <p className="catalog-banner-strip__title">{title}</p>}
+        {priceText && <p className="catalog-banner-strip__price">{priceText}</p>}
+      </div>
+      {ctaText && (
+        <span className="catalog-banner-strip__cta" style={{ backgroundColor: color }}>
+          {ctaText}
+        </span>
+      )}
+    </>
+  );
+
+  const style: React.CSSProperties = { backgroundColor: bg, color };
+
+  if (!href) {
+    return (
+      <div data-testid="catalog-banner" className="catalog-banner-strip" style={style}>
+        {contenido}
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      data-testid="catalog-banner-link"
+      {...(nuevaPestana ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      className="catalog-banner-strip"
+      style={style}
     >
       {contenido}
     </a>
