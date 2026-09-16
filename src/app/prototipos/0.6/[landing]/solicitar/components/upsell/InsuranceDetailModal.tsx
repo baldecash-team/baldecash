@@ -28,8 +28,8 @@ interface InsuranceDetailModalProps {
 const COPAY_TAG_STYLE: React.CSSProperties = {
   flexShrink: 0,
   marginTop: 1,
-  background: '#fee2e2',
-  color: '#b91c1c',
+  background: 'rgba(70, 84, 205, 0.28)',
+  color: '#c3c9f2',
   fontSize: 9,
   fontWeight: 700,
   letterSpacing: 0.4,
@@ -384,7 +384,7 @@ const ModalContentShared: React.FC<{
                   {group.items.map((item) => (
                     <li key={item.text} className="flex items-start gap-2">
                       {item.copay ? (
-                        <span className="flex-shrink-0 mt-px rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-700">
+                        <span className="flex-shrink-0 mt-px rounded bg-[rgba(var(--color-primary-rgb),0.12)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--color-primary)]">
                           Pago aparte
                         </span>
                       ) : (
