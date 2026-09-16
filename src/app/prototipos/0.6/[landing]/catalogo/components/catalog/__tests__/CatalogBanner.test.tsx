@@ -315,4 +315,113 @@ describe('CatalogBanner', () => {
         .toHaveAttribute('href', '/prototipos/0.6/x#y');
     });
   });
+
+  describe('banner_type', () => {
+    // CRÍTICO: las 16 landings con banner ya en producción tienen `banner_type`
+    // undefined, no 'imagen'. Si esto se resolviera por igualdad en vez de por
+    // ausencia, esos 13 banners visibles dejarían de verse.
+    it('banner_type ausente renderiza la imagen igual que antes', () => {
+      const { container } = render(<CatalogBanner {...defaultProps} />);
+      expect(container.querySelector('picture')).toBeInTheDocument();
+      expect(screen.getByTestId('catalog-banner')).toBeInTheDocument();
+      expect(container.querySelector('.catalog-banner-strip')).not.toBeInTheDocument();
+    });
+
+    it("banner_type='imagen' explícito también renderiza la imagen", () => {
+      const { container } = render(
+        <CatalogBanner {...defaultProps} bannerType="imagen" />
+      );
+      expect(container.querySelector('picture')).toBeInTheDocument();
+    });
+
+    describe("banner_type='tira_remate'", () => {
+      const stripProps = {
+        desktopImageUrl: '',
+        mobileImageUrl: '',
+        bannerType: 'tira_remate',
+        stripTitle: 'Gran remate laptop seminuevas',
+        stripPriceText: 'Desde S/45 al mes',
+        stripCtaText: 'Ver',
+        stripCtaUrl: '/prototipos/0.6/reacondicionados',
+        stripImageUrl: 'https://cdn.example.com/strip.png',
+      };
+
+      it('renderiza sus piezas: imagen, título, precio y cta', () => {
+        render(<CatalogBanner {...stripProps} />);
+        expect(screen.getByText('Gran remate laptop seminuevas')).toBeInTheDocument();
+        expect(screen.getByText('Desde S/45 al mes')).toBeInTheDocument();
+        expect(screen.getByText('Ver')).toBeInTheDocument();
+      });
+
+      it('no renderiza el <picture> del tipo imagen', () => {
+        const { container } = render(<CatalogBanner {...stripProps} />);
+        expect(container.querySelector('picture')).not.toBeInTheDocument();
+      });
+
+      it('la tira entera se envuelve en <a> con el href de strip_cta_url', () => {
+        render(<CatalogBanner {...stripProps} />);
+        const link = screen.getByTestId('catalog-banner-link');
+        expect(link).toHaveAttribute('href', '/prototipos/0.6/reacondicionados');
+        // El botón "Ver" es parte del mismo <a>, no un enlace aparte.
+        expect(link).toHaveTextContent('Ver');
+      });
+
+      it('sin strip_cta_url no se envuelve en <a>', () => {
+        const { container } = render(
+          <CatalogBanner {...stripProps} stripCtaUrl={undefined} />
+        );
+        expect(container.querySelector('a')).not.toBeInTheDocument();
+        expect(screen.getByTestId('catalog-banner')).toBeInTheDocument();
+      });
+
+      // Sin imagen la tira igual tiene que verse bien, sin hueco roto.
+      it('sin strip_image_url no se rompe: no hay <img> pero el resto se pinta', () => {
+        const { container } = render(
+          <CatalogBanner {...stripProps} stripImageUrl={undefined} />
+        );
+        expect(container.querySelector('img')).not.toBeInTheDocument();
+        expect(screen.getByText('Gran remate laptop seminuevas')).toBeInTheDocument();
+        expect(screen.getByText('Ver')).toBeInTheDocument();
+      });
+
+      it('usa los colores por defecto (aqua/navy) sin strip_bg_color ni strip_text_color', () => {
+        render(<CatalogBanner {...stripProps} />);
+        const link = screen.getByTestId('catalog-banner-link');
+        expect(link.style.backgroundColor).toBe('rgb(3, 219, 208)'); // #03DBD0
+      });
+
+      it('respeta strip_bg_color y strip_text_color cuando vienen', () => {
+        render(
+          <CatalogBanner
+            {...stripProps}
+            stripBgColor="#ff0000"
+            stripTextColor="#00ff00"
+          />
+        );
+        const link = screen.getByTestId('catalog-banner-link');
+        expect(link.style.backgroundColor).toBe('rgb(255, 0, 0)');
+        expect(link.style.color).toBe('rgb(0, 255, 0)');
+      });
+
+      // La tira repite los dos casos de seguridad del tipo imagen: mismo
+      // pipeline (resolveHref), mismo orden, misma sanitización.
+      describe('seguridad', () => {
+        it('no crea el enlace si strip_cta_url tiene un esquema peligroso', () => {
+          const { container } = render(
+            <CatalogBanner {...stripProps} stripCtaUrl="javascript:alert(1)" />
+          );
+          expect(container.querySelector('a')).not.toBeInTheDocument();
+          // La tira se sigue viendo: no desaparece por eso.
+          expect(screen.getByText('Gran remate laptop seminuevas')).toBeInTheDocument();
+        });
+
+        it('no crea el enlace con una URL protocol-relative', () => {
+          const { container } = render(
+            <CatalogBanner {...stripProps} stripCtaUrl="//evil.com" />
+          );
+          expect(container.querySelector('a')).not.toBeInTheDocument();
+        });
+      });
+    });
+  });
 });

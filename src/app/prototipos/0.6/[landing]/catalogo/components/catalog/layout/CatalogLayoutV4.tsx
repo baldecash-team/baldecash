@@ -680,10 +680,17 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config) */}
+        {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config)
+            `banner_type` se resuelve por AUSENCIA, no por igualdad a 'imagen': las landings con
+            banner ya en producción no tienen esa clave. Ver CatalogBanner.tsx.
+            La tira va a sangre: se neutraliza el padding del wrapper SOLO para ese tipo. */}
         {vipCountdownDate !== null && !vipCountdownDate && catalogBanner && (
           <div
-            className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4"
+            className={
+              (((catalogBanner.banner_type as string | undefined) ?? 'imagen') === 'tira_remate')
+                ? 'w-full'
+                : 'w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4'
+            }
             onClick={() =>
               analytics.trackBannerClick({
                 location: 'catalog_top',
@@ -706,6 +713,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               landing={landingSlug ?? undefined}
               linkTarget={catalogBanner.link_target as string | undefined}
               altText={catalogBanner.alt_text as string | undefined}
+              bannerType={catalogBanner.banner_type as string | undefined}
+              stripTitle={catalogBanner.strip_title as string | undefined}
+              stripPriceText={catalogBanner.strip_price_text as string | undefined}
+              stripCtaText={catalogBanner.strip_cta_text as string | undefined}
+              stripCtaUrl={catalogBanner.strip_cta_url as string | undefined}
+              stripImageUrl={catalogBanner.strip_image_url as string | undefined}
+              stripBgColor={catalogBanner.strip_bg_color as string | undefined}
+              stripTextColor={catalogBanner.strip_text_color as string | undefined}
             />
           </div>
         )}
