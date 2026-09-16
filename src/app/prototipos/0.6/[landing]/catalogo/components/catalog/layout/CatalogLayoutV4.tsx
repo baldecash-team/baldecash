@@ -6,7 +6,6 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
 import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
@@ -71,6 +70,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   campaignCoupon,
   isCampaignCouponValidating,
   chipsDeUso,
+  filtroPorUso,
+  barraDeOrden,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -81,18 +82,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   // inicial (`catalogo?device=laptop`). Mismo patrón que ProductCard.
   const routeParams = useParams();
   const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
-
-  /**
-   * Segundo financiamiento: el catálogo va sin la barra de búsqueda por uso.
-   *
-   * "Encuentra tu equipo ideal / Selecciona según tu necesidad principal", sus
-   * cuatro tarjetas y el orden existen para quien está explorando qué comprar.
-   * Acá la persona ya es cliente, vuelve por un equipo concreto y la oferta es
-   * de unos pocos que entran en pantalla: la franja entera ocupaba el primer
-   * golpe de vista para filtrar y ordenar lo que no hace falta ni filtrar ni
-   * ordenar. La grilla arranca arriba.
-   */
-  const catalogoAcotado = isSecondFinancingLanding(landingSlug ?? '');
 
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
@@ -620,12 +609,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         )}
 
         {/* Full Width Header Section - Inside Card.
-            En segundo financiamiento no se pinta: sin el filtro por uso queda
-            una tarjeta con sombra y borde envolviendo una sola línea, que se
-            lee como una sección vacía. El orden y el conteo no valen esa
-            franja cuando la oferta es de unos pocos equipos que entran en
-            pantalla. */}
-        {!catalogoAcotado && (
+            Cada mitad la prende un preset propio (BAL-3883), ya no una regex
+            sobre el slug: `filtroPorUso` decide el título + las 4 tarjetas de
+            uso, `barraDeOrden` decide el contador de equipos + el selector de
+            orden. En segundo financiamiento (`renueva-*`) el backend apaga
+            ambos: quien vuelve por un equipo concreto no necesita explorar
+            por uso ni ordenar una oferta de unos pocos equipos que ya entran
+            en pantalla. La card entera se omite cuando no queda nada dentro,
+            para no envolver una sección vacía en sombra y borde. */}
+        {(filtroPorUso || barraDeOrden) && (
         <div className="w-full p-3 sm:p-4 lg:p-6">
           <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
             <CardBody className="p-4 sm:p-5 md:p-6">
@@ -635,6 +627,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
               >
+                {filtroPorUso && (
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                     <Search className="w-5 h-5 text-[var(--color-primary)]" />
@@ -648,7 +641,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     </p>
                   </div>
                 </div>
+                )}
 
+                {barraDeOrden && (
                 <div id="onboarding-sort">
                   <SortDropdown
                     value={sort}
@@ -656,9 +651,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     totalProducts={totalProducts}
                   />
                 </div>
+                )}
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
+              {filtroPorUso && (
               <div id="onboarding-quick-cards">
                 <QuickUsageCards
                   selected={filters.usage}
@@ -667,6 +664,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   chipsEnMobile={chipsDeUso}
                 />
               </div>
+              )}
 
             </CardBody>
           </Card>

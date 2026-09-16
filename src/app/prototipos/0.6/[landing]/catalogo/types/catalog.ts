@@ -915,6 +915,16 @@ export interface CatalogLayoutProps {
    * cards de uso a chips en una fila. Default `false` (opt-in).
    */
   chipsDeUso?: boolean;
+  /**
+   * Preset `features.has_usage_filter` (BAL-3883). Muestra las 4 tarjetas de
+   * uso y su título "Encuentra tu equipo ideal". Default `true` (opt-out).
+   */
+  filtroPorUso?: boolean;
+  /**
+   * Preset `features.has_catalog_sort_bar` (BAL-3883). Muestra la franja con
+   * el contador de equipos y el selector de orden. Default `true` (opt-out).
+   */
+  barraDeOrden?: boolean;
 }
 
 /**

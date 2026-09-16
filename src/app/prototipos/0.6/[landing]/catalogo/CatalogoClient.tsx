@@ -285,7 +285,7 @@ function CatalogoContent() {
 
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, landingId, chipsDeUso } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, landingId, chipsDeUso, filtroPorUso, barraDeOrden } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // UI de referido (banner de campaña + navbar simplificado): visible solo si el
@@ -1895,6 +1895,8 @@ function CatalogoContent() {
         campaignCoupon={showCouponUi ? campaignCoupon : null}
         isCampaignCouponValidating={isCampaignCouponValidating}
         chipsDeUso={chipsDeUso}
+        filtroPorUso={filtroPorUso}
+        barraDeOrden={barraDeOrden}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (

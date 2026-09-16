@@ -103,6 +103,26 @@ export interface LandingConfigFeatures {
    * opt-in en vez de opt-out.
    */
   has_usage_chips: boolean;
+  /**
+   * Si el catálogo muestra las 4 tarjetas de uso ("Encuentra tu equipo
+   * ideal") y su título.
+   *
+   * El default es `true`: una landing sin el ingrediente correspondiente
+   * renderiza igual que antes de que este flag existiera. Se apaga en
+   * segundo financiamiento (BAL-3883): quien vuelve por un equipo concreto
+   * no necesita explorar por uso.
+   */
+  has_usage_filter: boolean;
+  /**
+   * Si el catálogo muestra la franja con el contador de equipos y el
+   * selector de orden.
+   *
+   * El default es `true`, por el mismo motivo que el anterior. Se apaga en
+   * segundo financiamiento (BAL-3883): la oferta es de unos pocos equipos
+   * que entran en pantalla y no vale la franja para ordenar lo que no hace
+   * falta ordenar.
+   */
+  has_catalog_sort_bar: boolean;
 }
 
 /**
@@ -361,6 +381,8 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     has_coupon: true,
     // Opt-in, al reves que el resto de este bloque: default apagado.
     has_usage_chips: false,
+    has_usage_filter: true,
+    has_catalog_sort_bar: true,
   },
 };
 
