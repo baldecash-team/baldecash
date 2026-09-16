@@ -68,12 +68,17 @@ describe('el paso de firma sobre el componente', () => {
     expect(screen.getByText('He leído y acepto el contrato')).toBeInTheDocument();
   });
 
-  it('sin contrato emitido espera, y no ofrece aceptar nada', async () => {
+  it('sin contrato emitido no muestra espera ni ofrece aceptar nada', async () => {
+    // En `emitido` el contrato nace con la aprobación, que corre DESPUÉS de
+    // esta pantalla: no hay nada que esperar acá. Mostrar «se está generando»
+    // prometía un documento que en este paso no puede llegar.
     mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
-    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByTestId('contrato-esperando')).not.toBeInTheDocument());
+    expect(screen.queryByTestId('contrato-error')).not.toBeInTheDocument();
     expect(screen.queryByTestId('contrato-documento')).not.toBeInTheDocument();
     expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
   });
@@ -88,7 +93,7 @@ describe('el paso de firma sobre el componente', () => {
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
-    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByTestId('contrato-esperando')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeEnabled();
   });
 
@@ -149,12 +154,18 @@ describe('el contrato como PDF', () => {
     await waitFor(() => expect(screen.getByText(/Juana/)).toBeInTheDocument());
   });
 
-  it('disponible sin html ni url sigue siendo esperar', async () => {
+  it('disponible sin html ni url no pinta ningún documento', async () => {
+    // Un `listo` sin archivo sería prometer un documento que no existe. En
+    // `emitido` eso se resuelve no mostrando nada; lo que este test protege es
+    // que NUNCA aparezca un visor vacío o con contenido ajeno.
     mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true });
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
-    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByTestId('contrato-esperando')).not.toBeInTheDocument());
+    expect(screen.queryByTestId('contrato-documento')).not.toBeInTheDocument();
+    expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
   });
 });
 
@@ -202,9 +213,13 @@ describe('el contrato que todavía se está emitiendo', () => {
 
     render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
 
-    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalled());
     await act(async () => { jest.advanceTimersByTime(120000); });
 
     expect(mockGetContrato.mock.calls.length).toBeLessThanOrEqual(7);
+    // Y rendirse en `emitido` no deja un error falso en pantalla: no falló
+    // nada, el contrato simplemente todavía no existe.
+    expect(screen.queryByTestId('contrato-error')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeEnabled();
   });
 });
