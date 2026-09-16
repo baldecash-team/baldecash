@@ -94,6 +94,15 @@ export interface LandingConfigFeatures {
    * campo, donde nadie le dicta un código al solicitante.
    */
   has_coupon: boolean;
+  /**
+   * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
+   * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
+   *
+   * A diferencia de los flags de arriba, el default es `false`: ninguna
+   * landing trae el ingrediente `usage-chips` todavía, y esta pantalla es
+   * opt-in en vez de opt-out.
+   */
+  has_usage_chips: boolean;
 }
 
 /**
@@ -350,6 +359,8 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     show_hero_min_quota: true,
     show_product_image: true,
     has_coupon: true,
+    // Opt-in, al reves que el resto de este bloque: default apagado.
+    has_usage_chips: false,
   },
 };
 

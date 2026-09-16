@@ -70,6 +70,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   overlayVariant,
   campaignCoupon,
   isCampaignCouponValidating,
+  chipsDeUso,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -663,6 +664,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   selected={filters.usage}
                   onChange={(usage) => updateFilter('usage', usage)}
                   className=""
+                  chipsEnMobile={chipsDeUso}
                 />
               </div>
 

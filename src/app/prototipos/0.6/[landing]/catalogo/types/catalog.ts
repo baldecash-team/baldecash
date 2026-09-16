@@ -910,6 +910,11 @@ export interface CatalogLayoutProps {
   /** Cupón de campaña (?coupon=) — banner bajo filtros de uso */
   campaignCoupon?: AppliedCoupon | null;
   isCampaignCouponValidating?: boolean;
+  /**
+   * Preset `features.has_usage_chips` (BAL-3880). En mobile, cambia las 4
+   * cards de uso a chips en una fila. Default `false` (opt-in).
+   */
+  chipsDeUso?: boolean;
 }
 
 /**
