@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Franja "Te refirió Cynthia, si tienes dudas escríbele aquí".
+ * Franja "Te refirió Cynthia, si tienes dudas escríbele al 999888777".
  *
  * Aparece debajo del header cuando la visita llega por un link de activación
  * (`?promotor=` o `?ref=`). Los datos llegan resueltos —del server component en
@@ -43,12 +43,20 @@
  * - Sin número usable no se arma link: la franja se pinta igual, pero como un
  *   aviso. Un `wa.me` sin destinatario abre WhatsApp en blanco y es peor que no
  *   llevar a ningún lado.
+ * - El número se dicta en el texto. Antes la franja sólo invitaba ("escríbele
+ *   aquí") para no pintarlo; se cambió a pedido para que quien no quiera o no
+ *   pueda abrir WhatsApp desde acá —lo ve en la laptop, lo va a anotar— igual
+ *   tenga a quién escribirle. Sale del mismo `wa.me` que abre el toque, así
+ *   nunca se lee un número y se abre otro.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
-import type { ReferralBanner as ReferralBannerData } from '../../services/referralBannerApi';
+import {
+  telefonoVisible,
+  type ReferralBanner as ReferralBannerData,
+} from '../../services/referralBannerApi';
 import { safeExternalUrl } from '../../utils/safeExternalUrl';
 import { guardarFranja } from './referralBannerCache';
 
@@ -159,6 +167,7 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
   // La URL viene de un backend y va directo a un href: se valida el esquema para
   // que un `javascript:...` no se ejecute al hacer clic (BAL-3292).
   const whatsappUrl = safeExternalUrl(rawWhatsappUrl) || null;
+  const telefono = telefonoVisible(whatsappUrl);
 
   // Quien pinta la franja la guarda. Así el catálogo, el detalle y el wizard la
   // encuentran resuelta sin volver a preguntarle a nadie — ver
@@ -279,7 +288,12 @@ export function ReferralBanner({ data, landingSlug }: ReferralBannerProps) {
     <div className="mx-auto flex min-h-[44px] max-w-7xl items-center justify-center gap-2 px-3 py-2 sm:gap-3 sm:px-6">
       <p className="text-center text-[13px] leading-tight sm:text-sm">
         Te refirió <strong className="font-semibold">{firstName}</strong>
-        {whatsappUrl ? ', si tienes dudas escríbele aquí' : ''}
+        {whatsappUrl && telefono ? (
+          <>
+            , si tienes dudas escríbele al{' '}
+            <strong className="font-semibold">{telefono}</strong>
+          </>
+        ) : null}
       </p>
       {whatsappUrl && (
         <span
