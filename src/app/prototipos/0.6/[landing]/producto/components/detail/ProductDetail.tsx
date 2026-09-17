@@ -639,6 +639,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               selectedColorId={selectedColorId}
               onColorSelect={handleColorSelect}
               deferredDelivery={product.deferredDelivery}
+              promotion={product.promotion}
             />
           </div>
 

@@ -185,6 +185,13 @@ export interface ProductDetail {
   variantId?: number;
   /** Entrega diferida (informativa). isDeferred=false → el FE oculta el bloque. */
   deferredDelivery?: DeferredDelivery;
+  /**
+   * Promoción vigente de esta card (BAL-3922). Cuando trae `template`, el
+   * detalle pinta el sello con el texto y los colores de la plantilla, igual
+   * que la card del catálogo. `undefined` = sin promoción: la ficha se ve como
+   * siempre.
+   */
+  promotion?: ProductPromotion;
 }
 
 // ============================================
@@ -295,21 +302,55 @@ export interface SimilarProductImage {
   variantId?: number;  // Para filtrar imágenes por color seleccionado
 }
 
+/**
+ * Plantilla visual de una promoción: el texto, los colores y el ícono del
+ * sello, tal como los configura el admin. Es la MISMA plantilla que pinta la
+ * card del catálogo (`ProductCard`), y por eso vive en un solo tipo: el sello
+ * del detalle y el de la grilla tienen que leerse igual.
+ *
+ * En el dominio del front va siempre en camelCase. Cuidado: el wire NO es
+ * homogéneo — los productos similares llegan del backend ya en camelCase y el
+ * producto principal en snake_case, en la misma respuesta. La conversión la
+ * hace el mapper (`productDetailApi`).
+ */
+export interface PromotionTemplate {
+  code: string;
+  bannerText: string;
+  bannerStyle: 'top_bar' | 'ribbon_corner';
+  borderColor: string | null;
+  bannerBgColor: string | null;
+  bannerTextColor: string;
+  bannerIcon: string | null;
+  ctaText: string;
+  ctaStyle: 'golden' | 'primary';
+  showSpecs: boolean;
+  showLinks: boolean;
+}
+
 export interface SimilarProductPromotion {
   discount_value: number;
-  template: {
-    code: string;
-    bannerText: string;
-    bannerStyle: 'top_bar' | 'ribbon_corner';
-    borderColor: string | null;
-    bannerBgColor: string | null;
-    bannerTextColor: string;
-    bannerIcon: string | null;
-    ctaText: string;
-    ctaStyle: 'golden' | 'primary';
-    showSpecs: boolean;
-    showLinks: boolean;
-  } | null;
+  template: PromotionTemplate | null;
+}
+
+/**
+ * Promoción del producto principal del detalle (BAL-3922).
+ *
+ * El backend ya la manda en `product.promotion` del detalle público; antes el
+ * front la descartaba y el mismo equipo salía con sello en el catálogo y sin
+ * sello en su ficha.
+ *
+ * Trae más campos que `SimilarProductPromotion` porque el endpoint del detalle
+ * expone la promoción completa (id, nombre, vigencia), no solo el descuento.
+ */
+export interface ProductPromotion {
+  id: number;
+  name: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  /** Fecha ISO de fin de vigencia, o null si no caduca. */
+  validUntil: string | null;
+  template: PromotionTemplate | null;
 }
 
 export interface SimilarProduct {
@@ -378,6 +419,12 @@ export interface ProductGalleryProps {
   productName: string;
   /** ID del producto para eventos de analytics. */
   productId?: string;
+  /**
+   * Promoción de la card (BAL-3922). La galería es la caja que encabeza la
+   * ficha, así que el sello va aquí arriba — el mismo sitio que ocupa en la
+   * card del catálogo. Sin promoción (o sin plantilla) no se dibuja nada.
+   */
+  promotion?: ProductPromotion | null;
 }
 
 export interface DetailTabsProps {
