@@ -56,12 +56,72 @@ export function transformConfigHref(href: string, landing: string): string {
     return href;
   }
 
+  // Destino en OTRA landing: `@slug/pagina`. Ver `parseCrossLanding`.
+  const cross = parseCrossLanding(href);
+  if (cross) {
+    const otroHome = landingHome(cross.landing);
+    // El resto se resuelve igual que en la landing propia, ancla incluida.
+    if (!cross.resto) return otroHome;
+    if (cross.resto.startsWith('#')) return `${otroHome}${cross.resto}`;
+    return `${otroHome}/${cross.resto}`;
+  }
+
   const home = landingHome(landing.replace(/\/+$/, ''));
 
   if (href.startsWith('#')) return `${home}${href}`;
   if (href.startsWith(`${BASE_PATH}/`)) return href;
 
   return `${home}/${href}`;
+}
+
+/**
+ * Prefijo de los destinos que apuntan a OTRA landing: `@slug/pagina`.
+ *
+ * Se eligió una marca explícita en vez de apoyarse en la barra inicial porque
+ * `/otra-landing/catalogo` significa cosas distintas según el entorno: en
+ * producción `BASE_PATH` es '' y la rama de "ya viene con BASE_PATH" la deja
+ * intacta, pero en local (`/prototipos/0.6`) no matchea y termina colgada de
+ * la landing actual. El mismo valor guardado llevaría a dos sitios distintos.
+ *
+ * `@` no colisiona con nada de lo ya guardado: los hrefs del admin son rutas
+ * relativas (`catalogo`), anclas (`#faq`) o URLs absolutas.
+ */
+const CROSS_LANDING_PREFIX = '@';
+
+/** Un slug de landing: minúsculas, dígitos y guiones. */
+const SLUG_VALIDO = /^[a-z0-9][a-z0-9-]*$/;
+
+/**
+ * Parte `@slug/resto` en sus dos mitades.
+ *
+ * Devuelve null si no lleva el prefijo o si el slug no es válido -- un slug
+ * con `.` o `/` extra podría salirse de la ruta esperada, y ante la duda es
+ * preferible tratarlo como href normal y que caiga en la landing actual, que
+ * es el comportamiento de siempre.
+ */
+export function parseCrossLanding(
+  href: string
+): { landing: string; resto: string } | null {
+  if (!href.startsWith(CROSS_LANDING_PREFIX)) return null;
+
+  const sinPrefijo = href.slice(CROSS_LANDING_PREFIX.length);
+  const corte = sinPrefijo.search(/[/#?]/);
+
+  const slug = corte === -1 ? sinPrefijo : sinPrefijo.slice(0, corte);
+  if (!SLUG_VALIDO.test(slug)) return null;
+
+  if (corte === -1) return { landing: slug, resto: '' };
+
+  const resto = sinPrefijo.slice(corte);
+  // `@slug/catalogo` -> resto `catalogo`; `@slug#faq` -> resto `#faq`.
+  return { landing: slug, resto: resto.startsWith('/') ? resto.slice(1) : resto };
+}
+
+/** Arma el valor que se guarda para un destino en otra landing. */
+export function buildCrossLandingHref(landing: string, resto: string): string {
+  return resto
+    ? `${CROSS_LANDING_PREFIX}${landing}/${resto}`
+    : `${CROSS_LANDING_PREFIX}${landing}`;
 }
 
 /**
