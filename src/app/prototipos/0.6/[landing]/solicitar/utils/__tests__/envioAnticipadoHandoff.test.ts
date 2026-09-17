@@ -7,7 +7,9 @@
  * código la deja pidiendo un contrato de nadie.
  */
 import {
+  clearEnvioAnticipadoContratoAceptado,
   clearEnvioAnticipadoHandoff,
+  markEnvioAnticipadoContratoAceptado,
   readEnvioAnticipadoHandoff,
   saveEnvioAnticipadoHandoff,
 } from '../envioAnticipadoHandoff';
@@ -87,5 +89,43 @@ describe('atado a la sesion que lo creo', () => {
     saveEnvioAnticipadoHandoff('a', { applicationCode: 'APP-1', sessionUuid: 's1' });
 
     expect(readEnvioAnticipadoHandoff('a', null)?.applicationCode).toBe('APP-1');
+  });
+});
+
+describe('marcar el contrato aceptado', () => {
+  it('prende la marca sin pisar el resto del handoff', () => {
+    saveEnvioAnticipadoHandoff('a', {
+      applicationCode: 'APP-1', resumeToken: 'tok', sessionUuid: 's1',
+    });
+
+    markEnvioAnticipadoContratoAceptado('a');
+
+    expect(readEnvioAnticipadoHandoff('a')).toEqual({
+      applicationCode: 'APP-1', resumeToken: 'tok', sessionUuid: 's1', contratoAceptado: true,
+    });
+  });
+
+  it('sin handoff guardado no rompe nada', () => {
+    expect(() => markEnvioAnticipadoContratoAceptado('sin-nada')).not.toThrow();
+    expect(readEnvioAnticipadoHandoff('sin-nada')).toBeNull();
+  });
+});
+
+describe('limpiar la marca (contrato vencido tras aceptar)', () => {
+  it('apaga la marca sin pisar el resto del handoff', () => {
+    saveEnvioAnticipadoHandoff('a', {
+      applicationCode: 'APP-1', resumeToken: 'tok', sessionUuid: 's1', contratoAceptado: true,
+    });
+
+    clearEnvioAnticipadoContratoAceptado('a');
+
+    expect(readEnvioAnticipadoHandoff('a')).toEqual({
+      applicationCode: 'APP-1', resumeToken: 'tok', sessionUuid: 's1', contratoAceptado: false,
+    });
+  });
+
+  it('sin handoff guardado no rompe nada', () => {
+    expect(() => clearEnvioAnticipadoContratoAceptado('sin-nada')).not.toThrow();
+    expect(readEnvioAnticipadoHandoff('sin-nada')).toBeNull();
   });
 });

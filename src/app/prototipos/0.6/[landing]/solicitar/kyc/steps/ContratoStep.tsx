@@ -531,7 +531,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           `flex-col-reverse` mantiene "Atrás" primero en el DOM (orden de
           tabulación) y lo pinta debajo. Desde `sm` vuelve la fila de siempre. */}
       <div className="flex flex-col-reverse gap-3 sm:flex-row">
-        {onBack && (
+        {/* Firmó: no hay a dónde volver dentro del wizard (gate G2). El botón
+            desaparece acá y el indicador de pasos se bloquea en `StepClient` —
+            las dos superficies por las que se podía intentar retroceder. */}
+        {onBack && !aceptadoPreviamente && (
           <button
             type="button"
             onClick={onBack}
