@@ -346,7 +346,7 @@ describe('CatalogBanner', () => {
         stripImageUrl: 'https://cdn.example.com/strip.png',
       };
 
-      it('renderiza sus piezas: imagen, título, precio y cta', () => {
+      it('renderiza sus piezas: título, precio y cta', () => {
         render(<CatalogBanner {...stripProps} />);
         expect(screen.getByText('Gran remate laptop seminuevas')).toBeInTheDocument();
         expect(screen.getByText('Desde S/45 al mes')).toBeInTheDocument();
@@ -374,33 +374,49 @@ describe('CatalogBanner', () => {
         expect(screen.getByTestId('catalog-banner')).toBeInTheDocument();
       });
 
-      // Sin imagen la tira igual tiene que verse bien, sin hueco roto.
-      it('sin strip_image_url no se rompe: no hay <img> pero el resto se pinta', () => {
-        const { container } = render(
-          <CatalogBanner {...stripProps} stripImageUrl={undefined} />
-        );
+      // El rediseño sacó la imagen de la tira. Las landings guardadas antes
+      // conservan `strip_image_url` en su config: tiene que IGNORARSE, no
+      // colarse como una imagen suelta encima del degradado.
+      it('ignora strip_image_url aunque venga guardada', () => {
+        const { container } = render(<CatalogBanner {...stripProps} />);
         expect(container.querySelector('img')).not.toBeInTheDocument();
         expect(screen.getByText('Gran remate laptop seminuevas')).toBeInTheDocument();
         expect(screen.getByText('Ver')).toBeInTheDocument();
       });
 
-      it('usa los colores por defecto (aqua/navy) sin strip_bg_color ni strip_text_color', () => {
+      // El degradado se lee de `data-strip-from` / `data-strip-to`: jsdom
+      // descarta `linear-gradient()` y no lo deja ver desde `style`.
+      it('usa el degradado de marca (azul -> aqua) sin colores configurados', () => {
         render(<CatalogBanner {...stripProps} />);
         const link = screen.getByTestId('catalog-banner-link');
-        expect(link.style.backgroundColor).toBe('rgb(3, 219, 208)'); // #03DBD0
+        expect(link).toHaveAttribute('data-strip-from', '#4654CD');
+        expect(link).toHaveAttribute('data-strip-to', '#03DBD0');
+        expect(link.style.color).toBe('rgb(255, 255, 255)');
       });
 
-      it('respeta strip_bg_color y strip_text_color cuando vienen', () => {
+      it('respeta los dos colores del degradado y el de texto cuando vienen', () => {
         render(
           <CatalogBanner
             {...stripProps}
             stripBgColor="#ff0000"
+            stripBgColor2="#0000ff"
             stripTextColor="#00ff00"
           />
         );
         const link = screen.getByTestId('catalog-banner-link');
-        expect(link.style.backgroundColor).toBe('rgb(255, 0, 0)');
+        expect(link).toHaveAttribute('data-strip-from', '#ff0000');
+        expect(link).toHaveAttribute('data-strip-to', '#0000ff');
         expect(link.style.color).toBe('rgb(0, 255, 0)');
+      });
+
+      // Las landings guardadas antes del rediseño tienen un solo color: el
+      // degradado tiene que quedar PLANO, no estrenar un segundo color que
+      // nadie eligió. Si esto se rompe, esas landings cambian de fondo solas.
+      it('sin segundo color el degradado queda plano en el primero', () => {
+        render(<CatalogBanner {...stripProps} stripBgColor="#151744" />);
+        const link = screen.getByTestId('catalog-banner-link');
+        expect(link).toHaveAttribute('data-strip-from', '#151744');
+        expect(link).toHaveAttribute('data-strip-to', '#151744');
       });
 
       // La tira repite los dos casos de seguridad del tipo imagen: mismo

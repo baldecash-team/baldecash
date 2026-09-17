@@ -46,16 +46,31 @@ interface CatalogBannerProps {
   stripCtaText?: string;
   /** Destino al hacer clic en la tira. Mismo contrato de link que el tipo imagen. */
   stripCtaUrl?: string;
-  /** PNG recortado con fondo transparente. Opcional: sin ella la tira igual se ve bien. */
+  /**
+   * PNG recortado con fondo transparente.
+   *
+   * OBSOLETO desde el rediseño de la tira: el diseño nuevo no lleva imagen.
+   * Se mantiene en la interfaz porque las landings guardadas antes del
+   * rediseño siguen teniendo la clave en su config; simplemente se ignora.
+   */
   stripImageUrl?: string;
-  /** Fondo de la tira. Default aqua. */
+  /** Inicio del degradado de fondo. Default azul de marca. */
   stripBgColor?: string;
-  /** Color de texto de la tira. Default navy. */
+  /**
+   * Fin del degradado de fondo. Default aqua de marca.
+   *
+   * Vacío = degradado plano (arranca y termina en `stripBgColor`), que es lo
+   * que ven las landings guardadas antes del rediseño: conservan su color
+   * sólido en vez de estrenar un degradado que nadie eligió.
+   */
+  stripBgColor2?: string;
+  /** Color del texto de la tira. Default blanco. */
   stripTextColor?: string;
 }
 
-const STRIP_BG_DEFAULT = '#03DBD0';
-const STRIP_TEXT_DEFAULT = '#151744';
+const STRIP_BG_DEFAULT = '#4654CD';
+const STRIP_BG2_DEFAULT = '#03DBD0';
+const STRIP_TEXT_DEFAULT = '#FFFFFF';
 
 // El mismo corte que usan el <picture> y el skeleton de abajo.
 const MEDIA_MOVIL = "(max-width: 768px)";
@@ -124,8 +139,8 @@ export default function CatalogBanner(props: CatalogBannerProps) {
         priceText={props.stripPriceText}
         ctaText={props.stripCtaText}
         ctaUrl={props.stripCtaUrl}
-        imageUrl={props.stripImageUrl}
         bgColor={props.stripBgColor}
+        bgColor2={props.stripBgColor2}
         textColor={props.stripTextColor}
         landing={props.landing}
         linkTarget={props.linkTarget}
@@ -260,104 +275,133 @@ interface CatalogBannerStripProps {
   priceText?: string;
   ctaText?: string;
   ctaUrl?: string;
-  imageUrl?: string;
   bgColor?: string;
+  bgColor2?: string;
   textColor?: string;
   landing?: string;
   linkTarget?: string;
 }
 
 // A sangre: sin márgenes ni border-radius, de borde a borde. `min-height`
-// 72px en móvil, 84px desde 768px; imagen desbordada por abajo/izquierda
-// (spec del bloque `.bcr` del HTML de Haru). Se resuelve en CSS puro -no
-// clases utilitarias- porque las medidas (76px/88px bajo 340px, 120px/136px
-// desde 768px) no tienen equivalente directo en la escala de Tailwind.
+// 54px en móvil, 70px desde 768px (spec del bloque `.bcr-tira`). Se resuelve
+// en CSS puro -no clases utilitarias- porque las medidas (23px de título,
+// 13.5px de bajada, botón pill) no tienen equivalente en la escala de Tailwind.
+//
+// El texto va sobre un degradado, así que el contenedor NO define `color`:
+// lo define cada pieza, para que el botón pueda invertir (fondo blanco,
+// letra del color de marca) sin heredar el blanco del título.
 const STRIP_STYLE = `
   .catalog-banner-strip {
-    display: flex;
-    align-items: center;
-    min-height: 72px;
+    display: block;
     width: 100%;
     text-decoration: none;
-    overflow: hidden;
   }
-  .catalog-banner-strip__media {
-    position: relative;
-    flex: 0 0 auto;
-    align-self: stretch;
-    overflow: hidden;
-    width: 92px;
-  }
-  .catalog-banner-strip__media img {
-    position: absolute;
-    left: -4px;
-    bottom: -10px;
-    width: 104px;
-    max-width: none;
+  .catalog-banner-strip__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    /* La maqueta trae 54px de alto y 7px de padding vertical. Acá va más
+       holgado: con 7px el texto queda pegado a los bordes de la franja,
+       que es lo que se ve en pantalla aunque el número coincida. */
+    min-height: 68px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
   .catalog-banner-strip__body {
-    flex: 1 1 auto;
     min-width: 0;
-    padding: 8px 10px;
   }
   .catalog-banner-strip__title {
-    font-size: 14px;
+    display: block;
+    font-family: 'Baloo 2', system-ui, sans-serif;
+    font-size: 23px;
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1;
+    letter-spacing: -.005em;
+    text-transform: uppercase;
     margin: 0;
+    /* Una sola linea, como la bajada.
+       El titulo lo escribe quien edita la landing y el diseño asume algo
+       corto ("Gran remate"). Sin esto, "Gran remate laptops seminuevas"
+       se parte en 3 lineas a 390px y la tira pasa de 54px a 100px:
+       deja de ser una tira y empuja el catalogo hacia abajo. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .catalog-banner-strip__price {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: rgba(21, 23, 68, .7);
-    margin: 2px 0 0;
-  }
-  .catalog-banner-strip__price b {
-    font-size: 16px;
-    font-weight: 800;
-    color: inherit;
+    display: block;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin: 1px 0 0;
+    /* La bajada va un punto por debajo del titulo, como en la maqueta
+       (rgba blanco al 92%). Se aplica al COLOR y no con opacity: opacity
+       afecta a todo el subarbol y abre un contexto de apilamiento, y ademas
+       el color de la tira es configurable, asi que no se puede hardcodear el
+       blanco. color-mix baja solo el color, sea cual sea. */
+    color: color-mix(in srgb, currentColor 92%, transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .catalog-banner-strip__cta {
     flex: 0 0 auto;
-    margin: 0 12px 0 8px;
-    padding: 10px 13px;
-    border-radius: 10px;
-    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    font-family: 'Baloo 2', system-ui, sans-serif;
+    font-size: 13.5px;
     font-weight: 700;
+    line-height: 1;
+    padding: 9px 14px;
+    border-radius: 999px;
     white-space: nowrap;
-    color: #fff;
+    /* despega el botón del extremo claro del degradado */
+    box-shadow: 0 1px 3px rgba(21, 23, 68, .18);
+  }
+  .catalog-banner-strip__cta svg {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
   }
   .catalog-banner-strip:focus-visible {
-    outline: 3px solid var(--azul, #5a63e0);
+    outline: 3px solid #151744;
     outline-offset: -3px;
   }
-  @media (max-width: 340px) {
-    .catalog-banner-strip__media { width: 76px; }
-    .catalog-banner-strip__media img { width: 88px; }
-    .catalog-banner-strip__title { font-size: 13px; }
+  @media (max-width: 339px) {
+    .catalog-banner-strip__inner { padding: 12px 12px; gap: 8px; }
+    .catalog-banner-strip__title { font-size: 20px; }
+    .catalog-banner-strip__price { font-size: 12px; }
+    .catalog-banner-strip__cta { padding: 8px 11px; font-size: 12.5px; }
   }
   @media (min-width: 768px) {
-    .catalog-banner-strip { min-height: 84px; justify-content: center; gap: 16px; }
-    .catalog-banner-strip__media { width: 120px; }
-    .catalog-banner-strip__media img { width: 136px; }
-    .catalog-banner-strip__title { font-size: 17px; }
-    .catalog-banner-strip__price b { font-size: 19px; }
+    .catalog-banner-strip__inner { min-height: 86px; padding: 18px 34px; }
+    .catalog-banner-strip__title { font-size: 30px; }
+    .catalog-banner-strip__price { font-size: 16px; }
+    .catalog-banner-strip__cta { font-size: 15px; padding: 12px 20px; }
   }
 `;
 
 /**
- * Tira compacta de remate: piezas separadas (imagen desbordada, título,
- * precio, botón) en vez de una sola imagen full-width. A sangre -sin el
- * padding del wrapper del catálogo-, ver CatalogLayoutV4 donde se neutraliza
- * ese padding solo para este tipo.
+ * Tira compacta de remate: título, bajada de precio y botón sobre un
+ * degradado, a sangre -sin el padding del wrapper del catálogo-, ver
+ * CatalogLayoutV4 donde se neutraliza ese padding solo para este tipo.
+ *
+ * El degradado sale de DOS colores editables. Con el segundo vacío arranca y
+ * termina en el primero, o sea color sólido: así las landings guardadas antes
+ * del rediseño conservan exactamente el fondo que eligieron, en vez de
+ * estrenar un degradado que nadie configuró.
  */
 function CatalogBannerStrip({
   title,
   priceText,
   ctaText,
   ctaUrl,
-  imageUrl,
   bgColor,
+  bgColor2,
   textColor,
   landing,
   linkTarget,
@@ -366,34 +410,68 @@ function CatalogBannerStrip({
   // misma sanitización, mismos dos casos de seguridad cubiertos.
   const href = resolveHref(ctaUrl || '', landing);
   const nuevaPestana = linkTarget === '_blank';
-  const bg = bgColor || STRIP_BG_DEFAULT;
+  const desde = bgColor || STRIP_BG_DEFAULT;
+  /**
+   * Fin del degradado, en tres casos:
+   *
+   * - Segundo color elegido => se usa.
+   * - Sin segundo pero CON primero => plano: la landing guardó un sólido
+   *   antes del rediseño y tiene que conservarlo, no estrenar un aqua que
+   *   nadie configuró.
+   * - Sin ninguno de los dos => degradado de marca completo (azul -> aqua),
+   *   que es el diseño por defecto de la tira.
+   */
+  const hasta = bgColor2 || (bgColor ? bgColor : STRIP_BG2_DEFAULT);
   const color = textColor || STRIP_TEXT_DEFAULT;
 
   const contenido = (
     <>
       <style>{STRIP_STYLE}</style>
-      {/* Si falta la imagen, el contenedor queda vacío pero el layout no se
-          rompe: no hay <img> que dispare un ícono de "rota". */}
-      <div className="catalog-banner-strip__media">
-        {imageUrl && <img src={imageUrl} alt="" loading="lazy" />}
-      </div>
-      <div className="catalog-banner-strip__body">
-        {title && <p className="catalog-banner-strip__title">{title}</p>}
-        {priceText && <p className="catalog-banner-strip__price">{priceText}</p>}
-      </div>
-      {ctaText && (
-        <span className="catalog-banner-strip__cta" style={{ backgroundColor: color }}>
-          {ctaText}
+      <span className="catalog-banner-strip__inner">
+        <span className="catalog-banner-strip__body">
+          {title && <strong className="catalog-banner-strip__title">{title}</strong>}
+          {priceText && <span className="catalog-banner-strip__price">{priceText}</span>}
         </span>
-      )}
+        {ctaText && (
+          <span className="catalog-banner-strip__cta" style={{ color: desde }}>
+            {ctaText}
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M7 4l6 6-6 6" />
+            </svg>
+          </span>
+        )}
+      </span>
     </>
   );
 
-  const style: React.CSSProperties = { backgroundColor: bg, color };
+  const style: React.CSSProperties = {
+    background: `linear-gradient(90deg, ${desde} 0%, ${hasta} 100%)`,
+    color,
+  };
+
+  /**
+   * Las dos paradas del degradado, expuestas en el DOM.
+   *
+   * jsdom descarta `linear-gradient()` al parsear: no lo guarda ni en
+   * `style.background`, ni en `style.backgroundImage`, ni en el atributo
+   * `style` crudo. Sin esto no hay forma de verificar en un test que el
+   * fondo salga de los colores configurados -- y el caso que más importa
+   * (un solo color guardado => degradado plano, las landings de antes del
+   * rediseño no cambian de fondo solas) quedaría sin cubrir.
+   */
+  const attrsFondo = { 'data-strip-from': desde, 'data-strip-to': hasta };
 
   if (!href) {
     return (
-      <div data-testid="catalog-banner" className="catalog-banner-strip" style={style}>
+      <div data-testid="catalog-banner" className="catalog-banner-strip" style={style} {...attrsFondo}>
         {contenido}
       </div>
     );
@@ -406,6 +484,7 @@ function CatalogBannerStrip({
       {...(nuevaPestana ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className="catalog-banner-strip"
       style={style}
+      {...attrsFondo}
     >
       {contenido}
     </a>
