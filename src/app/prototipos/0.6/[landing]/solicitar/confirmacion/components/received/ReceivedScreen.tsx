@@ -5,7 +5,6 @@ import { ReceivedData } from '../../types/received';
 import type { ModoCierreKyc } from '../../confirmacionClient';
 import { Illustration } from './illustration';
 import { ReceivedMessage } from './message';
-import { ApplicationStatus } from './status';
 import { ProductSummary } from './summary';
 import { ContactInfo } from './contact';
 import { DescargarConstancia } from './DescargarConstancia';
@@ -21,11 +20,6 @@ interface ReceivedScreenProps {
   /**
    * Se llega desde el cierre del KYC y no desde el submit (ver
    * `modoCierreDelKyc`). `null` es la pantalla de siempre.
-   *
-   * En ambos modos cae el timeline de estado: sus tres pasos son "Solicitud
-   * enviada → En revisión → Respuesta", y quien cerró el KYC ya fue aprobado y
-   * firmó. Dejarlo diría que su solicitud sigue evaluándose, que es justo lo
-   * contrario de lo que acaba de pasar.
    */
   modoCierreKyc?: ModoCierreKyc | null;
   /** Cómo terminó, según ws2. Ver `ReceivedMessage`. */
@@ -43,7 +37,10 @@ export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome
         <Illustration overlayVariant={overlayVariant} />
         <ReceivedMessage data={data} overlayVariant={overlayVariant} modoCierreKyc={modoCierreKyc} cierre={cierre} />
         {otpCta}
-        {!modoCierreKyc && <ApplicationStatus notificationChannels={data.notificationChannels} />}
+        {/* Sin el timeline de estado ("Solicitud enviada → En revisión →
+            Respuesta"): el mensaje de arriba ya dice cómo terminó, y a quien
+            llega desde el cierre del KYC —aprobado y firmado— le diría que
+            su solicitud sigue evaluándose. */}
         <ProductSummary data={data} />
         {/* Va antes del contacto: es lo último accionable que le queda por
             hacer a la persona, no una nota al pie. */}
