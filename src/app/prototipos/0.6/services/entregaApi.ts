@@ -21,6 +21,16 @@ export interface EntregaDireccion {
 
 export interface EntregaDatos {
   application_code: string;
+  /**
+   * Slug de la landing del flujo, para montar el chrome del sitio (navbar +
+   * footer) alrededor del formulario en vez del panel de marca standalone.
+   *
+   * Opcional a propósito: el backend todavía no lo manda (lo está agregando
+   * otro trabajo en paralelo). Sin él, quien resuelve el chrome cae al primer
+   * segmento de `volver`, y sin ninguno de los dos, al layout standalone de
+   * siempre — ver `EntregaConChrome`.
+   */
+  landing_slug?: string;
   /** Fecha en que BaldeCash envía el equipo (YYYY-MM-DD). La define BaldeCash. */
   fecha_entrega: string | null;
   equipo: {

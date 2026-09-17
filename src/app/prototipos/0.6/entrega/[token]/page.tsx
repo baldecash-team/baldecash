@@ -12,8 +12,7 @@
  */
 
 import type { Metadata } from 'next';
-import { EntregaLayout } from '../components/EntregaLayout';
-import { EntregaTokenClient } from '../components/EntregaTokenClient';
+import { EntregaConChrome } from '../components/EntregaConChrome';
 
 export const metadata: Metadata = {
   title: 'Coordina tu entrega | BaldeCash',
@@ -36,9 +35,10 @@ export default async function EntregaPage({
   // El formulario portado de Zona Clientes (hero con pasos, tarjeta del equipo,
   // direccion con Google Maps y cascada de ubigeo, quien recibe, tipo de envio
   // y cierre con resumen). `EntregaClient` era la version anterior, sin diseno.
-  return (
-    <EntregaLayout>
-      <EntregaTokenClient token={token} volver={volver} />
-    </EntregaLayout>
-  );
+  //
+  // `EntregaConChrome` decide si esta pantalla se ve como el resto del wizard
+  // de la landing (navbar + footer, igual que `…/solicitar/resumen`) o
+  // standalone (panel de marca), según pueda resolver la landing del flujo —
+  // ver el comentario de ese componente para el criterio completo.
+  return <EntregaConChrome token={token} volver={volver} />;
 }
