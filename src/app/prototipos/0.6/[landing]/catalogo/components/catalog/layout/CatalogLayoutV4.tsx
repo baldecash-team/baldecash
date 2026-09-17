@@ -111,15 +111,20 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
   /**
    * Con banner se oculta la presentación del encabezado -el título, la bajada
-   * y el icono que los acompaña-: el banner ya ocupa ese primer golpe de vista
-   * y las dos piezas compiten por lo mismo.
+   * y el icono que los acompaña-, pero SOLO EN MÓVIL: ahí el alto es escaso y
+   * las dos piezas compiten por el primer golpe de vista. En desktop hay sitio
+   * de sobra y el encabezado se queda completo.
    *
-   * Se van las tres juntas. El icono no se queda solo: sin el texto al lado
-   * queda una caja de 40x40 con una lupa suelta y un gap esperando un hermano
-   * que ya no existe.
+   * Las tres van juntas. El icono no se queda solo: sin el texto al lado queda
+   * una caja de 40x40 con una lupa suelta y un gap esperando un hermano que ya
+   * no existe.
    *
-   * Lo que SÍ sigue es el conteo, el orden y las cuatro tarjetas de uso: son
-   * controles, no presentación, y sin ellos no hay cómo filtrar ni ordenar.
+   * El corte se aplica con `hidden sm:flex` donde se usa esta bandera; acá solo
+   * se decide SI corresponde ocultarlo.
+   *
+   * Lo que SÍ sigue en ambos tamaños es el conteo, el orden y las cuatro
+   * tarjetas de uso: son controles, no presentación, y sin ellos no hay cómo
+   * filtrar ni ordenar.
    */
   const ocultarTextoEncabezado = hayBanner;
 
@@ -709,11 +714,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
               >
-                {/* El icono acompaña al titulo: sin el texto queda una caja de
-                    40x40 con una lupa suelta y un gap esperando un hermano que
-                    ya no existe. Se van juntos. Ver `ocultarTextoEncabezado`. */}
-                {!ocultarTextoEncabezado && (
-                <div className="flex items-center gap-3 min-w-0">
+                {/* Icono + titulo + bajada: se ocultan SOLO EN MOVIL cuando hay
+                    banner, donde el alto es escaso y las dos piezas compiten por
+                    el primer golpe de vista. En desktop hay sitio de sobra y el
+                    encabezado se queda completo.
+                    Se resuelve con `hidden sm:flex` y no desmontando el bloque:
+                    el breakpoint es de CSS, y en JS habria que duplicarlo con un
+                    matchMedia que ademas rompe la hidratacion en SSR. */}
+                <div
+                  className={`${ocultarTextoEncabezado ? 'hidden sm:flex' : 'flex'} items-center gap-3 min-w-0`}
+                >
                   <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                     <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
@@ -726,7 +736,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     </p>
                   </div>
                 </div>
-                )}
 
                 <div id="onboarding-sort">
                   <SortDropdown

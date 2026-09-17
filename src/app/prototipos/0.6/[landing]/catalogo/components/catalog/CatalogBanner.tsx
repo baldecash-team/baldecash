@@ -297,13 +297,18 @@ const STRIP_STYLE = `
     text-decoration: none;
   }
   .catalog-banner-strip__inner {
-    max-width: 1400px;
+    /* El padding lateral copia el del catálogo (12px, 16px desde sm, 24px
+       desde lg) para que el título arranque en la misma vertical que
+       "13 equipos" y que el borde de la card de filtros. La maqueta trae
+       max-width 1400px mas 34px, que en una maqueta suelta se ve bien pero
+       aca deja el texto 23px mas adentro que todo lo demas: se lee como un
+       bloque desalineado. */
     margin: 0 auto;
     /* La maqueta trae 54px de alto y 7px de padding vertical. Acá va más
        holgado: con 7px el texto queda pegado a los bordes de la franja,
        que es lo que se ve en pantalla aunque el número coincida. */
     min-height: 68px;
-    padding: 14px 16px;
+    padding: 14px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -378,10 +383,14 @@ const STRIP_STYLE = `
     .catalog-banner-strip__cta { padding: 8px 11px; font-size: 12.5px; }
   }
   @media (min-width: 768px) {
-    .catalog-banner-strip__inner { min-height: 86px; padding: 18px 34px; }
+    .catalog-banner-strip__inner { min-height: 86px; padding: 18px 16px; }
     .catalog-banner-strip__title { font-size: 30px; }
     .catalog-banner-strip__price { font-size: 16px; }
     .catalog-banner-strip__cta { font-size: 15px; padding: 12px 20px; }
+  }
+  /* El catálogo pasa a 24px de margen desde lg; el banner lo sigue. */
+  @media (min-width: 1024px) {
+    .catalog-banner-strip__inner { padding-left: 24px; padding-right: 24px; }
   }
 `;
 
