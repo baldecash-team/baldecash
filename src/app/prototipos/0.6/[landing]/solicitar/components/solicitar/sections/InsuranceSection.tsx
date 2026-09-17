@@ -80,11 +80,14 @@ export function InsuranceSection({
       try {
         const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
         const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
-        // A365 (Multiasistencia) SOLO se ofrece en la landing `copia-home`. En
-        // cualquier otra landing se filtra aunque el backend la devuelva.
-        const isCopiaHome = landing === 'copia-home';
+        // El rollout de la Multiasistencia (A365) lo decide el BACKEND, por landing
+        // (`MULTIASISTENCIA_LANDING_SLUGS` en insurance_listing_service.py y
+        // public/landing.py). Acá había un `landing === 'copia-home'` hardcodeado que
+        // la filtraba aunque el backend la devolviera: al habilitar `home-2` el
+        // endpoint empezó a mandar MA-24 y la tarjeta seguía sin aparecer. Un gate
+        // duplicado en el cliente sólo puede desincronizarse del servidor, así que se
+        // confía en lo que llega.
         const mappedPlans: InsurancePlan[] = plans
-          .filter((plan) => isCopiaHome || plan.insuranceType !== 'multiasistencia')
           .map((plan) => ({
           id: plan.id,
           code: plan.code,
