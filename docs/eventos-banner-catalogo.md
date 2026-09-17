@@ -62,6 +62,17 @@ prueba de marzo y nadie escribe ahí. Si buscás eventos, es `user_event`.
 evento se guardaba sin `variant`, `banner_id` ni `href`. Todo lo anterior es
 "alguien tocó un banner" y nada más.
 
+**5. Un `href` en null no es un error: es un banner sin enlace.** El clic se
+mide aunque el banner no lleve a ningún lado. Verificado con un clic real: el
+evento entra igual, con `variant` y `banner_id` correctos y el `href` vacío.
+
+Pasa porque el banner sin enlace se pinta como `<div>` decorativo -no se
+envuelve en `<a>`-, pero el handler del clic vive en el contenedor de afuera.
+
+Hoy es el caso de **los 12 banners de imagen visibles en producción**: todos
+tienen imagen, ninguno tiene `link_url` ni `desktop_link_url`. Se ven en
+pantalla, la gente les puede hacer clic, y no llevan a ninguna parte.
+
 ---
 
 ## Consultas listas
@@ -127,6 +138,24 @@ GROUP BY tipo;
 **Ojo con leer esto como CTR.** No lo es: el hover no existe en celulares, así
 que solo mide gente en computadora. Para CTR de verdad haría falta medir
 cuántas veces se **vio** el banner, y eso hoy no se registra.
+
+### Clics que no llevan a ningún lado
+
+Banners que la gente toca pero que no tienen enlace configurado. Sirve para
+detectar cuál hay que arreglar:
+
+```sql
+SELECT
+  JSON_UNQUOTE(JSON_EXTRACT(properties,'$.banner_id')) AS banner,
+  JSON_UNQUOTE(JSON_EXTRACT(properties,'$.landing'))   AS landing,
+  COUNT(*) AS clics_perdidos
+FROM user_event
+WHERE event_type = 'banner_click'
+  AND JSON_EXTRACT(properties,'$.href') IS NULL
+  AND server_ts >= CURDATE() - INTERVAL 30 DAY
+GROUP BY banner, landing
+ORDER BY clics_perdidos DESC;
+```
 
 ### Evolución día a día
 
