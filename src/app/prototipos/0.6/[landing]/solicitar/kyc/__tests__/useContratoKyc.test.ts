@@ -72,6 +72,30 @@ it('se rinde en el tope y deja el evento', async () => {
     expect.objectContaining({ reason: 'timeout' }));
 });
 
+it('en modo emitido el tope no es un error: deja de pedir y se calla', async () => {
+  // El contrato de ese camino nace con la aprobación, que en el KYC corre
+  // DESPUÉS de esta pantalla. Agotar los 90 s es lo normal, no un fallo:
+  // marcarlo como error pintaba «No pudimos preparar tu contrato» con un
+  // Reintentar que no arreglaba nada, y metía un `timeout` inventado en el
+  // embudo.
+  const track = jest.fn();
+  mockGet.mockResolvedValue({
+    modo: 'emitido' as const, estado: 'generando' as const, disponible: false,
+  });
+
+  const { result } = montar(track);
+
+  await act(async () => { jest.advanceTimersByTime(TOPE_MS + 30000); });
+
+  expect(result.current.estado).toBe('generando');
+  expect(track).not.toHaveBeenCalledWith('kyc_contract_generation_failed',
+    expect.anything());
+  // Y deja de pedir: no sigue golpeando al backend para siempre.
+  const pedidos = mockGet.mock.calls.length;
+  await act(async () => { jest.advanceTimersByTime(60000); });
+  expect(mockGet.mock.calls.length).toBe(pedidos);
+});
+
 it('un error del backend corta la espera', async () => {
   const track = jest.fn();
   mockGet.mockResolvedValue({ modo: 'aceptacion', estado: 'error', disponible: false });

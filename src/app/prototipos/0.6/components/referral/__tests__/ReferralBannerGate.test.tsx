@@ -28,6 +28,8 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('../../../services/referralBannerApi', () => ({
+  // Sólo se dobla el fetch: el número que pinta la franja sale del helper real.
+  ...jest.requireActual('../../../services/referralBannerApi'),
   fetchReferralBannerByRef: jest.fn(),
 }));
 

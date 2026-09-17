@@ -100,6 +100,23 @@ interface LayoutContextValue {
    * prenderían de golpe en las 100+ landings que no tienen la clave.
    */
   chipsDeUso: boolean;
+  /**
+   * Si el catálogo muestra las 4 tarjetas de uso ("Encuentra tu equipo
+   * ideal") y su título.
+   *
+   * Reemplaza la regex sobre el slug (`isSecondFinancingLanding`) que hasta
+   * BAL-3883 decidía esto: una landing nueva de segundo financiamiento ya no
+   * hereda el comportamiento por su nombre, lo decide el preset.
+   */
+  filtroPorUso: boolean;
+  /**
+   * Si el catálogo muestra la franja con el contador de equipos y el
+   * selector de orden.
+   *
+   * Mismo motivo que `filtroPorUso`: la decisión viaja por preset, no por el
+   * slug de la landing.
+   */
+  barraDeOrden: boolean;
 }
 
 /**
@@ -153,6 +170,8 @@ export function LayoutProvider({
   const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
   const [mostrarImagenProducto, setMostrarImagenProducto] = useState(true);
   const [chipsDeUso, setChipsDeUso] = useState(false);
+  const [filtroPorUso, setFiltroPorUso] = useState(true);
+  const [barraDeOrden, setBarraDeOrden] = useState(true);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -179,6 +198,12 @@ export function LayoutProvider({
       // el `!== false` del vecino prenderia los chips en las 100+ landings
       // existentes de golpe.
       setChipsDeUso(cfg.features?.has_usage_chips === true);
+      // Mismo criterio que el logo y el selector de plazo: ausencia significa
+      // encendido. Antes de BAL-3883 esto se decidía con una regex sobre el
+      // slug (`renueva-*`); ahora lo decide el preset y una landing nueva de
+      // segundo financiamiento no hereda el comportamiento por su nombre.
+      setFiltroPorUso(cfg.features?.has_usage_filter !== false);
+      setBarraDeOrden(cfg.features?.has_catalog_sort_bar !== false);
     });
   }, [landing]);
 
@@ -430,7 +455,9 @@ export function LayoutProvider({
     puedeCambiarPlazo,
     mostrarImagenProducto,
     chipsDeUso,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso]);
+    filtroPorUso,
+    barraDeOrden,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso, filtroPorUso, barraDeOrden]);
 
   return (
     <LayoutContext.Provider value={value}>

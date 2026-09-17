@@ -165,7 +165,7 @@ describe('centrado del texto', () => {
   });
 
   it('con link, el ícono va después del texto y no antes', () => {
-    // "Te refirió Aned, si tienes dudas escríbele aquí" ➜ ícono. Al revés, el
+    // "Te refirió Aned, si tienes dudas escríbele al 9…" ➜ ícono. Al revés, el
     // ícono se lee como el sujeto de la frase.
     simularAlto(ALTO);
     render(

@@ -104,6 +104,22 @@ function numeroDeUrlWhatsApp(waUrl: string | null): string | null {
 }
 
 /**
+ * El número tal como se pinta en la franja: "999888777".
+ *
+ * Sale del mismo `wa.me` que abre el toque, así lo que se lee y lo que se abre
+ * nunca discrepan —ni entre el camino de ws2, el del hub y lo guardado en la
+ * sesión, que comparten la URL y no un campo aparte—. Un celular peruano
+ * (`51` + 9 dígitos) se muestra como se dicta acá, sin el país; cualquier otro
+ * va completo y con `+`, que es como hay que marcarlo.
+ */
+export function telefonoVisible(waUrl: string | null | undefined): string | null {
+  const numero = numeroDeUrlWhatsApp(waUrl ?? null);
+  if (!numero) return null;
+  const peruano = /^51(9\d{8})$/.exec(numero);
+  return peruano ? peruano[1] : `+${numero}`;
+}
+
+/**
  * El link de ws2 con NUESTRO mensaje encima.
  *
  * Se rearma entero en vez de sólo reescribirle el `text` porque

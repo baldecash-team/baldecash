@@ -10,7 +10,13 @@
  * Por qué un tope y no un polling infinito: si legacy no puede emitirlo (un
  * producto sin contrato vigente, la solicitud ya aprobada, mPDF caído) esperar
  * para siempre deja al solicitante mirando un skeleton. A los 90 s se muestra
- * el error con «Reintentar», que es una acción que sí puede tomar.
+ * el error con «Reintentar», que es una acción que sí puede tomar. Con una
+ * excepción: en `emitido` el tope no es un fallo —el contrato no existe todavía
+ * y no puede existir en esta pantalla—, así que ahí solo se deja de pedir.
+ *
+ * El polling SÍ sirve en `emitido`, y por eso se mantiene: medido en
+ * producción, el paso pidió el contrato a las 03:27:30 y legacy lo emitió a las
+ * 03:27:31. Cuando la aprobación ya corrió, el documento aparece en segundos.
  *
  * `modo` viene del backend y decide qué puede exigir el paso: `aceptacion` es
  * el flujo nuevo (documento obligatorio), `emitido` es el de siempre (el
@@ -106,6 +112,13 @@ export function useContratoKyc({
       }
 
       if (Date.now() - desdeRef.current >= TOPE_MS) {
+        // En `emitido` agotar el tope es el caso NORMAL, no un fallo: el
+        // contrato nace con la aprobación y en el KYC eso corre después de esta
+        // pantalla. Se deja de pedir y se calla — marcarlo como error pintaba
+        // «No pudimos preparar tu contrato» con un botón Reintentar que no
+        // podía arreglar nada, y ensuciaba el embudo con un fallo inventado.
+        if (r?.modo === 'emitido') return;
+
         setEstado('error');
         track('kyc_contract_generation_failed', {
           application_code: applicationCode, reason: 'timeout',
