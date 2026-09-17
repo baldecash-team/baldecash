@@ -112,6 +112,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   ) || undefined;
 
   /**
+   * Dónde va el banner respecto del bloque "Encuentra tu equipo ideal".
+   * Ausente = 'arriba', que es donde estuvo siempre: las landings ya
+   * publicadas no deben moverse solas al desplegar.
+   */
+  const posicionDelBanner =
+    (catalogBanner?.strip_position as string | undefined) === 'abajo' ? 'abajo' : 'arriba';
+
+  /**
    * Con banner se oculta la presentación del encabezado -el título, la bajada
    * y el icono que los acompaña-, pero SOLO EN MÓVIL: ahí el alto es escaso y
    * las dos piezas compiten por el primer golpe de vista. En desktop hay sitio
@@ -127,8 +135,80 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
    * Lo que SÍ sigue en ambos tamaños es el conteo, el orden y las cuatro
    * tarjetas de uso: son controles, no presentación, y sin ellos no hay cómo
    * filtrar ni ordenar.
+   *
+   * EXCEPCIÓN: si el banner va DEBAJO de ese texto, ocultarlo lo dejaría sin
+   * la referencia que le da sentido a "abajo de". La posición manda.
    */
-  const ocultarTextoEncabezado = hayBanner;
+  const ocultarTextoEncabezado = hayBanner && posicionDelBanner === 'arriba';
+
+  /**
+   * El banner, listo para pintar. Se extrae a una constante porque va en
+   * DOS sitios distintos según `posicionDelBanner`, y duplicar 60 líneas de
+   * JSX -handlers de analítica incluidos- es pedir que las dos copias se
+   * separen con el primer cambio.
+   *
+   * La tira va a sangre: se neutraliza el padding del wrapper SOLO para
+   * ese tipo.
+   */
+  const bloqueDelBanner = hayBanner && catalogBanner ? (
+    <div
+      className={
+        tipoBanner === 'tira_remate'
+          ? 'w-full'
+          : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4'
+      }
+      onClick={() => {
+        // Sin destino el banner es decorativo: no se envuelve en <a> y
+        // no lleva a ninguna parte, así que no hay clic que medir. El
+        // handler vive en este contenedor -no en el <a>-, de modo que
+        // sin este guard se registraría igual y contaría una visita que
+        // nunca ocurrió.
+        if (!destinoDelBanner) return;
+        analytics.trackBannerClick({
+          location: 'catalog_top',
+          banner_id: catalogBannerId?.toString(),
+          variant: tipoBanner,
+          href: destinoDelBanner,
+        });
+        // El banner navega fuera en la misma pestaña: si el evento se
+        // queda esperando el intervalo de 5s, la página se va antes y
+        // el clic se pierde.
+        analytics.flush();
+      }}
+      onMouseEnter={() => {
+        // Mismo motivo que el clic: un banner que no lleva a ningún
+        // lado no genera interés que medir.
+        if (!destinoDelBanner) return;
+        analytics.trackBannerHover({
+          location: 'catalog_top',
+          banner_id: catalogBannerId?.toString(),
+          variant: tipoBanner,
+        });
+      }}
+    >
+      <CatalogBanner
+        desktopImageUrl={catalogBanner.desktop_image_url as string}
+        mobileImageUrl={catalogBanner.mobile_image_url as string}
+        linkUrl={catalogBanner.link_url as string | undefined}
+        desktopLinkUrl={catalogBanner.desktop_link_url as string | undefined}
+        mobileLinkUrl={catalogBanner.mobile_link_url as string | undefined}
+        landing={landingSlug ?? undefined}
+        linkTarget={catalogBanner.link_target as string | undefined}
+        altText={catalogBanner.alt_text as string | undefined}
+        bannerType={catalogBanner.banner_type as string | undefined}
+        stripTitle={catalogBanner.strip_title as string | undefined}
+        stripPriceText={catalogBanner.strip_price_text as string | undefined}
+        stripCtaText={catalogBanner.strip_cta_text as string | undefined}
+        stripCtaUrl={catalogBanner.strip_cta_url as string | undefined}
+        stripBgColor={catalogBanner.strip_bg_color as string | undefined}
+        stripBgColor2={catalogBanner.strip_bg_color_2 as string | undefined}
+        stripTextColor={catalogBanner.strip_text_color as string | undefined}
+        stripConfetti={catalogBanner.strip_confetti === true}
+        stripIconUrl={catalogBanner.strip_icon_url as string | undefined}
+        stripIntro={catalogBanner.strip_intro as string | undefined}
+      />
+    </div>
+  ) : null;
 
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
@@ -655,66 +735,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Banner Promocional del Catálogo — va ARRIBA de la card de filtros,
-            pegado al buscador: es lo primero que se ve al entrar al catálogo.
-            Solo si NO hay VIP countdown; ver `hayBanner`.
-            La tira va a sangre: se neutraliza el padding del wrapper SOLO para ese tipo. */}
-        {hayBanner && catalogBanner && (
-          <div
-            className={
-              tipoBanner === 'tira_remate'
-                ? 'w-full'
-                : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4'
-            }
-            onClick={() => {
-              // Sin destino el banner es decorativo: no se envuelve en <a> y
-              // no lleva a ninguna parte, así que no hay clic que medir. El
-              // handler vive en este contenedor -no en el <a>-, de modo que
-              // sin este guard se registraría igual y contaría una visita que
-              // nunca ocurrió.
-              if (!destinoDelBanner) return;
-              analytics.trackBannerClick({
-                location: 'catalog_top',
-                banner_id: catalogBannerId?.toString(),
-                variant: tipoBanner,
-                href: destinoDelBanner,
-              });
-              // El banner navega fuera en la misma pestaña: si el evento se
-              // queda esperando el intervalo de 5s, la página se va antes y
-              // el clic se pierde.
-              analytics.flush();
-            }}
-            onMouseEnter={() => {
-              // Mismo motivo que el clic: un banner que no lleva a ningún
-              // lado no genera interés que medir.
-              if (!destinoDelBanner) return;
-              analytics.trackBannerHover({
-                location: 'catalog_top',
-                banner_id: catalogBannerId?.toString(),
-                variant: tipoBanner,
-              });
-            }}
-          >
-            <CatalogBanner
-              desktopImageUrl={catalogBanner.desktop_image_url as string}
-              mobileImageUrl={catalogBanner.mobile_image_url as string}
-              linkUrl={catalogBanner.link_url as string | undefined}
-              desktopLinkUrl={catalogBanner.desktop_link_url as string | undefined}
-              mobileLinkUrl={catalogBanner.mobile_link_url as string | undefined}
-              landing={landingSlug ?? undefined}
-              linkTarget={catalogBanner.link_target as string | undefined}
-              altText={catalogBanner.alt_text as string | undefined}
-              bannerType={catalogBanner.banner_type as string | undefined}
-              stripTitle={catalogBanner.strip_title as string | undefined}
-              stripPriceText={catalogBanner.strip_price_text as string | undefined}
-              stripCtaText={catalogBanner.strip_cta_text as string | undefined}
-              stripCtaUrl={catalogBanner.strip_cta_url as string | undefined}
-              stripBgColor={catalogBanner.strip_bg_color as string | undefined}
-              stripBgColor2={catalogBanner.strip_bg_color_2 as string | undefined}
-              stripTextColor={catalogBanner.strip_text_color as string | undefined}
-            />
-          </div>
-        )}
+        {/* Banner arriba del encabezado: la posición por defecto, y donde
+            estuvo siempre. Ver `posicionDelBanner`. */}
+        {posicionDelBanner === 'arriba' && bloqueDelBanner}
 
         {/* Full Width Header Section - Inside Card.
             Cada mitad la prende un preset propio (BAL-3883), ya no una regex
@@ -790,6 +813,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </Card>
         </div>
         )}
+
+        {/* Banner debajo del encabezado. En esta posición el texto de
+            "Encuentra tu equipo ideal" NO se oculta en móvil: sin él delante,
+            "abajo de" no tendría referencia. Ver `ocultarTextoEncabezado`. */}
+        {posicionDelBanner === 'abajo' && bloqueDelBanner}
 
         {/* VIP Countdown Banner */}
         {vipCountdownDate && (
