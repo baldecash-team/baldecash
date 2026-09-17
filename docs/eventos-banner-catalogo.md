@@ -62,6 +62,21 @@ prueba de marzo y nadie escribe ahí. Si buscás eventos, es `user_event`.
 evento se guardaba sin `variant`, `banner_id` ni `href`. Todo lo anterior es
 "alguien tocó un banner" y nada más.
 
+**5. Un `href` en null es data sucia: descartala.** Hasta el 17-sep-2026 un
+banner SIN enlace también registraba clic y hover, aunque no llevara a ningún
+lado y ni siquiera fuera clickeable. Esos eventos cuentan visitas que nunca
+ocurrieron.
+
+Afecta sobre todo a los banners de tipo imagen: los 12 visibles en producción
+tienen imagen y ninguno tiene enlace configurado.
+
+Ya está corregido -ahora sin destino no se emite nada-, pero lo viejo quedó
+guardado. Filtralo siempre:
+
+```sql
+AND JSON_EXTRACT(properties,'$.href') IS NOT NULL
+```
+
 ---
 
 ## Consultas listas

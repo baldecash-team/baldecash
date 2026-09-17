@@ -667,6 +667,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4'
             }
             onClick={() => {
+              // Sin destino el banner es decorativo: no se envuelve en <a> y
+              // no lleva a ninguna parte, así que no hay clic que medir. El
+              // handler vive en este contenedor -no en el <a>-, de modo que
+              // sin este guard se registraría igual y contaría una visita que
+              // nunca ocurrió.
+              if (!destinoDelBanner) return;
               analytics.trackBannerClick({
                 location: 'catalog_top',
                 banner_id: catalogBannerId?.toString(),
@@ -678,13 +684,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               // el clic se pierde.
               analytics.flush();
             }}
-            onMouseEnter={() =>
+            onMouseEnter={() => {
+              // Mismo motivo que el clic: un banner que no lleva a ningún
+              // lado no genera interés que medir.
+              if (!destinoDelBanner) return;
               analytics.trackBannerHover({
                 location: 'catalog_top',
                 banner_id: catalogBannerId?.toString(),
                 variant: tipoBanner,
-              })
-            }
+              });
+            }}
           >
             <CatalogBanner
               desktopImageUrl={catalogBanner.desktop_image_url as string}
