@@ -32,6 +32,7 @@ import { useProduct } from '../context/ProductContext';
 
 // Hooks
 import { ContratoEnWizard } from './ContratoEnWizard';
+import { irAPasoSiNoFirmado } from './contratoFirmadoGate';
 import { useSessionOptional } from '../context/SessionContext';
 import {
   readEnvioAnticipadoHandoff,
@@ -274,6 +275,18 @@ function StepContent() {
   /** Ya se envió (envío anticipado): no se puede volver a crear la solicitud. */
   const yaEnviada = handoff !== null;
 
+  /**
+   * El contrato de ESTA solicitud ya se firmó (gate G2: firmó → no vuelve).
+   *
+   * Misma fuente de verdad que usa `ContratoEnWizard` para `yaAceptado` del
+   * `ContratoStep` (ver ese componente): sale del handoff porque vive en
+   * sessionStorage y sobrevive un refresh de esta misma pestaña. Gobierna acá
+   * que no se pueda volver a un paso anterior ni al contrato en modo edición,
+   * ni por el indicador de pasos (`handleStepClickContrato`), ni por
+   * "Atrás" (`handleSummaryBack`), ni por URL directa (efecto más abajo).
+   */
+  const contratoFirmado = Boolean(handoff?.contratoAceptado);
+
   /** Ver el pestillo en `handleCelebrationComplete`. */
   const enviandoRef = useRef(false);
 
@@ -298,6 +311,23 @@ function StepContent() {
 
   // Is this a summary step?
   const isSummaryStep = step?.is_summary_step || false;
+
+  /**
+   * Gate G2 por URL directa: firmó y trató de abrir un paso ANTERIOR al del
+   * contrato (ej. pegando `/solicitar/datos-personales` en la barra). El
+   * indicador de pasos y "Atrás" ya lo bloquean, pero escribir la URL a mano
+   * los salta a los dos: acá se redirige de vuelta al paso del contrato, que
+   * con `contratoFirmado` se ve en modo "Ya aceptaste este contrato" (no una
+   * firma nueva).
+   */
+  useEffect(() => {
+    if (!contratoFirmado || !condicionesFijas || isSummaryStep) return;
+    const pasoContrato = summarySteps[0];
+    if (pasoContrato) {
+      router.replace(routes.solicitarStep(landing, pasoContrato.url_slug || pasoContrato.code));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contratoFirmado, condicionesFijas, isSummaryStep, summarySteps, landing]);
 
   // Build form values for validation
   const formValues = useMemo(() => {
@@ -644,6 +674,16 @@ function StepContent() {
     router.push(routes.solicitarStep(landing, stepId));
   };
 
+  /**
+   * El indicador de pasos DENTRO de la pantalla del contrato (gate G2):
+   * firmado, ningún paso anterior es clickeable — ahí ya no hay nada que
+   * editar, el documento quedó sellado con esos datos. Sin firmar se comporta
+   * exactamente como `handleStepClick`.
+   */
+  const handleStepClickContrato = (stepId: WizardStepId) => {
+    irAPasoSiNoFirmado(contratoFirmado, () => handleStepClick(stepId));
+  };
+
   // Validate all regular steps (cross-step validation before submit)
   const validateAllSteps = useCallback((): { stepTitle: string; stepSlug: string } | null => {
     for (const s of regularSteps) {
@@ -720,13 +760,24 @@ function StepContent() {
   };
 
   const handleSummaryBack = () => {
-    // Usar navigation.prevStep para navegación dinámica
-    if (navigation.prevStep) {
-      const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
-      router.push(routes.solicitarStep(landing, prevSlug));
-    } else {
-      router.push(routes.solicitar(landing));
+    const volver = () => {
+      // Usar navigation.prevStep para navegación dinámica
+      if (navigation.prevStep) {
+        const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
+        router.push(routes.solicitarStep(landing, prevSlug));
+      } else {
+        router.push(routes.solicitar(landing));
+      }
+    };
+
+    // Gate G2: solo se acota al branch del contrato (envío anticipado). El
+    // resumen de siempre —el otro dueño de este handler— nunca pasa por acá,
+    // así que se comporta exactamente igual que antes.
+    if (handoff && condicionesFijas) {
+      irAPasoSiNoFirmado(contratoFirmado, volver);
+      return;
     }
+    volver();
   };
 
   // Handler para pasos de resumen que NO son el último (continúan a otro paso)
@@ -859,7 +910,7 @@ function StepContent() {
           currentStep={step.url_slug || step.code}
           title={step.title}
           description={step.description}
-          onStepClick={handleStepClick}
+          onStepClick={handleStepClickContrato}
           isLastStep
           sinNavegacion
           condicionesFijas={condicionesFijas}
@@ -871,6 +922,7 @@ function StepContent() {
             landing={landing}
             handoff={handoff}
             onBack={handleSummaryBack}
+            stepSlug={step.url_slug || step.code}
           />
         </WizardLayout>
       );

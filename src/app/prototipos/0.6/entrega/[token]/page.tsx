@@ -25,13 +25,18 @@ export default async function EntregaPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ volver?: string }>;
+  searchParams: Promise<{ volver?: string; atras?: string }>;
 }) {
   const { token } = await params;
   // A dónde sigue el flujo al terminar. Lo pone quien manda acá (el cierre del
   // KYC); abierto desde el WhatsApp no viene, y ahí el formulario cierra en su
   // propia pantalla de "envío registrado".
-  const { volver } = await searchParams;
+  //
+  // `atras` es distinto: a dónde vuelve si se arrepiente ANTES de terminar —el
+  // contrato que acaba de firmar, en modo "ya aceptaste este contrato" (gate
+  // G1)—. También lo pone quien manda acá; el enlace de WhatsApp no trae
+  // ninguno de los dos.
+  const { volver, atras } = await searchParams;
   // El formulario portado de Zona Clientes (hero con pasos, tarjeta del equipo,
   // direccion con Google Maps y cascada de ubigeo, quien recibe, tipo de envio
   // y cierre con resumen). `EntregaClient` era la version anterior, sin diseno.
@@ -40,5 +45,5 @@ export default async function EntregaPage({
   // de la landing (navbar + footer, igual que `…/solicitar/resumen`) o
   // standalone (panel de marca), según pueda resolver la landing del flujo —
   // ver el comentario de ese componente para el criterio completo.
-  return <EntregaConChrome token={token} volver={volver} />;
+  return <EntregaConChrome token={token} volver={volver} atras={atras} />;
 }

@@ -43,6 +43,19 @@ export interface EnvioAnticipadoHandoff {
    * la sesión de ahora es otra, este handoff es de una solicitud anterior.
    */
   sessionUuid?: string;
+  /**
+   * El contrato de esta solicitud YA se aceptó, en esta pestaña.
+   *
+   * Fuente de verdad de "firmó" para las gates de navegación de
+   * `ContratoEnWizard`/`StepClient` (no se puede volver a un paso anterior del
+   * wizard, ni al contrato en modo edición): a diferencia del KYC por ruta
+   * dedicada, la variante wizard no tenía ninguna, así que al volver al
+   * resumen tras firmar el contrato se pintaba como si nunca se hubiera
+   * aceptado. `markEnvioAnticipadoContratoAceptado` es quien la prende;
+   * `ContratoEnWizard` además la corrobora contra `/progress` para que
+   * sobreviva a un refresh sin este handoff (u otro dispositivo).
+   */
+  contratoAceptado?: boolean;
 }
 
 function key(landing: string): string {
@@ -90,5 +103,24 @@ export function clearEnvioAnticipadoHandoff(landing: string): void {
     sessionStorage.removeItem(key(landing));
   } catch {
     // no-op
+  }
+}
+
+/**
+ * Marca el handoff de esta landing como "contrato aceptado", sin pisar el
+ * resto de sus campos. No filtra por `sessionUuid`: se llama justo después de
+ * aceptar, en la misma pestaña que acaba de leer este mismo handoff, así que
+ * si ya no está (se limpió, o pertenece a otra sesión) no hay nada que marcar.
+ */
+export function markEnvioAnticipadoContratoAceptado(landing: string): void {
+  try {
+    const raw = sessionStorage.getItem(key(landing));
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as EnvioAnticipadoHandoff;
+    if (!parsed?.applicationCode) return;
+    sessionStorage.setItem(key(landing), JSON.stringify({ ...parsed, contratoAceptado: true }));
+  } catch {
+    // sessionStorage no disponible: `ContratoEnWizard` igual corrobora contra
+    // `/progress`, así que la fuente de verdad no depende solo de esto.
   }
 }

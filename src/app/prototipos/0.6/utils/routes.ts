@@ -187,10 +187,20 @@ export function solicitarComplementos(landing: string): string {
  * `volver` es a dónde sigue el flujo cuando la persona termina de coordinar
  * —la confirmación de su solicitud—. Viaja en la URL porque el formulario es
  * una pantalla propia, fuera del wizard: sin eso no sabría a dónde devolverla.
+ *
+ * `atras` es a dónde vuelve si se arrepiente ANTES de terminar: el contrato
+ * que acaba de firmar (en modo "ya aceptaste este contrato"), no un paso
+ * anterior del wizard —ese ya no se puede tocar, ver G2 de las gates de
+ * navegación—. Opcional: el enlace de WhatsApp no trae ninguno de los dos, y
+ * ahí el formulario no ofrece volver a ningún lado.
  */
-export function entregaPorToken(token: string, volver?: string): string {
+export function entregaPorToken(token: string, volver?: string, atras?: string): string {
   const base = `${BASE_PATH}/entrega/${token}`;
-  return volver ? `${base}?volver=${encodeURIComponent(volver)}` : base;
+  const params = new URLSearchParams();
+  if (volver) params.set('volver', volver);
+  if (atras) params.set('atras', atras);
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 export function solicitarConfirmacion(

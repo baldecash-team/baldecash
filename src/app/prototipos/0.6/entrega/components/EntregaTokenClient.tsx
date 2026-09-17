@@ -108,9 +108,21 @@ export interface EntregaTokenClientProps {
   volver?: string;
   /** Alternativa a `volver` para quien monta el componente por su cuenta. */
   onVerSolicitud?: () => void;
+  /**
+   * A dónde vuelve el control "← Volver al contrato" (gate G1 de las gates de
+   * navegación del envío anticipado): el contrato que se acaba de firmar, que
+   * con el handoff ya marcado se ve en modo "Ya aceptaste este contrato" (no
+   * pide firmar de nuevo).
+   *
+   * Lo pone `ContratoEnWizard`/`kycClient.tsx` al armar la URL de esta
+   * pantalla (`routes.entregaPorToken(token, volver, atras)`). Ausente en el
+   * enlace de WhatsApp —que se abre fuera del wizard, sin contrato al que
+   * volver—, y ahí el control no se muestra: cero regresión en ese camino.
+   */
+  atras?: string;
 }
 
-export function EntregaTokenClient({ token, volver, onVerSolicitud }: EntregaTokenClientProps) {
+export function EntregaTokenClient({ token, volver, onVerSolicitud, atras }: EntregaTokenClientProps) {
   const router = useRouter();
   const [vista, setVista] = useState<Vista>({ estado: 'cargando' });
   const [enviando, setEnviando] = useState(false);
@@ -213,42 +225,68 @@ export function EntregaTokenClient({ token, volver, onVerSolicitud }: EntregaTok
   const { datos } = vista;
 
   return (
-    <FormularioEntrega
-      equipo={{
-        nombre: datos.equipo.nombre || 'Tu equipo',
-        imagen: datos.equipo.imagen,
-        specs: datos.equipo.specs,
-        accesorios: datos.equipo.accesorios,
-        cuotaMensual: datos.equipo.cuota,
-        cuotas: datos.equipo.cuotas,
-        cuotaInicial: datos.equipo.inicial,
-      }}
-      direccionInicial={{
-        direccion: datos.direccion.direccion,
-        calle: datos.direccion.calle,
-        referencia: datos.direccion.referencia,
-        distrito: datos.direccion.distrito,
-        distritoId: datos.direccion.distrito_id,
-        ubicacion: [
-          datos.direccion.distrito,
-          datos.direccion.provincia,
-          datos.direccion.departamento,
-        ].filter(Boolean).join(', '),
-      }}
-      opcionesEnvio={opcionesDeEnvio(datos.fecha_entrega)}
-      // Corregir la dirección es el motivo por el que este formulario existe:
-      // Renueva y segundo financiamiento se aprueban sin ubigeo.
-      permiteEditarDireccion
-      enviando={enviando}
-      errorSistema={errorSistema}
-      listo={registrado}
-      onEnviar={registrar}
-      // Solo se usa en el cierre propio, que ya únicamente se pinta cuando NO
-      // hay a dónde volver: con `volver` la navegación ocurre al registrar.
-      onVerSolicitud={
-        onVerSolicitud ?? (() => { window.location.href = URL_SEGUIMIENTO; })
-      }
-    />
+    <>
+      {/* Gate G1: solo antes de registrar el envío — una vez enviado no hay
+          contrato al que volver, la coordinación ya quedó hecha. Ausente sin
+          `atras` (enlace de WhatsApp): cero regresión en ese camino. */}
+      {atras && !registrado && (
+        <button
+          type="button"
+          onClick={() => router.push(atras)}
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          Volver al contrato
+        </button>
+      )}
+      <FormularioEntrega
+        equipo={{
+          nombre: datos.equipo.nombre || 'Tu equipo',
+          imagen: datos.equipo.imagen,
+          specs: datos.equipo.specs,
+          accesorios: datos.equipo.accesorios,
+          cuotaMensual: datos.equipo.cuota,
+          cuotas: datos.equipo.cuotas,
+          cuotaInicial: datos.equipo.inicial,
+        }}
+        direccionInicial={{
+          direccion: datos.direccion.direccion,
+          calle: datos.direccion.calle,
+          referencia: datos.direccion.referencia,
+          distrito: datos.direccion.distrito,
+          distritoId: datos.direccion.distrito_id,
+          ubicacion: [
+            datos.direccion.distrito,
+            datos.direccion.provincia,
+            datos.direccion.departamento,
+          ].filter(Boolean).join(', '),
+        }}
+        opcionesEnvio={opcionesDeEnvio(datos.fecha_entrega)}
+        // Corregir la dirección es el motivo por el que este formulario existe:
+        // Renueva y segundo financiamiento se aprueban sin ubigeo.
+        permiteEditarDireccion
+        enviando={enviando}
+        errorSistema={errorSistema}
+        listo={registrado}
+        onEnviar={registrar}
+        // Solo se usa en el cierre propio, que ya únicamente se pinta cuando NO
+        // hay a dónde volver: con `volver` la navegación ocurre al registrar.
+        onVerSolicitud={
+          onVerSolicitud ?? (() => { window.location.href = URL_SEGUIMIENTO; })
+        }
+      />
+    </>
   );
 }
 

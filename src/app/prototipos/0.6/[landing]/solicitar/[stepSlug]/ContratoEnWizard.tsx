@@ -19,7 +19,7 @@
  * token es prueba de titularidad y no tiene por qué quedar en el historial.
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { ContratoStep } from '../kyc/steps/ContratoStep';
@@ -27,9 +27,12 @@ import { SubmitOverlay, type PasoOverlay } from '../components/solicitar/submit/
 import { useAceptarContrato } from '../kyc/useAceptarContrato';
 import { guardarConstancia } from '../kyc/constanciaStorage';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
-import { completarKyc } from '@/app/prototipos/0.6/services/kycApi';
+import { completarKyc, getKycProgress } from '@/app/prototipos/0.6/services/kycApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import type { EnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
+import {
+  markEnvioAnticipadoContratoAceptado,
+  type EnvioAnticipadoHandoff,
+} from '../utils/envioAnticipadoHandoff';
 
 /**
  * El progreso de la firma, con las palabras de lo que de verdad está pasando.
@@ -73,10 +76,19 @@ export function ContratoEnWizard({
   landing,
   handoff,
   onBack,
+  stepSlug,
 }: {
   landing: string;
   handoff: EnvioAnticipadoHandoff;
   onBack?: () => void;
+  /**
+   * Slug del paso donde `StepClient` monta este componente (`step.url_slug ||
+   * step.code`). Es a dónde vuelve el control "← Volver al contrato" del
+   * formulario de entrega si la persona se arrepiente antes de coordinarla
+   * (gate G1): SIN ESTO no habría forma de decirle a `entregaPorToken` a
+   * dónde apunta ese "atrás".
+   */
+  stepSlug: string;
 }) {
   const router = useRouter();
   const { entregaEnElCierre } = useSolicitarFlow({ slug: landing });
@@ -91,11 +103,44 @@ export function ContratoEnWizard({
   // pintar era la unica parte del recorrido donde el boton parecia muerto.
   const [cerrando, setCerrando] = useState(false);
 
+  /**
+   * Fuente de verdad de "firmó" para esta pantalla (gates G1/G2).
+   *
+   * Arranca del handoff —inmediata, misma pestaña— y se corrobora contra
+   * `/progress` para que sobreviva a un refresh sin ese handoff (limpiado, o
+   * de otro dispositivo). Es la MISMA condición que usa el KYC por ruta
+   * dedicada (`kycClient.tsx`): `steps.find(contract).status === 'completed'`.
+   * Sin esto, la variante wizard —que nunca la tuvo— pintaba el contrato como
+   * si no se hubiera aceptado al volver acá desde el resumen.
+   */
+  const [contratoYaAceptado, setContratoYaAceptado] = useState(Boolean(handoff.contratoAceptado));
+
+  useEffect(() => {
+    if (contratoYaAceptado) return; // ya se sabe; no hace falta preguntar
+    let vivo = true;
+    getKycProgress(handoff.applicationCode).then((progreso) => {
+      if (!vivo || !progreso) return;
+      const aceptado = progreso.steps.some(
+        (paso) => paso.type === 'contract' && paso.status === 'completed',
+      );
+      if (aceptado) setContratoYaAceptado(true);
+    });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoff.applicationCode]);
+
   const { contratoRef, aceptar } = useAceptarContrato({
     applicationCode: handoff.applicationCode,
     resumeToken: handoff.resumeToken,
     documentNumber: handoff.documentNumber,
-    onAceptado: () => { void cerrar(); },
+    onAceptado: () => {
+      // Se prende ANTES de cerrar: `cerrar` puede navegar (entrega o
+      // confirmación) y el handoff tiene que quedar marcado antes de que la
+      // persona pueda volver acá desde cualquier lado.
+      markEnvioAnticipadoContratoAceptado(landing);
+      setContratoYaAceptado(true);
+      void cerrar();
+    },
     // 409: el paso se reabre con el documento nuevo, asi que el overlay se
     // apaga. Sin esto se quedaba tapando una pantalla que pide releer.
     onVencido: () => setCerrando(false),
@@ -145,6 +190,10 @@ export function ContratoEnWizard({
     }
 
     const confirmacion = routes.solicitarConfirmacion(landing, handoff.applicationCode);
+    // A dónde vuelve "← Volver al contrato" en la entrega (gate G1): este
+    // mismo paso, que con el handoff ya marcado (`contratoYaAceptado`) se ve
+    // en modo "Ya aceptaste este contrato" — no una firma nueva.
+    const atras = routes.solicitarStep(landing, stepSlug);
 
     // Coordinar la entrega es un paso más del flujo, no un anexo de la
     // confirmación: firmado y sin inicial que pagar, lo único que falta es
@@ -152,7 +201,7 @@ export function ContratoEnWizard({
     // marca— y al terminar sí cae en la confirmación.
     router.push(
       veredicto?.entrega_token
-        ? routes.entregaPorToken(veredicto.entrega_token, confirmacion)
+        ? routes.entregaPorToken(veredicto.entrega_token, confirmacion, atras)
         : confirmacion,
     );
   }
@@ -175,6 +224,7 @@ export function ContratoEnWizard({
         resumeToken={handoff.resumeToken}
         documentNumber={handoff.documentNumber}
         landing={landing}
+        yaAceptado={contratoYaAceptado}
       />
     </>
   );

@@ -103,3 +103,64 @@ it('sin la marca se comporta como siempre: hay que aceptar', async () => {
   await waitFor(() => expect(screen.getByTestId('contrato-casillas')).toBeInTheDocument());
   expect(screen.queryByTestId('contrato-ya-aceptado')).not.toBeInTheDocument();
 });
+
+// Gate G2: firmó → no vuelve. Ni el botón de este paso ni el indicador de
+// pasos (bloqueado aparte, en StepClient) pueden llevar a un paso anterior.
+describe('boton Atras con el contrato ya aceptado (gate G2)', () => {
+  it('sin yaAceptado: el boton Atras se muestra si hay onBack', async () => {
+    mockGet.mockResolvedValue(LISTO);
+
+    render(
+      <ContratoStep
+        onDone={jest.fn()}
+        onBack={jest.fn()}
+        applicationCode="APP-77"
+        documentNumber="70020010"
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('contrato-casillas')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Atrás' })).toBeInTheDocument();
+  });
+
+  it('con yaAceptado: no hay boton Atras, aunque venga onBack', async () => {
+    mockGet.mockResolvedValue(LISTO);
+
+    render(
+      <ContratoStep
+        onDone={jest.fn()}
+        onBack={jest.fn()}
+        applicationCode="APP-77"
+        documentNumber="70020010"
+        yaAceptado
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('contrato-ya-aceptado')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Atrás' })).not.toBeInTheDocument();
+  });
+
+  it('vencidoTrasAceptar reabre el paso: el boton Atras vuelve a aparecer', async () => {
+    mockGet.mockResolvedValue(LISTO);
+    const ref = React.createRef<ContratoStepHandle>();
+
+    render(
+      <ContratoStep
+        ref={ref}
+        onDone={jest.fn()}
+        onBack={jest.fn()}
+        applicationCode="APP-77"
+        documentNumber="70020010"
+        yaAceptado
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('contrato-ya-aceptado')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Atrás' })).not.toBeInTheDocument();
+
+    act(() => ref.current?.marcarVencido());
+
+    await waitFor(() => expect(screen.getByTestId('contrato-casillas')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Atrás' })).toBeInTheDocument();
+  });
+});

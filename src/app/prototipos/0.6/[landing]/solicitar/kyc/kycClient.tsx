@@ -636,10 +636,16 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     // firmó y no queda inicial por pagar, así que lo único que falta es decir a
     // dónde va el equipo. Al terminar, el formulario devuelve a la
     // confirmación.
+    //
+    // "Atrás" (gate G1) es distinto: vuelve al contrato, no a la confirmación.
+    // `code` viaja en la query porque esta ruta (`/solicitar/kyc`, sesión, no
+    // por token) lo necesita para reconstruir el estado al reabrirse — sin
+    // él, `KycContent` no tiene cómo saber de qué solicitud se trata.
     if (veredicto?.entrega_token) {
       router.push(withUtmParams(routes.entregaPorToken(
         veredicto.entrega_token,
         routes.solicitarConfirmacion(landing, code, true),
+        routes.solicitarKyc(landing, { code }),
       )));
       return;
     }

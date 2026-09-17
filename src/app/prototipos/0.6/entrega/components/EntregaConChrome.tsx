@@ -61,9 +61,11 @@ function slugDesdeVolver(volver?: string): string | undefined {
 export interface EntregaConChromeProps {
   token: string;
   volver?: string;
+  /** A dónde vuelve "← Volver al contrato" (gate G1). Ver `EntregaTokenClient`. */
+  atras?: string;
 }
 
-export function EntregaConChrome({ token, volver }: EntregaConChromeProps) {
+export function EntregaConChrome({ token, volver, atras }: EntregaConChromeProps) {
   // Se calcula una sola vez, en el primer render: es la landing de la que
   // vino el KYC y no cambia durante la vida de este componente.
   const [volverSlug] = useState(() => slugDesdeVolver(volver));
@@ -106,7 +108,7 @@ export function EntregaConChrome({ token, volver }: EntregaConChromeProps) {
     return (
       <LayoutProvider landingOverride={slug}>
         <KycChrome landing={slug}>
-          <EntregaTokenClient token={token} volver={volver} />
+          <EntregaTokenClient token={token} volver={volver} atras={atras} />
         </KycChrome>
       </LayoutProvider>
     );
@@ -116,7 +118,7 @@ export function EntregaConChrome({ token, volver }: EntregaConChromeProps) {
   // contexto de landing. Layout de siempre, sin cambios.
   return (
     <EntregaLayout>
-      <EntregaTokenClient token={token} volver={volver} />
+      <EntregaTokenClient token={token} volver={volver} atras={atras} />
     </EntregaLayout>
   );
 }
