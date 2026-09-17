@@ -8,7 +8,7 @@
  * el contrato.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
@@ -138,4 +138,39 @@ it('la firma emitida lleva el hash de lo aceptado', async () => {
     'kyc_contract_signed',
     expect.objectContaining({ contract_hash: 'a'.repeat(64), external_id: 'kyc-1' }),
   );
+});
+
+
+/**
+ * El 409 `contract_outdated` reabre el paso, y el botón tiene que soltarse.
+ *
+ * Pasa de verdad: legacy regenera el contrato unos segundos después de que ws2
+ * lo emitió, así que el hash que el front mostró ya no es el vigente cuando la
+ * persona acepta. El paso vuelve con la casilla vacía — pero si el botón queda
+ * en "Firmando…" y deshabilitado, no hay forma de volver a firmar.
+ */
+it('tras el 409 el botón vuelve a estar disponible', async () => {
+  mockGet.mockResolvedValue(LISTO);
+  const ref = React.createRef<import('../ContratoStep').ContratoStepHandle>();
+
+  render(
+    <ContratoStep
+      ref={ref}
+      onDone={jest.fn()}
+      applicationCode="APP-77"
+      documentNumber="70020010"
+    />,
+  );
+
+  await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
+  await userEvent.click(screen.getByText('He leído y acepto el contrato'));
+  await userEvent.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
+  // Mientras se firma: loader, no un botón apagado y mudo.
+  expect(screen.getByRole('button', { name: /Firmando/ })).toBeDisabled();
+
+  // Llega el 409 y el orquestador reabre el paso.
+  act(() => { ref.current?.marcarVencido(); });
+
+  await waitFor(() =>
+    expect(screen.queryByRole('button', { name: /Firmando/ })).not.toBeInTheDocument());
 });

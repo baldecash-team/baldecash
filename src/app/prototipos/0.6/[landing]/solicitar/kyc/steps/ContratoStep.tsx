@@ -170,6 +170,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
    */
   useImperativeHandle(ref, () => ({
     marcarVencido: () => {
+      // Se suelta el botón: por este camino `onDone` no vuelve y el paso se
+      // reabre con la casilla de nuevo. Sin esto quedaba en "Firmando…",
+      // deshabilitado, sobre un contrato que sí hay que volver a aceptar.
+      setEnviando(false);
       setAccepted('false');
       // Y se cae la aceptación previa: el documento que se aceptó ya no es el
       // vigente, así que la pantalla vuelve a exigir la casilla.
@@ -548,10 +552,25 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
           onClick={handleContinuar}
           className="flex-1 bg-[#4654CD] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
         >
-          {/* El texto también lo manda ws2: "ACEPTAR Y CONTRATAR" dice qué hace
-              el botón, y "Continuar" no. Solo cuando hay documento que aceptar:
-              en la espera y en el error sigue siendo un Continuar. */}
-          {aceptadoPreviamente ? 'Continuar' : (textos?.boton || TEXTO_BOTON_FIRMA)}
+          {/* Firmar no es instantáneo: el paso del contrato es el ÚNICO que
+              espera la respuesta del backend (un 409 no puede avanzar), y eso
+              tarda. Sin esto la única señal era el botón bajando a opacidad 50,
+              que se lee como "deshabilitado" y no como "estoy trabajando" — y
+              la persona vuelve a tocarlo. */}
+          {enviando ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin motion-reduce:animate-none"
+              />
+              Firmando…
+            </span>
+          ) : (
+            /* El texto también lo manda ws2: "ACEPTAR Y CONTRATAR" dice qué hace
+               el botón, y "Continuar" no. Solo cuando hay documento que aceptar:
+               en la espera y en el error sigue siendo un Continuar. */
+            aceptadoPreviamente ? 'Continuar' : (textos?.boton || TEXTO_BOTON_FIRMA)
+          )}
         </button>
       </div>
     </div>
