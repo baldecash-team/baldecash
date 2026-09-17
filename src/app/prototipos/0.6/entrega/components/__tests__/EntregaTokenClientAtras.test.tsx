@@ -14,7 +14,8 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
 const push = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+const replace = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace }) }));
 
 jest.mock('@/app/prototipos/0.6/components/lead/GeoCascadeField', () => ({
   GeoCascadeField: () => null,
