@@ -152,11 +152,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
    */
   const bloqueDelBanner = hayBanner && catalogBanner ? (
     <div
-      className={
+      className={[
         tipoBanner === 'tira_remate'
           ? 'w-full'
-          : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4'
-      }
+          : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4',
+        // Abajo, el banner queda contra la grilla de productos: el bloque que
+        // lo seguía cuando iba arriba traía su propio margen superior, y acá
+        // no hay nada que los separe -la tira terminaba pegada a la primera
+        // card-. Solo en esta posición: arriba el espaciado ya funciona.
+        posicionDelBanner === 'abajo' ? 'mb-4 sm:mb-6' : '',
+      ].filter(Boolean).join(' ')}
       onClick={() => {
         // Sin destino el banner es decorativo: no se envuelve en <a> y
         // no lleva a ninguna parte, así que no hay clic que medir. El

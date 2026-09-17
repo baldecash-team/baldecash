@@ -443,6 +443,17 @@ const STRIP_STYLE = `
     justify-content: space-between;
     gap: 12px;
   }
+  /* Lo de la izquierda: icono, título, filete y copy.
+     En MÓVIL se apila -título arriba, precio debajo-, que es el diseño de la
+     tira compacta. Desde 900px pasa a una sola línea horizontal, como la
+     maqueta de escritorio. */
+  .catalog-banner-strip__group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 1px;
+  }
   .catalog-banner-strip__body {
     min-width: 0;
   }
@@ -546,12 +557,33 @@ const STRIP_STYLE = `
     display: none;
   }
   @media (min-width: 900px) {
+    /* La línea horizontal de la maqueta: icono, título, filete y copy uno al
+       lado del otro, en vez del apilado de móvil. */
+    .catalog-banner-strip__group {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      /* 14px es el gap de la maqueta. El filete suma el suyo aparte: pide
+         mas aire que el resto, si no se lee pegado al titulo. */
+      gap: 14px;
+    }
+    .catalog-banner-strip__rule { margin: 0 2px; }
+    /* El copy se estira hasta el boton, como en la maqueta */
+    .catalog-banner-strip__price { flex: 1 1 auto; font-size: 22px; }
     .catalog-banner-strip__icon { display: block; }
     .catalog-banner-strip__rule { display: block; }
     .catalog-banner-strip__intro { display: inline; }
+    /* En una línea el título ya no manda sobre el ancho: deja de estirarse
+       para que el copy tenga sitio, y el bloque entero queda pegado a la
+       izquierda como en la maqueta. */
+    .catalog-banner-strip__title { flex: 0 0 auto; }
+    .catalog-banner-strip__price { min-width: 0; }
   }
   @media (min-width: 1200px) {
     .catalog-banner-strip__icon { height: 44px; }
+    .catalog-banner-strip__group { gap: 14px; }
+    .catalog-banner-strip__rule { margin: 0 2px; }
+    .catalog-banner-strip__price { font-size: 26px; }
   }
 
   /* ---- Confeti ----
@@ -651,19 +683,23 @@ function CatalogBannerStrip({
     <>
       <style>{STRIP_STYLE}</style>
       <span className="catalog-banner-strip__inner">
-        {iconUrl && (
-          <span className="catalog-banner-strip__icon" aria-hidden="true">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={iconUrl} alt="" />
-          </span>
-        )}
-        {/* Filete entre el título y el copy. Solo en escritorio, y solo si
-            hay algo a cada lado que separar. */}
-        {title && priceText && (
-          <span className="catalog-banner-strip__rule" aria-hidden="true" />
-        )}
-        <span className="catalog-banner-strip__body">
+        {/* Todo lo de la izquierda va AGRUPADO, no suelto: el `inner` reparte
+            el espacio con `space-between`, así que cuatro hijos sueltos dejan
+            cientos de píxeles de hueco entre el icono, el filete y el texto.
+            Agrupados, el hueco queda solo entre este bloque y el botón. */}
+        <span className="catalog-banner-strip__group">
+          {iconUrl && (
+            <span className="catalog-banner-strip__icon" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={iconUrl} alt="" />
+            </span>
+          )}
           {title && <strong className="catalog-banner-strip__title">{title}</strong>}
+          {/* Filete ENTRE el título y el copy, separándolos en horizontal.
+              Solo en escritorio, y solo si hay algo a cada lado. */}
+          {title && priceText && (
+            <span className="catalog-banner-strip__rule" aria-hidden="true" />
+          )}
           {priceText && (
             <span className="catalog-banner-strip__price">
               {/* El arranque de la frase solo existe en escritorio: el CSS lo

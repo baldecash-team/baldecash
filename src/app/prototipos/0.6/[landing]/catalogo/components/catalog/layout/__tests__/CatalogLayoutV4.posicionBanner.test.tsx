@@ -120,3 +120,25 @@ describe('BAL-3952 — posición del banner', () => {
     expect(screen.getAllByTestId('catalog-banner-link')).toHaveLength(1);
   });
 });
+
+/**
+ * Abajo, la tira terminaba PEGADA a la primera card de producto: el bloque
+ * que la seguía cuando iba arriba traía su propio margen superior, y en esta
+ * posición no había nada que los separase. Medido en pantalla: 0px.
+ */
+describe('BAL-3952 — separación del banner cuando va abajo', () => {
+  const contenedorDelBanner = () =>
+    screen.getByTestId('catalog-banner-link').parentElement!;
+
+  it('abajo: lleva margen inferior, no queda pegado a la grilla', () => {
+    renderLayout({ ...TIRA, strip_position: 'abajo' });
+
+    expect(contenedorDelBanner().className).toMatch(/\bmb-4\b/);
+  });
+
+  it('arriba: sin margen extra -ahí el espaciado ya lo pone el bloque siguiente-', () => {
+    renderLayout(TIRA);
+
+    expect(contenedorDelBanner().className).not.toMatch(/\bmb-4\b/);
+  });
+});
