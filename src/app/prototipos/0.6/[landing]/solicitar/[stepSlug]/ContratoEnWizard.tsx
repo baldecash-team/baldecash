@@ -69,8 +69,10 @@ const PASO_ENTREGA: PasoOverlay = {
   // que viene despues, no algo que este pasando ahora.
   id: 'success',
   icon: 'Truck',
-  title: 'Preparando tu formulario de entrega',
-  description: 'Para que nos digas a dónde va tu equipo',
+  // Corto a propósito: el overlay es angosto y dos líneas largas lo
+  // desbordaban en alto.
+  title: 'Datos de entrega',
+  description: 'A dónde enviamos tu equipo',
 };
 
 export function ContratoEnWizard({

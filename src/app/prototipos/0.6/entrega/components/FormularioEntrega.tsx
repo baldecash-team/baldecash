@@ -88,6 +88,14 @@ export interface FormularioEntregaProps {
   onEnviar: (valores: ValoresEntrega) => void;
   /** Qué hace el botón del cierre. Sin esto no se pinta. */
   onVerSolicitud?: () => void;
+  /**
+   * "Volver al contrato" (gate G1 del envío anticipado): se pinta como el
+   * botón secundario del cierre, al lado de "Finalizar solicitud" —igual que
+   * "Atrás" junto a "Acepto el contrato" en el paso anterior—, y no como un
+   * enlace suelto arriba del formulario. Sin esto no se pinta (enlace de
+   * WhatsApp, que se abre fuera del wizard).
+   */
+  onVolver?: () => void;
 }
 
 type Campo =
@@ -109,6 +117,7 @@ export function FormularioEntrega({
   listo = false,
   onEnviar,
   onVerSolicitud,
+  onVolver,
 }: FormularioEntregaProps) {
   const inicial = direccionInicial ?? {};
   const sinUbigeo = !limpio(inicial.distritoId) || !limpio(inicial.direccion);
@@ -653,9 +662,19 @@ export function FormularioEntrega({
                 </button>
               </Alerta>
             )}
-            <button type="button" onClick={finalizar} className={botonPrimario}>
-              Finalizar solicitud
-            </button>
+            {/* En el teléfono uno encima del otro: la acción principal arriba
+                y "Volver al contrato" debajo (`flex-col-reverse` lo deja primero
+                en el DOM). Desde `sm`, la fila de siempre. */}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+              {onVolver && (
+                <button type="button" onClick={onVolver} className={botonSecundario}>
+                  Volver al contrato
+                </button>
+              )}
+              <button type="button" onClick={finalizar} className={botonPrimario}>
+                Finalizar solicitud
+              </button>
+            </div>
             <p className="text-center text-[13px] text-[#8A8B99]">
               ¿Dudas con la entrega? Escríbenos al {NUM_LOGISTICA}.
             </p>
@@ -671,6 +690,10 @@ export function FormularioEntrega({
 const botonPrimario =
   'h-12 w-full rounded-[10px] bg-[#4654CD] font-semibold text-white transition-opacity hover:opacity-90 '
   + 'disabled:cursor-not-allowed disabled:bg-[#C4C6EE] cursor-pointer';
+
+const botonSecundario =
+  'h-12 w-full rounded-[10px] border border-[#4654CD] font-semibold text-[#4654CD] '
+  + 'transition-colors hover:bg-[#ECECFB] cursor-pointer';
 
 function inputClase(conError: boolean, conIcono = false) {
   return [

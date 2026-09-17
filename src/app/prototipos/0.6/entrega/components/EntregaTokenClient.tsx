@@ -219,8 +219,11 @@ export function EntregaTokenClient({
     //
     // `enviando` queda encendido a propósito: apagarlo pintaría el formulario
     // de nuevo por un instante mientras el router navega.
+    // `replace`, no `push`: esta pantalla ya cumplió y no tiene que quedar en
+    // el historial. Con `push`, "atrás" desde la confirmación volvía a mostrar
+    // el formulario de entrega ya registrado.
     if (volver) {
-      router.push(volver);
+      router.replace(volver);
       return;
     }
 
@@ -263,30 +266,6 @@ export function EntregaTokenClient({
 
   return (
     <>
-      {/* Gate G1: solo antes de registrar el envío — una vez enviado no hay
-          contrato al que volver, la coordinación ya quedó hecha. Ausente sin
-          `atras` (enlace de WhatsApp): cero regresión en ese camino. */}
-      {atras && !registrado && (
-        <button
-          type="button"
-          onClick={() => router.push(atras)}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4654CD] hover:underline cursor-pointer"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          Volver al contrato
-        </button>
-      )}
       <FormularioEntrega
         equipo={{
           nombre: datos.equipo.nombre || 'Tu equipo',
@@ -322,6 +301,10 @@ export function EntregaTokenClient({
         onVerSolicitud={
           onVerSolicitud ?? (() => { window.location.href = URL_SEGUIMIENTO; })
         }
+        // Gate G1: solo antes de registrar el envío — una vez enviado no hay
+        // contrato al que volver, la coordinación ya quedó hecha. Ausente sin
+        // `atras` (enlace de WhatsApp): cero regresión en ese camino.
+        onVolver={atras && !registrado ? () => router.push(atras) : undefined}
       />
     </>
   );
