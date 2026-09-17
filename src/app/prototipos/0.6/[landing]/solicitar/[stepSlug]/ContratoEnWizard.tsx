@@ -177,6 +177,14 @@ export function ContratoEnWizard({
 
   /** El clic en aceptar: primero se pinta la espera, despues se registra. */
   function firmar(datos?: { contractHash?: string; externalId?: string }) {
+    // Ya aceptado (volvió atrás y tocó "Continuar"): no hay firma que
+    // registrar ni nada que "sellar", así que el overlay de "Firmando" sobra.
+    // Se cierra en silencio —`/completar` es idempotente y responde en el
+    // acto— y se navega derecho a la confirmación.
+    if (contratoYaAceptado) {
+      void cerrar({ enSilencio: true });
+      return;
+    }
     setCerrando(true);
     aceptar(datos);
   }
@@ -197,10 +205,10 @@ export function ContratoEnWizard({
    * aprobada, el seguimiento normal la recoge, y dejar a la persona atrapada en
    * esta pantalla sería peor.
    */
-  async function cerrar() {
+  async function cerrar({ enSilencio = false }: { enSilencio?: boolean } = {}) {
     if (cerrandoRef.current) return;
     cerrandoRef.current = true;
-    setCerrando(true);
+    if (!enSilencio) setCerrando(true);
 
     const veredicto = await completarKyc(
       handoff.applicationCode, handoff.documentNumber, handoff.resumeToken);
@@ -236,11 +244,12 @@ export function ContratoEnWizard({
     // confirmación: firmado y sin inicial que pagar, lo único que falta es
     // decir a dónde va el equipo. Va en su propia pantalla —con su layout y su
     // marca— y al terminar sí cae en la confirmación.
-    router.push(
-      veredicto?.entrega_token
-        ? routes.entregaPorToken(veredicto.entrega_token, confirmacion, atras)
-        : confirmacion,
-    );
+    const destino = veredicto?.entrega_token
+      ? routes.entregaPorToken(veredicto.entrega_token, confirmacion, atras)
+      : confirmacion;
+    // Revisita: `replace`, para que "atrás" desde la confirmación no vuelva a
+    // este contrato ya aceptado.
+    if (enSilencio) router.replace(destino); else router.push(destino);
   }
 
   return (
