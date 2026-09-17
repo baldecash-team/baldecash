@@ -83,6 +83,40 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   const routeParams = useParams();
   const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
 
+  /**
+   * Banner y countdown VIP son excluyentes, y el countdown manda: el banner
+   * solo se pinta cuando NO hay countdown.
+   *
+   * El `!== null` es un guard de "la config ya cargó": sin él el banner
+   * parpadearía en la primera pintada y desaparecería al llegar el countdown.
+   */
+  const hayBanner = vipCountdownDate !== null && !vipCountdownDate && !!catalogBanner;
+
+  /**
+   * `banner_type` se resuelve por AUSENCIA, no por igualdad a 'imagen': las
+   * landings con banner ya en producción no tienen esa clave. Ver CatalogBanner.tsx.
+   */
+  const tipoBanner = ((catalogBanner?.banner_type as string | undefined) ?? 'imagen');
+
+  /**
+   * Con banner se oculta la presentación del encabezado -el título, la bajada
+   * y el icono que los acompaña-, pero SOLO EN MÓVIL: ahí el alto es escaso y
+   * las dos piezas compiten por el primer golpe de vista. En desktop hay sitio
+   * de sobra y el encabezado se queda completo.
+   *
+   * Las tres van juntas. El icono no se queda solo: sin el texto al lado queda
+   * una caja de 40x40 con una lupa suelta y un gap esperando un hermano que ya
+   * no existe.
+   *
+   * El corte se aplica con `hidden sm:flex` donde se usa esta bandera; acá solo
+   * se decide SI corresponde ocultarlo.
+   *
+   * Lo que SÍ sigue en ambos tamaños es el conteo, el orden y las cuatro
+   * tarjetas de uso: son controles, no presentación, y sin ellos no hay cómo
+   * filtrar ni ordenar.
+   */
+  const ocultarTextoEncabezado = hayBanner;
+
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
     setIsDrawerOpen(true);
@@ -608,6 +642,51 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
+        {/* Banner Promocional del Catálogo — va ARRIBA de la card de filtros,
+            pegado al buscador: es lo primero que se ve al entrar al catálogo.
+            Solo si NO hay VIP countdown; ver `hayBanner`.
+            La tira va a sangre: se neutraliza el padding del wrapper SOLO para ese tipo. */}
+        {hayBanner && catalogBanner && (
+          <div
+            className={
+              tipoBanner === 'tira_remate'
+                ? 'w-full'
+                : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4'
+            }
+            onClick={() =>
+              analytics.trackBannerClick({
+                location: 'catalog_top',
+                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
+              })
+            }
+            onMouseEnter={() =>
+              analytics.trackBannerHover({
+                location: 'catalog_top',
+                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
+              })
+            }
+          >
+            <CatalogBanner
+              desktopImageUrl={catalogBanner.desktop_image_url as string}
+              mobileImageUrl={catalogBanner.mobile_image_url as string}
+              linkUrl={catalogBanner.link_url as string | undefined}
+              desktopLinkUrl={catalogBanner.desktop_link_url as string | undefined}
+              mobileLinkUrl={catalogBanner.mobile_link_url as string | undefined}
+              landing={landingSlug ?? undefined}
+              linkTarget={catalogBanner.link_target as string | undefined}
+              altText={catalogBanner.alt_text as string | undefined}
+              bannerType={catalogBanner.banner_type as string | undefined}
+              stripTitle={catalogBanner.strip_title as string | undefined}
+              stripPriceText={catalogBanner.strip_price_text as string | undefined}
+              stripCtaText={catalogBanner.strip_cta_text as string | undefined}
+              stripCtaUrl={catalogBanner.strip_cta_url as string | undefined}
+              stripBgColor={catalogBanner.strip_bg_color as string | undefined}
+              stripBgColor2={catalogBanner.strip_bg_color_2 as string | undefined}
+              stripTextColor={catalogBanner.strip_text_color as string | undefined}
+            />
+          </div>
+        )}
+
         {/* Full Width Header Section - Inside Card.
             Cada mitad la prende un preset propio (BAL-3883), ya no una regex
             sobre el slug: `filtroPorUso` decide el título + las 4 tarjetas de
@@ -627,8 +706,20 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
               >
+                {/* Dos capas distintas, no una sola:
+                    - `filtroPorUso` (BAL-3883) decide si esta mitad EXISTE en
+                      esta landing; si no, no se monta.
+                    - `ocultarTextoEncabezado` decide si, existiendo, se ve en
+                      movil: con banner el alto es escaso y las dos piezas
+                      compiten por el primer golpe de vista. En desktop hay
+                      sitio de sobra y el encabezado se queda completo.
+                    Lo segundo va con `hidden sm:flex` y no desmontando: el
+                    breakpoint es de CSS, y en JS habria que duplicarlo con un
+                    matchMedia que ademas rompe la hidratacion en SSR. */}
                 {filtroPorUso && (
-                <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`${ocultarTextoEncabezado ? 'hidden sm:flex' : 'flex'} items-center gap-3 min-w-0`}
+                >
                   <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                     <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
@@ -678,50 +769,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config)
-            `banner_type` se resuelve por AUSENCIA, no por igualdad a 'imagen': las landings con
-            banner ya en producción no tienen esa clave. Ver CatalogBanner.tsx.
-            La tira va a sangre: se neutraliza el padding del wrapper SOLO para ese tipo. */}
-        {vipCountdownDate !== null && !vipCountdownDate && catalogBanner && (
-          <div
-            className={
-              (((catalogBanner.banner_type as string | undefined) ?? 'imagen') === 'tira_remate')
-                ? 'w-full'
-                : 'w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4'
-            }
-            onClick={() =>
-              analytics.trackBannerClick({
-                location: 'catalog_top',
-                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
-              })
-            }
-            onMouseEnter={() =>
-              analytics.trackBannerHover({
-                location: 'catalog_top',
-                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
-              })
-            }
-          >
-            <CatalogBanner
-              desktopImageUrl={catalogBanner.desktop_image_url as string}
-              mobileImageUrl={catalogBanner.mobile_image_url as string}
-              linkUrl={catalogBanner.link_url as string | undefined}
-              desktopLinkUrl={catalogBanner.desktop_link_url as string | undefined}
-              mobileLinkUrl={catalogBanner.mobile_link_url as string | undefined}
-              landing={landingSlug ?? undefined}
-              linkTarget={catalogBanner.link_target as string | undefined}
-              altText={catalogBanner.alt_text as string | undefined}
-              bannerType={catalogBanner.banner_type as string | undefined}
-              stripTitle={catalogBanner.strip_title as string | undefined}
-              stripPriceText={catalogBanner.strip_price_text as string | undefined}
-              stripCtaText={catalogBanner.strip_cta_text as string | undefined}
-              stripCtaUrl={catalogBanner.strip_cta_url as string | undefined}
-              stripImageUrl={catalogBanner.strip_image_url as string | undefined}
-              stripBgColor={catalogBanner.strip_bg_color as string | undefined}
-              stripTextColor={catalogBanner.strip_text_color as string | undefined}
-            />
-          </div>
-        )}
 
         {/* CADE promo disclaimer — deshabilitado temporalmente
         {overlayVariant === 'cade' && (
