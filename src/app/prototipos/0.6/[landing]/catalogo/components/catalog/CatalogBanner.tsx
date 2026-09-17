@@ -539,10 +539,21 @@ const STRIP_STYLE = `
     flex: 0 0 auto;
     display: none;
     height: 36px;
+    /* El ANCHO se reserva desde el primer pintado, sin esperar a que baje la
+       imagen. Sin esto el icono ocupa 0px mientras carga y el titulo salta
+       55px a la derecha cuando llega -Haru lo vio en produccion: la tira
+       aparecia sin megafono, salia el confeti, y 1,5s despues se acomodaba
+       todo-.
+
+       La proporcion es la del megafono del diseño (164x132). Si se sube otro
+       icono con otra forma, el hueco reservado no casa exactamente y habria
+       que ajustarla; el salto seria de pocos pixeles, no de 55. */
+    aspect-ratio: 164 / 132;
   }
   .catalog-banner-strip__icon img {
     height: 100%;
-    width: auto;
+    width: 100%;
+    object-fit: contain;
     display: block;
   }
   .catalog-banner-strip__rule {
@@ -690,8 +701,10 @@ function CatalogBannerStrip({
         <span className="catalog-banner-strip__group">
           {iconUrl && (
             <span className="catalog-banner-strip__icon" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={iconUrl} alt="" />
+              {/* La tira esta arriba del todo: el icono se pide con prioridad
+                  alta y sin lazy, para que no llegue despues del confeti.
+                  eslint-disable-next-line @next/next/no-img-element */}
+              <img src={iconUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />
             </span>
           )}
           {title && <strong className="catalog-banner-strip__title">{title}</strong>}

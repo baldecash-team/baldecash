@@ -150,3 +150,51 @@ describe('BAL-3951 — confeti de la tira', () => {
     expect(hojas).toMatch(/__confetti\s*\{[^}]*pointer-events:\s*none/);
   });
 });
+
+/**
+ * Haru lo vio en produccion: «primero aparece sin megafono, sale el confeti,
+ * de ahi se pone el megafono». Medido con la red frenada y sin cache: el
+ * icono ocupaba 0px durante 1,5s y al llegar la imagen el titulo saltaba 55px
+ * a la derecha.
+ *
+ * La causa es que el <img> no reservaba ancho. Estos tests fijan las dos
+ * piezas del arreglo.
+ */
+describe('BAL-3953 — el icono no debe mover el texto al cargar', () => {
+  const ICONO = 'https://cdn.example.com/megafono.webp';
+
+  function pintarConIcono() {
+    return render(
+      <CatalogBanner
+        desktopImageUrl=""
+        mobileImageUrl=""
+        bannerType="tira_remate"
+        stripTitle="Gran remate"
+        stripPriceText="seminuevos desde S/60 al mes"
+        stripCtaText="Ver ofertas"
+        stripCtaUrl="/reacondicionados/catalogo"
+        stripIconUrl={ICONO}
+      />
+    );
+  }
+
+  it('reserva el ancho del icono antes de que baje la imagen', () => {
+    pintarConIcono();
+
+    // La regla vive en el <style> del componente: jsdom no computa
+    // aspect-ratio, asi que se verifica que este declarada.
+    const hojas = Array.from(document.querySelectorAll('style'))
+      .map((s) => s.textContent ?? '')
+      .join('\n');
+    expect(hojas).toMatch(/__icon\s*\{[^}]*aspect-ratio/);
+  });
+
+  it('pide el icono con prioridad, para que no llegue despues del confeti', () => {
+    pintarConIcono();
+
+    const img = document.querySelector('.catalog-banner-strip__icon img');
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute('loading')).toBe('eager');
+    expect(img!.getAttribute('fetchpriority')).toBe('high');
+  });
+});
