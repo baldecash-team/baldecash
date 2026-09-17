@@ -66,6 +66,17 @@ interface CatalogBannerProps {
   stripBgColor2?: string;
   /** Color del texto de la tira. Default blanco. */
   stripTextColor?: string;
+  /**
+   * Confeti al entrar la tira en pantalla. Ausente = apagado.
+   *
+   * Sale en CADA carga, no una vez por persona. Quien tenga activado
+   * "reducir movimiento" no lo ve: la tira se muestra igual, sin animación.
+   */
+  stripConfetti?: boolean;
+  /** Icono de la tira en escritorio. Se muestra a 44px de alto. */
+  stripIconUrl?: string;
+  /** Arranque de la frase en escritorio. Solo se pinta desde 900px. */
+  stripIntro?: string;
 }
 
 const STRIP_BG_DEFAULT = '#4654CD';
@@ -144,6 +155,9 @@ export default function CatalogBanner(props: CatalogBannerProps) {
         textColor={props.stripTextColor}
         landing={props.landing}
         linkTarget={props.linkTarget}
+        confetti={props.stripConfetti}
+        iconUrl={props.stripIconUrl}
+        intro={props.stripIntro}
       />
     );
   }
@@ -270,6 +284,108 @@ function CatalogBannerImage({
   );
 }
 
+const CONFETI_COLORES = ['#FFFFFF', '#FFC93C', '#7FF0EA', '#B8BEF5'];
+
+/**
+ * Lanza el confeti cuando la tira entra en pantalla, una vez por carga.
+ *
+ * Se monta en el DOM a mano y no como estado de React a propósito: son hasta
+ * 40 nodos que viven 3,2 segundos y se van. Pasarlos por el árbol obligaría a
+ * re-renderizar la tira por una animación que no cambia nada de su contenido.
+ *
+ * No sale si el usuario pidió reducir movimiento en su sistema; la tira se
+ * muestra igual.
+ */
+function useConfetiDeLaTira(
+  ref: React.RefObject<HTMLElement | null>,
+  encendido: boolean,
+) {
+  useEffect(() => {
+    if (!encendido) return;
+    const tira = ref.current;
+    if (!tira) return;
+
+    // matchMedia no existe en jsdom salvo que el test lo defina.
+    const sinMovimiento =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (sinMovimiento) return;
+
+    // Sin IntersectionObserver no hay forma de saber cuándo entra en pantalla:
+    // se lanza al montar, que es el peor caso aceptable.
+    const hayObservador = typeof IntersectionObserver === 'function';
+
+    let capa: HTMLSpanElement | null = null;
+    let limpieza: ReturnType<typeof setTimeout> | null = null;
+
+    const lanzar = () => {
+      capa = document.createElement('span');
+      capa.className = 'catalog-banner-strip__confetti';
+      capa.setAttribute('aria-hidden', 'true');
+
+      // Densidad por ancho: en móvil son pocos píxeles y con un número fijo
+      // el confeti se ve de a gotas.
+      const cuantas = Math.max(18, Math.min(40, Math.round(tira.offsetWidth / 16)));
+
+      for (let i = 0; i < cuantas; i++) {
+        const pieza = document.createElement('i');
+        // Entre el 6% y el 94%: una pieza fuera de cuadro es scroll lateral.
+        pieza.style.left = `${(6 + Math.random() * 88).toFixed(2)}%`;
+        pieza.style.width = `${(4 + Math.random() * 3.5).toFixed(1)}px`;
+        pieza.style.height = `${(7 + Math.random() * 5).toFixed(1)}px`;
+        pieza.style.background = CONFETI_COLORES[i % CONFETI_COLORES.length];
+        pieza.style.borderRadius = Math.random() < 0.35 ? '50%' : '1px';
+        pieza.style.animationDuration = `${(1.3 + Math.random() * 0.9).toFixed(2)}s`;
+        pieza.style.animationDelay = `${(Math.random() * 0.4).toFixed(2)}s`;
+        pieza.style.setProperty('--dx', `${Math.round(Math.random() * 80 - 40)}px`);
+        pieza.style.setProperty('--up', `${Math.round(-18 - Math.random() * 32)}px`);
+        // Bajo 60px se apaga dentro de la franja; por encima cae sobre el
+        // bloque de abajo.
+        pieza.style.setProperty('--dy', `${Math.round(60 + Math.random() * 170)}px`);
+        pieza.style.setProperty('--rot', `${Math.round(Math.random() * 720 - 360)}deg`);
+        capa.appendChild(pieza);
+      }
+
+      tira.appendChild(capa);
+
+      // Se limpia sola: si no, quedan nodos animándose en segundo plano.
+      limpieza = setTimeout(() => {
+        capa?.remove();
+        capa = null;
+      }, 3200);
+    };
+
+    if (!hayObservador) {
+      lanzar();
+      return () => {
+        if (limpieza) clearTimeout(limpieza);
+        capa?.remove();
+      };
+    }
+
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        for (const entrada of entradas) {
+          if (!entrada.isIntersecting) continue;
+          // 400ms de respiro: lanzado en el mismo frame en que pinta la
+          // página, se pierde parte de la animación.
+          limpieza = setTimeout(lanzar, 400);
+          observador.disconnect();
+          break;
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observador.observe(tira);
+
+    return () => {
+      observador.disconnect();
+      if (limpieza) clearTimeout(limpieza);
+      capa?.remove();
+    };
+  }, [ref, encendido]);
+}
+
 interface CatalogBannerStripProps {
   title?: string;
   priceText?: string;
@@ -280,6 +396,9 @@ interface CatalogBannerStripProps {
   textColor?: string;
   landing?: string;
   linkTarget?: string;
+  confetti?: boolean;
+  iconUrl?: string;
+  intro?: string;
 }
 
 // A sangre: sin márgenes ni border-radius, de borde a borde. `min-height`
@@ -295,8 +414,18 @@ const STRIP_STYLE = `
     display: block;
     width: 100%;
     text-decoration: none;
+    /* Ancla del confeti, que se posiciona contra la tira. Sin esto las
+       piezas se colocarían contra el primer ancestro posicionado, que no
+       tiene por qué ser el banner. */
+    position: relative;
+    /* El confeti se sale de la franja a propósito: algunas piezas caen
+       sobre el bloque de abajo. */
+    overflow: visible;
   }
   .catalog-banner-strip__inner {
+    /* Por encima del confeti: el texto y el botón no deben quedar tapados. */
+    position: relative;
+    z-index: 2;
     /* El padding lateral copia el del catálogo (12px, 16px desde sm, 24px
        desde lg) para que el título arranque en la misma vertical que
        "13 equipos" y que el borde de la card de filtros. La maqueta trae
@@ -392,6 +521,86 @@ const STRIP_STYLE = `
   @media (min-width: 1024px) {
     .catalog-banner-strip__inner { padding-left: 24px; padding-right: 24px; }
   }
+
+  /* ---- Escritorio: icono, filete y arranque de la frase ----
+     Piezas del diseño de escritorio. En móvil no se pintan. */
+  .catalog-banner-strip__icon {
+    flex: 0 0 auto;
+    display: none;
+    height: 36px;
+  }
+  .catalog-banner-strip__icon img {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+  .catalog-banner-strip__rule {
+    flex: 0 0 auto;
+    display: none;
+    width: 1px;
+    height: 34px;
+    background: currentColor;
+    opacity: .35;
+  }
+  .catalog-banner-strip__intro {
+    display: none;
+  }
+  @media (min-width: 900px) {
+    .catalog-banner-strip__icon { display: block; }
+    .catalog-banner-strip__rule { display: block; }
+    .catalog-banner-strip__intro { display: inline; }
+  }
+  @media (min-width: 1200px) {
+    .catalog-banner-strip__icon { height: 44px; }
+  }
+
+  /* ---- Confeti ----
+     La capa la crea y la destruye el componente. Nunca intercepta clics:
+     sin pointer-events none, el banner deja de poder pulsarse mientras
+     dura la animación. */
+  .catalog-banner-strip__confetti {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow-x: clip;
+    overflow-y: visible;
+    pointer-events: none;
+  }
+  .catalog-banner-strip__confetti i {
+    position: absolute;
+    top: 50%;
+    display: block;
+    opacity: 0;
+    will-change: transform, opacity;
+    animation-name: catalog-banner-confetti;
+    animation-fill-mode: forwards;
+  }
+  /* Sube, se pasa del borde y cae afuera. --dy manda a cada pieza a una
+     profundidad distinta: unas se apagan dentro de la franja y otras
+     alcanzan a caer sobre el bloque de abajo. */
+  @keyframes catalog-banner-confetti {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0) rotate(0deg) scale(.6);
+      animation-timing-function: cubic-bezier(.12, .82, .3, 1);
+    }
+    8% { opacity: 1; }
+    30% {
+      transform: translate3d(calc(var(--dx, 0px) * .3), var(--up, -30px), 0)
+                 rotate(calc(var(--rot, 360deg) * .25)) scale(1);
+      animation-timing-function: cubic-bezier(.4, 0, .75, .95);
+    }
+    82% { opacity: 1; }
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--dx, 0px), var(--dy, 160px), 0)
+                 rotate(var(--rot, 360deg)) scale(1);
+    }
+  }
+  /* Quien pidió menos movimiento no ve el confeti; la tira se muestra igual. */
+  @media (prefers-reduced-motion: reduce) {
+    .catalog-banner-strip__confetti { display: none; }
+  }
 `;
 
 /**
@@ -414,7 +623,12 @@ function CatalogBannerStrip({
   textColor,
   landing,
   linkTarget,
+  confetti,
+  iconUrl,
+  intro,
 }: CatalogBannerStripProps) {
+  const tiraRef = React.useRef<HTMLElement>(null);
+  useConfetiDeLaTira(tiraRef, confetti === true);
   // Mismo pipeline que el tipo imagen (ver `resolveHref`): mismo orden,
   // misma sanitización, mismos dos casos de seguridad cubiertos.
   const href = resolveHref(ctaUrl || '', landing);
@@ -437,9 +651,27 @@ function CatalogBannerStrip({
     <>
       <style>{STRIP_STYLE}</style>
       <span className="catalog-banner-strip__inner">
+        {iconUrl && (
+          <span className="catalog-banner-strip__icon" aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={iconUrl} alt="" />
+          </span>
+        )}
+        {/* Filete entre el título y el copy. Solo en escritorio, y solo si
+            hay algo a cada lado que separar. */}
+        {title && priceText && (
+          <span className="catalog-banner-strip__rule" aria-hidden="true" />
+        )}
         <span className="catalog-banner-strip__body">
           {title && <strong className="catalog-banner-strip__title">{title}</strong>}
-          {priceText && <span className="catalog-banner-strip__price">{priceText}</span>}
+          {priceText && (
+            <span className="catalog-banner-strip__price">
+              {/* El arranque de la frase solo existe en escritorio: el CSS lo
+                  esconde bajo 900px, donde la línea no entra. */}
+              {intro && <span className="catalog-banner-strip__intro">{intro} </span>}
+              {priceText}
+            </span>
+          )}
         </span>
         {ctaText && (
           <span className="catalog-banner-strip__cta" style={{ color: desde }}>
@@ -480,7 +712,13 @@ function CatalogBannerStrip({
 
   if (!href) {
     return (
-      <div data-testid="catalog-banner" className="catalog-banner-strip" style={style} {...attrsFondo}>
+      <div
+        ref={tiraRef as React.RefObject<HTMLDivElement>}
+        data-testid="catalog-banner"
+        className="catalog-banner-strip"
+        style={style}
+        {...attrsFondo}
+      >
         {contenido}
       </div>
     );
@@ -488,6 +726,7 @@ function CatalogBannerStrip({
 
   return (
     <a
+      ref={tiraRef as React.RefObject<HTMLAnchorElement>}
       href={href}
       data-testid="catalog-banner-link"
       {...(nuevaPestana ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
