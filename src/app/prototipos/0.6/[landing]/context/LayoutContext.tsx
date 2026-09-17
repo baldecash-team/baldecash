@@ -59,6 +59,14 @@ interface LayoutContextValue {
   /** Public system configuration flags from backend */
   settings: Record<string, string>;
   catalogBanner: Record<string, unknown> | null;
+  /**
+   * Id del componente del banner, para la analítica.
+   *
+   * `catalogBanner` es el `content_config` -la configuración-, no el
+   * componente: el id vive un nivel arriba. Leerlo de ahí con un cast daba
+   * siempre `undefined`, y por eso `banner_id` llegaba null a `user_event`.
+   */
+  catalogBannerId: number | null;
   /** Newsletter component config from layout */
   newsletterData: { title?: string; subtitle?: string; button_text?: string; placeholder?: string } | null;
   /** Overlay variant from landing config (e.g. 'cade') */
@@ -396,6 +404,7 @@ export function LayoutProvider({
 
   // Extract catalog banner data
   const catalogBanner = useMemo(() => (layoutData?.catalog_banner?.content_config as Record<string, unknown>) ?? null, [layoutData]);
+  const catalogBannerId = useMemo(() => layoutData?.catalog_banner?.id ?? null, [layoutData]);
 
   // Newsletter lives inside footer.content_config.newsletter (set from admin Footer tab)
   const newsletterData = useMemo(() => {
@@ -448,6 +457,7 @@ export function LayoutProvider({
     previewLandingId,
     settings,
     catalogBanner,
+    catalogBannerId,
     newsletterData,
     overlayVariant,
     deferredPayment,
@@ -457,7 +467,7 @@ export function LayoutProvider({
     chipsDeUso,
     filtroPorUso,
     barraDeOrden,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso, filtroPorUso, barraDeOrden]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso, filtroPorUso, barraDeOrden]);
 
   return (
     <LayoutContext.Provider value={value}>

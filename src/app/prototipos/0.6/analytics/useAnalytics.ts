@@ -149,6 +149,16 @@ export interface UseAnalyticsReturn {
   trackBannerClick: (args: { banner_id?: string; location: string; href?: string; variant?: string }) => void;
   trackBannerHover: (args: { banner_id?: string; location: string; variant?: string }) => void;
 
+  /**
+   * Manda el buffer ya mismo, sin esperar al intervalo de 5s.
+   *
+   * Para los clics que navegan fuera en la misma pestaña: el evento queda
+   * encolado, la página se va, y el flush de `beforeunload` usa `fetch` (no
+   * `sendBeacon`), que el navegador puede cancelar. Sin esto, parte de esos
+   * clics no llega nunca.
+   */
+  flush: () => void;
+
   // Producto (view / click / hover) — siempre con `context`
   trackProductView: (args: ProductEventArgs) => void;
   trackProductClick: (args: ProductEventArgs) => void;
@@ -274,6 +284,11 @@ export function useAnalytics(): UseAnalyticsReturn {
     },
     [tracker, landing, isOffer]
   );
+
+  // Sin provider no hay nada que mandar: mismo criterio que `track`.
+  const flush = useCallback(() => {
+    tracker?.flush();
+  }, [tracker]);
 
   // Filtros
   const trackFilterToggle = useCallback<UseAnalyticsReturn['trackFilterToggle']>(
@@ -807,6 +822,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       // Banners
       trackBannerClick,
       trackBannerHover,
+      flush,
       // Detalle
       trackCronogramaDownload,
       trackCronogramaModal,

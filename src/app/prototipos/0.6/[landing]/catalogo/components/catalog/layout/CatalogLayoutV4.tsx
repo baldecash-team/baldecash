@@ -65,6 +65,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   totalProducts,
   gridRef,
   catalogBanner,
+  catalogBannerId,
   vipCountdownDate,
   overlayVariant,
   campaignCoupon,
@@ -97,6 +98,18 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
    * landings con banner ya en producción no tienen esa clave. Ver CatalogBanner.tsx.
    */
   const tipoBanner = ((catalogBanner?.banner_type as string | undefined) ?? 'imagen');
+
+  /**
+   * Destino del clic, para la analítica. Cada tipo guarda el suyo en una clave
+   * distinta, y la imagen además puede tener uno por viewport: se manda el de
+   * desktop, que es el que existe siempre (el de móvil cae a él si está vacío).
+   */
+  const destinoDelBanner = (
+    tipoBanner === 'tira_remate'
+      ? (catalogBanner?.strip_cta_url as string | undefined)
+      : ((catalogBanner?.desktop_link_url as string | undefined)
+          || (catalogBanner?.link_url as string | undefined))
+  ) || undefined;
 
   /**
    * Con banner se oculta la presentación del encabezado -el título, la bajada
@@ -653,16 +666,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 ? 'w-full'
                 : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4'
             }
-            onClick={() =>
+            onClick={() => {
               analytics.trackBannerClick({
                 location: 'catalog_top',
-                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
-              })
-            }
+                banner_id: catalogBannerId?.toString(),
+                variant: tipoBanner,
+                href: destinoDelBanner,
+              });
+              // El banner navega fuera en la misma pestaña: si el evento se
+              // queda esperando el intervalo de 5s, la página se va antes y
+              // el clic se pierde.
+              analytics.flush();
+            }}
             onMouseEnter={() =>
               analytics.trackBannerHover({
                 location: 'catalog_top',
-                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
+                banner_id: catalogBannerId?.toString(),
+                variant: tipoBanner,
               })
             }
           >
