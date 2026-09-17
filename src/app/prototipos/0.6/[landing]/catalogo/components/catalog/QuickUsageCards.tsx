@@ -58,9 +58,14 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
 
   return (
     <div className={className}>
-      {/* Chips (mobile, solo con el preset encendido) */}
+      {/* Chips (mobile, solo con el preset encendido).
+          Van 2x2 hasta 419px y los 4 en fila desde 420px. El umbral se midió
+          en pantalla, viewport por viewport: "Trabajar" es el chip más largo y
+          con 4 columnas sale cortado hasta 414px ("Trabaj…"); recién a 420px
+          entra completo con su icono. Casi todos los celulares (320, 360, 390,
+          414) caen del lado del 2x2. */}
       {chipsEnMobile && (
-        <div className="grid grid-cols-4 gap-2 md:hidden">
+        <div className="grid grid-cols-2 min-[420px]:grid-cols-4 gap-2 md:hidden">
           {quickUsageCardKeys.map((usageKey) => {
             const isSelected = selected.includes(usageKey);
             const Icon = usageIconMap[usageKey];
@@ -85,8 +90,12 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                 style={{ borderRadius: 999 }}
               >
                 <span className="flex items-center justify-center gap-1 min-w-0">
+                  {/* El icono ya no se oculta bajo 370px: ahí el chip pasó a
+                      media fila (120px a 320px, contra los 56px de antes) y
+                      entra de sobra. Esconderlo era un parche del layout de 4
+                      columnas, y ni así evitaba que el texto se cortara. */}
                   <Icon
-                    className={`w-3.5 h-3.5 shrink-0 max-[370px]:hidden ${
+                    className={`w-3.5 h-3.5 shrink-0 ${
                       isSelected ? 'text-white' : 'text-[var(--text-muted,#4b5563)]'
                     }`}
                   />
