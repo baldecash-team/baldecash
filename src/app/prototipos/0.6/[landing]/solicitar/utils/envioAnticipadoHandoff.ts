@@ -124,3 +124,28 @@ export function markEnvioAnticipadoContratoAceptado(landing: string): void {
     // `/progress`, así que la fuente de verdad no depende solo de esto.
   }
 }
+
+/**
+ * Apaga la marca de "contrato aceptado" sin pisar el resto del handoff.
+ *
+ * Existe porque `contratoAceptado` se prende OPTIMISTAMENTE al aceptar (antes
+ * de que `/completar` confirme nada), y hay dos caminos donde legacy dice
+ * después que ese contrato ya no vale (`contrato_vencido`, 409): el propio
+ * accept puede volver "outdated" si el documento cambió entre que se mostró y
+ * se aceptó, y `/completar` puede descubrirlo un paso más tarde. En los dos,
+ * dejar la marca en `true` encerraría a quien tiene que volver a aceptar: las
+ * gates de `StepClient` (Atrás, indicador de pasos, redirect por URL) la leen
+ * para bloquear, y con un `true` viejo bloquearían para siempre un contrato
+ * que en realidad quedó reabierto.
+ */
+export function clearEnvioAnticipadoContratoAceptado(landing: string): void {
+  try {
+    const raw = sessionStorage.getItem(key(landing));
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as EnvioAnticipadoHandoff;
+    if (!parsed?.applicationCode) return;
+    sessionStorage.setItem(key(landing), JSON.stringify({ ...parsed, contratoAceptado: false }));
+  } catch {
+    // no-op
+  }
+}

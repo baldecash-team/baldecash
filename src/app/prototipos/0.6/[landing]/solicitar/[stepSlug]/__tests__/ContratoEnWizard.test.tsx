@@ -18,7 +18,7 @@
  * paso ya está cubierto en sus propios tests.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
@@ -29,7 +29,11 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
 
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/utils/envioAnticipadoHandoff', () => {
   const actual = jest.requireActual('@/app/prototipos/0.6/[landing]/solicitar/utils/envioAnticipadoHandoff');
-  return { ...actual, markEnvioAnticipadoContratoAceptado: jest.fn() };
+  return {
+    ...actual,
+    markEnvioAnticipadoContratoAceptado: jest.fn(),
+    clearEnvioAnticipadoContratoAceptado: jest.fn(),
+  };
 });
 
 jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
@@ -61,9 +65,20 @@ jest.mock('../../kyc/steps/ContratoStep', () => ({
   ),
 }));
 
+/**
+ * Se capturan los dos callbacks (no solo `onAceptado`, como antes) para poder
+ * simular desde el test el 409 EN EL ACCEPT (`onVencido`) sin tocar el otro
+ * camino de vencido, que es el de `cerrar()` vía `completarKyc` — ver los
+ * tests de "contrato vencido tras aceptar" más abajo.
+ */
+let capturedOnVencido: (() => void) | undefined;
 const mockAceptar = jest.fn();
 jest.mock('../../kyc/useAceptarContrato', () => ({
-  useAceptarContrato: ({ onAceptado }: { onAceptado: (s: unknown) => void }) => {
+  useAceptarContrato: ({ onAceptado, onVencido }: {
+    onAceptado: (s: unknown) => void;
+    onVencido?: () => void;
+  }) => {
+    capturedOnVencido = onVencido;
     mockAceptar.mockImplementation(() => onAceptado(null));
     return { contratoRef: { current: null }, aceptar: mockAceptar };
   },
@@ -71,13 +86,19 @@ jest.mock('../../kyc/useAceptarContrato', () => ({
 
 import { ContratoEnWizard } from '../ContratoEnWizard';
 import { getKycProgress, completarKyc } from '@/app/prototipos/0.6/services/kycApi';
-import { markEnvioAnticipadoContratoAceptado } from '@/app/prototipos/0.6/[landing]/solicitar/utils/envioAnticipadoHandoff';
+import {
+  markEnvioAnticipadoContratoAceptado,
+  clearEnvioAnticipadoContratoAceptado,
+} from '@/app/prototipos/0.6/[landing]/solicitar/utils/envioAnticipadoHandoff';
 import type { EnvioAnticipadoHandoff } from '../../utils/envioAnticipadoHandoff';
 
 const mockGetKycProgress = getKycProgress as jest.MockedFunction<typeof getKycProgress>;
 const mockCompletarKyc = completarKyc as jest.MockedFunction<typeof completarKyc>;
 const mockMarcar = markEnvioAnticipadoContratoAceptado as jest.MockedFunction<
   typeof markEnvioAnticipadoContratoAceptado
+>;
+const mockClear = clearEnvioAnticipadoContratoAceptado as jest.MockedFunction<
+  typeof clearEnvioAnticipadoContratoAceptado
 >;
 
 const handoff: EnvioAnticipadoHandoff = {
@@ -164,4 +185,65 @@ it('sin entrega_token: navega derecho a la confirmación (sin "atras")', async (
   const url = mockPush.mock.calls[0][0] as string;
   expect(url).toContain('/solicitar/confirmacion');
   expect(url).not.toContain('/entrega/');
+});
+
+// IMPORTANT 1 de la ronda de revisión 1: la marca "firmó" se prende
+// OPTIMISTAMENTE (`onAceptado`, antes de llamar a `cerrar`), y hay DOS
+// momentos en los que legacy puede decir después que ese contrato ya no vale.
+// Sin limpiarla en los dos, quedaría un `true` viejo que encierra a quien
+// tiene que volver a aceptar (las gates de `StepClient` la leen para
+// bloquear Atrás/indicador/redirect).
+describe('contrato vencido tras aceptar (409): la marca se limpia en los dos caminos', () => {
+  it('vencido EN EL ACCEPT (useAceptarContrato.onVencido): limpia el handoff y avisa a StepClient', async () => {
+    const onContratoVencido = jest.fn();
+    mockGetKycProgress.mockResolvedValue(null);
+
+    render(
+      <ContratoEnWizard
+        landing="renueva-tu-equipo-1-a"
+        handoff={{ ...handoff, contratoAceptado: true }}
+        stepSlug="resumen"
+        onContratoVencido={onContratoVencido}
+      />,
+    );
+
+    // Ya venía "aceptado" (yaAceptado=true desde el handoff) y el usuario le
+    // da Continuar; se simula que ESE intento vuelve outdated.
+    expect(screen.getByTestId('contrato-step').dataset.yaAceptado).toBe('true');
+    act(() => capturedOnVencido?.());
+
+    expect(mockClear).toHaveBeenCalledWith('renueva-tu-equipo-1-a');
+    expect(onContratoVencido).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByTestId('contrato-step').dataset.yaAceptado).toBe('false'));
+    // No se marcó como aceptado por este camino (eso es cosa de `onAceptado`).
+    expect(mockMarcar).not.toHaveBeenCalled();
+  });
+
+  it('vencido en /completar (cerrar → completarKyc → motivo contrato_vencido): limpia el handoff y avisa', async () => {
+    const onContratoVencido = jest.fn();
+    mockCompletarKyc.mockResolvedValue({ motivo: 'contrato_vencido' } as never);
+
+    render(
+      <ContratoEnWizard
+        landing="renueva-tu-equipo-1-a"
+        handoff={handoff}
+        stepSlug="resumen"
+        onContratoVencido={onContratoVencido}
+      />,
+    );
+
+    // Acepta con éxito (mock de `aceptar` de siempre) → `onAceptado` marca
+    // `true` y llama a `cerrar()`, que descubre el vencido en `/completar`.
+    await userEvent.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
+
+    await waitFor(() => expect(mockCompletarKyc).toHaveBeenCalled());
+    // Se marcó (optimista) Y se limpió (el /completar lo desmintió) — en ese
+    // orden, y las dos llamadas pasaron.
+    expect(mockMarcar).toHaveBeenCalledWith('renueva-tu-equipo-1-a');
+    expect(mockClear).toHaveBeenCalledWith('renueva-tu-equipo-1-a');
+    expect(onContratoVencido).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByTestId('contrato-step').dataset.yaAceptado).toBe('false'));
+    // No navegó a ningún lado: el paso se reabre en la misma pantalla.
+    expect(mockPush).not.toHaveBeenCalled();
+  });
 });

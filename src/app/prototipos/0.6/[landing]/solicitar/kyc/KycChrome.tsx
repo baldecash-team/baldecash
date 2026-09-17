@@ -63,5 +63,3 @@ export function KycChrome({ children, landing: landingProp }: { children: React.
     </>
   );
 }
-
-export default KycChrome;

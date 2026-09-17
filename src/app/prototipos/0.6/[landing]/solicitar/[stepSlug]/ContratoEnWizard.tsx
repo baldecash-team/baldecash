@@ -30,6 +30,7 @@ import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { completarKyc, getKycProgress } from '@/app/prototipos/0.6/services/kycApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import {
+  clearEnvioAnticipadoContratoAceptado,
   markEnvioAnticipadoContratoAceptado,
   type EnvioAnticipadoHandoff,
 } from '../utils/envioAnticipadoHandoff';
@@ -77,6 +78,7 @@ export function ContratoEnWizard({
   handoff,
   onBack,
   stepSlug,
+  onContratoVencido,
 }: {
   landing: string;
   handoff: EnvioAnticipadoHandoff;
@@ -89,6 +91,20 @@ export function ContratoEnWizard({
    * dónde apunta ese "atrás".
    */
   stepSlug: string;
+  /**
+   * El contrato que se había marcado "aceptado" dejó de valer (409, en
+   * cualquiera de los dos momentos en que puede pasar: al aceptar, o recién
+   * en `/completar`) y la marca ya se limpió en `sessionStorage`.
+   *
+   * `StepClient` lee ese handoff en su PROPIO estado (una vez por montaje,
+   * vía `readEnvioAnticipadoHandoff`), así que limpiar la marca acá adentro
+   * no alcanza para que sus gates (Atrás, indicador de pasos, redirect por
+   * URL) se enteren — ese estado no se re-deriva solo. Este callback es la
+   * forma de avisarle que vuelva a leer. Opcional: sin él, la limpieza sigue
+   * sucediendo (la corrobora `/progress` en el próximo montaje real), solo
+   * que un poco más tarde.
+   */
+  onContratoVencido?: () => void;
 }) {
   const router = useRouter();
   const { entregaEnElCierre } = useSolicitarFlow({ slug: landing });
@@ -143,7 +159,18 @@ export function ContratoEnWizard({
     },
     // 409: el paso se reabre con el documento nuevo, asi que el overlay se
     // apaga. Sin esto se quedaba tapando una pantalla que pide releer.
-    onVencido: () => setCerrando(false),
+    //
+    // Este es el PRIMER momento en que puede descubrirse "vencido": el propio
+    // accept devuelve `outdated`. La marca "firmó" nunca llegó a confirmarse
+    // acá (recién se prende en `onAceptado`), pero por si la pantalla venía de
+    // un "Continuar" sobre `yaAceptado` (contrato re-emitido entre medio), se
+    // limpia igual — no hacerlo dejaría un `true` de una sesión previa.
+    onVencido: () => {
+      clearEnvioAnticipadoContratoAceptado(landing);
+      setContratoYaAceptado(false);
+      onContratoVencido?.();
+      setCerrando(false);
+    },
   });
 
   /** El clic en aceptar: primero se pinta la espera, despues se registra. */
@@ -177,6 +204,14 @@ export function ContratoEnWizard({
       handoff.applicationCode, handoff.documentNumber, handoff.resumeToken);
 
     if (veredicto?.motivo === 'contrato_vencido') {
+      // SEGUNDO momento en que puede descubrirse "vencido": `onAceptado` ya
+      // prendió la marca (asumiendo que el accept alcanzaba) antes de llamar
+      // a `cerrar`, y acá `/completar` dice que no. Sin limpiarla, la marca
+      // quedaría en `true` con el contrato en realidad reabierto — exactamente
+      // el "stale-true encierra a quien tiene que volver a aceptar".
+      clearEnvioAnticipadoContratoAceptado(landing);
+      setContratoYaAceptado(false);
+      onContratoVencido?.();
       contratoRef.current?.marcarVencido();
       cerrandoRef.current = false;
       setCerrando(false);

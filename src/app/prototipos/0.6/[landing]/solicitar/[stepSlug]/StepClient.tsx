@@ -32,7 +32,7 @@ import { useProduct } from '../context/ProductContext';
 
 // Hooks
 import { ContratoEnWizard } from './ContratoEnWizard';
-import { irAPasoSiNoFirmado } from './contratoFirmadoGate';
+import { gatesDelContrato } from './contratoFirmadoGate';
 import { useSessionOptional } from '../context/SessionContext';
 import {
   readEnvioAnticipadoHandoff,
@@ -313,6 +313,15 @@ function StepContent() {
   const isSummaryStep = step?.is_summary_step || false;
 
   /**
+   * Las tres decisiones del gate G2 (bloquear el indicador de pasos, bloquear
+   * "Atrás", y a qué paso redirigir si se abrió uno anterior por URL), en un
+   * solo lugar — ver `contratoFirmadoGate.ts` para la regla en sí.
+   */
+  const { bloquearNavegacion: bloqueaContrato, redirigirA: redirigirAlContrato } = gatesDelContrato({
+    contratoFirmado, condicionesFijas, isSummaryStep, summarySteps,
+  });
+
+  /**
    * Gate G2 por URL directa: firmó y trató de abrir un paso ANTERIOR al del
    * contrato (ej. pegando `/solicitar/datos-personales` en la barra). El
    * indicador de pasos y "Atrás" ya lo bloquean, pero escribir la URL a mano
@@ -321,13 +330,10 @@ function StepContent() {
    * firma nueva).
    */
   useEffect(() => {
-    if (!contratoFirmado || !condicionesFijas || isSummaryStep) return;
-    const pasoContrato = summarySteps[0];
-    if (pasoContrato) {
-      router.replace(routes.solicitarStep(landing, pasoContrato.url_slug || pasoContrato.code));
-    }
+    if (!redirigirAlContrato) return;
+    router.replace(routes.solicitarStep(landing, redirigirAlContrato));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contratoFirmado, condicionesFijas, isSummaryStep, summarySteps, landing]);
+  }, [redirigirAlContrato, landing]);
 
   // Build form values for validation
   const formValues = useMemo(() => {
@@ -681,7 +687,8 @@ function StepContent() {
    * exactamente como `handleStepClick`.
    */
   const handleStepClickContrato = (stepId: WizardStepId) => {
-    irAPasoSiNoFirmado(contratoFirmado, () => handleStepClick(stepId));
+    if (bloqueaContrato) return;
+    handleStepClick(stepId);
   };
 
   // Validate all regular steps (cross-step validation before submit)
@@ -760,24 +767,21 @@ function StepContent() {
   };
 
   const handleSummaryBack = () => {
-    const volver = () => {
-      // Usar navigation.prevStep para navegación dinámica
-      if (navigation.prevStep) {
-        const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
-        router.push(routes.solicitarStep(landing, prevSlug));
-      } else {
-        router.push(routes.solicitar(landing));
-      }
-    };
+    // Gate G2: `bloqueaContrato` solo puede ser `true` cuando de verdad se
+    // está en la pantalla del contrato con el contrato firmado (ver
+    // `gatesDelContrato`: sin `condicionesFijas` o sin `contratoFirmado`
+    // siempre da `false`). El resumen de siempre —el otro dueño de este
+    // handler— nunca lo prende, así que se comporta exactamente igual que
+    // antes.
+    if (bloqueaContrato) return;
 
-    // Gate G2: solo se acota al branch del contrato (envío anticipado). El
-    // resumen de siempre —el otro dueño de este handler— nunca pasa por acá,
-    // así que se comporta exactamente igual que antes.
-    if (handoff && condicionesFijas) {
-      irAPasoSiNoFirmado(contratoFirmado, volver);
-      return;
+    // Usar navigation.prevStep para navegación dinámica
+    if (navigation.prevStep) {
+      const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
+      router.push(routes.solicitarStep(landing, prevSlug));
+    } else {
+      router.push(routes.solicitar(landing));
     }
-    volver();
   };
 
   // Handler para pasos de resumen que NO son el último (continúan a otro paso)
@@ -923,6 +927,12 @@ function StepContent() {
             handoff={handoff}
             onBack={handleSummaryBack}
             stepSlug={step.url_slug || step.code}
+            // El estado `handoff` de ACÁ (leído una vez por montaje) no se
+            // re-deriva solo cuando `ContratoEnWizard` limpia la marca de
+            // "aceptado" en sessionStorage tras un 409 — sin este callback,
+            // las gates de más abajo (Atrás, indicador de pasos, redirect)
+            // seguirían bloqueando con el `true` viejo.
+            onContratoVencido={() => setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid))}
           />
         </WizardLayout>
       );

@@ -23,6 +23,7 @@ import {
   getEntrega,
   isEntregaApiError,
   registrarEntrega,
+  type EntregaApiError,
   type EntregaDatos,
   type EntregaPayload,
 } from '@/app/prototipos/0.6/services/entregaApi';
@@ -118,11 +119,31 @@ export interface EntregaTokenClientProps {
    * pantalla (`routes.entregaPorToken(token, volver, atras)`). Ausente en el
    * enlace de WhatsApp —que se abre fuera del wizard, sin contrato al que
    * volver—, y ahí el control no se muestra: cero regresión en ese camino.
+   *
+   * Limitación conocida, no arreglada a propósito: si esta pantalla se abre
+   * en OTRA pestaña/dispositivo (ej. se comparte el link de `atras`),
+   * `ContratoEnWizard` no encuentra el `handoff` en `sessionStorage` de esa
+   * pestaña y cae al resumen de campos editable, no al contrato en modo
+   * lectura. El caso real —la misma persona, en la misma pestaña, tocando
+   * "Volver al contrato"— funciona bien.
    */
   atras?: string;
+  /**
+   * Resultado del canje que ya hizo `EntregaConChrome` para decidir el chrome
+   * de la ruta (necesita `landing_slug` de la MISMA respuesta). Sin esto, este
+   * componente repetía el `GET /public/entrega/{token}` que el padre acababa
+   * de hacer — dos round trips por carga, también en los estados de error.
+   *
+   * `undefined` (el caso de siempre: montado suelto, o `EntregaConChrome` no
+   * necesitó canjear porque `volver` ya traía la landing) → este componente
+   * hace su propio canje, sin cambios de comportamiento.
+   */
+  initialData?: EntregaDatos | EntregaApiError;
 }
 
-export function EntregaTokenClient({ token, volver, onVerSolicitud, atras }: EntregaTokenClientProps) {
+export function EntregaTokenClient({
+  token, volver, onVerSolicitud, atras, initialData,
+}: EntregaTokenClientProps) {
   const router = useRouter();
   const [vista, setVista] = useState<Vista>({ estado: 'cargando' });
   const [enviando, setEnviando] = useState(false);
@@ -140,7 +161,23 @@ export function EntregaTokenClient({ token, volver, onVerSolicitud, atras }: Ent
     setVista({ estado: 'listo', datos: respuesta });
   }, [token]);
 
-  useEffect(() => { void cargar(); }, [cargar]);
+  useEffect(() => {
+    // Ya viene canjeado: se traduce tal cual, sin repetir el GET. Un
+    // "Reintentar" posterior (`cargar`, más abajo) sí vuelve a pedirlo — ese
+    // es un canje nuevo a propósito, no el duplicado que esto evita.
+    if (initialData !== undefined) {
+      if (isEntregaApiError(initialData)) {
+        if (initialData.reason === 'network') { setVista({ estado: 'sin_red' }); return; }
+        if (VENCIDOS.has(initialData.reason)) { setVista({ estado: 'vencido' }); return; }
+        setVista({ estado: 'invalido' });
+        return;
+      }
+      setVista({ estado: 'listo', datos: initialData });
+      return;
+    }
+    void cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargar, initialData]);
 
   const registrar = async (valores: ValoresEntrega) => {
     setErrorSistema(null);
