@@ -25,6 +25,7 @@ import {
   InitialPaymentPercentage,
   ComboInfo,
   ComboAccessory,
+  ProductPromotion,
 } from '../types/detail';
 import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../../../utils/deferredDelivery';
 
@@ -153,6 +154,41 @@ interface ApiProductData {
   // El detalle viene en camelCase; aceptamos snake_case por robustez.
   deferredDelivery?: ApiDeferredDelivery | null;
   deferred_delivery?: ApiDeferredDelivery | null;
+  /** Promoción del producto principal (BAL-3922). Wire en snake_case. */
+  promotion?: ApiProductPromotion | null;
+}
+
+/**
+ * Plantilla de promoción tal como la manda el detalle para el producto
+ * PRINCIPAL: snake_case.
+ *
+ * Ojo, la misma respuesta trae dos formatos: `similar_products[].promotion`
+ * llega ya en camelCase (ver `ApiSimilarProduct`) y este en snake_case, así
+ * que el mapper del principal no puede copiar el objeto tal cual como hace el
+ * de similares — tiene que convertir campo por campo.
+ */
+interface ApiPromotionTemplate {
+  code: string;
+  banner_text: string;
+  banner_style: string;
+  border_color: string | null;
+  banner_bg_color: string | null;
+  banner_text_color: string;
+  banner_icon: string | null;
+  cta_text: string;
+  cta_style: string;
+  show_specs: boolean;
+  show_links: boolean;
+}
+
+interface ApiProductPromotion {
+  id: number;
+  name: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  valid_until: string | null;
+  template: ApiPromotionTemplate | null;
 }
 
 interface ApiInitialPaymentOption {
@@ -522,6 +558,43 @@ function transformCombo(apiCombo: ApiCombo): ComboInfo {
   };
 }
 
+/**
+ * Promoción del producto principal: snake_case del wire → camelCase del
+ * dominio (BAL-3922).
+ *
+ * `banner_style` y `cta_style` vienen como string suelto; se acotan aquí a los
+ * valores que el render sabe pintar y cualquier otro cae al de siempre
+ * (`top_bar` / `primary`), que es lo que ya hacía la card del catálogo al leer
+ * un estilo desconocido. Mejor un sello con el estilo por defecto que una
+ * plantilla que el componente no sabe dibujar.
+ */
+function transformPromotion(apiPromo: ApiProductPromotion): ProductPromotion {
+  const t = apiPromo.template;
+  return {
+    id: apiPromo.id,
+    name: apiPromo.name,
+    code: apiPromo.code,
+    discountType: apiPromo.discount_type === 'fixed' ? 'fixed' : 'percentage',
+    discountValue: apiPromo.discount_value,
+    validUntil: apiPromo.valid_until,
+    template: t
+      ? {
+          code: t.code,
+          bannerText: t.banner_text,
+          bannerStyle: t.banner_style === 'ribbon_corner' ? 'ribbon_corner' : 'top_bar',
+          borderColor: t.border_color,
+          bannerBgColor: t.banner_bg_color,
+          bannerTextColor: t.banner_text_color,
+          bannerIcon: t.banner_icon,
+          ctaText: t.cta_text,
+          ctaStyle: t.cta_style === 'golden' ? 'golden' : 'primary',
+          showSpecs: t.show_specs,
+          showLinks: t.show_links,
+        }
+      : null,
+  };
+}
+
 function transformProductData(apiProduct: ApiProductData): ProductDetail {
   return {
     id: String(apiProduct.id),
@@ -586,6 +659,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     tcea: apiProduct.tcea,
     variantId: extractVariantId(apiProduct),
     deferredDelivery: mapApiDeferredDelivery(apiProduct.deferredDelivery ?? apiProduct.deferred_delivery),
+    promotion: apiProduct.promotion ? transformPromotion(apiProduct.promotion) : undefined,
   };
 }
 

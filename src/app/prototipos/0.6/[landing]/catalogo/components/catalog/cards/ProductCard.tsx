@@ -35,7 +35,13 @@ import { cardSelectorMode } from '../../../utils/cardSelectorMode';
 import { GRADE_COPY, isGradeKey } from '@/app/prototipos/0.6/[landing]/producto/family-farm/familyFarmGrades';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
-const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
+/**
+ * Íconos que puede llevar el sello de una promoción, por el `banner_icon` que
+ * manda el backend. Exportado (BAL-3922) para que el detalle de producto pinte
+ * el MISMO sello que la grilla: si un día se agrega un ícono, aparece en los
+ * dos sitios a la vez y no se abre una brecha entre la card y su ficha.
+ */
+export const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
   fire: Flame,
   siren: Siren,
   lightning: Zap,
