@@ -97,7 +97,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       transition={{ delay: 0.5 }}
       className="mb-6 sm:mb-8 space-y-3"
     >
-      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 font-['Baloo_2',_sans-serif]">Tu solicitud</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 font-['Baloo_2',_sans-serif]">Tu financiamiento</h3>
 
       {/* Products Card */}
       <Card className="border border-neutral-200 shadow-sm">
