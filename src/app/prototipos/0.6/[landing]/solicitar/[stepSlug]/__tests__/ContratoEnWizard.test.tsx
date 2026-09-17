@@ -42,13 +42,15 @@ jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
 
 jest.mock('../../kyc/constanciaStorage', () => ({ guardarConstancia: jest.fn() }));
 
+const overlayAbierto = jest.fn();
 jest.mock('../../components/solicitar/submit/SubmitOverlay', () => ({
-  SubmitOverlay: () => null,
+  SubmitOverlay: ({ isOpen }: { isOpen: boolean }) => { overlayAbierto(isOpen); return null; },
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 
 jest.mock('../../kyc/steps/ContratoStep', () => ({
@@ -246,4 +248,24 @@ describe('contrato vencido tras aceptar (409): la marca se limpia en los dos cam
     // No navegó a ningún lado: el paso se reabre en la misma pantalla.
     expect(mockPush).not.toHaveBeenCalled();
   });
+});
+
+it('ya aceptado + "Continuar": va derecho a la confirmación sin el overlay de "Firmando" ni firmar de nuevo', async () => {
+  mockCompletarKyc.mockResolvedValue({
+    aprobado: true, tiene_cuota_inicial: false, link_pago: null, entrega_token: null,
+  } as never);
+  render(
+    <ContratoEnWizard
+      landing="renueva-tu-equipo-1-a"
+      handoff={{ ...handoff, contratoAceptado: true }}
+      stepSlug="resumen"
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Firmar electrónicamente' }));
+  await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+
+  expect(mockAceptar).not.toHaveBeenCalled();
+  expect(overlayAbierto).not.toHaveBeenCalledWith(true);
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(mockReplace.mock.calls[0][0] as string).toContain('/solicitar/confirmacion');
 });
