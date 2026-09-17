@@ -903,6 +903,8 @@ export interface CatalogLayoutProps {
   gridRef?: React.RefObject<HTMLDivElement | null>;
   // Catalog banner configuration from layout
   catalogBanner?: Record<string, unknown> | null;
+  /** Id del componente del banner, para la analítica. Ver LayoutContext. */
+  catalogBannerId?: number | null;
   // VIP countdown date (ISO string) — shows VIP banner when set and not expired
   vipCountdownDate?: string | null;
   // Overlay variant slug (e.g. 'cade') for showing promo disclaimer
