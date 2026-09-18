@@ -20,15 +20,21 @@ interface SectionRendererProps {
    * Optional: Custom class name for the section
    */
   className?: string;
+  /**
+   * Pliega la sección de accesorios (segundo financiamiento). No aplica a
+   * `insurance`, que vive en /complementos y sigue expandida.
+   */
+  colapsable?: boolean;
 }
 
 export function SectionRenderer({
   type,
   className = '',
+  colapsable = false,
 }: SectionRendererProps) {
   switch (type) {
     case 'accessories':
-      return <AccessoriesSection className={className} />;
+      return <AccessoriesSection className={className} colapsable={colapsable} />;
 
     case 'insurance':
       return <InsuranceSection className={className} />;
