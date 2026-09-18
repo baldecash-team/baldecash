@@ -157,18 +157,28 @@ export function usePasoDelWizard(opciones: {
     onUnidadTomada: setUnidadTomada,
   });
 
+  // El z-index del wrapper va explicito y NO se puede sacar. `ModalAviso` es
+  // `z-50` y la navbar del wizard tambien: mientras el modal se montaba DESPUES
+  // de la pagina, el empate lo ganaba por orden en el DOM. Estos overlays ahora
+  // se montan ANTES de `WizardLayout` —para que la celebracion entre pasos
+  // conserve su pintado—, asi que sin el wrapper la navbar le quedaria encima
+  // justo cuando el envio fallo y la persona no sabe si su solicitud entro.
+  // `60` y no mas: es el mismo escalon del banner de promo, que ya estaba por
+  // encima del modal y tiene que seguir estandolo.
   const modalUnidadTomada = unidadTomada ? (
-    <ModalAviso
-      titulo="Ese equipo ya no está disponible"
-      mensaje={unidadTomada}
-      textoBoton="Elegir otro equipo"
-      // El boton principal LLEVA al catalogo, no cierra y ya: cerrar deja a la
-      // persona en un formulario que no va a poder enviar. `onCerrar` tambien
-      // navega porque es lo que corren Escape y el clic en el fondo, y los tres
-      // caminos tienen que terminar en el mismo lugar.
-      onCerrar={() => router.push(routes.catalogo(landing))}
-      tono="error"
-    />
+    <div className="relative z-[60]">
+      <ModalAviso
+        titulo="Ese equipo ya no está disponible"
+        mensaje={unidadTomada}
+        textoBoton="Elegir otro equipo"
+        // El boton principal LLEVA al catalogo, no cierra y ya: cerrar deja a la
+        // persona en un formulario que no va a poder enviar. `onCerrar` tambien
+        // navega porque es lo que corren Escape y el clic en el fondo, y los tres
+        // caminos tienen que terminar en el mismo lugar.
+        onCerrar={() => router.push(routes.catalogo(landing))}
+        tono="error"
+      />
+    </div>
   ) : null;
 
   // Get step config from API using URL slug
