@@ -120,6 +120,25 @@ interface SubmitOptions {
 }
 
 /**
+ * Estados con los que la solicitud NACE cerrada: ws2 la rechazó o la canceló
+ * dentro del mismo submit —hoy, la lista negra y los filtros duros que corren
+ * ahí— y ya no hay nada que firmar ni que completar.
+ *
+ * Es la misma lista que `ESTADOS_SIN_CONTRATO` del backend, que es la que hace
+ * que `/kyc/contrato` responda `no_aplica`. Se mira ACÁ, con la respuesta del
+ * submit en la mano, para no mandar a la persona a una pantalla de contrato que
+ * se va a pintar medio segundo y rebotar sola a la confirmación.
+ */
+const ESTADOS_SIN_CIERRE = new Set([
+  'rejected', 'cancelled', 'expired', 'rechazo_automatico', 'rechazo_modelo',
+]);
+
+/** La solicitud quedó cerrada en el propio submit: no hay contrato ni KYC. */
+function naceCerrada(status?: string): boolean {
+  return ESTADOS_SIN_CIERRE.has((status || '').trim().toLowerCase());
+}
+
+/**
  * Extrae, best-effort, el número de documento del form ya mapeado para
  * prellenar el gate de OTP. Busca claves conocidas y, como último recurso, un
  * valor de 8 dígitos (formato DNI). No es crítico: si no lo encuentra, el gate
@@ -607,11 +626,29 @@ export function useSubmitApplication(
           // los pasos posteriores de verificación antes del resumen. En el resto
           // de landings (kyc apagado) el comportamiento es el de siempre: directo
           // a confirmación.
+          // Rechazada o cancelada en el propio submit: la pantalla del
+          // contrato no tiene nada que mostrarle. Se va derecho a "solicitud
+          // recibida", que es donde iba a terminar igual.
+          const cerrada = naceCerrada(result.status);
+
           // Envío anticipado: la solicitud ya existe pero el wizard sigue. Se
           // deja el handoff y se devuelve el control a quien llamó, que sabe
           // cuál es la pantalla siguiente. Navegar acá mandaría a la persona
           // fuera del formulario que todavía está llenando.
           if (stayInWizard) {
+            if (cerrada) {
+              // `replace` y no `push`: volver atrás desde la confirmación no
+              // tiene que devolver a un paso del wizard que ya no aplica.
+              router.replace(
+                routes.solicitarConfirmacion(landing, result.application_code)
+              );
+              // `false` NO es "falló el envío" —la solicitud se creó y
+              // `submitSucceeded` lo dice—: es "no sigas navegando vos, esta
+              // pantalla ya navegó". Sin esto, quien llamó empuja el paso del
+              // contrato encima de la confirmación.
+              return false;
+            }
+
             // Sin código no hay handoff: la pantalla siguiente no tendría de
             // qué hablar, y un handoff a medias es peor que ninguno porque la
             // haría creer que ya hay solicitud.
@@ -627,7 +664,7 @@ export function useSubmitApplication(
             return true;
           }
 
-          if (kycEnabled) {
+          if (kycEnabled && !cerrada) {
             // Con el token del submit se va a la pagina tokenizada: el KYC lo
             // usa como prueba de titularidad y NO tiene que pedir el DNI. Es el
             // mismo token del link de "continuar despues" (hasheado, con TTL y

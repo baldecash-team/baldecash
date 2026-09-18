@@ -45,6 +45,16 @@ export interface EstadoContratoKyc {
   hayDocumento: boolean;
   /** `modo === 'aceptacion'`: sin documento no se puede continuar. */
   exigeAceptar: boolean;
+  /**
+   * Todavía no llegó la PRIMERA respuesta de `/contrato`: no se sabe si hay
+   * contrato, si se está generando o si la solicitud quedó cerrada.
+   *
+   * No es lo mismo que `estado === 'generando'`, que ya es una respuesta ("hay
+   * un pedido en curso"). Acá no se sabe nada, y pintar la pantalla del
+   * contrato en esa ventana es lo que hacía que una solicitud rechazada
+   * mostrara medio segundo un contrato que no existe antes de rebotar.
+   */
+  resolviendo: boolean;
   /** El error es "la solicitud no llegó a legacy": reintentar no lo arregla. */
   sinRegistro: boolean;
   reintentar: () => void;
@@ -61,6 +71,9 @@ export function useContratoKyc({
   track: KycTrack;
 }): EstadoContratoKyc {
   const [contrato, setContrato] = useState<ContratoKyc | null>(null);
+  // Arranca en true y no vuelve: lo que importa es la PRIMERA respuesta. Un
+  // reintento o un contrato vencido ya ocurren con la pantalla pintada.
+  const [resolviendo, setResolviendo] = useState(true);
   const [estado, setEstado] = useState<ContratoEstado | 'outdated'>('generando');
   // Sube en cada reintento/vencimiento: es lo que relanza el efecto.
   const [intento, setIntento] = useState(0);
@@ -86,6 +99,7 @@ export function useContratoKyc({
       if (cancelado) return;
 
       setContrato(r);
+      setResolviendo(false);
 
       // `null` es error de red o de permisos: se trata como el error del
       // backend — esperar sin fin sería peor, y el documento nunca se
@@ -170,6 +184,7 @@ export function useContratoKyc({
     contrato,
     estado,
     hayDocumento,
+    resolviendo,
     // Un `modo` que este cliente no conozca cae en "no exige": es el
     // comportamiento que nunca deja a nadie trabado.
     exigeAceptar: contrato?.modo === 'aceptacion',

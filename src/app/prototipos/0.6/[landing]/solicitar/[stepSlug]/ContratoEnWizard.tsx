@@ -19,7 +19,7 @@
  * token es prueba de titularidad y no tiene por qué quedar en el historial.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { ContratoStep } from '../kyc/steps/ContratoStep';
@@ -55,6 +55,27 @@ const PASOS_FIRMA: readonly PasoOverlay[] = [
     icon: 'Send',
     title: 'Emitiendo tu constancia',
     description: 'Preparando tu copia',
+  },
+];
+
+/**
+ * El velo mientras `/contrato` no contestó.
+ *
+ * La pantalla del contrato no se puede pintar antes de saber si hay contrato:
+ * una solicitud rechazada en el submit o en el workflow mostraba medio segundo
+ * el encabezado «Contrato — Revisa y acepta los términos», los datos y los
+ * números, y recién ahí rebotaba a «solicitud recibida». Se leía como si el
+ * financiamiento se hubiera caído a mitad de camino.
+ *
+ * Es el mismo overlay del envío, que es de donde la persona viene: la espera se
+ * encadena con la anterior en vez de cortarse y volver a empezar.
+ */
+const PASOS_VEREDICTO: readonly PasoOverlay[] = [
+  {
+    id: 'processing',
+    icon: 'ShieldCheck',
+    title: 'Revisando tu solicitud',
+    description: 'Preparando el paso que sigue',
   },
 ];
 
@@ -120,6 +141,13 @@ export function ContratoEnWizard({
   // `aceptar`: entre las dos cosas hay un viaje al backend, y dejarlo sin
   // pintar era la unica parte del recorrido donde el boton parecia muerto.
   const [cerrando, setCerrando] = useState(false);
+  /**
+   * Llegó la primera respuesta de `/contrato` y la solicitud sigue viva: recién
+   * ahí se destapa la pantalla. Mientras tanto manda el velo. El caso cerrado
+   * no lo prende nunca: se va por `onNoAplica`, sin pintar nada.
+   */
+  const [veredicto, setVeredicto] = useState(false);
+  const alResolver = useCallback(() => setVeredicto(true), []);
 
   /**
    * Fuente de verdad de "firmó" para esta pantalla (gates G1/G2).
@@ -255,12 +283,14 @@ export function ContratoEnWizard({
   return (
     <>
       <SubmitOverlay
-        isOpen={cerrando}
+        isOpen={cerrando || !veredicto}
         stage="processing"
-        pasos={pasosFirma}
-        titulo="Firmando tu solicitud"
-        subtitulo="Estamos sellando tu firma. Esto solo toma unos segundos."
-        tituloProgreso="Progreso de tu firma"
+        pasos={cerrando ? pasosFirma : PASOS_VEREDICTO}
+        titulo={cerrando ? 'Firmando tu solicitud' : 'Revisando tu solicitud'}
+        subtitulo={cerrando
+          ? 'Estamos sellando tu firma. Esto solo toma unos segundos.'
+          : 'Estamos preparando el paso que sigue.'}
+        tituloProgreso={cerrando ? 'Progreso de tu firma' : 'Progreso'}
       />
       <ContratoStep
         ref={contratoRef}
@@ -275,6 +305,7 @@ export function ContratoEnWizard({
         // corre en el workflow después del submit): no se muestra un contrato
         // que no va a poder aceptar; se va a "solicitud recibida".
         onNoAplica={() => router.replace(routes.solicitarConfirmacion(landing, handoff.applicationCode))}
+        onResuelto={alResolver}
       />
     </>
   );

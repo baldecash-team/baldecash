@@ -72,6 +72,14 @@ export interface ContratoStepProps {
    * confirmación de siempre ("Hemos recibido tu solicitud").
    */
   onNoAplica?: () => void;
+  /**
+   * Llegó la primera respuesta de `/contrato` y la solicitud SIGUE viva: hay
+   * contrato, o lo va a haber. El orquestador lo usa para destapar la pantalla
+   * —hasta acá no sabe si mostrarla— sin que el caso rechazado pinte un
+   * contrato que no existe. Con `no_aplica` NO se llama: ahí manda
+   * `onNoAplica`, que navega.
+   */
+  onResuelto?: () => void;
 }
 
 /**
@@ -122,6 +130,7 @@ const AUTORIZACIONES_FAMILY_FARMS: AutorizacionConvenio[] = [
 
 export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(function ContratoStep({
   onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing, yaAceptado, onNoAplica,
+  onResuelto,
 }: ContratoStepProps, ref) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
   // El contrato aceptado quedó viejo (409 / `contrato_vencido`): lo que se
@@ -145,6 +154,7 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   // se decide qué se pinta con cada estado.
   const {
     contrato, estado, hayDocumento, exigeAceptar, sinRegistro, reintentar, marcarVencido,
+    resolviendo,
   } = useContratoKyc({ applicationCode, documentNumber, resumeToken, track });
 
   useEffect(() => {
@@ -177,6 +187,16 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
   useEffect(() => {
     if (estado === 'no_aplica') onNoAplica?.();
   }, [estado, onNoAplica]);
+
+  /**
+   * El veredicto de la primera respuesta, para quien envuelve al paso: la
+   * solicitud sigue viva y la pantalla se puede mostrar. `no_aplica` no pasa
+   * por acá —ese camino navega a la confirmación— así que el contrato de una
+   * solicitud rechazada nunca llega a pintarse.
+   */
+  useEffect(() => {
+    if (!resolviendo && estado !== 'no_aplica') onResuelto?.();
+  }, [resolviendo, estado, onResuelto]);
 
   useImperativeHandle(ref, () => ({
     marcarVencido: () => {
