@@ -147,7 +147,11 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  // `flujo` entero ademas de los campos sueltos: `usePasoDelWizard` lo recibe
+  // inyectado en vez de volver a llamar `useSolicitarFlow`, que guarda su estado
+  // por instancia y saldria a buscar `solicitar-config` una segunda vez.
+  const flujo = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = flujo;
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -175,7 +179,7 @@ function StepContent() {
    * Va acá, junto al resto de los hooks y ANTES de los early returns, o se
    * rompe el orden de hooks de React.
    */
-  const paso = usePasoDelWizard({ stepSlug, gamer: isGamerLanding(landing) });
+  const paso = usePasoDelWizard({ stepSlug, flujo, gamer: isGamerLanding(landing) });
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
@@ -635,11 +639,7 @@ function StepContent() {
   if (!hasLeadAccess) return <LoadingFallback />;
 
   // Loading state (include flow config loading and availability check)
-  // `paso.cargandoConfig` es el mismo flujo leido por la instancia del hook.
-  // Antes de la extraccion habia una sola, y esperarla garantizaba que el paso
-  // nunca se pintara sin saber si es el que envia. Con dos instancias hay que
-  // esperar a las dos o vuelve esa ventana.
-  if (isLayoutLoading || isConfigLoading || isFlowConfigLoading || paso.cargandoConfig || isValidatingAvailability) {
+  if (isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
     return <LoadingFallback />;
   }
 

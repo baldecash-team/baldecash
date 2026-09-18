@@ -42,8 +42,7 @@ import {
   evaluateFieldVisibility,
 } from '../../../../../services/wizardApi';
 
-import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
-import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import type { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
@@ -84,14 +83,6 @@ export interface PasoDelWizardControles {
    * la persona hubiera entrado sin elegir equipo y la mandaría de vuelta.
    */
   submitSucceeded: boolean;
-  /**
-   * El flujo de la landing todavía no resolvió.
-   *
-   * El host tiene que esperarlo antes de pintar el paso: de `envio_anticipado`
-   * sale `esElQueEnvia`, y mientras no esté el botón diría "Continuar" y el
-   * click navegaría sin crear la solicitud.
-   */
-  cargandoConfig: boolean;
   /** Overlays y modales del paso: celebración, envío y "unidad tomada". */
   overlays: React.ReactNode;
 }
@@ -99,10 +90,25 @@ export interface PasoDelWizardControles {
 export function usePasoDelWizard(opciones: {
   /** Slug del paso a mostrar. */
   stepSlug: string;
+  /**
+   * El flujo de la landing, YA leído por quien monta el paso.
+   *
+   * Se inyecta en vez de llamar `useSolicitarFlow` acá: el hook guarda
+   * `config`/`isLoading` por instancia y cada una sale a buscar
+   * `solicitar-config` de verdad (el `next: { revalidate }` de la petición es
+   * una directiva del servidor de Next, inerte en un componente cliente). Dos
+   * instancias eran un GET de más por cada montaje de paso.
+   *
+   * Es requerido a propósito: con un opcional habría que decidir si llamar o no
+   * llamar un hook según una condición, y eso React no lo permite. Los dos
+   * hosts —`StepClient` y `solicitarClient`— ya tenían el suyo, así que ninguno
+   * agrega una lectura.
+   */
+  flujo: ReturnType<typeof useSolicitarFlow>;
   /** Tema gamer: cambia el theme de la celebración. */
   gamer?: boolean;
 }): PasoDelWizardControles {
-  const { stepSlug, gamer } = opciones;
+  const { stepSlug, flujo, gamer } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -134,12 +140,8 @@ export function usePasoDelWizard(opciones: {
   // Event tracker
   const tracker = useEventTrackerOptional();
 
-  // Preview mode
-  const preview = usePreview();
-  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep } = flujo;
 
   // Toast notifications for submit
   const { showToast } = useToast(4000);
@@ -482,7 +484,6 @@ export function usePasoDelWizard(opciones: {
     motivational: stepMotivational,
     firstName: formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || ''),
     submitSucceeded,
-    cargandoConfig: isFlowConfigLoading,
     overlays,
   };
 }
