@@ -231,7 +231,11 @@ describe('tarjetas informativas de la intro', () => {
     landingActual = 'renueva-tu-equipo-1';
     render(<SolicitarClientPage />);
     // Se espera a que el Suspense resuelva por algo que SÍ está en ambas.
-    await screen.findByText('Comenzar Solicitud');
+    // Ancla deliberada: "Términos y Condiciones" está en las dos landings y
+    // sobrevive a la Task 7, que en renueva-* cambia el botón "Comenzar
+    // Solicitud" por "Continuar". Anclar en el botón dejaría este test rojo
+    // más adelante por un cambio esperado, y un test así se termina borrando.
+    await screen.findByText('Términos y Condiciones');
     expect(screen.queryByText('Tiempo estimado')).not.toBeInTheDocument();
     expect(screen.queryByText('Proceso simple')).not.toBeInTheDocument();
     expect(screen.queryByText('Datos protegidos')).not.toBeInTheDocument();
@@ -1454,6 +1458,15 @@ describe('MobileStickyCta — dónde se pega', () => {
 ```
 
 Agregar al `beforeEach` existente el reset `mockProduct.getAllProducts = () => [{ id: 1 }];`.
+
+> **jsdom y `env()`.** El parser CSS de jsdom descarta los valores que no
+> entiende, y `env(safe-area-inset-bottom)` es candidato a volver como `''`
+> desde `.style.bottom`. Si al correr el Step 2 los asserts fallan con `''` en
+> vez de con el valor viejo, **no pelees con el parser**: cambiá esas tres
+> assertions a `expect(caja.getAttribute('style')).toContain('...')` con el
+> fragmento relevante. Lo que se quiere fijar es qué valor escribe el
+> componente, no cómo lo normaliza jsdom. Dejá una línea de comentario diciendo
+> por qué es `toContain`.
 
 - [ ] **Step 2: Correr y verificar que falla**
 
