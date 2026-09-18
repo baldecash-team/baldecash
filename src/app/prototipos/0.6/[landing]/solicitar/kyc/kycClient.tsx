@@ -149,13 +149,15 @@ interface RenderStepArgs {
   contratoRef?: React.RefObject<ContratoStepHandle | null>;
   /** Solo lo consume `contract`: se volvió al paso con el contrato ya firmado. */
   contratoYaAceptado?: boolean;
+  /** Solo lo consume `contract`: la solicitud quedó rechazada/cancelada. */
+  onNoAplica?: () => void;
 }
 
 // Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
 // la lista llegaba a siete parámetros, casi todos opcionales y varios del
 // mismo tipo — un orden equivocado no lo habría cazado el compilador.
 function renderStep({
-  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing, contratoRef, contratoYaAceptado,
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing, contratoRef, contratoYaAceptado, onNoAplica,
 }: RenderStepArgs) {
   switch (type) {
     case 'dni_selfie':
@@ -188,6 +190,7 @@ function renderStep({
           // pantalla con el contrato ya aceptado: ahí no se pide la casilla de
           // nuevo, se ofrece releerlo y continuar.
           yaAceptado={contratoYaAceptado}
+          onNoAplica={onNoAplica}
         />
       );
     case 'documents':
@@ -728,6 +731,8 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
             linkPago,
             resumeToken,
             landing,
+            // Rechazada mientras esperaba el contrato: "solicitud recibida".
+            onNoAplica: () => goToConfirmacion(false),
             contratoRef,
             contratoYaAceptado,
           })}

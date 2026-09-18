@@ -54,15 +54,17 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('../../kyc/steps/ContratoStep', () => ({
-  ContratoStep: ({ onDone, onBack, yaAceptado }: {
+  ContratoStep: ({ onDone, onBack, yaAceptado, onNoAplica }: {
     onDone: (d?: { contractHash?: string; externalId?: string }) => void;
     onBack?: () => void;
     yaAceptado?: boolean;
+    onNoAplica?: () => void;
   }) => (
     <div data-testid="contrato-step" data-ya-aceptado={String(Boolean(yaAceptado))} data-has-on-back={String(Boolean(onBack))}>
       <button type="button" onClick={() => onDone({ contractHash: 'hash-1', externalId: 'ext-1' })}>
         Firmar electrónicamente
       </button>
+      <button type="button" onClick={() => onNoAplica?.()}>Contrato no aplica</button>
     </div>
   ),
 }));
@@ -268,4 +270,18 @@ it('ya aceptado + "Continuar": va derecho a la confirmación sin el overlay de "
   expect(overlayAbierto).not.toHaveBeenCalledWith(true);
   expect(mockPush).not.toHaveBeenCalled();
   expect(mockReplace.mock.calls[0][0] as string).toContain('/solicitar/confirmacion');
+});
+
+it('si /contrato dice no_aplica (rechazada), va a "solicitud recibida" sin firmar ni pasar por /completar', async () => {
+  render(<ContratoEnWizard landing="renueva-tu-equipo-1-a" handoff={handoff} stepSlug="resumen" />);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Contrato no aplica' }));
+
+  await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+  const url = mockReplace.mock.calls[0][0] as string;
+  expect(url).toContain('/solicitar/confirmacion');
+  expect(url).toContain('code=APP-1');
+  expect(url).not.toContain('kyc=1');
+  expect(mockCompletarKyc).not.toHaveBeenCalled();
+  expect(mockAceptar).not.toHaveBeenCalled();
 });

@@ -593,7 +593,8 @@ export type ContratoModo =
    *  corre al final. Su ausencia es normal y NO puede trabar el flujo. */
   | 'emitido';
 
-export type ContratoEstado = 'generando' | 'listo' | 'error';
+/** `no_aplica`: la solicitud quedó rechazada/cancelada y no hay contrato que aceptar. */
+export type ContratoEstado = 'generando' | 'listo' | 'error' | 'no_aplica';
 
 /** Por qué falló. Solo viene con `estado: 'error'`. */
 export type ContratoMotivo =
@@ -678,7 +679,7 @@ export async function getContrato(args: {
 function adaptarContrato(raw: Record<string, unknown>): ContratoKyc {
   const modo: ContratoModo = raw.modo === 'aceptacion' ? 'aceptacion' : 'emitido';
   const estado: ContratoEstado =
-    raw.estado === 'listo' || raw.estado === 'error' || raw.estado === 'generando'
+    raw.estado === 'listo' || raw.estado === 'error' || raw.estado === 'generando' || raw.estado === 'no_aplica'
       ? raw.estado
       : raw.disponible ? 'listo' : 'generando';
 

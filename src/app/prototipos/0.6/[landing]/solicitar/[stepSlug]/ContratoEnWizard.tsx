@@ -271,6 +271,10 @@ export function ContratoEnWizard({
         documentNumber={handoff.documentNumber}
         landing={landing}
         yaAceptado={contratoYaAceptado}
+        // Rechazada mientras esperaba el contrato (financiamiento activo, que
+        // corre en el workflow después del submit): no se muestra un contrato
+        // que no va a poder aceptar; se va a "solicitud recibida".
+        onNoAplica={() => router.replace(routes.solicitarConfirmacion(landing, handoff.applicationCode))}
       />
     </>
   );

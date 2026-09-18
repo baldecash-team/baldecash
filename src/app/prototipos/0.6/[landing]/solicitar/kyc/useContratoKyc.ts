@@ -92,6 +92,14 @@ export function useContratoKyc({
       // reemplaza por uno genérico.
       const actual: ContratoEstado = r?.estado ?? 'error';
 
+      // Rechazada/cancelada mientras se esperaba (el workflow corre entre el
+      // submit y esta pantalla): no hay contrato que aceptar. Se deja de pedir;
+      // quien monta el paso se va a "solicitud recibida".
+      if (actual === 'no_aplica') {
+        setEstado('no_aplica');
+        return;
+      }
+
       if (actual === 'listo') {
         setEstado('listo');
         track('kyc_contract_ready', {

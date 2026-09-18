@@ -66,6 +66,12 @@ export interface ContratoStepProps {
    * lectura: el contrato sigue a la vista para releerlo y el botón continúa.
    */
   yaAceptado?: boolean;
+  /**
+   * `/contrato` respondió `no_aplica`: la solicitud quedó rechazada o
+   * cancelada y no hay contrato que aceptar. El orquestador se va a la
+   * confirmación de siempre ("Hemos recibido tu solicitud").
+   */
+  onNoAplica?: () => void;
 }
 
 /**
@@ -115,7 +121,7 @@ const AUTORIZACIONES_FAMILY_FARMS: AutorizacionConvenio[] = [
 ];
 
 export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(function ContratoStep({
-  onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing, yaAceptado,
+  onDone, onBack, applicationCode, onTrack, documentNumber, resumeToken, landing, yaAceptado, onNoAplica,
 }: ContratoStepProps, ref) {
   const [accepted, setAccepted] = useState<'true' | 'false'>('false');
   // El contrato aceptado quedó viejo (409 / `contrato_vencido`): lo que se
@@ -168,6 +174,10 @@ export const ContratoStep = forwardRef<ContratoStepHandle, ContratoStepProps>(fu
    * es el contrato vigente. Se desmarca la aceptación: lo que se aceptó dejó de
    * existir, y dejar el check puesto sobre un documento nuevo sería mentir.
    */
+  useEffect(() => {
+    if (estado === 'no_aplica') onNoAplica?.();
+  }, [estado, onNoAplica]);
+
   useImperativeHandle(ref, () => ({
     marcarVencido: () => {
       // Se suelta el botón: por este camino `onDone` no vuelve y el paso se
