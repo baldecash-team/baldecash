@@ -1353,7 +1353,19 @@ Y el CTA en flujo (`:865-880`) se ramifica:
           disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && !pasoEmbebido.canProceed)}
           className={/* ...sin cambios... */}
         >
-          <span>{esRenueva ? 'Continuar' : 'Comenzar Solicitud'}</span>
+          <span>
+            {!esRenueva
+              ? 'Comenzar Solicitud'
+              // El texto sale del mismo lugar que el del CTA fijo de móvil
+              // (`MobileStickyCta`): `esElQueEnvia`. En `renueva-*` el envío
+              // anticipado crea la solicitud al cerrar este paso, así que hoy
+              // en producción ese botón ya dice "Enviar Solicitud". Si acá se
+              // hardcodeara "Continuar", la misma pantalla tendría dos botones
+              // con textos distintos para la misma acción.
+              : pasoEmbebido.esElQueEnvia
+                ? 'Enviar Solicitud'
+                : 'Continuar'}
+          </span>
           <ArrowRight className="w-5 h-5" />
         </button>
 ```
@@ -1717,10 +1729,10 @@ Con `renueva-tu-equipo-1`, recorrer y confirmar:
 2. Accesorios está **plegado**; al recargar con la red lenta, el **spinner se ve en la cabecera**.
 3. Al abrir accesorios aparecen chips, buscador y grilla; el modal de detalle abre y cierra sin plegar la sección.
 4. **No** están las tarjetas `~1 minuto` / `2 pasos` / `100% Seguro` ni `Lo que necesitarás`.
-5. En móvil (DevTools, 390×844): la barra de producto queda **encima** del botón `Continuar`, pegado al borde. Sin hueco entre ambos.
+5. En móvil (DevTools, 390×844): la barra de producto queda **encima** del botón de acción (dice `Enviar Solicitud`, porque el envío anticipado crea la solicitud en este paso), pegado al borde. Sin hueco entre ambos.
 6. Al expandir el drawer del producto, el CTA se esconde y el panel crece **desde el borde inferior**, sin dejar hueco.
 7. Al enfocar un campo y abrir el teclado, el CTA se esconde.
-8. Completar el formulario y pulsar `Continuar` → se crea la solicitud → cae en `/solicitar/resumen` → `/complementos` → **el contrato aparece como siempre**.
+8. Completar el formulario y pulsar el botón de acción → se crea la solicitud → cae en `/solicitar/resumen` → `/complementos` → **el contrato aparece como siempre**. Confirmar además que el botón en flujo y el CTA fijo de móvil dicen **lo mismo**.
 9. Entrar directo a `/prototipos/0.6/renueva-tu-equipo-1/solicitar/datos-personales`: la página del paso sigue funcionando por su cuenta.
 10. Con `home` (u otra landing normal): tarjetas presentes, accesorios expandido, botón `Comenzar Solicitud`, CTA móvil encima de la barra. **Nada cambió.**
 
