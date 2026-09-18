@@ -84,7 +84,13 @@ jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
   }),
 }));
 jest.mock('@/app/prototipos/0.6/services/landingConfigApi', () => ({
-  fetchLandingConfig: jest.fn().mockResolvedValue({ layout: { has_catalog: true } }),
+  fetchLandingConfig: jest.fn().mockResolvedValue({
+    layout: { has_catalog: true },
+    // `solicitarClient` lee `cfg.features.has_coupon` para decidir si pinta el
+    // cupón. Sin `features` el efecto de config tira TypeError y el render
+    // nunca llega al botón.
+    features: { has_coupon: true },
+  }),
 }));
 jest.mock('@/app/prototipos/0.6/context/PreviewContext', () => ({
   usePreview: () => ({ isPreviewingLanding: () => false, previewKey: null }),
