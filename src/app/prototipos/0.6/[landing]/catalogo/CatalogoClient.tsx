@@ -739,7 +739,11 @@ function CatalogoContent() {
       // Combo de la card elegida: el equipo convive en varias cards (suelto y
       // uno o mas combos) con el mismo product_id, y el submit lo reenvia.
       comboId: variantInfo?.comboId ?? product.comboId,
-      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency || 'mensual',
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -1350,7 +1354,9 @@ function CatalogoContent() {
           monthlyPayment: item.monthlyPayment,
           months: item.months,
           term: item.term ?? item.months,
-          paymentFrequency: item.paymentFrequency,
+          // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+          // campo: se completa aqui en vez de dejar que el backend lo adivine.
+          paymentFrequency: item.paymentFrequency ?? 'mensual',
           initialPercent: item.initialPercent,
           initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
@@ -2248,7 +2254,7 @@ function CatalogoContent() {
               price: wishlistItem.price,
               months: wishlistItem.months,
               term: wishlistItem.term ?? wishlistItem.months,
-              paymentFrequency: wishlistItem.paymentFrequency,
+              paymentFrequency: wishlistItem.paymentFrequency ?? 'mensual',
               initialPercent: wishlistItem.initialPercent,
               initialAmount: wishlistItem.initialAmount,
               monthlyPayment: wishlistItem.monthlyPayment,

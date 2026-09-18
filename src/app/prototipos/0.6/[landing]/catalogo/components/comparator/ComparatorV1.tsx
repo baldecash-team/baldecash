@@ -62,7 +62,11 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       variantId: product.variantId,
       // Combo de la card comparada (el equipo convive en varias cards)
       comboId: product.comboId,
-      paymentFrequency: product.paymentFrequency,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: product.paymentFrequency ?? 'mensual',
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
