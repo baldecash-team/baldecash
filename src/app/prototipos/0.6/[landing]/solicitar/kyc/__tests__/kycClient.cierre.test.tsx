@@ -30,10 +30,11 @@ jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
 });
 
 import KycClient from '../kycClient';
-import { getKycProgress, completeKycStep } from '@/app/prototipos/0.6/services/kycApi';
+import { getKycProgress, completeKycStep, completarKyc } from '@/app/prototipos/0.6/services/kycApi';
 
 const mockGetKycProgress = getKycProgress as jest.MockedFunction<typeof getKycProgress>;
 const mockCompleteKycStep = completeKycStep as jest.MockedFunction<typeof completeKycStep>;
+const mockCompletarKyc = completarKyc as jest.MockedFunction<typeof completarKyc>;
 
 const mockUseSearchParams = jest.fn(() => new URLSearchParams('code=APP-1'));
 const mockKycFlow = jest.fn(() => ({ kycEnabled: true, kycSteps: [{ type: 'contract' }], isLoading: false }));
@@ -135,4 +136,22 @@ it('el gate de landing sin KYC va a la misma pantalla SIN el flag', async () => 
   const destino = mockRouterReplace.mock.calls[0][0] as string;
   expect(destino).toContain('/solicitar/confirmacion');
   expect(destino).not.toContain('kyc=1');
+});
+
+it('con firma por aceptacion, el ultimo sub-paso cierra el KYC con /completar antes de ir a la confirmacion', async () => {
+  // Ruta por link (la del recordatorio): sin paso de pago, antes iba derecho a
+  // la confirmacion sin llamar a /completar — legacy nunca registraba la
+  // aceptacion (125281, 17-sep-2026).
+  mockKycFlow.mockReturnValue({ kycEnabled: true, kycSteps: [{ type: 'contract' }], isLoading: false, firmaPorAceptacion: true } as never);
+  mockGetKycProgress.mockResolvedValue(estadoUnPaso as never);
+  mockCompletarKyc.mockResolvedValue({ aprobado: true, tiene_cuota_inicial: false, link_pago: null, firmado: true, entrega_token: null } as never);
+
+  render(<KycClient />);
+
+  await userEvent.click(await screen.findByRole('button', { name: /firmar electr/i }));
+
+  await waitFor(() => expect(mockCompletarKyc).toHaveBeenCalled());
+  expect(mockCompletarKyc.mock.calls[0][0]).toBe('APP-1');
+  await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled());
+  expect(mockRouterReplace.mock.calls[0][0] as string).toContain('/solicitar/confirmacion');
 });

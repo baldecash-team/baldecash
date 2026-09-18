@@ -235,6 +235,7 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     kycEnabled: landingKycEnabled,
     kycSteps: landingKycSteps,
     isLoading: configLoading,
+    firmaPorAceptacion,
   } = useSolicitarFlow({ slug: landing });
 
   /**
@@ -565,8 +566,13 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     }
 
     // Ultimo sub-paso: si la landing configuro el pago y aun no hay veredicto,
-    // se consulta antes de cerrar.
-    if (pasoPagoConfigurado && !linkPago) {
+    // o si la firma es por aceptacion, se consulta antes de cerrar. En el
+    // segundo caso `/completar` es lo que registra la aceptacion en legacy,
+    // emite la constancia y manda el aviso de cierre: sin esto, quien entraba
+    // por el link de reanudacion (el del recordatorio) aceptaba el contrato y
+    // se iba a la confirmacion sin cerrar nada (125281, 17-sep-2026 — el
+    // wizard si cerraba; esta ruta no).
+    if ((pasoPagoConfigurado && !linkPago) || firmaPorAceptacion) {
       void cerrarKyc();
       return;
     }
