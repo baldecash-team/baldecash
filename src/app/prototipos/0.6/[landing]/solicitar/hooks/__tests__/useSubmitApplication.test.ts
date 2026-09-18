@@ -13,11 +13,20 @@ import type { WizardStep } from '../../../../services/wizardApi';
 
 // Mock next/navigation
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockParams = { landing: 'test-landing' };
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useParams: () => mockParams,
+}));
+
+// El handoff del envio anticipado: lo que habilita la pantalla del contrato.
+const mockSaveEnvioAnticipadoHandoff = jest.fn();
+jest.mock('../../utils/envioAnticipadoHandoff', () => ({
+  ...jest.requireActual('../../utils/envioAnticipadoHandoff'),
+  saveEnvioAnticipadoHandoff: (...args: unknown[]) =>
+    mockSaveEnvioAnticipadoHandoff(...args),
 }));
 
 // Mock contexts with complete implementation
@@ -265,6 +274,90 @@ describe('useSubmitApplication', () => {
         'Error al enviar la solicitud. Por favor intenta nuevamente.',
         'error'
       );
+    });
+  });
+
+  describe('solicitud que nace rechazada', () => {
+    // ws2 puede cerrar la solicitud dentro del propio submit (lista negra, y
+    // los filtros duros que corren ahi mismo). Ahi no hay contrato que emitir
+    // ni KYC que completar: mandarla a esas pantallas la deja esperando un
+    // documento que nunca llega y rebotando sola a la confirmacion.
+
+    it('con KYC prendido va a la confirmacion, no al KYC', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_code: 'APP-RECHAZADA',
+        kyc_resume_token: 'tok-123',
+        status: 'rejected',
+      });
+
+      const { result } = renderHook(() => useSubmitApplication({}));
+
+      await act(async () => {
+        await result.current.submit({ kycEnabled: true });
+      });
+
+      expect(mockPush).toHaveBeenCalledWith(
+        routes.solicitarConfirmacion('test-landing', 'APP-RECHAZADA')
+      );
+      expect(mockPush).not.toHaveBeenCalledWith(
+        expect.stringContaining('/prototipos/0.6/kyc/')
+      );
+    });
+
+    it('en envio anticipado no deja handoff y se va a la confirmacion', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_code: 'APP-RECHAZADA',
+        kyc_resume_token: 'tok-123',
+        status: 'rejected',
+      });
+
+      const { result } = renderHook(() => useSubmitApplication({}));
+
+      let ok: boolean = true;
+      await act(async () => {
+        ok = await result.current.submit({
+          kycEnabled: true,
+          stayInWizard: true,
+          conContrato: true,
+        });
+      });
+
+      // `false` es lo que frena al wizard: quien llamo no empuja el paso del
+      // contrato porque esta pantalla ya navego.
+      expect(ok).toBe(false);
+      expect(mockSaveEnvioAnticipadoHandoff).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith(
+        routes.solicitarConfirmacion('test-landing', 'APP-RECHAZADA')
+      );
+    });
+
+    it('la que sigue viva deja el handoff y sigue en el wizard', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_code: 'APP-VIVA',
+        kyc_resume_token: 'tok-456',
+        status: 'pending',
+      });
+
+      const { result } = renderHook(() => useSubmitApplication({}));
+
+      let ok: boolean = false;
+      await act(async () => {
+        ok = await result.current.submit({
+          kycEnabled: true,
+          stayInWizard: true,
+          conContrato: true,
+        });
+      });
+
+      expect(ok).toBe(true);
+      expect(mockSaveEnvioAnticipadoHandoff).toHaveBeenCalledWith(
+        'test-landing',
+        expect.objectContaining({ applicationCode: 'APP-VIVA' })
+      );
+      expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 

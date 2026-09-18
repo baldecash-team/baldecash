@@ -42,9 +42,15 @@ jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
 
 jest.mock('../../kyc/constanciaStorage', () => ({ guardarConstancia: jest.fn() }));
 
+// El titulo viaja al espia porque hay DOS overlays en esta pantalla: el velo
+// mientras no se sabe si hay contrato, y el de la firma. Distinguirlos por
+// `isOpen` solo ya no alcanza.
 const overlayAbierto = jest.fn();
 jest.mock('../../components/solicitar/submit/SubmitOverlay', () => ({
-  SubmitOverlay: ({ isOpen }: { isOpen: boolean }) => { overlayAbierto(isOpen); return null; },
+  SubmitOverlay: ({ isOpen, titulo }: { isOpen: boolean; titulo?: string }) => {
+    overlayAbierto(isOpen, titulo);
+    return null;
+  },
 }));
 
 const mockPush = jest.fn();
@@ -54,17 +60,19 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('../../kyc/steps/ContratoStep', () => ({
-  ContratoStep: ({ onDone, onBack, yaAceptado, onNoAplica }: {
+  ContratoStep: ({ onDone, onBack, yaAceptado, onNoAplica, onResuelto }: {
     onDone: (d?: { contractHash?: string; externalId?: string }) => void;
     onBack?: () => void;
     yaAceptado?: boolean;
     onNoAplica?: () => void;
+    onResuelto?: () => void;
   }) => (
     <div data-testid="contrato-step" data-ya-aceptado={String(Boolean(yaAceptado))} data-has-on-back={String(Boolean(onBack))}>
       <button type="button" onClick={() => onDone({ contractHash: 'hash-1', externalId: 'ext-1' })}>
         Firmar electrónicamente
       </button>
       <button type="button" onClick={() => onNoAplica?.()}>Contrato no aplica</button>
+      <button type="button" onClick={() => onResuelto?.()}>Contrato resuelto</button>
     </div>
   ),
 }));
@@ -267,7 +275,7 @@ it('ya aceptado + "Continuar": va derecho a la confirmación sin el overlay de "
   await waitFor(() => expect(mockReplace).toHaveBeenCalled());
 
   expect(mockAceptar).not.toHaveBeenCalled();
-  expect(overlayAbierto).not.toHaveBeenCalledWith(true);
+  expect(overlayAbierto).not.toHaveBeenCalledWith(true, 'Firmando tu solicitud');
   expect(mockPush).not.toHaveBeenCalled();
   expect(mockReplace.mock.calls[0][0] as string).toContain('/solicitar/confirmacion');
 });
@@ -284,4 +292,38 @@ it('si /contrato dice no_aplica (rechazada), va a "solicitud recibida" sin firma
   expect(url).not.toContain('kyc=1');
   expect(mockCompletarKyc).not.toHaveBeenCalled();
   expect(mockAceptar).not.toHaveBeenCalled();
+});
+
+describe('el contrato no se pinta antes de saber si aplica', () => {
+  // Una solicitud rechazada —en el submit por lista negra, o en el workflow por
+  // financiamiento activo— llegaba igual a esta pantalla y mostraba medio
+  // segundo el encabezado del contrato, los datos y los numeros antes de
+  // rebotar a "solicitud recibida". Eso se leia como un financiamiento que se
+  // cae a mitad de camino.
+
+  it('mientras /contrato no contesta, el velo tapa la pantalla', () => {
+    render(<ContratoEnWizard landing="renueva-tu-equipo-1-a" handoff={handoff} stepSlug="resumen" />);
+
+    expect(overlayAbierto).toHaveBeenCalledWith(true, 'Revisando tu solicitud');
+  });
+
+  it('con la solicitud viva se destapa', async () => {
+    render(<ContratoEnWizard landing="renueva-tu-equipo-1-a" handoff={handoff} stepSlug="resumen" />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Contrato resuelto' }));
+
+    await waitFor(() =>
+      expect(overlayAbierto).toHaveBeenLastCalledWith(false, 'Revisando tu solicitud'));
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('rechazada: navega con el velo puesto, sin destaparse nunca', async () => {
+    render(<ContratoEnWizard landing="renueva-tu-equipo-1-a" handoff={handoff} stepSlug="resumen" />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Contrato no aplica' }));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    // El velo nunca se abrio: no hubo un frame con la pantalla del contrato.
+    expect(overlayAbierto).not.toHaveBeenCalledWith(false, 'Revisando tu solicitud');
+  });
 });
