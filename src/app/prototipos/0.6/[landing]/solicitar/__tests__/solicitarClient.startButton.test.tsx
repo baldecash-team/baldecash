@@ -49,8 +49,9 @@ let mockProductContextValue = baseProductContextValue;
 jest.mock('../context/ProductContext', () => ({
   useProduct: () => mockProductContextValue,
 }));
+let landingActual = 'home';
 jest.mock('next/navigation', () => ({
-  useParams: () => ({ landing: 'home' }),
+  useParams: () => ({ landing: landingActual }),
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
   usePathname: () => '/prototipos/0.6/home/solicitar',
 }));
@@ -119,6 +120,7 @@ import SolicitarClientPage from '../solicitarClient';
 describe('boton Comenzar Solicitud — gating por isLoadingAccessories', () => {
   afterEach(() => {
     mockProductContextValue = baseProductContextValue;
+    landingActual = 'home';
   });
 
   test('esta habilitado cuando isLoadingAccessories es false y no hay otras restricciones', async () => {
@@ -132,5 +134,34 @@ describe('boton Comenzar Solicitud — gating por isLoadingAccessories', () => {
     render(<SolicitarClientPage />);
     const button = await screen.findByText('Comenzar Solicitud');
     expect(button.closest('button')).toBeDisabled();
+  });
+});
+
+describe('tarjetas informativas de la intro', () => {
+  afterEach(() => {
+    landingActual = 'home';
+  });
+
+  it('una landing normal las muestra', async () => {
+    render(<SolicitarClientPage />);
+    expect(await screen.findByText('Tiempo estimado')).toBeInTheDocument();
+    expect(screen.getByText('Proceso simple')).toBeInTheDocument();
+    expect(screen.getByText('Datos protegidos')).toBeInTheDocument();
+    expect(screen.getByText('Lo que necesitarás')).toBeInTheDocument();
+  });
+
+  it('renueva-* no las muestra: anuncian pasos que ya no existen', async () => {
+    landingActual = 'renueva-tu-equipo-1';
+    render(<SolicitarClientPage />);
+    // Se espera a que el Suspense resuelva por algo que SÍ está en ambas.
+    // Ancla deliberada: "Términos y Condiciones" está en las dos landings y
+    // sobrevive a la Task 7, que en renueva-* cambia el botón "Comenzar
+    // Solicitud" por "Continuar". Anclar en el botón dejaría este test rojo
+    // más adelante por un cambio esperado, y un test así se termina borrando.
+    await screen.findByText('Términos y Condiciones');
+    expect(screen.queryByText('Tiempo estimado')).not.toBeInTheDocument();
+    expect(screen.queryByText('Proceso simple')).not.toBeInTheDocument();
+    expect(screen.queryByText('Datos protegidos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lo que necesitarás')).not.toBeInTheDocument();
   });
 });

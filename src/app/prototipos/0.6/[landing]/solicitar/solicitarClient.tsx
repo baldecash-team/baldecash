@@ -19,7 +19,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
 import { GamerSolicitarContent } from './GamerSolicitarClient';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
@@ -113,6 +113,13 @@ function WizardPreviewContent() {
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  /**
+   * Segundo financiamiento: un solo paso de formulario. La pantalla se arma
+   * distinta — accesorios plegado y el formulario embebido debajo— así que el
+   * gate se deriva una vez acá y lo consume todo el render.
+   */
+  const esRenueva = isSecondFinancingLanding(landing);
 
   // Lead guard — redirige al form si no tiene lead_id
   const hasLeadAccess = useLeadGuard(landing);
@@ -705,31 +712,35 @@ function WizardPreviewContent() {
           );
         })()}
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
-            <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-neutral-800">
-              {displayEstimatedMinutes < 1 ? '~1 minuto' : `~${displayEstimatedMinutes} minutos`}
-            </p>
-            <p className="text-xs text-neutral-500">Tiempo estimado</p>
+        {/* Info Cards.
+            En renueva-* no van: la tarjeta del medio anuncia el número de
+            pasos, y ese número es justo lo que este flujo dejó de tener. */}
+        {!esRenueva && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
+              <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
+              <p className="text-sm font-medium text-neutral-800">
+                {displayEstimatedMinutes < 1 ? '~1 minuto' : `~${displayEstimatedMinutes} minutos`}
+              </p>
+              <p className="text-xs text-neutral-500">Tiempo estimado</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
+              <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
+              <p className="text-sm font-medium text-neutral-800">
+                {displayStepsCount} pasos
+              </p>
+              <p className="text-xs text-neutral-500">Proceso simple</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
+              <Shield className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
+              <p className="text-sm font-medium text-neutral-800">100% Seguro</p>
+              <p className="text-xs text-neutral-500">Datos protegidos</p>
+            </div>
           </div>
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
-            <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-neutral-800">
-              {displayStepsCount} pasos
-            </p>
-            <p className="text-xs text-neutral-500">Proceso simple</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
-            <Shield className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-neutral-800">100% Seguro</p>
-            <p className="text-xs text-neutral-500">Datos protegidos</p>
-          </div>
-        </div>
+        )}
 
         {/* Requirements */}
-        {(() => {
+        {!esRenueva && (() => {
           const reqData = config?.form_extra_data?.requirements;
           const reqTitle = reqData?.title ?? 'Lo que necesitarás';
           const reqItems = reqData?.items ?? [
