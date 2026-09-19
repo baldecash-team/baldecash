@@ -44,16 +44,20 @@ const baseProductContextValue: any = {
   setIsLoadingAccessories: jest.fn(),
 };
 
-let mockProductContextValue = baseProductContextValue;
+// `const` y no `let`: este archivo no cambia el carrito entre tests (el
+// original sí, para gatear el botón). Se conserva la indirección porque el
+// mock de `useProduct` la lee.
+const mockProductContextValue = baseProductContextValue;
 
 jest.mock('../context/ProductContext', () => ({
   useProduct: () => mockProductContextValue,
 }));
-let landingActual = 'home';
+let landingActual = 'renueva-tu-equipo-1';
+
 jest.mock('next/navigation', () => ({
   useParams: () => ({ landing: landingActual }),
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
-  usePathname: () => '/prototipos/0.6/home/solicitar',
+  usePathname: () => `/prototipos/0.6/${landingActual}/solicitar`,
 }));
 jest.mock('@/app/prototipos/0.6/hooks/useLeadGuard', () => ({
   useLeadGuard: () => ({ hasLeadAccess: true }),
@@ -109,20 +113,18 @@ jest.mock('../components/solicitar/product', () => ({
   SelectedProductBar: () => null,
   SelectedProductSpacer: () => null,
 }));
-// La intro monta el paso del formulario (embebido en renueva-*, inerte en el
-// resto), y `usePasoDelWizard` exige el `WizardProvider` que este test no
-// levanta: sin el mock, el render tira "useWizard must be used within a
-// WizardProvider" antes de llegar al botón. Lo que este archivo prueba es el
-// botón de la intro, no el paso.
+
+// El cuerpo del paso se prueba en StepClient.pasoRegular.test.tsx; acá solo
+// importa que la intro lo monte.
 jest.mock('../components/solicitar/wizard', () => ({
   ...jest.requireActual('../components/solicitar/wizard'),
-  PasoDelWizard: () => null,
+  PasoDelWizard: () => <div data-testid="formulario-embebido" />,
   usePasoDelWizard: () => ({
-    step: null,
+    step: { code: 'p1', url_slug: 'datos-personales', title: 'Datos personales', order: 0, fields: [] },
     handleNext: jest.fn(),
     handleBack: jest.fn(),
     handleStepClick: jest.fn(),
-    esElQueEnvia: false,
+    esElQueEnvia: true,
     isSubmitting: false,
     submitStage: 'idle',
     submitMessage: '',
@@ -131,7 +133,6 @@ jest.mock('../components/solicitar/wizard', () => ({
     celebrando: false,
     motivational: null,
     firstName: '',
-    submitSucceeded: false,
     overlays: null,
   }),
 }));
@@ -143,51 +144,26 @@ jest.mock('../components/solicitar/wizard', () => ({
 // usa `findByText` (no `getByText`) para esperar a que el Suspense resuelva.
 import SolicitarClientPage from '../solicitarClient';
 
-describe('boton Comenzar Solicitud — gating por isLoadingAccessories', () => {
-  afterEach(() => {
-    mockProductContextValue = baseProductContextValue;
-    landingActual = 'home';
-  });
-
-  test('esta habilitado cuando isLoadingAccessories es false y no hay otras restricciones', async () => {
-    render(<SolicitarClientPage />);
-    const button = await screen.findByText('Comenzar Solicitud');
-    expect(button.closest('button')).not.toBeDisabled();
-  });
-
-  test('esta deshabilitado cuando isLoadingAccessories es true', async () => {
-    mockProductContextValue = { ...baseProductContextValue, isLoadingAccessories: true };
-    render(<SolicitarClientPage />);
-    const button = await screen.findByText('Comenzar Solicitud');
-    expect(button.closest('button')).toBeDisabled();
-  });
+afterEach(() => {
+  landingActual = 'renueva-tu-equipo-1';
 });
 
-describe('tarjetas informativas de la intro', () => {
-  afterEach(() => {
+describe('intro de renueva-*', () => {
+  it('monta el formulario embebido', async () => {
+    render(<SolicitarClientPage />);
+    expect(await screen.findByTestId('formulario-embebido')).toBeInTheDocument();
+  });
+
+  it('ya no ofrece "Comenzar Solicitud": el formulario está en la página', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    expect(screen.queryByText('Comenzar Solicitud')).not.toBeInTheDocument();
+  });
+
+  it('una landing normal no monta el formulario y conserva su botón', async () => {
     landingActual = 'home';
-  });
-
-  it('una landing normal las muestra', async () => {
     render(<SolicitarClientPage />);
-    expect(await screen.findByText('Tiempo estimado')).toBeInTheDocument();
-    expect(screen.getByText('Proceso simple')).toBeInTheDocument();
-    expect(screen.getByText('Datos protegidos')).toBeInTheDocument();
-    expect(screen.getByText('Lo que necesitarás')).toBeInTheDocument();
-  });
-
-  it('renueva-* no las muestra: anuncian pasos que ya no existen', async () => {
-    landingActual = 'renueva-tu-equipo-1';
-    render(<SolicitarClientPage />);
-    // Se espera a que el Suspense resuelva por algo que SÍ está en ambas.
-    // Ancla deliberada: "Términos y Condiciones" está en las dos landings y
-    // sobrevive a la Task 7, que en renueva-* cambia el botón "Comenzar
-    // Solicitud" por "Continuar". Anclar en el botón dejaría este test rojo
-    // más adelante por un cambio esperado, y un test así se termina borrando.
-    await screen.findByText('Términos y Condiciones');
-    expect(screen.queryByText('Tiempo estimado')).not.toBeInTheDocument();
-    expect(screen.queryByText('Proceso simple')).not.toBeInTheDocument();
-    expect(screen.queryByText('Datos protegidos')).not.toBeInTheDocument();
-    expect(screen.queryByText('Lo que necesitarás')).not.toBeInTheDocument();
+    expect(await screen.findByText('Comenzar Solicitud')).toBeInTheDocument();
+    expect(screen.queryByTestId('formulario-embebido')).not.toBeInTheDocument();
   });
 });

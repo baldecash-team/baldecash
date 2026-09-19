@@ -5,7 +5,7 @@
  * Landing page before starting the wizard flow
  */
 
-import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle, X } from 'lucide-react';
@@ -47,6 +47,9 @@ import { CouponInput } from './components/solicitar/coupon';
 
 // Product bar for mobile
 import { SelectedProductBar, SelectedProductSpacer } from './components/solicitar/product';
+
+// El paso del formulario, para embeberlo en la intro de renueva-*
+import { PasoDelWizard, usePasoDelWizard } from './components/solicitar/wizard';
 
 // Utils
 import { formatMoneyNoDecimals } from './utils/formatMoney';
@@ -195,7 +198,11 @@ function WizardPreviewContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (accessories, wizard_steps, insurance order & enabled state)
-  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading, isCouponRequired } = useSolicitarFlow({ slug: landing, previewKey });
+  // `flujo` entero además de los campos sueltos: `usePasoDelWizard` lo recibe
+  // inyectado en vez de volver a llamar `useSolicitarFlow`, que guarda su estado
+  // por instancia y saldría a buscar `solicitar-config` una segunda vez.
+  const flujo = useSolicitarFlow({ slug: landing, previewKey });
+  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading, isCouponRequired } = flujo;
 
   // Clear accessories if section is disabled (prevents orphaned selections from previous sessions)
   useEffect(() => {
@@ -216,6 +223,20 @@ function WizardPreviewContent() {
     const regularSteps = steps.filter(s => !s.is_summary_step);
     return regularSteps.length > 0 ? regularSteps[0] : null;
   }, [steps]);
+
+  /**
+   * El paso del formulario, embebido. Se monta siempre —el orden de hooks no
+   * admite condicionales— pero solo se RENDERIZA en renueva-*.
+   *
+   * Fuera de renueva-* el slug va vacío a propósito: sin paso resuelto el hook
+   * queda inerte (no registra el `form_abandon` del `beforeunload`, no resuelve
+   * el motivacional), así que la intro del resto de las landings se comporta
+   * exactamente igual que antes de embeber nada.
+   */
+  const pasoEmbebido = usePasoDelWizard({
+    stepSlug: esRenueva ? (firstStep?.url_slug || firstStep?.code || '') : '',
+    flujo,
+  });
 
   // Cargar valores desde localStorage al montar
   useEffect(() => {
@@ -259,11 +280,20 @@ function WizardPreviewContent() {
     // Wait for hydration from localStorage before deciding
     if (!isHydrated) return;
 
+    // El envío del paso embebido limpia el carrito al crear la solicitud, así
+    // que `selectedProduct` pasa a `null` en el mismo instante en que el envío
+    // sale bien. Sin mirar el flag, esta pantalla se leería eso como "entró sin
+    // elegir equipo" y se mandaría sola al catálogo EN MEDIO DEL ENVÍO, antes
+    // de llegar al contrato. No se puede simplificar: la invariante vive acá,
+    // fuera del hook, y el host que la olvide reintroduce el bug en silencio.
+    // `StepClient` tiene el mismo guard por la misma razón.
+    if (pasoEmbebido.submitSucceeded) return;
+
     // If no product was selected, redirect to catalog (or landing home if no catalog)
     if (!selectedProduct) {
       router.replace(fallbackRoute);
     }
-  }, [isHydrated, selectedProduct, router, fallbackRoute]);
+  }, [isHydrated, selectedProduct, router, fallbackRoute, pasoEmbebido.submitSucceeded]);
 
 
   // Check if terms need to be unified (multiple products with different terms)
@@ -313,6 +343,28 @@ function WizardPreviewContent() {
     }, 2000);
   }, [getHeaderOffset, setIsProductBarExpanded]);
 
+  /**
+   * En renueva-* la pantalla abre sobre el formulario, no sobre el encabezado
+   * (`useScrollToTop`, arriba, deja la vista en el título de la intro).
+   *
+   * Se espera a que el paso esté montado: scrollear antes de que
+   * `DynamicWizardStep` pinte los campos deja la posición mal calculada, porque
+   * el alto del bloque todavía no existe.
+   */
+  const yaScrolleoRef = useRef(false);
+  useEffect(() => {
+    if (!esRenueva || yaScrolleoRef.current) return;
+    if (!pasoEmbebido.step) return;
+    const el = document.getElementById('formulario-embebido');
+    if (!el) return;
+    yaScrolleoRef.current = true;
+    const rect = el.getBoundingClientRect();
+    window.scrollTo({
+      top: Math.max(0, window.pageYOffset + rect.top - getHeaderOffset() - 24),
+      behavior: 'smooth',
+    });
+  }, [esRenueva, pasoEmbebido.step, getHeaderOffset]);
+
   // Only consider products that are both unavailable AND still in the cart/selection
   const currentProductIds = new Set(
     (cartProducts.length > 0 ? cartProducts : selectedProduct ? [selectedProduct] : []).map(p => p.id)
@@ -320,24 +372,33 @@ function WizardPreviewContent() {
   const activeUnavailableIds = unavailableProductIds.filter(id => currentProductIds.has(id));
   const hasUnavailableProducts = activeUnavailableIds.length > 0;
 
-  const handleStart = () => {
+  /**
+   * Las validaciones de la intro: carrito, plazos, consentimientos, cupón.
+   * Devuelve `true` si se puede seguir; si no, ya dejó el error puesto y
+   * scrolleó a la sección culpable.
+   *
+   * Corre ANTES que la validación de campos del formulario: si el formulario
+   * validara primero, la persona vería errores en los campos cuando lo que le
+   * falta es un checkbox más abajo.
+   */
+  const validacionesDeLaIntro = (): boolean => {
     // Block if there are unavailable products
     if (hasUnavailableProducts) {
       scrollToSection('unavailable-products-banner');
-      return;
+      return false;
     }
 
     // Validar que la cuota mensual no exceda el límite
     if (isOverQuotaLimit) {
       scrollToSection('product-section');
-      return;
+      return false;
     }
 
     // Validar que los plazos estén estandarizados (para múltiples productos)
     if (needsTermUnification) {
       // Scroll al selector de plazos
       scrollToSection('term-selector-section');
-      return;
+      return false;
     }
 
     // Validar términos y política de privacidad: marcar AMBOS si faltan
@@ -354,7 +415,7 @@ function WizardPreviewContent() {
     if (hasConsentError) {
       // Scroll una sola vez a la sección de términos
       scrollToSection('terms-section');
-      return;
+      return false;
     }
 
     // Validar cupón si es requerido
@@ -362,8 +423,17 @@ function WizardPreviewContent() {
       setCouponError('Debes ingresar un cupón válido para continuar');
       // Scroll al campo de cupón
       scrollToSection('coupon-section');
-      return;
+      return false;
     }
+
+    setTermsError(null);
+    setPrivacyError(null);
+    setCouponError(null);
+    return true;
+  };
+
+  const handleStart = () => {
+    if (!validacionesDeLaIntro()) return;
 
     // Validar que exista un primer paso configurado en la BD
     if (!firstStep) {
@@ -377,10 +447,17 @@ function WizardPreviewContent() {
       return;
     }
 
-    setTermsError(null);
-    setPrivacyError(null);
-    setCouponError(null);
     router.push(routes.solicitarStep(landing, firstStepSlug));
+  };
+
+  /**
+   * En renueva-* no se "comienza" nada: el formulario ya está en pantalla. La
+   * acción valida la intro y, si pasa, entrega el control al paso, que valida
+   * sus campos y crea la solicitud.
+   */
+  const handleContinuarEmbebido = () => {
+    if (!validacionesDeLaIntro()) return;
+    pasoEmbebido.handleNext();
   };
 
   // Content JSX (no es componente para evitar remount en cada render)
@@ -772,8 +849,31 @@ function WizardPreviewContent() {
 
         {/* Dynamic Sections Before Wizard - Rendered in configured order */}
         {sectionsBeforeWizard.map((section) => (
-          <SectionRenderer key={section.type} type={section.type} className="mb-8" />
+          <SectionRenderer
+            key={section.type}
+            type={section.type}
+            className="mb-8"
+            colapsable={esRenueva && section.type === 'accessories'}
+          />
         ))}
+
+        {/* El formulario, embebido. Va justo debajo de accesorios y encima de
+            los términos: es el orden en que se completa la pantalla. */}
+        {esRenueva && pasoEmbebido.step && (
+          <div id="formulario-embebido" className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-neutral-800 leading-tight">
+                {pasoEmbebido.step.title}
+              </h2>
+              {pasoEmbebido.step.description && (
+                <p className="text-sm sm:text-base text-neutral-600 mt-1">
+                  {pasoEmbebido.step.description}
+                </p>
+              )}
+            </div>
+            <PasoDelWizard paso={pasoEmbebido} />
+          </div>
+        )}
 
         {/* Términos y Condiciones */}
         <div id="terms-section" className={`bg-white rounded-xl p-4 sm:p-6 border mb-6 sm:mb-8 transition-all duration-300 ${termsError || privacyError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
@@ -880,16 +980,28 @@ function WizardPreviewContent() {
 
         {/* CTA Button */}
         <button
-          onClick={handleStart}
-          disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories}
+          onClick={esRenueva ? handleContinuarEmbebido : handleStart}
+          disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && !pasoEmbebido.canProceed)}
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     ${isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories
+                     ${isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && !pasoEmbebido.canProceed)
                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                        : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
                      }`}
         >
-          <span>Comenzar Solicitud</span>
+          <span>
+            {!esRenueva
+              ? 'Comenzar Solicitud'
+              // El texto sale del mismo lugar que el del CTA fijo de móvil
+              // (`MobileStickyCta`): `esElQueEnvia`. En `renueva-*` el envío
+              // anticipado crea la solicitud al cerrar este paso, así que hoy
+              // en producción ese botón ya dice "Enviar Solicitud". Si acá se
+              // hardcodeara "Continuar", la misma pantalla tendría dos botones
+              // con textos distintos para la misma acción.
+              : pasoEmbebido.esElQueEnvia
+                ? 'Enviar Solicitud'
+                : 'Continuar'}
+          </span>
           <ArrowRight className="w-5 h-5" />
         </button>
 
@@ -902,6 +1014,14 @@ function WizardPreviewContent() {
           <span className="text-sm">{hasCatalog ? 'Volver al catálogo' : 'Volver al inicio'}</span>
         </button>
       </div>
+
+      {/* Overlays del paso embebido: celebración, envío y "unidad tomada".
+          Van FUERA del contenedor de arriba y no junto al formulario: ese
+          contenedor es `relative z-10`, o sea un contexto de apilado, y adentro
+          el `z-[200]` del overlay de envío quedaría igual por debajo de la
+          navbar (`z-50`), que es hermana del contenedor. Es el mismo problema
+          que ya se había arreglado para el modal de "unidad tomada". */}
+      {esRenueva && pasoEmbebido.overlays}
     </div>
   );
 
