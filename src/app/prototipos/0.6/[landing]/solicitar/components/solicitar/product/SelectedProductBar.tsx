@@ -8,7 +8,7 @@
  * Desktop: Top bar below stepper
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
@@ -37,9 +37,16 @@ interface SelectedProductBarProps {
    * pantallas y no va a arrastrar un fetch para pintar un selector—.
    */
   condicionesFijas?: boolean;
+  /**
+   * Desplaza la barra fija hacia arriba, para dejar lugar a algo pegado al
+   * borde inferior. Valor CSS; lo normal es la variable que publica quien está
+   * abajo, con fallback a 0: `'var(--sticky-cta-height, 0px)'`.
+   * @default '0px'
+   */
+  offsetInferior?: string;
 }
 
-export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false, condicionesFijas = false }) => {
+export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false, condicionesFijas = false, offsetInferior = '0px' }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
   const { landingId, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
   const params = useParams();
@@ -93,6 +100,38 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   // Get all products (cart or single)
   const allProducts = getAllProducts();
 
+  /**
+   * El alto real de la barra, publicado como variable CSS.
+   *
+   * Antes el `72px` estaba hardcodeado en dos archivos, y era una suposición:
+   * la barra mide 72px solo con la imagen del producto puesta (48px de thumbnail
+   * + 24px de padding). Con `mostrarImagenProducto` apagado mide menos, y lo que
+   * se apila encima quedaba desalineado. Mismo patrón que `--referral-banner-offset`.
+   *
+   * Va ANTES del early return de «sin productos»: los hooks no pueden quedar
+   * detrás de un return condicional. Por eso el efecto contempla el caso de que
+   * la barra no esté montada y en ese caso borra la variable, y por eso depende
+   * de si hay productos: cuando aparecen, el nodo recién existe y hay que medirlo.
+   */
+  const barraRef = useRef<HTMLButtonElement>(null);
+  const hayProductos = allProducts.length > 0;
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const nodo = barraRef.current;
+    if (!nodo) {
+      raiz.style.removeProperty('--product-bar-height');
+      return;
+    }
+    const medir = () => raiz.style.setProperty('--product-bar-height', `${nodo.offsetHeight}px`);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(nodo);
+    return () => {
+      ro.disconnect();
+      raiz.style.removeProperty('--product-bar-height');
+    };
+  }, [hayProductos]);
+
   if (allProducts.length === 0) return null;
 
   // For display purposes, use first product as main product
@@ -127,7 +166,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   return (
     <>
       {/* Mobile & Tablet: Bottom Fixed Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
+      {/* `bottom-0` se conserva aunque el `bottom` lo fije el estilo inline:
+          el CSS de las landings gamer engancha la barra por `.fixed.bottom-0`
+          (`StepClient.tsx:1232`, `complementosClient.tsx:560-587`, `:638`) para
+          pintarla en modo oscuro/claro. Sin la clase, esas landings perderían su
+          tema. El inline gana por especificidad, así que la posición es la del
+          `offsetInferior` igual. */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+        // Con el drawer abierto el offset se anula: el panel crece desde el borde y
+        // lo que estaba pegado abajo (el CTA) ya se desmontó solo.
+        style={{ bottom: isExpanded ? '0px' : offsetInferior }}
+      >
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -146,7 +196,13 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {/* Collapsed State */}
+          {/* El ref mide ESTE botón y no el panel que lo envuelve: el panel ya
+              lleva `paddingBottom: env(safe-area-inset-bottom)`, y quien lee
+              `--product-bar-height` le suma otra vez el safe-area. Midiendo el
+              panel, el inset se contaría dos veces y lo apilado encima quedaría
+              flotando. El botón es exactamente lo que valía el viejo `72px`. */}
           <button
+            ref={barraRef}
             onClick={() => setIsExpanded(!isExpanded)}
             className="w-full px-4 py-3 flex items-center gap-3 cursor-pointer"
           >
@@ -692,7 +748,7 @@ export const SelectedProductSpacer: React.FC = () => {
   return (
     <div
       className="lg:hidden"
-      style={{ height: 'calc(72px + env(safe-area-inset-bottom))' }}
+      style={{ height: 'calc(var(--product-bar-height, 72px) + env(safe-area-inset-bottom))' }}
     />
   );
 };

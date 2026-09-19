@@ -118,8 +118,14 @@ jest.mock('../components/solicitar/sections', () => ({
 jest.mock('../components/solicitar/coupon', () => ({
   CouponInput: () => null,
 }));
+// La barra sigue sin pintarse, pero ahora deja ver con qué `offsetInferior` la
+// montan: es lo que la levanta por encima del CTA fijo en `renueva-*`.
+const propsDeLaBarra: Record<string, unknown>[] = [];
 jest.mock('../components/solicitar/product', () => ({
-  SelectedProductBar: () => null,
+  SelectedProductBar: (props: Record<string, unknown>) => {
+    propsDeLaBarra.push(props);
+    return null;
+  },
   SelectedProductSpacer: () => null,
 }));
 
@@ -176,6 +182,7 @@ beforeEach(() => {
   // Los consentimientos se guardan por landing en localStorage y arrastran
   // entre tests: se limpian para que cada uno arranque sin aceptar nada.
   localStorage.clear();
+  propsDeLaBarra.length = 0;
 });
 
 afterEach(() => {
@@ -191,14 +198,16 @@ describe('intro de renueva-*', () => {
   it('el botón dice "Enviar Solicitud": este paso crea la solicitud', async () => {
     render(<SolicitarClientPage />);
     await screen.findByTestId('formulario-embebido');
-    expect(screen.getByText('Enviar Solicitud')).toBeInTheDocument();
+    // Dos: el de la página y el CTA fijo de móvil. Misma acción, mismo texto
+    // — si dijeran cosas distintas, la pantalla se contradiría a sí misma.
+    expect(screen.getAllByText('Enviar Solicitud')).toHaveLength(2);
   });
 
   it('dice "Continuar" si el paso no es el que envía', async () => {
     mockPaso = { ...pasoBase, esElQueEnvia: false };
     render(<SolicitarClientPage />);
     await screen.findByTestId('formulario-embebido');
-    expect(screen.getByText('Continuar')).toBeInTheDocument();
+    expect(screen.getAllByText('Continuar')).toHaveLength(2);
   });
 
   it('sin pasos configurados el botón queda deshabilitado, no muerto', async () => {
@@ -206,7 +215,11 @@ describe('intro de renueva-*', () => {
     render(<SolicitarClientPage />);
     // Sin paso no hay formulario que esperar: se ancla en algo que sí está.
     await screen.findByText('Términos y Condiciones');
-    expect(screen.getByText('Enviar Solicitud').closest('button')).toBeDisabled();
+    // Los dos botones: si el de la página está muerto y el fijo de móvil vivo,
+    // la persona encuentra justo el que no funciona.
+    const botones = screen.getAllByText('Enviar Solicitud');
+    expect(botones).toHaveLength(2);
+    botones.forEach((b) => expect(b.closest('button')).toBeDisabled());
   });
 
   it('abre la pantalla sobre el formulario aunque llegue después del spinner', async () => {
@@ -244,7 +257,9 @@ describe('intro de renueva-*', () => {
     render(<SolicitarClientPage />);
     await screen.findByTestId('formulario-embebido');
 
-    await userEvent.click(screen.getByText('Enviar Solicitud'));
+    // `[0]` es el botón de la página; el CTA fijo de móvil es el otro y se
+    // prueba aparte. Los dos llaman a la misma `handleContinuarEmbebido`.
+    await userEvent.click(screen.getAllByText('Enviar Solicitud')[0]);
 
     // Falta aceptar los términos: el paso no llega a validar sus campos, para
     // que la persona no vea errores en el formulario cuando lo que le falta es
@@ -261,7 +276,7 @@ describe('intro de renueva-*', () => {
 
     await userEvent.click(screen.getByText(/Acepto los/));
     await userEvent.click(screen.getByText(/Acepto la/));
-    await userEvent.click(screen.getByText('Enviar Solicitud'));
+    await userEvent.click(screen.getAllByText('Enviar Solicitud')[0]);
 
     expect(mockHandleNext).toHaveBeenCalledTimes(1);
   });
@@ -277,5 +292,49 @@ describe('intro de renueva-*', () => {
     render(<SolicitarClientPage />);
     expect(await screen.findByText('Comenzar Solicitud')).toBeInTheDocument();
     expect(screen.queryByTestId('formulario-embebido')).not.toBeInTheDocument();
+  });
+});
+
+describe('intro de renueva-* — el CTA fijo de móvil', () => {
+  /** El CTA fijo es lo único de la pantalla con `z-[45]`. */
+  const ctaFijo = () => document.querySelector('[class*="z-[45]"]') as HTMLElement | null;
+
+  it('se monta pegado al borde inferior, con la barra de producto encima', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    expect(ctaFijo()).not.toBeNull();
+    // `debajoDeLaBarra`: el orden inverso al del resto del flujo.
+    expect(ctaFijo()!.style.bottom).toBe('0px');
+  });
+
+  it('levanta la barra de producto por encima del CTA', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    expect(propsDeLaBarra.at(-1)?.offsetInferior).toBe('var(--sticky-cta-height, 0px)');
+  });
+
+  it('no pinta el botón de atrás: en la intro no hay paso anterior', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    expect(screen.queryByLabelText('Atrás')).not.toBeInTheDocument();
+  });
+
+  it('dispara la misma acción que el botón de la página', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    await userEvent.click(screen.getByText(/Acepto los/));
+    await userEvent.click(screen.getByText(/Acepto la/));
+
+    await userEvent.click(ctaFijo()!.querySelector('button')!);
+
+    expect(mockHandleNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('una landing normal no lo monta y no levanta la barra', async () => {
+    landingActual = 'home';
+    render(<SolicitarClientPage />);
+    await screen.findByText('Comenzar Solicitud');
+    expect(ctaFijo()).toBeNull();
+    expect(propsDeLaBarra.at(-1)?.offsetInferior).toBe('0px');
   });
 });

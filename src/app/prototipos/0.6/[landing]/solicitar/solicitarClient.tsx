@@ -49,7 +49,7 @@ import { CouponInput } from './components/solicitar/coupon';
 import { SelectedProductBar, SelectedProductSpacer } from './components/solicitar/product';
 
 // El paso del formulario, para embeberlo en la intro de renueva-*
-import { PasoDelWizard, usePasoDelWizard } from './components/solicitar/wizard';
+import { MobileStickyCta, MobileStickyCtaSpacer, PasoDelWizard, usePasoDelWizard } from './components/solicitar/wizard';
 
 // Utils
 import { formatMoneyNoDecimals } from './utils/formatMoney';
@@ -468,6 +468,23 @@ function WizardPreviewContent() {
     if (!validacionesDeLaIntro()) return;
     pasoEmbebido.handleNext();
   };
+
+  /**
+   * La acción principal no se puede disparar.
+   *
+   * Es una sola condición para los DOS botones de la pantalla: el de la página
+   * y el CTA fijo de móvil (`MobileStickyCta`), que en `renueva-*` hacen lo
+   * mismo. Si se calculara en cada lugar, uno quedaría vivo cuando el otro está
+   * muerto y la persona encontraría justo el que no funciona.
+   *
+   * `!pasoEmbebido.step`: sin paso configurado en BD el bloque del formulario no
+   * se pinta, y el botón quedaría vivo sobre la nada — `handleNext` no valida
+   * nada y dispara una celebración que tampoco puede pintarse, así que la
+   * persona apretaría un botón muerto sin ningún aviso. La rama no-renueva se
+   * cubre sola con su `console.error`.
+   */
+  const accionBloqueada =
+    isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && (!pasoEmbebido.canProceed || !pasoEmbebido.step));
 
   // Content JSX (no es componente para evitar remount en cada render)
   const pageContent = (
@@ -990,15 +1007,10 @@ function WizardPreviewContent() {
         {/* CTA Button */}
         <button
           onClick={esRenueva ? handleContinuarEmbebido : handleStart}
-          // `!pasoEmbebido.step`: sin paso configurado en BD el bloque del
-          // formulario no se pinta, y el botón quedaría vivo sobre la nada —
-          // `handleNext` no valida nada y dispara una celebración que tampoco
-          // puede pintarse, así que la persona apretaría un botón muerto sin
-          // ningún aviso. La rama no-renueva se cubre sola con su `console.error`.
-          disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && (!pasoEmbebido.canProceed || !pasoEmbebido.step))}
+          disabled={accionBloqueada}
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     ${isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && (!pasoEmbebido.canProceed || !pasoEmbebido.step))
+                     ${accionBloqueada
                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                        : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
                      }`}
@@ -1060,8 +1072,32 @@ function WizardPreviewContent() {
   return (
     <div className="relative">
       {pageContent}
-      <SelectedProductBar mobileOnly />
+      <SelectedProductBar
+        mobileOnly
+        // El alto lo publica el propio CTA. Si se desmonta (teclado, drawer),
+        // la variable desaparece y el fallback la baja al borde: nunca queda
+        // levantada sobre un hueco.
+        offsetInferior={esRenueva ? 'var(--sticky-cta-height, 0px)' : '0px'}
+      />
       <SelectedProductSpacer />
+      {/* En `renueva-*` la pantalla es una sola y la acción es una sola, así
+          que va fija abajo. El orden se invierte respecto del resto del flujo:
+          el CTA pegado al borde y la barra de producto ENCIMA. Sin `onBack`: en
+          la intro no hay paso anterior, y sin la prop no se pinta ese botón. */}
+      {esRenueva && (
+        <>
+          <MobileStickyCtaSpacer />
+          <MobileStickyCta
+            onPrimary={handleContinuarEmbebido}
+            isLastStep={pasoEmbebido.esElQueEnvia}
+            isSubmitting={pasoEmbebido.isSubmitting}
+            submitMessage={pasoEmbebido.submitMessage}
+            canProceed={!accionBloqueada}
+            oculto={pasoEmbebido.celebrando}
+            debajoDeLaBarra
+          />
+        </>
+      )}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
     </div>
   );
