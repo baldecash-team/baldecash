@@ -521,6 +521,79 @@ describe('useSubmitApplication', () => {
         slugged.slug = originalSlug;
       });
     });
+
+    // BAL-3994. Hasta hoy "mensual" viajaba como AUSENCIA del campo: la card
+    // mandaba `paymentFrequency: undefined` y `JSON.stringify` borra la clave.
+    // El backend la rellenaba con `payment_frequency or "mensual"`
+    // (ws2/app/services/form_service.py:1117) aunque el producto no ofreciera
+    // esa frecuencia, y el pricing se armaba con el gancho de vitrina.
+    //
+    // Asi nacio L-130507: financiado 4411 y total 2040, un prestamo donde el
+    // cliente devuelve MENOS de lo que recibe, con la cuota semanal de S/85
+    // guardada como si fuera mensual.
+    //
+    // El default del backend no se puede quitar --el 91% del volumen depende
+    // de el--, asi que la frecuencia tiene que LLEGAR, no inventarse.
+    describe('payment_frequency (BAL-3994)', () => {
+      const mutable = mockSelectedProduct as { paymentFrequency?: string };
+      const original = mutable.paymentFrequency;
+      afterEach(() => { mutable.paymentFrequency = original; });
+
+      it('viaja siempre, tambien cuando es mensual', async () => {
+        mutable.paymentFrequency = 'mensual';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F1' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('mensual');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('mensual');
+
+        // El sintoma exacto que reporto el ticket: la clave DESAPARECIA del
+        // body. `toBe('mensual')` sola no lo mide --el backend rellena y el
+        // valor final coincide--; lo que hay que probar es que el campo
+        // sobrevive a `JSON.stringify`, que borra las claves `undefined`.
+        const serializado = JSON.parse(JSON.stringify(payload)) as {
+          product_data: Record<string, unknown>;
+        };
+        expect('payment_frequency' in serializado.product_data).toBe(true);
+      });
+
+      it('respeta la frecuencia sub-mensual elegida', async () => {
+        mutable.paymentFrequency = 'semanal';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F2' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('semanal');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('semanal');
+      });
+
+      // Red de seguridad, igual que la de `combo_id`: el campo se copia a mano
+      // en cada punto de entrada al wizard (catalogo, gamer, comparador,
+      // detalle, quiz, hero) y es facil que uno nuevo se olvide. El submit es
+      // el punto de paso obligado, y ahi el default tiene que estar puesto.
+      it('cae a mensual si ningun punto de entrada la mando', async () => {
+        delete mutable.paymentFrequency;
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F3' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('mensual');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('mensual');
+      });
+    });
   });
 
   describe('API errors', () => {

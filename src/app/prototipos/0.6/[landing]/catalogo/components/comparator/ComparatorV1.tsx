@@ -62,7 +62,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       variantId: product.variantId,
       // Combo de la card comparada (el equipo convive en varias cards)
       comboId: product.comboId,
-      paymentFrequency: product.paymentFrequency,
+      paymentFrequency: product.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',

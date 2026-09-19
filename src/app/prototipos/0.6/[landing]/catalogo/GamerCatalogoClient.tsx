@@ -796,7 +796,7 @@ export function GamerCatalogoContent() {
       type: product.deviceType,
       months: gamerTermMonths(product) as TermMonths,
       term: gamerNativeTerm(product),
-      paymentFrequency: product.paymentFrequency,
+      paymentFrequency: product.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       initialPercent: WIZARD_SELECTED_INITIAL,
       initialAmount: 0,
       monthlyPayment: product.quotaMonthly,
@@ -882,7 +882,7 @@ export function GamerCatalogoContent() {
       monthlyPayment: variantInfo?.monthlyPayment ?? product.quotaMonthly,
       months: (variantInfo?.months ?? gamerTermMonths(product)) as TermMonths,
       term: variantInfo?.term ?? variantInfo?.months ?? gamerNativeTerm(product),
-      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       initialPercent: variantInfo?.initialPercent ?? product.hookInitialPercent ?? 0,
       initialAmount: variantInfo?.initialAmount ?? 0,
       image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
@@ -935,7 +935,7 @@ export function GamerCatalogoContent() {
           price: product.price,
           months,
           term: gamerNativeTerm(product),
-          paymentFrequency: product.paymentFrequency,
+          paymentFrequency: product.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
           initialPercent: WIZARD_SELECTED_INITIAL,
           initialAmount: 0,
           monthlyPayment: product.quotaMonthly,
@@ -1010,7 +1010,7 @@ export function GamerCatalogoContent() {
           monthlyPayment: item.monthlyPayment,
           months: item.months,
           term: item.term ?? item.months,
-          paymentFrequency: item.paymentFrequency,
+          paymentFrequency: item.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
           initialPercent: item.initialPercent,
           initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,

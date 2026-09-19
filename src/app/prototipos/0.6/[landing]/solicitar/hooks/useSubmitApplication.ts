@@ -495,7 +495,15 @@ export function useSubmitApplication(
           initial_installments: primaryProduct.initialInstallments ?? 1,
           // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
-          payment_frequency: primaryProduct.paymentFrequency,
+          // Siempre presente (BAL-3994). Era el ÚNICO campo de este bloque sin
+          // default, y `JSON.stringify` borra la clave cuando vale `undefined`:
+          // el backend la rellenaba con 'mensual' (`form_service.py:1117`) aunque
+          // el producto solo se vendiera en semanal/quincenal, y el pricing se
+          // armaba con el gancho de vitrina (L-130507: financiado 4411, total 2040).
+          // El default va acá además de en cada sitio que arma el carrito, porque
+          // este es el punto de paso obligado: una pantalla nueva que olvide el
+          // suyo no vuelve a abrir el agujero.
+          payment_frequency: primaryProduct.paymentFrequency || 'mensual',
           // Multiple products array
           products: allProducts.map((p) => ({
             product_id: parseInt(p.id, 10),
@@ -508,7 +516,7 @@ export function useSubmitApplication(
             term_months: termToMonths(p.term ?? p.months, p.paymentFrequency),
             initial_percent: p.initialPercent ?? 0,
             initial_amount: p.initialAmount ?? 0,
-            payment_frequency: p.paymentFrequency,
+            payment_frequency: p.paymentFrequency || 'mensual',  // BAL-3994
           })),
           // Map accessories (backend calculates monthly quotas)
           accessories: selectedAccessories.map((acc) => ({

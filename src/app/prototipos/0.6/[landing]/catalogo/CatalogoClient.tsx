@@ -739,7 +739,10 @@ function CatalogoContent() {
       // Combo de la card elegida: el equipo convive en varias cards (suelto y
       // uno o mas combos) con el mismo product_id, y el submit lo reenvia.
       comboId: variantInfo?.comboId ?? product.comboId,
-      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      // Nunca `undefined`: si viaja ausente, `JSON.stringify` borra la clave y el
+      // backend la rellena con 'mensual' aunque el producto no la ofrezca
+      // (BAL-3994). El default explícito acá dice lo mismo, pero a la vista.
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency || 'mensual',
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -1350,7 +1353,7 @@ function CatalogoContent() {
           monthlyPayment: item.monthlyPayment,
           months: item.months,
           term: item.term ?? item.months,
-          paymentFrequency: item.paymentFrequency,
+          paymentFrequency: item.paymentFrequency || 'mensual',  // BAL-3994
           initialPercent: item.initialPercent,
           initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
@@ -2248,7 +2251,7 @@ function CatalogoContent() {
               price: wishlistItem.price,
               months: wishlistItem.months,
               term: wishlistItem.term ?? wishlistItem.months,
-              paymentFrequency: wishlistItem.paymentFrequency,
+              paymentFrequency: wishlistItem.paymentFrequency || 'mensual',  // BAL-3994
               initialPercent: wishlistItem.initialPercent,
               initialAmount: wishlistItem.initialAmount,
               monthlyPayment: wishlistItem.monthlyPayment,

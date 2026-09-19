@@ -208,7 +208,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       variantId: product.variantId,
       colorName: product.colorName,
       colorHex: product.colorHex,
-      paymentFrequency: product.paymentFrequency,
+      paymentFrequency: product.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       specs: {
         processor: product.specs?.processor || '',
         ram: product.specs?.ram ? `${product.specs.ram}GB RAM` : '',

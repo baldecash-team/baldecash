@@ -446,7 +446,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
       months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
       term: pricingSelection.term,
-      paymentFrequency: pricingSelection.paymentFrequency,
+      paymentFrequency: pricingSelection.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
       monthlyPayment: pricingSelection.monthlyQuota,
@@ -601,7 +601,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       },
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
-      paymentFrequency: pricingSelection?.paymentFrequency,
+      paymentFrequency: pricingSelection?.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
       comboId: combo?.id,
     };

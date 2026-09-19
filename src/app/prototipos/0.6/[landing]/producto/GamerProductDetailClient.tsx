@@ -309,7 +309,7 @@ function DetailContent() {
       monthlyPayment: item.monthlyPayment,
       months: item.months,
       term: item.term ?? item.months,
-      paymentFrequency: item.paymentFrequency,
+      paymentFrequency: item.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
       initialPercent: item.initialPercent,
       initialAmount: item.initialAmount,
       image: item.image,

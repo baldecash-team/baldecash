@@ -202,7 +202,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         image: quizProduct.thumbnail || quizProduct.image,
         price: quizProduct.price,
         months: (quizProduct.termMonths || 24) as TermMonths,
-        paymentFrequency: quizProduct.paymentFrequency,
+        paymentFrequency: quizProduct.paymentFrequency || 'mensual',  // BAL-3994: nunca ausente
         initialPercent: WIZARD_SELECTED_INITIAL,
         initialAmount: 0,
         monthlyPayment: quizProduct.lowestQuota,

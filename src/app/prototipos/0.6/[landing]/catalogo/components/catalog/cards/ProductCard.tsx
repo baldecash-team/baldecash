@@ -463,9 +463,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Crear CartItem completo para onAddToCart
   // ============================================
   // Frecuencia sub-mensual (celulares): semanal/quincenal. Para estas se arrastra
-  // la frecuencia elegida + el plazo en su unidad nativa (semanas/quincenas) y la
-  // cuota/inicial del hook de ESA frecuencia, para no perder la selección al pasar
-  // a /solicitar. Para mensual se mantiene el comportamiento previo (sin frequency/term).
+  // el plazo en su unidad nativa (semanas/quincenas) y la cuota/inicial del hook
+  // de ESA frecuencia, para no perder la selección al pasar a /solicitar.
+  //
+  // `nativeTerm` SÍ sigue siendo `undefined` en mensual, y eso es correcto: el
+  // submit hace `term ?? months` y en mensual `months` ya está en meses. No hay
+  // nada que convertir.
+  //
+  // La FRECUENCIA, en cambio, se manda siempre (BAL-3994). Hasta hoy `mensual`
+  // viajaba como ausencia del campo: `JSON.stringify` borra la clave cuando vale
+  // `undefined` y el backend la rellenaba con `payment_frequency or "mensual"`
+  // (`ws2/app/services/form_service.py:1117`). Mientras el producto tenga celda
+  // mensual eso es inofensivo --127 de las 136 variantes de Home la tienen--,
+  // pero en los 9 celulares que solo se venden en semanal/quincenal la solicitud
+  // nacía con una frecuencia que el catálogo NO ofrece, y el pricing se armaba
+  // con el gancho de vitrina: L-130507 quedó con financiado 4411 y total 2040,
+  // un préstamo donde el cliente devuelve menos de lo que recibe.
+  //
+  // El default del backend no se puede quitar --el 91% del volumen depende hoy
+  // de él--, así que la frecuencia tiene que llegar elegida por el usuario y no
+  // inventada. Recién con el campo presente el guard `submit.pricing_guard_enforce`
+  // puede rechazar con sentido.
   const isSubMonthlyFreq = selectedFrequency === 'semanal' || selectedFrequency === 'quincenal';
   const nativeTerm = isSubMonthlyFreq
     ? displayTermMonths * (selectedFrequency === 'semanal' ? 4 : 2)
@@ -485,7 +503,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     colorHex: selectedColor?.hex,
     months: displayTermMonths as TermMonths,
     term: nativeTerm,
-    paymentFrequency: isSubMonthlyFreq ? selectedFrequency : undefined,
+    // Siempre, incluida 'mensual' (BAL-3994). Ver el comentario de arriba.
+    paymentFrequency: selectedFrequency,
     initialPercent: displayInitialPercent,
     initialAmount: displayInitialAmount,
     monthlyPayment: displayQuotaForFreq,
