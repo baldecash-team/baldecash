@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { SelectedProductBar, SelectedProductSpacer } from './SelectedProductBar';
+import { SelectedProductBar, SelectedProductSpacer, paddingInferiorDelPanel } from './SelectedProductBar';
 
 /**
  * Dónde se pega la barra y qué alto publica.
@@ -108,27 +108,50 @@ describe('SelectedProductBar — dónde se pega', () => {
 });
 
 describe('SelectedProductBar — el safe-area del borde', () => {
-  /** El panel blanco: el hijo del contenedor fijo que lleva el padding. */
-  const panel = () => barraFija()!.querySelector('.bg-white') as HTMLElement;
+  // Todo esto se prueba sobre `paddingInferiorDelPanel` y no sobre el DOM
+  // porque jsdom descarta `env()`, `var()` y `max()`: las dos ramas se leen
+  // IGUAL (cadena vacía) desde `.style.paddingBottom`, así que desde el DOM no
+  // hay forma de distinguirlas. Por eso la decisión entera —y no solo los dos
+  // valores— vive en la función: lo único que queda sin cubrir es la única
+  // línea que la llama. Mismo motivo que `posicionDelCta` en `MobileStickyCta`.
+  const CON_RESTA = 'max(0px, calc(env(safe-area-inset-bottom) - var(--sticky-cta-height, 0px)))';
+  const LEVANTADA = 'var(--sticky-cta-height, 0px)';
 
-  it('pegada al borde se pone el inset del home indicator', () => {
-    render(<SelectedProductBar mobileOnly />);
-    // jsdom descarta `env(...)`, así que la declaración no llega al DOM. Que
-    // quede vacía es exactamente lo que distingue este caso del de abajo.
-    expect(panel().style.paddingBottom).toBe('');
+  it('sin levantar: el inset entero del home indicator', () => {
+    // Todo el flujo fuera de `renueva-*`. Acá el CTA existe y publica su alto,
+    // pero apilado ENCIMA de la barra: la resta le comería el inset a una barra
+    // que sí toca el borde.
+    expect(paddingInferiorDelPanel({ drawerAbierto: false, offsetInferior: '0px' })).toBe(
+      'env(safe-area-inset-bottom)'
+    );
   });
 
-  it('levantada NO se lo pone: abajo está el CTA, que ya lo absorbe', () => {
-    // Si se lo pusiera igual, en iPhone quedaría un rectángulo blanco vacío de
-    // ~34px entre el botón de la barra y el CTA.
-    render(<SelectedProductBar mobileOnly offsetInferior="var(--sticky-cta-height, 0px)" />);
-    expect(panel().style.paddingBottom).toBe('0px');
+  it('levantada: le RESTA el alto del CTA, no lo apaga a ciegas', () => {
+    // Con el CTA montado la resta da negativo y el `max` la deja en 0: sin esa
+    // resta, en iPhone quedaba un rectángulo blanco vacío de ~34px entre el
+    // botón de la barra y el CTA.
+    //
+    // Y no es `'0px'` pelado a propósito: si el CTA se desmonta (teclado,
+    // celebración) la variable desaparece, el fallback la deja en `0px` y la
+    // expresión vuelve a valer el inset entero — justo cuando la barra bajó al
+    // borde de verdad. Un `'0px'` pelado sería ciego a eso, porque en JS la
+    // cadena de `offsetInferior` no cambia cuando el CTA se va.
+    expect(paddingInferiorDelPanel({ drawerAbierto: false, offsetInferior: LEVANTADA })).toBe(
+      CON_RESTA
+    );
   });
 
-  it('con el drawer abierto vuelve a ponerselo: el panel crece desde el borde', () => {
-    mockContexto.expandida = true;
-    render(<SelectedProductBar mobileOnly offsetInferior="var(--sticky-cta-height, 0px)" />);
-    expect(panel().style.paddingBottom).toBe('');
+  it('con el drawer abierto: inset entero, el panel crece desde el borde', () => {
+    expect(paddingInferiorDelPanel({ drawerAbierto: true, offsetInferior: LEVANTADA })).toBe(
+      'env(safe-area-inset-bottom)'
+    );
+  });
+
+  it('el drawer manda aunque nadie la haya levantado', () => {
+    // La cuarta combinación, por completitud: las dos razones son OR.
+    expect(paddingInferiorDelPanel({ drawerAbierto: true, offsetInferior: '0px' })).toBe(
+      'env(safe-area-inset-bottom)'
+    );
   });
 });
 

@@ -29,6 +29,59 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
  */
 const ALTO_POR_DEFECTO = 72;
 
+/**
+ * El `padding-bottom` del panel blanco de la barra fija: cuánto del safe-area
+ * del home indicator le corresponde.
+ *
+ * El inset le toca a lo que está ÚLTIMO en la pantalla, no a cualquiera. En el
+ * resto del flujo eso es la barra. En `renueva-*` debajo hay un CTA que ya se
+ * pone el inset de padding propio, así que si la barra se lo pusiera también
+ * pintaría un rectángulo blanco vacío de ~34px entre su botón y el CTA.
+ *
+ * POR QUÉ LA RESTA Y NO UN BOOLEANO MÁS: «hay algo debajo» no se sabe en JS.
+ * `offsetInferior` es la cadena `'var(--sticky-cta-height, 0px)'`, y si ese CTA
+ * se desmonta —teclado, celebración, o cualquier motivo que se agregue después—
+ * la variable desaparece, el CSS la resuelve a `0px` y la barra baja al borde
+ * real, pero la cadena en JS sigue siendo la misma. Comparar strings sería
+ * ciego a eso y dejaría la barra en el borde sin safe-area: el bug original,
+ * otra vez, en un estado transitorio.
+ *
+ * Restando en CSS queda correcto por construcción y sin que la barra tenga que
+ * enterarse de por qué se fue el CTA: con el CTA montado la variable vale ~73px,
+ * la resta da negativo y el `max` la deja en 0 (sin franja blanca); con el CTA
+ * ausente la variable cae a `0px` y la expresión vuelve a valer el inset entero.
+ *
+ * Se exporta para poder probarla: jsdom descarta `env()`, `var()` y `max()`, así
+ * que las dos ramas se leen igual (`''`) desde el DOM. Mismo motivo que
+ * `posicionDelCta` en `MobileStickyCta`.
+ */
+export function paddingInferiorDelPanel({
+  drawerAbierto,
+  offsetInferior,
+}: {
+  drawerAbierto: boolean;
+  offsetInferior: string;
+}): string {
+  /**
+   * La barra toca el borde por una razón que se sabe ACÁ, sin depender de si
+   * algún otro componente está montado:
+   *
+   * - `offsetInferior === '0px'`: nadie la levantó. Es el caso de todo el flujo
+   *   fuera de `renueva-*`, y NO se puede dejar en manos de la resta: ahí el CTA
+   *   está montado y publicando su alto, pero apilado ENCIMA de la barra, no
+   *   debajo. La resta le comería el inset a una barra que sí toca el borde.
+   * - `drawerAbierto`: fuerza `bottom: 0px` y el panel crece desde el borde. Hoy
+   *   es redundante —al abrir el drawer el CTA se desmonta solo y la resta
+   *   llegaría al mismo resultado—, pero se conserva a propósito: es la única
+   *   rama en la que la barra sabe por sí misma que está en el borde, sin
+   *   depender de la lógica de desmontaje de otro componente. Y no puede estar
+   *   mal: con el drawer abierto el panel es lo último de la pantalla.
+   */
+  const pegadaAlBorde = drawerAbierto || offsetInferior === '0px';
+  if (pegadaAlBorde) return 'env(safe-area-inset-bottom)';
+  return 'max(0px, calc(env(safe-area-inset-bottom) - var(--sticky-cta-height, 0px)))';
+}
+
 interface SelectedProductBarProps {
   mobileOnly?: boolean;
   /** Hide insurance and accessories cards in desktop view (e.g., on complementos page where they're shown separately) */
@@ -132,6 +185,12 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
    * pone el safe-area de padding cuando toca el borde, y los lectores le SUMAN
    * ese mismo inset, así que medir el panel lo contaría dos veces.
    *
+   * Hay un lector más, que no está en la tabla porque no lee un alto sino una
+   * presencia: `paddingInferiorDelPanel` le RESTA `--sticky-cta-height` al
+   * safe-area del panel. Con el CTA montado la resta da negativo y el inset
+   * queda en 0; con el CTA ausente la variable cae a `0px` y el inset vuelve
+   * entero. Es lo que hace que la barra no necesite saber POR QUÉ se fue el CTA.
+   *
    * QUÉ PASA CUANDO FALTAN: el valor cae al fallback, que es el literal viejo.
    * Y faltan a propósito: cada elemento borra su variable al desmontarse. El
    * caso que importa es el CTA, que se desmonta con el teclado, con el drawer y
@@ -202,20 +261,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);
   const hasInitialPayment = totalInitialPayment > 0;
 
-  /**
-   * La barra toca de verdad el borde inferior de la pantalla.
-   *
-   * O porque nadie la levantó (`offsetInferior` en su default), o porque el
-   * drawer está abierto: ahí el offset se anula y el panel crece desde el borde.
-   *
-   * Importa por el safe-area: el inset del home indicator le corresponde a lo
-   * que está último, no a cualquiera. En `renueva-*` debajo de la barra está el
-   * CTA, que ya se pone el inset de padding propio; si la barra se lo pusiera
-   * también, pintaría un rectángulo blanco vacío de ~34px entre su botón y el
-   * CTA. Ver el contrato de los altos medidos, más arriba.
-   */
-  const pegadaAlBorde = isExpanded || offsetInferior === '0px';
-
   return (
     <>
       {/* Mobile & Tablet: Bottom Fixed Bar */}
@@ -246,7 +291,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
         <motion.div
           layout
           className="bg-white border-t border-neutral-200 shadow-lg relative z-50"
-          style={{ paddingBottom: pegadaAlBorde ? 'env(safe-area-inset-bottom)' : '0px' }}
+          style={{
+            paddingBottom: paddingInferiorDelPanel({ drawerAbierto: isExpanded, offsetInferior }),
+          }}
         >
           {/* Collapsed State */}
           {/* El ref mide ESTE botón y no el panel que lo envuelve, que lleva el
@@ -798,7 +845,9 @@ export const SelectedProductSpacer: React.FC = () => {
   return (
     <div
       className="lg:hidden"
-      style={{ height: 'calc(var(--product-bar-height, 72px) + env(safe-area-inset-bottom))' }}
+      style={{
+        height: `calc(var(--product-bar-height, ${ALTO_POR_DEFECTO}px) + env(safe-area-inset-bottom))`,
+      }}
     />
   );
 };

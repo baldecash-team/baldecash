@@ -270,9 +270,8 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
  * debajo. Va JUNTO a `SelectedProductSpacer`, que reserva lo de la barra del
  * producto -- este suma solo lo del CTA.
  *
- * El alto sale de `--sticky-cta-height`, que publica el propio CTA mientras
- * esta montado. El `68px` es solo el fallback para el primer pintado y para
- * cuando el CTA esta desmontado (teclado, drawer, celebracion).
+ * Lee `--sticky-cta-height`; el contrato de esa variable y de su fallback esta
+ * en `SelectedProductBar`, en el efecto que publica `--product-bar-height`.
  */
 export const MobileStickyCtaSpacer: React.FC = () => (
   <div className="lg:hidden" style={{ height: `var(--sticky-cta-height, ${ALTO_POR_DEFECTO}px)` }} />
