@@ -40,6 +40,13 @@ import { useProduct } from '../../../context/ProductContext';
 import { useTecladoVirtualAbierto } from '../../../hooks/useTecladoVirtualAbierto';
 
 /**
+ * Lo que mide el CTA con un boton de una linea. Solo se usa de respaldo: el
+ * alto real lo publica el propio componente. Ver el contrato de los altos
+ * medidos en `SelectedProductBar`, donde se publica `--product-bar-height`.
+ */
+const ALTO_POR_DEFECTO = 68;
+
+/**
  * Donde se pega el CTA, segun este debajo o encima de la barra de producto.
  *
  * Se extrae del componente y se exporta para poder probar los valores exactos:
@@ -150,10 +157,11 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
   const deshabilitado = isBusy || isSubmitting || !canProceed;
 
   /**
-   * El alto real del CTA, publicado como variable CSS, por el mismo motivo que
-   * la barra publica el suyo: con `debajoDeLaBarra` hay algo apilado encima y
-   * un `68px` sería otra suposición — el alto cambia con el safe-area y con el
-   * texto del botón.
+   * El alto real del CTA, publicado en `--sticky-cta-height`.
+   *
+   * El contrato completo de las dos variables medidas —quién publica cada una,
+   * quién la lee y qué pasa cuando falta— está en `SelectedProductBar`, en el
+   * efecto que publica `--product-bar-height`.
    *
    * Va ANTES de los early returns: los hooks van siempre arriba, o se rompe el
    * orden de hooks cuando el componente retorna `null` por teclado o por drawer.
@@ -168,7 +176,10 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
       raiz.style.removeProperty('--sticky-cta-height');
       return;
     }
-    const medir = () => raiz.style.setProperty('--sticky-cta-height', `${nodo.offsetHeight}px`);
+    // Nunca `0`: en escritorio el nodo es `lg:hidden` y mide 0, y ese `0px`
+    // le ganaría al fallback de cualquier lector que no sea `lg:hidden`.
+    const medir = () =>
+      raiz.style.setProperty('--sticky-cta-height', `${nodo.offsetHeight || ALTO_POR_DEFECTO}px`);
     medir();
     const ro = new ResizeObserver(medir);
     ro.observe(nodo);
@@ -264,7 +275,7 @@ export const MobileStickyCta: React.FC<MobileStickyCtaProps> = ({
  * cuando el CTA esta desmontado (teclado, drawer, celebracion).
  */
 export const MobileStickyCtaSpacer: React.FC = () => (
-  <div className="lg:hidden" style={{ height: 'var(--sticky-cta-height, 68px)' }} />
+  <div className="lg:hidden" style={{ height: `var(--sticky-cta-height, ${ALTO_POR_DEFECTO}px)` }} />
 );
 
 export default MobileStickyCta;

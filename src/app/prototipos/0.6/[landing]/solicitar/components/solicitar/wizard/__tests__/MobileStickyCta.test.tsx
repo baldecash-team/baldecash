@@ -201,13 +201,69 @@ describe('MobileStickyCta — el alto que publica', () => {
 
   it('publica `--sticky-cta-height` mientras está montado', () => {
     render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
-    // En jsdom `offsetHeight` es siempre 0; lo que importa es que la publique.
-    expect(alto()).toBe('0px');
+    // En jsdom `offsetHeight` es siempre 0, y justamente por eso NO se publica
+    // cero: un `0px` le ganaría al fallback de cualquier lector que no sea
+    // `lg:hidden`. Igual que `ReferralBanner`, se cae al alto por defecto.
+    expect(alto()).toBe('68px');
   });
 
-  it('la borra cuando no se pinta, para que la barra no quede flotando', () => {
+  // Los TRES desmontajes borran la variable: drawer, teclado y `oculto`.
+  //
+  // Ojo con estos tres primeros: montan el componente YA desmontado, así que
+  // solo prueban la rama `if (!nodo)` del efecto. NO protegen el array de deps
+  // `[oculto, isProductBarExpanded, tecladoAbierto]`, porque en un montaje
+  // nuevo el efecto corre igual con cualquier array. Eso lo cubren los tres
+  // tests de `rerender` de más abajo, que son el camino real: el CTA estaba
+  // pintado y algo lo desmonta. Comprobado sacando cada dep del array: con los
+  // tres primeros solos, ninguna salida se pone roja.
+  it('la borra con el drawer del producto abierto', () => {
     mockProduct.isProductBarExpanded = true;
     render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+    expect(alto()).toBe('');
+  });
+
+  it('la borra con el teclado virtual abierto', () => {
+    tecladoAbierto = true;
+    render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+    expect(alto()).toBe('');
+  });
+
+  it('la borra con `oculto` (celebracion entre pasos)', () => {
+    render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra oculto />);
+    expect(alto()).toBe('');
+  });
+
+  // Los tres que SÍ protegen el array de deps. Cada uno se pone rojo si se
+  // saca su dep del array: sin ella el efecto no vuelve a correr, la variable
+  // queda publicada y la barra de producto se queda levantada flotando sobre
+  // un hueco — justo encima del teclado, del drawer o de la celebración.
+  it('la suelta cuando el teclado se abre con el CTA ya montado', () => {
+    // El caso real: la persona toca un campo del formulario.
+    const { rerender } = render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+    expect(alto()).toBe('68px');
+
+    tecladoAbierto = true;
+    rerender(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+
+    expect(alto()).toBe('');
+  });
+
+  it('la suelta cuando se abre el drawer con el CTA ya montado', () => {
+    const { rerender } = render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+    expect(alto()).toBe('68px');
+
+    mockProduct.isProductBarExpanded = true;
+    rerender(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+
+    expect(alto()).toBe('');
+  });
+
+  it('la suelta cuando arranca la celebracion con el CTA ya montado', () => {
+    const { rerender } = render(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra />);
+    expect(alto()).toBe('68px');
+
+    rerender(<MobileStickyCta onPrimary={jest.fn()} debajoDeLaBarra oculto />);
+
     expect(alto()).toBe('');
   });
 

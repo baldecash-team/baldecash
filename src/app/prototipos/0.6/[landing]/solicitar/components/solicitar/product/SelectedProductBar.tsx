@@ -22,6 +22,13 @@ import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
 import Image from 'next/image';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
+/**
+ * Lo que mide la barra plegada con la imagen del producto puesta (48px de
+ * miniatura + 24px de padding). Es el valor que antes estaba hardcodeado en
+ * `SelectedProductBar` y en `MobileStickyCta`; ahora solo se usa de respaldo.
+ */
+const ALTO_POR_DEFECTO = 72;
+
 interface SelectedProductBarProps {
   mobileOnly?: boolean;
   /** Hide insurance and accessories cards in desktop view (e.g., on complementos page where they're shown separately) */
@@ -101,17 +108,48 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const allProducts = getAllProducts();
 
   /**
-   * El alto real de la barra, publicado como variable CSS.
+   * EL CONTRATO DE LOS DOS ALTOS MEDIDOS (referencia única; el resto del código
+   * apunta acá).
    *
-   * Antes el `72px` estaba hardcodeado en dos archivos, y era una suposición:
-   * la barra mide 72px solo con la imagen del producto puesta (48px de thumbnail
-   * + 24px de padding). Con `mostrarImagenProducto` apagado mide menos, y lo que
-   * se apila encima quedaba desalineado. Mismo patrón que `--referral-banner-offset`.
+   * Hay tres elementos `fixed` peleando por el borde inferior en móvil: esta
+   * barra, el CTA (`MobileStickyCta`) y el teclado virtual. Antes cada uno
+   * suponía el alto del otro con un literal hardcodeado —`72px` para la barra,
+   * `68px` para el CTA, duplicados en dos archivos—, y eran suposiciones: la
+   * barra mide 72px SOLO con la imagen del producto puesta (48px de miniatura +
+   * 24px de padding); con `mostrarImagenProducto` apagado mide menos y lo
+   * apilado encima quedaba con un hueco. Así que cada uno publica su alto real
+   * y el otro lo lee. Mismo patrón que `--referral-banner-offset` en
+   * `ReferralBanner`.
    *
-   * Va ANTES del early return de «sin productos»: los hooks no pueden quedar
-   * detrás de un return condicional. Por eso el efecto contempla el caso de que
-   * la barra no esté montada y en ese caso borra la variable, y por eso depende
-   * de si hay productos: cuando aparecen, el nodo recién existe y hay que medirlo.
+   * | Variable               | La publica        | La lee                            | Fallback |
+   * |------------------------|-------------------|-----------------------------------|----------|
+   * | `--product-bar-height` | esta barra        | el `bottom` de `MobileStickyCta`  | `72px`   |
+   * |                        |                   | `SelectedProductSpacer`           | `72px`   |
+   * | `--sticky-cta-height`  | `MobileStickyCta` | el `offsetInferior` de esta barra | `0px`    |
+   * |                        |                   | `MobileStickyCtaSpacer`           | `68px`   |
+   *
+   * QUÉ SE MIDE: el botón plegado, no el panel que lo envuelve. El panel se
+   * pone el safe-area de padding cuando toca el borde, y los lectores le SUMAN
+   * ese mismo inset, así que medir el panel lo contaría dos veces.
+   *
+   * QUÉ PASA CUANDO FALTAN: el valor cae al fallback, que es el literal viejo.
+   * Y faltan a propósito: cada elemento borra su variable al desmontarse. El
+   * caso que importa es el CTA, que se desmonta con el teclado, con el drawer y
+   * con la celebración — ahí `--sticky-cta-height` desaparece, el
+   * `var(--sticky-cta-height, 0px)` de `offsetInferior` cae a `0px` y la barra
+   * vuelve al borde en vez de quedarse flotando sobre un hueco. Por eso ese
+   * lector —y solo ese— usa `0px` de fallback en vez del alto por defecto: no
+   * quiere el alto del CTA, quiere «no hay CTA».
+   *
+   * NUNCA SE PUBLICA `0`: en escritorio los nodos son `lg:hidden` y miden 0, y
+   * un `0px` publicado le ganaría al fallback para cualquier lector que no sea
+   * `lg:hidden`. Por eso el `|| ALTO_POR_DEFECTO`, igual que
+   * `ReferralBanner.tsx:118`.
+   *
+   * El efecto va ANTES del early return de «sin productos»: los hooks no pueden
+   * quedar detrás de un return condicional. Por eso contempla que el nodo no
+   * exista, y por eso depende de si hay productos: cuando aparecen, el nodo
+   * recién existe y hay que medirlo.
    */
   const barraRef = useRef<HTMLButtonElement>(null);
   const hayProductos = allProducts.length > 0;
@@ -122,7 +160,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
       raiz.style.removeProperty('--product-bar-height');
       return;
     }
-    const medir = () => raiz.style.setProperty('--product-bar-height', `${nodo.offsetHeight}px`);
+    const medir = () =>
+      raiz.style.setProperty('--product-bar-height', `${nodo.offsetHeight || ALTO_POR_DEFECTO}px`);
     medir();
     const ro = new ResizeObserver(medir);
     ro.observe(nodo);
@@ -163,6 +202,20 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);
   const hasInitialPayment = totalInitialPayment > 0;
 
+  /**
+   * La barra toca de verdad el borde inferior de la pantalla.
+   *
+   * O porque nadie la levantó (`offsetInferior` en su default), o porque el
+   * drawer está abierto: ahí el offset se anula y el panel crece desde el borde.
+   *
+   * Importa por el safe-area: el inset del home indicator le corresponde a lo
+   * que está último, no a cualquiera. En `renueva-*` debajo de la barra está el
+   * CTA, que ya se pone el inset de padding propio; si la barra se lo pusiera
+   * también, pintaría un rectángulo blanco vacío de ~34px entre su botón y el
+   * CTA. Ver el contrato de los altos medidos, más arriba.
+   */
+  const pegadaAlBorde = isExpanded || offsetInferior === '0px';
+
   return (
     <>
       {/* Mobile & Tablet: Bottom Fixed Bar */}
@@ -193,14 +246,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
         <motion.div
           layout
           className="bg-white border-t border-neutral-200 shadow-lg relative z-50"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          style={{ paddingBottom: pegadaAlBorde ? 'env(safe-area-inset-bottom)' : '0px' }}
         >
           {/* Collapsed State */}
-          {/* El ref mide ESTE botón y no el panel que lo envuelve: el panel ya
-              lleva `paddingBottom: env(safe-area-inset-bottom)`, y quien lee
-              `--product-bar-height` le suma otra vez el safe-area. Midiendo el
-              panel, el inset se contaría dos veces y lo apilado encima quedaría
-              flotando. El botón es exactamente lo que valía el viejo `72px`. */}
+          {/* El ref mide ESTE botón y no el panel que lo envuelve, que lleva el
+              safe-area de padding. Ver el contrato de los altos medidos, arriba. */}
           <button
             ref={barraRef}
             onClick={() => setIsExpanded(!isExpanded)}

@@ -107,11 +107,38 @@ describe('SelectedProductBar — dónde se pega', () => {
   });
 });
 
+describe('SelectedProductBar — el safe-area del borde', () => {
+  /** El panel blanco: el hijo del contenedor fijo que lleva el padding. */
+  const panel = () => barraFija()!.querySelector('.bg-white') as HTMLElement;
+
+  it('pegada al borde se pone el inset del home indicator', () => {
+    render(<SelectedProductBar mobileOnly />);
+    // jsdom descarta `env(...)`, así que la declaración no llega al DOM. Que
+    // quede vacía es exactamente lo que distingue este caso del de abajo.
+    expect(panel().style.paddingBottom).toBe('');
+  });
+
+  it('levantada NO se lo pone: abajo está el CTA, que ya lo absorbe', () => {
+    // Si se lo pusiera igual, en iPhone quedaría un rectángulo blanco vacío de
+    // ~34px entre el botón de la barra y el CTA.
+    render(<SelectedProductBar mobileOnly offsetInferior="var(--sticky-cta-height, 0px)" />);
+    expect(panel().style.paddingBottom).toBe('0px');
+  });
+
+  it('con el drawer abierto vuelve a ponerselo: el panel crece desde el borde', () => {
+    mockContexto.expandida = true;
+    render(<SelectedProductBar mobileOnly offsetInferior="var(--sticky-cta-height, 0px)" />);
+    expect(panel().style.paddingBottom).toBe('');
+  });
+});
+
 describe('SelectedProductBar — el alto que publica', () => {
   it('publica `--product-bar-height` mientras está montada', () => {
     render(<SelectedProductBar mobileOnly />);
-    // En jsdom `offsetHeight` es siempre 0; lo que importa es que la publique.
-    expect(altoPublicado()).toBe('0px');
+    // En jsdom `offsetHeight` es siempre 0, y justamente por eso NO se publica
+    // cero: un `0px` le ganaría al fallback de cualquier lector que no sea
+    // `lg:hidden`. Igual que `ReferralBanner`, se cae al alto por defecto.
+    expect(altoPublicado()).toBe('72px');
   });
 
   it('la borra al desmontarse', () => {
