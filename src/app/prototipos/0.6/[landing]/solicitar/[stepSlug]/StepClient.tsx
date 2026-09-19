@@ -9,14 +9,12 @@
 import React, { Suspense, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
-import { AnimatePresence } from 'framer-motion';
 import { AlertCircle, Edit2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 // Components
-import { WizardLayout } from '../components/solicitar/wizard';
+import { WizardLayout, PasoDelWizard, usePasoDelWizard } from '../components/solicitar/wizard';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
-import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -44,7 +42,7 @@ import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
-import { useToast, ModalAviso } from '@/app/prototipos/_shared';
+import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -53,7 +51,6 @@ import { WizardStepId } from '../types/solicitar';
 import {
   WizardStep,
   WizardField,
-  WizardMotivational,
   getStepSlug,
   validateStep as validateStepFields,
   evaluateFieldVisibility,
@@ -65,8 +62,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
-import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 
 
 // Helper function to get Lucide icon by name
@@ -102,7 +98,6 @@ function StepContent() {
   useScrollToTop();
 
   // State
-  const [showCelebration, setShowCelebration] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,7 +147,11 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  // `flujo` entero ademas de los campos sueltos: `usePasoDelWizard` lo recibe
+  // inyectado en vez de volver a llamar `useSolicitarFlow`, que guarda su estado
+  // por instancia y saldria a buscar `solicitar-config` una segunda vez.
+  const flujo = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = flujo;
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -161,39 +160,39 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  // La unidad quedo tomada por otra solicitud. Va en modal y no en toast: el
-  // toast dura 4 segundos y `StepClient` no renderiza el `error` del hook, asi
-  // que seria la unica superficie del mensaje — y este mensaje pide una accion
-  // (volver al catalogo y elegir otro equipo) justo cuando el envio fallo y la
-  // persona no sabe si su solicitud entro.
-  const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+  // El mensaje de "unidad tomada" solo tuvo modal en el paso regular, que ahora
+  // vive en `usePasoDelWizard` y monta el suyo. Esta instancia —la del resumen—
+  // nunca lo renderizo, asi que el valor no se lee: se conserva el callback para
+  // no cambiarle el contrato al hook de envio.
+  const [, setUnidadTomada] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
   });
 
-  const modalUnidadTomada = unidadTomada ? (
-    <ModalAviso
-      titulo="Ese equipo ya no está disponible"
-      mensaje={unidadTomada}
-      textoBoton="Elegir otro equipo"
-      // El boton principal LLEVA al catalogo, no cierra y ya: cerrar deja a la
-      // persona en un formulario que no va a poder enviar. `onCerrar` tambien
-      // navega porque es lo que corren Escape y el clic en el fondo, y los tres
-      // caminos tienen que terminar en el mismo lugar.
-      onCerrar={() => router.push(routes.catalogo(landing))}
-      tono="error"
-    />
-  ) : null;
+  /**
+   * El paso regular completo: validación, envío, celebración y overlays. Vive
+   * en su propio hook para que la intro de las landings de segundo
+   * financiamiento pueda montar el mismo paso embebido.
+   *
+   * Va acá, junto al resto de los hooks y ANTES de los early returns, o se
+   * rompe el orden de hooks de React.
+   */
+  const paso = usePasoDelWizard({ stepSlug, flujo, gamer: isGamerLanding(landing) });
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
     if (!isProductHydrated) return;
-    if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded) {
+    // `paso.submitSucceeded` es el del envio del paso regular, que corre en su
+    // propio `useSubmitApplication`. Sin mirarlo, un envio que limpia el
+    // carrito se leeria acá como "entro sin elegir equipo" y mandaria a la
+    // persona de vuelta al inicio. Antes de la extraccion era una sola
+    // instancia y `submitSucceeded` cubria los dos caminos.
+    if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded && !paso.submitSucceeded) {
       router.replace(routes.solicitar(landing));
     }
-  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded]);
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded, paso.submitSucceeded]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -287,9 +286,6 @@ function StepContent() {
    */
   const contratoFirmado = Boolean(handoff?.contratoAceptado);
 
-  /** Ver el pestillo en `handleCelebrationComplete`. */
-  const enviandoRef = useRef(false);
-
   /**
    * Con la firma por aceptación, la operación no se edita en el wizard: el
    * documento se emite con ese plazo y esa inicial y el hash lo sella, así que
@@ -350,69 +346,6 @@ function StepContent() {
     }
     return values;
   }, [formData]);
-
-  // Override motivational when check-person finds data (personalized greeting)
-  // For VIP countdown landings, the MotivationalCard handles the "Hola, [Nombre]" greeting,
-  // so we skip this override to keep the original BD text.
-  const hasVipToken = !!getVipToken(landing);
-  const [hasVipCountdown, setHasVipCountdown] = useState(false);
-  useEffect(() => {
-    if (!hasVipToken) return;
-    fetchLandingConfig(landing).then(cfg => {
-      setHasVipCountdown(!!cfg.features.vip_countdown);
-    });
-  }, [landing, hasVipToken]);
-  const isVipLanding = hasVipToken && hasVipCountdown;
-
-  const stepMotivational = useMemo((): WizardMotivational | null => {
-    if (!step) return null;
-    if (isVipLanding) return step.motivational;
-
-    const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
-    if (prefillStatus !== 'found') return step.motivational;
-
-    const hasMainDocumentNumber = step.fields.some(f => f.type === 'document_number' && f.code === 'document_number');
-    if (!hasMainDocumentNumber) return step.motivational;
-
-    const firstName = (formData['first_name']?.value as string) || '';
-    if (!firstName) return step.motivational;
-
-    const name = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-    return {
-      title: `Hola <span class="highlight">${name}</span>, qué bueno verte por aquí`,
-      highlight: step.motivational?.highlight || '',
-      title_end: step.motivational?.title_end || '',
-      subtitle: 'Ya casi terminamos este paso, sigue adelante.',
-      illustration: step.motivational?.illustration || '',
-    };
-  }, [step, formData, isVipLanding]);
-
-  // Track form_abandon on beforeunload (when user closes/reloads mid-form)
-  useEffect(() => {
-    if (!step || !tracker) return;
-
-    const startTime = Date.now();
-
-    const handleBeforeUnload = () => {
-      const visibleFields = step.fields.filter(f => evaluateFieldVisibility(f, formValues));
-      const filledCount = visibleFields.filter(f => {
-        const val = formData[f.code]?.value;
-        return Array.isArray(val) ? val.length > 0 : !!val;
-      }).length;
-
-      tracker.track('form_abandon', {
-        form_id: 'onboarding-solicitud',
-        last_active_step: step.order + 1,
-        fields_completed: filledCount,
-        total_fields: visibleFields.length,
-        time_in_form_ms: Date.now() - startTime,
-      });
-      tracker.flush();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [step, tracker, formValues, formData]);
 
   // Load summary field values from localStorage
   useEffect(() => {
@@ -563,119 +496,6 @@ function StepContent() {
   };
 
   // Navigation handlers
-  const handleNext = () => {
-    setSubmitted(true);
-
-    // Bloqueo por whitelist (check-person): si el backend marcó allowed === false,
-    // no se permite avanzar. El motivo lo explica el modal de DocumentNumberField.
-    if (formData['_whitelist_blocked']?.value === 'true') {
-      const wlField = formData['_whitelist_field']?.value as string | undefined;
-      if (wlField) {
-        document.getElementById(wlField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      return;
-    }
-
-    const firstErrorField = validateStep();
-    if (firstErrorField) {
-      tracker?.track('form_step_validation_error', {
-        step_code: step?.code,
-        step_title: step?.title,
-        error_field: firstErrorField,
-      });
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    tracker?.track('form_step_complete', {
-      step_code: step?.code,
-      step_title: step?.title,
-      next_step: navigation.nextStep?.code ?? 'complementos_or_submit',
-    });
-    if (step) {
-      markStepCompleted(step.url_slug || step.code);
-    }
-
-    // El paso que ENVÍA no celebra: la celebración dice "paso 1 de 2" y felicita
-    // por avanzar, y lo que está pasando es que se está creando la solicitud.
-    // Se va directo al envío, que tiene su propia pantalla ("Creando
-    // solicitud…"). Celebrar acá además metía 1,3 s de espera antes de empezar.
-    if (enviaEnEstePaso) {
-      enviarYSeguir();
-      return;
-    }
-
-    setShowCelebration(true);
-  };
-
-  const handleCelebrationComplete = () => {
-    enviarYSeguir();
-  };
-
-  /**
-   * Crea la solicitud y pasa a la pantalla siguiente, que es la del contrato.
-   *
-   * Lo llaman los dos caminos —el paso que envía, directo; el que solo avanza,
-   * al terminar la celebración— y por eso el pestillo vive acá.
-   */
-  function enviarYSeguir() {
-    if (enviaEnEstePaso && !yaEnviada) {
-      // Pestillo: enviar es lo único de esta pantalla que no se puede repetir.
-      // `isAppSubmitting` no sirve de guard —es estado y no se ve dentro del
-      // mismo tick—, así que va en un ref.
-      if (enviandoRef.current) return;
-      enviandoRef.current = true;
-
-      // Se crea la solicitud y se sigue en el wizard: la pantalla siguiente es
-      // la que muestra el contrato. Sin paso siguiente no hay dónde seguir, y
-      // ahí el hook navega como siempre (KYC o confirmación).
-      const seguir = navigation.nextStep;
-      void submitApplication({
-        insuranceId: null,
-        otpEnabled: isEnabled('otp_verification'),
-        kycEnabled,
-        stayInWizard: !!seguir,
-        conContrato: isKycStepEnabled('contract'),
-      }).then((ok) => {
-        if (ok && seguir) {
-          router.push(routes.solicitarStep(landing, seguir.url_slug || seguir.code));
-        }
-      });
-      return;
-    }
-
-    // Ya enviada: la solicitud existe y volver a mandarla crearía otra. Se
-    // sigue navegando; el final del wizard lleva a la confirmación.
-    if (enviaEnEstePaso && yaEnviada && navigation.nextStep) {
-      const seguir = navigation.nextStep;
-      router.push(routes.solicitarStep(landing, seguir.url_slug || seguir.code));
-      return;
-    }
-    if (navigation.nextStep) {
-      const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
-      router.push(routes.solicitarStep(landing, nextSlug));
-    } else if (shouldShowComplementos) {
-      // No more wizard steps - go to complementos (dynamic sections after wizard)
-      router.push(routes.solicitarComplementos(landing));
-    } else {
-      // No more steps and no complementos - submit directly
-      submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
-    }
-  };
-
-  const handleBack = () => {
-    tracker?.track('form_step_back', {
-      step_code: step?.code,
-      prev_step: navigation.prevStep?.code ?? 'preview',
-    });
-    if (navigation.prevStep) {
-      const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
-      router.push(routes.solicitarStep(landing, prevSlug));
-    } else {
-      // First step - go back to preview
-      router.push(routes.solicitar(landing));
-    }
-  };
-
   const handleStepClick = (stepId: WizardStepId) => {
     router.push(routes.solicitarStep(landing, stepId));
   };
@@ -1135,53 +955,34 @@ function StepContent() {
   }
 
   // Render regular form step content
-  // Determinar dinámicamente si es el último paso del wizard
-  // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-  // El paso que envía muestra el CTA de envío aunque queden pasos detrás.
-  const isActuallyLastRegularStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);
-
   const pageContent = (
     <>
-      <AnimatePresence>
-        {showCelebration && (
-          <StepSuccessMessage
-            stepName={step.title}
-            stepNumber={step.order + 1}
-            totalSteps={steps.length}
-            onComplete={handleCelebrationComplete}
-            theme={isGamer ? 'gamer' : undefined}
-          />
-        )}
-      </AnimatePresence>
+      {paso.overlays}
 
       <WizardLayout
         currentStep={step.url_slug || step.code}
         title={step.title}
         description={step.description}
-        onBack={handleBack}
-        onNext={handleNext}
+        onBack={paso.handleBack}
+        onNext={paso.handleNext}
         // `handleNext` tambien envia: valida, marca el paso y dispara el submit
         // al terminar la celebracion. Es el mismo camino que ya usa el CTA fijo
         // de movil, que nunca distinguio entre continuar y enviar.
-        onSubmit={handleNext}
-        onStepClick={handleStepClick}
+        onSubmit={paso.handleNext}
+        onStepClick={paso.handleStepClick}
         condicionesFijas={condicionesFijas}
         isFirstStep={navigation.isFirst}
-        isLastStep={isActuallyLastRegularStep}
-        isSubmitting={isAppSubmitting}
-        submitMessage={submitMessage}
-        canProceed={!bloqueadoPorWhitelist}
+        isLastStep={paso.esElQueEnvia}
+        isSubmitting={paso.isSubmitting}
+        submitMessage={paso.submitMessage}
+        canProceed={paso.canProceed}
         ctaFijoEnMovil
         hideNavbar={isGamer}
         navbarProps={isGamer ? undefined : (navbarProps || undefined)}
-        motivational={stepMotivational}
-        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
+        motivational={paso.motivational}
+        firstName={paso.firstName}
       >
-        <DynamicWizardStep
-          step={step}
-          showErrors={submitted}
-          stepOrder={step.order}
-        />
+        <PasoDelWizard paso={paso} />
       </WizardLayout>
     </>
   );
@@ -1191,18 +992,17 @@ function StepContent() {
   // mismos handlers que la navegacion en flujo, asi que la validacion y el
   // scroll al primer campo con error se comportan identico.
   //
-  // Se esconde durante la celebracion entre pasos (`showCelebration`), que monta
+  // Se esconde durante la celebracion entre pasos (`paso.celebrando`), que monta
   // un overlay a pantalla completa.
   const stickyCtaPaso = (
     <MobileStickyCta
-      onBack={handleBack}
-      onPrimary={handleNext}
-      isLastStep={isActuallyLastRegularStep}
-      isBusy={isSubmitting}
-      isSubmitting={isAppSubmitting}
-      submitMessage={submitMessage}
-      canProceed={!bloqueadoPorWhitelist}
-      oculto={showCelebration}
+      onBack={paso.handleBack}
+      onPrimary={paso.handleNext}
+      isLastStep={paso.esElQueEnvia}
+      isSubmitting={paso.isSubmitting}
+      submitMessage={paso.submitMessage}
+      canProceed={paso.canProceed}
+      oculto={paso.celebrando}
     />
   );
 
@@ -1212,8 +1012,6 @@ function StepContent() {
       <GamerWizardWrapper footerData={footerData}>
         {pageContent}
         {stickyCtaPaso}
-        <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
-        {modalUnidadTomada}
       </GamerWizardWrapper>
     );
   }
@@ -1223,8 +1021,6 @@ function StepContent() {
       {pageContent}
       {stickyCtaPaso}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
-      <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
-      {modalUnidadTomada}
     </>
   );
 }

@@ -14,7 +14,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Search, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Package, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
 import { getLandingAccessories, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
@@ -65,11 +65,22 @@ interface AccessoriesSectionProps {
    * Optional: Custom class name for the container
    */
   className?: string;
+  /**
+   * La sección se pliega y arranca CERRADA. Se usa en la intro de las landings
+   * de segundo financiamiento, donde el formulario va embebido justo debajo y
+   * accesorios no puede empujarlo fuera de la pantalla.
+   *
+   * El loader NO se pliega: mientras carga se ve en la cabecera, o un bloque
+   * cerrado y mudo se leería como una sección vacía.
+   * @default false
+   */
+  colapsable?: boolean;
 }
 
 export function AccessoriesSection({
   showIntro = true,
   className = '',
+  colapsable = false,
 }: AccessoriesSectionProps) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
@@ -116,6 +127,11 @@ export function AccessoriesSection({
   const hasFetchedOnceRef = useRef(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
+
+  // Plegado. Solo aplica con `colapsable`; sin él la sección está siempre
+  // abierta y este estado no se lee.
+  const [abierto, setAbierto] = useState(false);
+  const contenidoVisible = !colapsable || abierto;
 
   // Filters — activeCategory es un slug de subcategoría o 'todos'
   const [activeCategory, setActiveCategory] = useState<string>('todos');
@@ -317,6 +333,9 @@ export function AccessoriesSection({
   // Track accessory impressions when visible set changes
   const prevVisibleIdsRef = useRef<string>('');
   useEffect(() => {
+    // Plegado no hubo impresión: nadie vio las cards. Reportarlas igual
+    // ensuciaría la métrica justo en las landings donde arranca cerrado.
+    if (!contenidoVisible) return;
     if (visibleAccessories.length === 0) return;
     const ids = visibleAccessories.map(a => String(a.id)).join(',');
     if (ids === prevVisibleIdsRef.current) return;
@@ -326,7 +345,7 @@ export function AccessoriesSection({
       count: visibleAccessories.length,
       page: currentPage,
     });
-  }, [visibleAccessories, currentPage, analytics]);
+  }, [visibleAccessories, currentPage, analytics, contenidoVisible]);
 
   // Si no hay accesorios disponibles, no mostrar la sección
   if (!isLoading && accessories.length === 0) {
@@ -335,24 +354,63 @@ export function AccessoriesSection({
 
   return (
     <div className={`bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 ${className}`}>
-      {showIntro && (
-        <AccessoryIntro
-          icon={config?.form_extra_data?.accessories?.icon}
-          title={config?.form_extra_data?.accessories?.title}
-          description={config?.form_extra_data?.accessories?.description}
-        />
+      {/* Cabecera. Con `colapsable` es el botón que pliega; sin él, la intro
+          de siempre. El loader vive acá para que se vea también cerrado. */}
+      {colapsable ? (
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          aria-expanded={abierto}
+          className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
+        >
+          <span className="text-base font-semibold text-neutral-800">
+            {config?.form_extra_data?.accessories?.title ?? 'Accesorios'}
+          </span>
+          <span className="flex items-center gap-2 flex-shrink-0">
+            {isLoading ? (
+              <span
+                role="status"
+                aria-label="Cargando accesorios"
+                className="w-5 h-5 border-2 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin"
+              />
+            ) : (
+              selectedAccessories.length > 0 && (
+                <span className="px-2.5 py-1 bg-[#22c55e]/10 text-[#22c55e] text-xs font-semibold rounded-full">
+                  {selectedAccessories.length}
+                </span>
+              )
+            )}
+            {abierto ? (
+              <ChevronUp className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)]" />
+            )}
+          </span>
+        </button>
+      ) : (
+        showIntro && (
+          <AccessoryIntro
+            icon={config?.form_extra_data?.accessories?.icon}
+            title={config?.form_extra_data?.accessories?.title}
+            description={config?.form_extra_data?.accessories?.description}
+          />
+        )
       )}
 
-      {isLoading ? (
-        showLoadingScreen ? (
-          <AccessoriesLoadingScreen productName={selectedProduct?.name} />
+      {/* Cuerpo. Plegado no se monta: los filtros y la paginación guardan
+          estado que no tiene sentido mantener vivo detrás de un bloque cerrado. */}
+      {contenidoVisible && (
+        isLoading ? (
+          // Con `colapsable` el loader ya está en la cabecera: no se repite acá.
+          colapsable ? null : showLoadingScreen ? (
+            <AccessoriesLoadingScreen productName={selectedProduct?.name} />
+          ) : (
+            <div className="flex justify-center py-8">
+              <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
+            </div>
+          )
         ) : (
-          <div className="flex justify-center py-8">
-            <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
-          </div>
-        )
-      ) : (
-        <>
+          <div className={colapsable ? 'mt-4 animate-in slide-in-from-top-2 duration-200' : undefined}>
           {/* Toolbar: Category chips + Arrows + Search + Selected count */}
           <div className="mb-4 space-y-3">
             {/* Category chips + navigation arrows */}
@@ -483,7 +541,8 @@ export function AccessoriesSection({
               </div>
             </>
           )}
-        </>
+          </div>
+        )
       )}
 
       {/* Accessory Detail Modal */}
