@@ -264,12 +264,18 @@ export function usePasoDelWizard(opciones: {
   // so we skip this override to keep the original BD text.
   const hasVipToken = !!getVipToken(landing);
   const [hasVipCountdown, setHasVipCountdown] = useState(false);
+  // `!step` corta la consulta: sin paso resuelto el hook no pinta nada y el
+  // motivacional no se usa, así que el GET no tendría a quién servirle. Importa
+  // porque la intro monta este hook en TODAS las landings —inerte, con el slug
+  // vacío— y ella ya pide `fetchLandingConfig` por su cuenta: sin este guard,
+  // cualquier landing con token VIP en localStorage pasaba de 1 a 2 GETs al
+  // mismo endpoint. `fetchLandingConfig` no tiene caché de cliente.
   useEffect(() => {
-    if (!hasVipToken) return;
+    if (!hasVipToken || !step) return;
     fetchLandingConfig(landing).then(cfg => {
       setHasVipCountdown(!!cfg.features.vip_countdown);
     });
-  }, [landing, hasVipToken]);
+  }, [landing, hasVipToken, step]);
   const isVipLanding = hasVipToken && hasVipCountdown;
 
   const stepMotivational = useMemo((): WizardMotivational | null => {

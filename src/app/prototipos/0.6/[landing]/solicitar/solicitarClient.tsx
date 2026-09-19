@@ -347,23 +347,32 @@ function WizardPreviewContent() {
    * En renueva-* la pantalla abre sobre el formulario, no sobre el encabezado
    * (`useScrollToTop`, arriba, deja la vista en el título de la intro).
    *
-   * Se espera a que el paso esté montado: scrollear antes de que
-   * `DynamicWizardStep` pinte los campos deja la posición mal calculada, porque
-   * el alto del bloque todavía no existe.
+   * Va en un ref callback del bloque y no en un efecto con `getElementById`: el
+   * bloque recién existe cuando la página sale del spinner, y ese gate espera
+   * layout, config del wizard, config del flujo, hidratación y disponibilidad.
+   * Un efecto que corre antes no encuentra el nodo y NO se vuelve a ejecutar
+   * —ninguna de sus dependencias cambia después—, así que el scroll no pasaría
+   * nunca. El ref corre exactamente cuando el nodo entra al DOM, con los campos
+   * del paso ya montados debajo (los refs de los hijos corren primero), o sea
+   * con el alto del bloque ya resuelto.
    */
   const yaScrolleoRef = useRef(false);
-  useEffect(() => {
-    if (!esRenueva || yaScrolleoRef.current) return;
-    if (!pasoEmbebido.step) return;
-    const el = document.getElementById('formulario-embebido');
-    if (!el) return;
+  const scrollearAlFormulario = useCallback((el: HTMLDivElement | null) => {
+    if (!el || yaScrolleoRef.current) return;
     yaScrolleoRef.current = true;
-    const rect = el.getBoundingClientRect();
-    window.scrollTo({
-      top: Math.max(0, window.pageYOffset + rect.top - getHeaderOffset() - 24),
-      behavior: 'smooth',
+    // El frame de espera no es cosmético: el ref corre en el commit, ANTES de
+    // los efectos pasivos de ese mismo commit, y uno de ellos es el
+    // `useScrollToTop` de arriba. Si el formulario llega a montarse en el
+    // primer commit, sin esto el scroll al encabezado pisaría al del
+    // formulario y la pantalla abriría arriba igual.
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      window.scrollTo({
+        top: Math.max(0, window.pageYOffset + rect.top - getHeaderOffset() - 24),
+        behavior: 'smooth',
+      });
     });
-  }, [esRenueva, pasoEmbebido.step, getHeaderOffset]);
+  }, [getHeaderOffset]);
 
   // Only consider products that are both unavailable AND still in the cart/selection
   const currentProductIds = new Set(
@@ -860,7 +869,7 @@ function WizardPreviewContent() {
         {/* El formulario, embebido. Va justo debajo de accesorios y encima de
             los términos: es el orden en que se completa la pantalla. */}
         {esRenueva && pasoEmbebido.step && (
-          <div id="formulario-embebido" className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
+          <div ref={scrollearAlFormulario} id="formulario-embebido" className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-neutral-800 leading-tight">
                 {pasoEmbebido.step.title}
@@ -981,10 +990,15 @@ function WizardPreviewContent() {
         {/* CTA Button */}
         <button
           onClick={esRenueva ? handleContinuarEmbebido : handleStart}
-          disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && !pasoEmbebido.canProceed)}
+          // `!pasoEmbebido.step`: sin paso configurado en BD el bloque del
+          // formulario no se pinta, y el botón quedaría vivo sobre la nada —
+          // `handleNext` no valida nada y dispara una celebración que tampoco
+          // puede pintarse, así que la persona apretaría un botón muerto sin
+          // ningún aviso. La rama no-renueva se cubre sola con su `console.error`.
+          disabled={isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && (!pasoEmbebido.canProceed || !pasoEmbebido.step))}
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     ${isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && !pasoEmbebido.canProceed)
+                     ${isOverQuotaLimit || hasUnavailableProducts || isLoadingAccessories || (esRenueva && (!pasoEmbebido.canProceed || !pasoEmbebido.step))
                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                        : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
                      }`}
@@ -1029,7 +1043,12 @@ function WizardPreviewContent() {
   if (!hasLeadAccess) return <LoadingFallback />;
 
   // Show loading while checking hydration, layout loading, config loading, availability check, or if no product selected (redirect will happen)
-  if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
+  // `!selectedProduct && !submitSucceeded`, por lo mismo que el guard de la
+  // redirección de arriba: el envío del paso embebido puede limpiar el carrito
+  // (siempre en landing demo, y en el flujo real cuando no queda paso
+  // siguiente). Sin el flag, la pantalla cambiaría el overlay de "Creando
+  // solicitud…" por el spinner genérico justo en el momento del envío.
+  if (!isHydrated || (!selectedProduct && !pasoEmbebido.submitSucceeded) || isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
     return <LoadingFallback />;
   }
 

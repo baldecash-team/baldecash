@@ -1,4 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+// Sólo el tipo: el módulo está mockeado más abajo y un `import type` se borra
+// al compilar, así que no lo carga.
+import type { PasoDelWizardControles } from '../components/solicitar/wizard';
 
 const baseProductContextValue: any = {
   selectedProduct: { id: '1', name: 'Laptop Test', slug: 'laptop-test' },
@@ -80,11 +85,15 @@ jest.mock('../context/WizardConfigContext', () => ({
     displayEstimatedMinutes: 5,
   }),
 }));
+// Mutable: permite arrancar la pantalla en el spinner y soltarla después, que
+// es como se ve en el navegador (el gate del render espera este flujo, la
+// config del wizard, el layout, la hidratación y la disponibilidad).
+let flujoCargando = false;
 jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
   useSolicitarFlow: () => ({
     isEnabled: () => true,
     sectionsBeforeWizard: [],
-    isLoading: false,
+    isLoading: flujoCargando,
     isCouponRequired: false,
   }),
 }));
@@ -115,27 +124,42 @@ jest.mock('../components/solicitar/product', () => ({
 }));
 
 // El cuerpo del paso se prueba en StepClient.pasoRegular.test.tsx; acá solo
-// importa que la intro lo monte.
+// importa que la intro lo monte y que le entregue el control en el momento
+// correcto, así que `handleNext` es un mock estable sobre el que se afirma.
+const mockHandleNext = jest.fn();
+
+const pasoBase: PasoDelWizardControles = {
+  // Sólo los campos que la intro lee (título, descripción). El paso real tiene
+  // muchos más, pero el cuerpo se prueba en StepClient.pasoRegular.test.tsx.
+  step: { code: 'p1', url_slug: 'datos-personales', title: 'Datos personales', order: 0, fields: [] } as unknown as PasoDelWizardControles['step'],
+  handleNext: mockHandleNext,
+  handleBack: jest.fn(),
+  handleStepClick: jest.fn(),
+  esElQueEnvia: true,
+  isSubmitting: false,
+  submitStage: 'idle',
+  submitMessage: '',
+  canProceed: true,
+  showErrors: false,
+  celebrando: false,
+  motivational: null,
+  firstName: '',
+  submitSucceeded: false,
+  overlays: null,
+};
+
+let mockPaso: PasoDelWizardControles = pasoBase;
+
 jest.mock('../components/solicitar/wizard', () => ({
   ...jest.requireActual('../components/solicitar/wizard'),
   PasoDelWizard: () => <div data-testid="formulario-embebido" />,
-  usePasoDelWizard: () => ({
-    step: { code: 'p1', url_slug: 'datos-personales', title: 'Datos personales', order: 0, fields: [] },
-    handleNext: jest.fn(),
-    handleBack: jest.fn(),
-    handleStepClick: jest.fn(),
-    esElQueEnvia: true,
-    isSubmitting: false,
-    submitStage: 'idle',
-    submitMessage: '',
-    canProceed: true,
-    showErrors: false,
-    celebrando: false,
-    motivational: null,
-    firstName: '',
-    overlays: null,
-  }),
+  usePasoDelWizard: () => mockPaso,
 }));
+
+// `window.scrollTo` no está implementado en jsdom: sin el mock lanza y además
+// no habría cómo afirmar que la pantalla abre sobre el formulario.
+const scrollToMock = jest.fn();
+window.scrollTo = scrollToMock as unknown as typeof window.scrollTo;
 
 // El único export real del módulo es `WizardPreviewPage` (default,
 // solicitarClient.tsx:863) — el componente que renderiza el botón
@@ -143,6 +167,16 @@ jest.mock('../components/solicitar/wizard', () => ({
 // <Suspense> dentro de WizardPreviewPage. Por eso se importa el default y se
 // usa `findByText` (no `getByText`) para esperar a que el Suspense resuelva.
 import SolicitarClientPage from '../solicitarClient';
+
+beforeEach(() => {
+  scrollToMock.mockClear();
+  mockHandleNext.mockClear();
+  mockPaso = pasoBase;
+  flujoCargando = false;
+  // Los consentimientos se guardan por landing en localStorage y arrastran
+  // entre tests: se limpian para que cada uno arranque sin aceptar nada.
+  localStorage.clear();
+});
 
 afterEach(() => {
   landingActual = 'renueva-tu-equipo-1';
@@ -152,6 +186,84 @@ describe('intro de renueva-*', () => {
   it('monta el formulario embebido', async () => {
     render(<SolicitarClientPage />);
     expect(await screen.findByTestId('formulario-embebido')).toBeInTheDocument();
+  });
+
+  it('el botón dice "Enviar Solicitud": este paso crea la solicitud', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    expect(screen.getByText('Enviar Solicitud')).toBeInTheDocument();
+  });
+
+  it('dice "Continuar" si el paso no es el que envía', async () => {
+    mockPaso = { ...pasoBase, esElQueEnvia: false };
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+    expect(screen.getByText('Continuar')).toBeInTheDocument();
+  });
+
+  it('sin pasos configurados el botón queda deshabilitado, no muerto', async () => {
+    mockPaso = { ...pasoBase, step: null };
+    render(<SolicitarClientPage />);
+    // Sin paso no hay formulario que esperar: se ancla en algo que sí está.
+    await screen.findByText('Términos y Condiciones');
+    expect(screen.getByText('Enviar Solicitud').closest('button')).toBeDisabled();
+  });
+
+  it('abre la pantalla sobre el formulario aunque llegue después del spinner', async () => {
+    const rect = jest
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ top: 800, left: 0, bottom: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) });
+
+    // El caso difícil, y el real: la pantalla arranca en el spinner y el
+    // formulario recién aparece en un render posterior. Un efecto con
+    // `getElementById` no lo encontraría en el primer render y no volvería a
+    // correr —sus dependencias ya no cambian—, así que el scroll no pasaría
+    // nunca.
+    flujoCargando = true;
+    const { rerender } = render(<SolicitarClientPage />);
+    flujoCargando = false;
+    rerender(<SolicitarClientPage />);
+
+    await screen.findByTestId('formulario-embebido');
+
+    // La ÚLTIMA llamada tiene que ser la del formulario: `useScrollToTop` manda
+    // la vista al encabezado al montar, y si corriera después dejaría la
+    // pantalla arriba igual. Por eso se mira el final y no "alguna llamada".
+    await waitFor(() => {
+      expect(scrollToMock.mock.calls.at(-1)?.[0]).toEqual(
+        expect.objectContaining({ behavior: 'smooth' }),
+      );
+    });
+    const ultima = scrollToMock.mock.calls.at(-1)?.[0] as { top: number };
+    expect(ultima.top).toBeGreaterThan(0);
+
+    rect.mockRestore();
+  });
+
+  it('la acción única valida la intro ANTES de entregarle el control al paso', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+
+    await userEvent.click(screen.getByText('Enviar Solicitud'));
+
+    // Falta aceptar los términos: el paso no llega a validar sus campos, para
+    // que la persona no vea errores en el formulario cuando lo que le falta es
+    // un checkbox más abajo.
+    expect(mockHandleNext).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('Debes aceptar los términos y condiciones para continuar'),
+    ).toBeInTheDocument();
+  });
+
+  it('con la intro en orden, el control pasa al paso', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+
+    await userEvent.click(screen.getByText(/Acepto los/));
+    await userEvent.click(screen.getByText(/Acepto la/));
+    await userEvent.click(screen.getByText('Enviar Solicitud'));
+
+    expect(mockHandleNext).toHaveBeenCalledTimes(1);
   });
 
   it('ya no ofrece "Comenzar Solicitud": el formulario está en la página', async () => {
