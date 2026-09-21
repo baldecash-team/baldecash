@@ -85,12 +85,17 @@ export interface PaymentPlanOption {
 }
 
 /**
- * Completa `paymentFrequency` en un producto persistido que no lo trae.
+ * Completa `paymentFrequency` en el producto que el wizard dejo guardado.
+ *
+ * NO es el carrito: el carrito multi-producto (`marketing.allow_multi_product`)
+ * esta en `false` desde el 02-abr-2026 y nunca se encendio. Esto aplica al
+ * UNICO producto que `/solicitar` persiste entre visitas, en la clave
+ * `baldecash-<landing>-solicitar-selected-product`.
  *
  * BAL-4029. El campo nacio representando "mensual" como su propia AUSENCIA, y
- * los objetos guardados en localStorage antes del fix de BAL-3994 no lo tienen.
- * Al rehidratarlos, el submit los completa con 'mensual': en los equipos que no
- * se venden en mensual eso hace nacer la solicitud con TEA 0 y la cuota de otra
+ * los objetos guardados antes del fix de BAL-3994 no lo tienen. Al
+ * rehidratarlos, el submit los completa con 'mensual': en los equipos que no se
+ * venden en mensual eso hace nacer la solicitud con TEA 0 y la cuota de otra
  * frecuencia (L-130507, APP-2026-99835331).
  *
  * La frecuencia se DERIVA de los planes que el propio objeto ya guarda, que
@@ -301,9 +306,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (typeof window === 'undefined') return null;
     try {
       const s = localStorage.getItem(storageKey);
-      // Se sanea AL ENTRAR, no al enviar: un carrito viejo sin
-      // `paymentFrequency` tiene que quedar completo antes de que cualquier
-      // pantalla lo lea (BAL-4029).
+      // Se sanea AL ENTRAR, no al enviar: un producto guardado en una visita
+      // anterior, sin `paymentFrequency`, tiene que quedar completo antes de
+      // que cualquier pantalla lo lea (BAL-4029).
       return s ? completarFrecuenciaPersistida(JSON.parse(s)) : null;
     } catch { return null; }
   });
@@ -311,8 +316,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (typeof window === 'undefined') return [];
     try {
       const s = localStorage.getItem(cartProductsKey);
-      const guardados: SelectedProduct[] = s ? JSON.parse(s) : [];
-      return guardados.map(p => completarFrecuenciaPersistida(p) as SelectedProduct);
+      return s ? JSON.parse(s) : [];
     } catch { return []; }
   });
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>(() => {
