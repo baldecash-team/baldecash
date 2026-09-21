@@ -10,6 +10,7 @@
 
 import {
   evaluateFieldVisibility,
+  evaluatePrefillFieldVisibility,
   validateField,
   filterFieldOptions,
   getStepByCode,
@@ -758,5 +759,79 @@ describe('getStepNavigation', () => {
     const nav = getStepNavigation(config, 'step_b');
     expect(nav.prevStep?.code).toBe('step_a');
     expect(nav.nextStep?.code).toBe('step_c');
+  });
+});
+
+// ============================================================================
+// evaluatePrefillFieldVisibility Tests (BAL-4026)
+// ============================================================================
+
+/**
+ * Un campo destino de prellenado tiene DOS compuertas en serie: su condicion de
+ * negocio (`dependency_groups`) y el estado del lookup del documento. Antes solo
+ * se miraba la segunda, y por eso "Nombres y Apellidos" del familiar sobrevivia
+ * al cambiar la fuente de ingreso a "Sueldo de trabajo".
+ */
+describe('evaluatePrefillFieldVisibility (BAL-4026)', () => {
+  const soloSiFamiliar: DependencyGroup[] = [{
+    action: 'show', logic: 'and',
+    conditions: [{ depends_on_field: 'income_source', operator: 'in', value: ['apoyo_familiar'] }],
+  }];
+
+  function campoDelFamiliar() {
+    return createField({
+      code: 'supporter_full_name',
+      hidden: true,
+      dependency_groups: soloSiFamiliar,
+    });
+  }
+
+  const DESTAPADO = {
+    _prefill_status_supporter_document_number: 'not_found',
+    supporter_full_name: 'JUAN PEREZ GOMEZ',
+  };
+
+  it('con la fuente en "familiar" y el lookup sin resultado, el campo se muestra', () => {
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(),
+      { income_source: 'apoyo_familiar', ...DESTAPADO },
+      'supporter_document_number',
+    )).toBe(true);
+  });
+
+  it('al cambiar la fuente a "sueldo de trabajo" el campo se oculta, aunque el lookup lo hubiera destapado', () => {
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(),
+      { income_source: 'sueldo_trabajo', ...DESTAPADO },
+      'supporter_document_number',
+    )).toBe(false);
+  });
+
+  it('la condicion de negocio no alcanza: sin lookup resuelto el campo sigue tapado', () => {
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(),
+      { income_source: 'apoyo_familiar' },
+      'supporter_document_number',
+    )).toBe(false);
+  });
+
+  it('con el lookup en "found" solo se muestra lo que el buro no trajo', () => {
+    const base = { income_source: 'apoyo_familiar', _prefill_status_supporter_document_number: 'found' };
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(), { ...base, _prefill_empty_supporter_full_name: 'true' }, 'supporter_document_number',
+    )).toBe(true);
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(), base, 'supporter_document_number',
+    )).toBe(false);
+  });
+
+  it('un campo de prellenado sin condicion propia sigue dependiendo solo del lookup', () => {
+    const firstName = createField({ code: 'first_name', hidden: true });
+    expect(evaluatePrefillFieldVisibility(
+      firstName, { _prefill_status_document_number: 'not_found' }, 'document_number',
+    )).toBe(true);
+    expect(evaluatePrefillFieldVisibility(
+      firstName, {}, 'document_number',
+    )).toBe(false);
   });
 });
