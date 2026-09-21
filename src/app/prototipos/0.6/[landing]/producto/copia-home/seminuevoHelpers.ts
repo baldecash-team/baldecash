@@ -1,14 +1,13 @@
 /**
  * Helpers compartidos por las variantes seminuevo de copia-home (catálogo y
  * detalle, mobile y desktop). Fuente única de verdad para la garantía de
- * fábrica por modelo y el envío diferido (15/07).
+ * fábrica por modelo y la nota de envío diferido.
  */
 
-import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
-
-/** Nota de envío diferido para iPhone seminuevos e iPads (a partir del miércoles 15/07). */
-export const DEFERRED_SHIPPING_NOTE =
-  'Lo prepararemos con mucho cuidado para ti. El envío o recojo será a partir del miércoles 15/07.';
+import {
+  formatShippingDate,
+  type DeferredDelivery,
+} from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 /**
  * Garantía de fábrica según el modelo (regla de negocio):
@@ -27,18 +26,18 @@ export function factoryWarranty(name: string, fallback?: string): string {
 }
 
 /**
- * Envío diferido (15/07): iPhone seminuevos e iPads (cualquier condición del
- * iPad; el iPhone solo si es seminuevo).
+ * Nota de envío diferido para el modal de seminuevo (BAL-4032).
+ *
+ * Devuelve '' cuando el producto no es diferido o cuando el backend no mandó
+ * `estimatedFrom`. A propósito NO hay texto de respaldo: la versión anterior
+ * traía la fecha escrita a mano ("miércoles 15/07") y siguió anunciándola meses
+ * después de que pasara. Es preferible no decir nada a decir una fecha falsa.
  */
-export function hasDeferredShipping(opts: {
-  name: string;
-  condition?: string;
-  deviceType?: string;
-  brand?: string;
-}): boolean {
-  const { name, condition, deviceType, brand } = opts;
-  const refurbished = isRefurbishedCondition(condition);
-  const isIphone = /iphone/i.test(name);
-  const isIpad = /ipad/i.test(name) || (deviceType === 'tablet' && /apple/i.test(brand ?? ''));
-  return (isIphone && refurbished) || isIpad;
+export function deferredShippingNote(
+  deferredDelivery?: DeferredDelivery | null,
+): string {
+  if (!deferredDelivery?.isDeferred) return '';
+  const fecha = formatShippingDate(deferredDelivery.estimatedFrom);
+  if (!fecha) return '';
+  return `Lo prepararemos con mucho cuidado para ti. El envío o recojo será a partir del ${fecha}.`;
 }
