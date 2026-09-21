@@ -84,10 +84,49 @@ export interface PaymentPlanOption {
   initialInstallments?: number;
 }
 
+/**
+ * Completa `paymentFrequency` en un producto persistido que no lo trae.
+ *
+ * BAL-4029. El campo nacio representando "mensual" como su propia AUSENCIA, y
+ * los objetos guardados en localStorage antes del fix de BAL-3994 no lo tienen.
+ * Al rehidratarlos, el submit los completa con 'mensual': en los equipos que no
+ * se venden en mensual eso hace nacer la solicitud con TEA 0 y la cuota de otra
+ * frecuencia (L-130507, APP-2026-99835331).
+ *
+ * La frecuencia se DERIVA de los planes que el propio objeto ya guarda, que
+ * vienen del catalogo y son la unica fuente que sabe cual se vende. No se
+ * asume ninguna: asumir es lo que causo el bug. Si no hay de donde derivarla
+ * se deja ausente, y entonces actua el guard del backend
+ * (`submit.pricing_guard_enforce`), que rechaza con un mensaje claro en vez de
+ * inventar un pricing.
+ *
+ * Un producto fuera del catalogo (la calculadora de matricula) se devuelve
+ * intacto: sus planes no salen del catalogo y su frecuencia no se deriva de ahi.
+ */
+export function completarFrecuenciaPersistida<T extends {
+  paymentFrequency?: string;
+  paymentPlans?: PaymentPlan[];
+  outOfCatalog?: boolean;
+}>(product: T | null): T | null {
+  if (!product) return product;
+  if (product.paymentFrequency) return product;      // ya la tiene: no se pisa
+  if (product.outOfCatalog) return product;          // no vive en el catalogo
+
+  const derivada = product.paymentPlans?.find(p => p.paymentFrequency)?.paymentFrequency;
+  return derivada ? { ...product, paymentFrequency: derivada } : product;
+}
+
 // Payment plan for a specific term
 export interface PaymentPlan {
   term: number;           // raw period count (weeks for semanal, fortnights for quincenal, months for mensual)
   termMonths?: number | null; // month equivalent — use for display and matching
+  /**
+   * Frecuencia que el catalogo declara para este plazo ('semanal',
+   * 'quincenal', 'mensual'). El backend ya la envia en cada plan; se declara
+   * acá para poder DERIVAR la del producto cuando el carrito persistido no la
+   * trae, en vez de asumir 'mensual' (BAL-4029).
+   */
+  paymentFrequency?: string;
   options: PaymentPlanOption[];
 }
 
@@ -262,14 +301,18 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (typeof window === 'undefined') return null;
     try {
       const s = localStorage.getItem(storageKey);
-      return s ? JSON.parse(s) : null;
+      // Se sanea AL ENTRAR, no al enviar: un carrito viejo sin
+      // `paymentFrequency` tiene que quedar completo antes de que cualquier
+      // pantalla lo lea (BAL-4029).
+      return s ? completarFrecuenciaPersistida(JSON.parse(s)) : null;
     } catch { return null; }
   });
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
       const s = localStorage.getItem(cartProductsKey);
-      return s ? JSON.parse(s) : [];
+      const guardados: SelectedProduct[] = s ? JSON.parse(s) : [];
+      return guardados.map(p => completarFrecuenciaPersistida(p) as SelectedProduct);
     } catch { return []; }
   });
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>(() => {
@@ -928,6 +971,24 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         const option = plan?.options.find(o => o.initialPercent === product.initialPercent)
           || plan?.options[0];
 
+        // BAL-4029: un carrito guardado ANTES del fix de BAL-3994 no tiene
+        // `paymentFrequency` —ese campo nacio representando "mensual" como su
+        // propia ausencia— y el objeto persistido no lo delata: el tipo lo
+        // declara opcional. Sin esto, el submit lo completa con 'mensual' y en
+        // los equipos que no se venden en mensual la solicitud nace con TEA 0
+        // y la cuota de otra frecuencia (L-130507, APP-2026-99835331).
+        //
+        // La frecuencia se DERIVA del plan que el catalogo acaba de devolver,
+        // que es la unica fuente que sabe cual se vende. No se asume ninguna:
+        // asumir es exactamente lo que causo el bug.
+        //
+        // Solo se completa cuando falta. Una frecuencia ya elegida no se pisa:
+        // el catalogo puede ofrecer varias y la de la persona es la que vale.
+        const frecuenciaDelCatalogo =
+          product.paymentFrequency
+          ?? plan?.paymentFrequency
+          ?? plans?.[0]?.paymentFrequency;
+
         return {
           ...product,
           slug: product.slug || slug,
@@ -936,6 +997,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
           ...(plan && {
             term: plan.term,
             months: plan.termMonths ?? plan.term,
+          }),
+          ...(frecuenciaDelCatalogo && {
+            paymentFrequency: frecuenciaDelCatalogo,
           }),
           ...(option && {
             monthlyPayment: option.monthlyQuota,
