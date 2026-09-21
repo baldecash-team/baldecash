@@ -179,4 +179,57 @@ describe('useTransmisionEmisor', () => {
 
     expect(FakeRTCPeerConnection.instances).toHaveLength(0);
   });
+
+  it('sobrevive al fake de WebKit: muta en el lugar, no reemplaza el array de encodings', async () => {
+    // El fake ahora imita el `InvalidModificationError` real de WebKit (ver
+    // doc-comment de `FakeRTCRtpSender.setParameters`): si `limitarSender`
+    // alguna vez volviera a reemplazar `encodings` en vez de mutarlo, esta
+    // llamada tiraría, `responder()` caería en el `.catch` de `alRecibir`,
+    // el peer se cerraría y nunca saldría una `answer`. Por eso alcanza con
+    // comprobar que la negociación llega a buen puerto y que no se logueó
+    // nada por el `console.warn` del catch-all.
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { channel } = montar(fakeStream(fakeTrack(1920, 1080)));
+
+    channel.emit(SENAL_EVENT, OFERTA);
+
+    await waitFor(() => expect(ultimoPeer().senders).toHaveLength(1));
+    const pc = ultimoPeer();
+    pc.completarIce();
+
+    await waitFor(() => {
+      const cuerpos = (global.fetch as jest.Mock).mock.calls.map((c) => JSON.parse(c[1].body));
+      expect(cuerpos).toContainEqual({
+        destino_device_id: 'dev-esc-01',
+        tipo: 'answer',
+        sdp: 'SDP-ANSWER',
+      });
+    });
+    expect(pc.cerrada).toBe(false);
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('si el escáner se va mientras se junta ICE, la answer tardía no se manda', async () => {
+    // Cubre el guard de `responder()` después de `esperarIceCompleto`: "El
+    // escáner pudo haberse ido mientras juntábamos candidatos." El gathering
+    // de ICE no está atado al cierre del peer, así que puede terminar
+    // DESPUÉS de que el `bye` ya lo cerró — sin el guard, se mandaría una
+    // `answer` para una negociación que ya nadie espera.
+    const { channel } = montar(fakeStream(fakeTrack()));
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+    const pc = ultimoPeer();
+
+    channel.emit(SENAL_EVENT, { ...OFERTA, tipo: 'bye', sdp: '' });
+    expect(pc.cerrada).toBe(true);
+
+    // El gathering, que ya estaba en curso, termina recién ahora.
+    pc.completarIce();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const cuerpos = (global.fetch as jest.Mock).mock.calls.map((c) => JSON.parse(c[1].body));
+    expect(cuerpos).not.toContainEqual(expect.objectContaining({ tipo: 'answer' }));
+  });
 });

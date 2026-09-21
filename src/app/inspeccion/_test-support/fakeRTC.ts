@@ -21,13 +21,45 @@ export class FakeRTCRtpSender {
     rtcp: {},
   } as unknown as RTCRtpSendParameters;
 
+  /**
+   * El array `encodings` que devolvió la ÚLTIMA llamada a `getParameters()`,
+   * guardado por identidad (no por valor). `setParameters` lo usa para
+   * distinguir "se mutó en el lugar" de "se reemplazó el array" — ver su
+   * doc-comment.
+   */
+  private encodingsDevueltos?: RTCRtpEncodingParameters[];
+
   constructor(public track: MediaStreamTrack) {}
 
   getParameters(): RTCRtpSendParameters {
+    this.encodingsDevueltos = this.parametros.encodings;
     return this.parametros;
   }
 
+  /**
+   * Imita el `InvalidModificationError` real de WebKit, medido en un iPhone
+   * con iOS 18.7 / Safari 26.5 el 2026-09-21: si el `encodings` que llega acá
+   * NO es, por identidad, el mismo array que devolvió la última
+   * `getParameters()`, WebKit rechaza la llamada ENTERA — no aplica ningún
+   * límite, ni el bitrate ni la escala — con `InvalidModificationError:
+   * parameters are not valid`. Mutar `encodings[0]` en el lugar sí funciona,
+   * porque el array sigue siendo el mismo objeto; reemplazarlo
+   * (`parametros.encodings = [...]`) descarta esa identidad y lo tira.
+   *
+   * Excepción a propósito: si el array anterior estaba VACÍO
+   * (`encodings.length === 0`), reemplazarlo es el camino LEGÍTIMO que usa
+   * `limitarSender` cuando el sender no trae ningún encoding todavía
+   * (`if (!parametros.encodings?.length) parametros.encodings = [{}]`) — ese
+   * caso tiene que seguir aceptándose, WebKit no lo rechaza.
+   */
   async setParameters(p: RTCRtpSendParameters): Promise<void> {
+    const anterior = this.encodingsDevueltos;
+    const nuevo = p.encodings;
+    if (anterior && anterior.length > 0 && nuevo !== anterior) {
+      const error = new Error('parameters are not valid');
+      error.name = 'InvalidModificationError';
+      throw error;
+    }
     this.parametros = p;
   }
 }
