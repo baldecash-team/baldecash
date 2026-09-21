@@ -446,6 +446,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
       months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
       term: pricingSelection.term,
+      // `PricingSelection.paymentFrequency` es un `string` requerido y el
+      // guard de arriba ya descarto el null, asi que aca la clave SIEMPRE
+      // viaja. No lleva `?? 'mensual'`: seria codigo muerto (BAL-3994).
       paymentFrequency: pricingSelection.paymentFrequency,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
@@ -601,7 +604,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       },
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
-      paymentFrequency: pricingSelection?.paymentFrequency,
+      // Aca `pricingSelection` puede ser null (el estado arranca en null si el
+      // producto no trae planes) y TODOS los campos vecinos caen a un default
+      // por eso mismo. Era el unico sin uno: sin el, la clave se iba del JSON
+      // del submit y el backend adivinaba 'mensual' (BAL-3994).
+      paymentFrequency: pricingSelection?.paymentFrequency ?? 'mensual',
       // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
       comboId: combo?.id,
     };
