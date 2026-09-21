@@ -726,6 +726,43 @@ export function useSubmitApplication(
               'Era la última unidad de ese modelo y se agotó mientras ' +
               'completabas la solicitud. Elige otro equipo del catálogo para ' +
               'continuar.',
+            // BAL-4029. Los tres códigos de abajo los emiten los guards de
+            // pricing del submit, y todos nacen del mismo hecho: el plan de
+            // pago que viaja en el carrito no es uno de los que el catálogo
+            // ofrece hoy para ese equipo.
+            //
+            // La causa casi nunca es que el cliente eligiera mal: es un
+            // carrito guardado en `localStorage` días atrás, o una frecuencia
+            // que negocio apagó en el medio. Por eso el texto no acusa ("tu
+            // selección es inválida") sino que explica que el plan cambió y
+            // manda a reelegirlo, que es lo único que destraba.
+            //
+            // No se reusa PRODUCT_DISABLED porque el equipo SÍ está
+            // disponible: lo que no está es esa combinación de plan y plazo.
+            // Mandar a "revisa tu selección" haría buscar un problema en el
+            // producto, que se ve bien.
+            PRICING_FREQUENCY_NOT_AVAILABLE:
+              'El plan de pago que tenías guardado ya no está disponible para ' +
+              'este equipo. Vuelve al catálogo y elige nuevamente tu plan ' +
+              'para continuar.',
+            // Mensaje aparte del de frecuencia: acá la modalidad sí existe
+            // (semanal, quincenal…) y lo que cambió es el número de cuotas.
+            // Decirle "tu plan de pago no está disponible" a quien sigue
+            // pudiendo pagar semanalmente lo manda a buscar el error donde no
+            // está.
+            PRICING_TERM_NOT_AVAILABLE:
+              'El plazo que tenías guardado ya no está disponible para este ' +
+              'equipo. Vuelve al catálogo y elige nuevamente tu plan de pago ' +
+              'para continuar.',
+            // El submit llegó sin frecuencia y el equipo no se vende en
+            // mensual, que es el valor con el que el backend rellena. Para el
+            // cliente es el mismo problema y la misma salida que los dos de
+            // arriba, así que el texto es el mismo que el de frecuencia: la
+            // distinción entre "no llegó" y "llegó algo inválido" es interna.
+            PAYMENT_FREQUENCY_MISSING:
+              'El plan de pago que tenías guardado ya no está disponible para ' +
+              'este equipo. Vuelve al catálogo y elige nuevamente tu plan ' +
+              'para continuar.',
           };
           const msg =
             (result.error_code ? MENSAJES[result.error_code] : undefined) ||
