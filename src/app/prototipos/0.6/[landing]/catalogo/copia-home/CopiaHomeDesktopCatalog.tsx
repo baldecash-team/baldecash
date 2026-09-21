@@ -28,7 +28,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { CopiaHomePromoBanner, PROMO_BANNER_HEIGHT } from '@/app/prototipos/0.6/components/CopiaHomePromoBanner';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from '@/app/prototipos/0.6/[landing]/producto/copia-home/politicasPdf';
-import { DEFERRED_SHIPPING_NOTE, hasDeferredShipping } from '@/app/prototipos/0.6/[landing]/producto/copia-home/seminuevoHelpers';
+import { deferredShippingNote } from '@/app/prototipos/0.6/[landing]/producto/copia-home/seminuevoHelpers';
 import type { CatalogProduct, TermMonths } from '../types/catalog';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../../services/catalogApi';
 import { useCatalogProducts, useCatalogFilters } from '../hooks/useCatalogProducts';
@@ -71,16 +71,6 @@ const DEVICE_LABEL: Record<string, string> = {
 
 function deviceLabel(value: string): string {
   return DEVICE_LABEL[value?.toLowerCase()] ?? (value ? value[0].toUpperCase() + value.slice(1) : value);
-}
-
-/** Envío diferido para iPhone seminuevos e iPads (a partir del miércoles 15/07). */
-function productHasDeferredShipping(p: CatalogProduct): boolean {
-  return hasDeferredShipping({
-    name: `${p.name ?? ''} ${p.displayName ?? ''}`,
-    condition: p.conditionCode || p.condition,
-    deviceType: p.deviceType,
-    brand: p.brand,
-  });
 }
 
 /** Specs cortos para la card (procesador / ram / almacenamiento / pantalla). */
@@ -462,7 +452,7 @@ export function CopiaHomeDesktopCatalog() {
         productName={pendingRefurb?.displayName}
         policyHref={POLITICAS_PDF_URL}
         policyFilename={POLITICAS_PDF_FILENAME}
-        shippingNote={pendingRefurb && productHasDeferredShipping(pendingRefurb) ? DEFERRED_SHIPPING_NOTE : undefined}
+        shippingNote={deferredShippingNote(pendingRefurb?.deferredDelivery) || undefined}
       />
 
       <Footer data={footerData} landing={landing} agreementData={agreementData} />

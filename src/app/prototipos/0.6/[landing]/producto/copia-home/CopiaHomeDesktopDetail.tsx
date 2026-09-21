@@ -36,7 +36,8 @@ import { Cronograma } from '../components/detail/cronograma/Cronograma';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from './politicasPdf';
-import { factoryWarranty, hasDeferredShipping, DEFERRED_SHIPPING_NOTE } from './seminuevoHelpers';
+import { factoryWarranty, deferredShippingNote } from './seminuevoHelpers';
+import { formatShippingDate } from '@/app/prototipos/0.6/utils/deferredDelivery';
 import { IPHONE_GRADE_IMAGES, isIphoneName } from './iphoneGradeGallery';
 import GradeThumbStrip from './GradeThumbStrip';
 import { targetSlugForGrade, currentGrade } from './gradeSelector';
@@ -121,10 +122,11 @@ export function CopiaHomeDesktopDetail({
     isRefurbishedCondition(product.condition) ||
     /semi\s*nuevo|seminuevo|reacondicion/i.test(fullName);
 
-  // Envío diferido (15/07): iPhone seminuevos e iPads.
-  const deferredShipping = hasDeferredShipping({
-    name: fullName, condition: product.condition, deviceType: product.deviceType, brand: product.brand,
-  });
+  // Envío diferido: manda el flag del backend, nunca el nombre del producto.
+  // La fecha sale de `estimatedFrom`; si no viene, el aviso no se pinta.
+  const shippingDate = product.deferredDelivery?.isDeferred
+    ? formatShippingDate(product.deferredDelivery.estimatedFrom)
+    : '';
 
   // Garantía de fábrica según modelo (item 3).
   const warranty = factoryWarranty(fullName, product.warranty);
@@ -522,10 +524,10 @@ export function CopiaHomeDesktopDetail({
                     </button>
                   </div>
 
-                  {deferredShipping && (
+                  {shippingDate && (
                     <div className={styles.shipNote}>
                       <Truck size={18} />
-                      <span>El envío o recojo será <b>a partir del miércoles 15/07</b>.</span>
+                      <span>El envío o recojo será <b>a partir del {shippingDate}</b>.</span>
                     </div>
                   )}
                 </>
@@ -716,7 +718,7 @@ export function CopiaHomeDesktopDetail({
         productName={product.displayName}
         policyHref={POLITICAS_PDF_URL}
         policyFilename={POLITICAS_PDF_FILENAME}
-        shippingNote={deferredShipping ? DEFERRED_SHIPPING_NOTE : undefined}
+        shippingNote={deferredShippingNote(product.deferredDelivery) || undefined}
       />
     </div>
   );
