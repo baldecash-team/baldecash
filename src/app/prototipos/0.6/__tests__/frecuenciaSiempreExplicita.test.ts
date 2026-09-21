@@ -40,8 +40,17 @@ const RUTAS: {
   archivo: string;
   esperado: string[];
   /**
-   * Lineas que a proposito NO llevan `?? 'mensual'` porque el tipo ya
-   * garantiza un string. Un default ahi seria codigo muerto.
+   * Lineas que a proposito NO llevan `?? 'mensual'`. Hay dos motivos, y son
+   * distintos:
+   *
+   * 1. El tipo ya garantiza un string. Un default ahi seria codigo muerto.
+   * 2. La linea NO arma el item del carrito: copia la frecuencia de un PLAN
+   *    del catalogo (`cartPaymentPlans`). Ahi un default no seria inocuo,
+   *    seria daniño: estamparia 'mensual' sobre los planes de un equipo que
+   *    se vende semanal o quincenal, y `completarFrecuenciaPersistida`
+   *    despues derivaria del objeto esa 'mensual' inventada — justo el bug
+   *    que BAL-4029 cerro. Si el catalogo no la manda, se deja ausente a
+   *    proposito para que actue el guard del backend.
    */
   exentos?: string[];
 }[] = [
@@ -57,6 +66,8 @@ const RUTAS: {
       "paymentFrequency: item.paymentFrequency ?? 'mensual',",
       "paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',",
     ],
+    // `cartPaymentPlans`: motivo 2. Es la frecuencia del PLAN, no la del item.
+    exentos: ['paymentFrequency: plan.paymentFrequency,'],
   },
   {
     nombre: 'ProductDetailClient (continuar con el carrito)',
@@ -73,7 +84,12 @@ const RUTAS: {
       // ya descarto el null-- y lo cubre `exentos` mas abajo.
       "paymentFrequency: pricingSelection?.paymentFrequency ?? 'mensual',",
     ],
-    exentos: ['paymentFrequency: pricingSelection.paymentFrequency,'],
+    exentos: [
+      // Motivo 1: el tipo ya garantiza el string.
+      'paymentFrequency: pricingSelection.paymentFrequency,',
+      // Motivo 2: `cartPaymentPlans`, la frecuencia del PLAN.
+      'paymentFrequency: plan.paymentFrequency,',
+    ],
   },
   {
     nombre: 'HelpQuiz (elegir del quiz)',
