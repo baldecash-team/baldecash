@@ -566,6 +566,9 @@ function DetailContent() {
     return paymentPlans.map((plan) => ({
       term: plan.term,
       termMonths: plan.termMonths ?? null,
+      // Viaja al objeto persistido: es la unica pista de frecuencia que
+      // sobrevive si el producto se recupera en otra visita (BAL-4029).
+      paymentFrequency: plan.paymentFrequency,
       options: plan.options.map((opt) => ({
         initialPercent: opt.initialPercent,
         initialAmount: opt.initialAmount,

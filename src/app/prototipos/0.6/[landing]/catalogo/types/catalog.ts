@@ -1104,6 +1104,15 @@ export interface CartPaymentPlanOption {
 export interface CartPaymentPlan {
   term: number;           // raw period count (weeks for semanal, fortnights for quincenal, months for mensual)
   termMonths?: number | null; // month equivalent — use this for display and matching
+  /**
+   * Frecuencia que el catalogo declara para este plazo.
+   *
+   * Se persiste a proposito: es lo que permite RECUPERAR la frecuencia de un
+   * producto guardado en una visita anterior, cuando el objeto no la trae
+   * (BAL-4029). Sin esto no hay de donde derivarla y la solicitud termina
+   * rechazada por el guard del backend.
+   */
+  paymentFrequency?: string;
   options: CartPaymentPlanOption[];
 }
 
