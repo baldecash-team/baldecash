@@ -36,7 +36,22 @@ export function estaFueraDelCatalogo(product: SelectedProduct): boolean {
 export function necesitaPlanesDePago(product: SelectedProduct): boolean {
   if (estaFueraDelCatalogo(product)) return false;
 
-  return !product.paymentPlans || product.paymentPlans.length === 0;
+  if (!product.paymentPlans || product.paymentPlans.length === 0) return true;
+
+  // BAL-4029. Tener planes no alcanza: los guardados antes de que
+  // `CartPaymentPlan` incluyera `paymentFrequency` no declaran ninguna, y sin
+  // ella no hay de donde recuperar la frecuencia del producto. Se vuelven a
+  // pedir para que el catalogo la aporte, en vez de dejar que el submit la
+  // invente como 'mensual'.
+  //
+  // Solo aplica al producto que TAMPOCO trae su propia frecuencia: si ya la
+  // tiene, los planes viejos alcanzan y no hay que gastar una llamada.
+  if (!product.paymentFrequency
+      && !product.paymentPlans.some(p => p.paymentFrequency)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**

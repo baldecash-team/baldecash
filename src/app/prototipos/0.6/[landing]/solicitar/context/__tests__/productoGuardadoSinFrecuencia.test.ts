@@ -21,6 +21,7 @@
  */
 
 import { completarFrecuenciaPersistida } from '../ProductContext';
+import { necesitaPlanesDePago } from '../productoFueraDeCatalogo';
 import type { PaymentPlan } from '../ProductContext';
 
 /** Lo minimo que mira el helper. Evita construir un SelectedProduct entero. */
@@ -88,5 +89,44 @@ describe('completarFrecuenciaPersistida', () => {
 
   it('tolera null', () => {
     expect(completarFrecuenciaPersistida(null)).toBeNull();
+  });
+});
+
+/**
+ * El objeto que persiste el flujo REAL guardaba sus planes sin
+ * `paymentFrequency`: `cartPaymentPlans` copiaba solo term/termMonths/options
+ * y descartaba el campo. Medido en produccion el 21-sep-2026 agregando un
+ * iPhone 15 con el boton "¡Lo quiero!".
+ *
+ * Sin frecuencia en el producto NI en sus planes no hay de donde derivarla, y
+ * hay que volver a pedirlos al catalogo.
+ */
+describe('necesitaPlanesDePago: planes sin frecuencia', () => {
+  it('pide planes cuando ninguno declara frecuencia y el producto tampoco', () => {
+    const guardadoPorElFlujoReal = {
+      paymentPlans: [
+        { term: 12, termMonths: 3, options: [] },
+        { term: 24, termMonths: 6, options: [] },
+      ],
+    } as unknown as Parameters<typeof necesitaPlanesDePago>[0];
+
+    expect(necesitaPlanesDePago(guardadoPorElFlujoReal)).toBe(true);
+  });
+
+  it('NO los pide si el producto ya trae su frecuencia', () => {
+    const conFrecuencia = {
+      paymentFrequency: 'semanal',
+      paymentPlans: [{ term: 24, termMonths: 6, options: [] }],
+    } as unknown as Parameters<typeof necesitaPlanesDePago>[0];
+
+    expect(necesitaPlanesDePago(conFrecuencia)).toBe(false);
+  });
+
+  it('NO los pide si algun plan declara frecuencia', () => {
+    const planesConFrecuencia = {
+      paymentPlans: [{ term: 24, termMonths: 6, paymentFrequency: 'semanal', options: [] }],
+    } as unknown as Parameters<typeof necesitaPlanesDePago>[0];
+
+    expect(necesitaPlanesDePago(planesConFrecuencia)).toBe(false);
   });
 });
