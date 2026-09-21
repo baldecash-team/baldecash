@@ -584,6 +584,114 @@ export function filterFieldOptions(
 // ============================================================================
 
 /**
+ * Reglas de largo/formato del numero de documento, por tipo.
+ *
+ * BAL-4025: el largo exigido depende del tipo elegido (DNI / CE / pasaporte) y
+ * hasta ahora el formulario no lo miraba: el input quedaba con el `max_length`
+ * del campo (9) y la validacion exigia `^\d{9}$` al CE, o sea SOLO digitos,
+ * cuando hay carnets de extranjeria reales con letras.
+ *
+ * La fuente de verdad es `GET /public/options/document-types`, que ya devuelve
+ * por opcion `{min_length, max_length, pattern, input_mode, placeholder,
+ * error_message}`. Esas opciones viven en el cache de opciones dinamicas del
+ * wizard (`dynamicOptionsCache`), que llena `CascadingSelectField` al montar.
+ *
+ * El backend manda; esta tabla es solo el respaldo para cuando el cache
+ * todavia no cargo (primer render, o un formulario sin el select dinamico).
+ * Por eso copia exactamente lo que hoy responde ese endpoint.
+ *
+ * OJO: solo el DNI es numerico. CE y pasaporte son ALFANUMERICOS a proposito.
+ */
+const DOCUMENT_RULES_FALLBACK: Record<string, OptionValidation> = {
+  dni: {
+    min_length: 8,
+    max_length: 8,
+    pattern: '^\\d{8}$',
+    input_mode: 'numeric',
+    placeholder: '12345678',
+    error_message: 'El DNI debe tener 8 dígitos',
+  },
+  ce: {
+    min_length: 9,
+    max_length: 12,
+    pattern: '^[a-zA-Z0-9]{9,12}$',
+    input_mode: 'text',
+    placeholder: 'A12345678',
+    error_message: 'El CE debe tener entre 9 y 12 caracteres',
+  },
+  pasaporte: {
+    min_length: 6,
+    max_length: 12,
+    pattern: '^[a-zA-Z0-9]{6,12}$',
+    input_mode: 'text',
+    placeholder: 'AB123456',
+    error_message: 'El pasaporte debe tener entre 6 y 12 caracteres',
+  },
+};
+
+/**
+ * `passport` y `pasaporte` conviven: el endpoint de opciones dice `pasaporte`,
+ * pero `DocumentNumberField`/`useCheckPerson` hablan de `passport`. Se
+ * normaliza para que ninguna de las dos formas se quede sin reglas.
+ */
+function normalizeDocumentType(docType: string | undefined | null): string {
+  const t = String(docType || '').trim().toLowerCase();
+  return t === 'passport' ? 'pasaporte' : t;
+}
+
+/**
+ * Devuelve las reglas del tipo de documento seleccionado.
+ *
+ * Prioridad: la opcion que trajo el backend (cache de opciones dinamicas) y,
+ * si no esta, la tabla de respaldo. Si el tipo es desconocido devuelve null:
+ * ahi no se exige largo ninguno, porque inventar uno bloquea solicitudes.
+ *
+ * @param docTypeFieldCode - Codigo del campo que tiene el tipo (normalmente `document_type`)
+ */
+export function getDocumentTypeRules(
+  docTypeFieldCode: string,
+  formValues: Record<string, string | string[]>,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>
+): OptionValidation | null {
+  const rawValue = formValues[docTypeFieldCode];
+  const selectedValue = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+  const docType = normalizeDocumentType(selectedValue);
+  if (!docType) return null;
+
+  const options = dynamicOptionsCache?.[docTypeFieldCode] || [];
+  const fromApi = options.find(
+    (opt) => normalizeDocumentType(String(opt.value)) === docType
+  )?.validation;
+  if (fromApi) return fromApi;
+
+  return DOCUMENT_RULES_FALLBACK[docType] || null;
+}
+
+/**
+ * Aplica las reglas de un tipo de documento sobre un valor ya recortado.
+ * Devuelve el mensaje de error, o null si pasa.
+ */
+export function checkDocumentAgainstRules(
+  trimmedValue: string,
+  rules: OptionValidation
+): string | null {
+  const fallbackMessage = rules.error_message || 'El formato del documento no es válido';
+
+  if (rules.min_length && trimmedValue.length < rules.min_length) return fallbackMessage;
+  if (rules.max_length && trimmedValue.length > rules.max_length) return fallbackMessage;
+
+  if (rules.pattern) {
+    try {
+      if (!new RegExp(rules.pattern).test(trimmedValue)) return fallbackMessage;
+    } catch {
+      // Pattern invalido del backend: no se bloquea al postulante por eso.
+    }
+  }
+
+  return null;
+}
+
+/**
  * Resultado de validación de un campo
  */
 export interface FieldValidationResult {
@@ -760,20 +868,31 @@ export function validateField(
         }
         break;
 
-      case 'dni':
-        // Validación dinámica según tipo de documento
-        const docType = formValues['document_type'] as string;
-        if (docType === 'dni' && !/^\d{8}$/.test(trimmedValue)) {
-          hasError = true;
-          errorMessage = 'El DNI debe tener 8 dígitos';
-        } else if (docType === 'ce' && !/^\d{9}$/.test(trimmedValue)) {
-          hasError = true;
-          errorMessage = 'El CE debe tener 9 dígitos';
-        } else if (docType === 'pasaporte' && !/^[a-zA-Z0-9]{6,12}$/.test(trimmedValue)) {
-          hasError = true;
-          errorMessage = 'El pasaporte debe tener entre 6 y 12 caracteres';
+      case 'dni': {
+        // BAL-4025: el largo y el formato salen del tipo de documento elegido.
+        //
+        // Antes esto tenia la tabla escrita a mano aca y estaba mal en dos
+        // puntos: exigia `^\d{9}$` al CE (digitos, exactamente 9) cuando el
+        // backend acepta 9..12 ALFANUMERICOS, y solo reconocia el pasaporte
+        // bajo el nombre `pasaporte`, con lo cual quien llegaba con `passport`
+        // -- el codigo que usan `DocumentNumberField` y `useCheckPerson` --
+        // no tenia validacion de largo ninguna.
+        //
+        // Ahora las reglas las da el backend via el cache de opciones.
+        const rules = getDocumentTypeRules(
+          validation.value || 'document_type',
+          formValues,
+          dynamicOptionsCache
+        );
+        if (rules) {
+          const ruleError = checkDocumentAgainstRules(trimmedValue, rules);
+          if (ruleError) {
+            hasError = true;
+            errorMessage = ruleError;
+          }
         }
         break;
+      }
 
       case 'min_length':
         if (validation.value && trimmedValue.length < parseInt(validation.value)) {
