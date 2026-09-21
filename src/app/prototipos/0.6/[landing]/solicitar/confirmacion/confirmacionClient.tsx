@@ -274,7 +274,7 @@ function OtpValidationCta({
         onClick={() => onValidate(handoff.applicationId)}
         className="w-full sm:w-auto flex-shrink-0 px-4 py-2.5 min-h-[44px] flex items-center justify-center
                    bg-[var(--color-primary)] text-white rounded-lg font-medium text-sm
-                   hover:opacity-90 transition-opacity"
+                   cursor-pointer hover:opacity-90 transition-opacity"
       >
         Validar mi correo
       </button>
