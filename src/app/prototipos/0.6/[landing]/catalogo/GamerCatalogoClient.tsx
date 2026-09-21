@@ -796,7 +796,11 @@ export function GamerCatalogoContent() {
       type: product.deviceType,
       months: gamerTermMonths(product) as TermMonths,
       term: gamerNativeTerm(product),
-      paymentFrequency: product.paymentFrequency,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: product.paymentFrequency ?? 'mensual',
       initialPercent: WIZARD_SELECTED_INITIAL,
       initialAmount: 0,
       monthlyPayment: product.quotaMonthly,
@@ -882,7 +886,11 @@ export function GamerCatalogoContent() {
       monthlyPayment: variantInfo?.monthlyPayment ?? product.quotaMonthly,
       months: (variantInfo?.months ?? gamerTermMonths(product)) as TermMonths,
       term: variantInfo?.term ?? variantInfo?.months ?? gamerNativeTerm(product),
-      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency || 'mensual',
       initialPercent: variantInfo?.initialPercent ?? product.hookInitialPercent ?? 0,
       initialAmount: variantInfo?.initialAmount ?? 0,
       image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
@@ -935,7 +943,7 @@ export function GamerCatalogoContent() {
           price: product.price,
           months,
           term: gamerNativeTerm(product),
-          paymentFrequency: product.paymentFrequency,
+          paymentFrequency: product.paymentFrequency ?? 'mensual',
           initialPercent: WIZARD_SELECTED_INITIAL,
           initialAmount: 0,
           monthlyPayment: product.quotaMonthly,
@@ -1010,7 +1018,9 @@ export function GamerCatalogoContent() {
           monthlyPayment: item.monthlyPayment,
           months: item.months,
           term: item.term ?? item.months,
-          paymentFrequency: item.paymentFrequency,
+          // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+          // campo: se completa aqui en vez de dejar que el backend lo adivine.
+          paymentFrequency: item.paymentFrequency ?? 'mensual',
           initialPercent: item.initialPercent,
           initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,

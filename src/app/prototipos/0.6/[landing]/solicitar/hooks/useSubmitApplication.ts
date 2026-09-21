@@ -495,7 +495,11 @@ export function useSubmitApplication(
           initial_installments: primaryProduct.initialInstallments ?? 1,
           // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
-          payment_frequency: primaryProduct.paymentFrequency,
+          // Red de seguridad: si un carrito nuevo se olvida del campo, `undefined`
+          // desaparece del JSON y el backend rellena "mensual" a ciegas — con un
+          // producto sin pricing mensual eso da TEA 0 o la cuota de otra
+          // frecuencia (BAL-3994). El default vive aqui, explicito.
+          payment_frequency: primaryProduct.paymentFrequency ?? 'mensual',
           // Multiple products array
           products: allProducts.map((p) => ({
             product_id: parseInt(p.id, 10),
@@ -508,7 +512,7 @@ export function useSubmitApplication(
             term_months: termToMonths(p.term ?? p.months, p.paymentFrequency),
             initial_percent: p.initialPercent ?? 0,
             initial_amount: p.initialAmount ?? 0,
-            payment_frequency: p.paymentFrequency,
+            payment_frequency: p.paymentFrequency ?? 'mensual',
           })),
           // Map accessories (backend calculates monthly quotas)
           accessories: selectedAccessories.map((acc) => ({

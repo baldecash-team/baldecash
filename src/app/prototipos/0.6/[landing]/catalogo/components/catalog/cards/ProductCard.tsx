@@ -485,7 +485,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     colorHex: selectedColor?.hex,
     months: displayTermMonths as TermMonths,
     term: nativeTerm,
-    paymentFrequency: isSubMonthlyFreq ? selectedFrequency : undefined,
+    // La frecuencia se manda SIEMPRE, mensual incluida. Omitirla dejaba la
+    // clave fuera del JSON del submit y el backend la inventaba como
+    // "mensual"; si el producto no tiene celda de pricing mensual, buscaba
+    // un precio inexistente y la solicitud nacia con TEA 0, inicial 0 o la
+    // cuota de otra frecuencia (BAL-3994).
+    paymentFrequency: selectedFrequency,
     initialPercent: displayInitialPercent,
     initialAmount: displayInitialAmount,
     monthlyPayment: displayQuotaForFreq,

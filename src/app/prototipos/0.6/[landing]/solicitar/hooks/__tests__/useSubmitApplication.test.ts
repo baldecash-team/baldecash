@@ -521,6 +521,52 @@ describe('useSubmitApplication', () => {
         slugged.slug = originalSlug;
       });
     });
+
+    // BAL-3994: el front representaba "mensual" como AUSENCIA del campo, asi que
+    // JSON.stringify borraba la clave y el backend la rellenaba con "mensual" a
+    // ciegas. Con un producto sin celda de pricing mensual eso hacia nacer la
+    // solicitud con TEA 0, inicial 0 o la cuota de otra frecuencia
+    // (L-130507, L-128954, L-128199, L-127830).
+    describe('payment_frequency', () => {
+      const mutable = mockSelectedProduct as { paymentFrequency?: string };
+      afterEach(() => { delete mutable.paymentFrequency; });
+
+      it('el payload siempre lleva payment_frequency, incluso cuando el usuario eligio mensual', async () => {
+        // mockSelectedProduct no trae paymentFrequency: ese ES el caso "mensual"
+        // tal como lo dejaba el carrito antes del fix.
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F1' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('mensual');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('mensual');
+
+        // Y la clave sobrevive al JSON: undefined desaparecia aqui.
+        const serializado = JSON.parse(JSON.stringify(payload)) as {
+          product_data: Record<string, unknown> & { products: Record<string, unknown>[] };
+        };
+        expect('payment_frequency' in serializado.product_data).toBe(true);
+        expect('payment_frequency' in serializado.product_data.products[0]).toBe(true);
+      });
+
+      it('respeta la frecuencia sub-mensual que eligio el usuario', async () => {
+        mutable.paymentFrequency = 'quincenal';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F2' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('quincenal');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('quincenal');
+      });
+    });
   });
 
   describe('API errors', () => {

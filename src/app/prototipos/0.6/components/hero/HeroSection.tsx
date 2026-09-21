@@ -202,7 +202,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         image: quizProduct.thumbnail || quizProduct.image,
         price: quizProduct.price,
         months: (quizProduct.termMonths || 24) as TermMonths,
-        paymentFrequency: quizProduct.paymentFrequency,
+        // Mismo motivo que en el catalogo: si el campo va vacio, el submit lo
+        // omite del JSON y el backend adivina "mensual" (BAL-3994).
+        paymentFrequency: quizProduct.paymentFrequency ?? 'mensual',
         initialPercent: WIZARD_SELECTED_INITIAL,
         initialAmount: 0,
         monthlyPayment: quizProduct.lowestQuota,
