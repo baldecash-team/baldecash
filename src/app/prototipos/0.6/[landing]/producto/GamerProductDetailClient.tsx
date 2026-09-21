@@ -309,7 +309,9 @@ function DetailContent() {
       monthlyPayment: item.monthlyPayment,
       months: item.months,
       term: item.term ?? item.months,
-      paymentFrequency: item.paymentFrequency,
+      // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+      // campo: se completa aqui en vez de dejar que el backend lo adivine.
+      paymentFrequency: item.paymentFrequency ?? 'mensual',
       initialPercent: item.initialPercent,
       initialAmount: item.initialAmount,
       image: item.image,
@@ -644,7 +646,10 @@ function DetailContent() {
       type: product.deviceType as 'laptop' | 'tablet' | 'celular' | 'accesorio',
       months: (selectedTermMonths || 24) as TermMonths,
       term: selectedTerm ?? undefined,
-      paymentFrequency: data?.paymentFrequencies?.[0],
+      // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+      // default la clave se va del JSON del submit y el backend la adivina
+      // (BAL-3994).
+      paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
       initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20,
       initialAmount,
       monthlyPayment: lowestOption?.monthlyQuota || 0,
@@ -681,7 +686,10 @@ function DetailContent() {
         price: product.price,
         months: (selectedTermMonths || 24) as TermMonths,
         term: selectedTerm ?? undefined,
-        paymentFrequency: data?.paymentFrequencies?.[0],
+        // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+        // default la clave se va del JSON del submit y el backend la adivina
+        // (BAL-3994).
+        paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
         initialPercent: (selectedInitialPercent || 0) as InitialPaymentPercent,
         initialAmount,
         monthlyPayment: lowestOption?.monthlyQuota || 0,
@@ -721,7 +729,10 @@ function DetailContent() {
       monthlyPayment: lowestOption?.monthlyQuota || 0,
       months: selectedTermMonths || 24,
       term: selectedTerm ?? undefined,
-      paymentFrequency: data?.paymentFrequencies?.[0],
+      // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+      // default la clave se va del JSON del submit y el backend la adivina
+      // (BAL-3994).
+      paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
       initialPercent: selectedInitialPercent || 0,
       initialAmount: lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       image: productThumbnail,
@@ -1462,7 +1473,10 @@ function DetailContent() {
                           catalogState.updateCartItem(pid, {
                             months: (selectedTermMonths || 24) as TermMonths,
                             term: selectedTerm ?? undefined,
-                            paymentFrequency: data?.paymentFrequencies?.[0],
+                            // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+                            // default la clave se va del JSON del submit y el backend la adivina
+                            // (BAL-3994).
+                            paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
                             initialPercent: (selectedInitialPercent || 0) as InitialPaymentPercent,
                             initialAmount,
                             monthlyPayment: lowestOption?.monthlyQuota || 0,

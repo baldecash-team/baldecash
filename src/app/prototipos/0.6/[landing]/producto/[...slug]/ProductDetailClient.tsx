@@ -182,7 +182,9 @@ function ProductDetailContent() {
       monthlyPayment: cartItem.monthlyPayment,  // User's selected config
       months: cartItem.months,                   // User's selected config (normalized to months)
       term: cartItem.term ?? cartItem.months,    // Raw term in native units
-      paymentFrequency: cartItem.paymentFrequency,
+      // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+      // campo: se completa aqui en vez de dejar que el backend lo adivine.
+      paymentFrequency: cartItem.paymentFrequency ?? 'mensual',
       initialPercent: cartItem.initialPercent,   // User's selected config
       initialAmount: cartItem.initialAmount,     // User's selected config
       image: cartItem.image,
