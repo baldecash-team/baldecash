@@ -1,5 +1,11 @@
 /**
- * Un carrito guardado ANTES del fix de BAL-3994 no tiene `paymentFrequency`.
+ * El producto que el wizard dejo guardado ANTES del fix de BAL-3994 no tiene
+ * `paymentFrequency`.
+ *
+ * No es "el carrito": el carrito multi-producto esta apagado
+ * (`marketing.allow_multi_product = false` desde el 02-abr-2026, sin una sola
+ * solicitud de dos equipos en 6 meses). Es el UNICO producto que /solicitar
+ * persiste entre visitas.
  *
  * El campo nacio representando "mensual" como su propia ausencia, asi que los
  * objetos que quedaron en localStorage no lo traen y el tipo no los delata.
