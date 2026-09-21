@@ -9,8 +9,8 @@
  * 3. Shows loading indicator while checking
  */
 
-import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { WizardField } from '../../../../../services/wizardApi';
+import React, { useEffect, useCallback, useState, useRef, useMemo } from 'react';
+import { WizardField, getDocumentTypeRules, checkDocumentAgainstRules } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
 import { useSessionOptional } from '../../../context/SessionContext';
@@ -82,7 +82,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   field,
   showError = false,
 }) => {
-  const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+  const { getFieldValue, getFieldError, updateField, setFieldError, formData, getAllDynamicOptions } = useWizard();
 
   // Prellenado desde el lead de un socio: solo lectura, igual que el resto de
   // los campos que llegaron con el lead (ver `useLeadPrefill`).
@@ -137,6 +137,25 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // 'document_type' applies.
   const documentTypeField = prefillConfig?.document_type_field || 'document_type';
   const documentType = (getFieldValue(documentTypeField) as string) || 'dni';
+
+  // BAL-4025: el largo y el formato que se le exigen al numero dependen del
+  // tipo elegido. Las reglas las da el backend (`/public/options/document-types`,
+  // ya cacheado por el select de tipo); la tabla de respaldo vive en wizardApi.
+  //
+  // Antes el input llevaba `field.max_length` fijo (9 en prod), asi que cortaba
+  // el pasaporte y el CE largos, y aceptaba 9 digitos como DNI.
+  //
+  // `getAllDynamicOptions` se llama con guarda a proposito: el cache es una
+  // comodidad, no un requisito. Sin el (primer render, o un contexto parcial)
+  // manda la tabla de respaldo, que dice lo mismo que el backend.
+  const documentRules = useMemo(
+    () => getDocumentTypeRules(
+      documentTypeField,
+      { [documentTypeField]: documentType },
+      getAllDynamicOptions?.()
+    ),
+    [documentTypeField, documentType, getAllDynamicOptions]
+  );
 
   // Get current value and error
   const value = getFieldValue(field.code) as string;
@@ -312,32 +331,68 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   useEffect(() => {
     const cleanValue = value?.trim() || '';
 
-    // Check based on document type
-    if (documentType === 'dni' && cleanValue.length >= 8 && /^\d+$/.test(cleanValue)) {
-      check(documentType, cleanValue);
-    } else if (documentType === 'ce' && cleanValue.length >= 9) {
-      check(documentType, cleanValue);
-    } else if (documentType === 'passport' && cleanValue.length >= 6) {
-      check(documentType, cleanValue);
-    }
-  }, [value, documentType, check]);
+    // BAL-4025: el largo a partir del cual vale la pena consultar sale de las
+    // reglas del tipo, no de una escalera de `if` con los numeros a mano (que
+    // ademas se olvidaba de `pasaporte` y solo contemplaba `passport`).
+    const minLength = documentRules?.min_length;
+    if (!minLength || cleanValue.length < minLength) return;
+    if (documentRules?.input_mode === 'numeric' && !/^\d+$/.test(cleanValue)) return;
+    check(documentType, cleanValue);
+  }, [value, documentType, documentRules, check]);
 
   // Handle value change — filter input based on document type
   const handleChange = useCallback((newValue: string) => {
-    let filtered: string;
-    if (documentType === 'pasaporte' || documentType === 'passport') {
-      // Passport: alphanumeric only
-      filtered = newValue.replace(/[^a-zA-Z0-9]/g, '');
-    } else {
-      // DNI, CE: digits only
-      filtered = newValue.replace(/\D/g, '');
-    }
+    // BAL-4025: SOLO el DNI es numerico. El CE y el pasaporte son
+    // alfanumericos, y hay carnets de extranjeria reales con letras: filtrarlos
+    // a digitos borraba en silencio lo que la persona escribia.
+    const filtered = documentType === 'dni'
+      ? newValue.replace(/\D/g, '')
+      : newValue.replace(/[^a-zA-Z0-9]/g, '');
     updateField(field.code, filtered);
     // Always reset prefill status when user modifies the document number
     // so prefill-dependent fields hide until next lookup completes
     updateField(`_prefill_status_${field.code}`, '');
     resetCheck(); // Allow re-checking when DNI changes
   }, [field.code, documentType, updateField, resetCheck]);
+
+  // BAL-4025: al CAMBIAR de tipo hay que recalcular el estado del numero que ya
+  // estaba escrito. Sin esto, quien tipeaba 8 digitos como DNI y despues pasaba
+  // a pasaporte se quedaba con el veredicto del tipo anterior colgado: un error
+  // que ya no corresponde, o peor, un "valido" que la regla nueva rechaza.
+  //
+  // Tambien recorta el valor al `max_length` del tipo nuevo: el atributo
+  // `maxLength` del input frena lo que se TIPEA, no lo que ya estaba.
+  const tipoAnterior = useRef(documentType);
+  useEffect(() => {
+    if (tipoAnterior.current === documentType) return;
+    tipoAnterior.current = documentType;
+
+    const actual = (getFieldValue(field.code) as string) || '';
+    if (!actual) {
+      setFieldError?.(field.code, null);
+      return;
+    }
+
+    // El CE y el pasaporte admiten letras; el DNI no. Al pasar a DNI se caen
+    // las letras, no se arrastran para que despues el pattern las rechace.
+    let siguiente = documentType === 'dni'
+      ? actual.replace(/\D/g, '')
+      : actual.replace(/[^a-zA-Z0-9]/g, '');
+
+    const max = documentRules?.max_length;
+    if (max && siguiente.length > max) siguiente = siguiente.slice(0, max);
+
+    if (siguiente !== actual) {
+      updateField(field.code, siguiente);
+      updateField(`_prefill_status_${field.code}`, '');
+      resetCheck();
+    }
+
+    setFieldError?.(
+      field.code,
+      documentRules ? checkDocumentAgainstRules(siguiente, documentRules) : null
+    );
+  }, [documentType, documentRules, field.code, getFieldValue, updateField, setFieldError, resetCheck]);
 
   // Build tooltip from API help_text
   const tooltip = field.help_text ? {
@@ -357,7 +412,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const hasValue = !!value;
   const isSuccess = !displayError && hasValue;
 
-  const isPassport = documentType === 'pasaporte' || documentType === 'passport';
+  const isNumericDoc = (documentRules?.input_mode ?? (documentType === 'dni' ? 'numeric' : 'text')) === 'numeric';
 
   return (
     <>
@@ -371,9 +426,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         disabled={field.readonly || lockedByModal || isLockedFromLead}
         tooltip={tooltip}
         type="text"
-        inputMode={isPassport ? 'text' : 'numeric'}
-        placeholder={field.placeholder || undefined}
-        maxLength={field.max_length || undefined}
+        inputMode={isNumericDoc ? 'numeric' : 'text'}
+        placeholder={documentRules?.placeholder || field.placeholder || undefined}
+        maxLength={documentRules?.max_length || field.max_length || undefined}
         success={isSuccess}
         isLoading={isChecking}
       />

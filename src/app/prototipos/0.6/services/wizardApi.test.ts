@@ -555,13 +555,17 @@ describe('validateField', () => {
       expect(result.isValid).toBe(true);
     });
 
-    it('fails for invalid CE (not 9 digits)', () => {
+    // BAL-4025: el CE se sigue rechazando con 8 caracteres, pero el mensaje es
+    // ahora el que manda el backend en `/public/options/document-types`
+    // ("entre 9 y 12"), no el "9 dígitos" que el front tenia escrito a mano y
+    // que ademas era falso: el CE acepta 9..12 y puede llevar letras.
+    it('fails for CE shorter than 9 characters', () => {
       const field = createField({
         validations: [{ type: 'dni', message: 'Documento inválido' }],
       });
       const result = validateField(field, '12345678', { document_type: 'ce' });
       expect(result.isValid).toBe(false);
-      expect(result.error).toBe('El CE debe tener 9 dígitos');
+      expect(result.error).toBe('El CE debe tener entre 9 y 12 caracteres');
     });
 
     it('passes for valid 9-digit CE', () => {

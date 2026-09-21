@@ -56,6 +56,15 @@ const DEFAULT_MIN_SEARCH_LENGTH = 3;
 const APP_BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH || '';
 
 // Campos hardcodeados usados cuando la landing no tiene configuración dinámica en BD
+//
+// BAL-4025: el `max_length: 8` / `^\d{8}$` del documento NO es el bug del
+// ticket. Este formulario de captura no tiene selector de tipo: pide un DNI y
+// nada mas (el label dice "DNI", y `saveLeadPrefill` guarda el numero sin
+// tipo). Para un DNI, 8 digitos es la regla correcta. Ademas esto es solo el
+// respaldo: si la landing trae `dynamicFields` desde la BD, mandan esos.
+//
+// El largo por tipo se resuelve en el wizard (`document_number` +
+// `document_type`), que es donde el usuario si puede elegir CE o pasaporte.
 const DEFAULT_FIELDS: LeadFormFieldConfig[] = [
   { code: 'document_number', label: 'DNI', field_type: 'document_number', placeholder: 'Ej. 12345678', is_required: true, is_visible: true, display_order: 0, input_mode: 'numeric', max_length: 8, pattern: '^\\d{8}$' },
   { code: 'first_name',      label: 'Nombre',   field_type: 'text', placeholder: 'Tus nombres',    is_required: true, is_visible: true, display_order: 1 },
