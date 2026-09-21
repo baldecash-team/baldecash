@@ -7,7 +7,7 @@
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
+import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -203,8 +203,6 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       // Prefill-dependent fields: show only when their specific DNI lookup returned no data
       const docFieldCode = prefillFieldToDocField[field.code];
       if (field.hidden && docFieldCode) {
-        // Prefill-dependent fields: show only when DNI lookup returned no data
-        const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
         // Vale para cualquier estado del lookup, no solo mientras no contesta:
         // si dependiera del estado, el campo pasaria de visible a oculto en
         // cuanto el lookup respondiera, y el efecto de limpieza de mas abajo
@@ -214,14 +212,12 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
           docFieldCode,
           docTypeFieldDe[docFieldCode] || 'document_type',
         );
-        if (destapadoPorLead || prefillStatus === 'not_found') {
-          vis[field.code] = true;
-        } else if (prefillStatus === 'found') {
-          const isEmpty = formValues[`_prefill_empty_${field.code}`] === 'true';
-          vis[field.code] = isEmpty;
-        } else {
-          vis[field.code] = false;
-        }
+        // La condicion de negocio del campo manda sobre las dos vias de
+        // destape: un campo que la regla `show` apaga no vuelve por el lead ni
+        // por el lookup (BAL-4026).
+        vis[field.code] = destapadoPorLead
+          ? evaluateFieldVisibility(field, formValues)
+          : evaluatePrefillFieldVisibility(field, formValues, docFieldCode);
       } else if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) {
         // hidden=true with no dependency groups = always hidden (no condition can activate it)
         vis[field.code] = false;

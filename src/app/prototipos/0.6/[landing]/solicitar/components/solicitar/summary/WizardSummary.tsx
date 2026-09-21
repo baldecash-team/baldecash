@@ -170,6 +170,10 @@ const SummaryStepSection: React.FC<{
       // Prefill target fields that were auto-filled are internal — don't show in summary.
       // But if the field was manually completed (API returned null), show it.
       if (field.hidden && prefillTargetFields.has(field.code)) {
+        // La condicion de negocio manda: un campo que su regla `show` apaga no
+        // se lista en el resumen aunque conserve valor de un paso anterior
+        // (BAL-4026).
+        if (!evaluateFieldVisibility(field, formValues)) return false;
         const wasEmpty = formValues[`_prefill_empty_${field.code}`] === 'true';
         // Show in summary only if the user had to fill it manually (API returned null)
         return wasEmpty && !!formValues[field.code];

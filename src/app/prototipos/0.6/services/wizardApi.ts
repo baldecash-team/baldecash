@@ -405,6 +405,40 @@ export function evaluateFieldVisibility(
   return evaluateGroupedVisibility(field.dependency_groups, formValues);
 }
 
+/**
+ * Visibilidad efectiva de un campo que ademas es destino de un prellenado por
+ * documento (`prefill_config`). Son dos compuertas en serie, no una sola:
+ *
+ *  1. Sus `dependency_groups` — la condicion de negocio. `supporter_full_name`
+ *     ("Nombres y Apellidos" del familiar) solo existe si la fuente de ingreso
+ *     es "me apoya un familiar directo".
+ *  2. El estado del lookup del documento — el campo llega `hidden` y lo destapa
+ *     el buro: `not_found` lo muestra vacio para que lo escriban, y `found` solo
+ *     si el buro no trajo ese dato.
+ *
+ * Antes las tres pantallas (paso, validacion y resumen) miraban SOLO la segunda
+ * y devolvian temprano. Con eso, cambiar el documento del familiar destapaba el
+ * campo y despues volver a "Sueldo de trabajo" lo dejaba en pantalla: su regla
+ * `show` nunca se evaluaba (BAL-4026). El campo del familiar es hoy el unico del
+ * wizard que es destino de prellenado Y tiene `dependency_groups`, pero la
+ * compuerta va en el mecanismo para que el proximo que se configure asi nazca
+ * bien.
+ */
+export function evaluatePrefillFieldVisibility(
+  field: WizardField,
+  formValues: Record<string, string | string[]>,
+  docFieldCode: string
+): boolean {
+  // Compuerta 1: la condicion de negocio manda sobre el lookup.
+  if (!evaluateFieldVisibility(field, formValues)) return false;
+
+  // Compuerta 2: el estado del lookup del documento que prellena este campo.
+  const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
+  if (prefillStatus === 'not_found') return true;
+  if (prefillStatus === 'found') return formValues[`_prefill_empty_${field.code}`] === 'true';
+  return false;
+}
+
 function evaluateGroupedVisibility(
   groups: DependencyGroup[],
   formValues: Record<string, string | string[]>
@@ -982,14 +1016,7 @@ export function validateStep(
     let isVisible: boolean;
     const docFieldCode = prefillFieldToDocField[field.code];
     if (field.hidden && docFieldCode) {
-      const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
-      if (prefillStatus === 'not_found') {
-        isVisible = true;
-      } else if (prefillStatus === 'found') {
-        isVisible = formValues[`_prefill_empty_${field.code}`] === 'true';
-      } else {
-        isVisible = false;
-      }
+      isVisible = evaluatePrefillFieldVisibility(field, formValues, docFieldCode);
     } else if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) {
       // hidden=true with no dependency groups = always hidden
       isVisible = false;
