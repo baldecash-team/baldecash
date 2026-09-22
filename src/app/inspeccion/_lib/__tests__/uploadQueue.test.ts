@@ -78,13 +78,14 @@ describe('uploadQueue', () => {
       return ok({}); // el PUT a S3 (URL sin "/takes/")
     }) as unknown as typeof fetch;
 
-    // profundidadMaxima=2 (el default): ambos items arrancan concurrentes,
-    // que es justamente el caso que hay que probar — "en orden" significa
-    // que se DESPACHAN en el orden en que se encolaron, no que uno espera al
-    // otro. `procesar()` recorre `entradas` en orden de inserción y llama al
-    // fetch de cada uno sincrónicamente antes de yield-ear al siguiente
-    // `await`, así que el orden de llamadas queda determinado aunque las dos
-    // subidas corran en simultáneo.
+    // profundidadMaxima=2 explícita, igual que concurrenciaMaxima=2 (el
+    // default): ambos items caben en la profundidad Y arrancan concurrentes
+    // a la vez, que es justamente el caso que hay que probar — "en orden"
+    // significa que se DESPACHAN en el orden en que se encolaron, no que uno
+    // espera al otro. `procesar()` recorre `entradas` en orden de inserción y
+    // llama al fetch de cada uno sincrónicamente antes de yield-ear al
+    // siguiente `await`, así que el orden de llamadas queda determinado
+    // aunque las dos subidas corran en simultáneo.
     const queue = new UploadQueue({ fetchImpl, profundidadMaxima: 2, maxIntentos: 1 });
 
     const item1 = crearItem({ takeNumber: 1 });
@@ -370,6 +371,129 @@ describe('uploadQueue', () => {
       motivoLlena: 'fallidos',
     });
     expect(queue.encolar(crearItem({ takeNumber: 2 }))).toBe(false);
+  });
+
+  describe('profundidad vs. concurrencia (desacopladas)', () => {
+    it('con los defaults, la cola acepta 3 items y rechaza el cuarto', () => {
+      // El PUT nunca resuelve — no importa para este test, lo único que
+      // interesa es el backpressure de `encolar()` contra la profundidad
+      // default (3).
+      const fetchImpl = fetchFeliz(() => new Promise<Response>(() => {}));
+      const queue = new UploadQueue({ fetchImpl }); // sin overrides: todo default
+
+      expect(queue.encolar(crearItem({ takeNumber: 1 }))).toBe(true);
+      expect(queue.encolar(crearItem({ takeNumber: 2 }))).toBe(true);
+      expect(queue.encolar(crearItem({ takeNumber: 3 }))).toBe(true);
+      expect(queue.encolar(crearItem({ takeNumber: 4 }))).toBe(false);
+    });
+
+    it('con los defaults, solo 2 arrancan a subir: el tercero queda pendiente, no subiendo', async () => {
+      const fetchImpl = fetchFeliz(() => new Promise<Response>(() => {}));
+      const queue = new UploadQueue({ fetchImpl });
+
+      queue.encolar(crearItem({ takeNumber: 1 }));
+      queue.encolar(crearItem({ takeNumber: 2 }));
+      queue.encolar(crearItem({ takeNumber: 3 }));
+
+      await waitFor(() => {
+        expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
+          enVuelo: 2,
+          pendientes: 1,
+          fallidos: 0,
+          // Llena por PROFUNDIDAD (3 encoladas === profundidadMaxima), no
+          // solo por concurrencia — coincide acá porque el tercero también
+          // agotó el único hueco de encolado que quedaba.
+          llena: true,
+          motivoLlena: 'subiendo',
+        });
+      });
+    });
+
+    it('cuando una de las dos en vuelo termina, el tercero arranca solo', async () => {
+      // Cada PUT queda colgado hasta que el test decide resolverlo — permite
+      // controlar exactamente cuál de las subidas "en vuelo" termina primero.
+      const resolvers: Array<() => void> = [];
+      const fetchImpl = fetchFeliz(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvers.push(() => resolve(ok({})));
+          })
+      );
+      const queue = new UploadQueue({ fetchImpl, maxIntentos: 1 });
+
+      queue.encolar(crearItem({ takeNumber: 1 }));
+      queue.encolar(crearItem({ takeNumber: 2 }));
+      queue.encolar(crearItem({ takeNumber: 3 }));
+
+      // Las dos primeras (concurrenciaMaxima=2) ya llamaron su PUT; la
+      // tercera todavía no — sigue pendiente.
+      await waitFor(() => expect(resolvers).toHaveLength(2));
+      expect(queue.estadoActual().pendientes).toBe(1);
+
+      resolvers[0](); // termina la primera subida en vuelo
+
+      // El tercero arranca solo, sin que nadie llame a ningún método nuevo:
+      // libera un cupo de concurrencia y `procesar()` lo toma.
+      await waitFor(() => expect(resolvers).toHaveLength(3));
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
+        enVuelo: 2,
+        pendientes: 0,
+        fallidos: 0,
+        llena: false, // solo 2 entradas encoladas ahora, profundidad es 3
+        motivoLlena: null,
+      });
+    });
+
+    it('concurrenciaMaxima inyectada (no el default) manda: con profundidadMaxima 3 y concurrenciaMaxima 1, solo 1 arranca y 2 quedan pendientes', async () => {
+      // Distinto de los tests de arriba: acá lo que hay que probar es que
+      // `deps.concurrenciaMaxima` se usa de verdad y no solo el default (2).
+      // Con profundidad 3 (así que la profundidad no es el límite que ata
+      // las manos acá) y concurrencia 1, solo UN PUT puede estar en vuelo a
+      // la vez — mismos resolvers manuales que el test anterior para
+      // determinismo.
+      const resolvers: Array<() => void> = [];
+      const fetchImpl = fetchFeliz(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvers.push(() => resolve(ok({})));
+          })
+      );
+      const queue = new UploadQueue({
+        fetchImpl,
+        profundidadMaxima: 3,
+        concurrenciaMaxima: 1,
+        maxIntentos: 1,
+      });
+
+      queue.encolar(crearItem({ takeNumber: 1 }));
+      queue.encolar(crearItem({ takeNumber: 2 }));
+      queue.encolar(crearItem({ takeNumber: 3 }));
+
+      // Si el default (2) se colara en vez del override (1), acá ya habría
+      // un segundo PUT en vuelo — este `toHaveLength(1)` es justo lo que lo
+      // distingue.
+      await waitFor(() => expect(resolvers).toHaveLength(1));
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
+        enVuelo: 1,
+        pendientes: 2,
+        fallidos: 0,
+        llena: true, // 3 encoladas === profundidadMaxima(3)
+        motivoLlena: 'subiendo',
+      });
+    });
+
+    // NOTA (no es un test): se evaluó agregar un caso para
+    // "profundidadMaxima: 1 ⇒ concurrencia efectiva 1" que ejercitara el
+    // `Math.min` del constructor directamente. No se pudo escribir uno real:
+    // `encolar()` ya rechaza cualquier segundo item cuando profundidadMaxima
+    // es 1 (ver "backpressure también cuenta a los pendientes..." más
+    // arriba), así que jamás puede haber más de una entrada en la cola para
+    // comparar contra una `concurrenciaMaxima` mayor — con o sin el
+    // `Math.min`, el resultado observable es idéntico. Se verificó mutando:
+    // sacar el `Math.min` del constructor no rompe ningún test de esta
+    // suite. El `Math.min` queda igual (es la defensa correcta si el día de
+    // mañana `encolar()` deja de gatear por `profundidadMaxima` a secas),
+    // pero sin cobertura de caja negra — ver el reporte de esta tarea.
   });
 
   it('motivoLlena prioriza "fallidos" sobre "subiendo" cuando se dan los dos a la vez', async () => {
