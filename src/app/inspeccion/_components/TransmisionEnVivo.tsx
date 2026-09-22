@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { Loader2, VideoOff } from 'lucide-react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import type { Transmision } from '../_lib/useTransmisionReceptor';
 
@@ -54,6 +55,20 @@ function Tile({
           className="flex h-[360px] w-full flex-col items-center justify-center gap-3 rounded-xl"
           style={{ background: FONDO_VACIO }}
         >
+          {/* Conectando y sin-transmisión comparten fondo y color de texto
+           * (los dos van gris, nunca rojo), así que sin un diferenciador de
+           * forma son indistinguibles a distancia de kiosco. El ícono
+           * distingue por forma; el spin de `conectando` distingue además
+           * por movimiento, que se nota de reojo sin tener que leer. */}
+          {transmision.estado === 'conectando' ? (
+            <Loader2
+              className="h-6 w-6 animate-spin"
+              style={{ color: TOKENS.slate }}
+              aria-hidden="true"
+            />
+          ) : (
+            <VideoOff className="h-6 w-6" style={{ color: TOKENS.slate }} aria-hidden="true" />
+          )}
           <p className="text-sm font-semibold" style={{ color: TOKENS.slate }}>
             {transmision.estado === 'conectando' ? 'Conectando…' : 'Sin transmisión'}
           </p>
@@ -61,8 +76,12 @@ function Tile({
             <button
               type="button"
               onClick={() => onReintentar(transmision.deviceId)}
-              className="rounded-lg border px-4 py-2 text-xs font-semibold transition-colors hover:bg-black/[0.04]"
-              style={{ borderColor: TOKENS.line, color: TOKENS.slate }}
+              // Fondo blanco sobre el tile gris (#EEE): un botón con borde
+              // `TOKENS.line` (#e5e7eb, casi el mismo gris que el fondo) se
+              // volvía texto suelto a distancia. El blanco se lee como
+              // control sin necesitar color.
+              className="rounded-lg border bg-white px-4 py-2 text-xs font-semibold transition-colors hover:bg-black/[0.04]"
+              style={{ borderColor: TOKENS.slate, color: TOKENS.slate }}
             >
               Reintentar
             </button>

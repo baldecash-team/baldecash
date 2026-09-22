@@ -103,4 +103,48 @@ describe('TransmisionEnVivo', () => {
 
     expect(screen.queryByRole('button', { name: /reintentar/i })).toBeNull();
   });
+
+  it('conectando se distingue de sin-transmisión por un ícono animado, no solo por texto', () => {
+    const { container } = render(
+      <TransmisionEnVivo
+        transmisiones={[transmision({ estado: 'conectando' })]}
+        onReintentar={jest.fn()}
+      />
+    );
+
+    // El giro es lo que se nota de reojo, sin leer: `Loader2` con
+    // `animate-spin`, y nada del ícono estático de `sin-transmisión`.
+    expect(container.querySelector('svg.animate-spin')).not.toBeNull();
+    expect(container.querySelector('svg.lucide-video-off')).toBeNull();
+  });
+
+  it('sin-transmisión se distingue de conectando por un ícono estático, no solo por texto', () => {
+    const { container } = render(
+      <TransmisionEnVivo
+        transmisiones={[transmision({ estado: 'sin-transmision' })]}
+        onReintentar={jest.fn()}
+      />
+    );
+
+    const icono = container.querySelector('svg.lucide-video-off');
+    expect(icono).not.toBeNull();
+    expect(icono).not.toHaveClass('animate-spin');
+    expect(container.querySelector('svg.animate-spin')).toBeNull();
+  });
+
+  it('el botón de reintentar tiene fondo blanco: el borde solo no se lee como control sobre el tile gris', () => {
+    render(
+      <TransmisionEnVivo
+        transmisiones={[transmision({ estado: 'sin-transmision' })]}
+        onReintentar={jest.fn()}
+      />
+    );
+
+    const boton = screen.getByRole('button', { name: /reintentar/i });
+    expect(boton).toHaveClass('bg-white');
+    // `TOKENS.line` es '#e5e7eb', casi el mismo gris que el fondo del tile
+    // (#EEE): con ese borde el botón se volvía texto suelto a distancia de
+    // kiosco. Se chequean las dos formas en que jsdom serializa el color.
+    expect(boton.outerHTML).not.toMatch(/#e5e7eb|rgb\(229, 231, 235\)/i);
+  });
 });
