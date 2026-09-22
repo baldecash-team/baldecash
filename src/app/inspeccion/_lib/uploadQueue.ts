@@ -40,7 +40,8 @@ import { API_BASE_URL } from './pairing';
  * dentro de la profundidad máxima es correcto — un video fallido sigue
  * siendo un blob vivo en memoria, no contarlo mentiría sobre la presión
  * real — pero sin una salida, dos fallos terminales (con la profundidad
- * default de 2) trababan la cola PARA SIEMPRE: nada volvía a `encolar()`
+ * default de entonces, 2 — hoy 3, ver `DEFAULT_PROFUNDIDAD_MAXIMA`) trababan
+ * la cola PARA SIEMPRE: nada volvía a `encolar()`
  * con éxito hasta recargar la pestaña. `reintentar()` y `descartar()` son
  * esa salida: el primero vuelve a poner en cola el fallido conservando el
  * blob (nada se perdió, solo se lo corre de nuevo); el segundo lo saca
@@ -101,8 +102,11 @@ export interface UploadQueueEstado {
    * el backoff de un reintento — ver el comentario de `procesar()` sobre por
    * qué un reintento en espera sigue contando acá y no como "pendiente". */
   enVuelo: number;
-  /** Aceptadas pero todavía sin arrancar: la cola ya está en su profundidad
-   * máxima de subidas concurrentes. */
+  /** Aceptadas pero todavía sin arrancar: la cola ya alcanzó su
+   * `concurrenciaMaxima` (no `profundidadMaxima` — desde que la concurrencia
+   * se desacopló de la profundidad, un pendiente puede tener hueco de sobra
+   * en la cola y aun así esperar porque la RED, no la memoria, es el
+   * cuello de botella; ver el doc-comment de `DEFAULT_CONCURRENCIA_MAXIMA`). */
   pendientes: number;
   /** Agotaron los reintentos. Terminal: nadie las vuelve a intentar sola. El
    * blob NO se descarta (`listarFallidos()` lo sigue exponiendo) — spec: "tras
@@ -140,10 +144,22 @@ export interface UploadQueueDeps {
   /** Default: `API_BASE_URL` de `pairing.ts` — mismo fallback que el resto
    * de los módulos de `_lib` (ver su doc-comment). */
   baseUrl?: string;
-  /** Cuántas subidas puede tener la cola simultáneamente "en vuelo" (activas
-   * o reintentando) ANTES de rechazar por backpressure. Spec §8.1: "Profundidad
-   * 2 por defecto: hasta dos videos en vuelo (~100 MB en memoria)". */
+  /** Cuántos videos puede tener la cola encolados a la vez — subiendo,
+   * pendientes o fallidos por igual, ver el doc-comment de `encolar()` —
+   * ANTES de rechazar por backpressure. Ver el doc-comment de
+   * `DEFAULT_PROFUNDIDAD_MAXIMA` para el porqué del número. Esto YA NO
+   * decide cuántas suben en simultáneo — eso es `concurrenciaMaxima`, acá
+   * abajo — son dos preguntas distintas (memoria vs. red) desde que dejaron
+   * de ser el mismo número. */
   profundidadMaxima?: number;
+  /** Cuántas de las encoladas puede la cola empujar a la red AL MISMO
+   * TIEMPO. Ver el doc-comment de `DEFAULT_CONCURRENCIA_MAXIMA` para el
+   * porqué es un número más chico que `profundidadMaxima` y no el mismo.
+   * Nunca puede terminar siendo mayor que `profundidadMaxima` — no tendría
+   * sentido "poder empujar" más de lo que la cola admite encolar — y el
+   * constructor lo garantiza con un `Math.min` en vez de un chequeo
+   * repetido en cada lugar que use este número. */
+  concurrenciaMaxima?: number;
   /** Intentos totales por video (el primero + los reintentos) antes de
    * marcarlo `fallido`. Spec §10: "PUT a S3 falla: 3 reintentos con backoff
    * exponencial; después failed" → 1 intento inicial + 3 reintentos = 4. */
@@ -177,7 +193,43 @@ export interface UploadQueueDeps {
   escucharOnline?: boolean;
 }
 
-export const DEFAULT_PROFUNDIDAD_MAXIMA = 2;
+/**
+ * Por qué 3 y no más: cada entrada encolada mantiene vivo, en el navegador
+ * del teléfono, un blob de video que no se libera hasta terminar de subir.
+ * Medición real de producción (la grabación va a 8 Mbps): una toma de 60
+ * segundos pesa ~60,6 MB. Con 3 de colchón eso son ~180 MB de blobs vivos
+ * en el peor caso — ya es plata jugada con la memoria de un iPhone de
+ * planta. Si Safari mata la pestaña por presión de memoria, se pierden
+ * TODOS los blobs encolados de una — tomas que el operador ya grabó y que
+ * nunca llegaron a S3 — y desde el controlador eso no se ve: no hay evento,
+ * la estación simplemente deja de reportar. El colchón que da esta
+ * constante es "unas tomas de más mientras la red se pone al día", no
+ * "todo lo que el operador pueda llegar a grabar antes de que la cola
+ * drene".
+ */
+export const DEFAULT_PROFUNDIDAD_MAXIMA = 3;
+/**
+ * Por qué la concurrencia es un número MENOR que la profundidad, y por qué
+ * ahora son dos números separados en vez de uno: el problema que motivó
+ * subir `DEFAULT_PROFUNDIDAD_MAXIMA` (arriba) es una red mala, y sobre una
+ * red mala meter más subidas en paralelo no ayuda — se reparten el mismo
+ * ancho de banda, cada una tarda más en terminar, y el PRIMER cupo que se
+ * libera tarda MÁS en liberarse, no menos. Es exactamente lo contrario de
+ * lo que se busca cuando el operador ya está bloqueado esperando un hueco
+ * para grabar la próxima toma.
+ *
+ * La profundidad es cuánto se puede tener encolado (un límite de memoria);
+ * la concurrencia es cuánto conviene empujarle a la red al mismo tiempo (un
+ * límite de throughput). Antes de este cambio eran el mismo número por
+ * accidente de implementación, no por diseño — subir la profundidad subía
+ * también las subidas simultáneas, que es justo el efecto que hay que
+ * evitar sobre wifi mala. Con la profundidad en 3 y la concurrencia en 2,
+ * el tercer video encolado espera `pendiente` con su cupo de memoria ya
+ * reservado, listo para arrancar apenas una de las dos en vuelo libera un
+ * lugar — sin competir por el mismo ancho de banda desde el primer
+ * segundo.
+ */
+export const DEFAULT_CONCURRENCIA_MAXIMA = 2;
 const DEFAULT_MAX_INTENTOS = 4;
 const DEFAULT_BACKOFF_BASE_MS = 1000;
 
@@ -226,6 +278,7 @@ export class UploadQueue {
   private readonly fetchImplInyectado: typeof fetch | undefined;
   private readonly baseUrl: string;
   private readonly profundidadMaxima: number;
+  private readonly concurrenciaMaxima: number;
   private readonly maxIntentos: number;
   private readonly backoffBaseMs: number;
   private siguienteId = 1;
@@ -234,6 +287,14 @@ export class UploadQueue {
     this.fetchImplInyectado = deps.fetchImpl;
     this.baseUrl = deps.baseUrl ?? API_BASE_URL;
     this.profundidadMaxima = deps.profundidadMaxima ?? DEFAULT_PROFUNDIDAD_MAXIMA;
+    // Nunca mayor que la profundidad — ver el doc-comment de
+    // `concurrenciaMaxima` en `UploadQueueDeps`. Un `Math.min` acá, una sola
+    // vez al construir, en vez de repetir el chequeo en `procesar()` (o en
+    // cualquier otro lugar futuro que necesite este número).
+    this.concurrenciaMaxima = Math.min(
+      deps.concurrenciaMaxima ?? DEFAULT_CONCURRENCIA_MAXIMA,
+      this.profundidadMaxima
+    );
     this.maxIntentos = deps.maxIntentos ?? DEFAULT_MAX_INTENTOS;
     this.backoffBaseMs = deps.backoffBaseMs ?? DEFAULT_BACKOFF_BASE_MS;
 
@@ -398,17 +459,20 @@ export class UploadQueue {
   }
 
   /**
-   * Arranca tantos `pendiente` como huecos haya hasta `profundidadMaxima`,
-   * en el orden en que se encolaron (FIFO: recorre `entradas` de adelante
-   * hacia atrás). Se llama tanto al encolar como al liberarse un lugar
-   * (éxito o fallo terminal de otra entrada) — nunca al terminar un reintento
-   * que todavía sigue vivo: una entrada "reintentando" retiene su lugar
-   * hasta que se resuelve (spec: profundidad = "en vuelo", y un reintento en
-   * curso sigue siendo trabajo en vuelo, no un hueco libre para otro video).
+   * Arranca tantos `pendiente` como huecos haya hasta `concurrenciaMaxima`
+   * — NO `profundidadMaxima`: ver el doc-comment de
+   * `DEFAULT_CONCURRENCIA_MAXIMA` para por qué son dos números distintos
+   * desde este cambio — en el orden en que se encolaron (FIFO: recorre
+   * `entradas` de adelante hacia atrás). Se llama tanto al encolar como al
+   * liberarse un lugar (éxito o fallo terminal de otra entrada) — nunca al
+   * terminar un reintento que todavía sigue vivo: una entrada "reintentando"
+   * retiene su lugar hasta que se resuelve (concurrencia = "en vuelo", y un
+   * reintento en curso sigue siendo trabajo en vuelo, no un hueco libre para
+   * otro video).
    */
   private procesar(): void {
     let disponibles =
-      this.profundidadMaxima - this.entradas.filter((e) => e.estado === 'subiendo').length;
+      this.concurrenciaMaxima - this.entradas.filter((e) => e.estado === 'subiendo').length;
     if (disponibles <= 0) return;
     for (const entrada of this.entradas) {
       if (disponibles <= 0) break;
