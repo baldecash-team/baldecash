@@ -40,6 +40,28 @@ export interface Transmision {
  */
 export const BACKOFF_MS = [2_000, 5_000, 15_000];
 
+/**
+ * Cuánto se espera la `answer` después de mandar la oferta, antes de dar el
+ * intento por perdido.
+ *
+ * Sin este corte el tile se queda en "Conectando…" PARA SIEMPRE, y en el
+ * caso más común de todos: una cámara que no está armada hace early return
+ * sin contestar nada. Ahí el peer nunca recibe remote description, así que
+ * su `iceConnectionState` no se mueve de `'new'` y el handler de
+ * `iceconnectionstatechange` —el ÚNICO disparador del reintento— no corre
+ * jamás. El operador se queda mirando un spinner eterno y ni siquiera le
+ * aparece el botón "Reintentar", que solo se renderiza en
+ * `'sin-transmision'`. Lo mismo pasa con la página de la cámara cerrada o
+ * en segundo plano, con Pusher perdiendo la oferta, y con cualquier rechazo
+ * del endpoint.
+ *
+ * 10s es holgado a propósito: la señalización son dos idas y vueltas
+ * REST→Pusher más el gathering de ICE de la cámara (hasta
+ * `ICE_GATHERING_TIMEOUT_MS`). Mejor esperar de más una vez que abandonar a
+ * una cámara que iba a contestar.
+ */
+export const ESPERA_ANSWER_MS = 10_000;
+
 export interface UseTransmisionReceptorOpciones {
   channel: SenalChannel | null;
   /** El `device_id` de ESTE escáner, para filtrar las señales. */
@@ -66,6 +88,11 @@ export function useTransmisionReceptor({
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const intentosRef = useRef<Map<string, number>>(new Map());
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  /** Las esperas de `answer` (ver `ESPERA_ANSWER_MS`), aparte de los timers
+   * del backoff: las dos cosas conviven —primero se espera la answer, y si
+   * no llega se agenda el reintento— y mezclarlas en un mismo mapa haría
+   * que una pisara a la otra. */
+  const esperasRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   /** `conectar` vive adentro del efecto (necesita su closure); esto lo deja
    * alcanzable desde `reintentar`, que es un callback del componente. */
   const conectarRef = useRef<((cam: CamaraConectable) => void) | null>(null);
@@ -92,10 +119,19 @@ export function useTransmisionReceptor({
     const peers = peersRef.current;
     const intentos = intentosRef.current;
     const timers = timersRef.current;
+    const esperas = esperasRef.current;
     let vivo = true;
 
     const marcar = (id: string, estado: EstadoTransmision) =>
       setEstados((previos) => ({ ...previos, [id]: estado }));
+
+    /** Cancela la espera de `answer` de esa cámara, si había una. */
+    const olvidarEspera = (id: string) => {
+      const espera = esperas.get(id);
+      if (!espera) return;
+      clearTimeout(espera);
+      esperas.delete(id);
+    };
 
     const cerrar = (id: string) => {
       const pc = peers.get(id);
@@ -107,6 +143,7 @@ export function useTransmisionReceptor({
           // Ya cerrada.
         }
       }
+      olvidarEspera(id);
       const timer = timers.get(id);
       if (timer) {
         clearTimeout(timer);
@@ -133,6 +170,22 @@ export function useTransmisionReceptor({
         if (vivo) lanzar(cam);
       }, BACKOFF_MS[hechos]);
       timers.set(cam.deviceId, timer);
+    }
+
+    /**
+     * Le pone plazo a la oferta recién mandada. Ver `ESPERA_ANSWER_MS`: sin
+     * esto, una cámara que no contesta deja el tile en "Conectando…" para
+     * siempre, porque ICE nunca se cae de un peer que jamás negoció.
+     */
+    function esperarAnswer(cam: CamaraConectable, pc: RTCPeerConnection) {
+      const espera = setTimeout(() => {
+        esperas.delete(cam.deviceId);
+        // Si ya hay otro peer para esta cámara, este es un fantasma.
+        if (!vivo || peers.get(cam.deviceId) !== pc) return;
+        cerrar(cam.deviceId);
+        programarReintento(cam);
+      }, ESPERA_ANSWER_MS);
+      esperas.set(cam.deviceId, espera);
     }
 
     async function conectar(cam: CamaraConectable) {
@@ -163,7 +216,25 @@ export function useTransmisionReceptor({
       await esperarIceCompleto(pc);
 
       if (!vivo || peers.get(cam.deviceId) !== pc) return;
-      await mandarSenal(tokenListo, cam.deviceId, 'offer', pc.localDescription?.sdp ?? '');
+      const aceptada = await mandarSenal(
+        tokenListo,
+        cam.deviceId,
+        'offer',
+        pc.localDescription?.sdp ?? ''
+      );
+      if (!vivo || peers.get(cam.deviceId) !== pc) return;
+
+      // El endpoint rechazó la oferta (413 por SDP grande, 403 por estación
+      // ajena, 5xx) o no hubo red: no llegó a ninguna cámara, así que no hay
+      // ninguna answer que esperar. Cuenta como intento fallido y se
+      // reintenta ya, en vez de gastar los 10s del plazo.
+      if (!aceptada) {
+        cerrar(cam.deviceId);
+        programarReintento(cam);
+        return;
+      }
+
+      esperarAnswer(cam, pc);
     }
 
     /** `conectar` envuelto: ninguna excepción de WebRTC puede propagar. */
@@ -179,6 +250,9 @@ export function useTransmisionReceptor({
       if (payload.tipo !== 'answer') return;
       const pc = peers.get(payload.origen_device_id);
       if (!pc) return;
+      // La cámara contestó: se levanta el plazo que la habría dado por
+      // muerta. De acá en adelante el que vigila es ICE.
+      olvidarEspera(payload.origen_device_id);
       void pc
         .setRemoteDescription({ type: 'answer', sdp: payload.sdp } as RTCSessionDescriptionInit)
         .catch((e) => console.warn('[transmision] respuesta rechazada', e));

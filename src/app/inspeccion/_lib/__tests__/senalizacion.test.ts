@@ -66,9 +66,37 @@ describe('mandarSenal', () => {
   });
 
   it('un fallo de red no lanza: la transmisión es best-effort', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     (global.fetch as jest.Mock).mockRejectedValue(new Error('sin red'));
 
-    await expect(mandarSenal('tok-123', 'dev-cam-01', 'offer', 'X')).resolves.toBeUndefined();
+    await expect(mandarSenal('tok-123', 'dev-cam-01', 'offer', 'X')).resolves.toBe(false);
+
+    warnSpy.mockRestore();
+  });
+
+  it('REGLA CRÍTICA: un rechazo del endpoint se reporta, no se traga', async () => {
+    // El 413 de ws2 (SDP de más de 8KB) existe para que haya "un error
+    // explícito en el log en vez de una negociación que no arranca nunca"
+    // (§4.4 del spec). Si `mandarSenal` no mira `response.ok`, el POST
+    // vuelve como si todo hubiera salido bien y el front convierte ese
+    // error explícito exactamente en la negociación muda que el endpoint
+    // quería evitar. Lo mismo el 403 de estación ajena y los 5xx.
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    for (const status of [403, 413, 503]) {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status });
+
+      await expect(mandarSenal('tok-123', 'dev-cam-01', 'offer', 'X')).resolves.toBe(false);
+    }
+
+    // Y el camino feliz sigue diciendo que sí, para que el `false` signifique
+    // algo: un `mandarSenal` que devolviera `false` siempre pasaría la mitad
+    // de arriba sin proteger nada.
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, status: 204 });
+    await expect(mandarSenal('tok-123', 'dev-cam-01', 'offer', 'X')).resolves.toBe(true);
+
+    expect(warnSpy).toHaveBeenCalledTimes(3);
+    warnSpy.mockRestore();
   });
 });
 

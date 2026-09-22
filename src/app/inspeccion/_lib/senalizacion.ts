@@ -57,26 +57,42 @@ export const ICE_GATHERING_TIMEOUT_MS = 2_000;
 /**
  * Manda una señal al backend, que la reemite por el canal.
  *
- * Fire-and-forget, mismo criterio que `reportarEstadoCaptura` en
- * `CamaraPageContent.tsx`: si falla por red no hay nada accionable acá, y el
- * receptor lo va a ver como una conexión que no prospera y va a reintentar.
- * Nunca lanza: la transmisión es best-effort y no puede tumbar a quien la
- * llama.
+ * NUNCA lanza — eso no se negocia: la transmisión es best-effort y no puede
+ * tumbar a quien la llama (§7 del spec). Lo que sí hace es DECIR si salió:
+ * devuelve `true` solo cuando el backend aceptó la señal.
+ *
+ * Mirar `response.ok` no es prolijidad. ws2 contesta 413 a un SDP de más de
+ * 8KB justamente para que haya "un error explícito en el log en vez de una
+ * negociación que no arranca nunca" (§4.4), y lo mismo valen el 403 de
+ * estación ajena y cualquier 5xx. Un POST que se tira sin mirar la
+ * respuesta convierte ese error explícito exactamente en lo que el endpoint
+ * quería evitar: el `await` vuelve como si todo hubiera salido bien, nadie
+ * contesta nunca, y del otro lado queda un tile mudo sin rastro del porqué.
+ *
+ * Quien llama decide qué hacer con el `false`. El receptor lo cuenta como
+ * intento fallido y reintenta; la cámara no tiene nada mejor que hacer que
+ * dejar el log y esperar a que el escáner insista.
  */
 export async function mandarSenal(
   token: string,
   destinoDeviceId: string,
   tipo: TipoSenal,
   sdp = ''
-): Promise<void> {
+): Promise<boolean> {
   try {
-    await fetch(`${API_BASE_URL}/inspections/devices/senal`, {
+    const respuesta = await fetch(`${API_BASE_URL}/inspections/devices/senal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
       body: JSON.stringify({ destino_device_id: destinoDeviceId, tipo, sdp }),
     });
-  } catch {
-    // Ver doc-comment: nada accionable acá.
+    if (!respuesta.ok) {
+      console.warn('[transmision] el backend rechazó la señal', tipo, respuesta.status);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[transmision] no se pudo mandar la señal', tipo, e);
+    return false;
   }
 }
 

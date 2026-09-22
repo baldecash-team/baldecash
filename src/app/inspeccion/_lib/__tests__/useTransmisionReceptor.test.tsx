@@ -9,6 +9,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useTransmisionReceptor,
   BACKOFF_MS,
+  ESPERA_ANSWER_MS,
   type CamaraConectable,
 } from '../useTransmisionReceptor';
 import { SENAL_EVENT, type SenalChannel } from '../senalizacion';
@@ -117,6 +118,93 @@ describe('useTransmisionReceptor', () => {
     const { vista } = montar(true);
 
     await waitFor(() => expect(vista.result.current.transmisiones[0].estado).toBe('conectando'));
+  });
+
+  it('REGLA CRÍTICA: la cámara que nunca contesta termina en "sin-transmision", no en "conectando" eterno', async () => {
+    jest.useFakeTimers();
+    try {
+      const { vista } = montar(true);
+      await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+
+      // El caso MÁS COMÚN de todos: la cámara no está armada, así que hace
+      // early return sin contestar nada. No llega ninguna answer, el peer
+      // nunca recibe remote description y su `iceConnectionState` se queda
+      // en 'new' — o sea que el handler de `iceconnectionstatechange`, el
+      // único disparador del reintento, no corre JAMÁS. Lo único que puede
+      // rescatar al tile es el plazo de la answer; sin él, el operador se
+      // queda con el spinner para siempre y ni le aparece el botón
+      // "Reintentar", que solo se renderiza en 'sin-transmision'.
+      for (let intento = 0; intento < BACKOFF_MS.length; intento += 1) {
+        act(() => {
+          ultimoPeer().completarIce();
+        });
+        await waitFor(() => expect(cuerposEnviados()).toHaveLength(intento + 1));
+
+        await act(async () => {
+          jest.advanceTimersByTime(ESPERA_ANSWER_MS);
+        });
+        await waitFor(() =>
+          expect(vista.result.current.transmisiones[0].estado).toBe('sin-transmision')
+        );
+
+        await act(async () => {
+          jest.advanceTimersByTime(BACKOFF_MS[intento]);
+        });
+        await waitFor(() =>
+          expect(FakeRTCPeerConnection.instances).toHaveLength(intento + 2)
+        );
+      }
+
+      // El cuarto y último intento tampoco recibe answer. Ahí se queda: en
+      // "sin-transmision" con su botón, y sin un quinto peer.
+      act(() => {
+        ultimoPeer().completarIce();
+      });
+      await waitFor(() => expect(cuerposEnviados()).toHaveLength(4));
+      await act(async () => {
+        jest.advanceTimersByTime(ESPERA_ANSWER_MS + 60_000);
+      });
+
+      expect(FakeRTCPeerConnection.instances).toHaveLength(4);
+      await waitFor(() =>
+        expect(vista.result.current.transmisiones[0].estado).toBe('sin-transmision')
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('REGLA CRÍTICA: una oferta que el endpoint rechaza cuenta como intento fallido', async () => {
+    jest.useFakeTimers();
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // ws2 contesta 413 al SDP de más de 8KB (y 403 a la estación ajena, y
+      // 503 si está caído). Esa oferta no llegó a ninguna cámara, así que no
+      // hay ninguna answer que esperar: el intento se da por perdido YA, sin
+      // gastar el plazo entero, y el backoff arranca.
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 413 });
+      const { vista } = montar(true);
+      await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+
+      act(() => {
+        ultimoPeer().completarIce();
+      });
+
+      await waitFor(() =>
+        expect(vista.result.current.transmisiones[0].estado).toBe('sin-transmision')
+      );
+
+      // Y el reintento cae en el primer tramo del backoff, MUY antes de que
+      // venciera el plazo de la answer: si el rechazo se tragara, acá
+      // todavía no habría pasado nada.
+      await act(async () => {
+        jest.advanceTimersByTime(BACKOFF_MS[0]);
+      });
+      expect(FakeRTCPeerConnection.instances).toHaveLength(2);
+    } finally {
+      warnSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 
   it('REGLA CRÍTICA: el backoff para a los tres intentos y queda en "sin-transmision"', async () => {
