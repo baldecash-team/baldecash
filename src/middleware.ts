@@ -93,6 +93,27 @@ const LEGACY_REDIRECTS: Record<string, string> = {
 };
 
 /**
+ * URLs cortas de campaña: lo que se imprime en un banner o se dicta por
+ * teléfono, apuntando al link de difusión que mide.
+ *
+ * Clave: pathname sin trailing slash. Valor: link corto de ws2 (`/r/{code}`),
+ * que estampa las UTMs, cuenta el clic y recién ahí manda a la landing.
+ *
+ * Separado de LEGACY_REDIRECTS por el código de estado: estos salen **302**.
+ * El destino de una campaña se reapunta desde ws2 sin reimprimir el banner
+ * —esa es la razón de ser del link corto— y un 301 lo cachea el navegador de
+ * por vida, así que a quien ya lo abrió le seguiría yendo al destino viejo.
+ * Los de Webflow sí son 301 porque son mudanzas definitivas.
+ *
+ * El alias NO puede llamarse igual que una landing: acá se resuelve antes que
+ * el rewrite y dejaría esa landing inalcanzable. Al agregar una clave,
+ * verificarla contra la tabla `landing` de ws2.
+ */
+const ALIAS_CAMPANA: Record<string, string> = {
+  '/idat30': 'https://api.baldecash.com/r/idat30',
+};
+
+/**
  * Landings que cambiaron de slug. Se redirige el slug viejo al nuevo
  * conservando el resto del path, para que los enlaces publicados hacia
  * subrutas (/catalogo, /producto/..., /solicitar/...) no se pierdan.
@@ -204,6 +225,18 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = redirectDest;
     return NextResponse.redirect(url, 301);
+  }
+
+  // URL corta de campaña: 302 al link de difusión, que es el que mide.
+  // Conserva el querystring entrante (un `fbclid`, un `utm_` que ya venga de
+  // afuera) para que `/r/{code}` lo tenga a la vista al armar la URL final.
+  const aliasDest = ALIAS_CAMPANA[normalizedPath];
+  if (aliasDest) {
+    const destino = new URL(aliasDest);
+    request.nextUrl.searchParams.forEach((valor, clave) => {
+      destino.searchParams.set(clave, valor);
+    });
+    return NextResponse.redirect(destino, 302);
   }
 
   // Landings renombradas: redirige el slug viejo al nuevo conservando el
