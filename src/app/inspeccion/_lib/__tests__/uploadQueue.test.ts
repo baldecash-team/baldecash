@@ -444,6 +444,44 @@ describe('uploadQueue', () => {
       });
     });
 
+    it('concurrenciaMaxima inyectada (no el default) manda: con profundidadMaxima 3 y concurrenciaMaxima 1, solo 1 arranca y 2 quedan pendientes', async () => {
+      // Distinto de los tests de arriba: acá lo que hay que probar es que
+      // `deps.concurrenciaMaxima` se usa de verdad y no solo el default (2).
+      // Con profundidad 3 (así que la profundidad no es el límite que ata
+      // las manos acá) y concurrencia 1, solo UN PUT puede estar en vuelo a
+      // la vez — mismos resolvers manuales que el test anterior para
+      // determinismo.
+      const resolvers: Array<() => void> = [];
+      const fetchImpl = fetchFeliz(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvers.push(() => resolve(ok({})));
+          })
+      );
+      const queue = new UploadQueue({
+        fetchImpl,
+        profundidadMaxima: 3,
+        concurrenciaMaxima: 1,
+        maxIntentos: 1,
+      });
+
+      queue.encolar(crearItem({ takeNumber: 1 }));
+      queue.encolar(crearItem({ takeNumber: 2 }));
+      queue.encolar(crearItem({ takeNumber: 3 }));
+
+      // Si el default (2) se colara en vez del override (1), acá ya habría
+      // un segundo PUT en vuelo — este `toHaveLength(1)` es justo lo que lo
+      // distingue.
+      await waitFor(() => expect(resolvers).toHaveLength(1));
+      expect(queue.estadoActual()).toEqual<UploadQueueEstado>({
+        enVuelo: 1,
+        pendientes: 2,
+        fallidos: 0,
+        llena: true, // 3 encoladas === profundidadMaxima(3)
+        motivoLlena: 'subiendo',
+      });
+    });
+
     // NOTA (no es un test): se evaluó agregar un caso para
     // "profundidadMaxima: 1 ⇒ concurrencia efectiva 1" que ejercitara el
     // `Math.min` del constructor directamente. No se pudo escribir uno real:
