@@ -153,14 +153,71 @@ describe('useTransmisionReceptor', () => {
   });
 
   it('reintentar() vuelve a empezar de cero', async () => {
-    const { vista } = montar(true);
-    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+    jest.useFakeTimers();
+    try {
+      const { vista } = montar(true);
+      await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
 
-    act(() => {
-      vista.result.current.reintentar('dev-cam-01');
-    });
+      // Agotamos los tres reintentos automáticos, igual que en el test de
+      // backoff: es justo el escenario en el que el botón "Reintentar"
+      // tiene que servir — la cámara ya se quedó en "sin-transmision".
+      for (const espera of BACKOFF_MS) {
+        act(() => {
+          ultimoPeer().cambiarIce('failed');
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(espera);
+        });
+      }
+      act(() => {
+        ultimoPeer().cambiarIce('failed');
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(60_000);
+      });
+      expect(FakeRTCPeerConnection.instances).toHaveLength(4);
+      await waitFor(() =>
+        expect(vista.result.current.transmisiones[0].estado).toBe('sin-transmision')
+      );
 
-    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(2));
+      // El operador aprieta "Reintentar": no alcanza con que abra UN peer
+      // más — tiene que volver a tener sus tres intentos de backoff, no
+      // solo el último resto que le quedaba (o ninguno) antes de tocar el
+      // botón. Si `reintentar()` no resetea el contador, el siguiente fallo
+      // manda derecho a "sin-transmision" sin agendar nada.
+      act(() => {
+        vista.result.current.reintentar('dev-cam-01');
+      });
+      await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(5));
+
+      for (const espera of BACKOFF_MS) {
+        act(() => {
+          ultimoPeer().cambiarIce('failed');
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(espera);
+        });
+      }
+      // 5 (el de post-reintentar) + 3 reintentos nuevos = 8.
+      expect(FakeRTCPeerConnection.instances).toHaveLength(8);
+
+      // Y el backoff vuelve a parar a los tres, como la primera vez:
+      // avanzamos el reloj bien lejos después del último fallo para que,
+      // si quedó un cuarto reintento agendado de más, su timer alcance a
+      // dispararse y el test lo agarre.
+      act(() => {
+        ultimoPeer().cambiarIce('failed');
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(60_000);
+      });
+      expect(FakeRTCPeerConnection.instances).toHaveLength(8);
+      await waitFor(() =>
+        expect(vista.result.current.transmisiones[0].estado).toBe('sin-transmision')
+      );
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('REGLA CRÍTICA: al cerrar la inspección manda bye y cierra el peer', async () => {
