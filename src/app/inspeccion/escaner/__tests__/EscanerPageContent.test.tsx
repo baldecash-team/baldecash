@@ -1106,5 +1106,71 @@ describe('EscanerPageContent', () => {
         expect(screen.getByText(/Grado A/)).toBeInTheDocument();
       });
     });
+
+    describe('transmisión en vivo', () => {
+      it('REGLA CRÍTICA: si WebRTC explota, la grabación sigue igual', async () => {
+        // Un `RTCPeerConnection` que ni siquiera se puede construir es el
+        // peor caso. Si esto tumbara la vista, un navegador sin WebRTC
+        // dejaría la estación sin poder grabar — y la grabación es la
+        // evidencia; el preview es un adorno.
+        //
+        // `jest.fn()` y no una función suelta: sin verificar que esto se
+        // haya LLAMADO, el resto de la prueba (GRABANDO + FINALIZAR
+        // habilitado) es exactamente el flujo de F3 Task 5 sin tocar — pasa
+        // igual si `useTransmisionReceptor` nunca se cableó en esta vista.
+        const construyeConexion = jest.fn(() => {
+          throw new Error('WebRTC no disponible');
+        });
+        (globalThis as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection =
+          construyeConexion;
+
+        setDeviceSessionEscaner();
+        instalarFetchEscaner();
+
+        render(<EscanerPageContent />);
+        const pusher = conectarYListo();
+
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial();
+
+        fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+        await waitFor(() => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) =>
+              String(u).endsWith('/inspections')
+            )
+          ).toBe(true);
+        });
+        act(() => {
+          pusher.channel.emit('recording.started', { inspection_id: 1 });
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        });
+        expect(screen.getByRole('button', { name: /^finalizar$/i })).toBeEnabled();
+
+        // El visor de verdad intentó conectar contra la cámara `techo` (la
+        // que `conectarYListo` reporta) — y explotó, y no le importó a nada
+        // de lo de arriba.
+        await waitFor(() => expect(construyeConexion).toHaveBeenCalled());
+        expect(document.querySelector('[data-transmision]')).not.toBeNull();
+      });
+
+      it('no hay visor mientras la inspección está cerrada', async () => {
+        setDeviceSessionEscaner();
+        instalarFetchEscaner();
+
+        render(<EscanerPageContent />);
+        conectarYListo();
+
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        expect(document.querySelector('[data-transmision]')).toBeNull();
+      });
+    });
   });
 });

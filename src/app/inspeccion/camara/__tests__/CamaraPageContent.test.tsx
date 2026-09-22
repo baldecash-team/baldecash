@@ -98,6 +98,15 @@ class FakeMediaStream {
   getTracks() {
     return this.tracks;
   }
+
+  // Necesario para `transmisión en vivo` (más abajo): `useTransmisionEmisor`
+  // se cuelga del track de VIDEO de este mismo stream via
+  // `stream.getVideoTracks()`. Sin esto, `responder()` explota antes de
+  // llegar siquiera a construir el `RTCPeerConnection` — no por la prueba
+  // (que simula esa excepción a propósito), sino por un fake incompleto.
+  getVideoTracks() {
+    return this.tracks.filter((t) => t.kind === 'video');
+  }
 }
 
 class FakeMediaRecorder extends EventTarget {
@@ -1743,5 +1752,82 @@ describe('CamaraPageContent', () => {
       expect(estadosDespues.slice(estadosAntes.length)).toEqual([]);
       expect(estadosDespues.every((e: string) => e === 'armada')).toBe(true);
     });
+  });
+});
+
+describe('transmisión en vivo', () => {
+  // Describe de primer nivel (no anidado en `describe('CamaraPageContent')`,
+  // ver doc-comment del brief), así que necesita su PROPIO
+  // `beforeEach`/`afterEach` — sin esto, `mockFakePusher.instances[0]` que
+  // usa `conectarCanal()` quedaría apuntando a la instancia de Pusher del
+  // ÚLTIMO test que corrió arriba en el archivo (nunca se resetea sola), y
+  // los env vars de Pusher que ese `afterEach` borra dejarían a
+  // `usePresenceChannel` en la rama `missing_config` — el canal real
+  // quedaría `null` y la prueba "pasaría" sin haber probado nada. Mismo
+  // contenido que el `beforeEach`/`afterEach` de `describe('CamaraPageContent')`.
+  beforeEach(() => {
+    localStorage.clear();
+    window.history.replaceState({}, '', '/inspeccion/camara');
+    mockFakePusher.instances.length = 0;
+    process.env.NEXT_PUBLIC_PUSHER_KEY = 'test-key';
+    process.env.NEXT_PUBLIC_PUSHER_CLUSTER = 'test-cluster';
+
+    videoTrack = new FakeMediaStreamTrack('video');
+    const audioTrack = new FakeMediaStreamTrack('audio');
+    getUserMedia = jest.fn().mockImplementation(() =>
+      Promise.resolve(new FakeMediaStream([videoTrack, audioTrack]))
+    );
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia },
+    });
+    (global as unknown as { MediaRecorder: unknown }).MediaRecorder = FakeMediaRecorder;
+    Object.defineProperty(window.HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: jest.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    delete (global as { fetch?: unknown }).fetch;
+    delete process.env.NEXT_PUBLIC_PUSHER_KEY;
+    delete process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+  });
+
+  it('REGLA CRÍTICA: una oferta que explota no toca el estado de captura', async () => {
+    // `jest.fn()` y no una función suelta: la prueba original solo verificaba
+    // que no salieran fetch de más, y esa aserción sola no distingue "el
+    // hook está cableado y traga la excepción" de "el hook ni se llamó" — en
+    // los dos casos el conteo de fetch queda igual. `construyeConexion`
+    // prueba que la señal SÍ llegó hasta intentar abrir el peer.
+    const construyeConexion = jest.fn(() => {
+      throw new Error('WebRTC no disponible');
+    });
+    (globalThis as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection = construyeConexion;
+
+    setDeviceSessionCamara();
+    instalarFetchInspeccion();
+    await armarCamara();
+    const pusher = conectarCanal();
+    const llamadasPrevias = (global.fetch as jest.Mock).mock.calls.length;
+
+    act(() => {
+      pusher.channel.emit('device.senal', {
+        origen_device_id: 'dev-esc-01',
+        // El `deviceId` que siembra `setDeviceSessionCamara()`. Si no
+        // coincide, la señal se descarta por destino y el test no prueba nada.
+        destino_device_id: 'dev-01',
+        tipo: 'offer',
+        sdp: 'SDP-OFERTA',
+      });
+    });
+
+    // Si esto no se llamó, `useTransmisionEmisor` nunca recibió la señal —
+    // la prueba de abajo (fetch sin cambios) pasaría igual sin cablear nada.
+    await waitFor(() => expect(construyeConexion).toHaveBeenCalled());
+
+    // Ni un reporte de estado nuevo, ni un ack, ni nada.
+    expect((global.fetch as jest.Mock).mock.calls).toHaveLength(llamadasPrevias);
   });
 });

@@ -13,6 +13,7 @@ import {
 } from '../_lib/useKioskRecorder';
 import { useWakeLock } from '../_lib/useWakeLock';
 import { useServerClock } from '../_lib/useServerClock';
+import { useTransmisionEmisor } from '../_lib/useTransmisionEmisor';
 import {
   useComandos,
   type ComandoPhotoPayload,
@@ -293,6 +294,7 @@ export default function CamaraPageContent() {
     zoomRango,
     zoomError,
     aplicarZoom,
+    streamRef,
   } = useKioskRecorder();
 
   // F4 Task 4: estado agregado de la cola de subida (`_lib/uploadQueue.ts`,
@@ -382,6 +384,18 @@ export default function CamaraPageContent() {
     kindMismatch ? null : (session?.stationId ?? null),
     kindMismatch ? null : (session?.token ?? null)
   );
+
+  /**
+   * Transmisión en vivo al controlador. Se cuelga del MISMO track que graba
+   * y solo actúa si el escáner ofrece: mientras nadie mire, no abre nada.
+   * Es best-effort — ver la regla innegociable en `useTransmisionEmisor.ts`.
+   */
+  useTransmisionEmisor({
+    channel,
+    deviceId: session?.deviceId ?? null,
+    token: session?.token ?? null,
+    streamRef,
+  });
 
   // Review de F2 (F3 Task 5, rediseño post-revisión): reporta el estado de
   // captura al backend para que el pre-vuelo del escáner (`estaListo` en

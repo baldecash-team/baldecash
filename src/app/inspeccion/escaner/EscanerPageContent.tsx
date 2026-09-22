@@ -13,6 +13,8 @@ import {
 } from '../_components/IdentificarEquipo';
 import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { type PresenceCaptureState, usePresenceChannel } from '../_lib/usePresenceChannel';
+import { TransmisionEnVivo } from '../_components/TransmisionEnVivo';
+import { useTransmisionReceptor, type CamaraConectable } from '../_lib/useTransmisionReceptor';
 
 interface PairingCode {
   code: string;
@@ -276,6 +278,35 @@ export default function EscanerPageContent() {
     kindMismatch ? null : (session?.stationId ?? null),
     kindMismatch ? null : (session?.token ?? null)
   );
+
+  /**
+   * Las cámaras a las que pedirles transmisión. Salen de los miembros del
+   * canal, igual que el pre-vuelo: una etiqueta sin dispositivo conectado no
+   * tiene a quién pedirle nada.
+   */
+  const camaras: CamaraConectable[] = members
+    .filter((m) => m.kind === 'camara' && m.label)
+    .map((m) => ({ deviceId: m.deviceId, label: m.label as string }));
+
+  /**
+   * Encendida mientras la inspección está abierta. Incluye `decidiendo` a
+   * propósito: es cuando el operador reacomoda el equipo para la toma
+   * siguiente, y verlo en vivo ahí es la mitad del valor. El pre-vuelo NO
+   * lleva visor — ahí la pregunta es "¿puede grabar?", que el semáforo ya
+   * contesta, y prender los peers antes de tiempo es batería quemada.
+   */
+  const transmisionActiva =
+    sesionEstado === 'grabando' ||
+    sesionEstado === 'fotografiando' ||
+    sesionEstado === 'decidiendo';
+
+  const { transmisiones, reintentar } = useTransmisionReceptor({
+    channel,
+    deviceId: session?.deviceId ?? null,
+    token: session?.token ?? null,
+    activo: transmisionActiva,
+    camaras,
+  });
 
   // Las etiquetas esperadas vienen del servidor: el front nunca asume cuántas son.
   useEffect(() => {
@@ -1152,6 +1183,7 @@ export default function EscanerPageContent() {
                 {equipo.grado ? ` · Grado ${equipo.grado}` : ''}
               </p>
             )}
+            <TransmisionEnVivo transmisiones={transmisiones} onReintentar={reintentar} />
             {/* Obturador: dispara una foto SIN cortar la toma. Es el caso
                 que más pide el operador — el video ya está corriendo y
                 aparece el detalle que hay que dejar en alta resolución. Va
@@ -1191,6 +1223,7 @@ export default function EscanerPageContent() {
             <p className="mt-1 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: TOKENS.slate }}>
               Toma {takeNumber}
             </p>
+            <TransmisionEnVivo transmisiones={transmisiones} onReintentar={reintentar} />
 
             {fotoEstado === 'subiendo' && (
               <p className="mt-4 text-center text-sm font-semibold" style={{ color: TOKENS.slate }}>
@@ -1314,6 +1347,7 @@ export default function EscanerPageContent() {
             <p className="mt-4 text-center text-2xl font-bold" style={{ color: TOKENS.ink }}>
               Toma {takeNumber} lista
             </p>
+            <TransmisionEnVivo transmisiones={transmisiones} onReintentar={reintentar} />
             <p className="mt-1 text-center text-xs" style={{ color: TOKENS.slate }}>
               Subiendo en segundo plano — no hace falta esperar.
             </p>
