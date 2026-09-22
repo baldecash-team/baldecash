@@ -957,8 +957,13 @@ describe('EscanerPageContent', () => {
         // carrera posible (el disparo se programa 600 ms en el futuro y la
         // subida tarda mucho mas), pero en el test las dos cosas pasan en el
         // mismo tick.
+        // Un turno de macrotask, no un solo microtask: la respuesta del POST
+        // que trae `photo_number` resuelve en más de un tick (`res.json()`
+        // agrega el suyo), así que `await Promise.resolve()` se quedaba corto
+        // y el orden se invertía ~2 de cada 6 corridas. Un `setTimeout(0)`
+        // drena TODOS los microtasks pendientes.
         await act(async () => {
-          await Promise.resolve();
+          await new Promise((r) => setTimeout(r, 0));
         });
 
         verificarFoto(pusher);
