@@ -23,6 +23,23 @@ class FakeEmitter {
     (this.handlers[event] ??= []).push(cb);
   }
 
+  /**
+   * Simétrico a `bind`: saca ESE callback de la lista de ESE evento.
+   *
+   * Sin esto, `channel.unbind?.(...)` (lo que llaman `bindSenales`,
+   * `useTransmisionEmisor` y `useComandos` al desmontarse) es un no-op
+   * silencioso contra este fake — el optional chaining nunca explota porque
+   * el método simplemente no existía, así que ningún test lo notaba. El
+   * síntoma real: los listeners de un componente ya desmontado (de un test
+   * ANTERIOR) seguían vivos en el objeto de canal para siempre, y un test
+   * siguiente que emitía sobre el mismo canal podía disparar el handler
+   * viejo — un test podía pasar por estar reaccionando al componente
+   * equivocado, no al que acababa de renderizar.
+   */
+  unbind(event: string, cb: Handler): void {
+    this.handlers[event] = (this.handlers[event] ?? []).filter((h) => h !== cb);
+  }
+
   emit(event: string, ...args: unknown[]): void {
     (this.handlers[event] ?? []).forEach((cb) => cb(...args));
   }
