@@ -46,7 +46,10 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/ucv-docentes': 'https://pidetuprestamo.baldecash.com/#/ucv-docentes-y-administrativos',
   '/mrap': 'https://beneficios.baldecash.com/maria-araoz',
   '/untumbes': 'https://beneficios.baldecash.com/untumbes',
-  '/unap': 'https://beneficios.baldecash.com/unap',
+  // '/unap' ya no redirige a beneficios: ahora es la landing de convenio
+  // (landing 359, publicada el 21-sep). Si beneficios.baldecash.com/unap
+  // pasa a redirigir hacia acá, volver a agregar esta clave causaría un
+  // bucle (ERR_TOO_MANY_REDIRECTS).
   '/utec': 'https://beneficios.baldecash.com/utec',
   '/sorteo-senati-cuotas': '/sorteo-senati-becas',
   '/jhalebet': 'https://beneficios.baldecash.com/jhalebet',
