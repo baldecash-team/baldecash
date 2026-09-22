@@ -106,6 +106,14 @@ export interface UseKioskRecorderReturn {
    */
   capturarFoto: () => Promise<ResultadoFoto>;
   detener: () => Promise<ResultadoDetener>;
+  /**
+   * El stream de `getUserMedia`, para que un SEGUNDO consumidor se cuelgue
+   * del mismo track (la transmisión en vivo, `useTransmisionEmisor`). Se
+   * expone como ref y no como estado a propósito: engancharse al stream no
+   * debe provocar renders acá, y la regla 1 del módulo —el stream se pide
+   * una sola vez en `armar()` y no se toca— sigue intacta. `null` sin armar.
+   */
+  streamRef: RefObject<MediaStream | null>;
 }
 
 /**
@@ -797,6 +805,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     mimeType,
     ajustes,
     videoRef,
+    streamRef,
     armar,
     grabar,
     capturarFoto,
