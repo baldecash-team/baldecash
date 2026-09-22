@@ -105,11 +105,38 @@ export function useTransmisionEmisor({
     if (!channel || !deviceId || !token) return undefined;
 
     const peers = peersRef.current;
+    /**
+     * Lo que hay que desenganchar cuando un peer se cierra — hoy, el
+     * listener de `ended` del track. Va indexado por PEER y no por destino
+     * porque puede haber un peer viejo muriéndose mientras el nuevo del
+     * mismo escáner ya está registrado; un `WeakMap` se limpia solo cuando
+     * el peer muerto deja de estar referenciado.
+     */
+    const limpiezas = new WeakMap<RTCPeerConnection, () => void>();
 
-    const cerrar = (destino: string) => {
+    /**
+     * Cierra el peer de `destino`.
+     *
+     * `esperado` no es un lujo: cerrar por CLAVE cuando ya hay otra
+     * negociación en curso mata la que está sana. La secuencia medida —
+     * llega la oferta 1, `responder` crea pc1 y se suspende en
+     * `await limitarSender`; llega la oferta 2 (el escáner reintentando),
+     * que cierra pc1 y registra pc2; pc1 reanuda, su `setRemoteDescription`
+     * tira `InvalidStateError` porque su peer ya está cerrado, y el manejo
+     * del error, si cerrara por clave, se llevaría puesto a pc2. Resultado:
+     * los dos peers cerrados y ninguna answer mandada, con el escáner
+     * convencido de que la oferta salió bien. Quien cierra POR IDENTIDAD
+     * (el catch, el handler de ICE, el `ended` del track) pasa `esperado`;
+     * quien cierra por decisión del otro lado (`bye`, `member_removed`) no,
+     * porque ahí la orden es para el peer que haya.
+     */
+    const cerrar = (destino: string, esperado?: RTCPeerConnection) => {
       const pc = peers.get(destino);
       if (!pc) return;
+      if (esperado && pc !== esperado) return;
       peers.delete(destino);
+      limpiezas.get(pc)?.();
+      limpiezas.delete(pc);
       try {
         pc.close();
       } catch {
@@ -125,29 +152,58 @@ export function useTransmisionEmisor({
       // ya explica por qué esta cámara no sirve.
       if (!track || !stream) return;
 
+      const destino = payload.origen_device_id;
       // Una oferta nueva para el mismo destino reemplaza la negociación
       // anterior: es el escáner reintentando.
-      cerrar(payload.origen_device_id);
+      cerrar(destino);
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-      peers.set(payload.origen_device_id, pc);
+      peers.set(destino, pc);
 
-      pc.addEventListener('iceconnectionstatechange', () => {
-        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-          cerrar(payload.origen_device_id);
-        }
-      });
+      try {
+        pc.addEventListener('iceconnectionstatechange', () => {
+          if (pc.iceConnectionState !== 'failed' && pc.iceConnectionState !== 'disconnected') return;
+          cerrar(destino, pc);
+        });
 
-      const sender = pc.addTrack(track, stream);
-      await limitarSender(sender, track);
+        /**
+         * El rearme de la cámara (`useKioskRecorder.armar()`) detiene los
+         * tracks viejos. Si no hiciéramos nada, el peer seguiría abierto con
+         * un sender cuyo track está muerto: ICE NO se cae, así que el
+         * escáner conserva `estado: 'viendo'` y muestra el último frame,
+         * congelado, por tiempo indefinido. Un monitor que muestra imagen
+         * vieja como si fuera en vivo es peor que uno que dice "Sin
+         * transmisión" — es el semáforo que miente en verde del §7 del spec
+         * original. Así que se cierra y se avisa, y el escáner cae a "Sin
+         * transmisión" y reintenta contra la cámara ya rearmada.
+         */
+        const alTerminarTrack = () => {
+          if (peers.get(destino) !== pc) return;
+          cerrar(destino, pc);
+          void mandarSenal(token, destino, 'bye');
+        };
+        track.addEventListener('ended', alTerminarTrack);
+        limpiezas.set(pc, () => track.removeEventListener('ended', alTerminarTrack));
 
-      await pc.setRemoteDescription({ type: 'offer', sdp: payload.sdp } as RTCSessionDescriptionInit);
-      await pc.setLocalDescription(await pc.createAnswer());
-      await esperarIceCompleto(pc);
+        const sender = pc.addTrack(track, stream);
+        await limitarSender(sender, track);
 
-      // El escáner pudo haberse ido mientras juntábamos candidatos.
-      if (peers.get(payload.origen_device_id) !== pc) return;
-      await mandarSenal(token, payload.origen_device_id, 'answer', pc.localDescription?.sdp ?? '');
+        await pc.setRemoteDescription({
+          type: 'offer',
+          sdp: payload.sdp,
+        } as RTCSessionDescriptionInit);
+        await pc.setLocalDescription(await pc.createAnswer());
+        await esperarIceCompleto(pc);
+
+        // El escáner pudo haberse ido mientras juntábamos candidatos.
+        if (peers.get(destino) !== pc) return;
+        await mandarSenal(token, destino, 'answer', pc.localDescription?.sdp ?? '');
+      } catch (e) {
+        // REGLA INNEGOCIABLE: toda excepción de WebRTC muere acá. Y el
+        // cierre es del peer PROPIO, no del que esté bajo la clave.
+        console.warn('[transmision] no se pudo responder la oferta', e);
+        cerrar(destino, pc);
+      }
     };
 
     const alRecibir = (payload: SenalPayload) => {
@@ -156,10 +212,10 @@ export function useTransmisionEmisor({
         return;
       }
       if (payload.tipo !== 'offer') return;
-      // Acá se traga todo: ver la REGLA INNEGOCIABLE del doc-comment.
+      // Red de último recurso: `responder` ya se traga lo suyo, pero nada
+      // que salga de acá puede llegar a la grabación.
       void responder(payload).catch((e) => {
         console.warn('[transmision] no se pudo responder la oferta', e);
-        cerrar(payload.origen_device_id);
       });
     };
 
@@ -180,7 +236,9 @@ export function useTransmisionEmisor({
     return () => {
       desbindear();
       channel.unbind?.('pusher:member_removed', alIrse);
-      [...peers.keys()].forEach(cerrar);
+      // Arrow y no `forEach(cerrar)`: `forEach` pasa el índice como segundo
+      // argumento, que caería en `esperado` y haría que no cerrara nada.
+      [...peers.keys()].forEach((destino) => cerrar(destino));
     };
   }, [channel, deviceId, token, streamRef]);
 }

@@ -33,11 +33,43 @@ class FakeChannel implements SenalChannel {
   }
 }
 
-function fakeTrack(ancho = 1920, alto = 1080): MediaStreamTrack {
-  return { getSettings: () => ({ width: ancho, height: alto }) } as unknown as MediaStreamTrack;
+/**
+ * Track de cámara con listeners de verdad: el hook se engancha a `ended`
+ * para enterarse del rearme, así que un objeto literal con solo
+ * `getSettings` no alcanzaría.
+ */
+class FakeTrack {
+  private oyentes: Record<string, Array<() => void>> = {};
+
+  constructor(
+    private ancho = 1920,
+    private alto = 1080
+  ) {}
+
+  getSettings() {
+    return { width: this.ancho, height: this.alto };
+  }
+
+  addEventListener(evento: string, cb: () => void): void {
+    (this.oyentes[evento] ??= []).push(cb);
+  }
+
+  removeEventListener(evento: string, cb: () => void): void {
+    this.oyentes[evento] = (this.oyentes[evento] ?? []).filter((o) => o !== cb);
+  }
+
+  /** Lo que hace `useKioskRecorder.armar()` con los tracks viejos: los
+   * detiene, y el navegador emite `ended` sobre cada uno. */
+  terminar(): void {
+    (this.oyentes.ended ?? []).forEach((cb) => cb());
+  }
 }
 
-function fakeStream(track: MediaStreamTrack): MediaStream {
+function fakeTrack(ancho = 1920, alto = 1080): FakeTrack {
+  return new FakeTrack(ancho, alto);
+}
+
+function fakeStream(track: FakeTrack): MediaStream {
   return { getVideoTracks: () => [track] } as unknown as MediaStream;
 }
 
@@ -59,10 +91,22 @@ function montar(stream: MediaStream | null) {
   return { channel, streamRef, vista };
 }
 
+function cuerposEnviados(): Array<Record<string, string>> {
+  return (global.fetch as jest.Mock).mock.calls.map((c) => JSON.parse(c[1].body));
+}
+
 describe('useTransmisionEmisor', () => {
   beforeEach(() => {
     instalarFakeRTC();
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
+  });
+
+  // Varios tests espían `console.warn` o el prototipo del sender. Si uno
+  // falla antes de su `mockRestore()`, el espía queda puesto y el test
+  // SIGUIENTE hereda un doble que no pidió — así un test puede fallar (o
+  // pasar) por culpa del anterior y no por lo que mide.
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('ante una oferta crea un peer y contesta con una answer', async () => {
@@ -170,6 +214,128 @@ describe('useTransmisionEmisor', () => {
     vista.unmount();
 
     expect(pc.cerrada).toBe(true);
+  });
+
+  it('REGLA CRÍTICA: una segunda oferta mientras la primera junta ICE no mata a la segunda', async () => {
+    // El modo de falla: `responder` se suspende en `await limitarSender`
+    // con pc1 a medio armar; llega la oferta 2 (el escáner reintentando),
+    // que cierra pc1 y registra pc2; pc1 reanuda y su
+    // `setRemoteDescription` tira `InvalidStateError` porque su peer está
+    // cerrado. Si el manejo de ese error cerrara POR CLAVE en vez de por
+    // identidad, se llevaría puesto a pc2 — los dos peers cerrados, ninguna
+    // answer mandada, y el escáner reintentando contra una cámara que se
+    // suicida en cada intento. Tile permanentemente muerto.
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const realSetParameters = FakeRTCRtpSender.prototype.setParameters;
+    let liberarPrimera = () => {};
+    const primeraSuspendida = new Promise<void>((resolve) => {
+      liberarPrimera = resolve;
+    });
+    let llamadas = 0;
+    const spy = jest
+      .spyOn(FakeRTCRtpSender.prototype, 'setParameters')
+      .mockImplementation(async function (
+        this: FakeRTCRtpSender,
+        p: Parameters<typeof realSetParameters>[0]
+      ) {
+        llamadas += 1;
+        // Solo la primera negociación queda colgada: es la que tiene que
+        // reanudar tarde, después de que la segunda ya se registró.
+        if (llamadas === 1) await primeraSuspendida;
+        return realSetParameters.call(this, p);
+      });
+
+    const { channel } = montar(fakeStream(fakeTrack()));
+
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(llamadas).toBe(1));
+    const pc1 = ultimoPeer();
+
+    // La oferta 2 entra con pc1 todavía suspendido.
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(2));
+    const pc2 = ultimoPeer();
+    expect(pc2).not.toBe(pc1);
+    expect(pc1.cerrada).toBe(true);
+
+    // pc1 reanuda y explota contra su propio peer cerrado.
+    liberarPrimera();
+    await waitFor(() => expect(warnSpy).toHaveBeenCalled());
+
+    // Lo que importa: pc2 sigue vivo y SÍ contesta.
+    expect(pc2.cerrada).toBe(false);
+    pc2.completarIce();
+    await waitFor(() =>
+      expect(cuerposEnviados()).toContainEqual({
+        destino_device_id: 'dev-esc-01',
+        tipo: 'answer',
+        sdp: 'SDP-ANSWER',
+      })
+    );
+    expect(pc2.cerrada).toBe(false);
+
+    spy.mockRestore();
+    warnSpy.mockRestore();
+  });
+
+  it('la ICE del peer viejo cayéndose no cierra al peer que lo reemplazó', async () => {
+    // El otro lugar con el mismo defecto que el catch: el handler de
+    // `iceconnectionstatechange` de una negociación ya reemplazada sigue
+    // bindeado y se dispara igual. Si cerrara por clave, el estertor del
+    // peer viejo mataría al nuevo.
+    const { channel } = montar(fakeStream(fakeTrack()));
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+    const pc1 = ultimoPeer();
+
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(2));
+    const pc2 = ultimoPeer();
+    expect(pc1.cerrada).toBe(true);
+
+    pc1.cambiarIce('failed');
+
+    expect(pc2.cerrada).toBe(false);
+    pc2.completarIce();
+    await waitFor(() =>
+      expect(cuerposEnviados()).toContainEqual({
+        destino_device_id: 'dev-esc-01',
+        tipo: 'answer',
+        sdp: 'SDP-ANSWER',
+      })
+    );
+  });
+
+  it('REGLA CRÍTICA: si la cámara se rearma, el visor no se queda con un frame congelado', async () => {
+    // `useKioskRecorder.armar()` detiene los tracks viejos. El peer queda
+    // abierto con un sender cuyo track está muerto y ICE NO se cae, así que
+    // sin este corte el escáner conserva "viendo" y muestra un frame
+    // congelado para siempre — un monitor que miente, que es peor que uno
+    // que dice "Sin transmisión".
+    const track = fakeTrack();
+    const { channel } = montar(fakeStream(track));
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+    const pc = ultimoPeer();
+    pc.completarIce();
+    await waitFor(() =>
+      expect(cuerposEnviados()).toContainEqual({
+        destino_device_id: 'dev-esc-01',
+        tipo: 'answer',
+        sdp: 'SDP-ANSWER',
+      })
+    );
+
+    track.terminar();
+
+    expect(pc.cerrada).toBe(true);
+    await waitFor(() =>
+      expect(cuerposEnviados()).toContainEqual({
+        destino_device_id: 'dev-esc-01',
+        tipo: 'bye',
+        sdp: '',
+      })
+    );
   });
 
   it('descarta las ofertas dirigidas a otra cámara', () => {

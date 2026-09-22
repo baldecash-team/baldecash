@@ -120,11 +120,29 @@ export class FakeRTCPeerConnection {
   }
 
   async setLocalDescription(d: { type: string; sdp: string }): Promise<void> {
+    this.exigirAbierta();
     this.localDescription = d;
   }
 
   async setRemoteDescription(d: { type: string; sdp: string }): Promise<void> {
+    this.exigirAbierta();
     this.remoteDescription = d;
+  }
+
+  /**
+   * Un peer cerrado rechaza las operaciones de negociación con
+   * `InvalidStateError`, igual que el navegador real. Importa para el caso
+   * en que una negociación se suspende en un `await` y, mientras tanto, otra
+   * oferta la reemplaza: cuando la vieja reanuda, la excepción es el
+   * disparador del manejo de error, y ese manejo NO puede llevarse puesta a
+   * la negociación nueva. Sin esto el fake dejaría pasar en silencio
+   * llamadas sobre peers muertos y ese camino no se podría probar.
+   */
+  private exigirAbierta(): void {
+    if (!this.cerrada) return;
+    const error = new Error('The RTCPeerConnection is closed');
+    error.name = 'InvalidStateError';
+    throw error;
   }
 
   close(): void {
