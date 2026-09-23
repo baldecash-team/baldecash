@@ -59,7 +59,8 @@ class FakeTrack {
   }
 
   /** Lo que hace `useKioskRecorder.armar()` con los tracks viejos: los
-   * detiene, y el navegador emite `ended` sobre cada uno. */
+   * detiene y emite `ended` a mano sobre cada uno — `stop()` solo no lo
+   * emite (spec de Media Capture). */
   terminar(): void {
     (this.oyentes.ended ?? []).forEach((cb) => cb());
   }
