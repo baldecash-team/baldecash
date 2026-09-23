@@ -1771,6 +1771,7 @@ describe('transmisión en vivo', () => {
     mockFakePusher.instances.length = 0;
     process.env.NEXT_PUBLIC_PUSHER_KEY = 'test-key';
     process.env.NEXT_PUBLIC_PUSHER_CLUSTER = 'test-cluster';
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '1';
 
     videoTrack = new FakeMediaStreamTrack('video');
     const audioTrack = new FakeMediaStreamTrack('audio');
@@ -1792,6 +1793,7 @@ describe('transmisión en vivo', () => {
     jest.restoreAllMocks();
     delete (global as { fetch?: unknown }).fetch;
     delete process.env.NEXT_PUBLIC_PUSHER_KEY;
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
     delete process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
   });
 

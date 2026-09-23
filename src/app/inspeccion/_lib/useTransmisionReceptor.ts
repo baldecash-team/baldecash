@@ -6,6 +6,7 @@ import {
   bindSenales,
   esperarIceCompleto,
   mandarSenal,
+  transmisionHabilitada,
   type SenalChannel,
   type SenalPayload,
 } from './senalizacion';
@@ -82,6 +83,10 @@ export function useTransmisionReceptor({
   transmisiones: Transmision[];
   reintentar: (deviceId: string) => void;
 } {
+  // Apagada, es como si la inspección nunca se abriera: ningún peer, ninguna
+  // oferta, y ningún tile en la vista. Ver `transmisionHabilitada`.
+  activo = activo && transmisionHabilitada();
+
   const [estados, setEstados] = useState<Record<string, EstadoTransmision>>({});
   const [streams, setStreams] = useState<Record<string, MediaStream>>({});
 
