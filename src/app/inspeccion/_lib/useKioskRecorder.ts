@@ -224,6 +224,42 @@ const FOTO_MIME = 'image/jpeg';
 const DETENER_TIMEOUT_MS = 5_000;
 
 /**
+ * Cuánto se tolera un track en `muted` antes de dar la cámara por caída.
+ *
+ * iOS no termina el track cuando le quita la cámara a Safari (pantalla
+ * bloqueada, otra app, una llamada, el Centro de Control): lo pone en
+ * `muted` y sigue entregando cuadros NEGROS. Sin esto la página seguía
+ * "armada" y el semáforo en verde, y en producción (2026-09-23, iPhone)
+ * subieron dos tomas seguidas de puro negro marcadas como verificadas.
+ *
+ * La gracia existe porque un `mute` corto que se recupera solo (`unmute`) no
+ * es una caída: no tiene sentido pedirle al operador que rearme por un
+ * parpadeo del sistema.
+ */
+export const MUTE_GRACIA_MS = 3_000;
+
+/**
+ * Por debajo de esto, una toma no se juzga por su bitrate: el encabezado del
+ * contenedor pesa más que un segundo de video y el promedio no dice nada.
+ */
+export const TOMA_MINIMA_PARA_JUZGAR_MS = 5_000;
+
+/**
+ * Bitrate promedio por debajo del cual una toma se da por grabada SIN
+ * IMAGEN. Es la red para lo que el `mute` no alcance a ver.
+ *
+ * Calibrado contra las dos tomas del mismo iPhone del 2026-09-23: la sana
+ * salió a ~7,8 Mbps (31,1 MB en 32s) y la negra a ~270 kbps (1,1 MB en 33s).
+ * 500 kbps queda casi al doble de la negra y cinco veces por debajo del
+ * piso que se le pide al encoder (`BITRATE_MIN`). Todavía NO está validado
+ * contra el histórico de producción.
+ */
+const BITRATE_SIN_IMAGEN = 500_000;
+
+const MENSAJE_SIN_IMAGEN =
+  'La cámara dejó de entregar imagen. Vuelve a armarla antes de la próxima toma.';
+
+/**
  * Candidatos de mimeType en orden de preferencia. WebM primero porque
  * Android/Chrome es la plataforma primaria (spec §7); los MP4 quedan de
  * fallback para iOS/Safari. `null` si ninguno matchea: el `MediaRecorder` se
@@ -389,6 +425,34 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     setEstado('caida');
   }, []);
 
+  /** El timer de gracia del `mute` en curso (ver `MUTE_GRACIA_MS`). */
+  const muteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const olvidarMute = useCallback(() => {
+    if (muteTimerRef.current) clearTimeout(muteTimerRef.current);
+    muteTimerRef.current = null;
+  }, []);
+
+  /**
+   * Un `mute` del track de VIDEO: arranca la gracia. Si al vencer el track
+   * sigue muteado —y sigue siendo el del stream vigente, no uno que un
+   * rearme ya reemplazó— la cámara cae igual que con un `ended`.
+   */
+  const onTrackMute = useCallback(
+    (evento: Event) => {
+      const track = evento.target as MediaStreamTrack;
+      olvidarMute();
+      muteTimerRef.current = setTimeout(() => {
+        muteTimerRef.current = null;
+        const [vigente] = streamRef.current?.getVideoTracks() ?? [];
+        if (vigente !== track || !track.muted) return;
+        setError(MENSAJE_SIN_IMAGEN);
+        setEstado('caida');
+      }, MUTE_GRACIA_MS);
+    },
+    [olvidarMute]
+  );
+
   const armar = useCallback(async () => {
     setError(null);
     setEstado('armando');
@@ -423,9 +487,19 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     }
     const staleStream = streamRef.current;
     if (staleStream) {
+      olvidarMute();
       staleStream.getTracks().forEach((track) => {
         track.removeEventListener('ended', onTrackEnded);
+        track.removeEventListener('mute', onTrackMute);
+        track.removeEventListener('unmute', olvidarMute);
         track.stop();
+        // `stop()` NO emite `ended` (spec de Media Capture): lo emite solo
+        // un fin ajeno a la página. Pero la transmisión en vivo
+        // (`useTransmisionEmisor`) se entera del rearme por ese evento, y sin
+        // él su peer se queda con el track muerto y el escáner mira negro
+        // hasta la inspección siguiente. Nuestro listener ya se sacó arriba,
+        // así que esto no vuelve a disparar "caída" acá.
+        track.dispatchEvent(new Event('ended'));
       });
       streamRef.current = null;
     }
@@ -453,6 +527,16 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
       stream.getTracks().forEach((track) => {
         track.addEventListener('ended', onTrackEnded);
       });
+      // Solo el VIDEO: un micrófono muteado no deja la evidencia en negro,
+      // y el armado ya tolera quedarse sin micrófono.
+      const [trackVideo] = stream.getVideoTracks();
+      if (trackVideo) {
+        trackVideo.addEventListener('mute', onTrackMute);
+        trackVideo.addEventListener('unmute', olvidarMute);
+        // Puede llegar ya muteado (la cámara la tiene otra app): el evento
+        // no va a llegar nunca, así que la gracia arranca acá.
+        if (trackVideo.muted) onTrackMute({ target: trackVideo } as unknown as Event);
+      }
 
       // Resolución REAL entregada — nunca la pedida. De acá sale el bitrate:
       // ver `calcularBitrate` y el doc de `VIDEO_LADO_IDEAL`. Envuelto por el
@@ -524,7 +608,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
       setError(message);
       setEstado('inactiva');
     }
-  }, [onTrackEnded]);
+  }, [onTrackEnded, onTrackMute, olvidarMute]);
 
   /**
    * Cambia el zoom de la cámara. Se puede llamar MIENTRAS graba: eso es lo
@@ -746,13 +830,26 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
         // siguiente orden no graba nada, y recién se descubre en F4 por un
         // video ausente. El rearme automático (regla 2) sigue aplicando
         // para el camino feliz; "caída" es la única excepción.
-        setEstado((prev) => (prev === 'caida' ? 'caida' : 'armada'));
         if (err) {
+          setEstado((prev) => (prev === 'caida' ? 'caida' : 'armada'));
           reject(err);
           return;
         }
         const usedMimeType = recorder.mimeType || mimeTypeRef.current || 'video/webm';
         const blob = new Blob(chunks, { type: usedMimeType });
+        // La red para lo que el `mute` no vio: una toma larga que pesa casi
+        // nada se grabó sin imagen. Se sube igual —es lo que hay, y borrarla
+        // escondería el problema— pero la cámara NO queda "armada": la
+        // próxima toma saldría igual de negra.
+        const sinImagen =
+          duracionMs >= TOMA_MINIMA_PARA_JUZGAR_MS &&
+          (blob.size * 8 * 1000) / duracionMs < BITRATE_SIN_IMAGEN;
+        if (sinImagen) {
+          setError(MENSAJE_SIN_IMAGEN);
+          setEstado('caida');
+        } else {
+          setEstado((prev) => (prev === 'caida' ? 'caida' : 'armada'));
+        }
         resolve({ blob, mimeType: usedMimeType, duracionMs });
       };
 
@@ -796,6 +893,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
       }
       activeRecordingRef.current = null;
       pendingStopRef.current = null;
+      if (muteTimerRef.current) clearTimeout(muteTimerRef.current);
     };
   }, []);
 

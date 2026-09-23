@@ -12,10 +12,18 @@
  * teléfono empieza a pedir el permiso de nuevo en cada equipo.
  */
 import { renderHook, act } from '@testing-library/react';
-import { useKioskRecorder } from '../useKioskRecorder';
+import {
+  MUTE_GRACIA_MS,
+  TOMA_MINIMA_PARA_JUZGAR_MS,
+  useKioskRecorder,
+} from '../useKioskRecorder';
 
 class FakeMediaStreamTrack extends EventTarget {
   readyState: 'live' | 'ended' = 'live';
+  /** Lo que iOS hace cuando le quita la cámara a Safari (pantalla bloqueada,
+   * otra app, una llamada) SIN terminar el track: lo pone en `muted` y sigue
+   * entregando cuadros negros. */
+  muted = false;
   stop = jest.fn(() => {
     this.readyState = 'ended';
   });
@@ -62,6 +70,16 @@ class FakeMediaStreamTrack extends EventTarget {
     this.readyState = 'ended';
     this.dispatchEvent(new Event('ended'));
   }
+
+  simulateMute() {
+    this.muted = true;
+    this.dispatchEvent(new Event('mute'));
+  }
+
+  simulateUnmute() {
+    this.muted = false;
+    this.dispatchEvent(new Event('unmute'));
+  }
 }
 
 class FakeMediaStream {
@@ -86,6 +104,9 @@ class FakeMediaStream {
 
 class FakeMediaRecorder extends EventTarget {
   static instances: FakeMediaRecorder[] = [];
+  /** Lo que entrega el último chunk al detener. Un byte por defecto; los
+   * tests de "grabó sin imagen" lo inflan para simular un video real. */
+  static bytesDelChunk = 1;
   static isTypeSupported = jest.fn(
     (type: string) => type === 'video/webm;codecs=vp9,opus' || type === 'video/webm'
   );
@@ -113,7 +134,11 @@ class FakeMediaRecorder extends EventTarget {
    * chunk y DESPUÉS `onstop`, tal cual hace el `MediaRecorder` real. */
   stop = jest.fn(() => {
     this.state = 'inactive';
-    this.ondataavailable?.({ data: new Blob(['x'], { type: this.mimeType || 'video/webm' }) });
+    this.ondataavailable?.({
+      data: new Blob(['x'.repeat(FakeMediaRecorder.bytesDelChunk)], {
+        type: this.mimeType || 'video/webm',
+      }),
+    });
     this.onstop?.();
   });
 }
@@ -126,6 +151,7 @@ let lastStream: FakeMediaStream;
 beforeEach(() => {
   jest.clearAllMocks();
   FakeMediaRecorder.instances = [];
+  FakeMediaRecorder.bytesDelChunk = 1;
 
   videoTrack = new FakeMediaStreamTrack('video');
   audioTrack = new FakeMediaStreamTrack('audio');
@@ -940,3 +966,177 @@ describe('useKioskRecorder — capturarFoto()', () => {
     expect(result.current.estado).toBe('armada');
   });
 });
+
+/**
+ * La cámara muda: lo que pasó en producción el 2026-09-23 con un iPhone.
+ *
+ * iOS le quitó la cámara a Safari sin terminar el track. No hubo `ended`, así
+ * que la página siguió "armada", el semáforo del escáner siguió en verde, y
+ * dos tomas seguidas subieron 33s y 1s de negro marcadas como verificadas
+ * (1,1 MB y 50 KB, contra ~31 MB de una toma sana de la misma duración).
+ */
+describe('useKioskRecorder — cámara muda', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  async function armada() {
+    const hook = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await hook.result.current.armar();
+    });
+    return hook;
+  }
+
+  it('un mute que no se recupera lleva a "caida" con un mensaje para el operador', async () => {
+    jest.useFakeTimers();
+    const { result } = await armada();
+
+    act(() => {
+      videoTrack.simulateMute();
+    });
+    // Durante la gracia todavía no se decide nada.
+    expect(result.current.estado).toBe('armada');
+
+    act(() => {
+      jest.advanceTimersByTime(MUTE_GRACIA_MS);
+    });
+
+    expect(result.current.estado).toBe('caida');
+    expect(result.current.error).toMatch(/imagen/i);
+  });
+
+  it('un mute que se recupera dentro de la gracia no molesta a nadie', async () => {
+    jest.useFakeTimers();
+    const { result } = await armada();
+
+    act(() => {
+      videoTrack.simulateMute();
+    });
+    act(() => {
+      jest.advanceTimersByTime(MUTE_GRACIA_MS - 100);
+      videoTrack.simulateUnmute();
+    });
+    act(() => {
+      jest.advanceTimersByTime(MUTE_GRACIA_MS * 2);
+    });
+
+    expect(result.current.estado).toBe('armada');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('un track que ya llega muteado al armar también cae si no se recupera', async () => {
+    jest.useFakeTimers();
+    videoTrack.muted = true;
+    const { result } = await armada();
+
+    act(() => {
+      jest.advanceTimersByTime(MUTE_GRACIA_MS);
+    });
+
+    expect(result.current.estado).toBe('caida');
+  });
+
+  it('el mute de un stream ya reemplazado por un rearme no tumba la cámara nueva', async () => {
+    jest.useFakeTimers();
+    const streams: FakeMediaStreamTrack[] = [];
+    getUserMedia.mockImplementation(() => {
+      const video = new FakeMediaStreamTrack('video');
+      streams.push(video);
+      return Promise.resolve(new FakeMediaStream([video, new FakeMediaStreamTrack('audio')]));
+    });
+    const { result } = await armada();
+
+    act(() => {
+      streams[0].simulateMute();
+    });
+    await act(async () => {
+      await result.current.armar();
+    });
+    act(() => {
+      jest.advanceTimersByTime(MUTE_GRACIA_MS * 2);
+    });
+
+    expect(result.current.estado).toBe('armada');
+  });
+
+  it('el rearme avisa "ended" en los tracks viejos: `stop()` no lo emite solo', async () => {
+    // La spec de Media Capture dice que `track.stop()` NO dispara `ended`. La
+    // transmisión en vivo (`useTransmisionEmisor`) se entera del rearme por
+    // ese evento; sin este aviso explícito su peer se queda con el track
+    // muerto y el escáner mira negro hasta la inspección siguiente.
+    const streams: FakeMediaStreamTrack[] = [];
+    getUserMedia.mockImplementation(() => {
+      const video = new FakeMediaStreamTrack('video');
+      streams.push(video);
+      return Promise.resolve(new FakeMediaStream([video, new FakeMediaStreamTrack('audio')]));
+    });
+    const { result } = await armada();
+    const alTerminar = jest.fn();
+    streams[0].addEventListener('ended', alTerminar);
+
+    await act(async () => {
+      await result.current.armar();
+    });
+
+    expect(streams[0].stop).toHaveBeenCalled();
+    expect(alTerminar).toHaveBeenCalledTimes(1);
+  });
+
+  it('una toma que salió casi sin bytes deja la cámara "caida" en vez de "armada"', async () => {
+    jest.useFakeTimers();
+    const { result } = await armada();
+    act(() => {
+      result.current.grabar();
+    });
+    // 33s a ~270 kbps: la toma negra de producción.
+    FakeMediaRecorder.bytesDelChunk = 1_100_000;
+    act(() => {
+      jest.advanceTimersByTime(33_000);
+    });
+
+    await act(async () => {
+      await result.current.detener();
+    });
+
+    expect(result.current.estado).toBe('caida');
+    expect(result.current.error).toMatch(/imagen/i);
+  });
+
+  it('una toma con un bitrate normal vuelve a "armada"', async () => {
+    jest.useFakeTimers();
+    const { result } = await armada();
+    act(() => {
+      result.current.grabar();
+    });
+    // 32s a ~7,8 Mbps: la toma sana de producción del mismo teléfono.
+    FakeMediaRecorder.bytesDelChunk = 31_100_000;
+    act(() => {
+      jest.advanceTimersByTime(32_000);
+    });
+
+    await act(async () => {
+      await result.current.detener();
+    });
+
+    expect(result.current.estado).toBe('armada');
+  });
+
+  it('una toma muy corta no se juzga por su bitrate: el encabezado pesa más que el video', async () => {
+    jest.useFakeTimers();
+    const { result } = await armada();
+    act(() => {
+      result.current.grabar();
+    });
+    act(() => {
+      jest.advanceTimersByTime(TOMA_MINIMA_PARA_JUZGAR_MS - 1);
+    });
+
+    await act(async () => {
+      await result.current.detener();
+    });
+
+    expect(result.current.estado).toBe('armada');
+  });
+});
+
