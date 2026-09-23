@@ -6,6 +6,7 @@ import {
   bindSenales,
   esperarIceCompleto,
   mandarSenal,
+  transmisionHabilitada,
   type SenalChannel,
   type SenalPayload,
 } from './senalizacion';
@@ -102,7 +103,8 @@ export function useTransmisionEmisor({
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
 
   useEffect(() => {
-    if (!channel || !deviceId || !token) return undefined;
+    // Apagada: ni siquiera se escuchan las ofertas. Ver `transmisionHabilitada`.
+    if (!transmisionHabilitada() || !channel || !deviceId || !token) return undefined;
 
     const peers = peersRef.current;
     /**

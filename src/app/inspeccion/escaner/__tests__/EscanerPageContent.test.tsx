@@ -1113,6 +1113,50 @@ describe('EscanerPageContent', () => {
     });
 
     describe('transmisión en vivo', () => {
+      beforeEach(() => {
+        process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '1';
+      });
+
+      afterEach(() => {
+        delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+      });
+
+      it('APAGADA (el default): la inspección abierta no muestra visor ni abre peers', async () => {
+        delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+        const construyeConexion = jest.fn();
+        (globalThis as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection =
+          construyeConexion;
+
+        setDeviceSessionEscaner();
+        instalarFetchEscaner();
+
+        render(<EscanerPageContent />);
+        const pusher = conectarYListo();
+
+        await waitFor(() => {
+          expect(screen.getByText('Estación lista para escanear')).toBeInTheDocument();
+        });
+        await cargarYConfirmarSerial();
+
+        fireEvent.click(screen.getByRole('button', { name: /^iniciar$/i }));
+        await waitFor(() => {
+          expect(
+            (global.fetch as jest.Mock).mock.calls.some(([u]: [string]) =>
+              String(u).endsWith('/inspections')
+            )
+          ).toBe(true);
+        });
+        act(() => {
+          pusher.channel.emit('recording.started', { inspection_id: 1 });
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText('GRABANDO')).toBeInTheDocument();
+        });
+        expect(document.querySelector('[data-transmision]')).toBeNull();
+        expect(construyeConexion).not.toHaveBeenCalled();
+      });
+
       it('REGLA CRÍTICA: si WebRTC explota, la grabación sigue igual', async () => {
         // Un `RTCPeerConnection` que ni siquiera se puede construir es el
         // peor caso. Si esto tumbara la vista, un navegador sin WebRTC

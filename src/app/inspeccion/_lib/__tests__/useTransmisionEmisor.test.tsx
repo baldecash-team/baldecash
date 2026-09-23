@@ -97,6 +97,7 @@ function cuerposEnviados(): Array<Record<string, string>> {
 
 describe('useTransmisionEmisor', () => {
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '1';
     instalarFakeRTC();
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
   });
@@ -107,6 +108,19 @@ describe('useTransmisionEmisor', () => {
   // pasar) por culpa del anterior y no por lo que mide.
   afterEach(() => {
     jest.restoreAllMocks();
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+  });
+
+  it('APAGADA (el default): ni contesta ni abre un peer', async () => {
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+    const { channel } = montar(fakeStream(fakeTrack()));
+
+    channel.emit(SENAL_EVENT, OFERTA);
+    // Lo que tarde en aparecer un peer si el hook contestara.
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(FakeRTCPeerConnection.instances).toHaveLength(0);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('ante una oferta crea un peer y contesta con una answer', async () => {

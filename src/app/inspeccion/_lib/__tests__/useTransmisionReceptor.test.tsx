@@ -55,8 +55,23 @@ function cuerposEnviados(): Array<Record<string, string>> {
 
 describe('useTransmisionReceptor', () => {
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '1';
     instalarFakeRTC();
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+  });
+
+  it('APAGADA (el default): con la inspección abierta no ofrece ni muestra nada', async () => {
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+    const { vista } = montar(true);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(FakeRTCPeerConnection.instances).toHaveLength(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(vista.result.current.transmisiones).toEqual([]);
   });
 
   it('con la inspección cerrada no abre ningún peer', () => {
