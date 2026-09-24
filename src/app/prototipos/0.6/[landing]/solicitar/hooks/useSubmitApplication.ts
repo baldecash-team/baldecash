@@ -763,6 +763,14 @@ export function useSubmitApplication(
               'El plan de pago que tenías guardado ya no está disponible para ' +
               'este equipo. Vuelve al catálogo y elige nuevamente tu plan ' +
               'para continuar.',
+            // El límite de usos por DNI solo se revisa al enviar: la
+            // validación del resumen no conoce el documento y muestra el
+            // cupón como válido. El texto del API dice qué pasó pero no qué
+            // hacer, y la única salida es enviar sin el cupón (caso DNI
+            // 60477990, 22-09-2026: ~10 envíos rechazados sin explicación).
+            COUPON_USER_LIMIT_REACHED:
+              'Ya usaste este cupón en otra solicitud. Quítalo para enviar ' +
+              'esta solicitud.',
           };
           const msg =
             (result.error_code ? MENSAJES[result.error_code] : undefined) ||

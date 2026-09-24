@@ -231,6 +231,12 @@ export async function submitApplication(
       return {
         success: false,
         error: result.detail || 'Error al enviar la solicitud',
+        // El 400 del submit trae el motivo en `error_code` junto a `detail`
+        // (OUT_OF_STOCK, COUPON_USER_LIMIT_REACHED, ...). Sin pasarlo acá,
+        // useSubmitApplication no puede elegir el mensaje y la analítica
+        // registra `unknown`: así se perdió el caso del DNI 60477990
+        // (21/22-09-2026, 27 envíos fallidos, todos `unknown`).
+        error_code: result.error_code ?? undefined,
       };
     }
 

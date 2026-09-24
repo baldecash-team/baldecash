@@ -245,6 +245,24 @@ describe('useSubmitApplication', () => {
       expect(onToast.mock.calls[0][0]).toContain('catálogo');
     });
 
+    it('COUPON_USER_LIMIT_REACHED: pide quitar el cupon', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'COUPON_USER_LIMIT_REACHED',
+        error: 'Ya has utilizado este cupón el máximo de veces permitido',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toContain('Quítalo');
+      expect(result.current.error).toBe(msg);
+    });
+
     it('un codigo desconocido cae al mensaje del API', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: false,
