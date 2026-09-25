@@ -24,8 +24,9 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // '/icpna' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4133, 25-sep). Si beneficios.baldecash.com/icpna pasa a redirigir
   // hacia aca, volver a agregar esta clave causaria un bucle.
-  // BAL-4133: Carlos Cueto Fernandini es colegio -> landing de colegios.
-  '/carloscueto': '/colegios',
+  // '/carloscueto' ya no redirige: es la landing de convenio del Instituto
+  // Carlos Cueto Fernandini (BAL-4133, 25-sep). Si beneficios.baldecash.com/carloscueto
+  // pasa a redirigir hacia aca, volver a agregar esta clave causaria un bucle.
   // '/innova' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4133, 25-sep). Si beneficios.baldecash.com/innova pasa a redirigir
   // hacia aca, volver a agregar esta clave causaria un bucle.
