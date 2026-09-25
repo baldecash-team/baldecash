@@ -50,7 +50,9 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/ansimar': 'https://beneficios.baldecash.com/ansimar',
   '/ucv-docentes': 'https://pidetuprestamo.baldecash.com/#/ucv-docentes-y-administrativos',
   '/mrap': 'https://beneficios.baldecash.com/maria-araoz',
-  '/untumbes': 'https://beneficios.baldecash.com/untumbes',
+  // '/untumbes' ya no redirige a beneficios: ahora es la landing de convenio
+  // (BAL-4136, publicada el 25-sep). Si beneficios.baldecash.com/untumbes pasa a
+  // redirigir hacia aca, volver a agregar esta clave causaria un bucle.
   // '/unap' ya no redirige a beneficios: ahora es la landing de convenio
   // (landing 359, publicada el 21-sep). Si beneficios.baldecash.com/unap
   // pasa a redirigir hacia acá, volver a agregar esta clave causaría un
@@ -59,7 +61,9 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // (landing 143) con su Express (404). Si beneficios.baldecash.com/utec
   // pasa a redirigir hacia acá, volver a agregar esta clave causaría un bucle.
   '/sorteo-senati-cuotas': '/sorteo-senati-becas',
-  '/jhalebet': 'https://beneficios.baldecash.com/jhalebet',
+  // '/jhalebet' ya no redirige a beneficios: ahora es la landing de convenio
+  // (BAL-4136, publicada el 25-sep). Si beneficios.baldecash.com/jhalebet pasa a
+  // redirigir hacia aca, volver a agregar esta clave causaria un bucle.
   '/iesrp': 'https://beneficios.baldecash.com/instituto-ricardo-palma',
   '/educad': 'https://beneficios.baldecash.com/educad',
   // '/ucsur' ya no redirige a beneficios: ahora es la landing de convenio.
