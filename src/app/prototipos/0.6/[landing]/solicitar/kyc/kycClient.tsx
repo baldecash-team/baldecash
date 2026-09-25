@@ -21,7 +21,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import type { KycStep, KycStepType } from '@/app/prototipos/0.6/services/landingApi';
 import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
-import { guardarConstancia } from './constanciaStorage';
+import { guardarConstancia, olvidarConstancia } from './constanciaStorage';
 import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { useKycTracker, type KycTrack } from './useKycTracker';
 import { DniSelfieStep } from './steps/DniSelfieStep';
@@ -430,6 +430,22 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     || (progressState?.steps ?? []).some(
       (paso) => paso.type === 'contract' && paso.status === 'completed',
     );
+
+  /**
+   * Con el contrato pendiente de firma no hay constancia vigente. Si quedó una
+   * guardada es la de un contrato anterior: la solicitud se revirtió (cambio de
+   * equipo, de plazo, de accesorios) y ws2 emitió uno nuevo. Mostrarla en la
+   * confirmación sería entregarle a la persona la copia de algo que ya no
+   * firmó (L-132023, 25-sep-2026).
+   */
+  const contratoPendiente = (progressState?.steps ?? []).some(
+    (paso) => paso.type === 'contract' && paso.status !== 'completed',
+  );
+  useEffect(() => {
+    if (contratoPendiente && !contratoAceptado && code) {
+      olvidarConstancia(landing, code);
+    }
+  }, [contratoPendiente, contratoAceptado, landing, code]);
 
   /** Hay pago pendiente y todavia no llego el link: se esta resolviendo. */
   const resolviendoPago = pagoPendienteRemoto && !linkPago;
