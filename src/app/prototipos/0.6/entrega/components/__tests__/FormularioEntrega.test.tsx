@@ -139,3 +139,40 @@ it('registrado muestra el cierre con el resumen', () => {
   expect(screen.getByText('Av. Benavides 1238, Dpto 301')).toBeInTheDocument();
   expect(screen.getByText('Tú')).toBeInTheDocument();
 });
+
+it('la referencia se muestra para confirmar aunque venga precargada', () => {
+  pintar({ direccionInicial: CON_DIRECCION });
+
+  expect(screen.getByLabelText(/Referencia de la dirección/)).toHaveValue('Frente al parque');
+});
+
+it('una referencia heredada de relleno ("-") no deja finalizar', async () => {
+  const onEnviar = jest.fn();
+  pintar({ direccionInicial: { ...CON_DIRECCION, referencia: '-' }, onEnviar });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+
+  expect(screen.getByText('Escribe una referencia para el repartidor')).toBeInTheDocument();
+  expect(onEnviar).not.toHaveBeenCalled();
+});
+
+it('una referencia muy corta pide más detalle', async () => {
+  const onEnviar = jest.fn();
+  pintar({ direccionInicial: { ...CON_DIRECCION, referencia: '4ta cruz' }, onEnviar });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+
+  expect(screen.getByText('Agrega más detalle: qué hay cerca o cómo es tu casa')).toBeInTheDocument();
+  expect(onEnviar).not.toHaveBeenCalled();
+});
+
+it('un plus code de Google como dirección vuelve a la pantalla de dirección', async () => {
+  const onEnviar = jest.fn();
+  pintar({ direccionInicial: { ...CON_DIRECCION, direccion: 'R22G+RRF 12.1978510, -76.9729758', calle: '' }, onEnviar });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+
+  expect(screen.getByRole('heading', { name: '¿A dónde enviamos tu equipo?' })).toBeInTheDocument();
+  expect(screen.getByText(/el repartidor no entiende códigos como R22G\+RRF/)).toBeInTheDocument();
+  expect(onEnviar).not.toHaveBeenCalled();
+});

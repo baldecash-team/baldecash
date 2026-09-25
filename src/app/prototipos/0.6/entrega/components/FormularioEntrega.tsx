@@ -107,6 +107,43 @@ const NUM_LOGISTICA = '957 082 347';
 const esDniValido = (v: string) => /^\d{8}$/.test(v.trim());
 const limpio = (v?: string | null) => (v ?? '').toString().trim();
 
+/**
+ * La referencia es lo que usa el repartidor cuando la dirección no alcanza, y
+ * es la causa más común de "dirección no ubicada". Por eso no basta con que
+ * haya algo escrito: un "-" o un "ninguna" heredados del legacy pasaban como
+ * referencia y el courier volvía sin entregar.
+ */
+export const REFERENCIA_MIN = 10;
+
+/**
+ * Plus code de Google (`R22G+RRF`): lo devuelve cuando el punto no tiene calle
+ * con nombre. Es un código de ubicación, no una dirección, y en la guía del
+ * courier no le dice nada al repartidor. Lo mismo unas coordenadas pegadas.
+ */
+const PLUS_CODE = /\b[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i;
+const COORDENADAS = /-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.?\d*/;
+export const esCodigoDeUbicacion = (v: string) => PLUS_CODE.test(v) || COORDENADAS.test(v);
+const errorDeDireccion = (v: string): string | null => {
+  if (!v.trim()) return 'Escribe tu dirección';
+  if (esCodigoDeUbicacion(v)) {
+    return 'Escribe el nombre de tu calle o tu Mz y Lote: el repartidor no entiende códigos como R22G+RRF';
+  }
+  return null;
+};
+const REFERENCIAS_VACIAS = new Set([
+  '-', '.', 'ninguna', 'ninguno', 'no', 'na', 'n/a', 'sin referencia', 'ninguna referencia', 'x',
+]);
+const errorDeReferencia = (v: string): string | null => {
+  const texto = v.trim();
+  if (!texto || REFERENCIAS_VACIAS.has(texto.toLowerCase())) {
+    return 'Escribe una referencia para el repartidor';
+  }
+  if (texto.length < REFERENCIA_MIN || !/[a-záéíóúñ]/i.test(texto)) {
+    return 'Agrega más detalle: qué hay cerca o cómo es tu casa';
+  }
+  return null;
+};
+
 export function FormularioEntrega({
   equipo,
   direccionInicial,
@@ -141,6 +178,7 @@ export function FormularioEntrega({
   // entrar a editar, y el hook de Google engancha en un efecto que depende de
   // la IDENTIDAD del ref. Con un `useRef` estable ese efecto ya habia corrido
   // con el input todavia sin montar, y el autocompletado nunca aparecia.
+  const [googleSinCalle, setGoogleSinCalle] = useState(false);
   const [nodoDireccion, setNodoDireccion] = useState<HTMLInputElement | null>(null);
   const inputDireccion = useMemo(() => ({ current: nodoDireccion }), [nodoDireccion]);
   const [preset, setPreset] = useState<{ departmentId?: string; provinceId?: string }>({});
@@ -150,8 +188,12 @@ export function FormularioEntrega({
     // el departamento son los selects de abajo, y repetirlos en el renglon de
     // la calle es lo que despues llega impreso en la guia del courier.
     const calleYNumero = [lugar.street, lugar.number].filter(Boolean).join(' ').trim();
-    setDireccion(calleYNumero || lugar.formattedAddress);
-    limpiaError('direccion');
+    // Sin calle, Google cae a un plus code ("R22G+RRF, Villa El Salvador"): se
+    // deja el campo vacío para que la escriba, y el distrito igual se resuelve.
+    const sinCalle = !calleYNumero && esCodigoDeUbicacion(lugar.formattedAddress || '');
+    setGoogleSinCalle(sinCalle);
+    setDireccion(sinCalle ? '' : (calleYNumero || lugar.formattedAddress));
+    if (!sinCalle) limpiaError('direccion');
 
     if (!lugar.department && !lugar.province && !lugar.district) return;
 
@@ -219,9 +261,9 @@ export function FormularioEntrega({
   /** Confirmar dirección: marca TODO lo que falta de una vez, no el primero. */
   const confirmarDireccion = () => {
     const faltan = new Set<Campo>();
-    if (!direccion.trim()) faltan.add('direccion');
+    if (errorDeDireccion(direccion)) faltan.add('direccion');
     if (!distritoId) faltan.add('distrito');
-    if (!referencia.trim()) faltan.add('referencia');
+    if (errorDeReferencia(referencia)) faltan.add('referencia');
     setErrores(faltan);
     if (faltan.size) return;
     setEditandoDireccion(false);
@@ -229,9 +271,9 @@ export function FormularioEntrega({
 
   const finalizar = () => {
     const faltan = new Set<Campo>();
-    if (!direccion.trim()) faltan.add('direccion');
+    if (errorDeDireccion(direccion)) faltan.add('direccion');
     if (!distritoId) faltan.add('distrito');
-    if (!referencia.trim()) faltan.add('referencia');
+    if (errorDeReferencia(referencia)) faltan.add('referencia');
     if (!esTitular) {
       if (!nombres.trim()) faltan.add('nombre');
       if (!esDniValido(documento)) faltan.add('documento');
@@ -340,19 +382,21 @@ export function FormularioEntrega({
             id="entrega-direccion"
             label="Dirección"
             requerido
-            ayuda="Empieza a escribir y elige tu dirección de la lista."
-            error={marca('direccion') && !direccion.trim() ? 'Escribe tu dirección' : null}
+            ayuda={googleSinCalle
+              ? 'Google ubicó tu zona, pero no tu calle. Escríbela a mano (ej: Calle Los Pinos o Mz B Lt 4).'
+              : 'Empieza a escribir y elige tu dirección de la lista.'}
+            error={marca('direccion') ? errorDeDireccion(direccion) : null}
             icono={<IconoPin />}
           >
             <input
               id="entrega-direccion"
               ref={setNodoDireccion}
-              className={inputClase(marca('direccion') && !direccion.trim(), true)}
+              className={inputClase(marca('direccion') && !!errorDeDireccion(direccion), true)}
               type="text"
               autoComplete="off"
               placeholder="Escribe y elige tu dirección (ej: Av. Benavides 1238)"
               value={direccion}
-              onChange={(e) => { setDireccion(e.target.value); limpiaError('direccion'); }}
+              onChange={(e) => { setDireccion(e.target.value); setGoogleSinCalle(false); limpiaError('direccion'); }}
             />
           </Campo>
 
@@ -393,11 +437,11 @@ export function FormularioEntrega({
             label="Referencia"
             requerido
             ayuda="Ayuda al repartidor a ubicar tu casa."
-            error={marca('referencia') && !referencia.trim() ? 'Escribe una referencia para el repartidor' : null}
+            error={marca('referencia') ? errorDeReferencia(referencia) : null}
           >
             <input
               id="entrega-referencia"
-              className={inputClase(marca('referencia') && !referencia.trim())}
+              className={inputClase(marca('referencia') && !!errorDeReferencia(referencia))}
               type="text"
               maxLength={250}
               placeholder="Ej: frente al parque, casa de rejas negras"
@@ -427,11 +471,6 @@ export function FormularioEntrega({
                 {[direccion, calle].filter(Boolean).join(', ')}
               </p>
               {ubicacion && <p className="text-[#5F6070]">{ubicacion}</p>}
-              {referencia && (
-                <p className="mt-1.5 text-[13px] text-[#5F6070]">
-                  <span className="text-[#8A8B99]">Referencia:</span> {referencia}
-                </p>
-              )}
             </div>
             {permiteEditarDireccion && (
               <button
@@ -444,25 +483,25 @@ export function FormularioEntrega({
             )}
           </section>
 
-          {!limpio(inicial.referencia) && (
-            <Campo
+          {/* Siempre a la vista, aunque venga precargada: la que heredamos puede
+              ser un "-" o estar vieja, y es lo que lee el repartidor. */}
+          <Campo
+            id="entrega-referencia-2"
+            label="Referencia de la dirección"
+            requerido
+            ayuda="Ayuda al repartidor a ubicar tu casa."
+            error={marca('referencia') ? errorDeReferencia(referencia) : null}
+          >
+            <input
               id="entrega-referencia-2"
-              label="Referencia de la dirección"
-              requerido
-              ayuda="Ayuda al repartidor a ubicar tu casa."
-              error={marca('referencia') && !referencia.trim() ? 'Escribe una referencia para el repartidor' : null}
-            >
-              <input
-                id="entrega-referencia-2"
-                className={inputClase(marca('referencia') && !referencia.trim())}
-                type="text"
-                maxLength={250}
-                placeholder="Ej: frente al parque, casa de rejas negras"
-                value={referencia}
-                onChange={(e) => { setReferencia(e.target.value); limpiaError('referencia'); }}
-              />
-            </Campo>
-          )}
+              className={inputClase(marca('referencia') && !!errorDeReferencia(referencia))}
+              type="text"
+              maxLength={250}
+              placeholder="Ej: frente al parque, casa de rejas negras"
+              value={referencia}
+              onChange={(e) => { setReferencia(e.target.value); limpiaError('referencia'); }}
+            />
+          </Campo>
 
           <fieldset className="border-0 p-0">
             <legend className="mb-2.5 text-[15px] font-semibold text-[#222226]">
