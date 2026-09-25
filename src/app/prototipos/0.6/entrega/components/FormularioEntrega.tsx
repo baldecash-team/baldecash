@@ -855,8 +855,10 @@ function DireccionEnPartes({
   onCambio: (campo: keyof PartesDireccion, valor: string) => void;
 }) {
   const error = (c: CampoDireccion) => (marcados.has(c) ? errores[c] ?? null : null);
-  const selectClase = `${inputClase(false)} cursor-pointer`;
   const renglon = componerDireccion(partes);
+  // Hasta que escriba el nombre, el recuadro muestra un ejemplo en gris en vez
+  // de un renglón a medias ("Av.").
+  const empezado = (partes.forma === 'via' ? partes.nombreVia : partes.nombreZona).trim() !== '';
   const carretera = partes.tipoVia === 'Carretera';
 
   return (
@@ -885,18 +887,14 @@ function DireccionEnPartes({
 
       {partes.forma === 'via' && (
         <>
-          <p className="text-[13px] text-[#5F6070]">Ej: Av. Benavides 1238 · Jr. Huallaga 452</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[130px_1fr_110px]">
-            <Campo id="entrega-tipo-via" label="Tipo" requerido>
-              <select
-                id="entrega-tipo-via"
-                className={selectClase}
-                value={partes.tipoVia}
-                onChange={(e) => onCambio('tipoVia', e.target.value)}
-              >
-                {TIPOS_VIA.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </Campo>
+          <Chips
+            nombre="entrega-tipo-via"
+            etiqueta="Tipo de vía"
+            opciones={TIPOS_VIA}
+            valor={partes.tipoVia}
+            onElegir={(v) => onCambio('tipoVia', v)}
+          />
+          <div className="grid grid-cols-[1fr_104px] gap-3">
             <Campo id="entrega-nombre-via" label="Nombre de la vía" requerido error={error('nombreVia')}>
               <input
                 id="entrega-nombre-via"
@@ -926,19 +924,14 @@ function DireccionEnPartes({
 
       {partes.forma === 'lote' && (
         <>
-          <p className="text-[13px] text-[#5F6070]">Ej: AA.HH. Los Cedros Mz Z Lt 15 · Urbanización Sol de Piura Mz B4 Lt 22</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[150px_1fr]">
-            <Campo id="entrega-tipo-zona" label="Tipo" requerido>
-              <select
-                id="entrega-tipo-zona"
-                className={selectClase}
-                value={partes.tipoZona}
-                onChange={(e) => onCambio('tipoZona', e.target.value)}
-              >
-                {TIPOS_ZONA.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </Campo>
-            <Campo id="entrega-nombre-zona" label="Nombre" requerido error={error('nombreZona')}>
+          <Chips
+            nombre="entrega-tipo-zona"
+            etiqueta="Tipo de zona"
+            opciones={TIPOS_ZONA}
+            valor={partes.tipoZona}
+            onElegir={(v) => onCambio('tipoZona', v)}
+          />
+          <Campo id="entrega-nombre-zona" label={`Nombre de la ${partes.tipoZona === 'AA.HH.' ? 'zona' : partes.tipoZona.toLowerCase()}`} requerido error={error('nombreZona')}>
               <input
                 id="entrega-nombre-zona"
                 className={inputClase(!!error('nombreZona'))}
@@ -949,7 +942,6 @@ function DireccionEnPartes({
                 onChange={(e) => onCambio('nombreZona', e.target.value)}
               />
             </Campo>
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <Campo id="entrega-mz" label="Manzana" requerido error={error('mz')}>
               <input
@@ -991,14 +983,75 @@ function DireccionEnPartes({
             />
           </Campo>
           <p className="rounded-[10px] bg-[#F7F7FB] px-3.5 py-2.5 text-[13px] text-[#5F6070]">
-            Así la verá el repartidor:{' '}
-            <span data-testid="entrega-renglon" className="font-semibold text-[#222226]">
-              {[renglon, partes.interior.trim()].filter(Boolean).join(', ') || '…'}
-            </span>
+            {empezado ? 'Así la verá el repartidor:' : 'Ejemplo:'}{' '}
+            {empezado ? (
+              <span data-testid="entrega-renglon" className="font-semibold text-[#222226]">
+                {[renglon, partes.interior.trim()].filter(Boolean).join(', ')}
+              </span>
+            ) : (
+              <span className="font-semibold text-[#8A8B99]">
+                {partes.forma === 'via' ? 'Av. Benavides 1238, Dpto 301' : 'AA.HH. Los Cedros Mz Z Lt 15'}
+              </span>
+            )}
           </p>
         </>
       )}
     </fieldset>
+  );
+}
+
+/**
+ * Pocas opciones cortas: van a la vista, como pastillas, en vez de esconderse
+ * en un desplegable. En el celular se eligen de un toque y se ve de una qué
+ * otras había. Son radios de verdad por debajo, así que el teclado y los
+ * lectores de pantalla las recorren como un grupo.
+ */
+function Chips({
+  nombre, etiqueta, opciones, valor, onElegir,
+}: {
+  nombre: string;
+  etiqueta: string;
+  opciones: readonly string[];
+  valor: string;
+  onElegir: (valor: string) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={etiqueta}>
+      <p className="mb-2 text-sm font-semibold text-[#222226]">{etiqueta}</p>
+      <div className="flex flex-wrap gap-2">
+        {opciones.map((opcion) => {
+          const activa = opcion === valor;
+          return (
+            <label
+              key={opcion}
+              className={[
+                'relative inline-flex h-9 cursor-pointer select-none items-center gap-1.5 rounded-full border-[1.5px] px-3.5',
+                'text-sm font-medium transition-colors',
+                'has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#E4E6FF]',
+                activa
+                  ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                  : 'border-[#C9CBD8] bg-white text-[#5F6070] hover:border-[#4654CD] hover:text-[#4654CD]',
+              ].join(' ')}
+            >
+              <input
+                type="radio"
+                name={nombre}
+                value={opcion}
+                checked={activa}
+                onChange={() => onElegir(opcion)}
+                className="sr-only"
+              />
+              {activa && (
+                <svg viewBox="0 0 12 12" fill="none" aria-hidden="true" className="h-3 w-3">
+                  <path d="M2.5 6.2 5 8.5l4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+              {opcion}
+            </label>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

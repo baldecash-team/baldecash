@@ -154,8 +154,8 @@ it('por manzana y lote arma el renglón con Mz y Lt', async () => {
   pintar();
 
   await userEvent.click(screen.getByRole('radio', { name: 'Manzana y lote' }));
-  await userEvent.selectOptions(screen.getByLabelText(/^Tipo/), 'AA.HH.');
-  await userEvent.type(screen.getByLabelText(/^Nombre/), 'Los Cedros');
+  await userEvent.click(screen.getByRole('radio', { name: 'AA.HH.' }));
+  await userEvent.type(screen.getByLabelText(/Nombre de la zona/), 'Los Cedros');
   await userEvent.type(screen.getByRole('textbox', { name: /^Manzana/ }), 'z');
   await userEvent.type(screen.getByRole('textbox', { name: /^Lote/ }), '15');
 
