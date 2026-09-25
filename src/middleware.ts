@@ -31,7 +31,10 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/matriculaupn': 'https://pidetuprestamo.baldecash.com/#/matriculasupn',
   '/undac': 'https://beneficios.baldecash.com/undac',
   '/cachimbos': 'https://beneficios.baldecash.com/ucv-2025',
-  '/icontinental': 'https://beneficios.baldecash.com/icontinental',
+  // '/icontinental' ya no redirige a beneficios: ahora es la landing de
+  // convenio (landing 399, publicada el 24-sep). Si
+  // beneficios.baldecash.com/icontinental pasa a redirigir hacia acá, volver
+  // a agregar esta clave causaría un bucle (ERR_TOO_MANY_REDIRECTS).
   '/tituloupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
   '/titulosupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
   '/iestp': 'https://beneficios.baldecash.com/iestp',
