@@ -24,11 +24,14 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // '/icpna' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4133, 25-sep). Si beneficios.baldecash.com/icpna pasa a redirigir
   // hacia aca, volver a agregar esta clave causaria un bucle.
-  '/carloscueto': 'https://beneficios.baldecash.com/carloscueto',
+  // BAL-4133: Carlos Cueto Fernandini es colegio -> landing de colegios.
+  '/carloscueto': '/colegios',
   // '/innova' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4133, 25-sep). Si beneficios.baldecash.com/innova pasa a redirigir
   // hacia aca, volver a agregar esta clave causaria un bucle.
-  '/corrientealterna': 'https://beneficios.baldecash.com/corrientealterna',
+  // '/corrientealterna' ya no redirige a beneficios: ahora es la landing de
+  // convenio (BAL-4133, 25-sep). Si beneficios.baldecash.com/corrientealterna
+  // pasa a redirigir hacia aca, volver a agregar esta clave causaria un bucle.
   '/iurusayhua': 'https://beneficios.baldecash.com/iurusayhua',
   '/terminos-condiciones-sorteo-mayo-baldecash': 'https://drive.google.com/file/d/1IdE3FIG0y7iwL6sxYNGnookGZIMuaVtB/view',
   '/usjb': 'https://beneficios.baldecash.com/usjb',
