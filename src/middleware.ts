@@ -16,14 +16,22 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/libro-reclamaciones': '/home/legal/libro-reclamaciones',
   '/isat': 'https://beneficios.baldecash.com/isat',
   '/colegios': 'https://baldecash-colegios-financiamientos.lovable.app/',
-  '/coar': 'https://baldecash-coar.lovable.app/',
+  // '/coar' ya no redirige a la landing de Lovable: ahora es la landing de
+  // convenio (BAL-4133, 25-sep), con /coar-docente para docentes.
   '/terminos-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
   '/terminos-y-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
   '/ucal-cachimbo': 'https://beneficios.baldecash.com/ucal-cachimbo',
-  '/icpna': 'https://beneficios.baldecash.com/icpna',
-  '/carloscueto': 'https://beneficios.baldecash.com/carloscueto',
-  '/innova': 'https://beneficios.baldecash.com/innova',
-  '/corrientealterna': 'https://beneficios.baldecash.com/corrientealterna',
+  // '/icpna' ya no redirige a beneficios: ahora es la landing de convenio
+  // (BAL-4133, 25-sep). Si beneficios.baldecash.com/icpna pasa a redirigir
+  // hacia aca, volver a agregar esta clave causaria un bucle.
+  // BAL-4133: Carlos Cueto Fernandini es colegio -> landing de colegios.
+  '/carloscueto': '/colegios',
+  // '/innova' ya no redirige a beneficios: ahora es la landing de convenio
+  // (BAL-4133, 25-sep). Si beneficios.baldecash.com/innova pasa a redirigir
+  // hacia aca, volver a agregar esta clave causaria un bucle.
+  // '/corrientealterna' ya no redirige a beneficios: ahora es la landing de
+  // convenio (BAL-4133, 25-sep). Si beneficios.baldecash.com/corrientealterna
+  // pasa a redirigir hacia aca, volver a agregar esta clave causaria un bucle.
   '/iurusayhua': 'https://beneficios.baldecash.com/iurusayhua',
   '/terminos-condiciones-sorteo-mayo-baldecash': 'https://drive.google.com/file/d/1IdE3FIG0y7iwL6sxYNGnookGZIMuaVtB/view',
   '/usjb': 'https://beneficios.baldecash.com/usjb',
@@ -43,7 +51,9 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // '/uss' ya no redirige a beneficios: ahora es la landing de convenio.
   // beneficios.baldecash.com/uss redirige hacia acá, así que mantener esta
   // clave causaba un bucle infinito (ERR_TOO_MANY_REDIRECTS).
-  '/cpsp': 'https://beneficios.baldecash.com/cpsp',
+  // '/cpsp' ya no redirige a beneficios: ahora es la landing de convenio
+  // (BAL-4133, 25-sep). Si beneficios.baldecash.com/cpsp pasa a redirigir
+  // hacia aca, volver a agregar esta clave causaria un bucle.
   // '/wiener' ya no sale a pidetuprestamo: ahora es la landing de convenio.
   // beneficios.baldecash.com/norbert-wiener redirige hacia acá.
   '/carrion-egresados': 'https://pidetuprestamo.baldecash.com/#/prestamos?source=carrion&fuente=carrion-egresados',
