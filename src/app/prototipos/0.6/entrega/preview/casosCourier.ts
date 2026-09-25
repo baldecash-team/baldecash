@@ -133,7 +133,7 @@ export const CASOS_COURIER: CasoCourier[] = [
     motivo: 'Dirección no ubicada / faltan referencias',
     zona: 'San Juan de Lurigancho',
     problema: 'La "dirección" era un paradero: la persona vive en un cerro y la esperaban ahí. No hay calle.',
-    ahora: 'La dirección tiene que ser una calle o Mz y Lote; el punto de encuentro va en la referencia.',
+    ahora: 'Abre en la dirección con una alerta: sin número ni Mz y Lote no se puede registrar. El punto de encuentro va en la referencia.',
     direccion: {
       direccion: 'Paradero Corporación Roma',
       referencia: 'Vive en un cerro, se encuentran en este paradero',
@@ -175,7 +175,7 @@ export const CASOS_COURIER: CasoCourier[] = [
     motivo: 'Código de Google',
     zona: 'Villa El Salvador',
     problema: 'Google no encontró calle y devolvió un plus code con coordenadas. El repartidor no puede leerlo.',
-    ahora: 'Al finalizar vuelve a la dirección y pide la calle o Mz y Lote.',
+    ahora: 'Abre en la dirección con una alerta: un código de Google no se puede registrar. Hay que escribirla por vía y número o por Mz y Lote.',
     direccion: {
       direccion: 'R22G+RRF 12.1978510, -76.9729758',
       referencia: '',

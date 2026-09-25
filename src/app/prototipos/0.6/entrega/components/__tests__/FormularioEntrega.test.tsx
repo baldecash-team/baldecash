@@ -68,7 +68,7 @@ it('confirmar dirección marca todos los campos que faltan a la vez', async () =
 
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar dirección' }));
 
-  expect(screen.getByText('Escribe tu dirección')).toBeInTheDocument();
+  expect(screen.getByText('Elige cómo es tu dirección')).toBeInTheDocument();
   expect(screen.getByText('Elige tu distrito')).toBeInTheDocument();
   expect(screen.getByText('Escribe una referencia para el repartidor')).toBeInTheDocument();
 });
@@ -83,6 +83,21 @@ it('finalizar exige el nombre y el DNI de quien recibe, los dos juntos', async (
   expect(screen.getByText('Escribe el nombre de quien recibe')).toBeInTheDocument();
   expect(screen.getByText('El DNI tiene 8 números')).toBeInTheDocument();
   expect(screen.getByText('Completa los datos de quien recibe el pedido.')).toBeInTheDocument();
+});
+
+it('si recibe otra persona, el celular y el parentesco son obligatorios', async () => {
+  const onEnviar = jest.fn();
+  pintar({ direccionInicial: CON_DIRECCION, onEnviar });
+
+  await userEvent.click(screen.getByRole('radio', { name: 'Otra persona' }));
+  await userEvent.type(screen.getByLabelText(/Nombre completo/), 'María Torres');
+  await userEvent.type(screen.getByLabelText(/DNI/), '12345678');
+  await userEvent.type(screen.getByLabelText(/Celular/), '12345');
+  await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+
+  expect(screen.getByText('El celular tiene 9 números y empieza con 9')).toBeInTheDocument();
+  expect(screen.getByText('Escribe qué es tuyo (ej: madre)')).toBeInTheDocument();
+  expect(onEnviar).not.toHaveBeenCalled();
 });
 
 it('con una sola opción el envío se muestra como dato, sin elegir nada', () => {
@@ -108,11 +123,14 @@ it('si hubiera dos opciones elegibles vuelve el selector', () => {
   expect(screen.queryByTestId('entrega-envio-unico')).not.toBeInTheDocument();
 });
 
-it('declarar la dirección y finalizar devuelve lo completado', async () => {
+it('declarar la dirección por vía y número y finalizar devuelve lo completado', async () => {
   const onEnviar = jest.fn();
   pintar({ onEnviar });
 
-  await userEvent.type(screen.getByLabelText(/Dirección/), 'Av. Los Álamos 456');
+  await userEvent.click(screen.getByRole('radio', { name: 'Calle, avenida o jirón' }));
+  await userEvent.type(screen.getByLabelText(/Nombre de la vía/), 'Los Álamos');
+  await userEvent.type(screen.getByLabelText(/Número/), '456');
+  expect(screen.getByTestId('entrega-renglon')).toHaveTextContent('Av. Los Álamos 456');
   await userEvent.click(screen.getByRole('button', { name: 'Elegir distrito' }));
   await userEvent.type(screen.getByLabelText(/Referencia/), 'Casa de rejas negras');
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar dirección' }));
@@ -130,6 +148,40 @@ it('declarar la dirección y finalizar devuelve lo completado', async () => {
     esTitular: true,
     tipoEnvioId: 'gratis',
   }));
+});
+
+it('por manzana y lote arma el renglón con Mz y Lt', async () => {
+  pintar();
+
+  await userEvent.click(screen.getByRole('radio', { name: 'Manzana y lote' }));
+  await userEvent.selectOptions(screen.getByLabelText(/^Tipo/), 'AA.HH.');
+  await userEvent.type(screen.getByLabelText(/^Nombre/), 'Los Cedros');
+  await userEvent.type(screen.getByRole('textbox', { name: /^Manzana/ }), 'z');
+  await userEvent.type(screen.getByRole('textbox', { name: /^Lote/ }), '15');
+
+  expect(screen.getByTestId('entrega-renglon')).toHaveTextContent('AA.HH. Los Cedros Mz Z Lt 15');
+});
+
+it('una vía sin número no deja confirmar', async () => {
+  pintar();
+
+  await userEvent.click(screen.getByRole('radio', { name: 'Calle, avenida o jirón' }));
+  await userEvent.type(screen.getByLabelText(/Nombre de la vía/), 'Los Álamos');
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar dirección' }));
+
+  expect(screen.getByText(/Escribe el número de tu casa/)).toBeInTheDocument();
+  expect(screen.getByText('Corrige los campos marcados para continuar.')).toBeInTheDocument();
+});
+
+it('un plus code en el nombre de la vía no se acepta', async () => {
+  pintar();
+
+  await userEvent.click(screen.getByRole('radio', { name: 'Calle, avenida o jirón' }));
+  await userEvent.type(screen.getByLabelText(/Nombre de la vía/), '3WFV+FF8');
+  await userEvent.type(screen.getByLabelText(/Número/), '12');
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar dirección' }));
+
+  expect(screen.getByText(/Ese es un código de Google/)).toBeInTheDocument();
 });
 
 it('registrado muestra el cierre con el resumen', () => {
@@ -166,13 +218,16 @@ it('una referencia muy corta pide más detalle', async () => {
   expect(onEnviar).not.toHaveBeenCalled();
 });
 
-it('un plus code de Google como dirección vuelve a la pantalla de dirección', async () => {
-  const onEnviar = jest.fn();
-  pintar({ direccionInicial: { ...CON_DIRECCION, direccion: 'R22G+RRF 12.1978510, -76.9729758', calle: '' }, onEnviar });
-
-  await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+it('una dirección guardada con plus code abre en la dirección con la alerta', () => {
+  pintar({ direccionInicial: { ...CON_DIRECCION, direccion: '3WFV+FF8, Manuel González Prada, Comas 15312, Perú', calle: '' } });
 
   expect(screen.getByRole('heading', { name: '¿A dónde enviamos tu equipo?' })).toBeInTheDocument();
-  expect(screen.getByText(/el repartidor no entiende códigos como R22G\+RRF/)).toBeInTheDocument();
-  expect(onEnviar).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent('No podemos registrar tu envío con esta dirección');
+  expect(screen.getByRole('alert')).toHaveTextContent('es un código de Google');
+});
+
+it('una dirección guardada sin número abre en la dirección con la alerta', () => {
+  pintar({ direccionInicial: { ...CON_DIRECCION, direccion: 'Paradero Corporación Roma', calle: '' } });
+
+  expect(screen.getByRole('alert')).toHaveTextContent('le falta el número de tu casa o tu manzana y lote');
 });

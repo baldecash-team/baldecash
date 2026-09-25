@@ -13,16 +13,20 @@
  *
  *   dirección  →  envío  →  (enviando)  →  listo
  *
- * `dirección` solo aparece si la solicitud llegó sin ubigeo o si la persona
+ * `dirección` aparece si la solicitud llegó sin ubigeo, si la dirección guardada
+ * no le sirve al repartidor (plus code, sin número) o si la persona
  * toca «Editar»: Renueva y segundo financiamiento se aprueban sin dirección, y
  * es acá donde la declaran.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
-import { useGooglePlacesAutocomplete } from '@/app/prototipos/0.6/[landing]/solicitar/hooks/useGooglePlacesAutocomplete';
-import { resolveGeoUnits } from '@/app/prototipos/0.6/services/wizardApi';
-import type { ParsedAddress } from '@/app/prototipos/0.6/types/googleMaps';
+import {
+  PARTES_VACIAS, TIPOS_VIA, TIPOS_ZONA,
+  componerDireccion, erroresDeDireccion, errorDeReferencia, esCelularValido,
+  problemaDeDireccionGuardada,
+  type CampoDireccion, type PartesDireccion,
+} from './direccionEntrega';
 
 /** Equipo que se va a entregar. Todo opcional salvo el nombre: la tarjeta se
  *  arma con lo que haya y no se rompe si falta el precio o la imagen. */
@@ -99,50 +103,13 @@ export interface FormularioEntregaProps {
 }
 
 type Campo =
-  | 'direccion' | 'distrito' | 'referencia'
-  | 'nombre' | 'documento' | 'tipoEnvio';
+  | CampoDireccion | 'distrito' | 'referencia'
+  | 'nombre' | 'documento' | 'telefono' | 'parentesco' | 'tipoEnvio';
 
 const NUM_LOGISTICA = '957 082 347';
 
 const esDniValido = (v: string) => /^\d{8}$/.test(v.trim());
 const limpio = (v?: string | null) => (v ?? '').toString().trim();
-
-/**
- * La referencia es lo que usa el repartidor cuando la dirección no alcanza, y
- * es la causa más común de "dirección no ubicada". Por eso no basta con que
- * haya algo escrito: un "-" o un "ninguna" heredados del legacy pasaban como
- * referencia y el courier volvía sin entregar.
- */
-export const REFERENCIA_MIN = 10;
-
-/**
- * Plus code de Google (`R22G+RRF`): lo devuelve cuando el punto no tiene calle
- * con nombre. Es un código de ubicación, no una dirección, y en la guía del
- * courier no le dice nada al repartidor. Lo mismo unas coordenadas pegadas.
- */
-const PLUS_CODE = /\b[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i;
-const COORDENADAS = /-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.?\d*/;
-export const esCodigoDeUbicacion = (v: string) => PLUS_CODE.test(v) || COORDENADAS.test(v);
-const errorDeDireccion = (v: string): string | null => {
-  if (!v.trim()) return 'Escribe tu dirección';
-  if (esCodigoDeUbicacion(v)) {
-    return 'Escribe el nombre de tu calle o tu Mz y Lote: el repartidor no entiende códigos como R22G+RRF';
-  }
-  return null;
-};
-const REFERENCIAS_VACIAS = new Set([
-  '-', '.', 'ninguna', 'ninguno', 'no', 'na', 'n/a', 'sin referencia', 'ninguna referencia', 'x',
-]);
-const errorDeReferencia = (v: string): string | null => {
-  const texto = v.trim();
-  if (!texto || REFERENCIAS_VACIAS.has(texto.toLowerCase())) {
-    return 'Escribe una referencia para el repartidor';
-  }
-  if (texto.length < REFERENCIA_MIN || !/[a-záéíóúñ]/i.test(texto)) {
-    return 'Agrega más detalle: qué hay cerca o cómo es tu casa';
-  }
-  return null;
-};
 
 export function FormularioEntrega({
   equipo,
@@ -157,77 +124,39 @@ export function FormularioEntrega({
   onVolver,
 }: FormularioEntregaProps) {
   const inicial = direccionInicial ?? {};
+  // La dirección guardada puede estar pero no servir (un plus code, una zona
+  // sin número): entonces también se entra por la pantalla de dirección.
+  const problemaInicial = problemaDeDireccionGuardada(limpio(inicial.direccion));
   const sinUbigeo = !limpio(inicial.distritoId) || !limpio(inicial.direccion);
+  const debeCorregir = sinUbigeo || !!problemaInicial;
 
-  // Sin ubigeo se entra por la pantalla de dirección: es lo único que traba el
-  // envío, y pedirlo después de confirmar el resto sería hacerla volver.
-  const [editandoDireccion, setEditandoDireccion] = useState(sinUbigeo);
+  const [editandoDireccion, setEditandoDireccion] = useState(debeCorregir);
   const [mostrarAccesorios, setMostrarAccesorios] = useState(false);
   const [errores, setErrores] = useState<Set<Campo>>(new Set());
+  /** Por qué se la mandó a corregir la dirección: va arriba y en rojo. */
+  const [alertaDireccion, setAlertaDireccion] = useState<string | null>(
+    !sinUbigeo && problemaInicial ? problemaInicial : null,
+  );
 
-  const [direccion, setDireccion] = useState(limpio(inicial.direccion));
-  const [calle, setCalle] = useState(limpio(inicial.calle));
+  // Mientras no toque «Editar», la dirección es la guardada. Al editar se pide
+  // en partes y el renglón se arma con `componerDireccion`.
+  const [partes, setPartes] = useState<PartesDireccion>(PARTES_VACIAS);
+  const enPartes = editandoDireccion || !!partes.forma;
+  const direccion = partes.forma ? componerDireccion(partes) : limpio(inicial.direccion);
+  const calle = partes.forma ? partes.interior.trim() : limpio(inicial.calle);
+  const erroresPartes = erroresDeDireccion(partes);
+
   const [referencia, setReferencia] = useState(limpio(inicial.referencia));
   const [distritoId, setDistritoId] = useState(limpio(inicial.distritoId));
   const [distrito, setDistrito] = useState(limpio(inicial.distrito));
   const [ubicacion, setUbicacion] = useState(limpio(inicial.ubicacion) || limpio(inicial.distrito));
 
-  // Google Maps sobre el campo de direccion: el mismo hook que usa el
-  // formulario de solicitud, para que el comportamiento sea el de siempre.
-  // Ref por estado y no `useRef`: el campo de direccion se monta recien al
-  // entrar a editar, y el hook de Google engancha en un efecto que depende de
-  // la IDENTIDAD del ref. Con un `useRef` estable ese efecto ya habia corrido
-  // con el input todavia sin montar, y el autocompletado nunca aparecia.
-  const [googleSinCalle, setGoogleSinCalle] = useState(false);
-  const [nodoDireccion, setNodoDireccion] = useState<HTMLInputElement | null>(null);
-  const inputDireccion = useMemo(() => ({ current: nodoDireccion }), [nodoDireccion]);
-  const [preset, setPreset] = useState<{ departmentId?: string; provinceId?: string }>({});
-
-  const alElegirLugar = useCallback(async (lugar: ParsedAddress) => {
-    // La calle y el numero, no la direccion entera: el distrito, la provincia y
-    // el departamento son los selects de abajo, y repetirlos en el renglon de
-    // la calle es lo que despues llega impreso en la guia del courier.
-    const calleYNumero = [lugar.street, lugar.number].filter(Boolean).join(' ').trim();
-    // Sin calle, Google cae a un plus code ("R22G+RRF, Villa El Salvador"): se
-    // deja el campo vacío para que la escriba, y el distrito igual se resuelve.
-    const sinCalle = !calleYNumero && esCodigoDeUbicacion(lugar.formattedAddress || '');
-    setGoogleSinCalle(sinCalle);
-    setDireccion(sinCalle ? '' : (calleYNumero || lugar.formattedAddress));
-    if (!sinCalle) limpiaError('direccion');
-
-    if (!lugar.department && !lugar.province && !lugar.district) return;
-
-    // Google devuelve nombres; el ubigeo son ids. Los resuelve el backend, que
-    // es el que conoce el catalogo (y sus acentos).
-    const geo = await resolveGeoUnits({
-      department: lugar.department || '',
-      province: lugar.province || undefined,
-      district: lugar.district || undefined,
-    });
-    if (!geo) return;
-
-    setPreset({
-      departmentId: geo.department ? String(geo.department.id) : undefined,
-      provinceId: geo.province ? String(geo.province.id) : undefined,
-    });
-    if (geo.district) {
-      setDistritoId(String(geo.district.id));
-      setDistrito(geo.district.label);
-      limpiaError('distrito');
+  const cambiaParte = (campo: keyof PartesDireccion, valor: string) => {
+    setPartes((previas) => ({ ...previas, [campo]: valor }));
+    if (campo !== 'interior' && campo !== 'tipoVia' && campo !== 'tipoZona') {
+      limpiaError(campo as Campo);
     }
-    setUbicacion([
-      geo.district?.label, geo.province?.label, geo.department?.label,
-    ].filter(Boolean).join(', '));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Fail-safe: si Google no carga —sin key, sin red, bloqueado— el campo sigue
-  // siendo un input de texto y el formulario se completa a mano.
-  useGooglePlacesAutocomplete({
-    inputRef: inputDireccion,
-    countryRestriction: 'pe',
-    onPlaceSelected: alElegirLugar,
-  });
+  };
 
   const [esTitular, setEsTitular] = useState(true);
   const [nombres, setNombres] = useState('');
@@ -258,32 +187,42 @@ export function FormularioEntrega({
       return siguiente;
     });
 
-  /** Confirmar dirección: marca TODO lo que falta de una vez, no el primero. */
-  const confirmarDireccion = () => {
+  const faltanDeDireccion = () => {
     const faltan = new Set<Campo>();
-    if (errorDeDireccion(direccion)) faltan.add('direccion');
+    if (enPartes) {
+      (Object.keys(erroresPartes) as CampoDireccion[]).forEach((c) => faltan.add(c));
+    }
     if (!distritoId) faltan.add('distrito');
     if (errorDeReferencia(referencia)) faltan.add('referencia');
+    return faltan;
+  };
+
+  /** Confirmar dirección: marca TODO lo que falta de una vez, no el primero. */
+  const confirmarDireccion = () => {
+    const faltan = faltanDeDireccion();
     setErrores(faltan);
     if (faltan.size) return;
+    setAlertaDireccion(null);
     setEditandoDireccion(false);
   };
 
   const finalizar = () => {
-    const faltan = new Set<Campo>();
-    if (errorDeDireccion(direccion)) faltan.add('direccion');
-    if (!distritoId) faltan.add('distrito');
-    if (errorDeReferencia(referencia)) faltan.add('referencia');
+    const faltan = faltanDeDireccion();
     if (!esTitular) {
       if (!nombres.trim()) faltan.add('nombre');
       if (!esDniValido(documento)) faltan.add('documento');
+      if (!esCelularValido(telefono)) faltan.add('telefono');
+      if (!parentesco.trim()) faltan.add('parentesco');
     }
     if (!tipoEnvioId) faltan.add('tipoEnvio');
     setErrores(faltan);
 
-    // Si lo que falta es de la dirección, se vuelve a esa pantalla: marcada en
-    // rojo detrás de un botón «Editar» no se ve.
-    if (faltan.has('direccion') || faltan.has('distrito')) {
+    // Una dirección que el repartidor no puede ubicar no se registra: se vuelve
+    // a la pantalla de dirección con la alerta de por qué, en vez de dejarla
+    // pasar y enterarse cuando el courier regresa con el equipo.
+    const problema = enPartes ? null : problemaDeDireccionGuardada(direccion);
+    if (problema || faltan.has('distrito')) {
+      setAlertaDireccion(problema);
       setEditandoDireccion(true);
       return;
     }
@@ -298,7 +237,7 @@ export function FormularioEntrega({
       esTitular,
       nombres: esTitular ? '' : nombres.trim(),
       documento: esTitular ? '' : documento.trim(),
-      telefono: esTitular ? '' : telefono.trim(),
+      telefono: esTitular ? '' : telefono.replace(/\D/g, ''),
       parentesco: esTitular ? '' : parentesco.trim(),
       tipoEnvioId,
     });
@@ -335,10 +274,10 @@ export function FormularioEntrega({
 
   return (
     <div className="mx-auto w-full max-w-[600px] text-[15px] leading-normal text-[#222226] md:max-w-[620px]">
-      {editandoDireccion && !sinUbigeo && (
+      {editandoDireccion && !debeCorregir && (
         <button
           type="button"
-          onClick={() => setEditandoDireccion(false)}
+          onClick={() => { setPartes(PARTES_VACIAS); setErrores(new Set()); setEditandoDireccion(false); }}
           className="mb-3 inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-[#4654CD] transition-colors hover:bg-[#ECECFB] cursor-pointer"
         >
           <svg viewBox="0 0 7 12" fill="none" aria-hidden="true" className="h-3 w-2">
@@ -378,45 +317,26 @@ export function FormularioEntrega({
             </p>
           </aside>
 
-          <Campo
-            id="entrega-direccion"
-            label="Dirección"
-            requerido
-            ayuda={googleSinCalle
-              ? 'Google ubicó tu zona, pero no tu calle. Escríbela a mano (ej: Calle Los Pinos o Mz B Lt 4).'
-              : 'Empieza a escribir y elige tu dirección de la lista.'}
-            error={marca('direccion') ? errorDeDireccion(direccion) : null}
-            icono={<IconoPin />}
-          >
-            <input
-              id="entrega-direccion"
-              ref={setNodoDireccion}
-              className={inputClase(marca('direccion') && !!errorDeDireccion(direccion), true)}
-              type="text"
-              autoComplete="off"
-              placeholder="Escribe y elige tu dirección (ej: Av. Benavides 1238)"
-              value={direccion}
-              onChange={(e) => { setDireccion(e.target.value); setGoogleSinCalle(false); limpiaError('direccion'); }}
-            />
-          </Campo>
+          {alertaDireccion && (
+            <Alerta>
+              No podemos registrar tu envío con esta dirección: {alertaDireccion}. El
+              repartidor no la encontraría. Escríbela de nuevo con el formato de abajo.
+            </Alerta>
+          )}
 
-          <Campo id="entrega-calle" label="N°, Dpto, Mz, Lote o Km" opcional>
-            <input
-              id="entrega-calle"
-              className={inputClase(false)}
-              type="text"
-              placeholder="Ej: Dpto 301 / Mz A Lt 5"
-              value={calle}
-              onChange={(e) => setCalle(e.target.value)}
-            />
-          </Campo>
+          <DireccionEnPartes
+            partes={partes}
+            errores={erroresPartes}
+            marcados={errores}
+            guardada={limpio(inicial.direccion)}
+            onCambio={cambiaParte}
+          />
 
           <div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <GeoCascadeField
                 value={distritoId}
                 districtLabel={distrito}
-                preset={preset}
                 hideErrorText
                 // `error` es el texto; con `hideErrorText` solo pinta los tres
                 // campos en rojo y el mensaje lo ponemos una vez, abajo.
@@ -452,7 +372,7 @@ export function FormularioEntrega({
 
           <div className="mt-2">
             {errores.size > 0 && (
-              <Alerta>Faltan datos para enviar tu equipo. Revisa los campos marcados.</Alerta>
+              <Alerta>Corrige los campos marcados para continuar.</Alerta>
             )}
             <button type="button" onClick={confirmarDireccion} className={botonPrimario}>
               Confirmar dirección
@@ -563,27 +483,38 @@ export function FormularioEntrega({
                   </Campo>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Campo id="entrega-quien-tel" label="Teléfono" opcional>
+                  <Campo
+                    id="entrega-quien-tel"
+                    label="Celular"
+                    requerido
+                    ayuda="El repartidor la llamará al llegar."
+                    error={marca('telefono') && !esCelularValido(telefono) ? 'El celular tiene 9 números y empieza con 9' : null}
+                  >
                     <input
                       id="entrega-quien-tel"
-                      className={inputClase(false)}
+                      className={inputClase(marca('telefono') && !esCelularValido(telefono))}
                       type="text"
                       inputMode="tel"
-                      maxLength={15}
+                      maxLength={11}
                       placeholder="Ej: 987654321"
                       value={telefono}
-                      onChange={(e) => setTelefono(e.target.value)}
+                      onChange={(e) => { setTelefono(e.target.value.replace(/[^\d ]/g, '')); limpiaError('telefono'); }}
                     />
                   </Campo>
-                  <Campo id="entrega-quien-parentesco" label="Parentesco" opcional>
+                  <Campo
+                    id="entrega-quien-parentesco"
+                    label="Parentesco"
+                    requerido
+                    error={marca('parentesco') && !parentesco.trim() ? 'Escribe qué es tuyo (ej: madre)' : null}
+                  >
                     <input
                       id="entrega-quien-parentesco"
-                      className={inputClase(false)}
+                      className={inputClase(marca('parentesco') && !parentesco.trim())}
                       type="text"
                       maxLength={50}
                       placeholder="Ej: madre, hermano"
                       value={parentesco}
-                      onChange={(e) => setParentesco(e.target.value)}
+                      onChange={(e) => { setParentesco(e.target.value); limpiaError('parentesco'); }}
                     />
                   </Campo>
                 </div>
@@ -682,7 +613,7 @@ export function FormularioEntrega({
           <div className="mt-2 flex flex-col gap-2">
             {errores.size > 0 && (
               <Alerta>
-                {!esTitular && (errores.has('nombre') || errores.has('documento'))
+                {!esTitular && ['nombre', 'documento', 'telefono', 'parentesco'].some((c) => errores.has(c as Campo))
                   ? 'Completa los datos de quien recibe el pedido.'
                   : 'Faltan datos para enviar tu equipo. Revisa los campos marcados.'}
               </Alerta>
@@ -908,6 +839,169 @@ function Eleccion({
   );
 }
 
+/**
+ * La dirección en partes. Dos formas, porque así se ubica una casa en Perú:
+ * por vía y número ("Av. Benavides 1238") o por zona, manzana y lote ("AA.HH.
+ * Los Cedros Mz Z Lt 15"). Debajo se ve el renglón tal como le llegará al
+ * repartidor, para que la persona lo lea antes de confirmar.
+ */
+function DireccionEnPartes({
+  partes, errores, marcados, guardada, onCambio,
+}: {
+  partes: PartesDireccion;
+  errores: Partial<Record<CampoDireccion, string>>;
+  marcados: Set<string>;
+  guardada: string;
+  onCambio: (campo: keyof PartesDireccion, valor: string) => void;
+}) {
+  const error = (c: CampoDireccion) => (marcados.has(c) ? errores[c] ?? null : null);
+  const selectClase = `${inputClase(false)} cursor-pointer`;
+  const renglon = componerDireccion(partes);
+  const carretera = partes.tipoVia === 'Carretera';
+
+  return (
+    <fieldset className="flex flex-col gap-3 border-0 p-0">
+      <legend className="mb-2.5 text-[15px] font-semibold text-[#222226]">
+        ¿Cómo es tu dirección? <span className="text-[#C4371E]">*</span>
+      </legend>
+      {guardada && (
+        <p className="-mt-1 text-[13px] text-[#8A8B99]">Tenemos registrada: «{guardada}»</p>
+      )}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <Eleccion
+          nombre="entrega-forma"
+          seleccionada={partes.forma === 'via'}
+          onSelect={() => onCambio('forma', 'via')}
+          etiqueta="Calle, avenida o jirón"
+        />
+        <Eleccion
+          nombre="entrega-forma"
+          seleccionada={partes.forma === 'lote'}
+          onSelect={() => onCambio('forma', 'lote')}
+          etiqueta="Manzana y lote"
+        />
+      </div>
+      {error('forma') && <TextoError>{error('forma')}</TextoError>}
+
+      {partes.forma === 'via' && (
+        <>
+          <p className="text-[13px] text-[#5F6070]">Ej: Av. Benavides 1238 · Jr. Huallaga 452</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[130px_1fr_110px]">
+            <Campo id="entrega-tipo-via" label="Tipo" requerido>
+              <select
+                id="entrega-tipo-via"
+                className={selectClase}
+                value={partes.tipoVia}
+                onChange={(e) => onCambio('tipoVia', e.target.value)}
+              >
+                {TIPOS_VIA.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </Campo>
+            <Campo id="entrega-nombre-via" label="Nombre de la vía" requerido error={error('nombreVia')}>
+              <input
+                id="entrega-nombre-via"
+                className={inputClase(!!error('nombreVia'))}
+                type="text"
+                maxLength={120}
+                placeholder="Ej: Benavides"
+                value={partes.nombreVia}
+                onChange={(e) => onCambio('nombreVia', e.target.value)}
+              />
+            </Campo>
+            <Campo id="entrega-numero" label={carretera ? 'Km' : 'Número'} requerido error={error('numero')}>
+              <input
+                id="entrega-numero"
+                className={inputClase(!!error('numero'))}
+                type="text"
+                inputMode={carretera ? 'decimal' : 'text'}
+                maxLength={8}
+                placeholder={carretera ? 'Ej: 12.5' : 'Ej: 1238'}
+                value={partes.numero}
+                onChange={(e) => onCambio('numero', e.target.value)}
+              />
+            </Campo>
+          </div>
+        </>
+      )}
+
+      {partes.forma === 'lote' && (
+        <>
+          <p className="text-[13px] text-[#5F6070]">Ej: AA.HH. Los Cedros Mz Z Lt 15 · Urbanización Sol de Piura Mz B4 Lt 22</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[150px_1fr]">
+            <Campo id="entrega-tipo-zona" label="Tipo" requerido>
+              <select
+                id="entrega-tipo-zona"
+                className={selectClase}
+                value={partes.tipoZona}
+                onChange={(e) => onCambio('tipoZona', e.target.value)}
+              >
+                {TIPOS_ZONA.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </Campo>
+            <Campo id="entrega-nombre-zona" label="Nombre" requerido error={error('nombreZona')}>
+              <input
+                id="entrega-nombre-zona"
+                className={inputClase(!!error('nombreZona'))}
+                type="text"
+                maxLength={120}
+                placeholder="Ej: Los Cedros 2da Etapa"
+                value={partes.nombreZona}
+                onChange={(e) => onCambio('nombreZona', e.target.value)}
+              />
+            </Campo>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Campo id="entrega-mz" label="Manzana" requerido error={error('mz')}>
+              <input
+                id="entrega-mz"
+                className={inputClase(!!error('mz'))}
+                type="text"
+                maxLength={4}
+                placeholder="Ej: Z"
+                value={partes.mz}
+                onChange={(e) => onCambio('mz', e.target.value)}
+              />
+            </Campo>
+            <Campo id="entrega-lote" label="Lote" requerido error={error('lote')}>
+              <input
+                id="entrega-lote"
+                className={inputClase(!!error('lote'))}
+                type="text"
+                maxLength={4}
+                placeholder="Ej: 15"
+                value={partes.lote}
+                onChange={(e) => onCambio('lote', e.target.value)}
+              />
+            </Campo>
+          </div>
+        </>
+      )}
+
+      {partes.forma && (
+        <>
+          <Campo id="entrega-interior" label="Dpto, interior o piso" opcional>
+            <input
+              id="entrega-interior"
+              className={inputClase(false)}
+              type="text"
+              maxLength={30}
+              placeholder="Ej: Dpto 301"
+              value={partes.interior}
+              onChange={(e) => onCambio('interior', e.target.value)}
+            />
+          </Campo>
+          <p className="rounded-[10px] bg-[#F7F7FB] px-3.5 py-2.5 text-[13px] text-[#5F6070]">
+            Así la verá el repartidor:{' '}
+            <span data-testid="entrega-renglon" className="font-semibold text-[#222226]">
+              {[renglon, partes.interior.trim()].filter(Boolean).join(', ') || '…'}
+            </span>
+          </p>
+        </>
+      )}
+    </fieldset>
+  );
+}
+
 function TextoError({ children }: { children: React.ReactNode }) {
   return (
     <p className="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium leading-snug text-[#C4371E]">
@@ -998,15 +1092,6 @@ function Cierre({
 }
 
 /* ───────────────────────────── íconos ───────────────────────────── */
-
-function IconoPin() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4">
-      <path d="M8 14.5s4.5-4.2 4.5-8A4.5 4.5 0 0 0 3.5 6.5c0 3.8 4.5 8 4.5 8z" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="8" cy="6.5" r="1.6" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
 
 function IconoCasa() {
   return (
