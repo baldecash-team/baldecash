@@ -29,7 +29,9 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/usjb': 'https://beneficios.baldecash.com/usjb',
   '/colegiatura-cpsp': 'https://beneficios.baldecash.com/colegiatura-cpsp',
   '/matriculaupn': 'https://pidetuprestamo.baldecash.com/#/matriculasupn',
-  '/undac': 'https://beneficios.baldecash.com/undac',
+  // '/undac' ya no redirige a beneficios: ahora es la landing de convenio
+  // (landing 402, publicada el 25-sep). Si beneficios.baldecash.com/undac
+  // pasa a redirigir hacia acá, volver a agregar esta clave causaría un bucle.
   '/cachimbos': 'https://beneficios.baldecash.com/ucv-2025',
   // '/icontinental' ya no redirige a beneficios: ahora es la landing de
   // convenio (landing 399, publicada el 24-sep). Si
