@@ -10,17 +10,19 @@ const isProduction = APP_BASE_PATH === '';
  * Clave: pathname sin trailing slash. Valor: URL destino.
  */
 const LEGACY_REDIRECTS: Record<string, string> = {
+  // BAL-4152 (26-sep): ningun redirect apunta a beneficios ni a pidetuprestamo,
+  // salvo Bachiller UPN (/tituloupn, /titulosupn, /bachillerupn), que sigue alla.
   '/terminos-y-condiciones': '/home/legal/terminos-y-condiciones',
   '/politica-de-privacidad': '/home/legal/politica-de-privacidad',
   '/politica-de-privacidad-baldecash': '/home/legal/politica-de-privacidad',
   '/libro-reclamaciones': '/home/legal/libro-reclamaciones',
-  '/isat': 'https://beneficios.baldecash.com/isat',
+  '/isat': '/home',
   '/colegios': 'https://baldecash-colegios-financiamientos.lovable.app/',
   // '/coar' ya no redirige a la landing de Lovable: ahora es la landing de
   // convenio (BAL-4133, 25-sep), con /coar-docente para docentes.
   '/terminos-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
   '/terminos-y-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
-  '/ucal-cachimbo': 'https://beneficios.baldecash.com/ucal-cachimbo',
+  '/ucal-cachimbo': '/ucal',
   // '/icpna' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4133, 25-sep). Si beneficios.baldecash.com/icpna pasa a redirigir
   // hacia aca, volver a agregar esta clave causaria un bucle.
@@ -33,22 +35,22 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // '/corrientealterna' ya no redirige a beneficios: ahora es la landing de
   // convenio (BAL-4133, 25-sep). Si beneficios.baldecash.com/corrientealterna
   // pasa a redirigir hacia aca, volver a agregar esta clave causaria un bucle.
-  '/iurusayhua': 'https://beneficios.baldecash.com/iurusayhua',
+  '/iurusayhua': '/home',
   '/terminos-condiciones-sorteo-mayo-baldecash': 'https://drive.google.com/file/d/1IdE3FIG0y7iwL6sxYNGnookGZIMuaVtB/view',
-  '/usjb': 'https://beneficios.baldecash.com/usjb',
-  '/colegiatura-cpsp': 'https://beneficios.baldecash.com/colegiatura-cpsp',
-  '/matriculaupn': 'https://pidetuprestamo.baldecash.com/#/matriculasupn',
+  '/usjb': '/upsjb',
+  '/colegiatura-cpsp': '/cpsp',
+  '/matriculaupn': '/home',
   // '/undac' ya no redirige a beneficios: ahora es la landing de convenio
   // (landing 402, publicada el 25-sep). Si beneficios.baldecash.com/undac
   // pasa a redirigir hacia acá, volver a agregar esta clave causaría un bucle.
-  '/cachimbos': 'https://beneficios.baldecash.com/ucv-2025',
+  '/cachimbos': '/ucv',
   // '/icontinental' ya no redirige a beneficios: ahora es la landing de
   // convenio (landing 399, publicada el 24-sep). Si
   // beneficios.baldecash.com/icontinental pasa a redirigir hacia acá, volver
   // a agregar esta clave causaría un bucle (ERR_TOO_MANY_REDIRECTS).
   '/tituloupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
   '/titulosupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
-  '/iestp': 'https://beneficios.baldecash.com/iestp',
+  '/iestp': '/home',
   // '/uss' ya no redirige a beneficios: ahora es la landing de convenio.
   // beneficios.baldecash.com/uss redirige hacia acá, así que mantener esta
   // clave causaba un bucle infinito (ERR_TOO_MANY_REDIRECTS).
@@ -57,10 +59,10 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // hacia aca, volver a agregar esta clave causaria un bucle.
   // '/wiener' ya no sale a pidetuprestamo: ahora es la landing de convenio.
   // beneficios.baldecash.com/norbert-wiener redirige hacia acá.
-  '/carrion-egresados': 'https://pidetuprestamo.baldecash.com/#/prestamos?source=carrion&fuente=carrion-egresados',
-  '/ansimar': 'https://beneficios.baldecash.com/ansimar',
-  '/ucv-docentes': 'https://pidetuprestamo.baldecash.com/#/ucv-docentes-y-administrativos',
-  '/mrap': 'https://beneficios.baldecash.com/maria-araoz',
+  '/carrion-egresados': '/carrion',
+  '/ansimar': '/home',
+  '/ucv-docentes': '/ucv-docente',
+  '/mrap': '/home',
   // '/untumbes' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4136, publicada el 25-sep). Si beneficios.baldecash.com/untumbes pasa a
   // redirigir hacia aca, volver a agregar esta clave causaria un bucle.
@@ -75,8 +77,8 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // '/jhalebet' ya no redirige a beneficios: ahora es la landing de convenio
   // (BAL-4136, publicada el 25-sep). Si beneficios.baldecash.com/jhalebet pasa a
   // redirigir hacia aca, volver a agregar esta clave causaria un bucle.
-  '/iesrp': 'https://beneficios.baldecash.com/instituto-ricardo-palma',
-  '/educad': 'https://beneficios.baldecash.com/educad',
+  '/iesrp': '/isrp',
+  '/educad': '/home',
   // '/ucsur' ya no redirige a beneficios: ahora es la landing de convenio.
   // Si beneficios.baldecash.com/ucsur pasa a redirigir hacia acá, volver a
   // agregar esta clave causaría un bucle.
@@ -89,18 +91,18 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   // cubrir también las subrutas: /catalogo, /producto/..., /solicitar/...
   // '/carrion' ya no redirige a beneficios: ahora es la landing de convenio
   // y beneficios.baldecash.com/carrion redirige hacia acá (bucle).
-  '/maria-araoz': 'https://beneficios.baldecash.com/maria-araoz',
-  '/lasartes': 'https://beneficios.baldecash.com/lasartes-lima',
-  '/ucv-losolivos': 'https://beneficios.baldecash.com/ucv-losolivos',
-  '/uncp': 'https://beneficios.baldecash.com/uncp',
+  '/maria-araoz': '/home',
+  '/lasartes': '/home',
+  '/ucv-losolivos': '/ucv',
+  '/uncp': '/home',
   // '/upn' ya no redirige a beneficios: ahora es la landing de convenio.
   // '/ucv' ya no redirige a beneficios: ahora es la landing de convenio
   // (antes /convenio-ucv-landing). Ver RENAMED_LANDING_SLUGS.
-  '/bachillerupn': 'https://pidetuprestamo.baldecash.com/#/titulos-upn',
-  '/promoestudiantes': 'https://pidetuprestamo.baldecash.com/#/prestamos?fuente=marcoloretdemola',
+  '/bachillerupn': 'https://pidetuprestamo.baldecash.com/#/titulosupn',
+  '/promoestudiantes': '/home',
   '/baldecash-que-oferton': '/baldecash-oferton',
-  '/encerrona': 'https://pidetuprestamo.baldecash.com/#/campaign-107',
-  '/promo': 'https://pidetuprestamo.baldecash.com/#/prestamos?fuente=jorgeek',
+  '/encerrona': '/home',
+  '/promo': '/home',
   '/terminos-y-condiciones-grupoa': '/terminos-y-condiciones-9466',
   '/que-oferton/9014': '/que-oferton/que-oferton-9014',
   '/que-oferton/que-oferton-9014': '/que-oferton-9014',
