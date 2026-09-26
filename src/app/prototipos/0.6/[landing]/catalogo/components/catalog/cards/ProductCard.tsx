@@ -448,7 +448,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleViewDetail = (slug?: string) => onViewDetail?.(slug, pricingSnapshot);
 
-  const originalQuota = displayOriginalQuota;
+  // El precio "antes" que manda el listado es el de la frecuencia del gancho
+  // por defecto. Al elegir otra frecuencia se lleva a la cuota de ESA
+  // frecuencia con el mismo descuento: sin esto la card quincenal del iPhone
+  // mostraba el tachado de la semanal, ~~S/91~~ -30% sobre S/127/qcn
+  // (BAL-4163). Promo fija: la misma diferencia en soles; porcentual o
+  // descuento real: la misma proporcion.
+  const originalQuota =
+    displayOriginalQuota && selectedFrequency !== hookFrequency && quota > 0
+      ? product.promotion?.discountType === 'fixed'
+        ? Math.round(displayQuotaForFreq + (displayOriginalQuota - quota))
+        : Math.round(displayQuotaForFreq * (displayOriginalQuota / quota))
+      : displayOriginalQuota;
 
   // La vitrina "solo 1.ª cuota" (cuota lista tachada + primera cuota con
   // descuento) es narrativa de cupón de REFERIDO: solo se calcula/muestra
@@ -1028,7 +1039,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               ) : (
                 <>
                   <div className="h-5 flex items-center justify-center gap-1.5">
-                    {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
+                    {originalQuota && originalQuota > displayQuotaForFreq && (!product.promotion || product.promotion.discountValue > 0) ? (
                       <>
                         <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">S/{formatCuotaDeLanding(originalQuota, landingSlug)}{freqShort}</span>
                         {displayDiscount && displayDiscount > 0 && (
