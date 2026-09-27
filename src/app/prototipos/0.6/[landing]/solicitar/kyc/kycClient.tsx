@@ -346,9 +346,15 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // `kycCompletado` solo cuando de verdad se cerró el KYC (`cerrarKyc`), no
   // cuando se cae acá por el gate de landing sin KYC: la pantalla promete cosas
   // distintas en cada caso.
+  // Sin token explícito se usa el del estado del KYC (BAL-4188): así también
+  // el camino `avanzar()`, que no pasa por `/completar`, arma el link con el token.
   const goToConfirmacion = (kycCompletado = false, token?: string) =>
     router.replace(
-      withUtmParams(routes.solicitarConfirmacion(landing, code, kycCompletado, token))
+      withUtmParams(
+        routes.solicitarConfirmacion(
+          landing, code, kycCompletado, token || progressState?.public_token || undefined
+        )
+      )
     );
 
   // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
