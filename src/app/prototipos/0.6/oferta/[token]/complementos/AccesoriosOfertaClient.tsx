@@ -223,6 +223,19 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           setCurTerm(selTerm != null && terms.includes(selTerm) ? selTerm : Math.max(...terms));
           setCurInitial(selInitial != null && initials.includes(selInitial) ? selInitial : Math.min(...initials));
         }
+        // BAL-4193: defensa en el mini-checkout — si la selección que se está
+        // armando es justo "mantener mi equipo" (el variant_id coincide con el
+        // pedido) y el backend ya marca ese equipo fuera de catálogo, no se
+        // sigue armando el pedido. El index de la oferta ya bloquea el CTA
+        // antes de llegar aquí; esto cubre entrar directo con una selección
+        // vieja (localStorage/back-navigation) sobre un equipo ya no disponible.
+        const req = offer.requestedProduct;
+        if (req && req.variant_id != null && req.variant_id === vId && req.available_in_catalog === false) {
+          if (active) {
+            setError('Este equipo ya no está disponible. Vuelve a tu oferta para elegir otra opción.');
+          }
+          return;
+        }
         const res = await getOfferAddonsRich(token, vId, {
           accessoryIds: selectedAcc.map(Number),
           insuranceIds: selectedIns.map(Number),

@@ -353,11 +353,16 @@ export function MiOfertaClient({ token }: { token: string }) {
   // El cliente rechaza el upsell y suma add-ons a su equipo. El backend acepta
   // el equipo pedido en ofertas upsell (BAL-2100 #1). Antes abría un modal inline
   // que llamaba /select con el equipo pedido → 404 variant_not_eligible.
+  // BAL-4193: guard de una sola vez para TODOS los accesos a "mantener mi
+  // equipo" — el CTA de EquipoPedidoCard y la barra "Añadir accesorios y
+  // seguros" llaman a esta misma función, así que basta bloquearla acá para
+  // que ningún camino deje seguir con un equipo ya fuera de catálogo.
   const handleContinuarMiEquipo = useCallback(() => {
     trackFirstAction();
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
+    if (req.available_in_catalog === false) return; // no-op: equipo ya no disponible
     // Funnel: elige mantener el equipo pedido (rechaza el upsell), Caso 5.
     analytics.track('offer_equipment_chosen', {
       offer_case: offer?.offerCase,
@@ -617,16 +622,22 @@ export function MiOfertaClient({ token }: { token: string }) {
           <>
             {/* Upsell (mock frame 2): Añadir accesorios (recomendado) →
                 Card "Cambiar equipo" enriquecida (collage + ver catálogo) →
-                "Mantener mi equipo" con imagen real. */}
-            <OpcionBarra
-              destacada
-              imagen={COLLAGE_ACCESORIOS_URL}
-              imagenAlt="Accesorios disponibles"
-              icono={<IconoAccesorios size={50} />}
-              titulo="Añadir accesorios y seguros"
-              subtitulo="Suma accesorios y seguros a tu equipo aprobado"
-              onClick={handleContinuarMiEquipo}
-            />
+                "Mantener mi equipo" con imagen real.
+                BAL-4193: esta barra suma accesorios AL EQUIPO PEDIDO (llama a
+                handleContinuarMiEquipo, igual que "Mantener este equipo") —
+                si ese equipo ya no está en catálogo, no tiene sentido
+                ofrecerla: se oculta junto con el CTA de la card. */}
+            {req?.available_in_catalog !== false ? (
+              <OpcionBarra
+                destacada
+                imagen={COLLAGE_ACCESORIOS_URL}
+                imagenAlt="Accesorios disponibles"
+                icono={<IconoAccesorios size={50} />}
+                titulo="Añadir accesorios y seguros"
+                subtitulo="Suma accesorios y seguros a tu equipo aprobado"
+                onClick={handleContinuarMiEquipo}
+              />
+            ) : null}
             {/* Card "Oferta personalizada": equipo exclusivo con foto + specs +
                 cuota + "Ver detalle" separado del CTA "Aceptar equipo" (misma
                 EquipoRecomendadoCard del Caso 4, tone índigo). */}
@@ -682,6 +693,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 insurances={req.insurances ?? []}
                 ctaText="Mantener este equipo"
                 onElegir={handleContinuarMiEquipo}
+                availableInCatalog={req.available_in_catalog}
               />
             ) : null}
           </>
@@ -704,6 +716,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 specs={reqSpecsChips}
                 accessories={req.accessories ?? []}
                 insurances={req.insurances ?? []}
+                availableInCatalog={req.available_in_catalog}
               />
             ) : null}
 

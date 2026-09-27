@@ -68,6 +68,12 @@ export interface RequestedProduct {
    *  los chips de la card. Mismo formato que el catálogo. Vacío si el API no las
    *  da. Se convierten a ProductSpecs con createSpecsFromEav en el consumidor. */
   specs?: Record<string, string | number | boolean>;
+  /** BAL-4193: si el equipo sigue publicado en el catálogo (stock/visible). El
+   *  cliente puede "mantener" este equipo (Caso 5) o verlo como referencia
+   *  (Caso 4) solo si esto es `true`. Ausente/null = backend viejo → se trata
+   *  como disponible (compatibilidad), igual que hacía el front antes de que
+   *  el backend mandara este campo. */
+  available_in_catalog?: boolean | null;
 }
 
 /** Accesorio/seguro elegido en la oferta (para el desglose de confirmación). */
