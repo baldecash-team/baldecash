@@ -110,9 +110,11 @@ describe('confirmación — vista limitada (BAL-4188)', () => {
     render(<ConfirmacionPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Solicitud firmada/i)).toBeInTheDocument();
+      expect(screen.getByText(/Hemos recibido tu solicitud!/i)).toBeInTheDocument();
     });
     expect(screen.getByText('132361')).toBeInTheDocument();
+    // Sin token no se revela el estado (firmada, aprobada, no aprobada...).
+    expect(screen.queryByText(/firmada|aprobada|cancelada/i)).not.toBeInTheDocument();
 
     // Sin nombre (fallback "Usuario" del resumen completo), sin equipo, sin cuota.
     expect(screen.queryByText(/Usuario/)).not.toBeInTheDocument();

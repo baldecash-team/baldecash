@@ -29,6 +29,7 @@ import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
 import { ReceivedScreen, ContactInfo } from './components/received';
+import { Illustration } from './components/received/illustration';
 import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 
@@ -222,32 +223,12 @@ function buildReceivedData(
 }
 
 /**
- * Etiqueta del estado para la vista limitada (BAL-4188).
- *
- * `cierre.firmada` manda sobre `status`: es un hecho —hay una firma
- * vigente— y no una deducción a partir del estado crudo. Mismo criterio que
- * `ReceivedMessage` para la vista completa.
- */
-const LIMITED_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Solicitud recibida',
-  pending: 'Solicitud en revisión',
-  approved: 'Solicitud aprobada',
-  rejected: 'Solicitud no aprobada',
-  cancelled: 'Solicitud cancelada',
-};
-
-function limitedStatusLabel(data: ApplicationStatusData): string {
-  if (data.cierre?.firmada) return 'Solicitud firmada';
-  return LIMITED_STATUS_LABELS[data.status] ?? 'Solicitud recibida';
-}
-
-/**
  * Vista limitada — se abrió el link con `?code=APP-…` (sin token, D2).
  *
  * ws2 responde `/status` recortado: sin nombre, sin equipo ni cuota, porque
  * el `application_code` es adivinable y esos datos no se pueden exponer sin
- * la prueba de titularidad que da el token. Solo se pinta lo que llegó: el
- * estado y el N° de solicitud, más el mismo CTA de WhatsApp de siempre.
+ * la prueba de titularidad que da el token. Se pinta solo el N° de solicitud
+ * con el mensaje y la ilustración de siempre, más el CTA de WhatsApp.
  */
 function LimitedConfirmationContent({
   applicationData,
@@ -258,28 +239,31 @@ function LimitedConfirmationContent({
 }) {
   const numero = applicationData.reference || applicationData.code;
 
+  // Siempre el mismo mensaje y la misma ilustracion animada que la pantalla
+  // completa: sin token no se dice el estado (rechazada, aprobada...), porque
+  // el `code` es adivinable y el resultado de otra persona tambien es privado.
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="text-center mb-6 sm:mb-8"
-      >
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-          <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-        </div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight">
-          {limitedStatusLabel(applicationData)}
-        </h1>
-        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-neutral-100 rounded-full max-w-full">
-          <span className="text-xs sm:text-sm text-neutral-500 flex-shrink-0">N° de solicitud</span>
-          <span className="text-xs sm:text-sm font-mono font-semibold text-neutral-700 break-all">
-            {numero}
-          </span>
-        </div>
-      </motion.div>
-      <ContactInfo onGoToHome={onGoHome} />
+    <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
+        <Illustration />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-center mb-6 sm:mb-8"
+        >
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight">
+            ¡Hemos recibido tu solicitud!
+          </h1>
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-neutral-100 rounded-full max-w-full">
+            <span className="text-xs sm:text-sm text-neutral-500 flex-shrink-0">N° de solicitud</span>
+            <span className="text-xs sm:text-sm font-mono font-semibold text-neutral-700 break-all">
+              {numero}
+            </span>
+          </div>
+        </motion.div>
+        <ContactInfo onGoToHome={onGoHome} />
+      </div>
     </div>
   );
 }
