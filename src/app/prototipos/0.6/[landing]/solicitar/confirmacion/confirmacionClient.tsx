@@ -28,7 +28,7 @@ import type { ApplicationStatusData } from './types/applicationStatus';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
-import { ReceivedScreen } from './components/received';
+import { ReceivedScreen, ContactInfo } from './components/received';
 import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 
@@ -215,6 +215,69 @@ function buildReceivedData(
 }
 
 /**
+ * Etiqueta del estado para la vista limitada (BAL-4188).
+ *
+ * `cierre.firmada` manda sobre `status`: es un hecho —hay una firma
+ * vigente— y no una deducción a partir del estado crudo. Mismo criterio que
+ * `ReceivedMessage` para la vista completa.
+ */
+const LIMITED_STATUS_LABELS: Record<string, string> = {
+  submitted: 'Solicitud recibida',
+  pending: 'Solicitud en revisión',
+  approved: 'Solicitud aprobada',
+  rejected: 'Solicitud no aprobada',
+  cancelled: 'Solicitud cancelada',
+};
+
+function limitedStatusLabel(data: ApplicationStatusData): string {
+  if (data.cierre?.firmada) return 'Solicitud firmada';
+  return LIMITED_STATUS_LABELS[data.status] ?? 'Solicitud recibida';
+}
+
+/**
+ * Vista limitada — se abrió el link con `?code=APP-…` (sin token, D2).
+ *
+ * ws2 responde `/status` recortado: sin nombre, sin equipo ni cuota, porque
+ * el `application_code` es adivinable y esos datos no se pueden exponer sin
+ * la prueba de titularidad que da el token. Solo se pinta lo que llegó: el
+ * estado y el N° de solicitud, más el mismo CTA de WhatsApp de siempre.
+ */
+function LimitedConfirmationContent({
+  applicationData,
+  onGoHome,
+}: {
+  applicationData: ApplicationStatusData;
+  onGoHome: () => void;
+}) {
+  const numero = applicationData.reference || applicationData.code;
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-center mb-6 sm:mb-8"
+      >
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+        </div>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight">
+          {limitedStatusLabel(applicationData)}
+        </h1>
+        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-neutral-100 rounded-full max-w-full">
+          <span className="text-xs sm:text-sm text-neutral-500 flex-shrink-0">N° de solicitud</span>
+          <span className="text-xs sm:text-sm font-mono font-semibold text-neutral-700 break-all">
+            {numero}
+          </span>
+        </div>
+      </motion.div>
+      <ContactInfo onGoToHome={onGoHome} />
+    </div>
+  );
+}
+
+/**
  * OtpValidationCta — CTA opcional para validar el correo desde la confirmación.
  *
  * Se muestra SOLO cuando existe un handoff de OTP sin verificar para esta
@@ -306,6 +369,18 @@ function RealConfirmationContent({
 }) {
   if (isLoading) {
     return <LoadingFallback />;
+  }
+
+  // Respuesta limitada (BAL-4188, D2): ws2 la recorta cuando el link no trae
+  // token — no hay nombre, equipo ni cuota que pintar, así que ni se intenta
+  // armar `receivedData` con eso ausente.
+  if (applicationData?.limited) {
+    return (
+      <LimitedConfirmationContent
+        applicationData={applicationData}
+        onGoHome={onGoHome}
+      />
+    );
   }
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
@@ -451,11 +526,26 @@ function ConfirmacionContent() {
     }
 
     setIsLoadingStatus(true);
+    // El link funciona con cualquier landing (D3): si la solicitud es de
+    // otra, se redirige antes de pintar nada de esta — `redirecting` frena el
+    // `.finally()` de abajo para que el loader siga mientras la navegación
+    // ocurre, en vez de destaparse un resumen a medio armar.
+    let redirecting = false;
 
     getApplicationStatus(applicationCode)
       .then((data) => {
         if (cancelled) return;
         if (data) {
+          if (data.landing_slug && data.landing_slug !== landing) {
+            redirecting = true;
+            const newPathname = window.location.pathname.replace(
+              `/${landing}/`,
+              `/${data.landing_slug}/`
+            );
+            router.replace(`${newPathname}${window.location.search}`);
+            return;
+          }
+
           setApplicationData(data);
 
           // Fire-and-forget: track application_submitted. Una sola vez por
@@ -490,11 +580,11 @@ function ConfirmacionContent() {
         console.error('[Confirmacion] getApplicationStatus failed:', err);
       })
       .finally(() => {
-        if (!cancelled) setIsLoadingStatus(false);
+        if (!cancelled && !redirecting) setIsLoadingStatus(false);
       });
 
     return () => { cancelled = true; };
-  }, [applicationCode, landing]);
+  }, [applicationCode, landing, router]);
 
   // Navigation handlers
   const handleSelectResult = (path: string) => {
