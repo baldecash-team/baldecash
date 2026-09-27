@@ -122,6 +122,9 @@ export function modoCierreDelKyc(
 /**
  * Build ReceivedData from API response (preferred) or URL params (fallback)
  */
+/** UUID: el `code` de la URL es el token publico, no el numero (BAL-4188). */
+const ES_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function buildReceivedData(
   applicationCode: string,
   applicationData: ApplicationStatusData | null,
@@ -191,8 +194,12 @@ function buildReceivedData(
     : undefined;
 
   return {
+    // El `code` de la URL puede ser el token secreto (BAL-4188): nunca se
+    // muestra como "N° de solicitud". Sin respuesta del API, va un guion.
     applicationId:
-      applicationData?.reference || applicationData?.code || applicationCode,
+      applicationData?.reference ||
+      applicationData?.code ||
+      (ES_TOKEN.test(applicationCode) ? '—' : applicationCode),
     userName,
     submittedAt: applicationData?.submitted_at
       ? new Date(applicationData.submitted_at)
