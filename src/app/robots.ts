@@ -10,7 +10,13 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/sentry-example-page/', '/monitoring/', '/_next/'],
+        // `/*/solicitar/`: BAL-4188 (Task 10). Es el link del flujo de
+        // solicitud (formulario, KYC, confirmación) — llega por WhatsApp o
+        // correo, no por buscador (8 entradas con referrer de Google en 30
+        // días, medido el 27-sep). El `*` cubre cualquier slug de landing.
+        disallow: [
+          '/api/', '/sentry-example-page/', '/monitoring/', '/_next/', '/*/solicitar/',
+        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
