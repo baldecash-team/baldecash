@@ -392,6 +392,14 @@ export interface ApplicationStatusResponse {
     reason_text: string | null;
     changed_at: string | null;
   }>;
+
+  /**
+   * `true` cuando `/status` respondió recortado (link sin token, BAL-4188):
+   * sin nombre, equipo ni cuota. Ver `ApplicationStatusData.limited`.
+   */
+  limited?: boolean;
+  /** Slug de la landing dueña de la solicitud. Ver `ApplicationStatusData.landing_slug`. */
+  landing_slug?: string | null;
 }
 
 /**
