@@ -25,6 +25,12 @@
 export interface EnvioAnticipadoHandoff {
   /** `application_code` de la solicitud recién creada. */
   applicationCode: string;
+  /**
+   * `public_token` (UUID) del submit, para armar el link de confirmación
+   * (BAL-4188). Best-effort como `resumeToken`: sin él, la confirmación cae
+   * al `applicationCode`.
+   */
+  publicToken?: string;
   /** Prueba de titularidad emitida por el submit. Puede no venir: es best-effort. */
   resumeToken?: string;
   /** DNI capturado del formulario, para el caso sin token. */

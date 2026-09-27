@@ -18,6 +18,8 @@ export interface OtpHandoff {
   applicationId: number;
   /** Código público de la solicitud (para navegar a /confirmacion). */
   code?: string;
+  /** `public_token` (UUID) del submit, para el link de confirmación (BAL-4188). */
+  token?: string;
   /** DNI capturado del formulario, usado para enviar/verificar (ownership). */
   dni?: string;
   /** true una vez que el correo quedó verificado (o ya lo estaba). */

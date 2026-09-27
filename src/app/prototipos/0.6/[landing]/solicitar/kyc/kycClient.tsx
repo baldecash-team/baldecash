@@ -346,9 +346,9 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
   // `kycCompletado` solo cuando de verdad se cerró el KYC (`cerrarKyc`), no
   // cuando se cae acá por el gate de landing sin KYC: la pantalla promete cosas
   // distintas en cada caso.
-  const goToConfirmacion = (kycCompletado = false) =>
+  const goToConfirmacion = (kycCompletado = false, token?: string) =>
     router.replace(
-      withUtmParams(routes.solicitarConfirmacion(landing, code, kycCompletado))
+      withUtmParams(routes.solicitarConfirmacion(landing, code, kycCompletado, token))
     );
 
   // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
@@ -669,13 +669,13 @@ function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
     if (veredicto?.entrega_token) {
       router.push(withUtmParams(routes.entregaPorToken(
         veredicto.entrega_token,
-        routes.solicitarConfirmacion(landing, code, true),
+        routes.solicitarConfirmacion(landing, code, true, veredicto.public_token || undefined),
         routes.solicitarKyc(landing, { code }),
       )));
       return;
     }
 
-    goToConfirmacion(true);
+    goToConfirmacion(true, veredicto?.public_token || undefined);
   }
   const goBack =
     safeIndex > 0

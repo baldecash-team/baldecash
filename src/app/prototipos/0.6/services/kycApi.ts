@@ -306,6 +306,8 @@ export interface KycVeredicto {
    * pendiente: con inicial, el siguiente paso es pagar.
    */
   entrega_token?: string | null;
+  /** `public_token` (UUID) de la solicitud, para el link de confirmación (BAL-4188). */
+  public_token?: string | null;
 }
 
 /**

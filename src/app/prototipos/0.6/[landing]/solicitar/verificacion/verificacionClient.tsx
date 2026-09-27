@@ -51,8 +51,8 @@ function VerificacionContent() {
 
   const goToConfirmacion = useCallback(() => {
     if (Number.isFinite(applicationId)) markOtpVerified(landing, applicationId);
-    router.replace(routes.solicitarConfirmacion(landing, code));
-  }, [applicationId, landing, code, router]);
+    router.replace(routes.solicitarConfirmacion(landing, code, false, handoff?.token));
+  }, [applicationId, landing, code, handoff?.token, router]);
 
   // Sin application_id no podemos verificar: volver al inicio del flujo.
   useEffect(() => {

@@ -203,14 +203,23 @@ export function entregaPorToken(token: string, volver?: string, atras?: string):
   return query ? `${base}?${query}` : base;
 }
 
+/**
+ * `token` es el `public_token` (UUID) que ws2 emite en el submit y en el
+ * cierre del KYC (BAL-4188). Cuando está disponible manda sobre `code`: es
+ * el mismo link de siempre (`?code=…`), pero con un identificador no
+ * adivinable en vez del `application_code` secuencial. Sin token —handoff
+ * viejo, o el mint no llegó a tiempo— cae al `code` de siempre.
+ */
 export function solicitarConfirmacion(
   landing: string,
   code?: string,
-  kycCompletado?: boolean
+  kycCompletado?: boolean,
+  token?: string
 ): string {
   const base = `${BASE_PATH}/${landing}/solicitar/confirmacion`;
   const params = new URLSearchParams();
-  if (code) params.set('code', code);
+  const codeValue = token || code;
+  if (codeValue) params.set('code', codeValue);
   if (kycCompletado) params.set('kyc', '1');
   const query = params.toString();
   return query ? `${base}?${query}` : base;

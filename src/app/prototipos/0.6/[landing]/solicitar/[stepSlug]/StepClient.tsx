@@ -577,7 +577,9 @@ function StepContent() {
     } else if (yaEnviada && handoff) {
       // El envío anticipado ya creó la solicitud: mandarla otra vez crearía una
       // segunda con los mismos datos.
-      router.push(routes.solicitarConfirmacion(landing, handoff.applicationCode));
+      router.push(routes.solicitarConfirmacion(
+        landing, handoff.applicationCode, false, handoff.publicToken
+      ));
     } else {
       // No sections after wizard - submit application directly
       await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });

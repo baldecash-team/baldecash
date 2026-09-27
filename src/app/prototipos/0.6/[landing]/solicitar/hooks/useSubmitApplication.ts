@@ -616,6 +616,7 @@ export function useSubmitApplication(
             saveOtpHandoff(landing, {
               applicationId: result.application_id,
               code: result.application_code,
+              token: result.public_token,
               dni: capturedDocumentNumber,
               verified: false,
             });
@@ -644,7 +645,9 @@ export function useSubmitApplication(
               // `replace` y no `push`: volver atrás desde la confirmación no
               // tiene que devolver a un paso del wizard que ya no aplica.
               router.replace(
-                routes.solicitarConfirmacion(landing, result.application_code)
+                routes.solicitarConfirmacion(
+                  landing, result.application_code, false, result.public_token
+                )
               );
               // `false` NO es "falló el envío" —la solicitud se creó y
               // `submitSucceeded` lo dice—: es "no sigas navegando vos, esta
@@ -659,6 +662,7 @@ export function useSubmitApplication(
             if (result.application_code) {
               saveEnvioAnticipadoHandoff(landing, {
                 applicationCode: result.application_code,
+                publicToken: result.public_token,
                 resumeToken: result.kyc_resume_token || undefined,
                 documentNumber: capturedDocumentNumber,
                 conContrato,
@@ -684,7 +688,9 @@ export function useSubmitApplication(
             );
           } else {
             router.push(
-              routes.solicitarConfirmacion(landing, result.application_code)
+              routes.solicitarConfirmacion(
+                landing, result.application_code, false, result.public_token
+              )
             );
           }
 
