@@ -229,7 +229,7 @@ it('una dirección guardada con plus code abre en la dirección con la alerta', 
   pintar({ direccionInicial: { ...CON_DIRECCION, direccion: '3WFV+FF8, Manuel González Prada, Comas 15312, Perú', calle: '' } });
 
   expect(screen.getByRole('heading', { name: '¿A dónde enviamos tu equipo?' })).toBeInTheDocument();
-  expect(screen.getByRole('alert')).toHaveTextContent('No podemos registrar tu envío con esta dirección');
+  expect(screen.getByRole('alert')).toHaveTextContent('Tu dirección no sirve para el repartidor');
   expect(screen.getByRole('alert')).toHaveTextContent('es un código de Google');
 });
 
@@ -249,4 +249,17 @@ it('en el modal, corregir vuelve a la dirección sin registrar', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: '¿A dónde enviamos tu equipo?' })).toBeInTheDocument();
   expect(onEnviar).not.toHaveBeenCalled();
+});
+
+it('con distrito cargado lo muestra en una línea y los selects aparecen al tocar Cambiar', async () => {
+  pintar({ direccionInicial: { ...CON_DIRECCION, direccion: 'R22G+RRF', calle: '' } });
+
+  expect(screen.getByText('Miraflores')).toBeInTheDocument();
+  expect(screen.getByText('Lima, Lima')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Elegir distrito' })).not.toBeInTheDocument();
+  // El plus code guardado ya está en la alerta: no se repite como "Antes".
+  expect(screen.queryByText(/^Antes:/)).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
+  expect(screen.getByRole('button', { name: 'Elegir distrito' })).toBeInTheDocument();
 });

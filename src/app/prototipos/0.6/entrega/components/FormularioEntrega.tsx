@@ -152,6 +152,9 @@ export function FormularioEntrega({
   const [distritoId, setDistritoId] = useState(limpio(inicial.distritoId));
   const [distrito, setDistrito] = useState(limpio(inicial.distrito));
   const [ubicacion, setUbicacion] = useState(limpio(inicial.ubicacion) || limpio(inicial.distrito));
+  // Con el distrito ya cargado se muestra en una línea con «Cambiar»: tres
+  // selects con el distrito puesto y el departamento en «Selecciona» confunden.
+  const [cambiandoUbigeo, setCambiandoUbigeo] = useState(!limpio(inicial.distritoId));
 
   const cambiaParte = (campo: keyof PartesDireccion, valor: string) => {
     setPartes((previas) => ({ ...previas, [campo]: valor }));
@@ -326,57 +329,63 @@ export function FormularioEntrega({
 
           {alertaDireccion && (
             <Alerta>
-              No podemos registrar tu envío con esta dirección: {alertaDireccion}. El
-              repartidor no la encontraría. Escríbela de nuevo con el formato de abajo.
+              Tu dirección no sirve para el repartidor: {alertaDireccion}. Escríbela de nuevo.
             </Alerta>
           )}
 
-          {/* El ubigeo va primero y en su propio recuadro: el courier arma la
-              ruta por distrito, y un distrito equivocado ("zonificación
-              errada") manda el equipo a otra zona aunque la calle esté bien. */}
-          <section
-            aria-labelledby="entrega-ubigeo-titulo"
-            className={[
-              'rounded-[14px] border-[1.5px] p-3.5',
-              marca('distrito') && !distritoId ? 'border-[#C4371E] bg-[#FFF7F5]' : 'border-[#C9D0F5] bg-[#F5F6FF]',
-            ].join(' ')}
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[#4654CD] text-white" aria-hidden="true">
-                <IconoUbicacion />
-              </span>
-              <h3 id="entrega-ubigeo-titulo" className="text-[15px] font-bold text-[#222226]">
-                ¿En qué distrito está tu casa? <span className="text-[#C4371E]">*</span>
-              </h3>
-            </div>
-            <p className="mb-3 mt-1.5 text-[13px] leading-snug text-[#5F6070]">
-              El repartidor arma su ruta por distrito. Si eliges otro, tu equipo sale a otra zona
-              aunque la calle esté bien.
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <GeoCascadeField
-                value={distritoId}
-                districtLabel={distrito}
-                hideErrorText
-                // `error` es el texto; con `hideErrorText` solo pinta los tres
-                // campos en rojo y el mensaje lo ponemos una vez, abajo.
-                error={marca('distrito') && !distritoId ? 'Elige tu distrito' : undefined}
-                onChange={(id, label, ruta) => {
-                  setDistritoId(id);
-                  setDistrito(label ?? '');
-                  setUbicacion(ruta ?? label ?? '');
-                  if (id) limpiaError('distrito');
-                }}
-              />
-            </div>
-            {marca('distrito') && !distritoId && <TextoError>Elige tu departamento, provincia y distrito</TextoError>}
-            {distritoId && (ubicacion || distrito) && (
-              <p className="mt-3 flex items-center gap-2 rounded-[10px] bg-white px-3 py-2 text-sm text-[#222226]">
-                <span className="text-[#1E7F50]" aria-hidden="true">
-                  <svg viewBox="0 0 12 12" fill="none" className="h-3.5 w-3.5"><path d="M2.5 6.2 5 8.5l4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          {/* El ubigeo va primero: el courier arma la ruta por distrito, y un
+              distrito equivocado ("zonificación errada") manda el equipo a otra
+              zona aunque la calle esté bien. */}
+          <section aria-labelledby="entrega-ubigeo-titulo" className="flex flex-col gap-2">
+            <h3 id="entrega-ubigeo-titulo" className="text-[15px] font-semibold text-[#222226]">
+              ¿En qué distrito vives?
+            </h3>
+            {distritoId && !cambiandoUbigeo ? (
+              <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-[#4654CD] bg-[#F5F6FF] px-3.5 py-3">
+                <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-[#4654CD] text-white" aria-hidden="true">
+                  <IconoUbicacion />
                 </span>
-                <span>Enviaremos a <strong className="font-semibold">{ubicacion || distrito}</strong></span>
-              </p>
+                <span className="min-w-0 flex-1 leading-snug">
+                  <span className="block font-semibold text-[#222226]">{distrito || ubicacion.split(',')[0]}</span>
+                  {ubicacion.includes(',') && (
+                    <span className="block text-[13px] text-[#5F6070]">
+                      {ubicacion.split(',').slice(1).map((t) => t.trim()).join(', ')}
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCambiandoUbigeo(true)}
+                  className="rounded-md px-2 py-1 text-sm font-semibold text-[#4654CD] transition-colors hover:bg-[#E4E6FF] cursor-pointer"
+                >
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <GeoCascadeField
+                    value={distritoId}
+                    districtLabel={distrito}
+                    hideErrorText
+                    // `error` es el texto; con `hideErrorText` solo pinta los tres
+                    // campos en rojo y el mensaje lo ponemos una vez, abajo.
+                    error={marca('distrito') && !distritoId ? 'Elige tu distrito' : undefined}
+                    onChange={(id, label, ruta) => {
+                      setDistritoId(id);
+                      setDistrito(label ?? '');
+                      setUbicacion(ruta ?? label ?? '');
+                      if (id) {
+                        limpiaError('distrito');
+                        setCambiandoUbigeo(false);
+                      }
+                    }}
+                  />
+                </div>
+                {marca('distrito') && !distritoId
+                  ? <TextoError>Elige tu departamento, provincia y distrito</TextoError>
+                  : <p className="text-[13px] text-[#8A8B99]">El repartidor arma su ruta por distrito.</p>}
+              </>
             )}
           </section>
 
@@ -384,7 +393,7 @@ export function FormularioEntrega({
             partes={partes}
             errores={erroresPartes}
             marcados={errores}
-            guardada={limpio(inicial.direccion)}
+            guardada={problemaInicial ? '' : limpio(inicial.direccion)}
             onCambio={cambiaParte}
           />
 
@@ -994,10 +1003,10 @@ function DireccionEnPartes({
   return (
     <fieldset className="flex flex-col gap-3 border-0 p-0">
       <legend className="mb-2.5 text-[15px] font-semibold text-[#222226]">
-        ¿Cómo es tu dirección? <span className="text-[#C4371E]">*</span>
+        ¿Cómo es tu dirección?
       </legend>
       {guardada && (
-        <p className="-mt-1 text-[13px] text-[#8A8B99]">Tenemos registrada: «{guardada}»</p>
+        <p className="-mt-1 text-[13px] text-[#8A8B99]">Antes: {guardada}</p>
       )}
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <Eleccion
