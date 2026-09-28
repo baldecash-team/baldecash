@@ -168,6 +168,7 @@ function buildReceivedData(
   const accessories = applicationData?.accessories?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
+    isGift: acc.is_gift ?? false,
   }));
 
   // Mapear seguro(s) desde API — soporta array (insurances) y singular (insurance)
