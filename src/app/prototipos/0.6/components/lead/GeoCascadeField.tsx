@@ -33,7 +33,11 @@ interface GeoCascadeFieldProps {
   /** Distrito seleccionado (id) — controlado por el padre */
   value?: string;
   districtLabel?: string;
-  onChange: (districtId: string, districtLabel?: string) => void;
+  /**
+   * `ruta` es "Distrito, Provincia, Departamento" con los nombres elegidos,
+   * para mostrarle a la persona el ubigeo entero y no solo el distrito.
+   */
+  onChange: (districtId: string, districtLabel?: string, ruta?: string) => void;
   error?: string;
   small?: boolean;
   compact?: boolean;
@@ -116,7 +120,12 @@ export const GeoCascadeField: React.FC<GeoCascadeFieldProps> = ({
         placeholder={prov ? 'Selecciona' : 'Primero elige provincia'}
         disabled={!prov}
         error={error}
-        onChange={(v, label) => { setDistLabel(label ?? ''); onChange(v, label); }}
+        onChange={(v, label) => {
+          setDistLabel(label ?? '');
+          const nombre = (opts: Opt[], id: string) => opts.find((o) => o.value === id)?.label;
+          const ruta = [label, nombre(provinces, prov), nombre(departments, dept)].filter(Boolean).join(', ');
+          onChange(v, label, ruta || undefined);
+        }}
         {...sel}
       />
     </>

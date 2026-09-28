@@ -19,7 +19,7 @@
  * es acá donde la declaran.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
 import {
   PARTES_VACIAS, TIPOS_VIA, TIPOS_ZONA,
@@ -141,6 +141,8 @@ export function FormularioEntrega({
   // Mientras no toque «Editar», la dirección es la guardada. Al editar se pide
   // en partes y el renglón se arma con `componerDireccion`.
   const [partes, setPartes] = useState<PartesDireccion>(PARTES_VACIAS);
+  /** El último paso antes de registrar: la persona lee su dirección y la confirma. */
+  const [confirmando, setConfirmando] = useState(false);
   const enPartes = editandoDireccion || !!partes.forma;
   const direccion = partes.forma ? componerDireccion(partes) : limpio(inicial.direccion);
   const calle = partes.forma ? partes.interior.trim() : limpio(inicial.calle);
@@ -228,6 +230,11 @@ export function FormularioEntrega({
     }
     if (faltan.size) return;
 
+    setConfirmando(true);
+  };
+
+  const registrar = () => {
+    setConfirmando(false);
     onEnviar({
       direccion: direccion.trim(),
       calle: calle.trim(),
@@ -324,15 +331,28 @@ export function FormularioEntrega({
             </Alerta>
           )}
 
-          <DireccionEnPartes
-            partes={partes}
-            errores={erroresPartes}
-            marcados={errores}
-            guardada={limpio(inicial.direccion)}
-            onCambio={cambiaParte}
-          />
-
-          <div>
+          {/* El ubigeo va primero y en su propio recuadro: el courier arma la
+              ruta por distrito, y un distrito equivocado ("zonificación
+              errada") manda el equipo a otra zona aunque la calle esté bien. */}
+          <section
+            aria-labelledby="entrega-ubigeo-titulo"
+            className={[
+              'rounded-[14px] border-[1.5px] p-3.5',
+              marca('distrito') && !distritoId ? 'border-[#C4371E] bg-[#FFF7F5]' : 'border-[#C9D0F5] bg-[#F5F6FF]',
+            ].join(' ')}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[#4654CD] text-white" aria-hidden="true">
+                <IconoUbicacion />
+              </span>
+              <h3 id="entrega-ubigeo-titulo" className="text-[15px] font-bold text-[#222226]">
+                ¿En qué distrito está tu casa? <span className="text-[#C4371E]">*</span>
+              </h3>
+            </div>
+            <p className="mb-3 mt-1.5 text-[13px] leading-snug text-[#5F6070]">
+              El repartidor arma su ruta por distrito. Si eliges otro, tu equipo sale a otra zona
+              aunque la calle esté bien.
+            </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <GeoCascadeField
                 value={distritoId}
@@ -341,16 +361,33 @@ export function FormularioEntrega({
                 // `error` es el texto; con `hideErrorText` solo pinta los tres
                 // campos en rojo y el mensaje lo ponemos una vez, abajo.
                 error={marca('distrito') && !distritoId ? 'Elige tu distrito' : undefined}
-                onChange={(id, label) => {
+                onChange={(id, label, ruta) => {
                   setDistritoId(id);
                   setDistrito(label ?? '');
-                  setUbicacion(label ?? '');
+                  setUbicacion(ruta ?? label ?? '');
                   if (id) limpiaError('distrito');
                 }}
               />
             </div>
-            {marca('distrito') && !distritoId && <TextoError>Elige tu distrito</TextoError>}
-          </div>
+            {marca('distrito') && !distritoId && <TextoError>Elige tu departamento, provincia y distrito</TextoError>}
+            {distritoId && (ubicacion || distrito) && (
+              <p className="mt-3 flex items-center gap-2 rounded-[10px] bg-white px-3 py-2 text-sm text-[#222226]">
+                <span className="text-[#1E7F50]" aria-hidden="true">
+                  <svg viewBox="0 0 12 12" fill="none" className="h-3.5 w-3.5"><path d="M2.5 6.2 5 8.5l4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </span>
+                <span>Enviaremos a <strong className="font-semibold">{ubicacion || distrito}</strong></span>
+              </p>
+            )}
+          </section>
+
+          <DireccionEnPartes
+            partes={partes}
+            errores={erroresPartes}
+            marcados={errores}
+            guardada={limpio(inicial.direccion)}
+            onCambio={cambiaParte}
+          />
+
 
           <Campo
             id="entrega-referencia"
@@ -390,7 +427,12 @@ export function FormularioEntrega({
               <p className="font-semibold leading-snug text-[#222226]">
                 {[direccion, calle].filter(Boolean).join(', ')}
               </p>
-              {ubicacion && <p className="text-[#5F6070]">{ubicacion}</p>}
+              {(ubicacion || distrito) && (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[13px] font-semibold text-[#4654CD] ring-1 ring-[#C9D0F5]">
+                  <IconoUbicacion />
+                  {ubicacion || distrito}
+                </p>
+              )}
             </div>
             {permiteEditarDireccion && (
               <button
@@ -651,6 +693,94 @@ export function FormularioEntrega({
           </div>
         </div>
       )}
+
+      {confirmando && (
+        <ModalConfirmarEntrega
+          direccion={[direccion, calle].filter(Boolean).join(', ')}
+          ubicacion={ubicacion || distrito}
+          referencia={referencia.trim()}
+          recibe={esTitular ? 'Tú' : `${nombres.trim()} (${parentesco.trim()}) · ${telefono.replace(/\D/g, '')}`}
+          puedeCorregir={permiteEditarDireccion}
+          onConfirmar={registrar}
+          onCorregir={() => { setConfirmando(false); setEditandoDireccion(true); }}
+          onCerrar={() => setConfirmando(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * La validación que no hace el código: la persona lee su dirección tal como
+ * le llegará al repartidor —con el distrito bien a la vista— y la confirma.
+ * Es la última oportunidad de ver un distrito equivocado antes de que el
+ * equipo salga.
+ */
+function ModalConfirmarEntrega({
+  direccion, ubicacion, referencia, recibe, puedeCorregir, onConfirmar, onCorregir, onCerrar,
+}: {
+  direccion: string;
+  ubicacion: string;
+  referencia: string;
+  recibe: string;
+  puedeCorregir: boolean;
+  onConfirmar: () => void;
+  onCorregir: () => void;
+  onCerrar: () => void;
+}) {
+  const confirmar = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    confirmar.current?.focus();
+    const alTeclear = (e: KeyboardEvent) => { if (e.key === 'Escape') onCerrar(); };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [onCerrar]);
+
+  const fila = (etiqueta: string, valor: string, resaltado = false) => (
+    <div className="border-t border-[#E3E4EC] py-2.5 first:border-t-0 first:pt-0">
+      <dt className="text-[12px] font-semibold uppercase tracking-wide text-[#8A8B99]">{etiqueta}</dt>
+      <dd className={resaltado ? 'mt-0.5 text-[16px] font-bold text-[#4654CD]' : 'mt-0.5 font-semibold text-[#222226]'}>
+        {valor}
+      </dd>
+    </div>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#16172B]/50 p-0 sm:items-center sm:p-4"
+      onClick={onCerrar}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="entrega-confirmar-titulo"
+        className="w-full max-w-[460px] rounded-t-[20px] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-xl sm:rounded-[20px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="entrega-confirmar-titulo" className="text-[20px] font-bold leading-snug text-[#222226]">
+          ¿Tu dirección es correcta?
+        </h2>
+        <p className="mt-1 text-sm text-[#5F6070]">
+          Así la verá el repartidor. Si algo está mal, no podrá entregarte y habrá que reprogramar.
+        </p>
+
+        <dl className="mt-4 rounded-[14px] bg-[#F7F7FB] p-3.5 text-[15px]">
+          {fila('Distrito, provincia y departamento', ubicacion, true)}
+          {fila('Dirección', direccion)}
+          {fila('Referencia', referencia)}
+          {fila('Recibe', recibe)}
+        </dl>
+
+        <div className="mt-5 flex flex-col gap-2.5">
+          <button ref={confirmar} type="button" onClick={onConfirmar} className={botonPrimario}>
+            Sí, registrar envío
+          </button>
+          <button type="button" onClick={puedeCorregir ? onCorregir : onCerrar} className={botonSecundario}>
+            {puedeCorregir ? 'Corregir dirección' : 'Volver'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1145,6 +1275,15 @@ function Cierre({
 }
 
 /* ───────────────────────────── íconos ───────────────────────────── */
+
+function IconoUbicacion() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4">
+      <path d="M8 14.5s4.5-4.2 4.5-8A4.5 4.5 0 0 0 3.5 6.5c0 3.8 4.5 8 4.5 8z" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="8" cy="6.5" r="1.6" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
 
 function IconoCasa() {
   return (

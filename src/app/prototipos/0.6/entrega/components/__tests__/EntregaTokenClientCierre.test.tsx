@@ -70,6 +70,8 @@ const finalizar = async () => {
     expect(screen.getByRole('button', { name: 'Finalizar solicitud' })).toBeInTheDocument(),
   );
   await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+  // El modal que valida la dirección antes de registrar.
+  await userEvent.click(screen.getByRole('button', { name: 'Sí, registrar envío' }));
 };
 
 it('con volver va derecho a la confirmación, sin pantalla intermedia', async () => {

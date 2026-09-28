@@ -69,7 +69,7 @@ it('confirmar dirección marca todos los campos que faltan a la vez', async () =
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar dirección' }));
 
   expect(screen.getByText('Elige cómo es tu dirección')).toBeInTheDocument();
-  expect(screen.getByText('Elige tu distrito')).toBeInTheDocument();
+  expect(screen.getByText('Elige tu departamento, provincia y distrito')).toBeInTheDocument();
   expect(screen.getByText('Escribe una referencia para el repartidor')).toBeInTheDocument();
 });
 
@@ -139,6 +139,13 @@ it('declarar la dirección por vía y número y finalizar devuelve lo completado
     expect(screen.getByRole('heading', { name: 'Confirma tu envío' })).toBeInTheDocument());
 
   await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+
+  // Antes de registrar, el modal muestra la dirección con el distrito.
+  const modal = screen.getByRole('dialog', { name: '¿Tu dirección es correcta?' });
+  expect(modal).toHaveTextContent('Av. Los Álamos 456');
+  expect(modal).toHaveTextContent('Miraflores');
+  expect(onEnviar).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Sí, registrar envío' }));
 
   expect(onEnviar).toHaveBeenCalledWith(expect.objectContaining({
     direccion: 'Av. Los Álamos 456',
@@ -230,4 +237,16 @@ it('una dirección guardada sin número abre en la dirección con la alerta', ()
   pintar({ direccionInicial: { ...CON_DIRECCION, direccion: 'Paradero Corporación Roma', calle: '' } });
 
   expect(screen.getByRole('alert')).toHaveTextContent('le falta el número de tu casa o tu manzana y lote');
+});
+
+it('en el modal, corregir vuelve a la dirección sin registrar', async () => {
+  const onEnviar = jest.fn();
+  pintar({ direccionInicial: CON_DIRECCION, permiteEditarDireccion: true, onEnviar });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Finalizar solicitud' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Corregir dirección' }));
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '¿A dónde enviamos tu equipo?' })).toBeInTheDocument();
+  expect(onEnviar).not.toHaveBeenCalled();
 });
