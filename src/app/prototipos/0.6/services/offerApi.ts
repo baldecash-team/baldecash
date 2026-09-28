@@ -29,16 +29,35 @@ export type OfferErrorReason =
   | 'revoked'
   | 'purpose_mismatch'
   | 'offer_not_found'
+  /** BAL-4198: el total recalculado al aceptar no es el que el cliente vio
+   *  (`/select` con `expected_monthly`). La cuota nueva viaja en `data`. */
+  | 'price_changed'
   | 'unknown';
 
 export class OfferApiError extends Error {
   reason: OfferErrorReason;
   status: number;
-  constructor(reason: OfferErrorReason, message: string, status: number) {
+  /** Campos extra del `detail` del backend (ej. `monthly_payment` en
+   *  `price_changed`). Vacío si no vino nada más que reason/message. */
+  data: Record<string, unknown>;
+  constructor(
+    reason: OfferErrorReason,
+    message: string,
+    status: number,
+    data: Record<string, unknown> = {},
+  ) {
     super(message);
     this.reason = reason;
     this.status = status;
+    this.data = data;
   }
+}
+
+/** Cuota nueva de un `price_changed` (BAL-4198), o null si el error es otro. */
+export function nuevaCuotaDePrecioCambiado(err: unknown): number | null {
+  if (!(err instanceof OfferApiError) || err.reason !== 'price_changed') return null;
+  const n = Number(err.data?.monthly_payment);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /** Equipo que el estudiante pidió originalmente (se muestra tachado). */
@@ -306,15 +325,19 @@ export interface OfferCatalogFilters {
 async function parseError(res: Response): Promise<OfferApiError> {
   let reason: OfferErrorReason = 'unknown';
   let message = 'Ocurrió un error al cargar la oferta.';
+  let data: Record<string, unknown> = {};
   try {
     const body = await res.json();
     const detail = body?.detail ?? body;
     if (detail?.reason) reason = detail.reason as OfferErrorReason;
     if (detail?.message) message = detail.message;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      data = detail as Record<string, unknown>;
+    }
   } catch {
     /* respuesta sin JSON */
   }
-  return new OfferApiError(reason, message, res.status);
+  return new OfferApiError(reason, message, res.status, data);
 }
 
 /** Accesorios/seguros de la oferta estándar (snake_case → camelCase). Tolera
@@ -624,13 +647,16 @@ export async function getOfferFilters(
 /** POST /public/offer/{token}/select — registra el equipo elegido.
  *  `comboId`: si el equipo viene de un combo, se envía para que el backend
  *  sincronice el accesorio correcto a legacy (un equipo puede estar en varios
- *  combos, así que el variant_id solo no basta). */
+ *  combos, así que el variant_id solo no basta).
+ *  `pricing.expectedMonthly` (BAL-4198): cuota TOTAL mensual que el cliente ve
+ *  al confirmar (equipo + accesorios + seguros). Si el backend la recalcula
+ *  distinta responde 409 `price_changed` (ver `nuevaCuotaDePrecioCambiado`). */
 export async function selectEquipment(
   token: string,
   variantId: number,
   comboId?: number | null,
   addons?: { accessoryIds?: number[]; insuranceIds?: number[] },
-  pricing?: { term?: number; initial?: number },
+  pricing?: { term?: number; initial?: number; expectedMonthly?: number },
 ): Promise<{ offerId: number; selectedVariantId: number; status: string }> {
   const res = await fetch(`${API_BASE_URL}/public/offer/${encodeURIComponent(token)}/select`, {
     method: 'POST',
@@ -643,6 +669,7 @@ export async function selectEquipment(
       // Plazo/inicial elegidos (BAL-2097): el backend valida/registra con esta celda.
       ...(pricing?.term != null ? { term: pricing.term } : {}),
       ...(pricing?.initial != null ? { initial: pricing.initial } : {}),
+      ...(pricing?.expectedMonthly != null ? { expected_monthly: pricing.expectedMonthly } : {}),
     }),
   });
   if (!res.ok) throw await parseError(res);

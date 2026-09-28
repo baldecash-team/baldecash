@@ -28,9 +28,11 @@ import {
   getOfferAddonsRich,
   selectEquipment,
   OfferApiError,
+  nuevaCuotaDePrecioCambiado,
 } from '../../../services/offerApi';
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
+import { PrecioCambiadoAviso } from '../components/PrecioCambiadoAviso';
 import { cuotaSuffix, plazoUnit, monthlyFactor } from '../components/equipoCardFormat';
 import { readOfferSelection, clearOfferSelection } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
@@ -138,6 +140,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // "Confirmar" en el modal de elección, se muestra este check final.
   const [showSeguro, setShowSeguro] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
+  // BAL-4198: el `/select` respondió `price_changed`. Guarda la cuota nueva que
+  // cobra el backend y la que el cliente veía, para el aviso.
+  const [precioCambiado, setPrecioCambiado] = useState<{ nueva: number; vista: number } | null>(null);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
   // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
   // arriba de la pantalla de complementos.
@@ -360,7 +365,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // a la página de confirmación (/oferta/{token} → SeleccionConfirmada,
   // "¡Felicidades!"), sin la cara "¡Listo!" intermedia del modal (BAL-2212).
   // Se mantiene confirming=true hasta la navegación para no cortar el spinner.
-  const confirmar = useCallback(async () => {
+  // `expectedOverride`: el monto que el cliente acepta desde el aviso de
+  // "El precio cambió" (BAL-4198). Sin él se manda lo que muestra la pantalla.
+  const confirmar = useCallback(async (expectedOverride?: number) => {
     if (variantId == null) return;
     // Anti-doble-clic: si ya hay una confirmación en curso, ignorar. El ref se
     // libera solo en el catch (reintentar); en éxito NO se libera porque la
@@ -372,7 +379,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       await selectEquipment(token, variantId, comboId, {
         accessoryIds: selectedAcc.map(Number),
         insuranceIds: selectedIns.map(Number),
-      }, { term: curTerm, initial: curInitial });
+      }, {
+        term: curTerm,
+        initial: curInitial,
+        // BAL-4198: la cuota total que el cliente está viendo. Si el backend la
+        // recalcula distinta, responde `price_changed` y no guarda nada.
+        expectedMonthly: expectedOverride ?? totalMonthly,
+      });
       // Funnel: elección confirmada (equipo + add-ons). Tras el OK del backend.
       analytics.trackSummarySubmit({
         product_count: 1,
@@ -390,13 +403,32 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       // siga en "Procesando tu cambio…" hasta que la navegación reemplace la
       // página — evita un flash de la cara "¡Listo!" o del botón "Confirmar".
       setSucceeded(true);
+      setPrecioCambiado(null);
       window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
     } catch (err) {
+      const nueva = nuevaCuotaDePrecioCambiado(err);
+      if (nueva != null) {
+        // BAL-4198: no se guardó nada. Se avisa con el monto nuevo y el cliente
+        // decide: confirmarlo (reenvía con ese expected) o volver a revisar.
+        analytics.track('offer_select_error', {
+          offer_case: offerCase,
+          reason: 'price_changed',
+          expected_monthly: expectedOverride ?? totalMonthly,
+          new_monthly: nueva,
+        });
+        setPrecioCambiado({ nueva, vista: expectedOverride ?? totalMonthly });
+        setConfirming(false);
+        setShowSeguro(false);
+        setModalOpen(false);
+        confirmLock.current = false;
+        return;
+      }
       analytics.track('offer_select_error', {
         offer_case: offerCase,
         reason: err instanceof Error ? err.name : 'unknown',
       });
       setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
+      setPrecioCambiado(null);
       setConfirming(false);
       setModalOpen(false);
       setShowSeguro(false); // cierra la segunda confirmación en caso de error
@@ -1057,7 +1089,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
               <div className="mt-5 flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={confirmar}
+                  onClick={() => confirmar()}
                   disabled={confirming}
                   className="flex w-full cursor-pointer items-center justify-center rounded-lg py-3.5 text-[15px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
                   style={{ backgroundColor: OFERTA_COLORS.primary }}
@@ -1078,6 +1110,23 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* BAL-4198: el precio cambió entre ver y confirmar. */}
+      <PrecioCambiadoAviso
+        isOpen={precioCambiado != null}
+        nuevaCuota={precioCambiado?.nueva ?? 0}
+        cuotaVista={precioCambiado?.vista ?? null}
+        confirming={confirming}
+        onConfirmar={() => {
+          if (precioCambiado) void confirmar(precioCambiado.nueva);
+        }}
+        onVolver={() => {
+          // Recarga: la selección vive en localStorage y la pantalla vuelve a
+          // cotizar equipo + add-ons con los precios de hoy.
+          setPrecioCambiado(null);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
