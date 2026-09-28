@@ -1121,8 +1121,8 @@ describe('EscanerPageContent', () => {
         delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
       });
 
-      it('APAGADA (el default): la inspección abierta no muestra visor ni abre peers', async () => {
-        delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+      it('APAGADA con =0: la inspección abierta no muestra visor ni abre peers', async () => {
+        process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '0';
         const construyeConexion = jest.fn();
         (globalThis as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection =
           construyeConexion;

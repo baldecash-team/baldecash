@@ -64,8 +64,8 @@ describe('useTransmisionReceptor', () => {
     delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
   });
 
-  it('APAGADA (el default): con la inspección abierta no ofrece ni muestra nada', async () => {
-    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+  it('APAGADA con =0: con la inspección abierta no ofrece ni muestra nada', async () => {
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '0';
     const { vista } = montar(true);
     await new Promise((r) => setTimeout(r, 0));
 

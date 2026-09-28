@@ -14,6 +14,7 @@ import {
 import { useWakeLock } from '../_lib/useWakeLock';
 import { useServerClock } from '../_lib/useServerClock';
 import { useTransmisionEmisor } from '../_lib/useTransmisionEmisor';
+import { fijarContexto } from '../_lib/diagnosticoTransmision';
 import {
   useComandos,
   type ComandoPhotoPayload,
@@ -397,6 +398,17 @@ export default function CamaraPageContent() {
     streamRef,
   });
 
+  // Quién es esta cámara, para los reportes de `diagnosticoTransmision`.
+  useEffect(() => {
+    if (!session) return;
+    fijarContexto({
+      rol: 'camara',
+      estacion: session.stationId,
+      camara: session.label ?? session.kind,
+      dispositivo: session.deviceId,
+    });
+  }, [session]);
+
   // Review de F2 (F3 Task 5, rediseño post-revisión): reporta el estado de
   // captura al backend para que el pre-vuelo del escáner (`estaListo` en
   // `PreVuelo.tsx`) no confunda "conectada al canal" con "puede grabar" — ver
@@ -605,6 +617,7 @@ export default function CamaraPageContent() {
       // debe quedar pisado a mitad de camino por una carrera imposible de
       // ver desde acá.
       activeTakeRef.current = { inspectionId: payload.inspection_id, takeNumber: payload.take_number };
+      fijarContexto({ inspeccion: payload.inspection_id, toma: payload.take_number });
 
       // Arranque por reloj absoluto (spec §6.1 regla 2, y el requisito duro
       // de esta Task): el objetivo es `start_at` CORREGIDO POR EL OFFSET, no
