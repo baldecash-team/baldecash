@@ -373,7 +373,9 @@ export function MiOfertaClient({ token }: { token: string }) {
     // pantalla arranca sin nada marcado y el cliente vuelve a elegir lo que quiere
     // llevar. Ningún check viene activado por defecto.
     goToAccesorios(
-      req.variant_id, null, req.slug,
+      // Combo del pedido: sin él, complementos cotizaba el equipo SUELTO
+      // (cuota y margen equivocados) cuando el cliente mantiene su combo.
+      req.variant_id, req.combo_id ?? null, req.slug,
       {
         name: req.name ?? 'Tu equipo',
         brand: undefined,

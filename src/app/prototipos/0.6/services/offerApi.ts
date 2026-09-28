@@ -74,6 +74,9 @@ export interface RequestedProduct {
    *  como disponible (compatibilidad), igual que hacía el front antes de que
    *  el backend mandara este campo. */
   available_in_catalog?: boolean | null;
+  /** Combo del pedido (null si fue una card suelta). Se reenvía al "mantener
+   *  mi equipo" para que complementos cotice con el combo. */
+  combo_id?: number | null;
 }
 
 /** Accesorio/seguro elegido en la oferta (para el desglose de confirmación). */
