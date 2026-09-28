@@ -28,11 +28,14 @@ import {
   getOfferAddonsRich,
   selectEquipment,
   OfferApiError,
+  nuevaCuotaDePrecioCambiado,
 } from '../../../services/offerApi';
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
+import { PrecioCambiadoAviso } from '../components/PrecioCambiadoAviso';
+import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from '../components/AvisoSeleccion';
 import { cuotaSuffix, plazoUnit, monthlyFactor } from '../components/equipoCardFormat';
-import { readOfferSelection, clearOfferSelection } from '../offerStorage';
+import { readOfferSelection, clearOfferSelection, accesoriosIniciales } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from '../components/redesign/OfertaHeader';
 import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
@@ -138,6 +141,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // "Confirmar" en el modal de elección, se muestra este check final.
   const [showSeguro, setShowSeguro] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
+  // BAL-4198: el `/select` respondió `price_changed`. Guarda la cuota nueva que
+  // cobra el backend y la que el cliente veía, para el aviso.
+  const [precioCambiado, setPrecioCambiado] = useState<{ nueva: number; vista: number } | null>(null);
+  // BAL-4196: el `/select` rechazó la selección (no el link). Se avisa con el
+  // mensaje del backend sin tirar la página: el cliente ajusta y reintenta.
+  const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
   // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
   // arriba de la pantalla de complementos.
@@ -223,6 +232,19 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           setCurTerm(selTerm != null && terms.includes(selTerm) ? selTerm : Math.max(...terms));
           setCurInitial(selInitial != null && initials.includes(selInitial) ? selInitial : Math.min(...initials));
         }
+        // BAL-4193: defensa en el mini-checkout — si la selección que se está
+        // armando es justo "mantener mi equipo" (el variant_id coincide con el
+        // pedido) y el backend ya marca ese equipo fuera de catálogo, no se
+        // sigue armando el pedido. El index de la oferta ya bloquea el CTA
+        // antes de llegar aquí; esto cubre entrar directo con una selección
+        // vieja (localStorage/back-navigation) sobre un equipo ya no disponible.
+        const req = offer.requestedProduct;
+        if (req && req.variant_id != null && req.variant_id === vId && req.available_in_catalog === false) {
+          if (active) {
+            setError('Este equipo ya no está disponible. Vuelve a tu oferta para elegir otra opción.');
+          }
+          return;
+        }
         const res = await getOfferAddonsRich(token, vId, {
           accessoryIds: selectedAcc.map(Number),
           insuranceIds: selectedIns.map(Number),
@@ -252,8 +274,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         const storedTieneContenido = !!stored && (stored.acc.length > 0 || stored.ins.length > 0);
         if (storedTieneContenido) {
           const insOk = new Set(res.insurances.map((p) => p.id));
-          setSelectedAcc(stored!.acc.filter((id) => accOk.has(id)));
+          setSelectedAcc(accesoriosIniciales(stored!.acc, undefined, accOk));
           setSelectedIns(stored!.ins.filter((id) => insOk.has(id)));
+        } else if (!stored && selection.preselectAccessoryIds?.length) {
+          // BAL-4196: exclusiva del Perfil B → su accesorio llega marcado, para
+          // que el total sea el combinado de la portada. Solo la primera vez
+          // (sin nada guardado): si el cliente lo desmarca, se respeta.
+          setSelectedAcc(accesoriosIniciales(null, selection.preselectAccessoryIds, accOk));
         }
       } catch (err) {
         if (!active) return;
@@ -347,7 +374,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // a la página de confirmación (/oferta/{token} → SeleccionConfirmada,
   // "¡Felicidades!"), sin la cara "¡Listo!" intermedia del modal (BAL-2212).
   // Se mantiene confirming=true hasta la navegación para no cortar el spinner.
-  const confirmar = useCallback(async () => {
+  // `expectedOverride`: el monto que el cliente acepta desde el aviso de
+  // "El precio cambió" (BAL-4198). Sin él se manda lo que muestra la pantalla.
+  const confirmar = useCallback(async (expectedOverride?: number) => {
     if (variantId == null) return;
     // Anti-doble-clic: si ya hay una confirmación en curso, ignorar. El ref se
     // libera solo en el catch (reintentar); en éxito NO se libera porque la
@@ -355,11 +384,18 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     if (confirmLock.current) return;
     confirmLock.current = true;
     setConfirming(true);
+    setAvisoSeleccion(null);
     try {
       await selectEquipment(token, variantId, comboId, {
         accessoryIds: selectedAcc.map(Number),
         insuranceIds: selectedIns.map(Number),
-      }, { term: curTerm, initial: curInitial });
+      }, {
+        term: curTerm,
+        initial: curInitial,
+        // BAL-4198: la cuota total que el cliente está viendo. Si el backend la
+        // recalcula distinta, responde `price_changed` y no guarda nada.
+        expectedMonthly: expectedOverride ?? totalMonthly,
+      });
       // Funnel: elección confirmada (equipo + add-ons). Tras el OK del backend.
       analytics.trackSummarySubmit({
         product_count: 1,
@@ -377,13 +413,41 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       // siga en "Procesando tu cambio…" hasta que la navegación reemplace la
       // página — evita un flash de la cara "¡Listo!" o del botón "Confirmar".
       setSucceeded(true);
+      setPrecioCambiado(null);
       window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}`;
     } catch (err) {
+      const nueva = nuevaCuotaDePrecioCambiado(err);
+      if (nueva != null) {
+        // BAL-4198: no se guardó nada. Se avisa con el monto nuevo y el cliente
+        // decide: confirmarlo (reenvía con ese expected) o volver a revisar.
+        analytics.track('offer_select_error', {
+          offer_case: offerCase,
+          reason: 'price_changed',
+          expected_monthly: expectedOverride ?? totalMonthly,
+          new_monthly: nueva,
+        });
+        setPrecioCambiado({ nueva, vista: expectedOverride ?? totalMonthly });
+        setConfirming(false);
+        setShowSeguro(false);
+        setModalOpen(false);
+        confirmLock.current = false;
+        return;
+      }
       analytics.track('offer_select_error', {
         offer_case: offerCase,
         reason: err instanceof Error ? err.name : 'unknown',
       });
-      setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
+      const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
+      if (err instanceof OfferApiError && errorDeSeleccionTumbaLaPagina(err.reason)) {
+        // Link vencido/usado/revocado: no queda nada que confirmar.
+        setError(message);
+      } else {
+        // Antes: `setError` solo se veía si no había add-ons (y entonces
+        // reemplazaba la página); con add-ons el rechazo quedaba invisible.
+        setAvisoSeleccion(message);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      setPrecioCambiado(null);
       setConfirming(false);
       setModalOpen(false);
       setShowSeguro(false); // cierra la segunda confirmación en caso de error
@@ -804,6 +868,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       </nav>
 
       <main className="mx-auto w-full max-w-md space-y-5 px-4 py-4">
+        {avisoSeleccion ? (
+          <AvisoSeleccion message={avisoSeleccion} onCerrar={() => setAvisoSeleccion(null)} />
+        ) : null}
+
         {/* Encabezado */}
         <div>
           <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
@@ -1044,7 +1112,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
               <div className="mt-5 flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={confirmar}
+                  onClick={() => confirmar()}
                   disabled={confirming}
                   className="flex w-full cursor-pointer items-center justify-center rounded-lg py-3.5 text-[15px] font-bold text-white transition-all duration-200 ease-out hover:brightness-95 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
                   style={{ backgroundColor: OFERTA_COLORS.primary }}
@@ -1065,6 +1133,23 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* BAL-4198: el precio cambió entre ver y confirmar. */}
+      <PrecioCambiadoAviso
+        isOpen={precioCambiado != null}
+        nuevaCuota={precioCambiado?.nueva ?? 0}
+        cuotaVista={precioCambiado?.vista ?? null}
+        confirming={confirming}
+        onConfirmar={() => {
+          if (precioCambiado) void confirmar(precioCambiado.nueva);
+        }}
+        onVolver={() => {
+          // Recarga: la selección vive en localStorage y la pantalla vuelve a
+          // cotizar equipo + add-ons con los precios de hoy.
+          setPrecioCambiado(null);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

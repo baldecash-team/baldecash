@@ -27,6 +27,7 @@ import {
 } from '../../services/offerApi';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
+import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/AvisoSeleccion';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { monthlyFactor } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
@@ -140,6 +141,9 @@ export function MiOfertaClient({ token }: { token: string }) {
     summary: ChosenSummary;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // BAL-4196: el `/select` rechazó la opción elegida (no el link). Se muestra
+  // el mensaje del backend como aviso y la oferta sigue en pantalla.
+  const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
   // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
   const [selected, setSelected] = useState<ChosenSummary | null>(null);
   // Nº de equipos del catálogo de la oferta (copy "Elige entre XX equipos" de
@@ -278,6 +282,7 @@ export function MiOfertaClient({ token }: { token: string }) {
         // celda (BAL-2212). Sin esto caía al default del snapshot.
         term: equipo?.term,
         initial: equipo?.initial,
+        preselectAccessoryIds: equipo?.preselectAccessoryIds,
       });
       window.location.href = base;
     },
@@ -332,9 +337,10 @@ export function MiOfertaClient({ token }: { token: string }) {
     });
     // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
     // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
-    // (no-combo) NO se preselecciona: es un REGALO, no un add-on que el cliente
-    // compre, y el backend lo sincroniza a legacy por su cuenta (post-select-sync
-    // lo agrega desde approved_capacity.accessory aunque no venga en accessory_ids).
+    // (no-combo) llega PRESELECCIONADO (BAL-4196): la portada muestra el total
+    // combinado (equipo + accesorio) y complementos tiene que abrir con ese
+    // mismo total. Es un add-on con costo que /addons ofrece primero; el cliente
+    // puede desmarcarlo, y solo viaja a legacy si queda en accessory_ids.
     goToAccesorios(
       ex.variantId,
       ex.comboId ?? null,
@@ -344,6 +350,8 @@ export function MiOfertaClient({ token }: { token: string }) {
         brand: ex.brand ?? undefined,
         imageUrl: ex.imageUrl ?? undefined,
         monthly: ex.combinedMonthly,
+        preselectAccessoryIds:
+          ex.accessory && !ex.comboId ? [String(ex.accessory.product_id)] : undefined,
       },
     );
   }, [state, goToAccesorios, analytics, trackFirstAction]);
@@ -353,11 +361,16 @@ export function MiOfertaClient({ token }: { token: string }) {
   // El cliente rechaza el upsell y suma add-ons a su equipo. El backend acepta
   // el equipo pedido en ofertas upsell (BAL-2100 #1). Antes abría un modal inline
   // que llamaba /select con el equipo pedido → 404 variant_not_eligible.
+  // BAL-4193: guard de una sola vez para TODOS los accesos a "mantener mi
+  // equipo" — el CTA de EquipoPedidoCard y la barra "Añadir accesorios y
+  // seguros" llaman a esta misma función, así que basta bloquearla acá para
+  // que ningún camino deje seguir con un equipo ya fuera de catálogo.
   const handleContinuarMiEquipo = useCallback(() => {
     trackFirstAction();
     const offer = state.kind === 'ready' ? state.offer : null;
     const req = offer?.requestedProduct;
     if (!req || req.variant_id == null) return;
+    if (req.available_in_catalog === false) return; // no-op: equipo ya no disponible
     // Funnel: elige mantener el equipo pedido (rechaza el upsell), Caso 5.
     analytics.track('offer_equipment_chosen', {
       offer_case: offer?.offerCase,
@@ -368,7 +381,9 @@ export function MiOfertaClient({ token }: { token: string }) {
     // pantalla arranca sin nada marcado y el cliente vuelve a elegir lo que quiere
     // llevar. Ningún check viene activado por defecto.
     goToAccesorios(
-      req.variant_id, null, req.slug,
+      // Combo del pedido: sin él, complementos cotizaba el equipo SUELTO
+      // (cuota y margen equivocados) cuando el cliente mantiene su combo.
+      req.variant_id, req.combo_id ?? null, req.slug,
       {
         name: req.name ?? 'Tu equipo',
         brand: undefined,
@@ -392,6 +407,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       return;
     }
     setConfirming(true);
+    setAvisoSeleccion(null);
     try {
       await selectEquipment(token, pending.variantId, pending.comboId);
       // Éxito: CONVIRTIÓ (eligió su equipo) → no es abandono si luego oculta la
@@ -423,7 +439,15 @@ export function MiOfertaClient({ token }: { token: string }) {
         reason: err instanceof Error ? err.name : 'unknown',
       });
       setPending(null);
-      setState({ kind: 'error', reason, message });
+      if (errorDeSeleccionTumbaLaPagina(reason)) {
+        // Link vencido/usado/revocado: ya no hay nada que elegir.
+        setState({ kind: 'error', reason, message });
+      } else {
+        // BAL-4196: el rechazo es de ESTA opción. La oferta queda en pantalla
+        // con el motivo del backend para que el cliente elija otra.
+        setAvisoSeleccion(message);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } finally {
       setConfirming(false);
     }
@@ -583,6 +607,10 @@ export function MiOfertaClient({ token }: { token: string }) {
           </div>
         ) : null}
 
+        {avisoSeleccion ? (
+          <AvisoSeleccion message={avisoSeleccion} onCerrar={() => setAvisoSeleccion(null)} />
+        ) : null}
+
         {offer.offerCase === 'upsell' ? (
           // Caso 5 (upsell): la barra muestra el equipo que el estudiante PIDIÓ
           // (current_product → requestedProduct), igual que el Caso 4 — NO el
@@ -617,16 +645,22 @@ export function MiOfertaClient({ token }: { token: string }) {
           <>
             {/* Upsell (mock frame 2): Añadir accesorios (recomendado) →
                 Card "Cambiar equipo" enriquecida (collage + ver catálogo) →
-                "Mantener mi equipo" con imagen real. */}
-            <OpcionBarra
-              destacada
-              imagen={COLLAGE_ACCESORIOS_URL}
-              imagenAlt="Accesorios disponibles"
-              icono={<IconoAccesorios size={50} />}
-              titulo="Añadir accesorios y seguros"
-              subtitulo="Suma accesorios y seguros a tu equipo aprobado"
-              onClick={handleContinuarMiEquipo}
-            />
+                "Mantener mi equipo" con imagen real.
+                BAL-4193: esta barra suma accesorios AL EQUIPO PEDIDO (llama a
+                handleContinuarMiEquipo, igual que "Mantener este equipo") —
+                si ese equipo ya no está en catálogo, no tiene sentido
+                ofrecerla: se oculta junto con el CTA de la card. */}
+            {req?.available_in_catalog !== false ? (
+              <OpcionBarra
+                destacada
+                imagen={COLLAGE_ACCESORIOS_URL}
+                imagenAlt="Accesorios disponibles"
+                icono={<IconoAccesorios size={50} />}
+                titulo="Añadir accesorios y seguros"
+                subtitulo="Suma accesorios y seguros a tu equipo aprobado"
+                onClick={handleContinuarMiEquipo}
+              />
+            ) : null}
             {/* Card "Oferta personalizada": equipo exclusivo con foto + specs +
                 cuota + "Ver detalle" separado del CTA "Aceptar equipo" (misma
                 EquipoRecomendadoCard del Caso 4, tone índigo). */}
@@ -682,6 +716,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 insurances={req.insurances ?? []}
                 ctaText="Mantener este equipo"
                 onElegir={handleContinuarMiEquipo}
+                availableInCatalog={req.available_in_catalog}
               />
             ) : null}
           </>
@@ -704,6 +739,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 specs={reqSpecsChips}
                 accessories={req.accessories ?? []}
                 insurances={req.insurances ?? []}
+                availableInCatalog={req.available_in_catalog}
               />
             ) : null}
 

@@ -8,7 +8,14 @@
  * - selectEquipment: envía variant_id y devuelve el resultado.
  */
 
-import { getOffer, getCatalog, selectEquipment, acceptOffer, OfferApiError } from './offerApi';
+import {
+  getOffer,
+  getCatalog,
+  selectEquipment,
+  acceptOffer,
+  OfferApiError,
+  nuevaCuotaDePrecioCambiado,
+} from './offerApi';
 
 // Producto en el shape ApiCatalogProduct mínimo que el mapper acepta.
 function apiProduct(id: number, finalPrice: number, monthly: number) {
@@ -341,5 +348,65 @@ describe('acceptOffer', () => {
     await acceptOffer('tok');
 
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({});
+  });
+});
+
+describe('selectEquipment · precio esperado (BAL-4198)', () => {
+  it('manda expected_monthly con la cuota total que ve el cliente', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ offer_id: 7, selected_variant_id: 10, status: 'accepted' }),
+    });
+    global.fetch = fetchMock;
+
+    await selectEquipment('tok', 10, null, { accessoryIds: [3] }, { term: 24, initial: 0, expectedMonthly: 99.5 });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({
+      variant_id: 10, accessory_ids: [3], term: 24, initial: 0, expected_monthly: 99.5,
+    });
+  });
+
+  it('sin expectedMonthly no manda el campo (compatibilidad)', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ offer_id: 7, selected_variant_id: 10, status: 'accepted' }),
+    });
+    global.fetch = fetchMock;
+
+    await selectEquipment('tok', 10, null, undefined, { term: 24 });
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('expected_monthly');
+  });
+
+  it('409 price_changed trae la cuota nueva', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        detail: {
+          reason: 'price_changed',
+          message: 'El precio cambió: ahora es S/110/mes.',
+          monthly_payment: 110,
+          expected_monthly: 99,
+        },
+      }),
+    });
+
+    let err: unknown;
+    try {
+      await selectEquipment('tok', 10, null, undefined, { expectedMonthly: 99 });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(OfferApiError);
+    expect((err as OfferApiError).reason).toBe('price_changed');
+    expect((err as OfferApiError).status).toBe(409);
+    expect(nuevaCuotaDePrecioCambiado(err)).toBe(110);
+  });
+
+  it('otro error no es un cambio de precio', () => {
+    expect(nuevaCuotaDePrecioCambiado(new OfferApiError('exceeds_quota' as never, 'x', 422))).toBeNull();
+    expect(nuevaCuotaDePrecioCambiado(new Error('x'))).toBeNull();
   });
 });

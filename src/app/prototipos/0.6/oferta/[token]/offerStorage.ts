@@ -23,6 +23,11 @@ export interface StoredEquipo {
   term?: number;
   /** Inicial (%) elegido en el detalle — mismo uso que `term` (BAL-2097). */
   initial?: number;
+  /** Accesorios (product_id en string) que complementos debe traer MARCADOS la
+   *  primera vez (BAL-4196): el accesorio del Perfil B al aceptar la exclusiva,
+   *  para que el total coincida con el combinado de la portada. El cliente
+   *  puede desmarcarlo. */
+  preselectAccessoryIds?: string[];
 }
 
 export interface OfferSelection extends StoredEquipo {
@@ -98,6 +103,9 @@ export function readOfferSelection(token: string): OfferSelection | null {
       monthly: typeof p.monthly === 'number' ? p.monthly : undefined,
       term: typeof p.term === 'number' ? p.term : undefined,
       initial: typeof p.initial === 'number' ? p.initial : undefined,
+      preselectAccessoryIds: Array.isArray(p.preselectAccessoryIds)
+        ? p.preselectAccessoryIds.map(String)
+        : undefined,
     };
   } catch {
     return null;
@@ -111,4 +119,22 @@ export function clearOfferSelection(token: string): void {
   } catch {
     /* ignorar */
   }
+}
+
+/**
+ * Accesorios marcados al abrir complementos (BAL-4196).
+ *
+ * - Si hay algo guardado de esta variante (refresh / ida y vuelta), manda eso:
+ *   el cliente ya decidió (incluso desmarcar el preseleccionado).
+ * - Si no hay nada guardado, se marcan los `preselect` de la selección (el
+ *   accesorio del Perfil B) que hoy ofrece `/addons`.
+ * - Si no, nada marcado.
+ */
+export function accesoriosIniciales(
+  guardados: string[] | null,
+  preselect: string[] | undefined,
+  disponibles: ReadonlySet<string>,
+): string[] {
+  if (guardados !== null) return guardados.filter((id) => disponibles.has(id));
+  return (preselect ?? []).map(String).filter((id) => disponibles.has(id));
 }
