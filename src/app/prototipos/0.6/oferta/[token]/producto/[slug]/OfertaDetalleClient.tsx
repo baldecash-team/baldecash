@@ -338,12 +338,12 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   }
 
   const { data, readOnly, reqFrequency } = state;
-  // readOnly (equipo pedido): forzamos LA frecuencia real del pedido y limitamos
-  // el selector a esa única frecuencia. Así el PricingCalculator arranca directo
-  // en ella (semanal para el celular) y no dispara refetch a otra frecuencia.
-  const detailFrequencies =
-    readOnly && reqFrequency ? [reqFrequency] : data.paymentFrequencies;
-  const detailDefaultFrequency = readOnly && reqFrequency ? reqFrequency : undefined;
+  // La ficha queda fija en UNA frecuencia: la real del pedido (readOnly) o
+  // 'mensual' para un equipo elegible de la oferta (BAL-4201: la oferta es todo
+  // en mensual). Así el PricingCalculator arranca directo en ella y no dispara
+  // refetch a otra frecuencia (quincenal, la que prioriza el catálogo).
+  const detailFrequencies = reqFrequency ? [reqFrequency] : data.paymentFrequencies;
+  const detailDefaultFrequency = reqFrequency ?? undefined;
   return (
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header con logo (como la página de oferta) */}
