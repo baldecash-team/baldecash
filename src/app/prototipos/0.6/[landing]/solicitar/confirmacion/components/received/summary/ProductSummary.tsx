@@ -12,7 +12,7 @@ import { useParams } from 'next/navigation';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown, Gift } from 'lucide-react';
 import Image from 'next/image';
 import { ReceivedData } from '../../../types/received';
 import { displayMonths, periodUnitLabel } from '../../../../../../utils/paymentTerm';
@@ -287,12 +287,22 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                     {data.accessories.map((acc, idx) => (
                       <div key={`${acc.name}-${idx}`} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                          {acc.isGift ? (
+                            <Gift className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                          ) : (
+                            <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                          )}
                           <span className="text-neutral-700 truncate">{acc.name}</span>
                         </div>
-                        <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                          +{formatPrice(acc.monthlyQuota)}{freqSuffix}
-                        </span>
+                        {acc.isGift ? (
+                          <span className="text-emerald-600 font-medium flex-shrink-0 ml-4">
+                            Regalo · Incluido
+                          </span>
+                        ) : (
+                          <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
+                            +{formatPrice(acc.monthlyQuota)}{freqSuffix}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>

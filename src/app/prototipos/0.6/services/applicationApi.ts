@@ -365,6 +365,8 @@ export interface ApplicationStatusResponse {
   accessories?: Array<{
     name: string;
     monthly_quota: number;
+    /** BAL-4200: regalo del combo (viene incluido, no suma a la cuota). */
+    is_gift?: boolean;
   }> | null;
 
   insurance?: {

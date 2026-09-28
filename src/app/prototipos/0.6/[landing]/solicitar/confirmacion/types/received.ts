@@ -44,6 +44,8 @@ export interface ProductItem {
 export interface AccessoryItem {
   name: string;
   monthlyQuota: number;
+  /** BAL-4200: regalo del combo — se muestra "Regalo · Incluido" en vez de la cuota. */
+  isGift?: boolean;
 }
 
 export interface InsuranceData {
