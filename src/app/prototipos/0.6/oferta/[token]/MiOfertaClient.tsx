@@ -29,7 +29,7 @@ import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaE
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/AvisoSeleccion';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
-import { monthlyFactor } from './components/equipoCardFormat';
+import { monthlyFactor, plazoNativo } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
 import { saveOfferSelection, clearAllAddons, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
@@ -707,7 +707,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 nombre={req.name ?? 'Tu equipo'}
                 imageUrl={req.image_url}
                 monthly={req.monthly_price}
-                termMonths={req.term_months ?? req.term ?? null}
+                termMonths={plazoNativo(req.term, req.term_months, req.payment_frequency)}
                 initialAmount={req.initial_amount ?? null}
                 initialPercent={req.initial_percent ?? null}
                 paymentFrequency={req.payment_frequency ?? 'mensual'}
@@ -732,7 +732,7 @@ export function MiOfertaClient({ token }: { token: string }) {
                 nombre={req.name ?? 'Tu equipo'}
                 imageUrl={req.image_url}
                 monthly={req.monthly_price}
-                termMonths={req.term_months ?? req.term ?? null}
+                termMonths={plazoNativo(req.term, req.term_months, req.payment_frequency)}
                 initialAmount={req.initial_amount ?? null}
                 initialPercent={req.initial_percent ?? null}
                 paymentFrequency={req.payment_frequency ?? 'mensual'}
