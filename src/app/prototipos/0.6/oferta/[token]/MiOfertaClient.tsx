@@ -27,6 +27,7 @@ import {
 } from '../../services/offerApi';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
+import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/AvisoSeleccion';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { monthlyFactor } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
@@ -140,6 +141,9 @@ export function MiOfertaClient({ token }: { token: string }) {
     summary: ChosenSummary;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // BAL-4196: el `/select` rechazó la opción elegida (no el link). Se muestra
+  // el mensaje del backend como aviso y la oferta sigue en pantalla.
+  const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
   // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
   const [selected, setSelected] = useState<ChosenSummary | null>(null);
   // Nº de equipos del catálogo de la oferta (copy "Elige entre XX equipos" de
@@ -278,6 +282,7 @@ export function MiOfertaClient({ token }: { token: string }) {
         // celda (BAL-2212). Sin esto caía al default del snapshot.
         term: equipo?.term,
         initial: equipo?.initial,
+        preselectAccessoryIds: equipo?.preselectAccessoryIds,
       });
       window.location.href = base;
     },
@@ -332,9 +337,10 @@ export function MiOfertaClient({ token }: { token: string }) {
     });
     // Si el exclusivo es un COMBO (Perfil C), se pasa su comboId → complementos
     // resuelve los accesorios/seguros GRATIS del combo. El accesorio del Perfil B
-    // (no-combo) NO se preselecciona: es un REGALO, no un add-on que el cliente
-    // compre, y el backend lo sincroniza a legacy por su cuenta (post-select-sync
-    // lo agrega desde approved_capacity.accessory aunque no venga en accessory_ids).
+    // (no-combo) llega PRESELECCIONADO (BAL-4196): la portada muestra el total
+    // combinado (equipo + accesorio) y complementos tiene que abrir con ese
+    // mismo total. Es un add-on con costo que /addons ofrece primero; el cliente
+    // puede desmarcarlo, y solo viaja a legacy si queda en accessory_ids.
     goToAccesorios(
       ex.variantId,
       ex.comboId ?? null,
@@ -344,6 +350,8 @@ export function MiOfertaClient({ token }: { token: string }) {
         brand: ex.brand ?? undefined,
         imageUrl: ex.imageUrl ?? undefined,
         monthly: ex.combinedMonthly,
+        preselectAccessoryIds:
+          ex.accessory && !ex.comboId ? [String(ex.accessory.product_id)] : undefined,
       },
     );
   }, [state, goToAccesorios, analytics, trackFirstAction]);
@@ -399,6 +407,7 @@ export function MiOfertaClient({ token }: { token: string }) {
       return;
     }
     setConfirming(true);
+    setAvisoSeleccion(null);
     try {
       await selectEquipment(token, pending.variantId, pending.comboId);
       // Éxito: CONVIRTIÓ (eligió su equipo) → no es abandono si luego oculta la
@@ -430,7 +439,15 @@ export function MiOfertaClient({ token }: { token: string }) {
         reason: err instanceof Error ? err.name : 'unknown',
       });
       setPending(null);
-      setState({ kind: 'error', reason, message });
+      if (errorDeSeleccionTumbaLaPagina(reason)) {
+        // Link vencido/usado/revocado: ya no hay nada que elegir.
+        setState({ kind: 'error', reason, message });
+      } else {
+        // BAL-4196: el rechazo es de ESTA opción. La oferta queda en pantalla
+        // con el motivo del backend para que el cliente elija otra.
+        setAvisoSeleccion(message);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } finally {
       setConfirming(false);
     }
@@ -588,6 +605,10 @@ export function MiOfertaClient({ token }: { token: string }) {
           >
             Solicitud: {offer.applicationCode}
           </div>
+        ) : null}
+
+        {avisoSeleccion ? (
+          <AvisoSeleccion message={avisoSeleccion} onCerrar={() => setAvisoSeleccion(null)} />
         ) : null}
 
         {offer.offerCase === 'upsell' ? (

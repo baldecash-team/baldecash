@@ -33,8 +33,9 @@ import {
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
 import { PrecioCambiadoAviso } from '../components/PrecioCambiadoAviso';
+import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from '../components/AvisoSeleccion';
 import { cuotaSuffix, plazoUnit, monthlyFactor } from '../components/equipoCardFormat';
-import { readOfferSelection, clearOfferSelection } from '../offerStorage';
+import { readOfferSelection, clearOfferSelection, accesoriosIniciales } from '../offerStorage';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from '../components/redesign/OfertaHeader';
 import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
@@ -143,6 +144,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // BAL-4198: el `/select` respondió `price_changed`. Guarda la cuota nueva que
   // cobra el backend y la que el cliente veía, para el aviso.
   const [precioCambiado, setPrecioCambiado] = useState<{ nueva: number; vista: number } | null>(null);
+  // BAL-4196: el `/select` rechazó la selección (no el link). Se avisa con el
+  // mensaje del backend sin tirar la página: el cliente ajusta y reintenta.
+  const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
   // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
   // arriba de la pantalla de complementos.
@@ -270,8 +274,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         const storedTieneContenido = !!stored && (stored.acc.length > 0 || stored.ins.length > 0);
         if (storedTieneContenido) {
           const insOk = new Set(res.insurances.map((p) => p.id));
-          setSelectedAcc(stored!.acc.filter((id) => accOk.has(id)));
+          setSelectedAcc(accesoriosIniciales(stored!.acc, undefined, accOk));
           setSelectedIns(stored!.ins.filter((id) => insOk.has(id)));
+        } else if (!stored && selection.preselectAccessoryIds?.length) {
+          // BAL-4196: exclusiva del Perfil B → su accesorio llega marcado, para
+          // que el total sea el combinado de la portada. Solo la primera vez
+          // (sin nada guardado): si el cliente lo desmarca, se respeta.
+          setSelectedAcc(accesoriosIniciales(null, selection.preselectAccessoryIds, accOk));
         }
       } catch (err) {
         if (!active) return;
@@ -375,6 +384,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     if (confirmLock.current) return;
     confirmLock.current = true;
     setConfirming(true);
+    setAvisoSeleccion(null);
     try {
       await selectEquipment(token, variantId, comboId, {
         accessoryIds: selectedAcc.map(Number),
@@ -427,7 +437,16 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         offer_case: offerCase,
         reason: err instanceof Error ? err.name : 'unknown',
       });
-      setError(err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.');
+      const message = err instanceof OfferApiError ? err.message : 'No pudimos registrar tu elección.';
+      if (err instanceof OfferApiError && errorDeSeleccionTumbaLaPagina(err.reason)) {
+        // Link vencido/usado/revocado: no queda nada que confirmar.
+        setError(message);
+      } else {
+        // Antes: `setError` solo se veía si no había add-ons (y entonces
+        // reemplazaba la página); con add-ons el rechazo quedaba invisible.
+        setAvisoSeleccion(message);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       setPrecioCambiado(null);
       setConfirming(false);
       setModalOpen(false);
@@ -849,6 +868,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       </nav>
 
       <main className="mx-auto w-full max-w-md space-y-5 px-4 py-4">
+        {avisoSeleccion ? (
+          <AvisoSeleccion message={avisoSeleccion} onCerrar={() => setAvisoSeleccion(null)} />
+        ) : null}
+
         {/* Encabezado */}
         <div>
           <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
