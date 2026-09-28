@@ -28,7 +28,8 @@ import type { ApplicationStatusData } from './types/applicationStatus';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
-import { ReceivedScreen } from './components/received';
+import { ReceivedScreen, ContactInfo } from './components/received';
+import { Illustration } from './components/received/illustration';
 import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 
@@ -122,6 +123,9 @@ export function modoCierreDelKyc(
 /**
  * Build ReceivedData from API response (preferred) or URL params (fallback)
  */
+/** UUID: el `code` de la URL es el token publico, no el numero (BAL-4188). */
+const ES_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function buildReceivedData(
   applicationCode: string,
   applicationData: ApplicationStatusData | null,
@@ -164,6 +168,7 @@ function buildReceivedData(
   const accessories = applicationData?.accessories?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
+    isGift: acc.is_gift ?? false,
   }));
 
   // Mapear seguro(s) desde API — soporta array (insurances) y singular (insurance)
@@ -191,8 +196,12 @@ function buildReceivedData(
     : undefined;
 
   return {
+    // El `code` de la URL puede ser el token secreto (BAL-4188): nunca se
+    // muestra como "N° de solicitud". Sin respuesta del API, va un guion.
     applicationId:
-      applicationData?.reference || applicationData?.code || applicationCode,
+      applicationData?.reference ||
+      applicationData?.code ||
+      (ES_TOKEN.test(applicationCode) ? '—' : applicationCode),
     userName,
     submittedAt: applicationData?.submitted_at
       ? new Date(applicationData.submitted_at)
@@ -212,6 +221,52 @@ function buildReceivedData(
     totalMonthlyQuota: applicationData?.total_monthly_payment || 0,
     notificationChannels: ['whatsapp', 'email'],
   };
+}
+
+/**
+ * Vista limitada — se abrió el link con `?code=APP-…` (sin token, D2).
+ *
+ * ws2 responde `/status` recortado: sin nombre, sin equipo ni cuota, porque
+ * el `application_code` es adivinable y esos datos no se pueden exponer sin
+ * la prueba de titularidad que da el token. Se pinta solo el N° de solicitud
+ * con el mensaje y la ilustración de siempre, más el CTA de WhatsApp.
+ */
+function LimitedConfirmationContent({
+  applicationData,
+  onGoHome,
+}: {
+  applicationData: ApplicationStatusData;
+  onGoHome: () => void;
+}) {
+  const numero = applicationData.reference || applicationData.code;
+
+  // Siempre el mismo mensaje y la misma ilustracion animada que la pantalla
+  // completa: sin token no se dice el estado (rechazada, aprobada...), porque
+  // el `code` es adivinable y el resultado de otra persona tambien es privado.
+  return (
+    <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
+        <Illustration />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-center mb-6 sm:mb-8"
+        >
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight">
+            ¡Hemos recibido tu solicitud!
+          </h1>
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-neutral-100 rounded-full max-w-full">
+            <span className="text-xs sm:text-sm text-neutral-500 flex-shrink-0">N° de solicitud</span>
+            <span className="text-xs sm:text-sm font-mono font-semibold text-neutral-700 break-all">
+              {numero}
+            </span>
+          </div>
+        </motion.div>
+        <ContactInfo onGoToHome={onGoHome} />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -306,6 +361,18 @@ function RealConfirmationContent({
 }) {
   if (isLoading) {
     return <LoadingFallback />;
+  }
+
+  // Respuesta limitada (BAL-4188, D2): ws2 la recorta cuando el link no trae
+  // token — no hay nombre, equipo ni cuota que pintar, así que ni se intenta
+  // armar `receivedData` con eso ausente.
+  if (applicationData?.limited) {
+    return (
+      <LimitedConfirmationContent
+        applicationData={applicationData}
+        onGoHome={onGoHome}
+      />
+    );
   }
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
@@ -451,11 +518,26 @@ function ConfirmacionContent() {
     }
 
     setIsLoadingStatus(true);
+    // El link funciona con cualquier landing (D3): si la solicitud es de
+    // otra, se redirige antes de pintar nada de esta — `redirecting` frena el
+    // `.finally()` de abajo para que el loader siga mientras la navegación
+    // ocurre, en vez de destaparse un resumen a medio armar.
+    let redirecting = false;
 
     getApplicationStatus(applicationCode)
       .then((data) => {
         if (cancelled) return;
         if (data) {
+          if (data.landing_slug && data.landing_slug !== landing) {
+            redirecting = true;
+            const newPathname = window.location.pathname.replace(
+              `/${landing}/`,
+              `/${data.landing_slug}/`
+            );
+            router.replace(`${newPathname}${window.location.search}`);
+            return;
+          }
+
           setApplicationData(data);
 
           // Fire-and-forget: track application_submitted. Una sola vez por
@@ -490,11 +572,11 @@ function ConfirmacionContent() {
         console.error('[Confirmacion] getApplicationStatus failed:', err);
       })
       .finally(() => {
-        if (!cancelled) setIsLoadingStatus(false);
+        if (!cancelled && !redirecting) setIsLoadingStatus(false);
       });
 
     return () => { cancelled = true; };
-  }, [applicationCode, landing]);
+  }, [applicationCode, landing, router]);
 
   // Navigation handlers
   const handleSelectResult = (path: string) => {

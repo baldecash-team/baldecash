@@ -22,6 +22,21 @@ export function monthlyFactor(freq?: string | null): number {
   return f === 'semanal' ? 4 : f === 'quincenal' ? 2 : 1;
 }
 
+/**
+ * Plazo en la unidad de su frecuencia (nº de cuotas). El backend manda
+ * `term` = cuotas (48 semanas) y `term_months` = meses (12); para semanal/
+ * quincenal va `term`, si no la card dice "12 semanas" por un plan de 48.
+ */
+export function plazoNativo(
+  term: number | null | undefined,
+  termMonths: number | null | undefined,
+  freq?: string | null,
+): number | null {
+  const f = (freq ?? 'mensual').toLowerCase();
+  if (f === 'semanal' || f === 'quincenal') return term ?? termMonths ?? null;
+  return termMonths ?? term ?? null;
+}
+
 /** Unidad del plazo (singular/plural) según frecuencia: mes(es)/semana(s)/quincena(s). */
 export function plazoUnit(n: number | null | undefined, freq?: string | null): string {
   const f = freq ?? 'mensual';

@@ -20,7 +20,8 @@ import type { OfferView } from '../../../../services/offerApi';
 export interface ModoDetalle {
   /** Sin CTA "Elegir este equipo". */
   readOnly: boolean;
-  /** 'mensual' | 'semanal' | 'quincenal' — null = la que priorice el catálogo. */
+  /** 'mensual' | 'semanal' | 'quincenal' — null = la que priorice el catálogo.
+   *  Un equipo elegible de la oferta es siempre 'mensual'. */
   frequency: string | null;
   /** Plazo (nº de cuotas) e inicial (%) con los que abrir la ficha. */
   term: number | null;
@@ -48,5 +49,8 @@ export function modoDetalle(offer: OfferView, slug: string): ModoDetalle {
     };
   }
 
-  return { readOnly: false, frequency: null, term: null, initial: null };
+  // Equipo del catálogo de la oferta (Caso 4/5): la oferta es TODO EN MENSUAL
+  // (BAL-4201). La ficha arranca y se queda en mensual; si no, un celular con
+  // plan quincenal abría en quincenal y mostraba una cuota que no se cobra.
+  return { readOnly: false, frequency: 'mensual', term: null, initial: null };
 }

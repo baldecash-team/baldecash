@@ -262,7 +262,9 @@ export function ContratoEnWizard({
       guardarConstancia(landing, handoff.applicationCode, veredicto.constancia_url);
     }
 
-    const confirmacion = routes.solicitarConfirmacion(landing, handoff.applicationCode);
+    const confirmacion = routes.solicitarConfirmacion(
+      landing, handoff.applicationCode, false, veredicto?.public_token || handoff.publicToken
+    );
     // A dónde vuelve "← Volver al contrato" en la entrega (gate G1): este
     // mismo paso, que con el handoff ya marcado (`contratoYaAceptado`) se ve
     // en modo "Ya aceptaste este contrato" — no una firma nueva.
@@ -304,7 +306,9 @@ export function ContratoEnWizard({
         // Rechazada mientras esperaba el contrato (financiamiento activo, que
         // corre en el workflow después del submit): no se muestra un contrato
         // que no va a poder aceptar; se va a "solicitud recibida".
-        onNoAplica={() => router.replace(routes.solicitarConfirmacion(landing, handoff.applicationCode))}
+        onNoAplica={() => router.replace(routes.solicitarConfirmacion(
+          landing, handoff.applicationCode, false, handoff.publicToken
+        ))}
         onResuelto={alResolver}
       />
     </>

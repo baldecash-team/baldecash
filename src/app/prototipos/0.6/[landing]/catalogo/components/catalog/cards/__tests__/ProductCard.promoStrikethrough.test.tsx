@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ProductCard } from '../ProductCard';
 import type { CatalogProduct } from '../../../../types/catalog';
 
@@ -151,5 +151,84 @@ describe('ProductCard — el tachado de la promocion', () => {
     );
 
     expect(screen.queryByText(/S\/170/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * El iPhone 15 de home: celular con gancho semanal por defecto y chip
+ * quincenal, promo al 30%. El listado manda el "antes" (S/91) solo de la
+ * semanal.
+ */
+function buildIphone(overrides: Partial<CatalogProduct> = {}): CatalogProduct {
+  return buildIpad({
+    id: '327',
+    slug: 'iphone-15-ceapal0000444',
+    name: 'iPhone 15',
+    displayName: 'iPhone 15 A16 Bionic 6GB 128GB',
+    colors: [{ id: 'color-327', name: 'Negro', hex: '#000000', productId: '327' }],
+    price: 3332,
+    quotaMonthly: 64,
+    originalQuotaMonthly: 91,
+    paymentFrequency: 'semanal',
+    paymentFrequencies: ['quincenal', 'semanal'],
+    paymentHooks: {
+      semanal: { price: 64, termMonths: 12, initialPercent: 25 },
+      quincenal: { price: 127, termMonths: 12, initialPercent: 25 },
+    },
+    ...overrides,
+  } as Partial<CatalogProduct>);
+}
+
+describe('ProductCard — el tachado sigue a la frecuencia elegida (BAL-4163)', () => {
+  it('en la frecuencia por defecto pinta el antes que manda el listado', () => {
+    render(<ProductCard product={buildIphone()} />);
+
+    expect(screen.getByText(/S\/91\/sem/)).toBeInTheDocument();
+    expect(screen.getByText(/-30%/)).toBeInTheDocument();
+  });
+
+  it('al pasar a quincenal el antes es el de la quincenal, no el de la semanal', () => {
+    render(<ProductCard product={buildIphone()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /quincenal/i }));
+
+    // 127 / 0.7 = 181: el mismo -30% sobre la cuota quincenal.
+    expect(screen.getByText(/S\/181\/qcn/)).toBeInTheDocument();
+    expect(screen.queryByText(/S\/91\/qcn/)).not.toBeInTheDocument();
+    expect(screen.getByText(/-30%/)).toBeInTheDocument();
+  });
+
+  it('promo fija: el antes de la quincenal suma la misma diferencia en soles', () => {
+    render(
+      <ProductCard
+        product={buildIphone({
+          originalQuotaMonthly: 84,
+          discount: 24,
+          promotion: { discountValue: 20, discountType: 'fixed' },
+        } as Partial<CatalogProduct>)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /quincenal/i }));
+
+    // 84 - 64 = 20 de diferencia: 127 + 20 = 147.
+    expect(screen.getByText(/S\/147\/qcn/)).toBeInTheDocument();
+  });
+
+  it('sin descuento no aparece tachado en ninguna frecuencia', () => {
+    render(
+      <ProductCard
+        product={buildIphone({
+          originalQuotaMonthly: undefined,
+          discount: undefined,
+          promotion: undefined,
+        } as Partial<CatalogProduct>)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /quincenal/i }));
+
+    expect(screen.queryByText(/-30%/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Cuota quincenal/)).toBeInTheDocument();
   });
 });

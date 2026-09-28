@@ -3,7 +3,15 @@
  * rojo está reservado para el semáforo del pre-vuelo, que sí significa "no
  * podés grabar". Un rojo que no exige nada devalúa el rojo que sí.
  */
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+
+// jsdom no dibuja video en un canvas: el brillo se controla desde cada test.
+jest.mock('../../_lib/diagnosticoTransmision', () => ({
+  ...jest.requireActual('../../_lib/diagnosticoTransmision'),
+  reportar: jest.fn(() => Promise.resolve()),
+  medirLuma: jest.fn(() => null),
+}));
+import { medirLuma, reportar } from '../../_lib/diagnosticoTransmision';
 import { TransmisionEnVivo } from '../TransmisionEnVivo';
 import type { Transmision } from '../../_lib/useTransmisionReceptor';
 
@@ -148,3 +156,73 @@ describe('TransmisionEnVivo', () => {
     expect(boton.outerHTML).not.toMatch(/#e5e7eb|rgb\(229, 231, 235\)/i);
   });
 });
+
+describe('TransmisionEnVivo — diagnóstico de visor negro', () => {
+  const stream = { id: 'st-1' } as unknown as MediaStream;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    (medirLuma as jest.Mock).mockReturnValue(null);
+  });
+
+  it('si llegan cuadros negros varias muestras seguidas, reporta una vez por stream', () => {
+    (medirLuma as jest.Mock).mockReturnValue({ media: 1, max: 4 });
+    render(
+      <TransmisionEnVivo
+        transmisiones={[transmision({ estado: 'viendo', stream })]}
+        onReintentar={jest.fn()}
+      />
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(6_000);
+    });
+
+    expect(reportar).toHaveBeenCalledWith(
+      'visor_negro',
+      'dev-cam-01:st-1',
+      expect.objectContaining({ camara: 'techo', lumaVisor: 1 })
+    );
+  });
+
+  it('con imagen no reporta nada', () => {
+    (medirLuma as jest.Mock).mockReturnValue({ media: 170, max: 250 });
+    render(
+      <TransmisionEnVivo
+        transmisiones={[transmision({ estado: 'viendo', stream })]}
+        onReintentar={jest.fn()}
+      />
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(20_000);
+    });
+
+    expect(reportar).not.toHaveBeenCalled();
+  });
+
+  it('un negro que se recupera antes de la tercera muestra no reporta', () => {
+    (medirLuma as jest.Mock)
+      .mockReturnValueOnce({ media: 1, max: 4 })
+      .mockReturnValueOnce({ media: 1, max: 4 })
+      .mockReturnValue({ media: 170, max: 250 });
+    render(
+      <TransmisionEnVivo
+        transmisiones={[transmision({ estado: 'viendo', stream })]}
+        onReintentar={jest.fn()}
+      />
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(20_000);
+    });
+
+    expect(reportar).not.toHaveBeenCalled();
+  });
+});
+

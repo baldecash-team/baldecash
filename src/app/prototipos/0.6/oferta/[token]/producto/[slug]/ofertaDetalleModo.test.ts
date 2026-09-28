@@ -48,10 +48,13 @@ describe('modoDetalle', () => {
     });
   });
 
-  it('un equipo del catálogo de la oferta sí se puede elegir', () => {
+  it('un equipo del catálogo de la oferta sí se puede elegir, y en mensual', () => {
+    // La oferta condicional es TODO EN MENSUAL: sin esto la ficha de un celular
+    // con plan quincenal arrancaba en quincenal (la frecuencia que prioriza el
+    // catálogo) y mostraba una cuota que la oferta no cobra.
     expect(modoDetalle(caso4, 'lenovo-ideapad')).toEqual({
       readOnly: false,
-      frequency: null,
+      frequency: 'mensual',
       term: null,
       initial: null,
     });

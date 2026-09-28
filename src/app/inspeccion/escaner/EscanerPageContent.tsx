@@ -15,6 +15,7 @@ import { API_BASE_URL, redeemPairingCode } from '../_lib/pairing';
 import { type PresenceCaptureState, usePresenceChannel } from '../_lib/usePresenceChannel';
 import { TransmisionEnVivo } from '../_components/TransmisionEnVivo';
 import { useTransmisionReceptor, type CamaraConectable } from '../_lib/useTransmisionReceptor';
+import { fijarContexto } from '../_lib/diagnosticoTransmision';
 
 interface PairingCode {
   code: string;
@@ -307,6 +308,16 @@ export default function EscanerPageContent() {
     activo: transmisionActiva,
     camaras,
   });
+
+  // Quién es este escáner y qué inspección está mirando, para los reportes de
+  // `diagnosticoTransmision` (visor negro).
+  useEffect(() => {
+    if (!session) return;
+    fijarContexto({ rol: 'escaner', estacion: session.stationId, dispositivo: session.deviceId });
+  }, [session]);
+  useEffect(() => {
+    if (transmisionActiva) fijarContexto({ inspeccion: inspectionIdRef.current, toma: takeNumber });
+  }, [transmisionActiva, takeNumber]);
 
   // Las etiquetas esperadas vienen del servidor: el front nunca asume cuántas son.
   useEffect(() => {

@@ -231,6 +231,12 @@ export async function submitApplication(
       return {
         success: false,
         error: result.detail || 'Error al enviar la solicitud',
+        // El 400 del submit trae el motivo en `error_code` junto a `detail`
+        // (OUT_OF_STOCK, COUPON_USER_LIMIT_REACHED, ...). Sin pasarlo acá,
+        // useSubmitApplication no puede elegir el mensaje y la analítica
+        // registra `unknown`: así se perdió el caso del DNI 60477990
+        // (21/22-09-2026, 27 envíos fallidos, todos `unknown`).
+        error_code: result.error_code ?? undefined,
       };
     }
 
@@ -359,6 +365,8 @@ export interface ApplicationStatusResponse {
   accessories?: Array<{
     name: string;
     monthly_quota: number;
+    /** BAL-4200: regalo del combo (viene incluido, no suma a la cuota). */
+    is_gift?: boolean;
   }> | null;
 
   insurance?: {
@@ -386,6 +394,14 @@ export interface ApplicationStatusResponse {
     reason_text: string | null;
     changed_at: string | null;
   }>;
+
+  /**
+   * `true` cuando `/status` respondió recortado (link sin token, BAL-4188):
+   * sin nombre, equipo ni cuota. Ver `ApplicationStatusData.limited`.
+   */
+  limited?: boolean;
+  /** Slug de la landing dueña de la solicitud. Ver `ApplicationStatusData.landing_slug`. */
+  landing_slug?: string | null;
 }
 
 /**

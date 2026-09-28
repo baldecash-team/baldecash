@@ -12,6 +12,12 @@
  *    imagen normal, cuota y desglose SIN tachar (colores normales), header
  *    "Tu equipo" en teal, y CTA opcional "Mantener este equipo".
  *
+ * BAL-4193: `availableInCatalog === false` (equipo agotado/despublicado desde
+ * que se armó la oferta) fuerza el estilo GRIS de 'excede' aunque la variante
+ * sea 'disponible', agrega el badge "Ya no disponible" y OCULTA el CTA — el
+ * cliente no puede quedarse con un equipo que ya no existe en el catálogo.
+ * Ausente/null (backend viejo) se trata como disponible.
+ *
  * Diseño del rediseño (OFERTA_COLORS). Solo reusa la DATA del requested_product
  * / current_product (imagen, cuota, accesorios, seguros).
  *
@@ -47,6 +53,11 @@ export interface EquipoPedidoCardProps {
   /** CTA opcional (solo variante 'disponible'), ej. "Mantener este equipo". */
   ctaText?: string;
   onElegir?: () => void;
+  /** BAL-4193: `available_in_catalog` del backend. `false` = el equipo ya no
+   *  está publicado (agotado/despublicado) → estilo gris forzado, badge "Ya no
+   *  disponible" y sin CTA, sin importar `variant`. Ausente/null = disponible
+   *  (compatibilidad con backend viejo). */
+  availableInCatalog?: boolean | null;
 }
 
 export function EquipoPedidoCard({
@@ -63,8 +74,15 @@ export function EquipoPedidoCard({
   variant = 'excede',
   ctaText,
   onElegir,
+  availableInCatalog,
 }: EquipoPedidoCardProps) {
   const disponible = variant === 'disponible';
+  // BAL-4193: solo cuenta como "ya no disponible" cuando el backend lo marca
+  // explícitamente en `false`. Ausente/null (backend viejo) = disponible.
+  const yaNoDisponible = availableInCatalog === false;
+  // Estilo visual efectivo: 'disponible' pierde su look normal si el equipo ya
+  // no está en catálogo — se ve y se comporta como 'excede' (gris, sin CTA).
+  const disponibleVisual = disponible && !yaNoDisponible;
   const hayAddons = accessories.length > 0 || insurances.length > 0;
   const totalAddons = accessories.length + insurances.length;
   // Monto principal = total del pedido: equipo + accesorios + seguros. La card
@@ -84,50 +102,77 @@ export function EquipoPedidoCard({
     }
   }, []);
 
-  // Colores según variante. 'disponible' usa tonos normales (el equipo cabe);
-  // 'excede' usa gris atenuado + tachado (no cabe).
-  const nombreColor = disponible ? OFERTA_COLORS.textStrong : OFERTA_COLORS.textMid;
-  const cuotaColor = disponible ? OFERTA_COLORS.primary : OFERTA_COLORS.textSoft;
-  const addonMontoColor = disponible ? OFERTA_COLORS.textMid : OFERTA_COLORS.textSoft;
-  const strike = disponible ? '' : 'line-through';
+  // Colores según el estilo VISUAL efectivo (disponibleVisual): tonos normales
+  // si el equipo cabe Y sigue en catálogo; gris atenuado + tachado si excede la
+  // cuota (Caso 4) o si ya no está disponible (BAL-4193), sin importar `variant`.
+  const nombreColor = disponibleVisual ? OFERTA_COLORS.textStrong : OFERTA_COLORS.textMid;
+  const cuotaColor = disponibleVisual ? OFERTA_COLORS.primary : OFERTA_COLORS.textSoft;
+  const addonMontoColor = disponibleVisual ? OFERTA_COLORS.textMid : OFERTA_COLORS.textSoft;
+  const strike = disponibleVisual ? '' : 'line-through';
 
   return (
     <div
       className="rounded-xl border p-4"
       style={{
         borderColor: OFERTA_COLORS.border,
-        backgroundColor: disponible ? '#fff' : OFERTA_COLORS.grayBg,
+        backgroundColor: disponibleVisual ? '#fff' : OFERTA_COLORS.grayBg,
       }}
     >
       {/* Header: 'disponible' → "Tu equipo" (teal); 'excede' → "El que pediste"
-          + badge de advertencia. */}
-      <div className="mb-3 flex items-center justify-between">
+          + badge de advertencia. BAL-4193: "Ya no disponible" se agrega (o
+          reemplaza el look normal de 'disponible') cuando el backend marca el
+          equipo como fuera de catálogo — puede convivir con "Excede tu cuota"
+          en Caso 4 si aplican ambos motivos. */}
+      <div className="mb-3 flex items-center justify-between gap-2">
         <span
           className="text-[9.5px] font-bold uppercase tracking-[.1em]"
-          style={{ color: disponible ? OFERTA_COLORS.tealBrand : OFERTA_COLORS.textSoft }}
+          style={{ color: disponibleVisual ? OFERTA_COLORS.tealBrand : OFERTA_COLORS.textSoft }}
         >
           {disponible ? 'Tu equipo' : 'El que pediste'}
         </span>
-        {disponible ? null : (
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-            style={{ backgroundColor: '#FEF3E2', color: '#B45309' }}
-          >
-            <TriangleAlert className="h-3 w-3" strokeWidth={2.4} />
-            Excede tu cuota
-          </span>
+        {disponibleVisual ? null : (
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {yaNoDisponible ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ backgroundColor: OFERTA_COLORS.amberBg, color: '#B45309' }}
+              >
+                Ya no disponible
+              </span>
+            ) : null}
+            {!disponible ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ backgroundColor: OFERTA_COLORS.amberBg, color: '#B45309' }}
+              >
+                <TriangleAlert className="h-3 w-3" strokeWidth={2.4} />
+                Excede tu cuota
+              </span>
+            ) : null}
+          </div>
         )}
       </div>
 
+      {/* Texto de apoyo (solo Caso 5 upsell, "Tu equipo" ya no disponible):
+          la card gris + el badge ya avisan; esta línea explica por qué y guía
+          al cliente. En Caso 4 ('excede') NO se agrega — la card ya es
+          puramente informativa y el badge de arriba basta. */}
+      {disponible && yaNoDisponible ? (
+        <p className="mb-2.5 text-[11.5px] leading-snug" style={{ color: OFERTA_COLORS.textSoft }}>
+          Este equipo ya no está en nuestro catálogo. Elige otra opción de tu oferta.
+        </p>
+      ) : null}
+
       <div className="flex items-start gap-3">
-        {/* Imagen: normal en 'disponible', atenuada (grayscale) en 'excede'. */}
+        {/* Imagen: normal en 'disponible', atenuada (grayscale) en 'excede' o
+            cuando el equipo ya no está en catálogo (BAL-4193). */}
         <div
           className="flex h-[64px] w-[74px] flex-none items-center justify-center overflow-hidden rounded-xl border bg-white"
           style={{ borderColor: OFERTA_COLORS.border }}
         >
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={nombre} className={`h-full w-full object-contain ${disponible ? '' : 'opacity-60 grayscale'}`} />
+            <img src={imageUrl} alt={nombre} className={`h-full w-full object-contain ${disponibleVisual ? '' : 'opacity-60 grayscale'}`} />
           ) : (
             <span className="font-mono text-[8px]" style={{ color: OFERTA_COLORS.textSoft }}>equipo</span>
           )}
@@ -245,8 +290,11 @@ export function EquipoPedidoCard({
         </div>
       ) : null}
 
-      {/* CTA "Mantener este equipo" (solo variante 'disponible'). */}
-      {disponible && onElegir ? (
+      {/* CTA "Mantener este equipo" — solo variante 'disponible' Y el equipo
+          sigue en catálogo (BAL-4193). No se renderiza (no solo se oculta) si
+          ya no está disponible: no queda en el DOM, así que no hay forma de
+          clickearlo ni de llegar a él con teclado (Tab). */}
+      {disponibleVisual && onElegir ? (
         <button
           type="button"
           onClick={onElegir}

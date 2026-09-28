@@ -6,9 +6,11 @@ import {
   bindSenales,
   esperarIceCompleto,
   mandarSenal,
+  transmisionHabilitada,
   type SenalChannel,
   type SenalPayload,
 } from './senalizacion';
+import { anotar, registrarStats, resumirStats } from './diagnosticoTransmision';
 
 /**
  * Lado ESCÁNER de la transmisión en vivo: le pide video a cada cámara de la
@@ -82,6 +84,10 @@ export function useTransmisionReceptor({
   transmisiones: Transmision[];
   reintentar: (deviceId: string) => void;
 } {
+  // Apagada, es como si la inspección nunca se abriera: ningún peer, ninguna
+  // oferta, y ningún tile en la vista. Ver `transmisionHabilitada`.
+  activo = activo && transmisionHabilitada();
+
   const [estados, setEstados] = useState<Record<string, EstadoTransmision>>({});
   const [streams, setStreams] = useState<Record<string, MediaStream>>({});
 
@@ -194,9 +200,11 @@ export function useTransmisionReceptor({
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       peers.set(cam.deviceId, pc);
+      anotar('receptor_oferta', { camara: cam.label, intento: intentos.get(cam.deviceId) ?? 0 });
 
       pc.addEventListener('track', (evento) => {
         const [stream] = (evento as RTCTrackEvent).streams ?? [];
+        anotar('receptor_track', { camara: cam.label, conStream: Boolean(stream) });
         if (!stream) return;
         intentos.set(cam.deviceId, 0);
         setStreams((previos) => ({ ...previos, [cam.deviceId]: stream }));
@@ -204,6 +212,7 @@ export function useTransmisionReceptor({
       });
 
       pc.addEventListener('iceconnectionstatechange', () => {
+        anotar('receptor_ice', { camara: cam.label, estado: pc.iceConnectionState });
         if (pc.iceConnectionState !== 'failed' && pc.iceConnectionState !== 'disconnected') return;
         // Si ya hay otro peer para esta cámara, este es un fantasma.
         if (peers.get(cam.deviceId) !== pc) return;
@@ -253,12 +262,27 @@ export function useTransmisionReceptor({
       // La cámara contestó: se levanta el plazo que la habría dado por
       // muerta. De acá en adelante el que vigila es ICE.
       olvidarEspera(payload.origen_device_id);
+      anotar('receptor_answer', { deviceId: payload.origen_device_id });
       void pc
         .setRemoteDescription({ type: 'answer', sdp: payload.sdp } as RTCSessionDescriptionInit)
         .catch((e) => console.warn('[transmision] respuesta rechazada', e));
     };
 
     const desbindear = bindSenales(channel, deviceId, alRecibir);
+
+    // Las stats de lo que llega de cada cámara, para cuando el visor reporte
+    // negro: si llegan bytes y cuadros decodificados, la cámara está MANDANDO
+    // negro; si no llega nada, es la red.
+    const desregistrarStats = registrarStats('receptor', async () => {
+      const resumen: Record<string, unknown> = {};
+      await Promise.all(
+        [...peers.entries()].map(async ([id, pc]) => {
+          const cam = camarasRef.current.find((c) => c.deviceId === id);
+          resumen[cam?.label ?? id] = await resumirStats(pc);
+        })
+      );
+      return resumen;
+    });
 
     camarasRef.current.forEach((cam) => {
       if (peers.has(cam.deviceId)) return;
@@ -270,6 +294,7 @@ export function useTransmisionReceptor({
       vivo = false;
       conectarRef.current = null;
       desbindear();
+      desregistrarStats();
       [...peers.keys()].forEach((id) => {
         // El cierre limpio: la cámara deja de codificar sin esperar a que
         // ICE se caiga sola.

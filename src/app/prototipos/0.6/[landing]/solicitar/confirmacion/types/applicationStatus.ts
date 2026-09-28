@@ -65,6 +65,8 @@ export interface ApplicationStatusData {
   accessories?: Array<{
     name: string;
     monthly_quota: number;
+    /** BAL-4200: regalo del combo (viene incluido, no suma a la cuota). */
+    is_gift?: boolean;
   }> | null;
 
   insurance?: {
@@ -106,4 +108,18 @@ export interface ApplicationStatusData {
     reason_text: string | null;
     changed_at: string | null;
   }>;
+
+  /**
+   * `true` cuando el `/status` respondió con un `APP-…` (sin token): ws2
+   * limita la respuesta a lo que no expone datos sensibles —nombre, equipo,
+   * cuota— y esta pantalla solo puede mostrar el estado y el N° de
+   * solicitud. BAL-4188.
+   */
+  limited?: boolean;
+  /**
+   * Slug de la landing DUEÑA de la solicitud. Cuando difiere del `landing`
+   * de la ruta actual (el link funciona con cualquier landing, D3), la
+   * pantalla redirige a esta.
+   */
+  landing_slug?: string | null;
 }

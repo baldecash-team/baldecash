@@ -306,6 +306,8 @@ export interface KycVeredicto {
    * pendiente: con inicial, el siguiente paso es pagar.
    */
   entrega_token?: string | null;
+  /** `public_token` (UUID) de la solicitud, para el link de confirmación (BAL-4188). */
+  public_token?: string | null;
 }
 
 /**
@@ -354,6 +356,8 @@ export async function completarKyc(
 
 export interface KycProgressState {
   application_code: string;
+  /** Token del link de confirmación (BAL-4188). ws2 lo manda en el estado del KYC. */
+  public_token?: string | null;
   landing_slug: string | null;
   steps: KycProgressStep[];
   next_step: string | null;

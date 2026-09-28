@@ -9,6 +9,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import type { RefObject } from 'react';
 import { useTransmisionEmisor, PREVIEW_BITRATE_MAX } from '../useTransmisionEmisor';
+import { _bitacora, _reiniciarDiagnostico } from '../diagnosticoTransmision';
 import { SENAL_EVENT, type SenalChannel } from '../senalizacion';
 import {
   FakeRTCPeerConnection,
@@ -98,6 +99,7 @@ function cuerposEnviados(): Array<Record<string, string>> {
 
 describe('useTransmisionEmisor', () => {
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '1';
     instalarFakeRTC();
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
   });
@@ -108,6 +110,28 @@ describe('useTransmisionEmisor', () => {
   // pasar) por culpa del anterior y no por lo que mide.
   afterEach(() => {
     jest.restoreAllMocks();
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+  });
+
+  it('sin la variable está PRENDIDA: contesta la oferta', async () => {
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+    const { channel } = montar(fakeStream(fakeTrack()));
+
+    channel.emit(SENAL_EVENT, OFERTA);
+
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+  });
+
+  it('APAGADA con =0: ni contesta ni abre un peer', async () => {
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '0';
+    const { channel } = montar(fakeStream(fakeTrack()));
+
+    channel.emit(SENAL_EVENT, OFERTA);
+    // Lo que tarde en aparecer un peer si el hook contestara.
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(FakeRTCPeerConnection.instances).toHaveLength(0);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('ante una oferta crea un peer y contesta con una answer', async () => {
@@ -400,3 +424,29 @@ describe('useTransmisionEmisor', () => {
     expect(cuerpos).not.toContainEqual(expect.objectContaining({ tipo: 'answer' }));
   });
 });
+
+describe('useTransmisionEmisor — diagnóstico', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO = '1';
+    instalarFakeRTC();
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+    _reiniciarDiagnostico();
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO;
+  });
+
+  it('anota el ciclo de vida de cada peer con su motivo de cierre', async () => {
+    const { channel } = montar(fakeStream(fakeTrack()));
+    channel.emit(SENAL_EVENT, OFERTA);
+    await waitFor(() => expect(FakeRTCPeerConnection.instances).toHaveLength(1));
+
+    channel.emit(SENAL_EVENT, { ...OFERTA, tipo: 'bye', sdp: '' });
+
+    const tipos = _bitacora().map((e) => [e.tipo, e.datos?.motivo]);
+    expect(tipos).toContainEqual(['peer_creado', undefined]);
+    expect(tipos).toContainEqual(['peer_cerrado', 'bye']);
+  });
+});
+
