@@ -4,6 +4,16 @@ import { useEffect, useRef } from 'react';
 import { Loader2, VideoOff } from 'lucide-react';
 import { TOKENS } from '@/app/prototipos/0.6/admision/_components/tokens';
 import type { Transmision } from '../_lib/useTransmisionReceptor';
+import {
+  MUESTRAS_NEGRAS_PARA_REPORTAR,
+  anotar,
+  esNegro,
+  medirLuma,
+  reportar,
+} from '../_lib/diagnosticoTransmision';
+
+/** Cada cuánto se mira el brillo de lo que llega, para el diagnóstico. */
+const MUESTREO_VISOR_MS = 2_000;
 
 /**
  * Lo que cada cámara está viendo, en vivo, mientras la inspección está
@@ -39,6 +49,29 @@ function Tile({
   }, [transmision.stream]);
 
   const viendo = transmision.estado === 'viendo' && transmision.stream !== null;
+
+  // Diagnóstico de las tomas negras (ver `diagnosticoTransmision.ts`): si lo
+  // que llega de esta cámara se ve negro varias muestras seguidas, se reporta
+  // una vez por stream, con las stats del receptor de ese momento.
+  const { stream, label, deviceId } = transmision;
+  useEffect(() => {
+    if (!viendo || !stream) return undefined;
+    let negrasSeguidas = 0;
+    const muestreo = setInterval(() => {
+      const luma = medirLuma(videoRef.current);
+      negrasSeguidas = esNegro(luma) ? negrasSeguidas + 1 : 0;
+      if (negrasSeguidas === 1) anotar('visor_muestra_negra', { camara: label, luma: luma?.media });
+      if (negrasSeguidas >= MUESTRAS_NEGRAS_PARA_REPORTAR) {
+        void reportar('visor_negro', `${deviceId}:${stream.id}`, {
+          camara: label,
+          lumaVisor: luma?.media ?? null,
+          anchoVisor: videoRef.current?.videoWidth ?? null,
+          altoVisor: videoRef.current?.videoHeight ?? null,
+        });
+      }
+    }, MUESTREO_VISOR_MS);
+    return () => clearInterval(muestreo);
+  }, [viendo, stream, label, deviceId]);
 
   return (
     <figure data-transmision={transmision.label} className="m-0">

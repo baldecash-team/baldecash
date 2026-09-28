@@ -1,6 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import {
+  KBPS_SIN_IMAGEN,
+  MUESTRAS_NEGRAS_PARA_REPORTAR,
+  anotar,
+  esNegro,
+  medirLuma,
+  reportar,
+} from './diagnosticoTransmision';
 
 /**
  * Hook de captura de una CÁMARA de estación de inspección (kiosco).
@@ -223,6 +231,33 @@ const FOTO_MIME = 'image/jpeg';
 
 const DETENER_TIMEOUT_MS = 5_000;
 
+/** Cada cuánto se muestrea la toma en curso para `diagnosticoTransmision`. */
+export const MUESTREO_MS = 2_000;
+
+/** Desde qué momento de la toma se juzga su bitrate: el primer segundo pesa
+ * sobre todo el encabezado del contenedor y no dice nada. */
+const JUZGAR_DESDE_MS = 6_000;
+
+/** Lo que el diagnóstico necesita saber del track en cada hecho anotado. */
+function estadoDelTrack(track: MediaStreamTrack | undefined): Record<string, unknown> {
+  if (!track) return { track: null };
+  let ajustes: MediaTrackSettings | null = null;
+  try {
+    ajustes = typeof track.getSettings === 'function' ? track.getSettings() : null;
+  } catch {
+    ajustes = null;
+  }
+  return {
+    trackId: track.id,
+    readyState: track.readyState,
+    muted: track.muted,
+    enabled: track.enabled,
+    ancho: ajustes?.width,
+    alto: ajustes?.height,
+    fps: ajustes?.frameRate,
+  };
+}
+
 /**
  * Candidatos de mimeType en orden de preferencia. WebM primero porque
  * Android/Chrome es la plataforma primaria (spec §7); los MP4 quedan de
@@ -343,6 +378,11 @@ const MIC_FAILURE_ERROR_NAMES = new Set([
 interface ActiveRecording {
   recorder: MediaRecorder;
   chunks: Blob[];
+}
+
+/** Bytes que lleva escritos una grabación, para medir su bitrate en vivo. */
+interface ContadorBytes {
+  total: number;
 }
 
 export function useKioskRecorder(): UseKioskRecorderReturn {
@@ -519,6 +559,18 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
       mimeTypeRef.current = negotiated;
       setMimeType(negotiated);
       setEstado('armada');
+
+      const [trackArmado] = stream.getVideoTracks?.() ?? [];
+      anotar('camara_armada', { ...estadoDelTrack(trackArmado), mimeType: negotiated });
+      // Solo para la bitácora: `mute`/`unmute` no cambian el estado de
+      // captura acá, pero son la primera sospecha si una toma sale negra.
+      trackArmado?.addEventListener?.('mute', () => anotar('track_mute', estadoDelTrack(trackArmado)));
+      trackArmado?.addEventListener?.('unmute', () =>
+        anotar('track_unmute', estadoDelTrack(trackArmado))
+      );
+      trackArmado?.addEventListener?.('ended', () =>
+        anotar('track_ended', estadoDelTrack(trackArmado))
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : 'No se pudo acceder a la cámara.';
       setError(message);
@@ -589,6 +641,7 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     // `ondataavailable` — no un ref a nivel de hook. Ver interfaz
     // `ActiveRecording` arriba.
     const chunks: Blob[] = [];
+    const bytes: ContadorBytes = { total: 0 };
     const options: MediaRecorderOptions = { videoBitsPerSecond: bitrateRef.current };
     if (mimeTypeRef.current) options.mimeType = mimeTypeRef.current;
 
@@ -596,7 +649,10 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     // ver regla 1 del doc-comment del módulo. Nunca se toca `streamRef` acá.
     const recorder = new MediaRecorder(stream, options);
     recorder.ondataavailable = (e: BlobEvent) => {
-      if (e.data.size > 0) chunks.push(e.data);
+      if (e.data.size > 0) {
+        chunks.push(e.data);
+        bytes.total += e.data.size;
+      }
     };
     recorder.onerror = () => {
       // Si `detener()` está esperando a que ESTE recorder termine, que sea
@@ -621,6 +677,63 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
     recorder.start(200);
     startedAtRef.current = Date.now();
     setEstado('grabando');
+
+    const [trackVideo] = stream.getVideoTracks?.() ?? [];
+    const inicio = startedAtRef.current;
+    anotar('grabar', {
+      ...estadoDelTrack(trackVideo),
+      mimeType: recorder.mimeType || mimeTypeRef.current,
+      bitratePedido: bitrateRef.current,
+    });
+
+    // Muestreo de la toma para el diagnóstico de las tomas negras (ver
+    // `diagnosticoTransmision.ts`): bytes por segundo del MediaRecorder y
+    // brillo de la vista previa, que no pasa por ningún encoder. Se apaga
+    // solo cuando esta grabación deja de ser la activa.
+    let bytesPrevios = 0;
+    let bajasSeguidas = 0;
+    let negrasSeguidas = 0;
+    const muestreo = setInterval(() => {
+      try {
+        if (activeRecordingRef.current?.recorder !== recorder) {
+          clearInterval(muestreo);
+          return;
+        }
+        const transcurrido = Date.now() - inicio;
+        const kbps = Math.round(((bytes.total - bytesPrevios) * 8) / MUESTREO_MS);
+        bytesPrevios = bytes.total;
+        const luma = medirLuma(videoRef.current);
+        anotar('muestra', {
+          ms: transcurrido,
+          kbps,
+          lumaMedia: luma?.media,
+          lumaMax: luma?.max,
+          muted: trackVideo?.muted,
+          readyState: trackVideo?.readyState,
+        });
+
+        bajasSeguidas = transcurrido >= JUZGAR_DESDE_MS && kbps < KBPS_SIN_IMAGEN ? bajasSeguidas + 1 : 0;
+        if (bajasSeguidas >= 2) {
+          void reportar('grabacion_casi_sin_bytes', String(inicio), {
+            kbps,
+            msDeToma: transcurrido,
+            lumaPreview: luma?.media ?? null,
+            ...estadoDelTrack(trackVideo),
+          });
+        }
+
+        negrasSeguidas = esNegro(luma) ? negrasSeguidas + 1 : 0;
+        if (negrasSeguidas >= MUESTRAS_NEGRAS_PARA_REPORTAR) {
+          void reportar('preview_negro', String(inicio), {
+            lumaPreview: luma?.media ?? null,
+            msDeToma: transcurrido,
+            ...estadoDelTrack(trackVideo),
+          });
+        }
+      } catch {
+        // El diagnóstico nunca toca la grabación.
+      }
+    }, MUESTREO_MS);
   }, []);
 
   /**
@@ -753,6 +866,17 @@ export function useKioskRecorder(): UseKioskRecorderReturn {
         }
         const usedMimeType = recorder.mimeType || mimeTypeRef.current || 'video/webm';
         const blob = new Blob(chunks, { type: usedMimeType });
+        try {
+          const kbps = duracionMs > 0 ? Math.round((blob.size * 8) / duracionMs) : null;
+          const [trackVideo] = streamRef.current?.getVideoTracks?.() ?? [];
+          const cierre = { bytes: blob.size, duracionMs, kbps, ...estadoDelTrack(trackVideo) };
+          anotar('toma_cerrada', cierre);
+          if (duracionMs >= JUZGAR_DESDE_MS && kbps !== null && kbps < KBPS_SIN_IMAGEN) {
+            void reportar('toma_sin_imagen', String(startedAtRef.current), cierre);
+          }
+        } catch {
+          // El diagnóstico nunca toca la grabación.
+        }
         resolve({ blob, mimeType: usedMimeType, duracionMs });
       };
 

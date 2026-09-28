@@ -13,7 +13,7 @@ import { API_BASE_URL } from './pairing';
  */
 
 /**
- * Interruptor de toda la transmisión en vivo: APAGADA por defecto.
+ * Interruptor de toda la transmisión en vivo: PRENDIDA por defecto.
  *
  * Se apagó el 2026-09-23, el primer día en la estación real. Un iPhone subió
  * dos tomas seguidas en NEGRO (1,1 MB en 33s y 50 KB en 1s, contra 31,1 MB
@@ -23,16 +23,19 @@ import { API_BASE_URL } from './pairing';
  * track —la grabación y el visor del escáner—. La transmisión es lo único
  * nuevo que se cuelga de ese track, y recargar la página lo arregló.
  *
- * No está probado que sea la causa. Pero la regla innegociable del diseño es
- * que la transmisión nunca degrade la grabación, así que queda apagada hasta
- * reproducirlo: la cámara no contesta ofertas y el escáner no pide ni
- * muestra visor. Se prende con `NEXT_PUBLIC_TRANSMISION_EN_VIVO=1`, que al
- * ser `NEXT_PUBLIC_` se hornea en el build: prenderla exige redeploy.
+ * No está probado que sea la causa. Estuvo apagada del 2026-09-23 al 28 y se
+ * volvió a prender CON el diagnóstico de `diagnosticoTransmision.ts`, que
+ * manda a Sentry la bitácora de cámara y escáner cuando algo sale negro: sin
+ * la transmisión prendida no hay cómo reproducirlo en la estación real.
+ *
+ * Se apaga con `NEXT_PUBLIC_TRANSMISION_EN_VIVO=0` en Vercel: la cámara no
+ * contesta ofertas y el escáner no pide ni muestra visor. Al ser
+ * `NEXT_PUBLIC_` se hornea en el build, así que apagarla exige redeploy.
  *
  * Función y no constante para que los tests puedan prenderla por caso.
  */
 export function transmisionHabilitada(): boolean {
-  return process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO === '1';
+  return process.env.NEXT_PUBLIC_TRANSMISION_EN_VIVO !== '0';
 }
 
 /** Los tres únicos tipos que viajan. No hay `candidate`: la señalización va

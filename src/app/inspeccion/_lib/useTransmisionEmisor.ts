@@ -10,6 +10,7 @@ import {
   type SenalChannel,
   type SenalPayload,
 } from './senalizacion';
+import { anotar, registrarStats, resumirStats } from './diagnosticoTransmision';
 
 /**
  * Lado CÁMARA de la transmisión en vivo: responde las ofertas del
@@ -132,10 +133,15 @@ export function useTransmisionEmisor({
      * quien cierra por decisión del otro lado (`bye`, `member_removed`) no,
      * porque ahí la orden es para el peer que haya.
      */
-    const cerrar = (destino: string, esperado?: RTCPeerConnection) => {
+    /** Numera los peers para que la bitácora del diagnóstico los distinga. */
+    let peersCreados = 0;
+    const numeroDePeer = new WeakMap<RTCPeerConnection, number>();
+
+    const cerrar = (destino: string, esperado?: RTCPeerConnection, motivo = 'sin_motivo') => {
       const pc = peers.get(destino);
       if (!pc) return;
       if (esperado && pc !== esperado) return;
+      anotar('peer_cerrado', { peer: numeroDePeer.get(pc), destino, motivo });
       peers.delete(destino);
       limpiezas.get(pc)?.();
       limpiezas.delete(pc);
@@ -157,15 +163,26 @@ export function useTransmisionEmisor({
       const destino = payload.origen_device_id;
       // Una oferta nueva para el mismo destino reemplaza la negociación
       // anterior: es el escáner reintentando.
-      cerrar(destino);
+      cerrar(destino, undefined, 'oferta_nueva');
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       peers.set(destino, pc);
+      peersCreados += 1;
+      numeroDePeer.set(pc, peersCreados);
+      anotar('peer_creado', {
+        peer: peersCreados,
+        destino,
+        abiertos: peers.size,
+        trackId: track.id,
+        trackMuted: track.muted,
+        trackReadyState: track.readyState,
+      });
 
       try {
         pc.addEventListener('iceconnectionstatechange', () => {
+          anotar('peer_ice', { peer: numeroDePeer.get(pc), estado: pc.iceConnectionState });
           if (pc.iceConnectionState !== 'failed' && pc.iceConnectionState !== 'disconnected') return;
-          cerrar(destino, pc);
+          cerrar(destino, pc, `ice_${pc.iceConnectionState}`);
         });
 
         /**
@@ -181,7 +198,7 @@ export function useTransmisionEmisor({
          */
         const alTerminarTrack = () => {
           if (peers.get(destino) !== pc) return;
-          cerrar(destino, pc);
+          cerrar(destino, pc, 'track_ended');
           void mandarSenal(token, destino, 'bye');
         };
         track.addEventListener('ended', alTerminarTrack);
@@ -189,6 +206,16 @@ export function useTransmisionEmisor({
 
         const sender = pc.addTrack(track, stream);
         await limitarSender(sender, track);
+        try {
+          const [encoding] = sender.getParameters().encodings ?? [];
+          anotar('sender_limitado', {
+            peer: numeroDePeer.get(pc),
+            maxBitrate: encoding?.maxBitrate,
+            scaleResolutionDownBy: encoding?.scaleResolutionDownBy,
+          });
+        } catch {
+          // Solo bitácora.
+        }
 
         await pc.setRemoteDescription({
           type: 'offer',
@@ -199,18 +226,20 @@ export function useTransmisionEmisor({
 
         // El escáner pudo haberse ido mientras juntábamos candidatos.
         if (peers.get(destino) !== pc) return;
-        await mandarSenal(token, destino, 'answer', pc.localDescription?.sdp ?? '');
+        const aceptada = await mandarSenal(token, destino, 'answer', pc.localDescription?.sdp ?? '');
+        anotar('answer_mandada', { peer: numeroDePeer.get(pc), aceptada });
       } catch (e) {
         // REGLA INNEGOCIABLE: toda excepción de WebRTC muere acá. Y el
         // cierre es del peer PROPIO, no del que esté bajo la clave.
         console.warn('[transmision] no se pudo responder la oferta', e);
-        cerrar(destino, pc);
+        anotar('peer_error', { peer: numeroDePeer.get(pc), error: String(e) });
+        cerrar(destino, pc, 'error');
       }
     };
 
     const alRecibir = (payload: SenalPayload) => {
       if (payload.tipo === 'bye') {
-        cerrar(payload.origen_device_id);
+        cerrar(payload.origen_device_id, undefined, 'bye');
         return;
       }
       if (payload.tipo !== 'offer') return;
@@ -231,16 +260,30 @@ export function useTransmisionEmisor({
      */
     const alIrse = (data: unknown) => {
       const miembro = data as { id?: string } | null;
-      if (miembro?.id) cerrar(miembro.id);
+      if (miembro?.id) cerrar(miembro.id, undefined, 'escaner_se_fue');
     };
     channel.bind('pusher:member_removed', alIrse);
 
+    // Las stats de los peers abiertos, para el momento en que el diagnóstico
+    // reporte una toma negra: dicen si el encoder de WebRTC está sacando
+    // cuadros, de qué tamaño y con qué implementación.
+    const desregistrarStats = registrarStats('emisor', async () => {
+      const resumen: Record<string, unknown> = { peersCreados, abiertos: peers.size };
+      await Promise.all(
+        [...peers.values()].map(async (pc) => {
+          resumen[`peer_${numeroDePeer.get(pc)}`] = await resumirStats(pc);
+        })
+      );
+      return resumen;
+    });
+
     return () => {
       desbindear();
+      desregistrarStats();
       channel.unbind?.('pusher:member_removed', alIrse);
       // Arrow y no `forEach(cerrar)`: `forEach` pasa el índice como segundo
       // argumento, que caería en `esperado` y haría que no cerrara nada.
-      [...peers.keys()].forEach((destino) => cerrar(destino));
+      [...peers.keys()].forEach((destino) => cerrar(destino, undefined, 'desmontaje'));
     };
   }, [channel, deviceId, token, streamRef]);
 }

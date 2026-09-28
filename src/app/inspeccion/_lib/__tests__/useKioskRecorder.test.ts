@@ -12,6 +12,15 @@
  * teléfono empieza a pedir el permiso de nuevo en cada equipo.
  */
 import { renderHook, act } from '@testing-library/react';
+
+// El diagnóstico de tomas negras se espía, no se ejecuta: jsdom no dibuja
+// video en un canvas, así que `medirLuma` se controla desde cada test.
+jest.mock('../diagnosticoTransmision', () => ({
+  ...jest.requireActual('../diagnosticoTransmision'),
+  reportar: jest.fn(() => Promise.resolve()),
+  medirLuma: jest.fn(() => null),
+}));
+import { medirLuma, reportar } from '../diagnosticoTransmision';
 import { useKioskRecorder } from '../useKioskRecorder';
 
 class FakeMediaStreamTrack extends EventTarget {
@@ -108,6 +117,11 @@ class FakeMediaRecorder extends EventTarget {
   start = jest.fn(() => {
     this.state = 'recording';
   });
+
+  /** Un chunk en plena grabación, como los que entrega `start(200)`. */
+  emitir(bytes: number) {
+    this.ondataavailable?.({ data: new Blob(['x'.repeat(bytes)]) });
+  }
 
   /** Simula el ciclo real: `stop()` dispara `ondataavailable` con el último
    * chunk y DESPUÉS `onstop`, tal cual hace el `MediaRecorder` real. */
@@ -940,3 +954,103 @@ describe('useKioskRecorder — capturarFoto()', () => {
     expect(result.current.estado).toBe('armada');
   });
 });
+
+describe('useKioskRecorder — diagnóstico de tomas negras', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  async function grabando() {
+    jest.useFakeTimers();
+    const hook = renderHook(() => useKioskRecorder());
+    await act(async () => {
+      await hook.result.current.armar();
+    });
+    act(() => {
+      hook.result.current.grabar();
+    });
+    return { ...hook, recorder: FakeMediaRecorder.instances.at(-1)! };
+  }
+
+  /** Avanza el reloj de a un muestreo, emitiendo `kbps` en ese intervalo. */
+  function avanzar(recorder: FakeMediaRecorder, muestreos: number, kbps: number) {
+    for (let i = 0; i < muestreos; i += 1) {
+      act(() => {
+        recorder.emitir((kbps * 1000 * 2) / 8);
+        jest.advanceTimersByTime(2_000);
+      });
+    }
+  }
+
+  it('una toma que casi no escribe bytes se reporta EN VIVO, una sola vez', async () => {
+    const { recorder } = await grabando();
+
+    avanzar(recorder, 8, 270);
+
+    const llamadas = (reportar as jest.Mock).mock.calls.filter(
+      ([motivo]) => motivo === 'grabacion_casi_sin_bytes'
+    );
+    expect(llamadas.length).toBeGreaterThanOrEqual(1);
+    expect(llamadas[0][2]).toEqual(expect.objectContaining({ kbps: 270 }));
+    // Misma clave en todas: el dedupe de `reportar` la manda una vez.
+    expect(new Set(llamadas.map((l) => l[1])).size).toBe(1);
+  });
+
+  it('una toma sana no reporta nada', async () => {
+    const { recorder } = await grabando();
+
+    avanzar(recorder, 8, 7_800);
+
+    expect(reportar).not.toHaveBeenCalled();
+  });
+
+  it('el arranque de la toma no se juzga: el encabezado pesa más que el video', async () => {
+    const { recorder } = await grabando();
+
+    avanzar(recorder, 2, 0);
+
+    expect(reportar).not.toHaveBeenCalled();
+  });
+
+  it('una vista previa negra se reporta aparte: dice si el track mismo entrega negro', async () => {
+    (medirLuma as jest.Mock).mockReturnValue({ media: 2, max: 5 });
+    const { recorder } = await grabando();
+
+    avanzar(recorder, 3, 7_800);
+
+    expect(reportar).toHaveBeenCalledWith(
+      'preview_negro',
+      expect.any(String),
+      expect.objectContaining({ lumaPreview: 2 })
+    );
+    (medirLuma as jest.Mock).mockReturnValue(null);
+  });
+
+  it('al cerrar una toma larga casi vacía se reporta toma_sin_imagen', async () => {
+    const { result, recorder } = await grabando();
+    avanzar(recorder, 16, 270);
+
+    await act(async () => {
+      await result.current.detener();
+    });
+
+    expect(reportar).toHaveBeenCalledWith(
+      'toma_sin_imagen',
+      expect.any(String),
+      expect.objectContaining({ duracionMs: 32_000 })
+    );
+  });
+
+  it('el muestreo se apaga al detener', async () => {
+    const { result, recorder } = await grabando();
+    await act(async () => {
+      await result.current.detener();
+    });
+    (reportar as jest.Mock).mockClear();
+
+    avanzar(recorder, 10, 0);
+
+    expect(reportar).not.toHaveBeenCalled();
+  });
+});
+
