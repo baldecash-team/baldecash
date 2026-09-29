@@ -11,6 +11,8 @@
  * `window` y el submit viaja exactamente igual que antes.
  */
 
+import * as Sentry from '@sentry/nextjs';
+
 /** Host de TEST. La doc separa entornos por dominio: jcsc.dev vs jcsc.online. */
 const DEFAULT_HOST = 'https://sandbox.jcsc.dev';
 
@@ -25,6 +27,21 @@ const DEFAULT_API_WAIT_MS = 5000;
 
 /** Intervalo del sondeo mientras esperamos que aparezca `window.juicyScoreApi`. */
 const POLL_INTERVAL_MS = 100;
+
+/**
+ * Segunda oportunidad al enviar. Corta a propósito: solo la paga quien llega al
+ * submit sin session_id (~2% de las solicitudes del wizard desde el 09-09).
+ */
+const SUBMIT_RETRY_WAIT_MS = 3000;
+
+/**
+ * Qué pasó con el <script> del pixel. Es lo que permite separar "no cargó"
+ * (adblocker, red, CDN) de "cargó pero no dio session_id" cuando falta el id.
+ */
+type PixelLoadState = 'not_injected' | 'loading' | 'loaded' | 'error';
+
+let pixelLoadState: PixelLoadState = 'not_injected';
+let pixelInjectedAt: number | null = null;
 
 interface JuicyScoreApi {
   /** Resuelve apenas nace la sesión (script cargado). */
@@ -109,11 +126,18 @@ export function loadJuicyPixel(): boolean {
   script.src = buildJuicyScriptUrl(config);
   script.async = true;
   script.crossOrigin = 'anonymous';
+  script.onload = () => {
+    pixelLoadState = 'loaded';
+  };
   script.onerror = () => {
     // Adblocker o CDN caído. Se registra y se sigue: el wizard no depende de esto.
+    // Si la persona llega a enviar sin session_id, el submit lo reporta.
+    pixelLoadState = 'error';
     console.warn('[JuicyScore] no se pudo cargar el pixel');
   };
 
+  pixelLoadState = 'loading';
+  pixelInjectedAt = Date.now();
   document.head.appendChild(script);
   return true;
 }
@@ -204,7 +228,12 @@ export async function captureJuicySessionId(
     const api = await waitForJuicyApi(timeoutMs);
     if (!api?.getSessionId) return null;
 
-    const sessionId = await api.getSessionId();
+    // getSessionId no trae timeout propio: si el pixel se cuelga, la promesa
+    // no resuelve nunca. El submit la espera, así que se acota acá.
+    const sessionId = await Promise.race([
+      api.getSessionId(),
+      wait(timeoutMs).then(() => null),
+    ]);
     if (typeof sessionId !== 'string' || !sessionId) return null;
 
     safeSet(getStorageKey(landing), sessionId);
@@ -212,6 +241,91 @@ export async function captureJuicySessionId(
   } catch {
     return null;
   }
+}
+
+// ── session_id para el submit ─────────────────────────────────────────────
+
+/**
+ * Por qué una solicitud salió (o casi sale) sin session_id. JuicyScore pregunta
+ * si el pixel "se bloquea": esto es lo que les contesta con datos.
+ * - `script_error`: el <script> disparó onerror (adblocker, red, CDN).
+ * - `script_loading`: el <script> todavía no terminaba de bajar.
+ * - `api_missing`: cargó, pero nunca publicó `window.juicyScoreApi`.
+ * - `no_session_id`: la API existe pero no devolvió id a tiempo.
+ * - `not_injected`: el pixel no se llegó a montar en este documento.
+ */
+function diagnoseMissingSession(): string {
+  if (pixelLoadState === 'error') return 'script_error';
+  if (pixelLoadState === 'loading') return 'script_loading';
+  if (pixelLoadState === 'not_injected') return 'not_injected';
+  if (typeof window !== 'undefined' && typeof window.juicyScoreApi?.getSessionId !== 'function') {
+    return 'api_missing';
+  }
+  return 'no_session_id';
+}
+
+function reportMissingSession(motivo: string, recovered: boolean): void {
+  try {
+    Sentry.withScope((scope) => {
+      scope.setLevel(recovered ? 'info' : 'warning');
+      scope.setTag('modulo', 'juicyscore-pixel');
+      scope.setTag('motivo', motivo);
+      scope.setTag('recuperado', String(recovered));
+      scope.setContext('juicyscore', {
+        motivo,
+        recuperado: recovered,
+        estadoScript: pixelLoadState,
+        msDesdeInyeccion: pixelInjectedAt === null ? null : Date.now() - pixelInjectedAt,
+        apiPresente:
+          typeof window !== 'undefined' && typeof window.juicyScoreApi?.getSessionId === 'function',
+        online: typeof navigator !== 'undefined' ? navigator.onLine : null,
+      });
+      Sentry.captureMessage(
+        recovered
+          ? `juicyscore: session_id recuperado al enviar (${motivo})`
+          : `juicyscore: solicitud sin session_id (${motivo})`
+      );
+    });
+  } catch {
+    // El diagnóstico nunca frena el envío.
+  }
+}
+
+/**
+ * El session_id que viaja con la solicitud.
+ *
+ * El pixel se captura al montar el wizard con una ventana de 5s; si en ese
+ * momento js.js venía lento, el id aparecía después y nadie lo volvía a pedir.
+ * Tampoco llegaba si `sessionStorage` tira (WebKit sandboxeado). Por eso, si
+ * al enviar no hay nada guardado, se pide una vez más con un tope corto.
+ *
+ * Cada vez que falta el id al enviar se reporta a Sentry (tag
+ * `modulo=juicyscore-pixel`), se haya recuperado o no, con el motivo.
+ *
+ * Nunca lanza. Sin integración configurada devuelve null sin hacer nada.
+ */
+export async function resolveJuicySessionIdForSubmit(
+  landing: string,
+  options: CaptureOptions = {}
+): Promise<string | null> {
+  if (!getJuicyScoreConfig()) return null;
+
+  const stored = readJuicySessionId(landing);
+  if (stored) return stored;
+
+  // El motivo se toma ANTES del reintento: es por qué no estaba el id.
+  const motivo = diagnoseMissingSession();
+  const recovered = await captureJuicySessionId(landing, {
+    timeoutMs: options.timeoutMs ?? SUBMIT_RETRY_WAIT_MS,
+  });
+  reportMissingSession(recovered ? motivo : diagnoseMissingSession(), recovered !== null);
+  return recovered;
+}
+
+/** Solo para tests. */
+export function _resetJuicyPixelState(): void {
+  pixelLoadState = 'not_injected';
+  pixelInjectedAt = null;
 }
 
 /**
