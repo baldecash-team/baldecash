@@ -18,11 +18,12 @@
  * es acá donde la declaran.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GeoCascadeField } from '@/app/prototipos/0.6/components/lead/GeoCascadeField';
 import { useGooglePlacesAutocomplete } from '@/app/prototipos/0.6/[landing]/solicitar/hooks/useGooglePlacesAutocomplete';
 import { resolveGeoUnits } from '@/app/prototipos/0.6/services/wizardApi';
 import type { ParsedAddress } from '@/app/prototipos/0.6/types/googleMaps';
+import { separarDireccion } from './separarDireccion';
 
 /** Equipo que se va a entregar. Todo opcional salvo el nombre: la tarjeta se
  *  arma con lo que haya y no se rompe si falta el precio o la imagen. */
@@ -47,6 +48,9 @@ export interface EntregaDireccionInicial {
   ubicacion?: string | null;
   distritoId?: string | null;
   distrito?: string | null;
+  /** Nombres, para dejar elegidos departamento y provincia al editar. */
+  departamento?: string | null;
+  provincia?: string | null;
 }
 
 export interface OpcionEnvio {
@@ -79,6 +83,12 @@ export interface FormularioEntregaProps {
   opcionesEnvio: OpcionEnvio[];
   /** Renueva y segundo financiamiento pueden corregir la dirección; el resto no. */
   permiteEditarDireccion?: boolean;
+  /**
+   * Reparte la dirección guardada entre sus dos renglones (vía y Mz/Lt/Dpto) y
+   * deja elegidos departamento y provincia a partir de los nombres. Apagado por
+   * defecto: por ahora solo lo enciende la preview.
+   */
+  prellenarDireccion?: boolean;
   /** Lo maneja quien monta el componente: mientras está en true se ve el loader. */
   enviando?: boolean;
   /** Falló el registro: banner con reintento, sin perder lo completado. */
@@ -112,6 +122,7 @@ export function FormularioEntrega({
   direccionInicial,
   opcionesEnvio,
   permiteEditarDireccion = false,
+  prellenarDireccion = false,
   enviando = false,
   errorSistema = null,
   listo = false,
@@ -128,8 +139,16 @@ export function FormularioEntrega({
   const [mostrarAccesorios, setMostrarAccesorios] = useState(false);
   const [errores, setErrores] = useState<Set<Campo>>(new Set());
 
-  const [direccion, setDireccion] = useState(limpio(inicial.direccion));
-  const [calle, setCalle] = useState(limpio(inicial.calle));
+  // Al postular la dirección se escribe en un solo campo: si trae la manzana,
+  // el lote o el dpto metidos, van al segundo renglón. Si ya vino separada, se
+  // respeta como está.
+  const [separada] = useState(() => (
+    !prellenarDireccion || limpio(inicial.calle)
+      ? { via: limpio(inicial.direccion), complemento: limpio(inicial.calle) }
+      : separarDireccion(inicial.direccion)
+  ));
+  const [direccion, setDireccion] = useState(separada.via);
+  const [calle, setCalle] = useState(separada.complemento);
   const [referencia, setReferencia] = useState(limpio(inicial.referencia));
   const [distritoId, setDistritoId] = useState(limpio(inicial.distritoId));
   const [distrito, setDistrito] = useState(limpio(inicial.distrito));
@@ -144,8 +163,39 @@ export function FormularioEntrega({
   const [nodoDireccion, setNodoDireccion] = useState<HTMLInputElement | null>(null);
   const inputDireccion = useMemo(() => ({ current: nodoDireccion }), [nodoDireccion]);
   const [preset, setPreset] = useState<{ departmentId?: string; provinceId?: string }>({});
+  // Una vez que la persona eligió algo, lo que llegue tarde de la dirección
+  // guardada no le pisa la elección.
+  const ubigeoTocado = useRef(false);
+
+  // Con la dirección guardada solo tenemos el id del distrito: departamento y
+  // provincia llegan como nombres, y la cascada necesita sus ids para no abrir
+  // en «Selecciona». Si tampoco hay id de distrito, se completa también.
+  useEffect(() => {
+    const departamento = limpio(inicial.departamento);
+    if (!prellenarDireccion || !departamento) return;
+    let vigente = true;
+    resolveGeoUnits({
+      department: departamento,
+      province: limpio(inicial.provincia) || undefined,
+      district: limpio(inicial.distrito) || undefined,
+    }).then((geo) => {
+      if (!vigente || !geo || ubigeoTocado.current) return;
+      setPreset({
+        departmentId: geo.department ? String(geo.department.id) : undefined,
+        provinceId: geo.province ? String(geo.province.id) : undefined,
+      });
+      if (geo.district && !limpio(inicial.distritoId)) {
+        setDistritoId(String(geo.district.id));
+        setDistrito(geo.district.label);
+      }
+    });
+    return () => { vigente = false; };
+    // Solo al montar: es la dirección con la que llegó la solicitud.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const alElegirLugar = useCallback(async (lugar: ParsedAddress) => {
+    ubigeoTocado.current = true;
     // La calle y el numero, no la direccion entera: el distrito, la provincia y
     // el departamento son los selects de abajo, y repetirlos en el renglon de
     // la calle es lo que despues llega impreso en la guia del courier.
@@ -378,6 +428,7 @@ export function FormularioEntrega({
                 // campos en rojo y el mensaje lo ponemos una vez, abajo.
                 error={marca('distrito') && !distritoId ? 'Elige tu distrito' : undefined}
                 onChange={(id, label) => {
+                  ubigeoTocado.current = true;
                   setDistritoId(id);
                   setDistrito(label ?? '');
                   setUbicacion(label ?? '');
