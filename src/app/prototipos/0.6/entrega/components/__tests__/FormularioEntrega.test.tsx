@@ -263,3 +263,25 @@ it('con distrito cargado lo muestra en una línea y los selects aparecen al toca
   await userEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
   expect(screen.getByRole('button', { name: 'Elegir distrito' })).toBeInTheDocument();
 });
+
+it('al editar, las partes arrancan con lo que se reconoce de la dirección guardada', async () => {
+  pintar({ permiteEditarDireccion: true, direccionInicial: CON_DIRECCION });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+  expect(screen.getByRole('radio', { name: 'Av.' })).toBeChecked();
+  expect(screen.getByLabelText(/Nombre de la vía/)).toHaveValue('Benavides');
+  expect(screen.getByLabelText(/^Número/)).toHaveValue('1238');
+  expect(screen.getByLabelText(/Dpto, interior o piso/)).toHaveValue('Dpto 301');
+});
+
+it('sin ubigeo abre con manzana, lote y zona ya puestos', () => {
+  pintar({
+    direccionInicial: { direccion: 'Mz K Lote 14 AA.HH. Armando Villanueva del Campo', referencia: 'Frente al colegio' },
+  });
+
+  expect(screen.getByRole('radio', { name: 'AA.HH.' })).toBeChecked();
+  expect(screen.getByLabelText(/Nombre de la zona/)).toHaveValue('Armando Villanueva del Campo');
+  expect(screen.getByRole('textbox', { name: /^Manzana/ })).toHaveValue('K');
+  expect(screen.getByRole('textbox', { name: /^Lote/ })).toHaveValue('14');
+});

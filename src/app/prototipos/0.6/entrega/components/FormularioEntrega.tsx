@@ -25,6 +25,7 @@ import {
   PARTES_VACIAS, TIPOS_VIA, TIPOS_ZONA,
   componerDireccion, erroresDeDireccion, errorDeReferencia, esCelularValido,
   problemaDeDireccionGuardada,
+  partesDesdeGuardada,
   type CampoDireccion, type PartesDireccion,
 } from './direccionEntrega';
 
@@ -139,8 +140,15 @@ export function FormularioEntrega({
   );
 
   // Mientras no toque «Editar», la dirección es la guardada. Al editar se pide
-  // en partes y el renglón se arma con `componerDireccion`.
-  const [partes, setPartes] = useState<PartesDireccion>(PARTES_VACIAS);
+  // en partes y el renglón se arma con `componerDireccion`; las partes arrancan
+  // con lo que se reconoce de la guardada (la avenida, la manzana, el lote…),
+  // y lo que no se reconoce queda para llenarlo.
+  const [partesGuardadas] = useState(() => partesDesdeGuardada(inicial.direccion, inicial.calle));
+  const [partes, setPartes] = useState<PartesDireccion>(debeCorregir ? partesGuardadas : PARTES_VACIAS);
+  const abrirEdicion = () => {
+    setPartes(partesGuardadas);
+    setEditandoDireccion(true);
+  };
   /** El último paso antes de registrar: la persona lee su dirección y la confirma. */
   const [confirmando, setConfirmando] = useState(false);
   const enPartes = editandoDireccion || !!partes.forma;
@@ -228,7 +236,8 @@ export function FormularioEntrega({
     const problema = enPartes ? null : problemaDeDireccionGuardada(direccion);
     if (problema || faltan.has('distrito')) {
       setAlertaDireccion(problema);
-      setEditandoDireccion(true);
+      if (enPartes) setEditandoDireccion(true);
+      else abrirEdicion();
       return;
     }
     if (faltan.size) return;
@@ -446,7 +455,7 @@ export function FormularioEntrega({
             {permiteEditarDireccion && (
               <button
                 type="button"
-                onClick={() => setEditandoDireccion(true)}
+                onClick={abrirEdicion}
                 className="-mr-1.5 -mt-1 h-fit rounded-md px-1.5 py-1 text-sm font-semibold text-[#4654CD] transition-colors hover:bg-[#E4E6FF] cursor-pointer"
               >
                 Editar
@@ -1070,7 +1079,7 @@ function DireccionEnPartes({
             valor={partes.tipoZona}
             onElegir={(v) => onCambio('tipoZona', v)}
           />
-          <Campo id="entrega-nombre-zona" label={`Nombre de la ${partes.tipoZona === 'AA.HH.' ? 'zona' : partes.tipoZona.toLowerCase()}`} requerido error={error('nombreZona')}>
+          <Campo id="entrega-nombre-zona" label={`Nombre de la ${!partes.tipoZona || partes.tipoZona === 'AA.HH.' ? 'zona' : partes.tipoZona.toLowerCase()}`} requerido error={error('nombreZona')}>
               <input
                 id="entrega-nombre-zona"
                 className={inputClase(!!error('nombreZona'))}
