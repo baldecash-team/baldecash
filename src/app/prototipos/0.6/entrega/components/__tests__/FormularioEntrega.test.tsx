@@ -139,3 +139,37 @@ it('registrado muestra el cierre con el resumen', () => {
   expect(screen.getByText('Av. Benavides 1238, Dpto 301')).toBeInTheDocument();
   expect(screen.getByText('Tú')).toBeInTheDocument();
 });
+
+it('al editar, la dirección guardada en un solo texto se reparte en sus dos renglones', async () => {
+  pintar({
+    permiteEditarDireccion: true,
+    prellenarDireccion: true,
+    direccionInicial: { ...CON_DIRECCION, direccion: 'Av. Los Olivos 450 Mz A Lt 5', calle: '' },
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+  expect(screen.getByLabelText(/^Dirección/)).toHaveValue('Av. Los Olivos 450');
+  expect(screen.getByLabelText(/N°, Dpto, Mz, Lote o Km/)).toHaveValue('Mz A Lt 5');
+});
+
+it('si la dirección ya vino separada, no la vuelve a partir', async () => {
+  pintar({ permiteEditarDireccion: true, prellenarDireccion: true, direccionInicial: CON_DIRECCION });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+  expect(screen.getByLabelText(/^Dirección/)).toHaveValue('Av. Benavides 1238');
+  expect(screen.getByLabelText(/N°, Dpto, Mz, Lote o Km/)).toHaveValue('Dpto 301');
+});
+
+it('sin prellenarDireccion la dirección guardada se muestra tal como llegó', async () => {
+  pintar({
+    permiteEditarDireccion: true,
+    direccionInicial: { ...CON_DIRECCION, direccion: 'Av. Los Olivos 450 Mz A Lt 5', calle: '' },
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+  expect(screen.getByLabelText(/^Dirección/)).toHaveValue('Av. Los Olivos 450 Mz A Lt 5');
+  expect(screen.getByLabelText(/N°, Dpto, Mz, Lote o Km/)).toHaveValue('');
+});

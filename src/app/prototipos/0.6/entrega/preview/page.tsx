@@ -36,18 +36,39 @@ const OPCIONES: OpcionEnvio[] = [
   { id: 'gratis', nombre: 'Envío gratis', condicion: 'Envío hasta 5 días hábiles.', costo: 0 },
 ];
 
+// Como llega de la postulación: todo en un solo campo. Al tocar «Editar» el
+// Dpto pasa al segundo renglón y departamento/provincia quedan elegidos.
 const CON_DIRECCION: EntregaDireccionInicial = {
-  direccion: 'Av. Benavides 1238',
-  calle: 'Dpto 301',
+  direccion: 'Av. Benavides 1238 Dpto 301',
+  calle: '',
   referencia: 'Frente al parque, edificio azul',
   ubicacion: 'Miraflores, Lima, Lima',
   distrito: 'Miraflores',
-  distritoId: '1508',
+  distritoId: '1483',
+  departamento: 'Lima',
+  provincia: 'Lima',
+};
+
+// Dirección escrita pero sin id de distrito: abre en la pantalla de dirección
+// con la vía, la Mz/Lt y la cascada ya completas a partir de los nombres.
+const SOLO_TEXTO: EntregaDireccionInicial = {
+  direccion: 'Av. Los Olivos 450 Mz A Lt 5',
+  calle: '',
+  referencia: '',
+  distrito: 'San Martín de Porres',
+  departamento: 'Lima',
+  provincia: 'Lima',
 };
 
 const SIN_DIRECCION: EntregaDireccionInicial = {};
 
-type Caso = 'con' | 'sin';
+type Caso = 'con' | 'texto' | 'sin';
+
+const INICIAL: Record<Caso, EntregaDireccionInicial> = {
+  con: CON_DIRECCION,
+  texto: SOLO_TEXTO,
+  sin: SIN_DIRECCION,
+};
 
 export default function EntregaPreviewPage() {
   const [caso, setCaso] = useState<Caso>('con');
@@ -82,6 +103,9 @@ export default function EntregaPreviewPage() {
           <Boton activo={caso === 'con'} onClick={() => reiniciar('con')}>
             Con dirección
           </Boton>
+          <Boton activo={caso === 'texto'} onClick={() => reiniciar('texto')}>
+            Dirección sin ubigeo
+          </Boton>
           <Boton activo={caso === 'sin'} onClick={() => reiniciar('sin')}>
             Sin dirección ni ubigeo
           </Boton>
@@ -91,9 +115,10 @@ export default function EntregaPreviewPage() {
       <FormularioEntrega
         key={caso}
         equipo={EQUIPO}
-        direccionInicial={caso === 'con' ? CON_DIRECCION : SIN_DIRECCION}
+        direccionInicial={INICIAL[caso]}
         opcionesEnvio={OPCIONES}
         permiteEditarDireccion
+        prellenarDireccion
         enviando={enviando}
         listo={listo}
         onEnviar={enviar}
