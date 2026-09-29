@@ -9,6 +9,17 @@
  *   caída del CDN) o la promesa se rechaza, la solicitud se envía igual.
  */
 
+const scope = {
+  setLevel: jest.fn(),
+  setTag: jest.fn(),
+  setContext: jest.fn(),
+};
+jest.mock('@sentry/nextjs', () => ({
+  withScope: jest.fn((cb: (s: typeof scope) => void) => cb(scope)),
+  captureMessage: jest.fn(),
+}));
+
+import * as Sentry from '@sentry/nextjs';
 import {
   getJuicyScoreConfig,
   buildJuicyScriptUrl,
@@ -18,6 +29,8 @@ import {
   clearJuicySessionId,
   markJuicyComplete,
   restartJuicySession,
+  resolveJuicySessionIdForSubmit,
+  _resetJuicyPixelState,
   JUICY_SCRIPT_ID,
 } from './juicyScore';
 
@@ -30,6 +43,7 @@ function resetDom() {
   delete window.juicyScoreApi;
   delete window.jslabApi;
   window.sessionStorage.clear();
+  _resetJuicyPixelState();
 }
 
 describe('getJuicyScoreConfig', () => {
@@ -233,5 +247,98 @@ describe('restartJuicySession', () => {
 
     await expect(restartJuicySession('copia-home')).resolves.toBeNull();
     expect(readJuicySessionId('copia-home')).toBeNull();
+  });
+});
+
+describe('resolveJuicySessionIdForSubmit', () => {
+  const original = process.env[API_KEY_ENV];
+
+  beforeEach(() => {
+    resetDom();
+    jest.clearAllMocks();
+    process.env[API_KEY_ENV] = 'test-key-0123456789012345678';
+  });
+  afterEach(() => {
+    process.env[API_KEY_ENV] = original;
+    resetDom();
+  });
+
+  function tagsReportados(): Record<string, string> {
+    return Object.fromEntries(scope.setTag.mock.calls as [string, string][]);
+  }
+
+  it('sin integración configurada no hace nada', async () => {
+    delete process.env[API_KEY_ENV];
+    await expect(resolveJuicySessionIdForSubmit('copia-home', { timeoutMs: 50 })).resolves.toBeNull();
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('usa el id capturado al montar sin reportar nada', async () => {
+    window.juicyScoreApi = { getSessionId: () => Promise.resolve('sesion-A') };
+    await captureJuicySessionId('copia-home', { timeoutMs: 200 });
+
+    await expect(resolveJuicySessionIdForSubmit('copia-home')).resolves.toBe('sesion-A');
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+  });
+
+  // El caso que perdíamos: js.js tardó más que la ventana de 5s del montaje y
+  // publicó su API después. Al enviar se pide de nuevo.
+  it('recupera el id de un pixel que cargó tarde y lo reporta como recuperado', async () => {
+    loadJuicyPixel();
+    window.juicyScoreApi = { getSessionId: () => Promise.resolve('sesion-tardia') };
+
+    await expect(resolveJuicySessionIdForSubmit('copia-home', { timeoutMs: 200 })).resolves.toBe(
+      'sesion-tardia'
+    );
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'juicyscore: session_id recuperado al enviar (script_loading)'
+    );
+    expect(tagsReportados()).toEqual(
+      expect.objectContaining({ modulo: 'juicyscore-pixel', recuperado: 'true' })
+    );
+  });
+
+  it('reporta script_error cuando el <script> no cargó', async () => {
+    loadJuicyPixel();
+    const script = document.getElementById(JUICY_SCRIPT_ID) as HTMLScriptElement;
+    script.onerror?.(new Event('error'));
+
+    await expect(resolveJuicySessionIdForSubmit('copia-home', { timeoutMs: 100 })).resolves.toBeNull();
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'juicyscore: solicitud sin session_id (script_error)'
+    );
+    expect(tagsReportados()).toEqual(expect.objectContaining({ recuperado: 'false' }));
+  });
+
+  it('reporta api_missing cuando el script cargó pero no publicó su API', async () => {
+    loadJuicyPixel();
+    const script = document.getElementById(JUICY_SCRIPT_ID) as HTMLScriptElement;
+    script.onload?.(new Event('load'));
+
+    await resolveJuicySessionIdForSubmit('copia-home', { timeoutMs: 100 });
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'juicyscore: solicitud sin session_id (api_missing)'
+    );
+  });
+
+  // getSessionId no trae timeout propio: si se cuelga, el submit no puede
+  // quedarse esperando para siempre.
+  it('no cuelga el envío cuando getSessionId nunca resuelve', async () => {
+    loadJuicyPixel();
+    const script = document.getElementById(JUICY_SCRIPT_ID) as HTMLScriptElement;
+    script.onload?.(new Event('load'));
+    window.juicyScoreApi = { getSessionId: () => new Promise<string>(() => {}) };
+
+    await expect(resolveJuicySessionIdForSubmit('copia-home', { timeoutMs: 100 })).resolves.toBeNull();
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'juicyscore: solicitud sin session_id (no_session_id)'
+    );
+  });
+
+  it('nunca lanza aunque Sentry falle', async () => {
+    (Sentry.withScope as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('sentry caído');
+    });
+    await expect(resolveJuicySessionIdForSubmit('copia-home', { timeoutMs: 50 })).resolves.toBeNull();
   });
 });

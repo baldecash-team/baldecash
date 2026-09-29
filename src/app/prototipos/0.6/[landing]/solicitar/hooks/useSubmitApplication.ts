@@ -31,7 +31,7 @@ import {
 } from '../utils/demoApplication';
 import { normalizeEmail } from '../../../services/emailValidation';
 import {
-  readJuicySessionId,
+  resolveJuicySessionIdForSubmit,
   markJuicyComplete,
   restartJuicySession,
 } from '../../../services/juicyScore';
@@ -533,9 +533,10 @@ export function useSubmitApplication(
         // JuicyScore: marcar el formulario como completado (equivale al
         // `completeButton` de su config) y adjuntar el session_id del pixel para
         // que el backend pueda hacer el GetScore. Todo esto es no-op si la
-        // integración no está configurada.
+        // integración no está configurada. Si el id no se capturó al montar el
+        // wizard, se reintenta acá (hasta 3s) y se reporta a Sentry.
         markJuicyComplete();
-        const juicySessionId = readJuicySessionId(landing);
+        const juicySessionId = await resolveJuicySessionIdForSubmit(landing);
 
         // Submit application (with files if any)
         const result = await submitApplication({
