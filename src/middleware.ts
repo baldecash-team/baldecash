@@ -138,6 +138,14 @@ const ALIAS_CAMPANA: Record<string, string> = {
 };
 
 /**
+ * Link corto de contrato de Keynua: /contrato/{codigo} → ws2, que hace el 302
+ * a Keynua. Reemplaza a t.ly (cuota agotada el 28-sep-2026). 302 y no 301:
+ * el destino lo decide ws2.
+ */
+const CONTRATO_LINK_BASE = 'https://api.baldecash.com/contrato/';
+const CONTRATO_LINK_RE = /^\/contrato\/([A-Za-z0-9]+)$/;
+
+/**
  * Landings que cambiaron de slug. Se redirige el slug viejo al nuevo
  * conservando el resto del path, para que los enlaces publicados hacia
  * subrutas (/catalogo, /producto/..., /solicitar/...) no se pierdan.
@@ -261,6 +269,12 @@ export function middleware(request: NextRequest) {
       destino.searchParams.set(clave, valor);
     });
     return NextResponse.redirect(destino, 302);
+  }
+
+  // Link corto de contrato: usa normalizedPath, que ya quitó la barra final.
+  const contrato = CONTRATO_LINK_RE.exec(normalizedPath);
+  if (contrato) {
+    return NextResponse.redirect(`${CONTRATO_LINK_BASE}${contrato[1]}`, 302);
   }
 
   // Landings renombradas: redirige el slug viejo al nuevo conservando el
