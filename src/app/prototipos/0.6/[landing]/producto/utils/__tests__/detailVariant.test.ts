@@ -8,13 +8,10 @@ const base = {
 };
 
 describe('resolveDetailVariant', () => {
-  describe('copia-home y renueva-* (por slug)', () => {
-    it.each(['copia-home', 'renueva-2026', 'RENUEVA-lima'])(
-      'da la variante de escritorio a %s cuando el equipo es reacondicionado',
-      (landing) => {
-        expect(resolveDetailVariant({ ...base, landing })).toBe('grades-desktop');
-      },
-    );
+  describe('copia-home (por slug)', () => {
+    it('da la variante de escritorio cuando el equipo es reacondicionado', () => {
+      expect(resolveDetailVariant(base)).toBe('grades-desktop');
+    });
 
     it('da la variante mobile para cualquier equipo, no solo reacondicionados', () => {
       expect(resolveDetailVariant({ ...base, isMobile: true, isRefurbished: false })).toBe('grades-mobile');
@@ -27,6 +24,24 @@ describe('resolveDetailVariant', () => {
     // El slug se conoce sin pedir nada, así que estas landings nunca esperan.
     it('no espera a que resuelva la configuración', () => {
       expect(resolveDetailVariant({ ...base, overlayVariant: null })).toBe('grades-desktop');
+    });
+  });
+
+  // Segundo financiamiento: desde el 29-sep-2026 usa la ficha estándar, la
+  // misma de home. Antes caía en la de grados de copia-home, que es de prueba
+  // interna (renueva-tu-equipo-1, Dell Latitude 7420 combo 186).
+  describe('renueva-* (segundo financiamiento)', () => {
+    const renueva = { ...base, landing: 'renueva-tu-equipo-1', overlayVariant: '' };
+
+    it.each(['renueva-tu-equipo-1', 'renueva-tu-equipo-2', 'RENUEVA-lima'])(
+      'deja a %s en la ficha estándar con un reacondicionado',
+      (landing) => {
+        expect(resolveDetailVariant({ ...renueva, landing })).toBe('standard');
+      },
+    );
+
+    it.each([false, true])('deja la ficha estándar en mobile (isRefurbished=%s)', (isRefurbished) => {
+      expect(resolveDetailVariant({ ...renueva, isMobile: true, isRefurbished })).toBe('standard');
     });
   });
 

@@ -352,7 +352,7 @@ function ProductDetailContent() {
   const productIsRefurbished =
     isRefurbishedCondition(apiData.product.condition) ||
     /semi\s*nuevo|seminuevo|reacondicion/i.test(`${apiData.product.name ?? ''} ${apiData.product.displayName ?? ''}`);
-  // Qué ficha corresponde: copia-home y renueva-* entran por slug; Family Farms
+  // Qué ficha corresponde: copia-home entra por slug (renueva-* ya no); Family Farms
   // por variante de overlay, que llega por API. Ver resolveDetailVariant.
   const detailVariant = resolveDetailVariant({
     landing,
