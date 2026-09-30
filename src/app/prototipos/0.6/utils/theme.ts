@@ -42,19 +42,12 @@ export function isCopiaHomeLanding(slug: string): boolean {
 
 /**
  * Landings de segundo financiamiento: su slug contiene "renueva-".
- * Reciben la experiencia mobile seminuevos (item 12), con envío diferido para
- * iPads, pero SIN el CTA "volver al Grado A" (item 6 excluido).
+ * Hoy solo cambian el formulario de solicitud (contador del wizard). La ficha
+ * de producto es la estándar, la misma de `home`: hasta el 29-sep-2026 usaban
+ * la variante de grados de `copia-home`.
  */
 export function isSecondFinancingLanding(slug: string): boolean {
   return /renueva-/i.test(slug);
-}
-
-/**
- * Landings que usan la variante mobile "copia-home" (seminuevos): la propia
- * `copia-home` y las de segundo financiamiento (`renueva-*`).
- */
-export function isCopiaHomeStyleLanding(slug: string): boolean {
-  return isCopiaHomeLanding(slug) || isSecondFinancingLanding(slug);
 }
 
 /**
@@ -68,7 +61,7 @@ export function isCopiaHomeStyleLanding(slug: string): boolean {
  * Es EXCLUSIVO de esta landing: se detecta por slug exacto, no por prefijo,
  * para que ninguna landing nueva lo herede por accidente (BAL-3288).
  *
- * Ojo: NO se apoya en `isCopiaHomeStyleLanding`. Aunque las dos son de
+ * Ojo: NO se apoya en `isCopiaHomeLanding`. Aunque las dos son de
  * seminuevos, son diseños distintos y no comparten componentes.
  */
 export function isReacondicionadosLanding(slug: string): boolean {

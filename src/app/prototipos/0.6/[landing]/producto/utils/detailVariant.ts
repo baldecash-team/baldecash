@@ -1,4 +1,4 @@
-import { isCopiaHomeStyleLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isCopiaHomeLanding } from '@/app/prototipos/0.6/utils/theme';
 
 /** Variante de ficha de producto a dibujar. */
 export type DetailVariant =
@@ -29,8 +29,11 @@ const FAMILY_FARM_VARIANT = 'familyfarm';
  *
  * Hay dos caminos hacia el selector de grados, y no son intercambiables:
  *
- * - `copia-home` y las landings `renueva-*` entran **por slug**, que se conoce
- *   sin pedir nada. En mobile usan la variante para todos los equipos.
+ * - `copia-home` entra **por slug**, que se conoce sin pedir nada. En mobile
+ *   usa la variante para todos los equipos. Las landings de segundo
+ *   financiamiento (`renueva-*`) entraban igual hasta el 29-sep-2026; desde
+ *   entonces usan la ficha estándar, la misma de `home`: `copia-home` es una
+ *   landing de prueba interna y las `renueva-*` las ven clientes reales.
  * - Family Farms entra **por variante de overlay**, que llega por API. Solo para
  *   reacondicionados: el pedido es mostrar grados, y un equipo nuevo no tiene.
  *
@@ -45,7 +48,7 @@ export function resolveDetailVariant({
   isMobile,
   isRefurbished,
 }: DetailVariantInput): DetailVariant {
-  if (isCopiaHomeStyleLanding(landing)) {
+  if (isCopiaHomeLanding(landing)) {
     if (isMobile) return 'grades-mobile';
     return isRefurbished ? 'grades-desktop' : 'standard';
   }

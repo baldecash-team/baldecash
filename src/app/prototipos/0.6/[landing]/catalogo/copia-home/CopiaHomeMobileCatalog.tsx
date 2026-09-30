@@ -323,8 +323,8 @@ export function CopiaHomeMobileCatalog() {
                   porque `copia-home` es una landing de PRUEBA INTERNA del
                   equipo: ningún cliente la ve. Monta solo con
                   `isCopiaHomeLanding(landing) && isMobile` —las `renueva-*` NO
-                  entran acá, pese a que existe una `isCopiaHomeStyleLanding`
-                  más amplia que aquí no se usa—.
+                  entran acá, y desde el 29-sep-2026 tampoco a las fichas de
+                  producto de esta familia—.
 
                   Si algún día esta variante sirve de base para una landing
                   real, hay que migrar los 12 a `conditionLabelText` /
