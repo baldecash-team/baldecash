@@ -147,7 +147,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   drawPageBackground(doc, { darkMode: isDark });
 
   // Header estandarizado
-  let y = drawHeader(doc, 'Cronograma de Pagos', 'Detalle de financiamiento', {
+  let y = drawHeader(doc, 'Cronograma de Pagos', 'Cronograma referencial', {
     showDate: true,
     date: data.generatedDate,
     primaryColor: data.primaryColor,
