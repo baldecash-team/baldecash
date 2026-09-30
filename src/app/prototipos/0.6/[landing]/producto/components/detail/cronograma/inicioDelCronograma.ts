@@ -10,6 +10,11 @@
  * `/public/landing/{slug}/config`; es la misma que ws2 usa para el cronograma
  * del KYC y la que le manda a legacy, así que la vitrina, el contrato y el
  * cronograma real cuentan el mismo calendario.
+ *
+ * Sin fecha fija, el "desde" lo calcula ws2 (`desdeBackend`): corte por día y
+ * mes destino del pago diferido. Anclar en hoy ponía la cuota 1 en el mes
+ * actual, y en renueva (paga-en-diciembre) decía setiembre (BAL-4308). Hoy
+ * queda solo como último recurso, mientras llega o si ws2 falla.
  */
 
 import { getFirstPaymentDate, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
@@ -17,7 +22,8 @@ import { getFirstPaymentDate, type LandingConfig } from '@/app/prototipos/0.6/ty
 export function inicioDelCronograma(
   config: LandingConfig | null | undefined,
   hoy: Date,
+  desdeBackend: Date | null = null,
 ): Date {
-  if (!config) return hoy;
-  return getFirstPaymentDate(config) ?? hoy;
+  const fija = config ? getFirstPaymentDate(config) : null;
+  return fija ?? desdeBackend ?? hoy;
 }

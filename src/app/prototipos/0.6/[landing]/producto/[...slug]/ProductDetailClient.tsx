@@ -58,6 +58,7 @@ import {
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { inicioDelCronograma } from '../components/detail/cronograma/inicioDelCronograma';
+import { fechaIsoALocal, obtenerPrimeraFechaPago } from '../../solicitar/utils/primeraFechaPago';
 
 function ProductDetailContent() {
   const router = useRouter();
@@ -212,9 +213,18 @@ function ProductDetailContent() {
   // Los convenios que cobran contra planilla arrancan en una fecha fija de
   // campaña, no el día en que se mira el producto. Se recalcula solo cuando
   // llega la config: `new Date()` en el render daría una fecha nueva por render.
+  // Sin fecha fija, el "desde" lo calcula ws2 con el diferido (BAL-4308).
+  const [desdeBackend, setDesdeBackend] = useState<Date | null>(null);
+  useEffect(() => {
+    let cancelado = false;
+    obtenerPrimeraFechaPago(landing).then((iso) => {
+      if (!cancelado) setDesdeBackend(iso ? fechaIsoALocal(iso) : null);
+    });
+    return () => { cancelado = true; };
+  }, [landing]);
   const inicioCronograma = useMemo(
-    () => inicioDelCronograma(landingConfig, new Date()),
-    [landingConfig],
+    () => inicioDelCronograma(landingConfig, new Date(), desdeBackend),
+    [landingConfig, desdeBackend],
   );
 
   // Build catalog URL helper (falls back to landing home if no catalog)

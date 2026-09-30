@@ -363,6 +363,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-[var(--text-strong,#111827)]">Detalle de Cuotas</h3>
+              {/* Las fechas son un "desde": el día de pago se elige después y
+                  el cronograma real lo arma legacy al aprobar (BAL-4308). */}
+              <p className="text-xs font-medium text-[var(--color-primary)]">Cronograma referencial</p>
               {/* Con la inicial fraccionada el encabezado nombra las dos cosas:
                   contar solo las cuotas escondía las armadas, y sumarlas todas
                   escondía que la inicial se paga aparte. */}

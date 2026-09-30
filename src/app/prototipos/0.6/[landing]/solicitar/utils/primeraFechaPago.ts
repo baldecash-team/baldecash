@@ -14,12 +14,18 @@ const MESES = [
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
+/**
+ * Sin `paymentDay` devuelve el "desde": la fecha más temprana entre los días
+ * del formulario. La usa el cronograma del detalle del equipo, que todavía no
+ * sabe qué día va a elegir la persona (BAL-4308).
+ */
 export async function obtenerPrimeraFechaPago(
   landingSlug: string,
-  paymentDay: number,
+  paymentDay?: number,
 ): Promise<string | null> {
   try {
-    const url = `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/first-payment-date?payment_day=${paymentDay}`;
+    const dia = paymentDay ? `?payment_day=${paymentDay}` : '';
+    const url = `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/first-payment-date${dia}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
@@ -39,4 +45,13 @@ export function formatearFechaIso(iso: string): string | null {
   const mes = MESES[Number(m[2]) - 1];
   if (!mes) return null;
   return `${Number(m[3])} de ${mes} del ${m[1]}`;
+}
+
+/** `2026-12-03` → Date local de ese día, o null si no es una fecha real. */
+export function fechaIsoALocal(iso: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const [anio, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(anio, mes - 1, dia);
+  return d.getMonth() === mes - 1 && d.getDate() === dia ? d : null;
 }
