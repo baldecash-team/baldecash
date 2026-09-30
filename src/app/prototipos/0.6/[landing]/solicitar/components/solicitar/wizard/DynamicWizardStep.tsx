@@ -5,13 +5,14 @@
  * Uses grid layout based on field.grid_columns
  */
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
+import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
 
 const MONTH_NAMES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -145,7 +146,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   stepOrder,
 }) => {
   const { getFieldValue, updateField, formData } = useWizard();
-  const { deferredPayment } = useLayout();
+  const { deferredPayment, landing } = useLayout();
 
   // El legacy corre un mes el primer pago cuando la landing es diferida.
   const isDeferred = Boolean(deferredPayment?.enabled);
@@ -261,6 +262,20 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
   const paymentDayValue = getFieldValue('payment_day') as string;
 
+  // La fecha la calcula ws2 con la regla del legacy (BAL-4305). Mientras
+  // llega, o si falla, se muestra el cálculo local de siempre.
+  const [fechaBackend, setFechaBackend] = useState<string | null>(null);
+  useEffect(() => {
+    setFechaBackend(null);
+    const dia = Number(paymentDayValue);
+    if (!landing || !dia) return;
+    let cancelado = false;
+    obtenerPrimeraFechaPago(landing, dia).then((iso) => {
+      if (!cancelado) setFechaBackend(iso ? formatearFechaIso(iso) : null);
+    });
+    return () => { cancelado = true; };
+  }, [landing, paymentDayValue]);
+
   // Fields come already ordered by display_order from the API
   return (
     <div className="grid grid-cols-12 gap-x-4 gap-y-1">
@@ -290,7 +305,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
                   <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
                   <p className="text-sm text-neutral-700">
-                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue), isDeferred)}</span>
+                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{fechaBackend ?? getFirstPaymentDate(Number(paymentDayValue), isDeferred)}</span>
                   </p>
                 </div>
               </div>
