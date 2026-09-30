@@ -40,4 +40,20 @@ describe('inicioDelCronograma', () => {
     expect(inicioDelCronograma(null, hoy)).toEqual(hoy);
     expect(inicioDelCronograma(undefined, hoy)).toEqual(hoy);
   });
+
+  // BAL-4308: sin fecha fija, el "desde" lo calcula ws2 (diferido y corte por
+  // dia). Antes arrancaba en hoy y la cuota 1 salia en el mes actual.
+  it('sin campaña usa la fecha que calculó el backend', () => {
+    const desde = new Date(2026, 11, 3);
+    expect(inicioDelCronograma(config(), hoy, desde)).toEqual(desde);
+  });
+
+  it('la fecha fija de campaña le gana a la del backend', () => {
+    const inicio = inicioDelCronograma(
+      config({ first_payment: { date: '2026-08-21' } }),
+      hoy,
+      new Date(2026, 11, 3),
+    );
+    expect(inicio.getMonth()).toBe(7);
+  });
 });

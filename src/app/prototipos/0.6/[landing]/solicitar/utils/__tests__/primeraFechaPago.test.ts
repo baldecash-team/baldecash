@@ -1,4 +1,4 @@
-import { formatearFechaIso, obtenerPrimeraFechaPago } from '../primeraFechaPago';
+import { fechaIsoALocal, formatearFechaIso, obtenerPrimeraFechaPago } from '../primeraFechaPago';
 
 describe('obtenerPrimeraFechaPago', () => {
   const conFetch = (impl: jest.Mock) => { global.fetch = impl as unknown as typeof fetch; return impl; };
@@ -12,6 +12,15 @@ describe('obtenerPrimeraFechaPago', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain(
       '/public/landing/renueva-tu-equipo-1/first-payment-date?payment_day=18',
     );
+  });
+
+  it('sin día pide el "desde" (BAL-4308)', async () => {
+    const fetchMock = conFetch(jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ date: '2026-12-03', deferred: true }),
+    }));
+    await expect(obtenerPrimeraFechaPago('renueva-tu-equipo-1')).resolves.toBe('2026-12-03');
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/first-payment-date$/);
   });
 
   it('devuelve null si el backend falla, para usar el cálculo local', async () => {
@@ -34,5 +43,17 @@ describe('formatearFechaIso', () => {
   it('rechaza lo que no es una fecha ISO', () => {
     expect(formatearFechaIso('18/12/2026')).toBeNull();
     expect(formatearFechaIso('2026-13-01')).toBeNull();
+  });
+});
+
+describe('fechaIsoALocal', () => {
+  it('arma la fecha local sin correr el día', () => {
+    const d = fechaIsoALocal('2026-12-03');
+    expect([d?.getFullYear(), d?.getMonth(), d?.getDate()]).toEqual([2026, 11, 3]);
+  });
+
+  it('rechaza lo que no es una fecha', () => {
+    expect(fechaIsoALocal('2026-02-31')).toBeNull();
+    expect(fechaIsoALocal('x')).toBeNull();
   });
 });
