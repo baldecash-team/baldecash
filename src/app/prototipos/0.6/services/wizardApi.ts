@@ -241,6 +241,10 @@ export interface WizardConfig {
   // Dynamic texts configured per form in admin
   form_extra_data?: WizardConfigExtraData | null;
 
+  // Formulario que le tocó a la sesión (varios formularios por landing)
+  form_id?: number;
+  form_code?: string | null;
+
   // Shared
   steps: WizardStep[];
   total_steps?: number;
@@ -251,16 +255,26 @@ export interface WizardConfig {
 // ============================================================================
 
 /**
- * Obtiene la configuración del wizard para una landing
+ * Obtiene la configuración del wizard para una landing.
+ *
+ * `sessionUuid`: con varios formularios por landing, el backend sirve el que
+ * le tocó a esa sesión. Sin él devuelve el formulario principal.
  */
-export async function getWizardConfig(slug: string, previewKey?: string | null): Promise<WizardConfig | null> {
+export async function getWizardConfig(
+  slug: string,
+  previewKey?: string | null,
+  sessionUuid?: string | null,
+): Promise<WizardConfig | null> {
   try {
-    let url = previewKey
-      ? `${API_BASE_URL}/public/landing/${slug}/wizard?preview_key=${encodeURIComponent(previewKey)}`
-      : `${API_BASE_URL}/public/landing/${slug}/wizard`;
+    const params = new URLSearchParams();
+    if (previewKey) params.set('preview_key', previewKey);
+    if (sessionUuid) params.set('session_uuid', sessionUuid);
+    const qs = params.toString();
+    let url = `${API_BASE_URL}/public/landing/${slug}/wizard${qs ? `?${qs}` : ''}`;
     url = appendVipToken(url, slug);
     const response = await fetch(url, {
-      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
+      // Con sesión la respuesta es por persona: no se cachea.
+      ...(previewKey || sessionUuid ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -282,11 +296,17 @@ export async function getWizardConfig(slug: string, previewKey?: string | null):
  * @param landingId - Landing ID
  * @param previewKey - Hash de preview para acceder a landings no publicadas
  */
-export async function getWizardConfigById(landingId: number, previewKey: string | null = null): Promise<WizardConfig | null> {
+export async function getWizardConfigById(
+  landingId: number,
+  previewKey: string | null = null,
+  sessionUuid: string | null = null,
+): Promise<WizardConfig | null> {
   try {
-    const url = previewKey
-      ? `${API_BASE_URL}/public/landing/id/${landingId}/wizard?preview_key=${encodeURIComponent(previewKey)}`
-      : `${API_BASE_URL}/public/landing/id/${landingId}/wizard`;
+    const params = new URLSearchParams();
+    if (previewKey) params.set('preview_key', previewKey);
+    if (sessionUuid) params.set('session_uuid', sessionUuid);
+    const qs = params.toString();
+    const url = `${API_BASE_URL}/public/landing/id/${landingId}/wizard${qs ? `?${qs}` : ''}`;
 
     const response = await fetch(url, {
       cache: 'no-store', // Siempre no-store para preview por ID
