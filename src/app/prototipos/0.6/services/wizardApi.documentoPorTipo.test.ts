@@ -312,3 +312,65 @@ describe('BAL-4025 · getDocumentTypeRules alimenta el maxLength del input', () 
     expect(validar('123', 'rucito').isValid).toBe(true);
   });
 });
+
+// ============================================================================
+// BAL-4339 — el min/max de la ficha del campo no le gana a la regla del tipo
+// ============================================================================
+
+/** Como llega el campo en producción: la ficha dice 8 a 9 para todos. */
+function validarComoProd(numero: string, tipo: string) {
+  return validateField(
+    createField({ min_length: 8, max_length: 9 }),
+    numero,
+    { document_type: tipo, document_number: numero },
+    CACHE_DEL_WIZARD
+  );
+}
+
+describe('BAL-4339 · la ficha (8 a 9) no bloquea documentos válidos', () => {
+  it('acepta un pasaporte de 6 caracteres', () => {
+    expect(validarComoProd('AB1234', 'pasaporte').isValid).toBe(true);
+  });
+
+  it('acepta un pasaporte de 10 caracteres', () => {
+    expect(validarComoProd('AB12345678', 'pasaporte').isValid).toBe(true);
+  });
+
+  it('acepta un CE de 12 caracteres', () => {
+    expect(validarComoProd('A12345678901', 'ce').isValid).toBe(true);
+  });
+
+  it('rechaza un pasaporte de 5 con el mensaje del tipo, no con el genérico', () => {
+    const r = validarComoProd('AB123', 'pasaporte');
+    expect(r.isValid).toBe(false);
+    expect(r.error).toBe('El pasaporte debe tener entre 6 y 12 caracteres');
+  });
+
+  it('rechaza un DNI de 7 con el mensaje del tipo, no con «Mínimo 8 caracteres»', () => {
+    const r = validarComoProd('1234567', 'dni');
+    expect(r.isValid).toBe(false);
+    expect(r.error).toBe('El DNI debe tener 8 dígitos');
+  });
+
+  it('un campo SIN regla por tipo sigue respetando el min/max de su ficha', () => {
+    const r = validateField(
+      createField({ code: 'employer_name', type: 'text', validations: [], min_length: 8, max_length: 9 }),
+      'abc',
+      { employer_name: 'abc' },
+      CACHE_DEL_WIZARD
+    );
+    expect(r.isValid).toBe(false);
+    expect(r.error).toBe('Mínimo 8 caracteres');
+  });
+
+  it('si el tipo elegido no tiene reglas, la ficha sigue mandando', () => {
+    const r = validateField(
+      createField({ min_length: 8, max_length: 9 }),
+      'AB1234',
+      { document_type: 'tipo_desconocido', document_number: 'AB1234' },
+      CACHE_DEL_WIZARD
+    );
+    expect(r.isValid).toBe(false);
+    expect(r.error).toBe('Mínimo 8 caracteres');
+  });
+});
