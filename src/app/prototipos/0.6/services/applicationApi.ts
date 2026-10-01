@@ -84,6 +84,13 @@ export interface SubmitApplicationRequest {
    * alcanzó a emitir sesión — el submit nunca depende de esto.
    */
   juicyscore_session_id?: string;
+  /**
+   * `form_id` del formulario que el wizard le mostró a esta sesión (varios
+   * formularios por landing, repartidos por peso). Viaja para que la
+   * solicitud se guarde con ESE formulario aunque el reparto cambie mientras
+   * la persona lo está llenando. Se omite si no se conoce el formulario.
+   */
+  wizard_form_id?: number;
   /** Optional files to upload (e.g., DNI, payslips) */
   files?: UploadedFileData[];
 }
@@ -204,6 +211,12 @@ export async function submitApplication(
       // en caso contrario, para no cambiar el payload de las landings sin JuicyScore.
       ...(data.juicyscore_session_id
         ? { juicyscore_session_id: data.juicyscore_session_id }
+        : {}),
+      // Igual que juicyscore_session_id: se omite la clave por completo si no
+      // se conoce el formulario mostrado, para no cambiar el payload de las
+      // landings que todavía no reparten varios formularios.
+      ...(data.wizard_form_id !== undefined
+        ? { wizard_form_id: data.wizard_form_id }
         : {}),
     };
     formData.append('form_data', JSON.stringify(jsonData));
