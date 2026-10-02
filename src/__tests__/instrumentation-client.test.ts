@@ -59,3 +59,41 @@ describe('filterThirdPartyEvent', () => {
     expect(filterThirdPartyEvent(event)).toBe(event);
   });
 });
+
+/**
+ * BAL-4348 — los ReferenceError del JavaScript que inyecta el WebView.
+ *
+ * Estos NO los puede filtrar `filterThirdPartyEvent`: el script inyectado no
+ * tiene filename (el stack es `<anonymous>`), asi que no hay URL que mirar.
+ * Van por `ignoreErrors`, que el SDK aplica sobre el MENSAJE. El test lee la
+ * config que recibio `Sentry.init` y comprueba que los mensajes reales casan.
+ */
+describe('ignoreErrors: ruido de WebViews inyectados (BAL-4348)', () => {
+  const patronesDe = (): Array<string | RegExp> => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Sentry = require('@sentry/nextjs');
+    const config = (Sentry.init as jest.Mock).mock.calls[0]?.[0] ?? {};
+    return config.ignoreErrors ?? [];
+  };
+
+  const casa = (mensaje: string): boolean =>
+    patronesDe().some((p) => (typeof p === 'string' ? mensaje.includes(p) : p.test(mensaje)));
+
+  it.each([
+    // Mensajes exactos de BALDECASH3-2R (446 eventos) y 2S (202), ambos con
+    // ~99% de los eventos en Chrome Mobile WebView.
+    'swbrowser is not defined',
+    'xbrowser is not defined',
+    // BALDECASH3-5J, el mismo patron con otra variable.
+    'onWebLoad is not defined',
+  ])('descarta "%s"', (mensaje) => {
+    expect(casa(mensaje)).toBe(true);
+  });
+
+  it('NO descarta un ReferenceError de nuestro propio codigo', () => {
+    // La red de seguridad: los patrones son por nombre de variable, no por
+    // "is not defined" a secas. Si alguien los generalizara, este test cae.
+    expect(casa('productoSeleccionado is not defined')).toBe(false);
+    expect(casa('fetchLandingConfig is not defined')).toBe(false);
+  });
+});
