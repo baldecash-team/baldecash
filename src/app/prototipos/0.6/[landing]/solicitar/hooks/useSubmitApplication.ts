@@ -307,10 +307,13 @@ export function useSubmitApplication(
           // Check if this is a file array (UploadedFile objects from FileUpload component)
           for (const item of fieldState.value) {
             if (item && typeof item === 'object' && 'file' in item && item.file instanceof File) {
-              // Extract field code from the key (remove any suffix like _123456)
-              const fieldCode = key.includes('_') ? key.split('_')[0] : key;
+              // La llave de formData ES el código del campo, entero. El backend
+              // busca el campo por ese código para saber el tipo de documento:
+              // cortarlo en el primer `_` (BAL-4353) mandaba
+              // `minor_enrollment_certificate` como `minor` y la constancia
+              // quedaba guardada como «Documento General».
               files.push({
-                fieldCode,
+                fieldCode: key,
                 file: item.file,
               });
             }

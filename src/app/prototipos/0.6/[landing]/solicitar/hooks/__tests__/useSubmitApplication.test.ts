@@ -740,6 +740,97 @@ describe('useSubmitApplication', () => {
   });
 
   /**
+   * BAL-4353. El archivo viaja como `file__{código del campo}` y el backend busca
+   * el campo por ese código para saber qué tipo de documento es. El código se
+   * cortaba en el primer guion bajo (`minor_enrollment_certificate` → `minor`):
+   * el backend no encontraba el campo y guardaba la constancia de matrícula como
+   * «Documento General» (260 documentos en prod entre jul y sep de 2026).
+   */
+  describe('código del campo de los archivos', () => {
+    const data = mockFormData as Record<string, { value: unknown; error: null }>;
+    const adjunto = (nombre: string) => ({
+      id: nombre,
+      file: new File(['x'], nombre, { type: 'application/pdf' }),
+    });
+
+    afterEach(() => {
+      delete data.minor_enrollment_certificate;
+      delete data.dni_front;
+      delete data.dni_back;
+      delete data.constancia;
+    });
+
+    it('envía el código completo cuando lleva guiones bajos', async () => {
+      const archivo = adjunto('constancia.pdf');
+      data.minor_enrollment_certificate = { value: [archivo], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [{ fieldCode: 'minor_enrollment_certificate', file: archivo.file }],
+        })
+      );
+    });
+
+    it('dos campos con el mismo inicio no se confunden', async () => {
+      const frente = adjunto('frente.jpg');
+      const reverso = adjunto('reverso.jpg');
+      data.dni_front = { value: [frente], error: null };
+      data.dni_back = { value: [reverso], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [
+            { fieldCode: 'dni_front', file: frente.file },
+            { fieldCode: 'dni_back', file: reverso.file },
+          ],
+        })
+      );
+    });
+
+    it('un código sin guion bajo viaja igual que antes', async () => {
+      const archivo = adjunto('constancia.pdf');
+      data.constancia = { value: [archivo], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F3' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [{ fieldCode: 'constancia', file: archivo.file }],
+        })
+      );
+    });
+
+    it('el archivo no se cuela como dato del formulario', async () => {
+      data.minor_enrollment_certificate = { value: [adjunto('constancia.pdf')], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F4' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data).not.toHaveProperty('minor_enrollment_certificate');
+    });
+  });
+
+  /**
    * JuicyScore (antifraude). El `session_id` lo emite el pixel y lo deja en
    * sessionStorage; el submit solo lo adjunta. Nada de esto puede impedir que la
    * solicitud se envíe: sin pixel, el campo simplemente no viaja.
