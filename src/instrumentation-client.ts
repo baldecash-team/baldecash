@@ -82,6 +82,19 @@ Sentry.init({
     // denyUrls no aplica, el script inyectado no tiene filename (<anonymous>).
     /Java object is gone/i,
     /Java exception was raised during method invocation/i,
+    // Fixes BALDECASH3-2R, BALDECASH3-2S, BALDECASH3-5J: el mismo tipo de
+    // inyeccion que los dos de arriba, pero fallando por una variable que el
+    // script ajeno espera y no existe. Medido: 648 eventos, y el 99% viene de
+    // Chrome Mobile WebView --el navegador embebido de Facebook, Instagram o
+    // TikTok--, no de un navegador normal. `swbrowser`, `xbrowser` y
+    // `onWebLoad` no existen en este repo (grepeados en src/ y public/), y el
+    // stack es `<anonymous>` sin archivo ni linea, con la funcion
+    // `needInjectCss`: codigo evaluado por el WebView, no parte de nuestro
+    // bundle. Sin filename, `denyUrls` y `filterThirdPartyEvent` no lo ven;
+    // tiene que ir por mensaje, igual que `Java object is gone` (BAL-4348).
+    /swbrowser is not defined/i,
+    /xbrowser is not defined/i,
+    /onWebLoad is not defined/i,
     // Common third-party / noise
     "Non-Error promise rejection captured",
     "Non-Error exception captured",
