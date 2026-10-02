@@ -777,6 +777,45 @@ export function checkEmailDomain(
 }
 
 /**
+ * BAL-4351 — RUC con inicios permitidos.
+ *
+ * `prefixes` llega del backend ya normalizado como inicios de 2 dígitos
+ * separados por coma (p. ej. "10,15,17,20"); esta función es tolerante a
+ * espacios extra. null/undefined/vacío = cualquier inicio es válido.
+ */
+function parseRucPrefixes(prefixes: string | null | undefined): string[] {
+  if (!prefixes) return [];
+  return prefixes
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Valida que `value` (tras trim) sea exactamente 11 dígitos y, si se pasó
+ * una lista de inicios permitidos, que empiece por uno de ellos. Helper
+ * puro y exportado para poder probarlo solo.
+ */
+export function checkRuc(
+  value: string,
+  prefixes: string | null | undefined
+): boolean {
+  const trimmedValue = value.trim();
+  if (!/^\d{11}$/.test(trimmedValue)) return false;
+
+  const prefixList = parseRucPrefixes(prefixes);
+  if (prefixList.length === 0) return true;
+
+  return prefixList.some((prefix) => trimmedValue.startsWith(prefix));
+}
+
+/** "10, 15, 17 o 20" — comas entre todos, "o" antes del último. */
+function joinRucPrefixesForMessage(prefixes: string[]): string {
+  if (prefixes.length <= 1) return prefixes[0] || '';
+  return `${prefixes.slice(0, -1).join(', ')} o ${prefixes[prefixes.length - 1]}`;
+}
+
+/**
  * Resultado de validación de un campo
  */
 export interface FieldValidationResult {
@@ -1001,6 +1040,19 @@ export function validateField(
         }
         break;
       }
+
+      case 'ruc':
+        if (!checkRuc(trimmedValue, validation.value)) {
+          hasError = true;
+          if (!errorMessage) {
+            const prefixList = parseRucPrefixes(validation.value);
+            errorMessage =
+              prefixList.length > 0
+                ? `Ingresa un RUC válido de 11 dígitos que empiece en ${joinRucPrefixesForMessage(prefixList)}`
+                : 'Ingresa un RUC válido de 11 dígitos';
+          }
+        }
+        break;
 
       case 'min_length':
         if (validation.value && trimmedValue.length < parseInt(validation.value)) {
