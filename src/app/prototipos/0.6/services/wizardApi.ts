@@ -670,7 +670,7 @@ const DOCUMENT_RULES_FALLBACK: Record<string, OptionValidation> = {
     max_length: 12,
     pattern: '^[a-zA-Z0-9]{9,12}$',
     input_mode: 'text',
-    placeholder: 'A12345678',
+    placeholder: '001234567',
     error_message: 'El CE debe tener entre 9 y 12 caracteres',
   },
   pasaporte: {
@@ -836,8 +836,18 @@ export function validateField(
   }
 
   // 3. Validaciones de longitud (propiedades directas del campo)
-  // Skipped when dynamic validation (section 2) already handled length
-  if (!field.validation_source_field) {
+  // Skipped when dynamic validation (section 2) already handled length.
+  //
+  // BAL-4339: tampoco aplican cuando el campo se valida por tipo de documento
+  // (regla `dni`) y el tipo elegido tiene reglas. La ficha del campo dice
+  // «8 a 9» para todos y bloqueaba pasaportes de 6-7 y de 10-12, y CE de
+  // 10-12, que la regla del tipo sí acepta. El largo lo decide el tipo.
+  const reglaPorTipo = field.validations?.find((v) => v.type === 'dni');
+  const largoLoDecideElTipo =
+    !!reglaPorTipo &&
+    getDocumentTypeRules(reglaPorTipo.value || 'document_type', formValues, dynamicOptionsCache) !== null;
+
+  if (!field.validation_source_field && !largoLoDecideElTipo) {
     if (field.min_length && trimmedValue.length < field.min_length) {
       return { isValid: false, error: `Mínimo ${field.min_length} caracteres` };
     }

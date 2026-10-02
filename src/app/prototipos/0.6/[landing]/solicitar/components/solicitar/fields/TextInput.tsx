@@ -50,6 +50,8 @@ interface TextInputProps {
   max?: number;
   /** Step increment for number inputs */
   step?: number;
+  /** Extra onWheel handler from the caller (still called before our own handling) */
+  onWheel?: React.WheelEventHandler<HTMLInputElement>;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -79,6 +81,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   min,
   max,
   step,
+  onWheel,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -154,6 +157,17 @@ export const TextInput: React.FC<TextInputProps> = ({
           min={min}
           max={max}
           step={step}
+          onWheel={(e) => {
+            onWheel?.(e);
+            // Un input type="number" enfocado cambia su valor con la rueda del
+            // mouse (medido en prod: 500 -> rueda abajo -> 499). React expone
+            // onWheel como passive, así que preventDefault() acá no sirve: la
+            // única forma de frenarlo es sacarle el foco. Sin foco, el navegador
+            // ya no toca el valor y la página sigue scrolleando normal.
+            if (type === 'number') {
+              e.currentTarget.blur();
+            }
+          }}
           className={`
             flex-1 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400
