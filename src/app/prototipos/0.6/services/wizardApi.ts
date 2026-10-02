@@ -151,6 +151,10 @@ export interface WizardField {
     fields_to_fill?: string[];
     trigger?: 'on_blur' | 'on_change';
   } | null;
+  // BAL-4343: dominios de correo permitidos para este campo en este paso.
+  // Solo aplica a campos type === 'email'. Lista vacía/null = acepta cualquiera.
+  allowed_email_domains?: string[] | null;
+  allowed_email_domains_message?: string | null;
 }
 
 /**
@@ -746,6 +750,33 @@ export function checkDocumentAgainstRules(
 }
 
 /**
+ * BAL-4343: dominios de correo permitidos.
+ *
+ * El dominio del correo (lo que va después de la última `@`, en minúsculas)
+ * debe ser igual a alguno de los dominios de la lista, o terminar en
+ * `.` + ese dominio (subdominio). No basta con que el texto termine en el
+ * dominio: "fakeedu.pe" NO cumple con ["edu.pe"].
+ *
+ * Lista vacía/null/undefined -> acepta cualquier correo (comportamiento
+ * actual, sin cambios). Helper puro y exportado para poder probarlo solo.
+ */
+export function checkEmailDomain(
+  email: string,
+  domains: string[] | null | undefined
+): boolean {
+  if (!domains || domains.length === 0) return true;
+
+  const atIndex = email.lastIndexOf('@');
+  if (atIndex === -1) return false;
+  const emailDomain = email.slice(atIndex + 1).toLowerCase();
+
+  return domains.some((domain) => {
+    const d = domain.toLowerCase();
+    return emailDomain === d || emailDomain.endsWith(`.${d}`);
+  });
+}
+
+/**
  * Resultado de validación de un campo
  */
 export interface FieldValidationResult {
@@ -878,6 +909,19 @@ export function validateField(
   // postulante se queda esperando un código que nunca llega.
   if (field.type === 'email' && !isValidEmail(trimmedValue)) {
     return { isValid: false, error: 'Ingresa un correo válido (ejemplo: nombre@dominio.com)' };
+  }
+
+  // 3.c BAL-4343: dominios de correo permitidos por paso (solo si el formato ya es válido).
+  if (
+    field.type === 'email' &&
+    field.allowed_email_domains &&
+    field.allowed_email_domains.length > 0 &&
+    !checkEmailDomain(trimmedValue, field.allowed_email_domains)
+  ) {
+    const mensaje =
+      field.allowed_email_domains_message ||
+      `Usa un correo que termine en ${field.allowed_email_domains.map((d) => `@${d}`).join(' o ')}`;
+    return { isValid: false, error: mensaje };
   }
 
   // 4. Validación de pattern (regex)
