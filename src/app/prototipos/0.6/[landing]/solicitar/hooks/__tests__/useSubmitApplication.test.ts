@@ -101,6 +101,12 @@ jest.mock('../../context/SessionContext', () => ({
   }),
 }));
 
+// Config del wizard: trae el form_id que el backend le sirvió a esta sesión.
+let mockWizardConfig: { form_id?: number } | null = null;
+jest.mock('../../context/WizardConfigContext', () => ({
+  useWizardConfig: () => ({ config: mockWizardConfig }),
+}));
+
 // Mock useAnalytics (returns no-ops by default)
 const mockAnalyticsTrack = jest.fn();
 jest.mock('@/app/prototipos/0.6/analytics/useAnalytics', () => ({
@@ -779,6 +785,47 @@ describe('useSubmitApplication', () => {
         juicyscore_session_id?: string;
       };
       expect(payload.juicyscore_session_id).toBeUndefined();
+    });
+  });
+
+  /**
+   * `wizard_form_id`: el formulario que el backend le sirvió a esta sesión
+   * (varios formularios por landing, repartidos por peso). Viaja en el submit
+   * para que la solicitud quede ligada a ESE formulario aunque el reparto
+   * cambie mientras la persona lo está llenando.
+   */
+  describe('wizard_form_id', () => {
+    afterEach(() => {
+      mockWizardConfig = null;
+    });
+
+    it('adjunta el form_id de la config del wizard cuando existe', async () => {
+      mockWizardConfig = { form_id: 42 };
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({ wizard_form_id: 42 })
+      );
+    });
+
+    it('omite el campo cuando la config no trae form_id', async () => {
+      mockWizardConfig = {};
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls[0][0] as {
+        wizard_form_id?: number;
+      };
+      expect(payload.wizard_form_id).toBeUndefined();
     });
   });
 

@@ -67,6 +67,18 @@ export function sesionYaConvertida(landing: string): boolean {
   return !!convertida && convertida === safeGetItem(getSessionKey(landing));
 }
 
+/**
+ * Uuid de sesión que ya está guardado en el navegador para la landing, o null.
+ *
+ * SOLO LEE: no genera ni escribe nada. El uuid lo crea `initSession`, y de que
+ * no exista antes depende `sesion_vinculada` (ver `isNew` ahí). Sirve para
+ * quien necesita el uuid antes de que responda la API de sesión: `initSession`
+ * lo guarda en storage ANTES de llamarla.
+ */
+export function leerUuidDeSesionGuardado(landing: string): string | null {
+  return safeGetItem(getSessionKey(landing)) || null;
+}
+
 export function clearSessionStorage(landing: string): void {
   // safeRemoveItem is hoisted; it already guards SSR and storage failures.
   safeRemoveItem(getSessionKey(landing));

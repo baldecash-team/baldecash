@@ -11,6 +11,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '../context/ProductContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
 import { useSession } from '../context/SessionContext';
+import { useWizardConfig } from '../context/WizardConfigContext';
 import {
   submitApplication,
   type SubmitApplicationRequest,
@@ -278,6 +279,10 @@ export function useSubmitApplication(
 
   const { formData, resetForm } = useWizard();
   const { sessionUuid, marcarSesionConvertida } = useSession();
+  // Formulario que el backend le sirvió a esta sesión (varios formularios por
+  // landing). Viaja en el submit para que la solicitud quede ligada a ese
+  // formulario aunque el reparto cambie mientras la persona todavía lo llena.
+  const { config: wizardConfig } = useWizardConfig();
 
   /**
    * Maps WizardContext formData to the API form_data format
@@ -545,6 +550,7 @@ export function useSubmitApplication(
           product_data: productData,
           coupon_code: appliedCoupon?.code,
           juicyscore_session_id: juicySessionId ?? undefined,
+          wizard_form_id: wizardConfig?.form_id ?? undefined,
           files: uploadFiles.length > 0 ? uploadFiles : undefined,
         });
 
@@ -822,6 +828,7 @@ export function useSubmitApplication(
     },
     [
       sessionUuid,
+      wizardConfig,
       onUnidadTomada,
       getAllProducts,
       selectedAccessories,
