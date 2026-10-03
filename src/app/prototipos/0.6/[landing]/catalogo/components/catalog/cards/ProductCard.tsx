@@ -29,7 +29,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { cardKey } from '../../../utils/cardKey';
-import { cardSelectorMode } from '../../../utils/cardSelectorMode';
+import { cardSelectorMode, tieneGradosAgrupados } from '../../../utils/cardSelectorMode';
 // El nombre del grado ("Buen estado") sale de la misma fuente que el detalle:
 // una sola redacción para los dos sitios donde se lee.
 import { GRADE_COPY, isGradeKey } from '@/app/prototipos/0.6/[landing]/producto/family-farm/familyFarmGrades';
@@ -564,7 +564,68 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // C, un badge que dijera "Grado A" seria la misma card afirmando dos grados a
   // la vez (BAL-3340). Fuera de `compact` no hay chip, asi que `selectedGrade`
   // sigue siendo el del producto y el badge no cambia para el resto de landings.
-  const gradoMostrado = (compact ? selectedGrade : undefined) ?? product.grade;
+  //
+  // La card normal también muestra el chip cuando el producto está agrupado por
+  // grado (`tieneGradosAgrupados`): ahí el badge sigue al grado elegido igual
+  // que en la compacta.
+  const gradosEnCardNormal = !compact && tieneGradosAgrupados(product);
+
+  // La franja de grados: una pill por grado, el agotado deshabilitado y el
+  // nombre del elegido debajo. La usan la card compacta (reacondicionados) y
+  // la normal cuando el producto está agrupado por grado.
+  const renderGrados = () => {
+    const grados = product.gradeSiblings ?? [];
+    const elegido = grados.find((g) => g.grade === selectedGrade);
+    // Nombre del grado elegido ("Buen estado"), no solo su letra:
+    // una "B" suelta no significa nada para quien no conoce la
+    // escala, y la card es el primer sitio donde la ve.
+    const nombreElegido = elegido && isGradeKey(elegido.grade)
+      ? GRADE_COPY[elegido.grade].titulo
+      : null;
+
+    return (
+      <div data-testid="card-grades" className="flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          {grados.map((g) => {
+            const agotado = !g.isAvailable;
+            const esElegido = g.grade === selectedGrade;
+            return (
+              <button
+                key={g.grade}
+                type="button"
+                aria-label={`Grado ${g.grade}`}
+                aria-pressed={esElegido}
+                disabled={agotado}
+                // El agotado explica POR QUÉ no responde: un
+                // botón muerto sin motivo se lee como un fallo.
+                title={agotado ? `Grado ${g.grade} — sin stock` : `Grado ${g.grade}`}
+                onClick={() => setSelectedGrade(g.grade)}
+                // min-h-8: las pills tenían ~24px, por debajo de
+                // lo cómodo para el pulgar en móvil.
+                className={`flex-1 min-h-8 rounded-lg border text-xs font-bold transition-colors ${
+                  agotado
+                    ? 'border-dashed border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-muted,#f3f4f6)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed line-through decoration-1'
+                    : esElegido
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm cursor-pointer'
+                    : 'border-[var(--color-primary)] text-[var(--color-primary)] cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.08)]'
+                }`}
+              >
+                {g.grade}
+              </button>
+            );
+          })}
+        </div>
+        {/* Alto reservado aunque no haya nombre: sin él, una card
+            con grado sin copy (el D) mediría menos que sus
+            vecinas y la fila quedaría dispareja. */}
+        <span className="min-h-[14px] text-[10px] leading-[14px] text-[var(--text-muted,#6b7280)]">
+          {nombreElegido}
+        </span>
+      </div>
+    );
+  };
+  const gradoMostrado =
+    (compact || gradosEnCardNormal ? selectedGrade : undefined) ?? product.grade;
   const showGrade = !hideStateBadges && !!gradoMostrado;
   const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
 
@@ -837,57 +898,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {(() => {
                   const modo = cardSelectorMode(product);
 
-                  if (modo === 'grades') {
-                    const grados = product.gradeSiblings ?? [];
-                    const elegido = grados.find((g) => g.grade === selectedGrade);
-                    // Nombre del grado elegido ("Buen estado"), no solo su letra:
-                    // una "B" suelta no significa nada para quien no conoce la
-                    // escala, y la card es el primer sitio donde la ve.
-                    const nombreElegido = elegido && isGradeKey(elegido.grade)
-                      ? GRADE_COPY[elegido.grade].titulo
-                      : null;
-
-                    return (
-                      <div data-testid="card-grades" className="flex flex-col gap-1.5">
-                        <div className="flex gap-1.5">
-                          {grados.map((g) => {
-                            const agotado = !g.isAvailable;
-                            const esElegido = g.grade === selectedGrade;
-                            return (
-                              <button
-                                key={g.grade}
-                                type="button"
-                                aria-label={`Grado ${g.grade}`}
-                                aria-pressed={esElegido}
-                                disabled={agotado}
-                                // El agotado explica POR QUÉ no responde: un
-                                // botón muerto sin motivo se lee como un fallo.
-                                title={agotado ? `Grado ${g.grade} — sin stock` : `Grado ${g.grade}`}
-                                onClick={() => setSelectedGrade(g.grade)}
-                                // min-h-8: las pills tenían ~24px, por debajo de
-                                // lo cómodo para el pulgar en móvil.
-                                className={`flex-1 min-h-8 rounded-lg border text-xs font-bold transition-colors ${
-                                  agotado
-                                    ? 'border-dashed border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-muted,#f3f4f6)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed line-through decoration-1'
-                                    : esElegido
-                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm cursor-pointer'
-                                    : 'border-[var(--color-primary)] text-[var(--color-primary)] cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.08)]'
-                                }`}
-                              >
-                                {g.grade}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {/* Alto reservado aunque no haya nombre: sin él, una card
-                            con grado sin copy (el D) mediría menos que sus
-                            vecinas y la fila quedaría dispareja. */}
-                        <span className="min-h-[14px] text-[10px] leading-[14px] text-[var(--text-muted,#6b7280)]">
-                          {nombreElegido}
-                        </span>
-                      </div>
-                    );
-                  }
+                  if (modo === 'grades') return renderGrados();
 
                   if (modo === 'colors' && product.colors) {
                     return (
@@ -906,6 +917,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 })()}
               </div>
             ) : (
+            /* Producto agrupado por grado (A, B…): los grados reemplazan a los
+                colores, igual que en la card compacta. Sin esto el grado B
+                quedaba escondido detrás del A. */
+            gradosEnCardNormal ? (
+              <div data-testid="card-selector-slot" className="mb-4 min-h-[44px] flex flex-col justify-center gap-1">
+                {renderGrados()}
+              </div>
+            ) :
             /* Color Selector — visible desde un color: los de una familia
                 (color_siblings) y tambien el color propio de la variante. */
             !hideColors && product.colors && product.colors.length >= 1 && (

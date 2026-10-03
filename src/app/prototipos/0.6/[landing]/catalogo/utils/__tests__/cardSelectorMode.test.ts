@@ -1,4 +1,4 @@
-import { cardSelectorMode } from '../cardSelectorMode';
+import { cardSelectorMode, tieneGradosAgrupados } from '../cardSelectorMode';
 
 const grado = (grade: string, isAvailable = true) => ({ grade, isAvailable });
 
@@ -66,5 +66,25 @@ describe('cardSelectorMode', () => {
       gradeSiblings: [grado('A', false), grado('B', false), grado('C', false)],
       colors: [{}, {}],
     })).toBe('grades');
+  });
+});
+
+// Fuera de la landing de reacondicionados la card normal muestra colores. Solo
+// cambia a grados cuando el producto está AGRUPADO por grado: dos o más grados
+// hermanos. Un grado solo no es elegible, y quitar el color por él sería perder
+// información sin ganar ninguna.
+describe('tieneGradosAgrupados', () => {
+  it('con 2 o más grados, sí', () => {
+    expect(tieneGradosAgrupados({ gradeSiblings: [grado('A'), grado('B', false)] })).toBe(true);
+  });
+
+  it('con un solo grado, no', () => {
+    expect(tieneGradosAgrupados({ gradeSiblings: [grado('A')] })).toBe(false);
+  });
+
+  it('sin grados (o sin el campo), no', () => {
+    expect(tieneGradosAgrupados({ gradeSiblings: [] })).toBe(false);
+    expect(tieneGradosAgrupados({})).toBe(false);
+    expect(tieneGradosAgrupados({ gradeSiblings: null })).toBe(false);
   });
 });

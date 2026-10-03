@@ -19,6 +19,7 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
 import { isNvidiaLanding, isGamerLanding, isSecondFinancingLanding, isReacondicionadosLanding } from '@/app/prototipos/0.6/utils/theme';
+import { tieneGradosAgrupados } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardSelectorMode';
 import { resolveDetailVariant } from '../utils/detailVariant';
 import { GamerProductDetailClient } from '../GamerProductDetailClient';
 import { CopiaHomeMobileDetail } from '../copia-home/CopiaHomeMobileDetail';
@@ -495,7 +496,11 @@ function ProductDetailContent() {
           // Selector de grado con el diseño de reacondicionados (BAL-3344).
           // Exclusivo de la landing 241: el resto sigue con el detalle de
           // siempre. Si el equipo no tiene grados, el componente no se dibuja.
-          gradeSelectorReacondicionados={isReacondicionadosLanding(landing)}
+          // Fuera de reacondicionados, solo si el producto está agrupado por
+          // grado (2+ hermanos): si no, el grado B quedaba sin forma de elegirse.
+          gradeSelectorReacondicionados={
+            isReacondicionadosLanding(landing) || tieneGradosAgrupados(apiData.product)
+          }
           isAvailable={isAvailable}
           defaultTerm={defaultTerm ?? apiData.defaultTerm}
           defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}

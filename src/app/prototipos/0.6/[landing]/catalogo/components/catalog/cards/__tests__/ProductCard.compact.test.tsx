@@ -304,14 +304,17 @@ describe('ProductCard — variante compacta (reacondicionados)', () => {
     });
   });
 
-  // El aislamiento: sin `compact` la card no gana ninguno de los elementos
-  // nuevos, aunque el producto traiga grados.
+  // El aislamiento: sin `compact` la card no gana los elementos propios de la
+  // variante compacta (CTA «Ver detalle»). Desde el 2-oct-2026 SÍ muestra las
+  // pills cuando el producto está agrupado por grado (2+ hermanos): sin ellas,
+  // agrupar el A con el B en Home escondía el B (ver `tieneGradosAgrupados`).
   describe('modo normal (resto de landings)', () => {
-    it('no dibuja la zona ni las pills aunque haya grados', () => {
+    it('con grados agrupados dibuja las pills, pero sigue siendo la card normal', () => {
       render(<ProductCard product={buildProduct({ gradeSiblings: GRADOS_ADVANCE })} />);
-      expect(screen.queryByTestId('card-selector-slot')).toBeNull();
-      expect(screen.queryByTestId('card-grades')).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Grado A' })).toBeNull();
+      expect(screen.getByTestId('card-grades')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Grado A' })).toBeDisabled();
+      expect(screen.queryByText('Ver detalle')).toBeNull();
+      expect(screen.getAllByText('Detalle').length).toBeGreaterThan(0);
     });
 
     // Sin pills no hay grado que elegir, asi que la card emite lo suyo: ninguna
@@ -331,5 +334,54 @@ describe('ProductCard — variante compacta (reacondicionados)', () => {
       expect(item.productId).toBe('1566');
       expect(item.price).toBe(402);
     });
+  });
+});
+
+
+// Fuera de reacondicionados (card normal, p. ej. Home): los productos agrupados
+// por grado muestran los grados en lugar de los colores, para que el grado B no
+// quede escondido detrás del A. Lo que no está agrupado sigue igual.
+describe('ProductCard — card normal con grados agrupados', () => {
+  const GRADOS_AB = [
+    { grade: 'A', productId: 1566, slug: 'advance-notebook-cn4058', price: 402, lowestQuota: 40, minTermQuota: 90, isAvailable: true },
+    { grade: 'B', productId: 2, slug: 'b', price: 350, lowestQuota: 35, minTermQuota: 80, isAvailable: true },
+  ];
+
+  it('con 2+ grados muestra los grados y no los colores', () => {
+    render(<ProductCard product={buildProduct({ grade: 'A', gradeSiblings: GRADOS_AB, colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
+    expect(screen.getByTestId('card-grades')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grado A' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Grado B' })).toBeEnabled();
+    expect(screen.queryByTestId('color-selector')).toBeNull();
+  });
+
+  it('elegir el grado B cambia el nombre y el link de la card', async () => {
+    const onViewDetail = jest.fn();
+    render(
+      <ProductCard
+        product={buildProduct({
+          grade: 'A',
+          gradeSiblings: [GRADOS_AB[0], { ...GRADOS_AB[1], name: 'Advance grado B' }],
+          colors: [color('1')],
+        } as Partial<CatalogProduct>)}
+        onViewDetail={onViewDetail}
+        hideColors={false}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Grado B' }));
+    expect(screen.getByRole('button', { name: 'Grado B' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByText('Advance grado B').length).toBeGreaterThan(0);
+  });
+
+  it('con un solo grado sigue mostrando los colores', () => {
+    render(<ProductCard product={buildProduct({ grade: 'A', gradeSiblings: [GRADOS_AB[0]], colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
+    expect(screen.getByTestId('color-selector')).toBeInTheDocument();
+    expect(screen.queryByTestId('card-grades')).toBeNull();
+  });
+
+  it('sin grados sigue mostrando los colores', () => {
+    render(<ProductCard product={buildProduct({ colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
+    expect(screen.getByTestId('color-selector')).toBeInTheDocument();
+    expect(screen.queryByTestId('card-grades')).toBeNull();
   });
 });
