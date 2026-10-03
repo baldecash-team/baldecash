@@ -119,6 +119,10 @@ export interface WizardField {
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
   // Lazy loading for large datasets (study-centers, careers)
   min_search_length?: number | null; // Minimum characters before searching
+  /** Forma elegida en el panel; null = como antes. */
+  display_mode?: 'auto' | 'buttons' | 'cards' | 'dropdown' | 'search' | null;
+  /** Con una sola opción visible, dejarla elegida. */
+  auto_select_single?: boolean | null;
   // Dynamic validation from another field's option (e.g., document_number validated by document_type selection)
   validation_source_field?: string | null; // Field code whose selected option provides validation rules
   // Default value for auto-selection (e.g., "dni" for document_type)

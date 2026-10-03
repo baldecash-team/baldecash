@@ -14,6 +14,7 @@ import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
+import { resolverForma } from './formaDeLista';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -161,6 +162,18 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     }
     return options;
   }, [field, formValues, forcedValue]);
+
+  // BAL-4383: con `auto_select_single`, si a una lista le queda una sola
+  // opción visible (p. ej. tras filtrar por dependencias) se elige sola, sin
+  // que el cliente tenga que tocarla. Antes del switch/return para no romper
+  // el orden de hooks.
+  useEffect(() => {
+    if (!field.auto_select_single) return;
+    if (field.type !== 'select' && field.type !== 'autocomplete') return;
+    if (filteredOptions.length !== 1 || value) return;
+    const unica = filteredOptions[0];
+    updateField(field.code, unica.value, unica.label);
+  }, [field.auto_select_single, field.type, field.code, filteredOptions, value, updateField]);
 
   // Build tooltip from API help_text (100% from BD)
   // NOTE: Must be before conditional return to maintain hooks order
@@ -370,77 +383,35 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'select':
-      // Map options for select
-      const selectOptions = filteredOptions.map((opt) => ({
+    case 'autocomplete': {
+      const opcionesLista = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
         description: opt.description || undefined,
       }));
-
-      // Check if this is a dynamic select (API-sourced options)
-      const isDynamicSelect = Boolean(field.options_source || field.cascade_from);
-
-      // For dynamic selects (API), always use dropdown
-      if (isDynamicSelect) {
-        return (
-          <CascadingSelectField
-            field={field}
-            staticOptions={selectOptions}
-            showError={showError}
-            searchable={true}
-            disabled={commonProps.disabled}
-          />
-        );
+      const delSistema = Boolean(field.options_source || field.cascade_from);
+      const forma = resolverForma({
+        tipo: field.type,
+        displayMode: field.display_mode,
+        cantidad: opcionesLista.length,
+        delSistema,
+      });
+      if (forma === 'buttons') {
+        return <SegmentedControl {...commonProps} options={opcionesLista} success={!error && !!value} />;
       }
-
-      // For static selects, apply visual rules based on option count
-      if (selectOptions.length <= 3) {
-        // 2-3 options: horizontal buttons (SegmentedControl)
-        return (
-          <SegmentedControl
-            {...commonProps}
-            options={selectOptions}
-            success={!error && !!value}
-          />
-        );
+      if (forma === 'cards') {
+        return <RadioGroup {...commonProps} options={opcionesLista} success={!error && !!value} />;
       }
-      if (selectOptions.length <= 5) {
-        // 4-5 options: vertical card list (RadioGroup)
-        return (
-          <RadioGroup
-            {...commonProps}
-            options={selectOptions}
-            success={!error && !!value}
-          />
-        );
-      }
-      // 6+ options: dropdown select
       return (
         <CascadingSelectField
           field={field}
-          staticOptions={selectOptions}
+          staticOptions={opcionesLista}
           showError={showError}
-          searchable={selectOptions.length >= 10}
-        />
-      );
-
-    case 'autocomplete':
-      // Use CascadingSelectField for all autocompletes (handles both regular and cascading)
-      const autocompleteOptions = filteredOptions.map((opt) => ({
-        value: opt.value,
-        label: opt.label,
-        description: opt.description || undefined,
-      }));
-
-      return (
-        <CascadingSelectField
-          field={field}
-          staticOptions={autocompleteOptions}
-          showError={showError}
-          searchable={true}
+          searchable={forma === 'search'}
           disabled={commonProps.disabled}
         />
       );
+    }
 
     case 'textarea':
       return (
