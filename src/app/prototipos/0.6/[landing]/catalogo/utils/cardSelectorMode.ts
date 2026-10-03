@@ -37,3 +37,25 @@ export function cardSelectorMode(product: {
   if ((product.colors?.length ?? 0) >= MIN_COLORES) return 'colors';
   return 'none';
 }
+
+/**
+ * Fuera de la landing de reacondicionados la card normal muestra colores, y
+ * solo cambia a grados cuando el producto está AGRUPADO por grado: dos o más
+ * grados hermanos en la misma familia.
+ *
+ * Por qué hace falta: al agrupar el grado A con el B, el catálogo muestra UNA
+ * card por familia. Sin el selector, el B quedaba escondido detrás del A en
+ * Home y nadie podía elegirlo.
+ *
+ * Por qué desde 2 y no desde 1 como en reacondicionados: allí la card es
+ * austera y el grado es lo que el equipo ES. En la card normal un grado solo no
+ * es una opción, y quitar el color por él sería perder información sin ganar
+ * ninguna. Los productos sin grado, o con uno solo, siguen igual.
+ */
+const MIN_GRADOS_AGRUPADOS = 2;
+
+export function tieneGradosAgrupados(product: {
+  gradeSiblings?: { grade: string; isAvailable: boolean }[] | null;
+}): boolean {
+  return (product.gradeSiblings?.length ?? 0) >= MIN_GRADOS_AGRUPADOS;
+}
