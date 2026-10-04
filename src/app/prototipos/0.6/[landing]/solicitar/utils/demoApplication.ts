@@ -136,7 +136,7 @@ export interface BuildDemoApplicationInput {
   /** Cuota mensual total ya con descuento — la misma que muestra el resumen. */
   totalMonthlyPayment: number;
   /** form_data mapeado del wizard, para sacar el nombre del solicitante. */
-  formData?: Record<string, string | number | boolean>;
+  formData?: Record<string, string | number | boolean | string[]>;
   /** Momento del "envío". Inyectable para tests. */
   submittedAt?: Date;
 }
@@ -147,7 +147,7 @@ const LAST_NAME_KEYS = ['last_name', 'apellidos', 'apellido', 'apellido_paterno'
 const FULL_NAME_KEYS = ['full_name', 'nombre_completo', 'nombres_completos'];
 
 function pick(
-  formData: Record<string, string | number | boolean>,
+  formData: Record<string, string | number | boolean | string[]>,
   keys: string[]
 ): string | null {
   for (const k of keys) {
@@ -163,7 +163,7 @@ function pick(
  * de llenar, así la demo muestra su nombre real y no un placeholder.
  */
 export function extractApplicantName(
-  formData: Record<string, string | number | boolean> | undefined
+  formData: Record<string, string | number | boolean | string[]> | undefined
 ): string | null {
   if (!formData) return null;
   const full = pick(formData, FULL_NAME_KEYS);
