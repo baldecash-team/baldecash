@@ -298,6 +298,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
 
     case 'currency':
       // BAL-4395: el cliente ve «2,500»; a form_data va «2500» como siempre.
+      // BAL-4400: `decimal_places` 0 = solo soles enteros; null = como hoy.
       return (
         <CurrencyInput
           {...commonProps}
@@ -308,6 +309,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           min={field.min_value ?? undefined}
           max={field.max_value ?? undefined}
           step={field.step ?? undefined}
+          decimales={field.decimal_places}
         />
       );
 

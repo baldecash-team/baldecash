@@ -9,6 +9,7 @@ import {
   contarSignificativos,
   posicionEnFormateado,
   normalizarPegado,
+  tieneCentimos,
 } from '../montoFormato';
 
 describe('limpiarMonto — lo que se guarda', () => {
@@ -98,5 +99,36 @@ describe('normalizarPegado — formato peruano con punto de miles', () => {
     ['12.3456', '12.34'],
   ])('lo que no es formato peruano queda igual: %s -> %s', (pegado, esperado) => {
     expect(limpiarMonto(normalizarPegado(pegado))).toBe(esperado);
+  });
+});
+
+// BAL-4400: campo «sin decimales» (decimal_places = 0).
+describe('limpiarMonto con 0 decimales — solo soles enteros', () => {
+  it.each([
+    ['2500', '2500'],
+    ['2,500', '2500'],
+    ['2500.50', '2500'],
+    ['S/. 2500', '2500'],
+    ['.5', '0'],
+    ['', ''],
+  ])('%p -> %p', (entrada, esperado) => {
+    expect(limpiarMonto(entrada, 0)).toBe(esperado);
+  });
+
+  it('sin segundo argumento sigue aceptando hasta 2 decimales (como hoy)', () => {
+    expect(limpiarMonto('2500.505')).toBe('2500.50');
+  });
+});
+
+describe('tieneCentimos', () => {
+  it.each([
+    ['2500', false],
+    ['2500.', false],
+    ['2500.00', false],
+    ['2500.0', false],
+    ['2500.5', true],
+    ['2500.05', true],
+  ])('%p -> %p', (limpio, esperado) => {
+    expect(tieneCentimos(limpio)).toBe(esperado);
   });
 });

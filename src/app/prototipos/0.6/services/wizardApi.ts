@@ -102,6 +102,8 @@ export interface WizardField {
   min_value?: number | null;
   max_value?: number | null;
   step?: number | null;
+  /** Monto (BAL-4400): 0 = solo soles enteros, 2 = hasta 2 decimales, null/ausente = como hoy. */
+  decimal_places?: 0 | 2 | null;
   /** Para campos date: qué fechas habilita el calendario. Ausente = 'past'. */
   date_range?: 'past' | 'future' | 'any' | null;
   pattern?: string | null;
@@ -946,6 +948,12 @@ export function validateField(
     }
     if (effectiveMax !== null && numValue > effectiveMax) {
       return { isValid: false, error: `El valor máximo es ${effectiveMax}` };
+    }
+    // BAL-4400: campo «sin decimales». La web no deja escribirlos, pero un
+    // valor guardado de antes de que el panel cambiara la opción sí puede
+    // traerlos; el servidor también lo rechaza al enviar.
+    if (field.type === 'currency' && field.decimal_places === 0 && !Number.isInteger(numValue)) {
+      return { isValid: false, error: 'Escribe el monto en soles enteros, sin céntimos.' };
     }
   }
 
