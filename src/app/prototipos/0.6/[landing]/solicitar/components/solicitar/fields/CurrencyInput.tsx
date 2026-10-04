@@ -10,9 +10,17 @@
  * Es un input de texto con teclado decimal (un `type="number"` no admite
  * comas). El cursor se recoloca a mano tras reformatear para que editar en
  * medio no lo mande al final.
+ *
+ * Decimales (BAL-4400): con `decimales = 0` («sin decimales» en el panel) el
+ * teclado del celular es numérico. En computadora el punto y la coma se dejan
+ * escribir como siempre (rechazarlos volvía «2500.5» en «25005», diez veces
+ * más, sin avisar). Al salir del campo: punto de miles («2.500») o céntimos en
+ * cero se guardan como entero; céntimos reales dan error en el campo y la
+ * validación del paso no deja avanzar. Nunca se cambia el número en silencio.
+ * Con 2 o sin definir, como siempre.
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { TextInput, TextInputProps } from './TextInput';
 import {
   limpiarMonto,
@@ -20,13 +28,18 @@ import {
   contarSignificativos,
   posicionEnFormateado,
   normalizarPegado,
+  montoSinDecimales,
   MAX_DECIMALES,
+  DecimalesMonto,
 } from './montoFormato';
 
 type CurrencyInputProps = Omit<
   TextInputProps,
   'type' | 'inputMode' | 'inputRef' | 'onKeyDown' | 'onPaste' | 'maxLength' | 'showCounter'
->;
+> & {
+  /** 0 = solo soles enteros, 2 = hasta 2 decimales, null/ausente = como hoy. */
+  decimales?: DecimalesMonto;
+};
 
 /** Quita el carácter `indice` del valor limpio y lo vuelve a limpiar. */
 const quitarEn = (limpio: string, indice: number) =>
@@ -39,8 +52,14 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
   min,
   max,
   step,
+  error,
+  decimales,
   ...resto
 }) => {
+  const sinDecimales = decimales === 0;
+  // Error propio del campo «sin decimales» al salir con céntimos. Se va
+  // apenas el cliente vuelve a escribir.
+  const [aviso, setAviso] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const ultimaTecla = useRef<string | null>(null);
   // El último cambio convirtió un punto en separador de miles («1.234»): el
@@ -144,6 +163,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
           input.setSelectionRange(pos, pos);
         }
       }
+      setAviso(null);
       onChange(nuevo);
     },
     [limpio, mostrado, onChange]
@@ -173,16 +193,24 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
   }, []);
 
   const handleBlur = useCallback(() => {
-    // «2500.» a medio escribir se guarda como «2500».
-    if (limpio.endsWith('.')) onChange(limpio.slice(0, -1));
+    if (sinDecimales) {
+      // «2500.00» -> 2500; «2500.5» -> error y el número queda tal cual.
+      const r = montoSinDecimales(limpio);
+      if (r.error !== null) setAviso(r.error);
+      else if (r.valor !== limpio) onChange(r.valor);
+    } else if (limpio.endsWith('.')) {
+      // «2500.» a medio escribir se guarda como «2500».
+      onChange(limpio.slice(0, -1));
+    }
     onBlur?.();
-  }, [limpio, onChange, onBlur]);
+  }, [limpio, onChange, onBlur, sinDecimales]);
 
   return (
     <TextInput
       {...resto}
+      error={error || aviso || undefined}
       type="text"
-      inputMode="decimal"
+      inputMode={sinDecimales ? 'numeric' : 'decimal'}
       value={mostrado}
       onChange={handleChange}
       onBlur={handleBlur}

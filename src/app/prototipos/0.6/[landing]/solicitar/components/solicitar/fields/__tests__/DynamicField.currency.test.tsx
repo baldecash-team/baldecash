@@ -87,3 +87,16 @@ describe('DynamicField — currency con separador de miles', () => {
     expect(mockBlur).toHaveBeenCalledWith('monthly_income', true);
   });
 });
+
+describe('DynamicField — currency respeta los decimales del wizard (BAL-4400)', () => {
+  it('decimal_places = 0: teclado numérico y no entra el punto', () => {
+    render(<DynamicField field={campoMonto({ decimal_places: 0 })} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    expect(input.getAttribute('inputmode')).toBe('numeric');
+  });
+
+  it('decimal_places null: como hoy, teclado decimal', () => {
+    render(<DynamicField field={campoMonto({ decimal_places: null })} />);
+    expect(screen.getByRole('textbox').getAttribute('inputmode')).toBe('decimal');
+  });
+});
