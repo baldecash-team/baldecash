@@ -9,6 +9,9 @@ import {
   contarSignificativos,
   posicionEnFormateado,
   normalizarPegado,
+  tieneCentimos,
+  montoSinDecimales,
+  ERROR_SIN_DECIMALES,
 } from '../montoFormato';
 
 describe('limpiarMonto — lo que se guarda', () => {
@@ -98,5 +101,58 @@ describe('normalizarPegado — formato peruano con punto de miles', () => {
     ['12.3456', '12.34'],
   ])('lo que no es formato peruano queda igual: %s -> %s', (pegado, esperado) => {
     expect(limpiarMonto(normalizarPegado(pegado))).toBe(esperado);
+  });
+});
+
+// BAL-4400: campo «sin decimales» (decimal_places = 0).
+describe('limpiarMonto con 0 decimales — solo soles enteros', () => {
+  it.each([
+    ['2500', '2500'],
+    ['2,500', '2500'],
+    ['2500.50', '2500'],
+    ['S/. 2500', '2500'],
+    ['.5', '0'],
+    ['', ''],
+  ])('%p -> %p', (entrada, esperado) => {
+    expect(limpiarMonto(entrada, 0)).toBe(esperado);
+  });
+
+  it('sin segundo argumento sigue aceptando hasta 2 decimales (como hoy)', () => {
+    expect(limpiarMonto('2500.505')).toBe('2500.50');
+  });
+});
+
+describe('tieneCentimos', () => {
+  it.each([
+    ['2500', false],
+    ['2500.', false],
+    ['2500.00', false],
+    ['2500.0', false],
+    ['2500.5', true],
+    ['2500.05', true],
+  ])('%p -> %p', (limpio, esperado) => {
+    expect(tieneCentimos(limpio)).toBe(esperado);
+  });
+});
+
+// BAL-4400: al salir de un campo «sin decimales» nunca se cambia el número en silencio.
+describe('montoSinDecimales — qué pasa al salir del campo', () => {
+  it.each([
+    ['2.500', '2500'],
+    ['1.234.567', '1234567'],
+    ['2500', '2500'],
+    ['2500.', '2500'],
+    ['2500.00', '2500'],
+    ['', ''],
+  ])('%p -> se guarda %p', (texto, valor) => {
+    expect(montoSinDecimales(texto)).toEqual({ valor, error: null });
+  });
+
+  it.each(['2500.5', '2500,50', '2.500,50', '2.5', '0.01'])('%p tiene céntimos: error, no se guarda', (texto) => {
+    expect(montoSinDecimales(texto)).toEqual({ valor: null, error: ERROR_SIN_DECIMALES });
+  });
+
+  it('el mensaje es el acordado', () => {
+    expect(ERROR_SIN_DECIMALES).toBe('Solo soles enteros, sin céntimos.');
   });
 });
