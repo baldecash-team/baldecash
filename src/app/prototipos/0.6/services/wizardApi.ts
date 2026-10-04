@@ -6,6 +6,7 @@
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
 import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
 import { isValidEmail } from './emailValidation';
+import type { FiltroDeOpciones } from './filtroDeOpciones';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -107,7 +108,7 @@ export interface WizardField {
   mask?: string | null;
   input_mode?: string | null;
   options_source?: string | null;
-  options_filter?: Record<string, string> | null;
+  options_filter?: FiltroDeOpciones | null;
   options: WizardFieldOption[];
   validations: WizardFieldValidation[];
   dependency_groups: DependencyGroup[];
@@ -117,6 +118,7 @@ export interface WizardField {
   // Cascading selects (department → province → district)
   cascade_from?: string | null;    // Parent field code (e.g., "department")
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
+  cascade_from_label?: string | null; // Label del campo padre, para «Primero selecciona …»
   // Lazy loading for large datasets (study-centers, careers)
   min_search_length?: number | null; // Minimum characters before searching
   /** Forma elegida en el panel; null = como antes. */
@@ -1272,19 +1274,17 @@ export async function fetchOptionsFromSource(
  * Used for large datasets like study-centers (41k+) and careers (1100+)
  * @param optionsSource - API path (e.g., "study-centers", "careers")
  * @param searchTerm - Search query (min 3 characters)
- * @param filterType - Optional type filter (e.g., "university", "institute" for study-centers)
+ * @param extra - Pares de `parametrosDeFiltro` (BAL-4384): `type`, `ids`, `study_center_id`, `agreement_id`.
  */
 export async function fetchOptionsWithSearch(
   optionsSource: string,
   searchTerm: string,
-  filterType?: string
+  extra: Array<[string, string]> = []
 ): Promise<CascadingOption[]> {
   try {
     const params = new URLSearchParams();
     params.append('search', searchTerm);
-    if (filterType) {
-      params.append('type', filterType);
-    }
+    for (const [k, v] of extra) params.append(k, v);
 
     const url = `${API_BASE_URL}/public/options/${optionsSource}?${params.toString()}`;
     const response = await fetch(url, { cache: 'no-store' });

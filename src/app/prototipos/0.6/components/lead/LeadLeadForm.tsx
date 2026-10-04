@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import type { LeadFormConfig, LeadFormFieldConfig, LeadFormFieldOptionsFilter, StudyCenter } from '../../types/hero';
+import { parametrosDeFiltro } from '../../services/filtroDeOpciones';
 import { useSessionOptional } from '../../[landing]/solicitar/context/SessionContext';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 import { TextInput } from '../../[landing]/solicitar/components/solicitar/fields/TextInput';
@@ -75,8 +76,8 @@ const DEFAULT_FIELDS: LeadFormFieldConfig[] = [
 
 function buildOptionsSearchUrl(source: string, search: string, filter?: LeadFormFieldOptionsFilter | null): string {
   const params = new URLSearchParams({ search });
-  if (filter?.type?.length) params.set('type', filter.type.join(','));
-  if (filter?.ids?.length) params.set('ids', filter.ids.join(','));
+  // Mismo armador que el wizard (BAL-4384): `type` e `ids` salen igual que antes.
+  for (const [k, v] of parametrosDeFiltro(filter)) params.set(k, v);
   return `${API_BASE_URL}/public/options/${source}?${params.toString()}`;
 }
 

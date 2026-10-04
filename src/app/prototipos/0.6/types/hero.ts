@@ -1,6 +1,7 @@
 // Hero Section Types - BaldeCash v0.5 (Simplificado)
 
 import { ReactNode } from 'react';
+import type { FiltroDeOpciones } from '../services/filtroDeOpciones';
 
 // ============================================
 // Underline Style (para headlines)
@@ -506,10 +507,8 @@ export interface BannerImage {
   mobile_zoom?: number;
 }
 
-export interface LeadFormFieldOptionsFilter {
-  type?: string[];
-  ids?: number[];
-}
+/** Mismo contrato que el wizard (BAL-4384). */
+export type LeadFormFieldOptionsFilter = FiltroDeOpciones;
 
 export type LeadFormFieldGroup = 'student' | 'guardian';
 
