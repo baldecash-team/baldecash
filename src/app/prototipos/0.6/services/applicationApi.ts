@@ -21,8 +21,12 @@ export interface UploadedFileData {
 export interface SubmitApplicationRequest {
   /** Tracking session UUID */
   session_uuid: string;
-  /** Form data collected from wizard steps */
-  form_data: Record<string, string | number | boolean>;
+  /**
+   * Form data collected from wizard steps. `string[]` es para las opciones
+   * marcadas de una casilla de selección múltiple (BAL-4354) — el resto de
+   * campos sigue siendo escalar.
+   */
+  form_data: Record<string, string | number | boolean | string[]>;
   /** Product and pricing configuration - backend calculates final amounts */
   product_data: {
     product_id: number;

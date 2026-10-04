@@ -146,7 +146,7 @@ function naceCerrada(status?: string): boolean {
  * pide el DNI manualmente.
  */
 function extractDocumentNumber(
-  formData: Record<string, string | number | boolean>
+  formData: Record<string, string | number | boolean | string[]>
 ): string | undefined {
   const preferredKeys = ['document_number', 'numero_documento', 'dni', 'nro_documento'];
   for (const key of preferredKeys) {
@@ -290,10 +290,10 @@ export function useSubmitApplication(
    * Also extracts files from file fields
    */
   const mapFormData = useCallback((): {
-    data: Record<string, string | number | boolean>;
+    data: Record<string, string | number | boolean | string[]>;
     files: UploadedFileData[];
   } => {
-    const mapped: Record<string, string | number | boolean> = {};
+    const mapped: Record<string, string | number | boolean | string[]> = {};
     const files: UploadedFileData[] = [];
 
     for (const [key, fieldState] of Object.entries(formData)) {
@@ -302,9 +302,13 @@ export function useSubmitApplication(
       // Skip file reupload markers (file was lost on refresh, not a real value)
       if (fieldState?.value === FILE_PENDING_REUPLOAD) continue;
       if (fieldState?.value !== undefined && fieldState.value !== '') {
-        // Handle file arrays
+        // Handle arrays: pueden ser archivos (FileUpload) o las opciones
+        // marcadas de una casilla de selección múltiple (CheckboxField en modo
+        // múltiple, BAL-4354). Antes este bloque solo buscaba archivos y
+        // descartaba la lista entera si no encontraba ninguno — así se perdía
+        // toda casilla múltiple.
         if (Array.isArray(fieldState.value)) {
-          // Check if this is a file array (UploadedFile objects from FileUpload component)
+          const textValues: string[] = [];
           for (const item of fieldState.value) {
             if (item && typeof item === 'object' && 'file' in item && item.file instanceof File) {
               // La llave de formData ES el código del campo, entero. El backend
@@ -316,7 +320,18 @@ export function useSubmitApplication(
                 fieldCode: key,
                 file: item.file,
               });
+            } else if (typeof item === 'string') {
+              textValues.push(item);
             }
+          }
+          // Se manda como lista de textos (JSON array) — no como string
+          // separado por comas: ws2 guarda `form_data` tal cual (columna
+          // JSON) y una opción con una coma adentro rompería un join. Si el
+          // array no tenía texto (estaba vacío o eran solo archivos), no se
+          // manda la llave — igual que el resto de este `for`, que omite
+          // valores vacíos.
+          if (textValues.length > 0) {
+            mapped[key] = textValues;
           }
           continue;
         }
