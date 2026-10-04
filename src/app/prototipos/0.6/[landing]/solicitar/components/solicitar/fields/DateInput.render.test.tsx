@@ -94,3 +94,36 @@ describe('DateInput — la regla llega al DOM', () => {
     }
   });
 });
+
+describe('DateInput — fecha mínima y máxima exactas (BAL-4396)', () => {
+  function montarConLimites(props: Record<string, unknown>) {
+    return render(
+      <DateInput
+        {...({ id: 'f', label: 'Fecha', value: '', onChange: jest.fn(), dateRange: 'any', ...props } as unknown as React.ComponentProps<typeof DateInput>)}
+      />
+    );
+  }
+
+  it('abre el calendario en el mes del máximo y bloquea los días posteriores', () => {
+    montarConLimites({ maxDate: '2008-10-03', defaultYearOffset: 0 });
+    expect(screen.getByText('Octubre 2008')).toBeInTheDocument();
+    expect(dia(3)).not.toBeDisabled();
+    expect(dia(4)).toBeDisabled();
+  });
+
+  it('bloquea los días anteriores al mínimo', () => {
+    montarConLimites({ minDate: '1926-10-03', value: '1926-10-15' });
+    expect(dia(2)).toBeDisabled();
+    expect(dia(3)).not.toBeDisabled();
+  });
+
+  it('un valor fuera del rango muestra el mensaje automático', () => {
+    montarConLimites({ maxDate: '2008-10-03', value: '2010-01-01' });
+    expect(screen.getByText('Elige una fecha hasta el 03/10/2008.')).toBeInTheDocument();
+  });
+
+  it('o el mensaje propio del campo', () => {
+    montarConLimites({ maxDate: '2008-10-03', value: '2010-01-01', limitMessage: 'Debes ser mayor de 18 años' });
+    expect(screen.getByText('Debes ser mayor de 18 años')).toBeInTheDocument();
+  });
+});

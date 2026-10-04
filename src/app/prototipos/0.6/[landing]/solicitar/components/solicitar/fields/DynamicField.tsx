@@ -22,6 +22,7 @@ import { RadioGroup } from './RadioGroup';
 import { SelectInput } from './SelectInput';
 import { CascadingSelectField } from './CascadingSelectField';
 import { DateInput } from './DateInput';
+import { limitesDelCampo } from '../../../../../services/fechaLimites';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
 import { CheckboxField } from './CheckboxField';
@@ -333,6 +334,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       // work_start_date y otros: 0 (año actual)
       const dateYearOffset = field.code === 'birth_date' ? -20 : 0;
       const dateMinAge = field.code === 'birth_date' ? 17 : 0;
+      // Fecha mínima / máxima exactas del panel (BAL-4396), resueltas contra hoy.
+      const limitesFecha = limitesDelCampo(field);
       return (
         <DateInput
           {...commonProps}
@@ -341,6 +344,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           defaultYearOffset={dateYearOffset}
           minAge={dateMinAge}
           dateRange={field.date_range ?? 'past'}
+          minDate={limitesFecha.min}
+          maxDate={limitesFecha.max}
+          limitMessage={limitesFecha.mensaje}
         />
       );
 

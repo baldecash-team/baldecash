@@ -6,6 +6,7 @@
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
 import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
 import { isValidEmail } from './emailValidation';
+import { errorDeFecha } from './fechaLimites';
 import type { FiltroDeOpciones } from './filtroDeOpciones';
 
 // API Base URL
@@ -104,6 +105,15 @@ export interface WizardField {
   step?: number | null;
   /** Para campos date: qué fechas habilita el calendario. Ausente = 'past'. */
   date_range?: 'past' | 'future' | 'any' | null;
+  /**
+   * Fecha mínima / máxima exactas (BAL-4396): `AAAA-MM-DD` o relativa a hoy
+   * (`-18y` = hace 18 años). Ausente o null = sin límite extra. Ver
+   * `fechaLimites.ts`.
+   */
+  date_min?: string | null;
+  date_max?: string | null;
+  /** Mensaje propio cuando la fecha queda fuera; null = texto automático. */
+  date_limit_message?: string | null;
   pattern?: string | null;
   mask?: string | null;
   input_mode?: string | null;
@@ -967,6 +977,17 @@ export function validateField(
       field.allowed_email_domains_message ||
       `Usa un correo que termine en ${field.allowed_email_domains.map((d) => `@${d}`).join(' o ')}`;
     return { isValid: false, error: mensaje };
+  }
+
+  // 3.d BAL-4396: fecha mínima / máxima exactas del campo.
+  if (field.type === 'date') {
+    const errorFecha = errorDeFecha(
+      trimmedValue,
+      field.date_min,
+      field.date_max,
+      field.date_limit_message
+    );
+    if (errorFecha) return { isValid: false, error: errorFecha };
   }
 
   // 4. Validación de pattern (regex)
