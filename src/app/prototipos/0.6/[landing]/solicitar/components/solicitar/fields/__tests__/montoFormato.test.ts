@@ -8,6 +8,7 @@ import {
   formatearMonto,
   contarSignificativos,
   posicionEnFormateado,
+  normalizarPegado,
 } from '../montoFormato';
 
 describe('limpiarMonto — lo que se guarda', () => {
@@ -70,5 +71,32 @@ describe('cursor', () => {
     expect(posicionEnFormateado('12,500', 2)).toBe(2);
     expect(posicionEnFormateado('12,500', 0)).toBe(0);
     expect(posicionEnFormateado('12,500', 99)).toBe(6);
+  });
+});
+
+// Hallazgo de revisión BAL-4395: en Perú se pega mucho con punto de miles y
+// coma decimal. Sin esto «2.500» se guardaba «2.50» (mil veces menos).
+describe('normalizarPegado — formato peruano con punto de miles', () => {
+  it.each([
+    ['2.500', '2500'],
+    ['1.234.567', '1234567'],
+    ['2.500,50', '2500.50'],
+    ['S/. 2.500', '2500'],
+    ['S/ 1.234.567,5', '1234567.5'],
+    ['2500,50', '2500.50'],
+    ['2,5', '2.5'],
+  ])('%s -> %s', (pegado, esperado) => {
+    expect(limpiarMonto(normalizarPegado(pegado))).toBe(esperado);
+  });
+
+  it.each([
+    ['S/ 2,500.50', '2500.50'],
+    ['2,500', '2500'],
+    ['1,234,567', '1234567'],
+    ['2.5', '2.5'],
+    ['2500.50', '2500.50'],
+    ['12.3456', '12.34'],
+  ])('lo que no es formato peruano queda igual: %s -> %s', (pegado, esperado) => {
+    expect(limpiarMonto(normalizarPegado(pegado))).toBe(esperado);
   });
 });

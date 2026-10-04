@@ -19,11 +19,13 @@ import {
   formatearMonto,
   contarSignificativos,
   posicionEnFormateado,
+  normalizarPegado,
+  MAX_DECIMALES,
 } from './montoFormato';
 
 type CurrencyInputProps = Omit<
   TextInputProps,
-  'type' | 'inputMode' | 'inputRef' | 'onKeyDown' | 'maxLength' | 'showCounter'
+  'type' | 'inputMode' | 'inputRef' | 'onKeyDown' | 'onPaste' | 'maxLength' | 'showCounter'
 >;
 
 /** Quita el carácter `indice` del valor limpio y lo vuelve a limpiar. */
@@ -41,19 +43,85 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const ultimaTecla = useRef<string | null>(null);
+  // El último cambio convirtió un punto en separador de miles («1.234»): el
+  // siguiente «.567» también lo es aunque el entero ya tenga 4 cifras.
+  const venimosDeMiles = useRef(false);
+  // Texto que el cliente acaba de pegar (para ubicarlo aunque reemplace a
+  // otro monto seleccionado, donde comparar textos no basta).
+  const pegado = useRef<string | null>(null);
 
   const limpio = limpiarMonto(value);
   const mostrado = formatearMonto(limpio);
 
   const handleChange = useCallback(
-    (crudo: string) => {
+    (crudoDom: string) => {
       const input = inputRef.current;
-      const cursor = input?.selectionStart ?? crudo.length;
       const tecla = ultimaTecla.current;
       ultimaTecla.current = null;
+      const textoPegado = pegado.current;
+      pegado.current = null;
+      const cursorDom = input?.selectionStart ?? crudoDom.length;
+
+      // Qué cambió respecto de lo que se veía: prefijo y sufijo comunes, y en
+      // medio lo que el cliente tecleó o pegó.
+      const antes = mostrado;
+      let p = 0;
+      while (p < antes.length && p < crudoDom.length && antes[p] === crudoDom[p]) p++;
+      let sfx = 0;
+      while (
+        sfx < antes.length - p &&
+        sfx < crudoDom.length - p &&
+        antes[antes.length - 1 - sfx] === crudoDom[crudoDom.length - 1 - sfx]
+      ) sfx++;
+      if (
+        textoPegado &&
+        cursorDom >= textoPegado.length &&
+        crudoDom.slice(cursorDom - textoPegado.length, cursorDom) === textoPegado
+      ) {
+        p = cursorDom - textoPegado.length;
+        sfx = crudoDom.length - cursorDom;
+      }
+      const insertado = crudoDom.slice(p, crudoDom.length - sfx);
+      const alFinal = sfx === 0 && p === antes.length;
+
+      let crudo = crudoDom;
+      let cursor = cursorDom;
+      let reemplazo = insertado;
+      if (insertado === ',') {
+        // Teclado decimal en español (iOS/Android): la coma tecleada es el
+        // separador decimal. Sin esto «2500,5» se guardaba «25005».
+        reemplazo = '.';
+      } else if (insertado.length > 1) {
+        // Pegado: «2.500» o «2.500,50» son formato peruano (punto de miles).
+        reemplazo = normalizarPegado(insertado);
+      }
+      if (reemplazo !== insertado) {
+        crudo = crudoDom.slice(0, p) + reemplazo + crudoDom.slice(crudoDom.length - sfx);
+        cursor = p + reemplazo.length;
+      }
 
       let nuevo = limpiarMonto(crudo);
       let n = contarSignificativos(crudo, cursor);
+
+      // Tercer dígito tras el punto: el cliente escribía «2.500» con punto de
+      // miles. En vez de perder el dígito en silencio («2.50»), el punto pasa
+      // a ser de miles. Solo si el entero tiene 1-3 cifras («2.500»,
+      // «250.000») o viene de otro punto de miles («1.234» -> «1.234.567»);
+      // un «1500.50» seguido de otro dígito se queda como estaba.
+      const [enteroAntes, decAntes] = limpio.split('.');
+      if (
+        alFinal &&
+        /^\d$/.test(insertado) &&
+        decAntes !== undefined &&
+        decAntes.length === MAX_DECIMALES &&
+        (enteroAntes.length <= 3 || venimosDeMiles.current)
+      ) {
+        nuevo = limpiarMonto(enteroAntes + decAntes + insertado);
+        n = nuevo.length;
+        venimosDeMiles.current = true;
+      } else if (!alFinal || nuevo === '') {
+        venimosDeMiles.current = false;
+      }
 
       // Borró solo una coma: el número no cambió. Se borra el dígito que el
       // cliente quería borrar (el anterior con retroceso, el siguiente con Supr).
@@ -88,6 +156,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
       // sin salirse de min/max ni bajar de cero.
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
+        venimosDeMiles.current = false;
         const paso = step && step > 0 ? step : 1;
         let siguiente = (Number(limpio) || 0) + (e.key === 'ArrowUp' ? paso : -paso);
         siguiente = Math.max(min ?? 0, siguiente);
@@ -98,6 +167,10 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
     },
     [limpio, min, max, step, onChange]
   );
+
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
+    pegado.current = e.clipboardData?.getData('text') || null;
+  }, []);
 
   const handleBlur = useCallback(() => {
     // «2500.» a medio escribir se guarda como «2500».
@@ -114,6 +187,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
       onChange={handleChange}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
       inputRef={inputRef}
     />
   );

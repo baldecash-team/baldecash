@@ -159,4 +159,97 @@ describe('CurrencyInput', () => {
     expect(foco).toHaveBeenCalledTimes(1);
     expect(blur).toHaveBeenCalledTimes(1);
   });
+
+  // --- Revisión BAL-4395: formato peruano y teclado decimal con coma ---
+
+  /** Tipea tecla por tecla al final, como el cliente en el celular. */
+  function teclear(input: HTMLInputElement, teclas: string) {
+    for (const t of teclas) {
+      fireEvent.keyDown(input, { key: t });
+      escribir(input, input.value + t);
+    }
+  }
+
+  it.each([
+    ['2.500', '2500', '2,500'],
+    ['1.234.567', '1234567', '1,234,567'],
+    ['2.500,50', '2500.50', '2,500.50'],
+    ['S/. 2.500', '2500', '2,500'],
+  ])('pegar «%s» (punto de miles) guarda «%s»', (pegado, guardado, visto) => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    escribir(input, pegado);
+    expect(guardar).toHaveBeenLastCalledWith(guardado);
+    expect(input.value).toBe(visto);
+  });
+
+  it('pegar «2.500» encima de un monto seleccionado entero lo reemplaza por 2500', () => {
+    const guardar = jest.fn();
+    render(<Controlado inicial="900" onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    fireEvent.paste(input, { clipboardData: { getData: () => '2.500' } });
+    escribir(input, '2.500');
+    expect(guardar).toHaveBeenLastCalledWith('2500');
+  });
+
+  it('teclear «2.500» no pierde el último cero: el punto era de miles', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '2.500');
+    expect(guardar).toHaveBeenLastCalledWith('2500');
+    expect(input.value).toBe('2,500');
+  });
+
+  it('teclear «1.234.567» guarda 1234567', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '1.234.567');
+    expect(guardar).toHaveBeenLastCalledWith('1234567');
+    expect(input.value).toBe('1,234,567');
+  });
+
+  it('teclear «2.500,50» guarda 2500.50', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '2.500,50');
+    expect(guardar).toHaveBeenLastCalledWith('2500.50');
+    expect(input.value).toBe('2,500.50');
+  });
+
+  it('un tercer decimal tras un entero de 4+ cifras no se reinterpreta (1500.50 sigue igual)', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '1500.505');
+    expect(guardar).toHaveBeenLastCalledWith('1500.50');
+  });
+
+  it('teclado iOS/Android con coma decimal: «2500,5» se guarda 2500.5 (no 25005)', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '2500,5');
+    expect(guardar).toHaveBeenLastCalledWith('2500.5');
+    expect(input.value).toBe('2,500.5');
+  });
+
+  it('el signo menos no entra (no hay montos negativos)', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '-25');
+    expect(guardar).toHaveBeenLastCalledWith('25');
+  });
+
+  it('ceros a la izquierda se van: «0025» guarda 25', () => {
+    const guardar = jest.fn();
+    render(<Controlado onGuardar={guardar} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    teclear(input, '0025');
+    expect(guardar).toHaveBeenLastCalledWith('25');
+  });
 });

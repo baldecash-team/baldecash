@@ -53,6 +53,26 @@ export function formatearMonto(texto: string | number | null | undefined): strin
   return decimales !== undefined ? `${agrupado}.${decimales}` : agrupado;
 }
 
+/** «2.500», «1.234.567», «2.500,50»: punto de miles y coma decimal (es-PE escrito a mano). */
+const PUNTO_DE_MILES = /^\d{1,3}(\.\d{3})+(,\d{1,2})?$/;
+/** «2500,50», «2,5»: coma decimal sola (teclado del celular en español). */
+const COMA_DECIMAL = /^\d+,\d{1,2}$/;
+
+/**
+ * Texto pegado en el campo, pasado a punto decimal antes de limpiarlo.
+ *
+ * En Perú se escribe mucho «2.500» o «2.500,50»: sin esto `limpiarMonto` lo
+ * leería como «2.50» (mil veces menos). Solo se reinterpreta cuando el texto
+ * calza entero con uno de esos dos formatos; cualquier otra cosa («2,500.50»,
+ * «2.5») se devuelve tal cual y `limpiarMonto` hace lo de siempre.
+ */
+export function normalizarPegado(texto: string): string {
+  const nucleo = texto.replace(/S\/\.?/gi, '').replace(/[^\d.,]/g, '');
+  if (PUNTO_DE_MILES.test(nucleo)) return nucleo.replace(/\./g, '').replace(',', '.');
+  if (COMA_DECIMAL.test(nucleo)) return nucleo.replace(',', '.');
+  return texto;
+}
+
 /** Cuántos dígitos o puntos hay antes de `hasta` (las comas no cuentan). */
 export function contarSignificativos(texto: string, hasta: number): number {
   let n = 0;

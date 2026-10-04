@@ -56,6 +56,8 @@ export interface TextInputProps {
   inputRef?: React.Ref<HTMLInputElement>;
   /** Teclas sobre el <input> (p. ej. flechas o borrar en el campo Monto) */
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+  /** Pegar sobre el <input> (p. ej. el campo Monto lee el texto pegado) */
+  onPaste?: React.ClipboardEventHandler<HTMLInputElement>;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -88,6 +90,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   onWheel,
   inputRef,
   onKeyDown,
+  onPaste,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -151,6 +154,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
           onFocus={() => {
             setIsFocused(true);
             onFocus?.();
