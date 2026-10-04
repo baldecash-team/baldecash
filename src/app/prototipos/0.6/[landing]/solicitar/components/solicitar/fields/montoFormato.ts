@@ -17,9 +17,8 @@ export const MAX_DECIMALES = 2;
  */
 export type DecimalesMonto = 0 | 2 | null | undefined;
 
-/** Cuántos decimales deja escribir el campo. */
-export const maxDecimalesDe = (decimales: DecimalesMonto): number =>
-  decimales === 0 ? 0 : MAX_DECIMALES;
+/** Error del campo «sin decimales» cuando el monto trae céntimos (BAL-4400). */
+export const ERROR_SIN_DECIMALES = 'Solo soles enteros, sin céntimos.';
 
 const esDigito = (ch: string) => ch >= '0' && ch <= '9';
 
@@ -95,6 +94,23 @@ export function normalizarPegado(texto: string): string {
   if (PUNTO_DE_MILES.test(nucleo)) return nucleo.replace(/\./g, '').replace(',', '.');
   if (COMA_DECIMAL.test(nucleo)) return nucleo.replace(',', '.');
   return texto;
+}
+
+/**
+ * Qué pasa al salir de un campo «sin decimales» (BAL-4400). Nunca se cambia
+ * el número en silencio:
+ * - punto de miles («2.500», «1.234.567») o céntimos en cero («2500.00»,
+ *   «2500.») -> se guarda el entero;
+ * - céntimos reales («2500.5», «2500,50», «2.500,50») -> error y no se guarda
+ *   nada: ni se redondea ni se pegan los céntimos al entero (antes «2500.5»
+ *   tecleado quedaba «25005», diez veces más).
+ */
+export function montoSinDecimales(
+  texto: string
+): { valor: string; error: null } | { valor: null; error: string } {
+  const limpio = limpiarMonto(normalizarPegado(texto.trim()));
+  if (tieneCentimos(limpio)) return { valor: null, error: ERROR_SIN_DECIMALES };
+  return { valor: limpio.split('.')[0], error: null };
 }
 
 /** Cuántos dígitos o puntos hay antes de `hasta` (las comas no cuentan). */

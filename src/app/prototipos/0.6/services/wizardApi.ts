@@ -953,7 +953,7 @@ export function validateField(
     // valor guardado de antes de que el panel cambiara la opción sí puede
     // traerlos; el servidor también lo rechaza al enviar.
     if (field.type === 'currency' && field.decimal_places === 0 && !Number.isInteger(numValue)) {
-      return { isValid: false, error: 'Escribe el monto en soles enteros, sin céntimos.' };
+      return { isValid: false, error: 'Solo soles enteros, sin céntimos.' };
     }
   }
 

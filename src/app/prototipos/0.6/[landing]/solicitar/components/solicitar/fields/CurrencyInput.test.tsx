@@ -265,59 +265,71 @@ describe('CurrencyInput', () => {
   // --- BAL-4400: campo «sin decimales» ---
 
   describe('sin decimales (decimal_places = 0)', () => {
+    const ERROR = 'Solo soles enteros, sin céntimos.';
+
     it('el teclado del celular es numérico, sin tecla de punto', () => {
       render(<Controlado decimales={0} onGuardar={jest.fn()} />);
       expect(screen.getByRole('textbox').getAttribute('inputmode')).toBe('numeric');
     });
 
-    it('teclear «2500.5» no deja poner el punto y avisa en el campo', () => {
+    it('teclear «2500.5» en computadora NO lo vuelve 25005: queda a la vista y al salir da error', () => {
       const guardar = jest.fn();
       render(<Controlado decimales={0} onGuardar={guardar} />);
       const input = screen.getByRole('textbox') as HTMLInputElement;
-      teclear(input, '2500.');
-      expect(input.value).toBe('2,500');
-      expect(guardar).toHaveBeenLastCalledWith('2500');
-      expect(screen.getByText(/soles enteros/)).toBeInTheDocument();
+      teclear(input, '2500.5');
+      expect(input.value).toBe('2,500.5');
+      expect(guardar).not.toHaveBeenCalledWith('25005');
+      expect(screen.queryByText(ERROR)).not.toBeInTheDocument();
+      fireEvent.blur(input);
+      expect(screen.getByText(ERROR)).toBeInTheDocument();
+      // El número queda tal cual lo escribió: ni 25005 ni redondeado a 2500.
+      expect(guardar).toHaveBeenLastCalledWith('2500.5');
+      expect(guardar).not.toHaveBeenCalledWith('25005');
     });
 
-    it('teclear la coma decimal del celular tampoco entra', () => {
+    it('teclear «2500,50» (coma) también da error al salir, sin tocar el número', () => {
       const guardar = jest.fn();
       render(<Controlado decimales={0} onGuardar={guardar} />);
       const input = screen.getByRole('textbox') as HTMLInputElement;
-      teclear(input, '2500,');
-      expect(input.value).toBe('2,500');
-      expect(guardar).toHaveBeenLastCalledWith('2500');
+      teclear(input, '2500,50');
+      expect(input.value).toBe('2,500.50');
+      fireEvent.blur(input);
+      expect(screen.getByText(ERROR)).toBeInTheDocument();
+      expect(guardar).not.toHaveBeenCalledWith('250050');
     });
 
-    it('teclear «2.500» con punto de miles igual guarda 2500', () => {
+    it('teclear «2.500» con punto de miles guarda 2500, sin error', () => {
       const guardar = jest.fn();
       render(<Controlado decimales={0} onGuardar={guardar} />);
       const input = screen.getByRole('textbox') as HTMLInputElement;
       teclear(input, '2.500');
+      fireEvent.blur(input);
       expect(guardar).toHaveBeenLastCalledWith('2500');
       expect(input.value).toBe('2,500');
+      expect(screen.queryByText(ERROR)).not.toBeInTheDocument();
     });
 
-    it('pegar «2.500,50» no redondea en silencio: deja el valor como estaba y avisa', () => {
+    it('«2500.00» (céntimos en cero) al salir se guarda 2500, sin error', () => {
+      const guardar = jest.fn();
+      render(<Controlado decimales={0} onGuardar={guardar} />);
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      teclear(input, '2500.00');
+      fireEvent.blur(input);
+      expect(guardar).toHaveBeenLastCalledWith('2500');
+      expect(screen.queryByText(ERROR)).not.toBeInTheDocument();
+    });
+
+    it('pegar «2.500,50» no se redondea ni se pega al entero: se ve y al salir da error', () => {
       const guardar = jest.fn();
       render(<Controlado decimales={0} inicial="900" onGuardar={guardar} />);
       const input = screen.getByRole('textbox') as HTMLInputElement;
       fireEvent.paste(input, { clipboardData: { getData: () => '2.500,50' } });
       escribir(input, '2.500,50');
-      expect(guardar).not.toHaveBeenCalled();
-      expect(input.value).toBe('900');
-      expect(screen.getByText(/2\.500,50/)).toBeInTheDocument();
-      expect(screen.getByText(/soles enteros/)).toBeInTheDocument();
-    });
-
-    it('pegar «S/ 2,500.00» (céntimos en cero) guarda 2500 sin aviso', () => {
-      const guardar = jest.fn();
-      render(<Controlado decimales={0} onGuardar={guardar} />);
-      const input = screen.getByRole('textbox') as HTMLInputElement;
-      fireEvent.paste(input, { clipboardData: { getData: () => 'S/ 2,500.00' } });
-      escribir(input, 'S/ 2,500.00');
-      expect(guardar).toHaveBeenLastCalledWith('2500');
-      expect(screen.queryByText(/soles enteros/)).not.toBeInTheDocument();
+      expect(input.value).toBe('2,500.50');
+      fireEvent.blur(input);
+      expect(screen.getByText(ERROR)).toBeInTheDocument();
+      expect(guardar).not.toHaveBeenCalledWith('2500');
+      expect(guardar).not.toHaveBeenCalledWith('250050');
     });
 
     it('pegar «2.500» (punto de miles) guarda 2500', () => {
@@ -326,16 +338,19 @@ describe('CurrencyInput', () => {
       const input = screen.getByRole('textbox') as HTMLInputElement;
       fireEvent.paste(input, { clipboardData: { getData: () => '2.500' } });
       escribir(input, '2.500');
+      fireEvent.blur(input);
       expect(guardar).toHaveBeenLastCalledWith('2500');
+      expect(screen.queryByText(ERROR)).not.toBeInTheDocument();
     });
 
-    it('el aviso se va al salir del campo', () => {
+    it('el error se va apenas se corrige el monto', () => {
       render(<Controlado decimales={0} onGuardar={jest.fn()} />);
       const input = screen.getByRole('textbox') as HTMLInputElement;
-      teclear(input, '25.');
-      expect(screen.getByText(/soles enteros/)).toBeInTheDocument();
+      teclear(input, '25.5');
       fireEvent.blur(input);
-      expect(screen.queryByText(/soles enteros/)).not.toBeInTheDocument();
+      expect(screen.getByText(ERROR)).toBeInTheDocument();
+      escribir(input, '25');
+      expect(screen.queryByText(ERROR)).not.toBeInTheDocument();
     });
   });
 

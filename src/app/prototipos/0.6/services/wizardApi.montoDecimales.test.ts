@@ -54,7 +54,7 @@ describe('BAL-4400 · Monto sin decimales', () => {
   it('2500.50 se frena con un mensaje claro', () => {
     const r = validar('2500.50', { decimal_places: 0 });
     expect(r.isValid).toBe(false);
-    expect(r.error).toMatch(/soles enteros/);
+    expect(r.error).toBe('Solo soles enteros, sin céntimos.');
   });
 
   it('2500.00 no tiene céntimos: es válido', () => {
