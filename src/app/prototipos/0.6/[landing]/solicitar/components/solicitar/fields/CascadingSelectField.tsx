@@ -26,6 +26,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WizardField, fetchCascadingOptions, fetchOptionsFromSource, fetchOptionsWithSearch, fetchOptionById, CascadingOption } from '../../../../../services/wizardApi';
+import { parametrosDeFiltro } from '../../../../../services/filtroDeOpciones';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
@@ -306,6 +307,13 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // Note: Clearing of this field when filter changes is handled by WizardContext.updateField
   // via the registered dependency (registerDependency above)
   const filterValue = filterFieldCode ? (getFieldValue(filterFieldCode) as string) : undefined;
+  // Pares del filtro (BAL-4384). Con `{depends_on}` solo, sale `type=<valor>`:
+  // la misma URL de siempre.
+  const extraDeFiltro = parametrosDeFiltro(field.options_filter, {
+    valorDe: (code) => (code === filterFieldCode ? filterValue : (getFieldValue(code) as string)),
+    agreementId,
+  });
+  const claveDeFiltro = JSON.stringify(extraDeFiltro);
 
   // Handle lazy search (debounced)
   const handleSearch = useCallback((searchTerm: string) => {
@@ -329,7 +337,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         const options = await fetchOptionsWithSearch(
           field.options_source!,
           searchTerm,
-          filterValue // Use filterValue from outer scope (institution_type value)
+          extraDeFiltro
         );
         setLocalDynamicOptions(options);
       } catch (error) {
@@ -339,7 +347,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         setIsSearching(false);
       }
     }, 300);
-  }, [isLazySearch, field.options_source, minSearchLength, filterValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLazySearch, field.options_source, minSearchLength, claveDeFiltro]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

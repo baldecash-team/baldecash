@@ -50,11 +50,12 @@ jest.mock('../../../../context/LayoutContext', () => ({
 }));
 
 const mockFetchOptionsFromSource = jest.fn().mockResolvedValue([]);
+const mockFetchOptionsWithSearch = jest.fn().mockResolvedValue([]);
 
 jest.mock('../../../../../services/wizardApi', () => ({
   fetchOptionsFromSource: (...args: unknown[]) => mockFetchOptionsFromSource(...args),
   fetchCascadingOptions: jest.fn().mockResolvedValue([]),
-  fetchOptionsWithSearch: jest.fn().mockResolvedValue([]),
+  fetchOptionsWithSearch: (...args: unknown[]) => mockFetchOptionsWithSearch(...args),
   fetchOptionById: jest.fn().mockResolvedValue(null),
 }));
 
@@ -62,7 +63,7 @@ const mockSelectProps: Record<string, unknown> = {};
 jest.mock('./SelectInput', () => ({
   SelectInput: (props: {
     label: string; value?: string; disabled?: boolean; savedLabel?: string; placeholder?: string;
-    onFocus?: () => void; onBlur?: () => void;
+    onFocus?: () => void; onBlur?: () => void; onSearch?: (term: string) => void;
   }) => {
     Object.assign(mockSelectProps, props);
     const { label, value, disabled, savedLabel, placeholder } = props;
@@ -98,6 +99,7 @@ beforeEach(() => {
   mockAgreementData = null;
   mockLanding = 'una-landing-cualquiera';
   mockFetchOptionsFromSource.mockClear();
+  mockFetchOptionsWithSearch.mockClear();
   mockUpdateField.mockClear();
   mockSetDynamicOptions.mockClear();
   mockRegisterDependency.mockClear();
@@ -231,5 +233,17 @@ describe('CascadingSelectField — hooks y foco (BAL-4384)', () => {
     } as unknown as WizardField;
     render(<CascadingSelectField field={campo} staticOptions={[]} />);
     expect(screen.getByTestId('select-input')).toHaveAttribute('data-placeholder', 'Primero selecciona departamento');
+  });
+
+  it('el buscador de centros manda type=<valor> como siempre (campo 43)', async () => {
+    jest.useFakeTimers();
+    mockFieldValues['institution_type'] = 'university';
+    const campo = { ...sedeField, code: 'institution', type: 'autocomplete', options_source: 'study-centers',
+      min_search_length: 3, options_filter: { depends_on: 'institution_type' } } as unknown as WizardField;
+    render(<CascadingSelectField field={campo} staticOptions={[]} searchable />);
+    (mockSelectProps.onSearch as (t: string) => void)('uni');
+    jest.advanceTimersByTime(300);
+    expect(mockFetchOptionsWithSearch).toHaveBeenCalledWith('study-centers', 'uni', [['type', 'university']]);
+    jest.useRealTimers();
   });
 });
