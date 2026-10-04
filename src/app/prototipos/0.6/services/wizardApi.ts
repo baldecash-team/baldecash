@@ -117,6 +117,7 @@ export interface WizardField {
   // Cascading selects (department → province → district)
   cascade_from?: string | null;    // Parent field code (e.g., "department")
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
+  cascade_from_label?: string | null; // Label del campo padre, para «Primero selecciona …»
   // Lazy loading for large datasets (study-centers, careers)
   min_search_length?: number | null; // Minimum characters before searching
   /** Forma elegida en el panel; null = como antes. */

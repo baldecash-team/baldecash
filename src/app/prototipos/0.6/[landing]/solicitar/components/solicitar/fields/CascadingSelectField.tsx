@@ -59,6 +59,9 @@ interface CascadingSelectFieldProps {
   searchable?: boolean;
   /** External disabled override (e.g. auto-locked convenio fields) */
   disabled?: boolean;
+  /** Rastreo de foco (`input_focus`/`input_blur`); lo pasa DynamicField. */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
@@ -67,6 +70,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   showError = false,
   searchable = false,
   disabled = false,
+  onFocus,
+  onBlur,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
   const { agreementData, landing } = useLayout();
@@ -90,9 +95,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // borraría de la pantalla un dato que el socio ya declaró, que se le liquida
   // y que igual viaja en el submit — el postulante vería menos de lo que se
   // está registrando a su nombre.
-  if (field.options_source === 'agreement-branches' && !agreementId && !isLockedFromLead) {
-    return null;
-  }
+  const ocultoSinConvenio =
+    field.options_source === 'agreement-branches' && !agreementId && !isLockedFromLead;
 
   // Current field value, saved label, and error
   const value = getFieldValue(field.code) as string;
@@ -374,7 +378,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         department: 'departamento',
         province: 'provincia',
       };
-      const parentLabel = parentLabels[field.cascade_from!] || field.cascade_from;
+      const parentLabel =
+        parentLabels[field.cascade_from!] ||
+        field.cascade_from_label?.toLowerCase() ||
+        field.cascade_from;
       return `Primero selecciona ${parentLabel}`;
     }
 
@@ -397,6 +404,13 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // - field with options_source still loading initial options
   const isDisabled = disabled || field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
 
+  // El corte va DESPUÉS de todos los hooks (BAL-4384): antes estaba arriba de
+  // los useState y, si la landing pasaba a tener convenio, React cambiaba la
+  // cantidad de hooks entre renders.
+  if (ocultoSinConvenio) {
+    return null;
+  }
+
   return (
     <SelectInput
       id={field.code}
@@ -418,6 +432,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       searchPrompt={isLazySearch ? `Escribe al menos ${minSearchLength} letras para buscar` : undefined}
       // Saved label for lazy-loaded fields (persisted across refresh)
       savedLabel={savedLabel}
+      onFocus={onFocus}
+      onBlur={onBlur}
     />
   );
 };

@@ -409,6 +409,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           showError={showError}
           searchable={forma === 'search'}
           disabled={commonProps.disabled}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       );
     }

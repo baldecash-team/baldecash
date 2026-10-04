@@ -42,8 +42,10 @@ jest.mock('../../../../context/LayoutContext', () => ({
   useLayout: () => ({ agreementData: null, landing: 'una-landing-cualquiera' }),
 }));
 
+const mockOnFieldFocus = jest.fn();
+const mockOnFieldBlur = jest.fn();
 jest.mock('../../../hooks/useFieldTracking', () => ({
-  useFieldTracking: () => ({ onFieldFocus: jest.fn(), onFieldBlur: jest.fn() }),
+  useFieldTracking: () => ({ onFieldFocus: mockOnFieldFocus, onFieldBlur: mockOnFieldBlur }),
 }));
 
 // Mock the field components
@@ -382,6 +384,17 @@ describe('DynamicField', () => {
 
       expect(screen.getByTestId('cascading-select')).toBeInTheDocument();
       expect(screen.getByTestId('cascading-select')).toHaveAttribute('data-searchable', 'true');
+    });
+
+    it('las listas que van por CascadingSelectField emiten foco y salida (BAL-4384)', () => {
+      const field = createField({ type: 'select', code: 'department', label: 'Departamento',
+        options_source: 'geo-units/departments', options: [] });
+      render(<DynamicField field={field} />);
+      const props = mockUltimasProps['cascading-select'] as { onFocus: () => void; onBlur: () => void };
+      props.onFocus();
+      props.onBlur();
+      expect(mockOnFieldFocus).toHaveBeenCalledWith('department');
+      expect(mockOnFieldBlur).toHaveBeenCalledWith('department', false);
     });
   });
 
