@@ -831,6 +831,93 @@ describe('useSubmitApplication', () => {
   });
 
   /**
+   * BAL-4354. `CheckboxField` en modo múltiple guarda el valor como
+   * `string[]` con las opciones marcadas (ver `CheckboxField.tsx`,
+   * `handleMultipleChange`). `mapFormData` trataba TODA lista como lista de
+   * archivos: recorría el array buscando objetos `File` y, si no encontraba
+   * ninguno, descartaba el campo entero — la casilla múltiple nunca llegaba
+   * al backend aunque el Resumen la mostrara marcada.
+   */
+  describe('casilla de selección múltiple (BAL-4354)', () => {
+    const data = mockFormData as Record<string, { value: unknown; error: null } | undefined>;
+    const adjunto = (nombre: string) => ({
+      id: nombre,
+      file: new File(['x'], nombre, { type: 'application/pdf' }),
+    });
+
+    afterEach(() => {
+      delete data.intereses;
+      delete data.beneficios;
+      delete data.minor_enrollment_certificate;
+    });
+
+    it('envía las opciones marcadas como lista de textos', async () => {
+      data.intereses = { value: ['deportes', 'tecnologia'], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({
+            intereses: ['deportes', 'tecnologia'],
+          }),
+        })
+      );
+    });
+
+    it('una sola opción marcada también viaja como lista (no como string suelto)', async () => {
+      data.intereses = { value: ['deportes'], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data.intereses).toEqual(['deportes']);
+    });
+
+    it('ninguna opción marcada (array vacío) no manda la llave', async () => {
+      data.intereses = { value: [], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C3' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data).not.toHaveProperty('intereses');
+    });
+
+    it('conviven una casilla múltiple y un archivo en el mismo submit', async () => {
+      const archivo = adjunto('constancia.pdf');
+      data.intereses = { value: ['deportes', 'tecnologia'], error: null };
+      data.minor_enrollment_certificate = { value: [archivo], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C4' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({ intereses: ['deportes', 'tecnologia'] }),
+          files: [{ fieldCode: 'minor_enrollment_certificate', file: archivo.file }],
+        })
+      );
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data).not.toHaveProperty('minor_enrollment_certificate');
+    });
+  });
+
+  /**
    * JuicyScore (antifraude). El `session_id` lo emite el pixel y lo deja en
    * sessionStorage; el submit solo lo adjunta. Nada de esto puede impedir que la
    * solicitud se envíe: sin pixel, el campo simplemente no viaja.
