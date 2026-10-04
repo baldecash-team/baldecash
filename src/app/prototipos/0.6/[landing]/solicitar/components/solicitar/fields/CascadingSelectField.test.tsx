@@ -246,4 +246,36 @@ describe('CascadingSelectField — hooks y foco (BAL-4384)', () => {
     expect(mockFetchOptionsWithSearch).toHaveBeenCalledWith('study-centers', 'uni', [['type', 'university']]);
     jest.useRealTimers();
   });
+
+  describe('from_agreement en el buscador de centros', () => {
+    const centro = {
+      ...sedeField, code: 'institution', type: 'autocomplete', options_source: 'study-centers',
+      min_search_length: 3, options_filter: { from_agreement: true },
+    } as unknown as WizardField;
+
+    const buscar = (t: string) => {
+      (mockSelectProps.onSearch as (t: string) => void)(t);
+      jest.advanceTimersByTime(300);
+    };
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('manda el convenio de la landing', () => {
+      mockAgreementData = { id: 7 };
+      render(<CascadingSelectField field={centro} staticOptions={[]} searchable />);
+      buscar('uni');
+      expect(mockFetchOptionsWithSearch).toHaveBeenCalledWith('study-centers', 'uni', [['agreement_id', '7']]);
+    });
+
+    it('no usa el convenio prestado de las sedes en una landing sin convenio (lead-flujo-normal)', () => {
+      // `SEDES_SIN_CONVENIO` existe solo para resolver sedes: esa landing NO es
+      // de convenio y cada lead trae su propia institución. Si el filtro usara
+      // ese convenio, el buscador mostraría solo SENATI.
+      mockLanding = 'lead-flujo-normal';
+      render(<CascadingSelectField field={centro} staticOptions={[]} searchable />);
+      buscar('uni');
+      expect(mockFetchOptionsWithSearch).toHaveBeenCalledWith('study-centers', 'uni', []);
+    });
+  });
 });

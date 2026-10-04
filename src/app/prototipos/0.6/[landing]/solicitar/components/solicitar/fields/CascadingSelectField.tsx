@@ -311,7 +311,9 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // la misma URL de siempre.
   const extraDeFiltro = parametrosDeFiltro(field.options_filter, {
     valorDe: (code) => (code === filterFieldCode ? filterValue : (getFieldValue(code) as string)),
-    agreementId,
+    // Solo el convenio REAL de la landing: el de `SEDES_SIN_CONVENIO` es
+    // prestado para resolver sedes y esas landings traen su propia institución.
+    agreementId: agreementData?.id,
   });
   const claveDeFiltro = JSON.stringify(extraDeFiltro);
 
