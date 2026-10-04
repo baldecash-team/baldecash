@@ -125,8 +125,10 @@ jest.mock('./CascadingSelectField', () => ({
 }));
 
 jest.mock('./DateInput', () => ({
-  DateInput: ({ label }: { label: string }) => (
-    <div data-testid="date-input">
+  DateInput: ({ label, minDate, maxDate, limitMessage }: {
+    label: string; minDate?: string | null; maxDate?: string | null; limitMessage?: string | null;
+  }) => (
+    <div data-testid="date-input" data-min={minDate ?? ''} data-max={maxDate ?? ''} data-msg={limitMessage ?? ''}>
       <label>{label}</label>
       <input type="date" />
     </div>
@@ -286,6 +288,26 @@ describe('DynamicField', () => {
       render(<DynamicField field={field} />);
 
       expect(screen.getByTestId('date-input')).toBeInTheDocument();
+    });
+
+    it('pasa la fecha mínima / máxima ya resueltas y el mensaje (BAL-4396)', () => {
+      const field = createField({
+        type: 'date',
+        label: 'Fecha',
+        date_min: '1990-01-01',
+        date_max: '2008-10-03',
+        date_limit_message: 'Debes ser mayor de 18 años',
+      });
+      render(<DynamicField field={field} />);
+      const el = screen.getByTestId('date-input');
+      expect(el).toHaveAttribute('data-min', '1990-01-01');
+      expect(el).toHaveAttribute('data-max', '2008-10-03');
+      expect(el).toHaveAttribute('data-msg', 'Debes ser mayor de 18 años');
+    });
+
+    it('sin límites no pasa nada (como antes)', () => {
+      render(<DynamicField field={createField({ type: 'date', label: 'Fecha' })} />);
+      expect(screen.getByTestId('date-input')).toHaveAttribute('data-max', '');
     });
   });
 

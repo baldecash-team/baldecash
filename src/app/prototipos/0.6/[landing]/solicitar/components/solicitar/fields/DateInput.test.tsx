@@ -1,4 +1,4 @@
-import { isBlockedByRange } from './DateInput';
+import { isBlockedByRange, isOutsideLimits } from './DateInput';
 
 /**
  * Hasta BAL-3139 el calendario bloqueaba TODAS las fechas futuras, hardcodeado
@@ -87,5 +87,19 @@ describe('isBlockedByRange', () => {
       expect(isBlockedByRange(HOY_TEMPRANO, 'past', HOY)).toBe(false);
       expect(isBlockedByRange(HOY_TEMPRANO, 'future', HOY)).toBe(false);
     });
+  });
+});
+
+describe('isOutsideLimits (BAL-4396)', () => {
+  it('compara el día local contra el mínimo y el máximo, bordes incluidos', () => {
+    expect(isOutsideLimits(new Date(2008, 9, 3), null, '2008-10-03')).toBe(false);
+    expect(isOutsideLimits(new Date(2008, 9, 4), null, '2008-10-03')).toBe(true);
+    expect(isOutsideLimits(new Date(1926, 9, 2), '1926-10-03', null)).toBe(true);
+    expect(isOutsideLimits(new Date(1926, 9, 3), '1926-10-03', null)).toBe(false);
+  });
+
+  it('sin límites nunca bloquea', () => {
+    expect(isOutsideLimits(new Date(2999, 0, 1), null, null)).toBe(false);
+    expect(isOutsideLimits(new Date(2999, 0, 1))).toBe(false);
   });
 });

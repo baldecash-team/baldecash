@@ -11,6 +11,7 @@ import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/rea
 import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 import type { FieldTooltipInfo } from './TextInput';
+import { mensajeFueraDeRango } from '../../../../../services/fechaLimites';
 
 interface DateInputProps {
   id: string;
@@ -35,6 +36,15 @@ interface DateInputProps {
    * a mano y todos los campos date existentes son de fecha pasada.
    */
   dateRange?: 'past' | 'future' | 'any';
+  /**
+   * Fecha mínima / máxima exactas, ya resueltas a `AAAA-MM-DD` (BAL-4396).
+   * Vienen de `date_min` / `date_max` del campo. null = sin límite extra.
+   * Se suman a `dateRange`: manda el más estricto.
+   */
+  minDate?: string | null;
+  maxDate?: string | null;
+  /** Mensaje propio cuando el valor queda fuera; si no, uno automático. */
+  limitMessage?: string | null;
 }
 
 const MONTHS = [
@@ -82,6 +92,24 @@ export function isBlockedByRange(
   return date < inicioDeHoy;
 }
 
+/** `Date` local → `AAAA-MM-DD`, para comparar contra los límites como texto. */
+const isoLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * ¿Este día queda fuera de la fecha mínima / máxima? (BAL-4396). Fuera del
+ * componente por lo mismo que `isBlockedByRange`: probarla sola y que las 3
+ * vistas usen la misma regla.
+ */
+export function isOutsideLimits(
+  date: Date,
+  minDate?: string | null,
+  maxDate?: string | null
+): boolean {
+  const iso = isoLocal(date);
+  return (!!minDate && iso < minDate) || (!!maxDate && iso > maxDate);
+}
+
 export const DateInput: React.FC<DateInputProps> = ({
   id,
   label,
@@ -99,6 +127,9 @@ export const DateInput: React.FC<DateInputProps> = ({
   minAge = 0,
   defaultYearOffset = -20,
   dateRange = 'past',
+  minDate = null,
+  maxDate = null,
+  limitMessage = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [calendarView, setCalendarView] = useState<CalendarView>('days');
@@ -113,8 +144,11 @@ export const DateInput: React.FC<DateInputProps> = ({
     const d = new Date();
     // Con 'future' el offset histórico (-20) abriría el calendario dos décadas
     // atrás, con todo deshabilitado y sin pista de hacia dónde navegar.
-    if (dateRange === 'future') return d;
-    d.setFullYear(d.getFullYear() + defaultYearOffset);
+    if (dateRange !== 'future') d.setFullYear(d.getFullYear() + defaultYearOffset);
+    // Con fecha mínima / máxima, abrir dentro del rango: si no, el calendario
+    // aparece con todo deshabilitado y sin pista de hacia dónde ir.
+    if (maxDate && isoLocal(d) > maxDate) return parseDateString(maxDate);
+    if (minDate && isoLocal(d) < minDate) return parseDateString(minDate);
     return d;
   });
 
@@ -142,7 +176,13 @@ export const DateInput: React.FC<DateInputProps> = ({
   }, [minAgeCutoff, minAge]);
 
   const minAgeError = value ? getMinAgeError(value) : null;
-  const effectiveError = error || minAgeError;
+  // Fecha mínima / máxima (BAL-4396): el valor puede venir de antes (sesión
+  // guardada, prefill) y quedar fuera aunque el calendario ya no lo deje elegir.
+  const limitError =
+    value && isOutsideLimits(parseDateString(value), minDate, maxDate)
+      ? (limitMessage ?? '').trim() || mensajeFueraDeRango(minDate, maxDate)
+      : null;
+  const effectiveError = error || minAgeError || limitError;
 
   const showError = !!effectiveError;
   const showSuccess = success && !effectiveError && value;
@@ -242,10 +282,18 @@ export const DateInput: React.FC<DateInputProps> = ({
     [dateRange]
   );
 
+  // Un tramo (mes o año) queda fuera de la fecha mínima / máxima solo si
+  // termina antes del mínimo o empieza después del máximo. No basta con mirar
+  // sus dos extremos: un rango de pocos días dentro de un mes los bloquea a
+  // ambos y el mes igual tiene días elegibles.
+  const tramoFueraDeLimites = (desde: Date, hasta: Date) =>
+    (!!minDate && isoLocal(hasta) < minDate) || (!!maxDate && isoLocal(desde) > maxDate);
+
   // Bloquear según el rango configurado y la edad mínima (reglas independientes)
   const isDayDisabled = (day: number) => {
     const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
     if (blockedByRange(date)) return true;
+    if (isOutsideLimits(date, minDate, maxDate)) return true;
     if (minAgeCutoff && date > minAgeCutoff) return true;
     return false;
   };
@@ -254,6 +302,7 @@ export const DateInput: React.FC<DateInputProps> = ({
     // Un año se bloquea solo si TODO el año cae fuera del rango: se miran sus
     // dos extremos, no un día suelto.
     if (blockedByRange(new Date(year, 0, 1)) && blockedByRange(new Date(year, 11, 31))) return true;
+    if (tramoFueraDeLimites(new Date(year, 0, 1), new Date(year, 11, 31))) return true;
     // Si el 1 de enero del año es posterior al cutoff, todo el año está deshabilitado
     if (minAgeCutoff && new Date(year, 0, 1) > minAgeCutoff) return true;
     return false;
@@ -265,6 +314,7 @@ export const DateInput: React.FC<DateInputProps> = ({
 
     // Igual que con el año: el mes se bloquea solo si ninguno de sus días entra
     if (blockedByRange(new Date(year, monthIndex, 1)) && blockedByRange(new Date(year, monthIndex, lastDay))) return true;
+    if (tramoFueraDeLimites(new Date(year, monthIndex, 1), new Date(year, monthIndex, lastDay))) return true;
     // Si el 1er día del mes es posterior al cutoff, todo el mes está deshabilitado
     if (minAgeCutoff && new Date(year, monthIndex, 1) > minAgeCutoff) return true;
     return false;
