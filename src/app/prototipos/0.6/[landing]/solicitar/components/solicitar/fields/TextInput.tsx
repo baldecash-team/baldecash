@@ -15,7 +15,7 @@ export interface FieldTooltipInfo {
   recommendation?: string;
 }
 
-interface TextInputProps {
+export interface TextInputProps {
   id: string;
   label: string;
   value: string;
@@ -52,6 +52,10 @@ interface TextInputProps {
   step?: number;
   /** Extra onWheel handler from the caller (still called before our own handling) */
   onWheel?: React.WheelEventHandler<HTMLInputElement>;
+  /** Ref al <input> real (p. ej. para reubicar el cursor tras reformatear) */
+  inputRef?: React.Ref<HTMLInputElement>;
+  /** Teclas sobre el <input> (p. ej. flechas o borrar en el campo Monto) */
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -82,6 +86,8 @@ export const TextInput: React.FC<TextInputProps> = ({
   max,
   step,
   onWheel,
+  inputRef,
+  onKeyDown,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -138,11 +144,13 @@ export const TextInput: React.FC<TextInputProps> = ({
           <span className="text-neutral-500 text-base flex-shrink-0 select-none">{startContent}</span>
         )}
         <input
+          ref={inputRef}
           name={id}
           type={type}
           inputMode={getInputMode()}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           onFocus={() => {
             setIsFocused(true);
             onFocus?.();

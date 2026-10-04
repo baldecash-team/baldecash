@@ -50,7 +50,9 @@ jest.mock('../../../hooks/useFieldTracking', () => ({
 
 // Mock the field components
 jest.mock('./TextInput', () => ({
-  TextInput: ({ label, type, ...props }: { label: string; type?: string }) => (
+  // `inputRef` (lo usa el campo Monto) no es un atributo del DOM: se descarta.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  TextInput: ({ label, type, inputRef: _inputRef, ...props }: { label: string; type?: string; inputRef?: unknown }) => (
     <div data-testid="text-input" data-type={type || 'text'}>
       <label>{label}</label>
       <input type={type || 'text'} {...props} />
@@ -263,11 +265,11 @@ describe('DynamicField', () => {
   });
 
   describe('Type Mapping - Numeric Inputs', () => {
-    it('renders TextInput with type="number" for type="currency"', () => {
+    it('renders TextInput with type="text" for type="currency" (coma de miles, BAL-4395)', () => {
       const field = createField({ type: 'currency', label: 'Monto', prefix: 'S/' });
       render(<DynamicField field={field} />);
 
-      expect(screen.getByTestId('text-input')).toHaveAttribute('data-type', 'number');
+      expect(screen.getByTestId('text-input')).toHaveAttribute('data-type', 'text');
     });
 
     it('renders TextInput with type="number" for type="number"', () => {

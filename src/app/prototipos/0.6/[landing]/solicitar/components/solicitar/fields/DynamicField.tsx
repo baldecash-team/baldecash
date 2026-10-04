@@ -16,6 +16,7 @@ import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
 import { resolverForma } from './formaDeLista';
 import { TextInput } from './TextInput';
+import { CurrencyInput } from './CurrencyInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
 import { SelectInput } from './SelectInput';
@@ -296,12 +297,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'currency':
+      // BAL-4395: el cliente ve «2,500»; a form_data va «2500» como siempre.
       return (
-        <TextInput
+        <CurrencyInput
           {...commonProps}
-          type="number"
           placeholder={field.placeholder || undefined}
-          inputMode="numeric"
           success={!error && !!value}
           startContent={field.prefix || undefined}
           endContent={field.suffix || undefined}
