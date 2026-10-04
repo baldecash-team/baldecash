@@ -7,6 +7,7 @@
  */
 import {
   errorDeFecha,
+  hoyLima,
   limitesDelCampo,
   mensajeFueraDeRango,
   resolverLimite,
@@ -85,5 +86,18 @@ describe('BAL-4396 · limitesDelCampo', () => {
 
   it('un wizard viejo sin las columnas = sin límites', () => {
     expect(limitesDelCampo({}, HOY)).toEqual({ min: null, max: null, mensaje: null });
+  });
+});
+
+describe('BAL-4396 · mismos bordes que ws2', () => {
+  it('«hoy» es el de Lima aunque en UTC ya sea el día siguiente', () => {
+    // 04/10 03:00 UTC = 03/10 22:00 en Lima
+    expect(hoyLima(new Date('2026-10-04T03:00:00Z'))).toBe('2026-10-03');
+    expect(hoyLima(new Date('2026-10-04T05:00:00Z'))).toBe('2026-10-04');
+  });
+
+  it('nacido un 29-feb cumple 18 el 1-mar en año no bisiesto', () => {
+    expect(errorDeFecha('2008-02-29', null, '-18y', null, '2026-02-28')).not.toBeNull();
+    expect(errorDeFecha('2008-02-29', null, '-18y', null, '2026-03-01')).toBeNull();
   });
 });
