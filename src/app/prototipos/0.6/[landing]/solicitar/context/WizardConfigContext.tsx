@@ -53,6 +53,13 @@ export const useWizardConfig = () => {
   return context;
 };
 
+/**
+ * Igual que `useWizardConfig`, pero sin tirar error fuera del provider. Lo usa
+ * `WizardProvider` para limpiar el borrador contra las opciones vigentes
+ * (BAL-4433) sin obligar a cada test que lo monta a levantar también la config.
+ */
+export const useWizardConfigOptional = () => useContext(WizardConfigContext);
+
 interface WizardConfigProviderProps {
   children: ReactNode;
   slug: string;

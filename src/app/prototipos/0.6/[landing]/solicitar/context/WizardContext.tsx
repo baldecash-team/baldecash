@@ -8,6 +8,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import { WizardStepId, FieldState, ValidationRule } from '../types/solicitar';
 import { CascadingOption } from '../../../services/wizardApi';
+import { useWizardConfigOptional } from './WizardConfigContext';
+import { descartarValoresFueraDeOpciones } from '../utils/valoresFueraDeOpciones';
 
 // Dynamic storage key based on landing slug (100% scalable)
 // Follows project convention: baldecash-{feature}-{context}
@@ -164,6 +166,21 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     }
     setIsHydrated(true);
   }, [storageKey]);
+
+  // Borrador con opciones que ya no existen (BAL-4433). El borrador no vence:
+  // si en el panel se ocultó una opción después de que la persona la eligió,
+  // el valor viejo seguía ahí, la lista no lo pintaba, «requerido» pasaba y se
+  // enviaba (caso 128137, `billetera_digital`). Cuando llegan los pasos del
+  // wizard, se vacían esos valores para que la persona vuelva a elegir.
+  const wizardSteps = useWizardConfigOptional()?.steps;
+  useEffect(() => {
+    if (!isHydrated || !wizardSteps || wizardSteps.length === 0) return;
+    // Los pasos llegan por red después de restaurar: no hay otro momento para
+    // contrastar. Devuelve el mismo objeto si no hay nada que limpiar, así que
+    // no provoca un render extra.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData((prev) => descartarValoresFueraDeOpciones(prev, wizardSteps));
+  }, [isHydrated, wizardSteps]);
 
   // Persist to localStorage whenever formData changes (only after hydration)
   useEffect(() => {
