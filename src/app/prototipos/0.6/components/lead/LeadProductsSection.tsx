@@ -85,6 +85,8 @@ function OfertaCard({
       product_name: product.name,
       product_slug: product.slug,
       product_type: product.type,
+      context: 'catalogo',
+      position: index + 1,
       landing,
       source: 'lead_products_cta',
     });

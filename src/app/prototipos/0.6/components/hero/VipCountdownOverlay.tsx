@@ -29,7 +29,9 @@ export interface VipWelcomeData {
   firstName: string;
 }
 
-export type DniCaptureMode = 'modal' | 'inline';
+// Duplica el tipo de `types/landingConfig.ts` a proposito (el overlay se usa
+// suelto en storybook). Si se agrega un modo alla, agregarlo aca tambien.
+export type DniCaptureMode = 'modal' | 'inline' | 'form';
 
 interface VipCountdownOverlayProps {
   /** ISO date string for countdown end (e.g. "2026-04-25T05:00:00.000Z") */
@@ -114,7 +116,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
 
   const handleDniSubmit = useCallback(async () => {
     if (!isValidDni || submitting || !landingSlug) return;
-    tracker?.track('dni_submit', { landing_slug: landingSlug, whitelist: validateWhitelist, source: 'vip_overlay' });
+    tracker?.track('dni_submit', { landing_slug: landingSlug, whitelist: validateWhitelist, source: 'vip_overlay', dni });
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -123,7 +125,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
         const res = await fetch(validateUrl);
         const data = await res.json();
         if (!data.valid) {
-          tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay' });
+          tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', dni });
           if (landingSlug) clearVipData(landingSlug);
           setErrorMsg('No encontramos un registro con este número de documento.');
           setSubmitting(false);
@@ -134,7 +136,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
           saveVipName(landingSlug, data.first_name);
           setVipWelcomePending(landingSlug);
         }
-        tracker?.track('dni_validated', { landing_slug: landingSlug, source: 'vip_overlay' });
+        tracker?.track('dni_validated', { landing_slug: landingSlug, source: 'vip_overlay', dni });
         try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
         onValidated?.({
           firstName: data.first_name || '',
@@ -145,7 +147,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
       try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
       onValidated?.({ firstName: '', accessToken: '' });
     } catch {
-      tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error' });
+      tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error', dni });
       if (landingSlug) clearVipData(landingSlug);
       setErrorMsg('No encontramos un registro con este número de documento.');
       setSubmitting(false);
@@ -359,7 +361,18 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                   que no vas a ver en ningún otro lado y no se repetirán.
                 </p>
 
-                {captureMode === 'inline' ? (
+                {captureMode === 'form' ? (
+                  /* La puerta queda como bienvenida: mantiene el mensaje y el
+                     countdown, pero no pide el DNI. El filtro de whitelist vive
+                     en el formulario de solicitud. */
+                  <button
+                    onClick={() => { window.location.assign(`/prototipos/0.6/${catalogSlug}/catalogo/`); }}
+                    className="w-full py-3.5 rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                    style={{ backgroundColor: '#E5A823', color: '#4654CD' }}
+                  >
+                    Ver el catálogo
+                  </button>
+                ) : captureMode === 'inline' ? (
                   <>
                     <div className="flex items-stretch gap-2 w-full">
                       <input

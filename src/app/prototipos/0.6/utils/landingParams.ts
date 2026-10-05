@@ -16,6 +16,47 @@ import type { CatalogDeviceType } from '../[landing]/catalogo/types/catalog';
 
 const categoriaKey = (landing: string) => `baldecash-${landing}-pending-categoria`;
 const couponKey = (landing: string) => `baldecash-${landing}-pending-coupon`;
+const leadLinkKey = (landing: string) => `baldecash-${landing}-pending-alk`;
+const promotorRefKey = (landing: string) => `baldecash-${landing}-promotor-ref`;
+
+/**
+ * Forma del código de referido que emite el hub de activaciones: 6 caracteres
+ * de un alfabeto sin 0/O/1/l/i (ver `promotores.baldecash.com`, lib/referido_publico).
+ *
+ * Se valida antes de guardar porque `ref` llega de la calle —de un QR mal leído,
+ * de un link recortado, de la URL entera pegada en el parámetro— y lo que se
+ * guarda acá después viaja al backend como atribución. Guardar basura es peor
+ * que no guardar nada: ensucia el dato con el que se le paga a alguien.
+ */
+const REF_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{6}$/;
+
+/**
+ * `ref` de la URL, normalizado, o null si no tiene forma de código.
+ *
+ * Acepta mayúsculas: ese código sí existe, y un `ref` que pasó por un cliente de
+ * correo llega en mayúsculas. Rechazarlo por la caja sería perder la atribución.
+ */
+export function readPromotorRef(search: string): string | null {
+  const raw = new URLSearchParams(search).get('ref')?.trim().toLowerCase();
+  return raw && REF_RE.test(raw) ? raw : null;
+}
+
+/**
+ * Drops the params parked for a landing (campaign coupon, preselected
+ * category). Exported as a plain function so a session reset can clear them
+ * without re-deriving the keys.
+ */
+export function clearPendingParams(landing: string): void {
+  if (typeof window === 'undefined') return;
+  for (const key of [categoriaKey(landing), couponKey(landing)]) {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch {
+      // Storage unavailable (private mode / quota). Keep clearing the rest.
+    }
+  }
+}
 
 const CATEGORIA_MAP: Record<string, CatalogDeviceType> = {
   laptop: 'laptop',
@@ -36,6 +77,21 @@ export function normalizeCategoria(value: string | null | undefined): CatalogDev
 }
 
 /**
+ * Cupón de la URL, en cualquiera de sus dos escrituras.
+ *
+ * `?coupon=` lo usan los anuncios; `?cupon=` lo emite el backend en todos los
+ * links de activación (difusiones y socios). Vive acá y no inline en cada
+ * lugar porque tener el alias en un solo sitio y no en el otro es exactamente
+ * el bug que hacía que el catálogo descartara el cupón recién capturado.
+ */
+export function readCouponParam(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const raw = params.get('coupon') ?? params.get('cupon');
+  const value = raw?.trim();
+  return value ? value.toUpperCase() : null;
+}
+
+/**
  * Lee `categoria` y `coupon` de la URL actual y los guarda en localStorage
  * (por landing). No-op en SSR.
  */
@@ -49,9 +105,29 @@ export function captureLandingParams(landingSlug: string): void {
     try { localStorage.setItem(categoriaKey(landingSlug), categoria); } catch {}
   }
 
-  const coupon = params.get('coupon');
-  if (coupon && coupon.trim()) {
-    try { localStorage.setItem(couponKey(landingSlug), coupon.trim().toUpperCase()); } catch {}
+  const coupon = readCouponParam(window.location.search);
+  if (coupon) {
+    try { localStorage.setItem(couponKey(landingSlug), coupon); } catch {}
+  }
+
+  // `ref` = código del link corto del hub de activaciones (`/r/{codigo}`). Es el
+  // ÚNICO identificador de la promotora que viaja siempre en un flyer —`promotor`
+  // sólo aparece cuando esa persona tiene correspondencia en ws2—, así que sin
+  // guardarlo la atribución se pierde en cuanto la URL suelta el querystring, que
+  // es lo que pasa al pasar de la landing al catálogo (`routes.catalogo()` arma
+  // una URL limpia). No se limpia al consumirlo, por el mismo motivo que `alk`.
+  const ref = readPromotorRef(window.location.search);
+  if (ref) {
+    try { localStorage.setItem(promotorRefKey(landingSlug), ref); } catch {}
+  }
+
+  // `alk` = código del link de activación. Cuando viene de un socio (A365) el
+  // API ya tiene los datos de esa persona, así que el wizard puede prellenarse
+  // sin pedírselos de nuevo. Se guarda el CÓDIGO, no los datos: los datos se
+  // piden contra él más adelante y nunca viajan por la URL.
+  const alk = params.get('alk');
+  if (alk && alk.trim()) {
+    try { localStorage.setItem(leadLinkKey(landingSlug), alk.trim()); } catch {}
   }
 }
 
@@ -87,4 +163,55 @@ export function getPendingCoupon(landingSlug: string): string | null {
 export function clearPendingCoupon(landingSlug: string): void {
   if (typeof window === 'undefined') return;
   try { localStorage.removeItem(couponKey(landingSlug)); } catch {}
+}
+
+/**
+ * Código del link de activación (`alk`) con el que entró el visitante.
+ * No se limpia al consumirlo: el wizard puede montarse varias veces (recarga,
+ * volver atrás) y el prellenado tiene que sobrevivir a eso.
+ */
+export function getLeadLinkCode(landingSlug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(leadLinkKey(landingSlug));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Código de la promotora (`ref`) con el que entró el visitante.
+ *
+ * No se limpia: la atribución vale para toda la visita, no para un paso. Quien
+ * llegó por el flyer de alguien sigue siendo su referido aunque recargue, vuelva
+ * atrás o reinicie el wizard.
+ */
+export function getPromotorRef(landingSlug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(promotorRefKey(landingSlug));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Borra la atribución de promotora guardada para la landing: el `ref` del hub y
+ * el `alk` del link de activación.
+ *
+ * Deliberadamente NO forma parte de `clearLandingSession`: cuando cambia la
+ * PERSONA (otro DNI en el mismo celular del stand) la promotora sigue siendo la
+ * misma y su atribución tiene que sobrevivir. Sólo cuando cambia el LINK —otra
+ * promotora abre el suyo en el mismo equipo— hay que soltarla, y eso lo decide
+ * `resetLandingSessionIfPromoterLinkChanged`.
+ */
+export function clearPromotorAttribution(landingSlug: string): void {
+  if (typeof window === 'undefined') return;
+  for (const key of [promotorRefKey(landingSlug), leadLinkKey(landingSlug)]) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage no disponible: seguir con el resto.
+    }
+  }
 }

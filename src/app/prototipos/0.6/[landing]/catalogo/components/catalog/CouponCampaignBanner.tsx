@@ -62,18 +62,22 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
           </p>
         ) : (
           <>
-            {/* Título personalizado con nombre del referido */}
+            {/* Título: solo muestra "Eres referido de <nombre>" cuando el cupón
+                tiene referidor. Para cupones sin referidor (campaña/genéricos)
+                muestra un mensaje neutro, sin la narrativa de referido. */}
             <div className="flex flex-col items-center justify-center gap-1 mb-3">
               <div className="flex items-center justify-center gap-2">
                 <span className="text-2xl sm:text-3xl" aria-hidden>🎉</span>
                 <p className="text-sm sm:text-base font-bold text-white/80 uppercase tracking-wide">
-                  Eres referido de
+                  {referrerDisplay ? 'Eres referido de' : '¡Cupón aplicado!'}
                 </p>
                 <span className="text-2xl sm:text-3xl" aria-hidden>🎁</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-['Baloo_2',_sans-serif] leading-tight drop-shadow-sm break-words max-w-2xl">
-                {referrerDisplay || 'Cupón canjeado'}
-              </h2>
+              {referrerDisplay && (
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-['Baloo_2',_sans-serif] leading-tight drop-shadow-sm break-words max-w-2xl">
+                  {referrerDisplay}
+                </h2>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
@@ -85,7 +89,9 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
               </span>
             </div>
 
-            {firstQuotaOnly && (
+            {/* La nota de "solo primera cuota" es narrativa de referido:
+                solo se muestra cuando el cupón tiene referidor. */}
+            {referrerDisplay && firstQuotaOnly && (
               <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
                 El descuento aplica solo en tu <strong>primera cuota</strong>.
               </p>

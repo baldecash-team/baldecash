@@ -208,7 +208,10 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       variantId: product.variantId,
       colorName: product.colorName,
       colorHex: product.colorHex,
-      paymentFrequency: product.paymentFrequency,
+      // `QuizProduct.paymentFrequency` es opcional. Cae a 'mensual' explicito:
+      // si el campo llega vacio al submit, JSON.stringify lo borra y el backend
+      // lo adivina (BAL-3994).
+      paymentFrequency: product.paymentFrequency ?? 'mensual',
       specs: {
         processor: product.specs?.processor || '',
         ram: product.specs?.ram ? `${product.specs.ram}GB RAM` : '',

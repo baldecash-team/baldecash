@@ -44,7 +44,7 @@ export function GamerCompareModal({
 }) {
   // Primary color for tints
   const primaryColor = T.neonCyan;
-  const trophyGreen = '#00ffd5'; // cyan — paleta consolidada (era verde)
+  const trophyGreen = T.neonCyan;
   const colTint = isDark ? 'rgba(0,255,213,0.05)' : 'rgba(70,84,205,0.05)';
 
   // Extract spec values for comparison
@@ -693,8 +693,8 @@ export function GamerCompareModal({
                                     fontSize: 11,
                                     fontFamily: "'Rajdhani', sans-serif",
                                     fontWeight: 600,
-                                    color: '#00ffd5',
-                                    background: 'rgba(34,197,94,0.1)',
+                                    color: T.neonCyan,
+                                    background: isDark ? 'rgba(0,255,213,0.1)' : 'rgba(0,137,122,0.1)',
                                     padding: '2px 10px',
                                     borderRadius: 999,
                                   }}

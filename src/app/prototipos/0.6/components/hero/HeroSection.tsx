@@ -74,6 +74,29 @@ interface HeroSectionProps {
   footerData?: FooterData | null;
   benefitsData?: BenefitsData | null;
   agreementData?: AgreementData | null;
+  /**
+   * Marca de la institucion de referencia de una landing que NO es de convenio
+   * (`lead-flujo-normal` -> SENATI).
+   *
+   * Deliberadamente separada de `agreementData`: `isConvenio` se deriva de esa
+   * otra, y pasarla por ahi le prenderia el hero, el FAQ y el CTA de convenio
+   * a una landing que no lo es. Esto solo alimenta el logo.
+   */
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
+  /**
+   * Visibilidad del logo institucional en el navbar y el footer de la home.
+   * Viene de `layout.show_agreement_logo`. Default: true (BAL-2970).
+   *
+   * Solo afecta al LOGO: `isConvenio` sigue derivandose de que exista
+   * `agreementData`, asi que las secciones de convenio (hero, FAQ, CTA) se
+   * renderizan igual con el flag apagado.
+   */
+  showInstitutionLogo?: boolean;
+  /**
+   * Preset `hero-quota-off` (BAL-3477), leido de `features.show_hero_min_quota`.
+   * false = la portada no muestra el recuadro «Desde S/X», aunque haya monto.
+   */
+  showMinQuota?: boolean;
   /** Landing slug for dynamic URL building */
   landing?: string;
   /** Offset from top when preview banner is shown (in pixels) */
@@ -105,6 +128,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   footerData,
   benefitsData,
   agreementData,
+  institutionBranding,
+  showInstitutionLogo = true,
+  showMinQuota = true,
   landing = 'home',
   previewBannerOffset = 0,
   previewKey,
@@ -176,7 +202,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         image: quizProduct.thumbnail || quizProduct.image,
         price: quizProduct.price,
         months: (quizProduct.termMonths || 24) as TermMonths,
-        paymentFrequency: quizProduct.paymentFrequency,
+        // Mismo motivo que en el catalogo: si el campo va vacio, el submit lo
+        // omite del JSON y el backend adivina "mensual" (BAL-3994).
+        paymentFrequency: quizProduct.paymentFrequency ?? 'mensual',
         initialPercent: WIZARD_SELECTED_INITIAL,
         initialAmount: 0,
         monthlyPayment: quizProduct.lowestQuota,
@@ -206,7 +234,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   };
 
   // Determine if this is a convenio landing
+  //
+  // Ojo: `institutionBranding` NO entra en esta cuenta. Una landing sin
+  // convenio que muestra el logo de su institucion de referencia sigue sin ser
+  // de convenio: si entrara aca, le apareceria el hero, el FAQ y el CTA de
+  // convenio, que es el efecto que la separacion evita.
   const isConvenio = !!agreementData;
+
+  // El logo que se pinta en el navbar y en el footer. El convenio manda; el
+  // branding suelto es el fallback de las landings que no lo tienen.
+  const institutionLogoResuelto =
+    agreementData?.institution_logo || institutionBranding?.institution_logo;
+  const institutionNameResuelto =
+    agreementData?.institution_name || institutionBranding?.institution_name;
 
   // section_view tracking via IntersectionObserver
   const tracker = useEventTrackerOptional();
@@ -240,7 +280,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} primaryColor={primaryColor} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={institutionLogoResuelto} institutionName={institutionNameResuelto} showInstitutionLogo={showInstitutionLogo} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
@@ -251,9 +291,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio Hero - Campus image, badge, checklist, price */}
             {heroContent && (
               <section id="hero">
-                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} primaryColor={primaryColor} />
+                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} primaryColor={primaryColor} showMinQuota={showMinQuota} />
               </section>
             )}
+
+            {/* El aviso de esta rama lo dibuja `ConvenioHero`, anclado al pie de
+                su propia sección. Ver el comentario de la rama normal. */}
 
             {/* Benefits Section */}
             {benefitsData && activeSections.includes('beneficios') && (
@@ -286,7 +329,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio CTA - 2-col WhatsApp + Quick Links */}
             {hasCta && (
               <section id="cta">
-                <ConvenioCta ctaData={ctaData} agreementData={agreementData} heroContent={heroContent} landing={landing} />
+                <ConvenioCta ctaData={ctaData} agreementData={agreementData} heroContent={heroContent} landing={landing} showMinQuota={showMinQuota} />
               </section>
             )}
           </>
@@ -314,9 +357,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   badgeText={heroContent.badgeText}
                   underlineStyle={UNDERLINE_STYLE}
                   landing={landing}
+                  showHeroContent={heroContent.showHeroContent}
+                  showMinQuota={showMinQuota}
                 />
               </section>
             )}
+
+            {/* El aviso de esta rama lo dibuja `HeroBanner`, anclado al pie de
+                su propia sección: el hero mide una pantalla exacta y acá afuera
+                caía siempre debajo del pliegue. */}
 
             {/* Social Proof - Solo mostrar si existe y está activa en navbar */}
             {socialProof && activeSections.includes('convenios') && (
@@ -398,7 +447,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* Footer - Institucional con logo doble si es convenio */}
       <div id="footer">
-        <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        <Footer data={footerData} landing={landing} agreementData={agreementData} institutionBranding={institutionBranding} showInstitutionLogo={showInstitutionLogo} />
       </div>
 
       {/* Quiz Modal - Solo renderizar si hay quiz asociado */}

@@ -26,9 +26,11 @@ function getStoredSessionUuid(landing: string): string | null {
 
 interface ContactInfoProps {
   onGoToHome?: () => void;
+  /** Mostrar el botón "Volver al inicio" (default true). */
+  showGoHome?: boolean;
 }
 
-export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
+export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome, showGoHome = true }) => {
   const tracker = useEventTrackerOptional();
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
@@ -80,16 +82,18 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
       </div>
 
       {/* Home CTA */}
-      <button
-        onClick={() => {
-          tracker?.track('cta_click', { cta_name: 'go_home', location: 'confirmacion' });
-          onGoToHome?.();
-        }}
-        className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] text-sm text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
-      >
-        <Home className="w-4 h-4" />
-        <span>Volver al inicio</span>
-      </button>
+      {showGoHome && (
+        <button
+          onClick={() => {
+            tracker?.track('cta_click', { cta_name: 'go_home', location: 'confirmacion' });
+            onGoToHome?.();
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] text-sm text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
+        >
+          <Home className="w-4 h-4" />
+          <span>Volver al inicio</span>
+        </button>
+      )}
     </motion.div>
   );
 };

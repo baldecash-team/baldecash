@@ -12,7 +12,6 @@ import {
   Settings,
   Code,
   ArrowLeft,
-  ArrowUp,
   ArrowRight,
   Scale,
   Trash2,
@@ -26,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { useIsMobile, Toast, useToast, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { useIsMobile, Toast, useToast, CubeGridSpinner, useScrollToTop, ScrollToTopButton } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 
 // Catalog components
@@ -46,7 +45,9 @@ import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
-import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { RefurbishedWarningModal } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition';
+import { hidesEquipmentStateBadges } from '@/app/prototipos/0.6/utils/condition';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -55,11 +56,17 @@ import { EmptyState } from './components/empty';
 import { OnboardingWelcomeModal, OnboardingTour } from './components/onboarding';
 import { useOnboarding } from './hooks/useOnboarding';
 
+// Lead modal (BAL-3125): modal de captura con cupón, mudado al catálogo.
+import LeadModalGate from '@/app/prototipos/0.6/components/lead-modal/LeadModalGate';
+
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isCopiaHomeLanding, isReacondicionadosLanding } from '@/app/prototipos/0.6/utils/theme';
+import { GamerCatalogoContent } from './GamerCatalogoClient';
+import { CopiaHomeMobileCatalog } from './copia-home/CopiaHomeMobileCatalog';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ActivatorResetButton } from './components/activator';
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 
@@ -71,7 +78,7 @@ import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landin
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
 // API for fetching products by IDs (used for cart/wishlist)
-import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+import { fetchAllCardsByIds, fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 
 
 // Types
@@ -96,6 +103,7 @@ import {
 
 // Import the shared state hook for cart/wishlist
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
+import { cardKey } from './utils/cardKey';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { diffAndEmitFilterChanges, buildFilterSnapshot } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
@@ -129,7 +137,8 @@ import { mapQuizAnswersToFilters } from './utils/quizFilters';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { captureLandingParams, consumePendingCategoria, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
+import { captureLandingParams, consumePendingCategoria, clearPendingCoupon, readCouponParam } from '@/app/prototipos/0.6/utils/landingParams';
+import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
@@ -155,6 +164,10 @@ const getUpsellUrl = (landing: string) => {
 
 // v0.6.1: Use typed constants for CartItem compatibility
 import type { TermMonths, InitialPaymentPercent } from './types/catalog';
+import { resolveWizardTarget } from './utils/resolveWizardTarget';
+import { resolveSavedItemDetail } from './utils/resolveSavedItemDetail';
+import type { SavedItem } from './utils/resolveSavedItemDetail';
+import { mergeColorSibling } from './utils/mergeColorSibling';
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
@@ -192,9 +205,39 @@ function LoadingFallback() {
 export function CatalogoClient() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  const isMobile = useIsMobile();
+
+  // Los links de socio (A365) y algunos del hub aterrizan acá directo, sin
+  // pasar por la portada de la landing, donde vive el otro reset. Tiene que
+  // correr antes de renderizar hijos y antes de `captureLandingParams` (que
+  // guarda el `alk` del link nuevo en su efecto): ver `usePromoterLinkReset`.
+  usePromoterLinkReset(landing);
+
+  if (isGamerLanding(landing)) {
+    return (
+      <ProductProvider key={landing} landingSlug={landing}>
+        <Suspense fallback={<LoadingFallback />}>
+          <GamerCatalogoContent />
+        </Suspense>
+      </ProductProvider>
+    );
+  }
+
+  // copia-home: variante mobile del catálogo (mockup seminuevos). Las landings de
+  // 2° financiamiento (renueva-*) MANTIENEN su catálogo estándar; solo su detalle
+  // usa la variante seminuevos. En desktop el catálogo vuelve al estándar.
+  if (isCopiaHomeLanding(landing) && isMobile) {
+    return (
+      <ProductProvider landingSlug={landing}>
+        <Suspense fallback={<LoadingFallback />}>
+          <CopiaHomeMobileCatalog />
+        </Suspense>
+      </ProductProvider>
+    );
+  }
 
   return (
-    <ProductProvider landingSlug={landing}>
+    <ProductProvider key={landing} landingSlug={landing}>
       <Suspense fallback={<LoadingFallback />}>
         <CatalogoContent />
       </Suspense>
@@ -229,13 +272,20 @@ function CatalogoContent() {
     captureLandingParams(landing);
   }, [landing]);
 
-  const campaignCoupon = appliedCoupon?.lockedFromUrl ? appliedCoupon : null;
+  // El tratamiento de diseño de "cupón de campaña" (banner + vitrina de 1.ª
+  // cuota en las cards) es EXCLUSIVO de cupones de referido, sin importar el
+  // descuento. Para cupones genéricos/no-referidos el cupón sigue aplicado
+  // (appliedCoupon) y su descuento se cobra en el checkout, pero NO se muestra
+  // ningún diseño de campaña. Por eso `campaignCoupon` solo se setea cuando el
+  // cupón bloqueado por URL trae `referrerName`.
+  const campaignCoupon =
+    appliedCoupon?.lockedFromUrl && appliedCoupon.referrerName ? appliedCoupon : null;
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
 
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, landingId } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, catalogBannerId, landingId, chipsDeUso, filtroPorUso, barraDeOrden } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // UI de referido (banner de campaña + navbar simplificado): visible solo si el
@@ -268,7 +318,12 @@ function CatalogoContent() {
   // elimina `?coupon=` del URL después del primer render; si releyéramos
   // searchParams aquí, descartaríamos el cupón recién capturado.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hasCouponParam = useMemo(() => !!searchParams.get('coupon'), []);
+  //
+  // Lee las DOS escrituras (`coupon` y `cupon`). Miraba solo `coupon`, y los
+  // links de activación —difusiones y socios— emiten `cupon`: `capture` lo
+  // guardaba y este efecto lo borraba a continuación, así que el cupón nunca
+  // llegaba a aplicarse.
+  const hasCouponParam = useMemo(() => !!readCouponParam(window.location.search), []);
   useEffect(() => {
     if (hasCouponParam || !isProductContextHydrated) return;
     clearPendingCoupon(landing);
@@ -278,12 +333,47 @@ function CatalogoContent() {
   // VIP countdown banner + overlay variant - fetch landing config
   const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
   const [overlayVariant, setOverlayVariant] = useState('');
+  // Config completa (namespaces extra incluidos) para el modal de captura de
+  // leads (BAL-3125 Tarea 5). Mismo fetch que ya trae vip_countdown/overlay —
+  // extenderlo evita una petición nueva.
+  // `undefined` = todavia no respondio el fetch. Con `{}` el gate no podia
+  // distinguirlo de "llego y el modal esta apagado", avisaba de inmediato, y
+  // el welcome se abria antes de que el cupon tuviera su turno.
+  const [landingConfig, setLandingConfig] = useState<Record<string, unknown> | undefined>(undefined);
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
       setVipCountdownDate(cfg.features.vip_countdown || '');
       setOverlayVariant(cfg.features.overlay_variant || '');
+      setLandingConfig(cfg as unknown as Record<string, unknown>);
     });
   }, [landing]);
+
+  /**
+   * Modal de bienvenida del onboarding: encendido salvo que la landing lo
+   * apague (`extra_data.onboarding.enabled = false` en el admin).
+   *
+   * Son DOS condiciones distintas y confundirlas rompe algo en cada
+   * direccion:
+   *
+   * - Mientras la config NO llego (`undefined`), vale `false`. Sin esto el
+   *   modal aparece y desaparece al llegar la respuesta.
+   * - Ya resuelta y SIN el namespace, vale `true`. `fetchLandingConfig`
+   *   nunca lanza: ante red caida, 404 o body roto devuelve el default, que
+   *   no trae `onboarding` (landingConfigApi.ts:60-77). Leer esa ausencia
+   *   como `false` apagaria el modal en TODAS las landings ante cualquier
+   *   problema de red, en silencio.
+   */
+  const onboardingEnabled =
+    landingConfig !== undefined &&
+    (landingConfig['onboarding'] as { enabled?: boolean } | undefined)
+      ?.enabled !== false;
+
+  // El cupón va PRIMERO, el onboarding DESPUÉS: los dos apuntan al mismo
+  // visitante nuevo y sin coordinarlos se apilan encima. `leadModalSettled`
+  // arranca en false y LeadModalGate avisa cuando ya no tiene nada más que
+  // mostrar (apagado, ya contestado, o recién cerrado).
+  const [leadModalSettled, setLeadModalSettled] = useState(false);
+  const handleLeadModalSettled = useCallback(() => setLeadModalSettled(true), []);
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -415,6 +505,10 @@ function CatalogoContent() {
       apiFilters.max_quota = filters.quotaRange[1];
     }
 
+    // Price range (equipment price, distinct from monthly quota) — BAL-3080
+    if (filters.priceRange?.min != null) apiFilters.min_price = filters.priceRange.min;
+    if (filters.priceRange?.max != null) apiFilters.max_price = filters.priceRange.max;
+
     // Specs filter - map FilterState fields to API specs JSON
     // API format: specs={"ram": [8, 16], "touch_screen": [true], "processor": ["AMD Ryzen 5"]}
     const specs: Record<string, (string | number | boolean)[]> = {};
@@ -539,6 +633,7 @@ function CatalogoContent() {
     filters.tags,
     filters.usage,
     filters.quotaRange,
+    filters.priceRange,
     filters.ram,
     filters.storage,
     filters.storageType,
@@ -570,9 +665,15 @@ function CatalogoContent() {
       recommended: 'display_order',
       price_asc: 'price_asc',
       price_desc: 'price_desc',
-      quota_asc: 'price_asc', // Same order since quota is proportional to price
+      // BAL-2860: la cuota NO es proporcional al precio — depende de la TEA, el
+      // plazo y la frecuencia de cada producto. Mapear quota_asc a price_asc
+      // hacía que "Cuota: Menor a mayor" mostrara el orden por precio.
+      quota_asc: 'quota_asc',
+      quota_desc: 'quota_desc',
       newest: 'newest',
-      popular: 'featured',
+      // BAL-2860: antes iba a 'featured', que es la marca manual de negocio y no
+      // popularidad. Ahora el backend ordena por solicitudes reales del producto.
+      popular: 'popular',
     };
     return sortMap[sort];
   }, [sort]);
@@ -635,7 +736,14 @@ function CatalogoContent() {
       variantId: variantInfo?.variantId || product.variantId,
       colorName: variantInfo?.colorName,
       colorHex: variantInfo?.colorHex,
-      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      // Combo de la card elegida: el equipo convive en varias cards (suelto y
+      // uno o mas combos) con el mismo product_id, y el submit lo reenvia.
+      comboId: variantInfo?.comboId ?? product.comboId,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency || 'mensual',
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -738,7 +846,6 @@ function CatalogoContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
 
   // Onboarding state - read config from URL params
@@ -866,6 +973,10 @@ function CatalogoContent() {
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
   // Reacondicionado: aviso de confirmación al dar "Lo quiero" en un card reacondicionado
+  // Guarda la card tocada, no su id: si se rebuscara por id al confirmar, el
+  // producto con combos devolveria la primera card de la lista y no la tocada
+  // (BAL-3270). Vale el riesgo de que el objeto quede viejo si `catalogProducts`
+  // se remapea con el modal abierto — es preferible correcto a fresco.
   const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
@@ -898,6 +1009,20 @@ function CatalogoContent() {
   const lastHoveredProductRef = useRef<string | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // El modal de bienvenida tapa la pantalla en este momento. NO es lo mismo
+  // que "el visitante todavia no lo vio" (`onboarding.shouldShowWelcome`):
+  // esa bandera queda en `true` para siempre en la sesion si la landing tiene
+  // el onboarding apagado, porque solo se pone en `false` cuando el modal se
+  // muestra y se cierra. Con el switch apagado el modal nunca monta, asi que
+  // usar `shouldShowWelcome` a secas para ocultar UI (botón de ayuda, scroll
+  // to top, etc.) los deja ocultos para siempre y rompe la promesa de
+  // BAL-3323 (el switch apaga el modal, no el tour). Replica exactamente las
+  // mismas condiciones que gobiernan el `isOpen` real del modal (mas abajo,
+  // junto a `OnboardingWelcomeModal`) para que esta bandera sea `true`
+  // solo cuando el modal esta efectivamente en pantalla.
+  const isWelcomeModalCovering =
+    onboarding.shouldShowWelcome && !isPageLoading && leadModalSettled && onboardingEnabled;
+
   // Quiz hint - tracking last interaction for inactivity detection
   const lastInteractionRef = useRef<number>(Date.now());
   const lastScrollYRef = useRef<number>(0);
@@ -913,7 +1038,7 @@ function CatalogoContent() {
         !isQuizOpen &&
         !isHelpPopoverOpen &&
         !onboarding.shouldShowTour &&
-        !onboarding.shouldShowWelcome &&
+        !isWelcomeModalCovering &&
         !isComparatorOpen &&
         !isCartDrawerOpen &&
         !isWishlistDrawerOpen &&
@@ -943,7 +1068,7 @@ function CatalogoContent() {
     isQuizOpen,
     isHelpPopoverOpen,
     onboarding.shouldShowTour,
-    onboarding.shouldShowWelcome,
+    isWelcomeModalCovering,
     onboarding,
     isComparatorOpen,
     isCartDrawerOpen,
@@ -1052,7 +1177,15 @@ function CatalogoContent() {
     const saved = localStorage.getItem(getCompareKey(landing));
     if (saved) {
       try {
-        setCompareList(JSON.parse(saved));
+        const guardado: string[] = JSON.parse(saved);
+        // La lista vieja guardaba productIds; ahora guarda slugs de card. Un id
+        // suelto resolveria a la primera card del producto — la que el usuario no
+        // eligio (BAL-3328). Se descarta: comparar es una seleccion efimera de
+        // 2-3 equipos, no algo que se acumule.
+        // El filtro `includes('-')` distingue un slug de un id numerico: un id
+        // como "518" no tiene guiones; todo slug del catalogo si.
+        const soloSlugs = guardado.filter((k: string) => k.includes('-'));
+        setCompareList(soloSlugs);
       } catch (e) {
         console.error('Error parsing compareList from localStorage:', e);
       }
@@ -1070,21 +1203,38 @@ function CatalogoContent() {
   // Fetch compare products from API (independent of catalog filters)
   useEffect(() => {
     if (isCompareListLoaded && compareList.length > 0) {
-      fetchProductsByIds(landing, compareList, previewKey).then((products) => {
-        setCompareProducts(products as ComparisonProduct[]);
+      // La API busca por id; los ids se derivan de las cards del catalogo cuyo
+      // slug esta en compareList. Asi la peticion pide lo correcto y la
+      // resolucion posterior no depende del orden que devuelva el backend.
+      const idsAPedir = compareList
+        .map((key) => catalogProducts.find((p) => cardKey(p) === key)?.id)
+        .filter((id): id is string => Boolean(id));
+      if (idsAPedir.length === 0) { setCompareProducts([]); return; }
+      // `fetchAllCardsByIds` y no `fetchProductsByIds`: esta ultima colapsa a UNA
+      // card por id — la primera que devuelve la landing, normalmente la del
+      // combo — y entonces el slug que el usuario eligio no vendria en la
+      // respuesta y la lista quedaria vacia (BAL-3328).
+      fetchAllCardsByIds(landing, idsAPedir, previewKey).then((products) => {
+        // Quedarse con la card cuyo slug pidio el usuario, no con la primera del id.
+        const porClave = compareList
+          .map((key) => (products as ComparisonProduct[] | null)?.find((p) => cardKey(p) === key))
+          .filter((p): p is ComparisonProduct => Boolean(p));
+        setCompareProducts(porClave);
       });
     } else {
       setCompareProducts([]);
     }
-  }, [compareList, isCompareListLoaded, landing]);
+  }, [compareList, isCompareListLoaded, landing, previewKey, catalogProducts]);
 
   // Mark filters as initialized (state already initialized from URL params)
   const isFiltersInitialized = useRef(true);
 
   // v0.6.1: Updated to use WishlistItem through the hook
   // Note: findProductOrSibling is defined later, so we handle fallback in the callback
-  const handleToggleWishlist = useCallback((productId: string, wishlistItem?: WishlistItem) => {
-    const isAdding = !isInWishlist(productId);
+  // La clave es la de la card (slug), no el productId: el suelto y sus combos
+  // comparten productId y colapsarían en uno solo (BAL-3328).
+  const handleToggleWishlist = useCallback((key: string, wishlistItem?: WishlistItem) => {
+    const isAdding = !isInWishlist(key);
     if (isAdding) {
       // If we have a WishlistItem, use it directly
       if (wishlistItem) {
@@ -1094,7 +1244,7 @@ function CatalogoContent() {
       // If no wishlistItem provided, the caller should provide one
       // (ProductCard always provides WishlistItem via onFavorite callback)
     } else {
-      removeWishlistItem(productId);
+      removeWishlistItem(key);
     }
   }, [isInWishlist, addWishlistItem, removeWishlistItem, showToast]);
 
@@ -1204,7 +1354,9 @@ function CatalogoContent() {
           monthlyPayment: item.monthlyPayment,
           months: item.months,
           term: item.term ?? item.months,
-          paymentFrequency: item.paymentFrequency,
+          // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+          // campo: se completa aqui en vez de dejar que el backend lo adivine.
+          paymentFrequency: item.paymentFrequency ?? 'mensual',
           initialPercent: item.initialPercent,
           initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
@@ -1218,6 +1370,8 @@ function CatalogoContent() {
           variantId: item.variantId,
           colorName: item.colorName,
           colorHex: item.colorHex,
+          // Combo de la card que origino el item del carrito
+          comboId: item.comboId ?? product?.comboId,
           // v0.6.2: Include payment plans for dynamic initial options (no hardcoded fallback)
           paymentPlans: item.paymentPlans,
         };
@@ -1241,16 +1395,6 @@ function CatalogoContent() {
   // Pagination - now handled by API via useCatalogProducts hook
   // Local row-based pagination removed in favor of API's limit/offset
 
-  // Scroll detection
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
 
   // Handler to clear search
   const handleSearchClear = useCallback(() => {
@@ -1406,25 +1550,33 @@ function CatalogoContent() {
     // Search through color siblings of loaded products
     for (const parent of catalogProducts) {
       const sibling = parent.colors?.find((c) => c.productId === productId);
-      if (sibling) {
-        return {
-          ...parent,
-          id: productId,
-          slug: sibling.slug || parent.slug,
-          displayName: sibling.displayName || parent.displayName,
-          name: sibling.displayName || parent.name,
-          price: sibling.price ?? parent.price,
-          quotaMonthly: sibling.quotaMonthly ?? parent.quotaMonthly,
-          originalQuotaMonthly: sibling.originalQuotaMonthly ?? parent.originalQuotaMonthly,
-          discount: sibling.discount ?? parent.discount,
-          specs: sibling.specs ?? parent.specs,
-          thumbnail: sibling.imageUrl || (sibling.images?.[0]) || parent.thumbnail,
-          images: sibling.images || (sibling.imageUrl ? [sibling.imageUrl] : parent.images),
-        };
-      }
+      if (sibling) return mergeColorSibling(parent, sibling, productId);
     }
     return null;
   }, [catalogProducts]);
+
+  /**
+   * La card exacta cuya clave coincide. Buscar por id devolveria la primera
+   * card del producto — normalmente la del combo — y no la que el usuario
+   * eligio (BAL-3328, mismo criterio que resolveSavedItemDetail).
+   */
+  const findCardByKey = useCallback((key: string): CatalogProduct | null => {
+    const exacta = catalogProducts.find((p) => cardKey(p) === key);
+    if (exacta) return exacta;
+    // El slug ya no esta en el catalogo (combo archivado): la card viva del
+    // producto es mejor que nada. Misma degradacion que resolveSavedItemDetail.
+    return catalogProducts.find((p) => p.id === key) ?? null;
+  }, [catalogProducts]);
+
+  // Resuelve a que detalle lleva un item de favoritos/carrito. La card guardada
+  // se busca por SLUG (la identidad real de una card); el lookup por id queda
+  // de respaldo por si ese slug ya no existe. Ver `resolveSavedItemDetail`.
+  const resolveSavedDetail = useCallback((item: SavedItem | undefined, productId: string) => {
+    const cardGuardada = item?.slug
+      ? catalogProducts.find((p) => p.slug === item.slug) ?? null
+      : null;
+    return resolveSavedItemDetail(item, cardGuardada, findProductOrSibling(productId));
+  }, [catalogProducts, findProductOrSibling]);
 
   // "Lo quiero" del card: dispara analítica y navega/abre el modal de carrito.
   // Extraído del handler inline para poder diferirlo tras el aviso de reacondicionado.
@@ -1450,16 +1602,19 @@ function CatalogoContent() {
 
     if (!ALLOW_MULTI_PRODUCT) {
       // Single-product mode: go directly to solicitar
-      const target = findProductOrSibling(cartItem.productId) || product;
+      // El id NO identifica la card: el suelto y cada combo del producto son
+      // cards distintas con el MISMO id, y `findProductOrSibling` devolvia la
+      // primera de la lista — la del combo (BAL-3270).
+      const target = resolveWizardTarget(product, cartItem.productId);
       selectProductForWizard(target, cartItem);
       router.push(getWizardUrl(landing));
       return;
     }
     // Multi-product mode: open cart selection modal
     setSelectedVariantForCart(cartItem);
-    const target = findProductOrSibling(cartItem.productId) || product;
+    const target = resolveWizardTarget(product, cartItem.productId);
     handleOpenCartModal(target);
-  }, [filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
@@ -1467,26 +1622,28 @@ function CatalogoContent() {
     return product.deviceType || 'laptop';
   };
 
-  const handleToggleCompare = useCallback((productId: string) => {
+  // La clave es la de la card (slug), no el productId: el suelto y sus combos
+  // comparten productId y colapsarían en uno solo (BAL-3328).
+  const handleToggleCompare = useCallback((key: string) => {
     // Si ya está en la lista, quitarlo
-    if (compareList.includes(productId)) {
-      setCompareList((prev) => prev.filter((id) => id !== productId));
-      tracker?.track('compare_remove', { product_id: productId });
+    if (compareList.includes(key)) {
+      setCompareList((prev) => prev.filter((k) => k !== key));
+      tracker?.track('compare_remove', { product_id: key });
       return;
     }
 
     // Verificar límite
     if (compareList.length >= maxCompareProducts) return;
 
-    // Obtener el producto a agregar (puede ser un sibling)
-    const productToAdd = findProductOrSibling(productId);
+    // Obtener la card a agregar: por clave, no por id
+    const productToAdd = findCardByKey(key);
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
-    // Usa findProductOrSibling (síncrono, ya en memoria) en vez de compareProducts (async)
+    // Usa findCardByKey (síncrono, ya en memoria) en vez de compareProducts (async)
     // para evitar race condition cuando el fetch aún no terminó
     if (compareList.length > 0) {
-      const firstProductInList = findProductOrSibling(compareList[0]);
+      const firstProductInList = findCardByKey(compareList[0]);
 
       if (firstProductInList) {
         const currentDeviceType = getDeviceType(firstProductInList);
@@ -1511,13 +1668,14 @@ function CatalogoContent() {
     }
 
     // Agregar a la lista
-    setCompareList((prev) => [...prev, productId]);
-    tracker?.track('compare_add', { product_id: productId });
-  }, [compareList, maxCompareProducts, showToast, findProductOrSibling, tracker]);
+    setCompareList((prev) => [...prev, key]);
+    tracker?.track('compare_add', { product_id: key });
+  }, [compareList, maxCompareProducts, showToast, findCardByKey, tracker]);
 
-  const handleRemoveFromCompare = useCallback((productId: string) => {
-    setCompareList((prev) => prev.filter((id) => id !== productId));
-    tracker?.track('compare_remove', { product_id: productId });
+  // Recibe la clave de la card (slug) — ver `handleToggleCompare`.
+  const handleRemoveFromCompare = useCallback((key: string) => {
+    setCompareList((prev) => prev.filter((k) => k !== key));
+    tracker?.track('compare_remove', { product_id: key });
   }, [tracker]);
 
   const handleClearCompare = useCallback(() => {
@@ -1670,15 +1828,11 @@ function CatalogoContent() {
         wishlistItems={wishlistItems}
         onWishlistRemove={handleToggleWishlist}
         onWishlistClear={() => clearWishlistItems()}
-        onWishlistViewProduct={(productId) => {
-          const item = wishlistItems.find((w) => w.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            // Product not in catalog (e.g., deactivated) — use slug from stored item
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
+        onWishlistViewProduct={(key) => {
+          // El navbar emite la clave de card (slug), no el productId (BAL-3328).
+          const item = wishlistItems.find((w) => cardKey(w) === key);
+          const destino = resolveSavedDetail(item, item?.productId ?? key);
+          if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         cartItems={cartItems}
         onCartRemove={handleRemoveFromCart}
@@ -1686,13 +1840,8 @@ function CatalogoContent() {
         onCartContinue={handleCartContinue}
         onCartViewProduct={(productId) => {
           const item = cartItems.find((c) => c.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            // Product not in catalog (e.g., deactivated) — use slug from stored item
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
+          const destino = resolveSavedDetail(item, productId);
+          if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         isCartOverLimit={isOverLimit}
         isSearchActive={isSearchDrawerOpen || searchQuery.length > 0}
@@ -1747,10 +1896,14 @@ function CatalogoContent() {
         onSearchClear={handleSearchClear}
         gridRef={gridRef}
         catalogBanner={catalogBanner}
+        catalogBannerId={catalogBannerId}
         vipCountdownDate={vipCountdownDate}
         overlayVariant={overlayVariant}
         campaignCoupon={showCouponUi ? campaignCoupon : null}
         isCampaignCouponValidating={isCampaignCouponValidating}
+        chipsDeUso={chipsDeUso}
+        filtroPorUso={filtroPorUso}
+        barraDeOrden={barraDeOrden}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (
@@ -1778,31 +1931,57 @@ function CatalogoContent() {
                 key={product.landingProductId ?? product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                hideColors
+                // BAL-2824: las bolitas se muestran desde un color — sea de una
+                // familia (color_siblings) o el color propio de la variante. Antes
+                // exigia > 1 y el color unico quedaba oculto. Los productos sin
+                // color en su variante siguen sin swatches.
+                hideColors={!(product.colors && product.colors.length >= 1)}
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
-                conditions={apiFilters?.conditions}
+                labels={apiFilters?.labels}
+                hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
+                compact={isReacondicionadosLanding(landing)}
+                addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
                 onAddToCart={(cartItem: CartItem) => {
-                  // Reacondicionado: confirmar aviso antes de continuar
-                  if (isRefurbishedCondition(product.conditionCode || product.condition)) {
-                    setPendingRefurb({ cartItem, product });
+                  // Reacondicionado: confirmar aviso antes de continuar.
+                  // El aviso nombra el equipo, asi que tiene que nombrar el GRADO
+                  // elegido: `product` es el que trajo el listado y decia "Grado B"
+                  // aunque la persona hubiera elegido el C (BAL-3340). El cartItem
+                  // ya trae el id resuelto, asi que resolver aca da el mismo target
+                  // que usara `proceedAddToCart` despues de confirmar.
+                  const elegido = resolveWizardTarget(product, cartItem.productId);
+                  if (pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
+                    setPendingRefurb({ cartItem, product: elegido });
                     return;
                   }
-                  proceedAddToCart(cartItem, product);
+                  proceedAddToCart(cartItem, elegido);
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info
-                  handleToggleWishlist(wishlistItem.productId, wishlistItem);
+                  handleToggleWishlist(cardKey(wishlistItem), wishlistItem);
                 }}
-                isFavoriteCheck={(id) => wishlist.includes(id)}
+                // El array `wishlist` es de productIds: no distingue el suelto de
+                // sus combos. Se compara por cardKey del item guardado (BAL-3328).
+                isFavoriteCheck={(key) => wishlistItems.some((w) => cardKey(w) === key)}
                 isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
                 getDetailHref={(siblingSlug, frecuency) => getDetailUrl(landing, siblingSlug || product.slug, frecuency ? { frecuency } : undefined)}
-                onViewDetail={(siblingSlug) => {
-                  tracker?.track('product_click', {
+                onViewDetail={(siblingSlug, pricing) => {
+                  analytics.trackProductClick({
                     product_id: product.id,
                     product_name: product.name,
                     brand: product.brand,
                     slug: siblingSlug || product.slug,
+                    context: 'catalogo',
+                    position: index + 1,
+                    extra: {
+                      // Financiamiento visible en la card al momento del click
+                      term: pricing?.term,             // nº de cuotas en la frecuencia (48 sem / 24 qcn / 36 mes)
+                      term_months: pricing?.termMonths, // plazo en meses, como lo muestra la card
+                      payment_frequency: pricing?.paymentFrequency,
+                      installment: pricing?.installment,
+                      down_payment: pricing?.downPayment,
+                      down_payment_percent: pricing?.downPaymentPercent,
+                    },
                   });
                 }}
                 onMouseEnter={() => {
@@ -1810,15 +1989,20 @@ function CatalogoContent() {
                   if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
                   hoverTimerRef.current = setTimeout(() => {
                     lastHoveredProductRef.current = product.id;
-                    tracker?.track('product_hover', {
+                    analytics.trackProductHover({
                       product_id: product.id,
                       product_name: product.name,
                       brand: product.brand,
+                      slug: product.slug,
+                      context: 'catalogo',
+                      position: index + 1,
                     });
                   }, 500);
                 }}
-                onCompare={(activeId) => handleToggleCompare(activeId)}
-                isCompareCheck={(id) => compareList.includes(id)}
+                // La card emite su cardKey (slug), así que `compareList` guarda
+                // claves de card, no productIds (BAL-3328).
+                onCompare={(key) => handleToggleCompare(key)}
+                isCompareCheck={(key) => compareList.includes(key)}
                 compareDisabled={compareList.length >= maxCompareProducts}
                 // Onboarding IDs only for first card
                 {...(index === 0 && {
@@ -1967,6 +2151,9 @@ function CatalogoContent() {
       </CatalogLayout>
       </main>
 
+      {/* Reset de sesión de la activadora — solo Family Farm */}
+      <ActivatorResetButton landing={landing} overlayVariant={overlayVariant} />
+
       {/* Footer from Hero */}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
 
@@ -2020,12 +2207,8 @@ function CatalogoContent() {
           onViewProduct={(productId) => {
             setIsCartDrawerOpen(false);
             const item = cartItems.find((c) => c.productId === productId);
-            const product = findProductOrSibling(productId);
-            if (product) {
-              router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-            } else if (item?.slug) {
-              router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-            }
+            const destino = resolveSavedDetail(item, productId);
+            if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
           }}
           config={catalogSecondaryNavbarConfig?.cart}
           unavailableIds={unavailableCartIds}
@@ -2047,17 +2230,14 @@ function CatalogoContent() {
         isOpen={isWishlistDrawerOpen}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlistItems}
-        onRemoveProduct={(productId) => handleToggleWishlist(productId)}
+        onRemoveProduct={(key) => handleToggleWishlist(key)}
         onClearAll={() => clearWishlistItems()}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
-          const item = wishlistItems.find((w) => w.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
+          // El drawer emite la clave de card (slug), no el productId (BAL-3328).
+          const item = wishlistItems.find((w) => cardKey(w) === key);
+          const destino = resolveSavedDetail(item, item?.productId ?? key);
+          if (destino) router.push(getDetailUrl(landing, destino.slug, destino.params));
         }}
         onAddToCompare={handleToggleCompare}
         onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
@@ -2074,7 +2254,7 @@ function CatalogoContent() {
               price: wishlistItem.price,
               months: wishlistItem.months,
               term: wishlistItem.term ?? wishlistItem.months,
-              paymentFrequency: wishlistItem.paymentFrequency,
+              paymentFrequency: wishlistItem.paymentFrequency ?? 'mensual',
               initialPercent: wishlistItem.initialPercent,
               initialAmount: wishlistItem.initialAmount,
               monthlyPayment: wishlistItem.monthlyPayment,
@@ -2110,7 +2290,7 @@ function CatalogoContent() {
           <div className="flex -space-x-2">
             {compareProducts.slice(0, 4).map((product, index) => (
               <div
-                key={product.id}
+                key={cardKey(product)}
                 className="w-10 h-10 rounded-lg bg-[var(--surface,#fff)] border-2 border-white shadow-sm overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
@@ -2161,10 +2341,12 @@ function CatalogoContent() {
           onClearAll={handleClearCompare}
           comparisonState={comparisonState}
           onStateChange={setComparisonState}
-          onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
-            const product = compareProducts.find(p => p.id === productId);
+          onAddToCart={ALLOW_MULTI_PRODUCT ? (productKey) => {
+            // El comparador emite la clave de la card; buscar por id devolveria
+            // la primera card del producto y no la elegida (BAL-3328).
+            const product = compareProducts.find((p) => cardKey(p) === productKey);
             if (product) {
-              handleAddToCart(productId, product);
+              handleAddToCart(product.id, product);
             }
           } : undefined}
           cartItems={ALLOW_MULTI_PRODUCT ? cart : []}
@@ -2172,7 +2354,7 @@ function CatalogoContent() {
       )}
 
       {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !isWelcomeModalCovering && (
       // && !isWebchatOpen // COMENTADO: Blip Chat maneja su propio botón
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
@@ -2342,19 +2524,13 @@ function CatalogoContent() {
         onClose={() => setIsBlipChatOpen(false)}
       />
 
-      {/* Back to top button */}
-      {showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isBlipChatOpen && !onboarding.shouldShowWelcome && (
-        <div className="fixed bottom-6 right-6 z-[100]">
-          <Button
-            isIconOnly
-            radius="md"
-            className="bg-[var(--color-primary)] text-white shadow-lg cursor-pointer hover:brightness-90 transition-all hover:scale-110"
-            onPress={scrollToTop}
-          >
-            <ArrowUp className="w-5 h-5" />
-          </Button>
-        </div>
-      )}
+      {/* Back to top button — componente compartido. Se oculta mientras hay
+          quiz/modales/drawers/onboarding abiertos (misma condición de antes). */}
+      <ScrollToTopButton
+        threshold={400}
+        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || isWelcomeModalCovering}
+        className="fixed bottom-6 right-6 z-[100] flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-primary)] text-white shadow-lg cursor-pointer transition-all hover:brightness-90 hover:scale-110"
+      />
 
       {/* Settings Modal */}
       <CatalogoSettingsModal
@@ -2410,9 +2586,20 @@ function CatalogoContent() {
         />
       )}
 
+      {/* Modal de captura de leads con cupón (BAL-3125). Va ANTES que el
+          welcome del onboarding a propósito: los dos targetean el mismo
+          visitante nuevo, y el welcome espera a `leadModalSettled` para no
+          apilarse encima. No se suma a OVERLAY_VARIANTS: eso es para muros
+          de acceso, este modal es opcional y descartable. */}
+      <LeadModalGate
+        landingSlug={landing}
+        config={landingConfig}
+        onSettled={handleLeadModalSettled}
+      />
+
       {/* Onboarding - Welcome Modal */}
       <OnboardingWelcomeModal
-        isOpen={onboarding.shouldShowWelcome && !isPageLoading}
+        isOpen={isWelcomeModalCovering}
         onStartTour={onboarding.startTour}
         onDismiss={onboarding.dismissWelcome}
       />

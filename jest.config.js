@@ -32,6 +32,10 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/.next/',
+    // Playwright specs. They import @playwright/test, which cannot run under
+    // Jest, so without this they are collected by testMatch and fail every run.
+    // They are executed by `npm run test:e2e` instead.
+    '<rootDir>/e2e/',
   ],
 
   // Coverage configuration (optional)

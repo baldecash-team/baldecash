@@ -135,7 +135,7 @@ export const financingPlans: V5FinancingPlan[] = [
     nombre: 'Avanzado',
     subtitulo: 'Pack media-alta',
     descripcion: 'MacBook Neo 512GB',
-    cuotaMensual: 249,
+    cuotaMensual: 282,
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Star',
@@ -149,9 +149,9 @@ export const financingPlans: V5FinancingPlan[] = [
     ],
     ahorroText: '',
     colorAccent: '#4654CD',
-    productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001351/',
+    productUrl: '/macbook-neo/producto/laptop-macbook-neo-citrus-512/',
     colorOptions: [
-      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001351/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-touchid.jpg' },
+      { id: 'citrus', label: 'Citrus', hex: '#D4E157', productUrl: '/macbook-neo/producto/laptop-macbook-neo-citrus-512/', image: 'https://baldecash.s3.amazonaws.com/images/products/macbook-neo-citrus-512/macbook-neo-citrus-512-main.webp' },
     ],
   },
 ];

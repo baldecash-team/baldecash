@@ -14,6 +14,7 @@ import {
   ProductImage,
   ProductColor,
   ColorSibling,
+  GradeSibling,
   ProductSpec,
   SpecItem,
   ProductPort,
@@ -25,6 +26,7 @@ import {
   ComboInfo,
   ComboAccessory,
 } from '../types/detail';
+import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../../../utils/deferredDelivery';
 
 // API base URL - uses environment variable or falls back to localhost
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -55,6 +57,22 @@ interface ApiColorSibling {
   color: string;
   color_hex: string;
   image_url?: string;
+}
+
+interface ApiGradeSibling {
+  grade: string;
+  product_id: number;
+  slug: string;
+  price: number | null;
+  stock_available: number;
+  is_available: boolean;
+  /** Cuota del plazo más corto (BAL-2864). Es la más CARA del grado. */
+  min_term_quota?: number | null;
+  /**
+   * Cuota más baja del grado (la del plazo más largo). Es la que muestra la
+   * tarjeta de grado, porque es lo que promete la palabra "Desde".
+   */
+  lowest_quota?: number | null;
 }
 
 interface ApiProductBadge {
@@ -114,6 +132,7 @@ interface ApiProductData {
   images: ApiProductImage[];
   colors: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  grade_siblings?: ApiGradeSibling[];
   description: string;
   short_description: string;
   badges: ApiProductBadge[];
@@ -131,6 +150,9 @@ interface ApiProductData {
   review_count: number;
   tea?: number;
   tcea?: number;
+  // El detalle viene en camelCase; aceptamos snake_case por robustez.
+  deferredDelivery?: ApiDeferredDelivery | null;
+  deferred_delivery?: ApiDeferredDelivery | null;
 }
 
 interface ApiInitialPaymentOption {
@@ -142,6 +164,17 @@ interface ApiInitialPaymentOption {
   tea?: number | null;
   tea_irr?: number | null;
   tcea?: number | null;
+  /** En cuantas armadas se paga la inicial de esta celda (1 = un solo pago). */
+  initial_installments?: number;
+  /** Monto de cada armada; la ultima absorbe el sobrante del redondeo. */
+  initial_installment_amounts?: string[];
+  /**
+   * Semanas que dura el plan contando las armadas: es el plazo que la persona
+   * elige. `term` son las CUOTAS, y las armadas se descuentan de ese total —17
+   * semanas con la inicial en 4 armadas son 4 armadas + 13 cuotas—, asi que sin
+   * este campo el catalogo ofrece seis plazos sueltos donde en realidad hay dos.
+   */
+  total_term?: number;
 }
 
 interface ApiPaymentPlan {
@@ -170,6 +203,7 @@ interface ApiSimilarProduct {
   name: string;
   display_name: string;
   brand: string;
+  condition?: string | null;
   thumbnail: string;
   images: (string | ApiSimilarProductImage)[];  // Soporta ambos formatos
   colors: ApiSimilarProductColor[];
@@ -222,6 +256,13 @@ interface ApiComboAccessory {
   image_url?: string;
 }
 
+interface ApiComboInsurance {
+  plan_id: number;
+  name: string;
+  code?: string;
+  price: number;
+}
+
 interface ApiCombo {
   id: number;
   code: string;
@@ -232,6 +273,7 @@ interface ApiCombo {
   thumbnail_url?: string;
   micro_url?: string;
   accessories: ApiComboAccessory[];
+  insurance?: ApiComboInsurance | null;
 }
 
 interface ApiProductDetailResponse {
@@ -351,9 +393,31 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       tea: opt.tea ?? null,
       teaIrr: opt.tea_irr ?? null,
       tcea: opt.tcea ?? null,
+      // Armadas de la inicial. `?? 1` porque las celdas viejas no traen el
+      // campo y ahi la inicial siempre fue de un solo pago.
+      initialInstallments: opt.initial_installments ?? 1,
+      initialInstallmentAmounts: (opt.initial_installment_amounts ?? []).map(Number),
+      // Plazo que la persona elige. El backend lo deriva, pero se recalcula si
+      // no viene: una respuesta vieja no puede dejar la opcion sin plazo, y la
+      // formula es la misma —las armadas completan el total—.
+      totalTerm:
+        opt.total_term ??
+        ((opt.initial_installments ?? 1) > 1
+          ? apiPlan.term + (opt.initial_installments ?? 1)
+          : apiPlan.term),
     })),
   };
 }
+
+/**
+ * Alias de `transformPaymentPlan` para tests.
+ *
+ * El transform es el unico punto donde el wire se vuelve tipos de dominio, y
+ * ahi viven los `?? 1` que mantienen al catalogo sin armadas. Se expone con
+ * nombre propio en vez de exportar la funcion interna para que quede claro que
+ * no es parte de la API del modulo.
+ */
+export const transformPaymentPlanForTest = transformPaymentPlan;
 
 function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct {
   // Transformar imágenes: soporta tanto string[] como objeto[] con variant_id
@@ -388,6 +452,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     name: apiProduct.name,
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand,
+    condition: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
     thumbnail: apiProduct.thumbnail,
     images: transformedImages,
     colors: apiProduct.colors.map((c): SimilarProductColor => ({
@@ -444,6 +509,16 @@ function transformCombo(apiCombo: ApiCombo): ComboInfo {
       isIncludedFree: acc.is_included_free,
       imageUrl: acc.image_url,
     })),
+    // Seguro incluido: el BE lo envía como objeto (snake_case) o null. Sin este
+    // mapeo, los combos insurance-only (accessories: []) no renderizaban nada
+    // encima del precio porque combo.insurance quedaba undefined.
+    insurance: apiCombo.insurance
+      ? {
+          planId: apiCombo.insurance.plan_id,
+          name: apiCombo.insurance.name,
+          price: apiCombo.insurance.price,
+        }
+      : undefined,
   };
 }
 
@@ -477,6 +552,21 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
       colorHex: sib.color_hex,
       imageUrl: sib.image_url,
     })),
+    gradeSiblings: (apiProduct.grade_siblings || []).map((sib): GradeSibling => ({
+      grade: sib.grade,
+      productId: sib.product_id,
+      slug: sib.slug,
+      price: sib.price,
+      stockAvailable: sib.stock_available,
+      isAvailable: sib.is_available,
+      // El wire manda `number | null`; el dominio lo modela `number | undefined`.
+      // Normalizar acá deja el null fuera del resto del front: ningún consumidor
+      // tiene que acordarse de que `null !== undefined` es true en JS.
+      // No es lo que impide el "S/0" — de eso se ocupa el guard del render, que
+      // además descarta el 0. Son dos defensas distintas, no la misma dos veces.
+      minTermQuota: sib.min_term_quota ?? undefined,
+      lowestQuota: sib.lowest_quota ?? undefined,
+    })),
     description: apiProduct.description,
     shortDescription: apiProduct.short_description,
     specs: apiProduct.specs.map(transformSpecCategory),
@@ -495,6 +585,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     tea: apiProduct.tea,
     tcea: apiProduct.tcea,
     variantId: extractVariantId(apiProduct),
+    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferredDelivery ?? apiProduct.deferred_delivery),
   };
 }
 
@@ -589,6 +680,54 @@ export async function fetchProductDetail(landing: string, slug: string, paymentF
     };
   } catch (error) {
     console.error('Error fetching product detail:', error);
+    throw error;
+  }
+}
+
+/**
+ * BAL-2250 — Detalle de producto DENTRO de una oferta condicional (por token).
+ * Aplica la TEA custom del Perfil C. Mismo shape que fetchProductDetail; el
+ * detalle regular (fetchProductDetail) NO se toca.
+ */
+export async function fetchOfferProductDetail(
+  token: string,
+  slug: string,
+  paymentFrequency?: string,
+  comboId?: number,
+): Promise<ProductDetailResult | null> {
+  try {
+    const qs = new URLSearchParams();
+    if (paymentFrequency) qs.set('payment_frequency', paymentFrequency);
+    if (comboId != null) qs.set('combo_id', String(comboId));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    const response = await fetch(
+      `${API_BASE_URL}/public/offer/${token}/products/${slug}/detail${suffix}`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' },
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data: ApiProductDetailResponse = await response.json();
+
+    return {
+      product: transformProductData(data.product),
+      combo: data.combo ? transformCombo(data.combo) : undefined,
+      paymentPlans: data.payment_plans.map(transformPaymentPlan),
+      similarProducts: data.similar_products.map(transformSimilarProduct),
+      limitations: data.limitations.map(transformLimitation),
+      certifications: data.certifications.map(transformCertification),
+      isAvailable: data.is_available,
+      paymentFrequencies: data.payment_frequencies ?? undefined,
+      defaultTerm: data.default_term ?? undefined,
+      defaultInitial: data.default_initial ?? undefined,
+    };
+  } catch (error) {
+    console.error('Error fetching offer product detail:', error);
     throw error;
   }
 }

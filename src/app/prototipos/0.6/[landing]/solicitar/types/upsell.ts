@@ -26,9 +26,12 @@ export interface Accessory {
   category: AccessoryCategory | null;
   term?: number;
   isRecommended: boolean;
+  isMoltiTop?: boolean;
   compatibleWith: string[];
   specs?: AccessorySpec[];
   brand?: { name: string; slug: string } | null;
+  /** Origen del add-on en la oferta: catálogo, del pedido, o regalo del combo (BAL-2253). */
+  source?: 'catalog' | 'order' | 'combo_free';
 }
 
 export type InsuranceTier = 'basic' | 'standard' | 'premium';
@@ -49,12 +52,15 @@ export interface InsurancePlan {
   totalPrice: number;
   paymentMonths: number;
   insuranceType: string;
+  imageUrl?: string | null;
   coverage: CoverageItem[];
   exclusions: string[];
   isRecommended: boolean;
   tier: InsuranceTier;
   durationMonths: number;
   provider?: { name: string; code: string } | null;
+  /** Origen del add-on en la oferta: catálogo, del pedido, o regalo del combo (BAL-2253). */
+  source?: 'catalog' | 'order' | 'combo_free';
 }
 
 export interface UpsellState {

@@ -31,13 +31,11 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useLayout } from '../context/LayoutContext';
 import { getComingSoonContent, ComingSoonSection } from '@/app/prototipos/0.6/services/landingApi';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -85,7 +83,7 @@ function ProximamenteContent() {
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing, newsletterData } = useLayout();
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(landing);
   const tracker = useEventTrackerOptional();
 
   // Gamer theme
@@ -185,8 +183,8 @@ function ProximamenteContent() {
           @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px ${cyanAlpha(0.15)}, 0 0 60px ${cyanAlpha(0.05)}; } 50% { box-shadow: 0 0 30px ${cyanAlpha(0.25)}, 0 0 80px ${cyanAlpha(0.1)}; } }
           @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         `}</style>
-        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
-        <main style={{ paddingTop: 24 }}>
+        <Navbar theme="gamer" gamerTheme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
+        <main style={{ paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + 24px)' }}>
           <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
 
             {/* Icon — animated floating with glow */}
@@ -326,7 +324,7 @@ function ProximamenteContent() {
           </div>
         </main>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     );
   }

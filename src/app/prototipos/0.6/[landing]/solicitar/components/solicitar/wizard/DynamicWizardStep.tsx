@@ -5,29 +5,69 @@
  * Uses grid layout based on field.grid_columns
  */
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
+import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
+import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
 
 const MONTH_NAMES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
-function getFirstPaymentDate(selectedDay: number): string {
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  let targetMonth = currentMonth + 1;
-  let targetYear = currentYear;
-
-  if (targetMonth > 11) {
-    targetMonth = 0;
-    targetYear += 1;
+/**
+ * Cuántos meses corre el legacy el primer vencimiento, según el día elegido y
+ * el día del mes en que se arma el cronograma.
+ *
+ * Espejo de `generar_fechas_mensuales_fijo` (webservice,
+ * `SolicitudController.php`): cada día del catálogo tiene su propio corte, y
+ * pasado ese corte el primer pago se va un mes más para dejarle colchón a la
+ * persona. Antes acá se asumía «mes siguiente» siempre, y en la segunda
+ * quincena el aviso prometía un mes antes de lo que el legacy iba a cobrar
+ * (día 3 y día 10 son los únicos con corte a dos meses).
+ *
+ * Lo que NO se replica a propósito: el corrimiento a lunes cuando el
+ * vencimiento cae fin de semana. Eso mueve días, no el mes, y este aviso es
+ * una referencia del mes de cobro.
+ */
+export function monthsAheadForPaymentDay(selectedDay: number, todayDay: number): number {
+  switch (selectedDay) {
+    case 3:
+      return todayDay >= 14 ? 2 : 1;
+    case 10:
+      return todayDay >= 21 ? 2 : 1;
+    case 18:
+      return 1;
+    case 25:
+      return todayDay >= 6 ? 1 : 0;
+    case 30:
+      return 1;
+    default:
+      // Días sin regla propia en el legacy: se quedan en el mes en curso y solo
+      // saltan al siguiente si ese vencimiento ya pasó (el `isPast()` del loop).
+      return selectedDay <= todayDay ? 1 : 0;
   }
+}
+
+/**
+ * Primera fecha de pago a mostrar. Es una referencia: el cronograma real lo
+ * arma el legacy recién al aprobar, y con el `now()` de ese momento — si la
+ * aprobación cruza un corte, la fecha se corre.
+ *
+ * Cuando la landing es diferida se suma **un** mes, que es lo que agrega el
+ * legacy (`$fecha_inicial->addMonth()` para `is_diferido`), sin importar el
+ * `deferred_months` de la config.
+ */
+function getFirstPaymentDate(selectedDay: number, isDeferred: boolean = false): string {
+  const today = new Date();
+  const monthsAhead = monthsAheadForPaymentDay(selectedDay, today.getDate()) + (isDeferred ? 1 : 0);
+  const total = today.getMonth() + monthsAhead;
+  const targetMonth = ((total % 12) + 12) % 12;
+  const targetYear = today.getFullYear() + Math.floor(total / 12);
 
   return `${selectedDay} de ${MONTH_NAMES[targetMonth]} del ${targetYear}`;
 }
@@ -73,12 +113,43 @@ const GRID_COL_MOBILE_CLASSES: Record<number, string> = {
   12: 'col-span-12',
 };
 
+/**
+ * Si hay que destapar los campos personales aunque el lookup del documento no
+ * haya contestado.
+ *
+ * Esos campos (nombres, apellidos, fecha, Sexo) llegan escondidos y los destapa
+ * el lookup: con DNI el buro los devuelve, y cuando no encuentra a la persona
+ * el `not_found` los muestra vacios para que los escriba. Quien entra por el
+ * link corto del socio con un documento que no es DNI se queda fuera de las dos
+ * ramas si el lookup no llega a correr -- el numero viene prellenado y
+ * bloqueado, asi que nunca lo tipea, y el buro no responde por CE. El paso
+ * entonces se dibuja sin Sexo, y como los nombres si vinieron del lead el
+ * formulario se ve completo: la solicitud entra sin ese dato y nadie lo nota.
+ *
+ * Acotado a esa entrada a proposito: el documento tiene que venir del lead
+ * (marcador `_lead_locked_`) y no ser DNI. Quien llega por su cuenta, o con
+ * DNI, sigue dependiendo del lookup como hasta ahora.
+ */
+export function destaparPorLeadSinBuro(
+  formValues: Record<string, string | string[]>,
+  docFieldCode: string,
+  docTypeFieldCode: string,
+): boolean {
+  const vinoDelLead = formValues[leadLockKey(docFieldCode)] === 'true';
+  const tipo = String(formValues[docTypeFieldCode] ?? '').trim().toLowerCase();
+  return vinoDelLead && tipo !== '' && tipo !== 'dni';
+}
+
 export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   step,
   showErrors = false,
   stepOrder,
 }) => {
   const { getFieldValue, updateField, formData } = useWizard();
+  const { deferredPayment, landing } = useLayout();
+
+  // El legacy corre un mes el primer pago cuando la landing es diferida.
+  const isDeferred = Boolean(deferredPayment?.enabled);
 
   // Initialize fields with default_value from API (only if field has no value yet)
   useEffect(() => {
@@ -115,6 +186,16 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return map;
   }, [step.fields]);
 
+  // Con que campo declara cada disparador el tipo de documento. La forma legacy
+  // lo nombra en `document_type_field`; la nueva lo omite y rige la convencion.
+  const docTypeFieldDe = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const field of step.fields) {
+      map[field.code] = field.prefill_config?.document_type_field || 'document_type';
+    }
+    return map;
+  }, [step.fields]);
+
   // Compute visibility for all fields
   const fieldVisibility = useMemo(() => {
     const vis: Record<string, boolean> = {};
@@ -123,16 +204,21 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       // Prefill-dependent fields: show only when their specific DNI lookup returned no data
       const docFieldCode = prefillFieldToDocField[field.code];
       if (field.hidden && docFieldCode) {
-        // Prefill-dependent fields: show only when DNI lookup returned no data
-        const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
-        if (prefillStatus === 'not_found') {
-          vis[field.code] = true;
-        } else if (prefillStatus === 'found') {
-          const isEmpty = formValues[`_prefill_empty_${field.code}`] === 'true';
-          vis[field.code] = isEmpty;
-        } else {
-          vis[field.code] = false;
-        }
+        // Vale para cualquier estado del lookup, no solo mientras no contesta:
+        // si dependiera del estado, el campo pasaria de visible a oculto en
+        // cuanto el lookup respondiera, y el efecto de limpieza de mas abajo
+        // borraria lo que la persona acabara de elegir.
+        const destapadoPorLead = destaparPorLeadSinBuro(
+          formValues,
+          docFieldCode,
+          docTypeFieldDe[docFieldCode] || 'document_type',
+        );
+        // La condicion de negocio del campo manda sobre las dos vias de
+        // destape: un campo que la regla `show` apaga no vuelve por el lead ni
+        // por el lookup (BAL-4026).
+        vis[field.code] = destapadoPorLead
+          ? evaluateFieldVisibility(field, formValues)
+          : evaluatePrefillFieldVisibility(field, formValues, docFieldCode);
       } else if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) {
         // hidden=true with no dependency groups = always hidden (no condition can activate it)
         vis[field.code] = false;
@@ -141,7 +227,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       }
     }
     return vis;
-  }, [step.fields, formValues, prefillFieldToDocField]);
+  }, [step.fields, formValues, prefillFieldToDocField, docTypeFieldDe]);
 
   // Clear field values when they become hidden
   const prevVisibilityRef = useRef<Record<string, boolean>>({});
@@ -176,6 +262,20 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
   const paymentDayValue = getFieldValue('payment_day') as string;
 
+  // La fecha la calcula ws2 con la regla del legacy (BAL-4305). Mientras
+  // llega, o si falla, se muestra el cálculo local de siempre.
+  const [fechaBackend, setFechaBackend] = useState<string | null>(null);
+  useEffect(() => {
+    setFechaBackend(null);
+    const dia = Number(paymentDayValue);
+    if (!landing || !dia) return;
+    let cancelado = false;
+    obtenerPrimeraFechaPago(landing, dia).then((iso) => {
+      if (!cancelado) setFechaBackend(iso ? formatearFechaIso(iso) : null);
+    });
+    return () => { cancelado = true; };
+  }, [landing, paymentDayValue]);
+
   // Fields come already ordered by display_order from the API
   return (
     <div className="grid grid-cols-12 gap-x-4 gap-y-1">
@@ -205,7 +305,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
                   <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
                   <p className="text-sm text-neutral-700">
-                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue))}</span>
+                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{fechaBackend ?? getFirstPaymentDate(Number(paymentDayValue), isDeferred)}</span>
                   </p>
                 </div>
               </div>

@@ -11,7 +11,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ShoppingCart, Check, Heart, Package, Gift } from 'lucide-react';
+import { ShoppingCart, Check, Heart, Package, Gift, ShieldCheck } from 'lucide-react';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
   DeviceType,
@@ -27,6 +27,8 @@ import {
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { ReacondicionadosGradoCuota } from '../../reacondicionados/ReacondicionadosGradoCuota';
+import { targetSlugForGrade, currentGrade } from '../../copia-home/gradeSelector';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -41,12 +43,15 @@ import {
   SimilarProducts,
   ProductLimitations,
   Certifications,
+  ProductCommitment,
   PortsDisplay,
   SpecSheetDownload,
 } from './index';
 import type { PricingSelection } from './pricing/PricingCalculator';
 import { RefurbishedInfoBanner } from './RefurbishedInfoBanner';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition';
+import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -59,6 +64,15 @@ interface ProductDetailProps {
   // Config props
   deviceType?: DeviceType;
   cronogramaVersion?: CronogramaVersion;
+  /**
+   * Pinta el selector de grado con el diseño de reacondicionados (BAL-3344):
+   * tres columnas, agotados atenuados, sobre el bloque de pricing. Exclusivo de
+   * la landing 241; por defecto no se dibuja y el detalle queda como siempre.
+   *
+   * Si el equipo no tiene grados hermanos el componente devuelve null solo, así
+   * que un equipo nuevo de esa landing tampoco lo ve.
+   */
+  gradeSelectorReacondicionados?: boolean;
   // v0.6.1: onAddToCart now receives CartItem with full config (variant, pricing)
   onAddToCart?: (cartItem: CartItem) => void;
   onRemoveFromCart?: (productId: string) => void;
@@ -81,6 +95,31 @@ interface ProductDetailProps {
   paymentFrequencies?: string[];
   // Landing config flags
   showPlatformCommission?: boolean;
+  /**
+   * Día del que arranca el cronograma. Lo resuelve el cliente del detalle con
+   * `inicioDelCronograma`: la fecha fija de la campaña si la landing la
+   * configuró, hoy si no.
+   */
+  startDate?: Date;
+  /**
+   * Modo oferta (BAL-1785): cuando se pasa `onClickCTA`, el botón principal
+   * muestra `ctaText` (ej. "Elegir este equipo") y llama a `onClickCTA` en vez
+   * de navegar a /solicitar. Aditivo: sin estos props, comportamiento de siempre.
+   */
+  onClickCTA?: () => void;
+  ctaText?: string;
+  /**
+   * Modo solo-lectura (BAL-1785, Caso 4): cuando se pasa un texto, oculta el CTA
+   * de compra/elección y en su lugar muestra este aviso. Sirve para el detalle
+   * del equipo que el estudiante PIDIÓ (se puede ver, pero no elegir).
+   */
+  readOnlyNotice?: string;
+  /**
+   * Modo oferta (BAL-2097): notifica el plazo/inicial elegidos en el selector
+   * para que el flujo de oferta los propague a la página de accesorios. Aditivo:
+   * el catálogo general no lo pasa y no cambia su comportamiento.
+   */
+  onOfferSelectionChange?: (sel: { term: number; initialPercent: number }) => void;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -94,6 +133,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Config props
   deviceType = 'laptop',
   cronogramaVersion = 1,
+  gradeSelectorReacondicionados = false,
   onAddToCart,
   onRemoveFromCart,
   onUpdateCart,
@@ -111,12 +151,60 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   defaultFrequency,
   paymentFrequencies,
   showPlatformCommission = false,
+  startDate,
+  onClickCTA,
+  ctaText,
+  readOnlyNotice,
+  onOfferSelectionChange,
 }) => {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const landing = params.landing as string || 'home';
   const analytics = useAnalytics();
+
+  // --- Grados (reacondicionados, BAL-3344) ---
+  // Cada grado es un PRODUCTO distinto, con su propio id, slug y stock. Elegir
+  // otro grado navega a su página, igual que los hermanos de color: así el
+  // product_id que llega al submit es el del grado que la persona eligió.
+  // El grado del producto que se está viendo. Si no se resuelve por id --datos
+  // incompletos, o un hermano que apunta a otro producto-- cae al primero
+  // DISPONIBLE en vez de dejar la card sin nada marcado: una lista de tres
+  // opciones donde ninguna se ve elegida no dice qué está mirando la persona.
+  const gradoActual = useMemo(() => {
+    const sibs = product.gradeSiblings ?? [];
+    return (
+      currentGrade(sibs, Number(product.id))
+      ?? [...sibs].sort((a, b) => a.grade.localeCompare(b.grade))
+          .find((s) => s.isAvailable)?.grade
+      ?? ''
+    );
+  }, [product.gradeSiblings, product.id]);
+
+  const irAlGrado = useCallback((grade: string) => {
+    const slug = targetSlugForGrade(product.gradeSiblings ?? [], grade);
+    if (slug && slug !== product.slug) {
+      router.push(routes.producto(landing, slug));
+    }
+  }, [product.gradeSiblings, product.slug, router, landing]);
+
+  /**
+   * Slug de la card que ESTA página está mostrando (BAL-3328).
+   *
+   * No sirve `product.slug`: el endpoint del detalle resuelve el combo al
+   * producto que lo compone, así que `/…-combo-166/detail` y `/…835/detail`
+   * devuelven el MISMO `product.slug` (el del suelto) y el mismo `id`. Tampoco
+   * sirve `combo?.slug` — `ComboInfo` no tiene slug (solo `id`), y de hecho el
+   * API manda `combo: null` en estas landings.
+   *
+   * Lo único que distingue las dos páginas es el slug de la URL, que además es
+   * con el que se pidió el detalle: esa es la identidad real de la card.
+   */
+  const pageSlug = useMemo(() => {
+    const raw = params.slug;
+    const first = Array.isArray(raw) ? raw[0] : raw;
+    return (first ?? '').trim() || product.slug;
+  }, [params.slug, product.slug]);
 
   // Timestamp when product detail page was loaded — used to compute time_on_detail_ms in cart_add
   const pageViewTsRef = useRef<number>(Date.now());
@@ -141,20 +229,32 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Color state - default to current product
   const defaultColorId = useMemo(() => {
     if (hasSiblings) {
-      // Find current product in siblings
+      // BAL-2214: emparejar por productId, no por slug. Con combos el slug del
+      // sibling lleva -combo-{id} y no coincide con product.slug, lo que dejaba
+      // el check/label en el primer color en vez del producto actual.
       const currentSibling = product.colorSiblings.find(
-        sib => sib.slug === product.slug
+        sib => String(sib.productId) === String(product.id)
       );
       return currentSibling ? String(currentSibling.productId) : String(product.colorSiblings[0].productId);
     }
     return product.colors && product.colors.length > 0 ? product.colors[0].id : '';
-  }, [product.colors, product.colorSiblings, product.slug, hasSiblings]);
+  }, [product.colors, product.colorSiblings, product.id, hasSiblings]);
 
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
 
-  // Reacondicionado: aviso de confirmación antes de pasar a solicitar.
+  // Reacondicionado: el banner informativo de la ficha.
   const isRefurbished = isRefurbishedCondition(product.condition);
+  // Y si además hay que INTERRUMPIR el "Lo quiero" con el aviso de
+  // confirmación. Son dos cosas distintas: en `reacondicionados` el banner se
+  // queda —la condición es información útil— pero el modal sobra, porque esa
+  // landing entera trata de eso y más adelante la persona ve las fotos, el
+  // video y los daños de su unidad concreta antes de reservarla.
+  const confirmaSemiNuevo = pideConfirmacionSemiNuevo(landing, product.condition);
   const [showRefurbModal, setShowRefurbModal] = useState(false);
+
+  // Entrega diferida: aviso de fecha de entrega antes de pasar a solicitar.
+  const isDeferred = product.deferredDelivery?.isDeferred ?? false;
+  const [showDeferredModal, setShowDeferredModal] = useState(false);
 
   // Navigate to sibling product when color is selected
   const handleColorSelect = useCallback((colorId: string) => {
@@ -197,6 +297,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       monthlyQuota: option.monthlyQuota,
       initialAmount: option.initialAmount,
       paymentFrequency: defaultFrequency ?? 'mensual',
+      initialInstallments: option.initialInstallments ?? 1,
+      initialInstallmentAmounts: option.initialInstallmentAmounts ?? [],
     };
   });
   // Active payment plans — updated when user switches frequency
@@ -210,8 +312,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return plan?.termMonths ?? pricingSelection.term;
   }, [pricingSelection, activePlans]);
 
+  // controlledTerm: only updated by Cronograma chips, never by PricingCalculator's own notify.
+  // This prevents the feedback loop where PC notifies → pricingSelection.term updates →
+  // controlledTerm updates → sync effect fires → selectedTerm in PC gets overwritten.
+  const [cronogramaTerm, setCronogramaTerm] = useState<number | undefined>(undefined);
+
   // Handle term change from Cronograma chips (bidirectional sync)
   const handleCronogramaTermChange = useCallback((term: number) => {
+    setCronogramaTerm(term);
     setPricingSelection((prev) => {
       if (!prev) return prev;
       if (prev.term === term) return prev;
@@ -225,6 +333,19 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       return { ...prev, term };
     });
   }, [analytics, product.id]);
+
+  // The "implicit" term: no ?term param needed when this term is selected.
+  // Frozen on first render — must not change when URL params update defaultTerm,
+  // otherwise the term omission condition flips and produces wrong URLs mid-session.
+  const implicitTermRef = useRef<number | null>(null);
+  if (implicitTermRef.current === null) {
+    const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
+    implicitTermRef.current = defaultTerm ?? maxTerm;
+  }
+
+  // The "implicit" initial: no ?initial param needed when this initial is selected.
+  // Frozen on first render — same reason as implicitTermRef.
+  const implicitInitialRef = useRef(defaultInitialPercent ?? 0);
 
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
@@ -259,32 +380,47 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       return selection;
     });
 
-    // Sync selection to URL so the page is shareable
-    const params = new URLSearchParams(searchParams.toString());
-    const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
-    if (maxTerm != null && selection.term !== maxTerm) {
-      params.set('term', String(selection.term));
-    } else {
-      params.delete('term');
+    // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
+    // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
+    onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
+  }, [analytics, product.id, onOfferSelectionChange]);
+
+  // Sync pricingSelection → URL after every stable render.
+  // Using pricingSelection as source of truth avoids stale reads from window.location
+  // and race conditions with PricingCalculator's internal state.
+  const isMountedForUrl = useRef(false);
+  useEffect(() => {
+    if (!pricingSelection) return;
+    if (!isMountedForUrl.current) {
+      isMountedForUrl.current = true;
+      return;
     }
-    if (selection.initialPercent > 0) {
-      params.set('initial', String(selection.initialPercent));
-    } else {
-      params.delete('initial');
+    const params = new URLSearchParams();
+    const implicit = implicitTermRef.current;
+    if (implicit == null || pricingSelection.term !== implicit) {
+      params.set('term', String(pricingSelection.term));
     }
-    if (selection.paymentFrequency && selection.paymentFrequency !== 'mensual') {
-      params.set('frecuency', selection.paymentFrequency);
-    } else {
-      params.delete('frecuency');
+    if (pricingSelection.initialPercent !== implicitInitialRef.current) {
+      params.set('initial', String(pricingSelection.initialPercent));
     }
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [analytics, product.id, searchParams, router]);
+    if (pricingSelection.paymentFrequency && pricingSelection.paymentFrequency !== 'mensual') {
+      params.set('frecuency', pricingSelection.paymentFrequency);
+    }
+    const next = params.toString();
+    const currentSearch = window.location.search.replace(/^\?/, '');
+    if (next !== currentSearch) {
+      router.replace(next ? `?${next}` : '?', { scroll: false });
+    }
+  }, [pricingSelection, router]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
     return activePlans.map(plan => ({
       term: plan.term,
       termMonths: plan.termMonths ?? null,
+      // Viaja al objeto persistido: es la unica pista de frecuencia que
+      // sobrevive si el producto se recupera en otra visita (BAL-4029).
+      paymentFrequency: plan.paymentFrequency,
       options: plan.options.map(opt => ({
         initialPercent: opt.initialPercent,
         initialAmount: opt.initialAmount,
@@ -313,6 +449,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
       months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
       term: pricingSelection.term,
+      // `PricingSelection.paymentFrequency` es un `string` requerido y el
+      // guard de arriba ya descarto el null, asi que aca la clave SIEMPRE
+      // viaja. No lleva `?? 'mensual'`: seria codigo muerto (BAL-3994).
       paymentFrequency: pricingSelection.paymentFrequency,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
@@ -324,10 +463,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       colorHex: selectedColor?.hex,
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
+      // Combo del que nace el ítem (para resolver el combo correcto en el submit)
+      comboId: combo?.id,
     };
 
     onAddToCart(cartItem);
-  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product, cartPaymentPlans]);
+  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product, cartPaymentPlans, combo]);
 
   // Build WishlistItem with pricing config and toggle wishlist
   const handleToggleWishlist = useCallback(() => {
@@ -344,7 +485,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     const wishlistItem: WishlistItem = {
       productId: product.id,
-      slug: product.slug,
+      // El slug de ESTA card, no el del producto suelto: si la página es la de
+      // un combo, el favorito es el del combo (BAL-3328).
+      slug: pageSlug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
@@ -363,7 +506,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     };
 
     onToggleWishlist(wishlistItem);
-  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product, isInWishlist, analytics]);
+  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product, isInWishlist, analytics, pageSlug]);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
@@ -381,10 +524,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const hasLimitations = limitations.length > 0;
 
   // First non-video image URL (for thumbnails in cart, solicitar, spec-sheet, etc.)
+  // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
   const productThumbnail = useMemo(() => {
     const img = product.images.find(i => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
-    return img?.url || product.images[0]?.url || '';
-  }, [product.images]);
+    return combo?.thumbnailUrl || img?.url || product.images[0]?.url || '';
+  }, [product.images, combo]);
 
   // Helper to extract spec value
   const getSpecValue = (category: string, label: string): string | undefined => {
@@ -394,10 +538,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return spec?.value;
   };
 
-  // Gate: en reacondicionados, primero confirmar el aviso; luego proceder.
+  // Gate: en reacondicionados, primero confirmar el aviso; luego (si aplica) el
+  // aviso de entrega diferida; luego proceder.
   const handleSolicitar = () => {
-    if (isRefurbished) {
+    if (confirmaSemiNuevo) {
       setShowRefurbModal(true);
+      return;
+    }
+    if (isDeferred) {
+      setShowDeferredModal(true);
+      return;
+    }
+    proceedToSolicitar();
+  };
+
+  // Tras confirmar el aviso de reacondicionado, encadenar el de entrega diferida.
+  const handleRefurbConfirm = () => {
+    if (isDeferred) {
+      setShowDeferredModal(true);
       return;
     }
     proceedToSolicitar();
@@ -435,6 +593,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       term: rawTerm,
       initialPercent: initialPercent,
       initialAmount: initialAmount,
+      initialInstallments: pricingSelection?.initialInstallments ?? 1,
       image: productThumbnail,
       type: product.deviceType as SelectedProduct['type'],
       condition: product.condition,
@@ -448,7 +607,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       },
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
-      paymentFrequency: pricingSelection?.paymentFrequency,
+      // Aca `pricingSelection` puede ser null (el estado arranca en null si el
+      // producto no trae planes) y TODOS los campos vecinos caen a un default
+      // por eso mismo. Era el unico sin uno: sin el, la clave se iba del JSON
+      // del submit y el backend adivinaba 'mensual' (BAL-3994).
+      paymentFrequency: pricingSelection?.paymentFrequency ?? 'mensual',
+      // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
+      comboId: combo?.id,
     };
 
     // Save to localStorage
@@ -483,23 +648,26 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               colors={displayColors}
               selectedColorId={selectedColorId}
               onColorSelect={handleColorSelect}
+              deferredDelivery={product.deferredDelivery}
             />
           </div>
 
           {/* Right Column - Pricing (Sticky).
               top offset tracks --header-total-height + --catalog-secondary-height
-              so it stays correctly positioned regardless of promo banner state. */}
+              so it stays correctly positioned regardless of promo banner state,
+              plus --referral-banner-offset while the referral banner is on screen
+              (the fixed header starts that much lower). */}
           <div
             className="order-2 lg:order-2 lg:sticky space-y-6"
             style={{
-              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
+              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + var(--referral-banner-offset, 0px) + 0.5rem)',
             }}
           >
             {/* Refurbished Info Banner */}
             {isRefurbished && <RefurbishedInfoBanner />}
 
-            {/* Combo Banner */}
-            {combo && combo.accessories.length > 0 && (
+            {/* Combo Banner — accesorios (regalos) y/o seguro incluido */}
+            {combo && (combo.accessories.length > 0 || combo.insurance) && (
               <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-5 h-5 text-[var(--color-primary)]" />
@@ -528,21 +696,63 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                             <span className="text-xs font-semibold text-green-600">
                               ¡Gratis!
                             </span>
-                            {accessory.unitPrice > 0 && (
+                            {accessory.unitPrice != null && accessory.unitPrice > 0 && (
                               <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through ml-1">
                                 S/ {accessory.unitPrice.toFixed(2)}
                               </span>
                             )}
                           </div>
-                        ) : (
+                        ) : accessory.unitPrice != null ? (
                           <p className="text-xs text-[var(--text-muted,#6b7280)] mt-0.5">
                             S/ {accessory.unitPrice.toFixed(2)}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   ))}
+
+                  {/* Seguro incluido (price 0 → "Incluido") */}
+                  {combo.insurance && (
+                    <div
+                      key={`insurance-${combo.insurance.planId}`}
+                      className="flex items-center gap-3 bg-[var(--surface,#fff)] rounded-lg p-3 border border-[var(--border-soft,#f3f4f6)]"
+                    >
+                      <div className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center bg-[rgba(var(--color-primary-rgb),0.08)]">
+                        <ShieldCheck className="w-6 h-6 text-[var(--color-primary)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 break-words">
+                          {combo.insurance.name}
+                        </p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
+                          <span className="text-xs font-semibold text-green-600">
+                            {combo.insurance.price > 0
+                              ? `S/ ${combo.insurance.price.toFixed(2)}`
+                              : 'Incluido'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Selector de grado (reacondicionados, BAL-3344).
+                Va ARRIBA del pricing porque elegir grado cambia de producto, y
+                con él las cuotas que pinta la calculadora. */}
+            {gradeSelectorReacondicionados && (
+              <div className="mb-4">
+                <ReacondicionadosGradoCuota
+                  gradeSiblings={product.gradeSiblings ?? []}
+                  selectedGrade={gradoActual}
+                  onSelectGrade={irAlGrado}
+                  // La frecuencia del MISMO payload que trajo las cuotas, no la
+                  // de la calculadora: esa se refresca sola y dejaría la
+                  // etiqueta cambiando mientras el número queda fijo.
+                  paymentFrequency={paymentPlans[0]?.paymentFrequency}
+                />
               </div>
             )}
 
@@ -559,10 +769,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 productSlug={product.slug}
                 onPlansChange={setActivePlans}
                 onSelectionChange={handlePricingSelectionChange}
-                controlledTerm={pricingSelection?.term}
+                controlledTerm={cronogramaTerm}
               />
-              {/* CTA Buttons or Unavailable banner */}
-              {!isAvailable ? (
+              {/* CTA Buttons, aviso solo-lectura, o banner de no disponible */}
+              {readOnlyNotice ? (
+                <div className="rounded-xl border border-gray-200 bg-[var(--surface-bg,#f8fafc)] px-4 py-3 text-center">
+                  <p className="text-sm text-gray-500">{readOnlyNotice}</p>
+                </div>
+              ) : !isAvailable ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center">
                   <p className="text-amber-800 font-medium text-sm">Este producto no se encuentra disponible actualmente</p>
                 </div>
@@ -575,12 +789,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
               >
                 <button
-                  onClick={handleSolicitar}
+                  onClick={onClickCTA ?? handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
-                  ¡Lo quiero!
+                  {onClickCTA ? (ctaText ?? 'Elegir este equipo') : '¡Lo quiero!'}
                 </button>
-                {onAddToCart && (() => {
+                {!onClickCTA && onAddToCart && (() => {
                   // Determine cart button state
                   const configChanged = isInCart && cartItem && pricingSelection && (
                     cartItem.months !== (selectedTermMonths ?? pricingSelection.term) ||
@@ -674,6 +888,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               )}
             </div>
 
+            {/* Compromiso / Garantía BaldeCash */}
+            <div id="section-commitment">
+              <ProductCommitment deferredDelivery={product.deferredDelivery} />
+            </div>
+
             {/* Certifications */}
             <div id="section-certifications">
               <Certifications certifications={certifications} />
@@ -743,7 +962,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <Cronograma
             paymentPlans={activePlans}
             term={36}
-            startDate={new Date()}
+            startDate={startDate}
             version={cronogramaVersion}
             productId={product.id}
             productName={product.displayName}
@@ -785,7 +1004,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       <RefurbishedWarningModal
         isOpen={showRefurbModal}
         onClose={() => setShowRefurbModal(false)}
+        onConfirm={handleRefurbConfirm}
+        productName={product.displayName}
+      />
+
+      {/* Aviso de entrega diferida antes de pasar a solicitar */}
+      <DeferredDeliveryModal
+        isOpen={showDeferredModal}
+        onClose={() => setShowDeferredModal(false)}
         onConfirm={proceedToSolicitar}
+        deferredDelivery={product.deferredDelivery}
         productName={product.displayName}
       />
     </div>

@@ -5,12 +5,36 @@ import {
   getSolicitarConfig,
   getEnabledSections,
   isSectionEnabled,
+  getEnvioAnticipadoStep,
+  isFirmaPorAceptacion,
+  getKycSteps,
+  isEntregaEnElCierre,
+  isKycStepEnabled,
+  isKycEnabled,
   DEFAULT_SOLICITAR_FLOW,
   type SolicitarFlowConfig,
   type SolicitarSection,
   type SolicitarSectionType,
+  type KycStep,
+  type KycStepType,
 } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
+
+/**
+ * Tipos que NO son secciones inline del flujo /complementos:
+ * - `wizard_steps` lo renderizan las páginas del wizard, no SectionRenderer.
+ * - `otp_verification` es un gate full-screen post-submit (antes del resumen),
+ *   se consume vía `isEnabled('otp_verification')`, no como sección inline.
+ */
+const INLINE_EXCLUDED_SECTIONS: SolicitarSectionType[] = ['wizard_steps', 'otp_verification', 'kyc'];
+
+/**
+ * Config que se usa cuando el backend NO pudo decir qué secciones tiene la
+ * landing (hoy: 403 de una landing con gate, ver `SolicitarConfigUnavailableError`).
+ * Vacía a propósito — lo contrario de `DEFAULT_SOLICITAR_FLOW`, que afirma
+ * secciones. Va siempre acompañada de `configLoadFailed = true`.
+ */
+const UNRESOLVED_SOLICITAR_FLOW: SolicitarFlowConfig = { sections: [], is_coupon_required: false };
 
 interface UseSolicitarFlowOptions {
   /**
@@ -49,6 +73,16 @@ interface UseSolicitarFlowResult {
    */
   error: Error | null;
   /**
+   * True cuando la config NO se pudo leer y lo que hay es
+   * `UNRESOLVED_SOLICITAR_FLOW` (vacía), no la config de la landing.
+   *
+   * Quien decida algo irreversible con estas secciones —hacer el submit, saltar
+   * a /complementos, dar por hecho que la landing no tiene KYC— tiene que
+   * mirarlo antes: con la config caída, "no hay sección X" significa "no sé",
+   * no "no la tiene".
+   */
+  configLoadFailed: boolean;
+  /**
    * Orden del wizard en el flujo (usado para determinar antes/después)
    */
   wizardOrder: number;
@@ -68,6 +102,38 @@ interface UseSolicitarFlowResult {
    * True si el cupón de descuento es obligatorio para comenzar la solicitud
    */
   isCouponRequired: boolean;
+  /**
+   * Sub-pasos habilitados de la sección `kyc`, ordenados por `order`
+   */
+  kycSteps: KycStep[];
+  /**
+   * Verificar si un sub-paso de `kyc` está habilitado
+   */
+  isKycStepEnabled: (type: KycStepType) => boolean;
+  /**
+   * True SOLO si la landing tiene la sección `kyc` presente y habilitada.
+   * Fail-safe: sección ausente ⇒ false. Úsalo para el gate de los pasos
+   * posteriores kyc (submit y ruta `/solicitar/kyc`), en vez de
+   * `isEnabled('kyc')` (que hace `?? true` y abriría el gate por defecto).
+   */
+  kycEnabled: boolean;
+  /**
+   * Pantalla del wizard al terminar la cual se crea la solicitud, o `null` si
+   * la landing no configuró envío anticipado (el caso normal: se crea al
+   * final). 1 = la primera pantalla.
+   */
+  envioAnticipadoStep: number | null;
+  /**
+   * La landing firma el contrato aceptándolo en pantalla. NO es lo mismo que
+   * tener el sub-paso `contract` prendido: `copia-home` y Family Farms lo
+   * tienen desde antes, con el contrato que sale al aprobar y Keynua.
+   */
+  firmaPorAceptacion: boolean;
+  /**
+   * La landing coordina la entrega dentro del flujo: al terminar, la pantalla
+   * final muestra el formulario en vez de que el enlace llegue por WhatsApp.
+   */
+  entregaEnElCierre: boolean;
 }
 
 /**
@@ -116,8 +182,12 @@ export function useSolicitarFlow({
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error('Error loading config'));
-          // Usar config por defecto en caso de error
-          setConfig(DEFAULT_SOLICITAR_FLOW);
+          // Config DESCONOCIDA, no config por defecto. Sustituirla por el
+          // default era mentir con seguridad: prendía secciones que la landing
+          // apagó y borraba `kyc`, sin ningún error visible. Vacía, los
+          // consumidores no pueden confundirla con una config real, y
+          // `configLoadFailed` les dice que no decidan a ciegas.
+          setConfig(UNRESOLVED_SOLICITAR_FLOW);
         }
       } finally {
         if (!cancelled) {
@@ -140,6 +210,21 @@ export function useSolicitarFlow({
     [config]
   );
 
+  const kycSteps = useMemo(() => getKycSteps(config), [config]);
+
+  const kycEnabled = useMemo(() => isKycEnabled(config), [config]);
+
+  const envioAnticipadoStep = useMemo(() => getEnvioAnticipadoStep(config), [config]);
+
+  const firmaPorAceptacion = useMemo(() => isFirmaPorAceptacion(config), [config]);
+
+  const entregaEnElCierre = useMemo(() => isEntregaEnElCierre(config), [config]);
+
+  const isKycStepEnabledFn = useMemo(
+    () => (type: KycStepType) => isKycStepEnabled(config, type),
+    [config]
+  );
+
   const getPosition = useMemo(
     () => (type: SolicitarSectionType): number | null => {
       const index = enabledSections.findIndex(s => s.type === type);
@@ -158,7 +243,7 @@ export function useSolicitarFlow({
   const sectionsBeforeWizard = useMemo(
     () =>
       enabledSections
-        .filter(s => s.type !== 'wizard_steps' && s.order < wizardOrder)
+        .filter(s => !INLINE_EXCLUDED_SECTIONS.includes(s.type) && s.order < wizardOrder)
         .sort((a, b) => a.order - b.order),
     [enabledSections, wizardOrder]
   );
@@ -167,7 +252,7 @@ export function useSolicitarFlow({
   const sectionsAfterWizard = useMemo(
     () =>
       enabledSections
-        .filter(s => s.type !== 'wizard_steps' && s.order > wizardOrder)
+        .filter(s => !INLINE_EXCLUDED_SECTIONS.includes(s.type) && s.order > wizardOrder)
         .sort((a, b) => a.order - b.order),
     [enabledSections, wizardOrder]
   );
@@ -185,11 +270,18 @@ export function useSolicitarFlow({
     getPosition,
     isLoading,
     error,
+    configLoadFailed: error !== null,
     wizardOrder,
     sectionsBeforeWizard,
     sectionsAfterWizard,
     shouldShowComplementos,
     isCouponRequired,
+    kycSteps,
+    isKycStepEnabled: isKycStepEnabledFn,
+    kycEnabled,
+    envioAnticipadoStep,
+    firmaPorAceptacion,
+    entregaEnElCierre,
   };
 }
 

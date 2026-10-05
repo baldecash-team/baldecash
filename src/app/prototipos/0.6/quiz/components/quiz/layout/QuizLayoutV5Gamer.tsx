@@ -51,9 +51,9 @@ export const QuizLayoutV5Gamer: React.FC<QuizLayoutV5GamerProps> = ({
       isDismissable={false}
       classNames={{
         base: 'm-4 rounded-2xl max-h-[90vh]',
-        backdrop: 'bg-black/70 z-[99]',
+        backdrop: 'bg-black/70 z-[999]',
         body: 'p-0 overflow-hidden',
-        wrapper: 'overflow-hidden z-[100]',
+        wrapper: 'overflow-hidden z-[1000]',
       }}
     >
       <ModalContent style={{ background: T.bgCard, border: `1px solid ${T.border}`, overflow: 'hidden' }}>

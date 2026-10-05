@@ -11,9 +11,11 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, CheckCircle2, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -26,6 +28,11 @@ import {
   InitialPaymentPercent,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
+import { cardKey } from '../../../utils/cardKey';
+import { cardSelectorMode, tieneGradosAgrupados } from '../../../utils/cardSelectorMode';
+// El nombre del grado ("Buen estado") sale de la misma fuente que el detalle:
+// una sola redacción para los dos sitios donde se lee.
+import { GRADE_COPY, isGradeKey } from '@/app/prototipos/0.6/[landing]/producto/family-farm/familyFarmGrades';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
@@ -59,12 +66,34 @@ import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { RibbonLabel } from '../RibbonLabel';
 import { ConditionBadge } from '../ConditionBadge';
-import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
-import type { ConditionFilter } from '../../../../../types/filters';
+import { CardBadge } from '../CardBadge';
+import type { LabelFilter } from '../../../../../types/filters';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
+// formatDeferredFrom se usaba en el bloque de entrega diferida de la tarjeta,
+// hoy comentado (BAL-2824). Reponer el import al reactivarlo.
+import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
+
+/**
+ * Snapshot del financiamiento mostrado en la card "en ese momento" (para analítica).
+ * Refleja plazo, inicial y cuota tal como los ve el usuario según la frecuencia activa.
+ */
+export interface ProductCardPricingSnapshot {
+  /** Plazo en meses, tal como lo muestra la card ("en X meses") */
+  termMonths: number;
+  /** Plazo en la frecuencia nativa: nº de cuotas (mensual = meses, quincenal = ×2, semanal = ×4) */
+  term: number;
+  /** Frecuencia de pago activa (mensual/quincenal/semanal) — da la unidad de la cuota */
+  paymentFrequency: string;
+  /** Valor de la cuota (installment) para la frecuencia activa */
+  installment: number;
+  /** Monto de la inicial (down payment) en S/ */
+  downPayment: number;
+  /** Porcentaje de la inicial */
+  downPaymentPercent: number;
+}
 
 interface ProductCardProps {
   product: CatalogProduct;
@@ -72,17 +101,21 @@ interface ProductCardProps {
   onAddToCart?: (item: CartItem) => void;
   /** Callback con WishlistItem completo incluyendo color seleccionado */
   onFavorite?: (item: WishlistItem) => void;
-  onViewDetail?: (slug?: string) => void;
+  /** Callback al abrir el detalle. Incluye el snapshot de financiamiento visible en la card. */
+  onViewDetail?: (slug?: string, pricing?: ProductCardPricingSnapshot) => void;
   /** Builder opcional del href de detalle — cuando se pasa, el título y el botón "Detalle" se renderizan como <a> para soportar Ctrl/Cmd+click y middle-click */
   getDetailHref?: (slug?: string, frecuency?: string) => string;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
-  isFavoriteCheck?: (productId: string) => boolean;
+  /** Recibe la clave de card (slug), NO el productId — ver `cardKey` (BAL-3328) */
+  isFavoriteCheck?: (cardKey: string) => boolean;
   colorSelectorVersion?: ColorSelectorVersion;
   // Compare props
-  onCompare?: (activeProductId: string) => void;
+  /** Emite la clave de card (slug), NO el productId — ver `cardKey` (BAL-3328) */
+  onCompare?: (cardKey: string) => void;
   isCompareSelected?: boolean;
-  isCompareCheck?: (productId: string) => boolean;
+  /** Recibe la clave de card (slug), NO el productId — ver `cardKey` (BAL-3328) */
+  isCompareCheck?: (cardKey: string) => boolean;
   compareDisabled?: boolean;
   // Cart state
   isInCart?: boolean;
@@ -98,8 +131,38 @@ interface ProductCardProps {
   needsPromoSpacer?: boolean;
   /** Cupón de campaña URL — muestra oferta de 1.ª cuota y precio de lista tachado */
   campaignCoupon?: AppliedCoupon | null;
-  /** Catálogo de condiciones del facet — estilo (label/icon/color) del badge de condición */
-  conditions?: ConditionFilter[] | null;
+  /** Catálogo de etiquetas del facet — texto y color de los tags del producto (BAL-3204) */
+  labels?: LabelFilter[] | null;
+  /**
+   * Modo oferta (BAL-1785): cuando se pasa `onCtaClick`, el botón principal
+   * muestra `ctaLabel` (ej. "Elegir este equipo") y llama a `onCtaClick` en vez
+   * de agregar al carrito / ir a solicitar. Aditivo: sin estos props, el
+   * comportamiento es el de siempre ("Lo quiero").
+   */
+  ctaLabel?: string;
+  onCtaClick?: () => void;
+  /** Oculta el botón de favoritos (no aplica en el flujo de oferta). */
+  hideFavorite?: boolean;
+  /** Muestra un tag verde "Aprobado" (solo en el catálogo de oferta, BAL-1785). */
+  approvedTag?: boolean;
+  /** Fuerza el plazo mostrado (ej. 24 en la oferta) en vez de max(available_terms). */
+  forcedTerm?: number;
+  /** Deshabilita el botón "Lo quiero" (ej. mientras el contexto se hidrata o un modal está abierto). */
+  addToCartDisabled?: boolean;
+  /**
+   * Oculta los badges de estado del equipo (condición y grado) sobre la foto.
+   * Para campañas que ya nombran el estado en su propio diseño — ver
+   * `hidesEquipmentStateBadges` en utils/condition. No afecta a los tags del
+   * producto (Oferta, Más vendido…), que vienen por otro canal.
+   */
+  hideStateBadges?: boolean;
+  /**
+   * Variante compacta (landing de reacondicionados, BAL-3288): oculta los
+   * specs técnicos, cambia el CTA a "Ver detalle" y sustituye el selector de
+   * colores por la zona que decide `cardSelectorMode` — grados o colores, nunca
+   * los dos, y con alto reservado aunque no haya ninguno.
+   */
+  compact?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -117,6 +180,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   compareDisabled = false,
   isInCart = false,
   isInCartCheck,
+  ctaLabel,
+  onCtaClick,
+  hideFavorite = false,
+  approvedTag = false,
+  forcedTerm,
   isFavoriteCheck,
   favoriteButtonId,
   compareButtonId,
@@ -125,7 +193,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   hideColors = true,
   needsPromoSpacer = false,
   campaignCoupon = null,
-  conditions = null,
+  labels = null,
+  addToCartDisabled = false,
+  hideStateBadges = false,
+  compact = false,
 }) => {
   const analytics = useAnalytics();
 
@@ -134,6 +205,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedColorId, setSelectedColorId] = useState<string>(
     currentProductColor?.id || product.colors?.[0]?.id || ''
   );
+
+  // Grado elegido en la variante compacta. Arranca en el grado del producto que
+  // llegó del listado; si ese no viniera, en el primero DISPONIBLE (no en el
+  // primero a secas: marcar de entrada un grado agotado sería mentir).
+  const [selectedGrade, setSelectedGrade] = useState<string | undefined>(
+    () => product.grade ?? product.gradeSiblings?.find(g => g.isAvailable)?.grade,
+  );
+
+  // Entrega diferida: al dar "Lo quiero" se muestra primero el aviso de fecha.
+  const [showDeferredModal, setShowDeferredModal] = useState(false);
 
   // Hover capability detection — disables sticky :hover side-effects on touch
   // devices (iOS/Android) where the last tapped card would stay "hovered".
@@ -152,21 +233,113 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Get the selected color sibling data
   const selectedColor = product.colors?.find(c => c.id === selectedColorId);
 
+  // Grado elegido, resuelto a su hermano. Cada grado es un Product aparte —con su
+  // id, su slug y su precio—, igual que un hermano de color, así que se proyecta
+  // por el MISMO camino: id activo, slug, precio y cuota. Antes solo pintaba la
+  // pill: el link, el precio y "Lo quiero" seguían apuntando al grado que trajo el
+  // listado, y quien elegía el C terminaba solicitando el B (BAL-3340).
+  //
+  // Solo el elegido que NO es el de la card cuenta como hermano: si coincide, la
+  // card ya trae sus propios datos y proyectar sería copiar lo mismo con menos
+  // campos (el hermano no trae specs ni imágenes).
+  const selectedGradeSibling = product.gradeSiblings?.find(
+    (g) => g.grade === selectedGrade && String(g.productId) !== String(product.id),
+  );
+
   // Determine the active product ID (sibling's productId if selected, else card's product)
-  const activeProductId = selectedColor?.productId || product.id;
+  const activeProductId = selectedGradeSibling
+    ? String(selectedGradeSibling.productId)
+    : selectedColor?.productId || product.id;
+
+  // El slug manda en el link de detalle y en la clave de card. El grado pisa al
+  // color: cuando hay grados, `cardSelectorMode` ya no muestra el selector de
+  // color, así que no compiten.
+  const activeSlug = selectedGradeSibling?.slug || selectedColor?.slug || product.slug;
+
+  // Clave de ESTA card. `activeProductId` no alcanza: el suelto y sus combos
+  // comparten id y colapsarían en favoritos y comparar (BAL-3328).
+  const activeCardKey = cardKey({
+    id: activeProductId,
+    slug: activeSlug,
+  });
 
   // Resolve favorite/compare/cart state using sibling-aware checks
-  const resolvedIsFavorite = isFavoriteCheck ? isFavoriteCheck(activeProductId) : isFavorite;
-  const resolvedIsCompareSelected = isCompareCheck ? isCompareCheck(activeProductId) : isCompareSelected;
+  const resolvedIsFavorite = isFavoriteCheck ? isFavoriteCheck(activeCardKey) : isFavorite;
+  const resolvedIsCompareSelected = isCompareCheck ? isCompareCheck(activeCardKey) : isCompareSelected;
+  // El carrito conserva `activeProductId` a propósito: tiene su propia identidad
+  // (`comboId`) y está fuera del alcance de BAL-3328.
   const resolvedIsInCart = isInCartCheck ? isInCartCheck(activeProductId) : isInCart;
 
   // Override card data when a different color sibling is selected
-  const displayName = selectedColor?.displayName || product.displayName;
-  const displayPrice = selectedColor?.price ?? product.price;
-  const displayQuota = selectedColor?.quotaMonthly ?? product.quotaMonthly;
-  const displayOriginalQuota = selectedColor?.originalQuotaMonthly ?? product.originalQuotaMonthly ?? null;
-  const displayDiscount = selectedColor?.discount ?? product.discount;
-  const displaySpecs = product.specs; // Specs fijos del producto base, no varían por color
+  // El nombre del grado elegido sale de BD (`name` del hermano), no de un
+  // reemplazo de texto sobre el del padre: los nombres no siguen un patrón único
+  // —el grado A suele venir sin sufijo y los demás con "(Reacondicionada Grado
+  // X)"— así que fabricarlo daría un título que no existe en ninguna tabla y que
+  // además discreparía del que muestra el detalle (BAL-3340).
+  const displayName =
+    selectedGradeSibling?.name || selectedColor?.displayName || product.displayName;
+  // El grado manda sobre el color cuando hay uno elegido: `price` y `minTermQuota`
+  // vienen del hermano y son los del grado, no los de la card. `??` y no `||`
+  // porque el API manda `null` cuando el grado no tiene pricing cargado, y ahí sí
+  // hay que caer al de la card en vez de mostrar un hueco.
+  const displayPrice = selectedGradeSibling?.price ?? selectedColor?.price ?? product.price;
+  // `lowestQuota` y NO `minTermQuota`: la card anuncia la cuota más baja ("Desde
+  // S/40/mes"), la misma punta que el hook del catálogo. `minTermQuota` es la del
+  // plazo más corto (S/90 en el mismo equipo) y es la que usan las tarjetas del
+  // detalle. Leer la que no era mostraba un salto de precio al elegir grado.
+  const displayQuota =
+    selectedGradeSibling?.lowestQuota ?? selectedColor?.quotaMonthly ?? product.quotaMonthly;
+  // BAL-2859: elegir un color equivale a ver esa card como si fuera
+  // independiente, asi que su descuento y su precio "antes" salen de SU pricing.
+  // El `??` caia al producto primario cuando el color no tiene promocion: el
+  // MacBook Neo Citrus no tiene descuento y mostraba el -30% del Silver con un
+  // tachado que no era suyo. Un sibling siempre trae su pricing resuelto, asi
+  // que "sin descuento" es un dato valido y no un hueco que haya que rellenar.
+  // Hermano es el color que apunta a OTRO producto. Con solo `productId` la
+  // bandera daba true tambien para un producto de un solo color —el API le
+  // manda su propio id en la bolita—, y el card iba a buscar el pricing de un
+  // hermano inexistente: el iPad de home tenia su tachado en `product`, se leia
+  // el del "sibling" (vacio) y la promo al 30% quedaba sin precio antes ni
+  // porcentaje (BAL-2967). Mismo criterio que usa `isSibling` mas abajo.
+  const isSiblingColor =
+    !!selectedColor?.productId && String(selectedColor.productId) !== String(product.id);
+  const displayOriginalQuota = isSiblingColor
+    ? selectedColor?.originalQuotaMonthly ?? null
+    : product.originalQuotaMonthly ?? null;
+  const displayDiscount = isSiblingColor
+    ? selectedColor?.discount
+    : product.discount;
+  // Las specs SI varian por color cuando los siblings son modelos distintos:
+  // el Redmi Note 15 Pro Negro lleva Helio G200 y el Titanium G100. El API
+  // manda las specs de cada sibling; usarlas o caer a las del producto base.
+  const displaySpecs = selectedColor?.specs ?? product.specs;
+
+  // El diferido tambien varia por hermano: en `copia-home` el Advance CN4058
+  // grado B esta diferido y el Semi Nuevo y el C no. El flag es del producto
+  // —con override por landing— y no de la familia, asi que resolverlo una sola
+  // vez con el producto del listado hacia que el aviso no cambiara al elegir
+  // otro grado: quien elegia el C creia que tambien esperaba (y al reves).
+  //
+  // El grado manda sobre el color cuando hay uno elegido, mismo orden que
+  // `displayName` y `displayPrice`.
+  //
+  // `??` y no `||`: `false` es un dato valido del hermano —"este NO es
+  // diferido"— y con `||` se caia al flag del padre, que es justo el bug.
+  // `undefined` (backend viejo, sin el campo) SI cae al padre: es la unica
+  // lectura segura cuando el dato no viaja.
+  const displayIsDeferred =
+    selectedGradeSibling?.isDeferredDelivery ??
+    selectedColor?.isDeferredDelivery ??
+    product.deferredDelivery?.isDeferred ??
+    false;
+
+  // La VENTANA de fechas sigue siendo la de la card: el hermano solo trae el
+  // booleano. Si las fechas difirieran entre hermanos el modal mostraria una
+  // que no es exactamente la suya — limitacion conocida y aceptada; traer el
+  // bloque completo por hermano es un cambio de contrato del backend.
+  const displayDeferredDelivery = displayIsDeferred
+    ? product.deferredDelivery
+    : undefined;
 
   // Detect if title is truncated (line-clamp-2) to show tooltip on hover
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -182,25 +355,42 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, [displayName, checkTruncation]);
 
   // Obtener imágenes según color seleccionado (para carousel)
+  // BAL-2214: cuando el usuario elige un color con imagen propia, esa imagen
+  // encabeza la galería. El comboImage (portada del combo del color primario)
+  // solo lidera cuando NO hay color elegido con imagen — si no, al cambiar de
+  // color se veía la foto del primario + la del color seleccionado.
   const getImagesForSelectedColor = (): string[] => {
+    const comboLead = product.comboImage ? [product.comboImage] : [];
     if (!selectedColorId || !product.colors) {
       // Use images array if it has items, otherwise fallback to thumbnail
       const imgs = product.images.length > 0 ? product.images : [product.thumbnail];
-      return [...new Set(imgs)];
+      return [...new Set([...comboLead, ...imgs])];
     }
-    if (selectedColor?.images && selectedColor.images.length > 0) {
-      return [...new Set(selectedColor.images)];
+    // Solo un sibling REAL de otro producto (color_siblings, trae productId propio)
+    // reemplaza la portada del combo con su imagen. Un color del MISMO producto
+    // (o sin productId, ej. colores derivados de variantes) conserva la foto del
+    // combo al frente — si no, el color primario seleccionado por defecto tapaba el
+    // combo y dos combos del mismo equipo mostraban la misma foto base (BAL-2214).
+    const isSibling = !!selectedColor?.productId && selectedColor.productId !== product.id;
+    if (isSibling && selectedColor?.images && selectedColor.images.length > 0) {
+      return [...new Set([...selectedColor.images])];
     }
-    if (selectedColor?.imageUrl) {
-      return [selectedColor.imageUrl];
+    if (isSibling && selectedColor?.imageUrl) {
+      return [...new Set([selectedColor.imageUrl])];
     }
-    return [product.thumbnail];
+    // Mismo producto: el combo lidera, luego la galería del color elegido (o la del
+    // producto como fallback).
+    const baseImgs = (selectedColor?.images && selectedColor.images.length > 0)
+      ? selectedColor.images
+      : (product.images.length > 0 ? product.images : [product.thumbnail]);
+    return [...new Set([...comboLead, ...baseImgs])];
   };
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Financiamiento: plazo más alto del producto, inicial según hook del producto
-  const selectedTerm = product.maxTermMonths as TermMonths;
+  // Financiamiento: plazo del HOOK (backend) — en la oferta refleja el array
+  // acotado (ej. 12), en el general coincide con maxTermMonths. Inicial del hook.
+  const selectedTerm = (forcedTerm ?? product.hookTermMonths ?? product.maxTermMonths) as TermMonths;
   const selectedInitial = (product.hookInitialPercent ?? 0) as InitialPaymentPercent;
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
@@ -210,8 +400,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedFrequency, setSelectedFrequency] = useState(hookFrequency);
 
   // Per-frequency hook data (price + term + initial)
-  const freqHook = product.paymentHooks?.[selectedFrequency];
-  const displayQuotaForFreq = freqHook?.price ?? displayQuota;
+  // El color elegido manda: cada sibling tiene su propia cuota por frecuencia.
+  // Sin esto la tarjeta mostraba siempre la del producto primario — con el
+  // Titanium seleccionado se veia la cuota del Negro.
+  const freqHook = (selectedColor?.paymentHooks ?? product.paymentHooks)?.[selectedFrequency];
+  // El hermano de grado NO trae `paymentHooks`: el hook es el del producto que
+  // trajo el listado. Si se dejara ganar al hook, elegir el grado C seguiria
+  // mostrando la cuota del B —el bug que se arregla en BAL-3340—, asi que con un
+  // grado elegido manda su `minTermQuota`, que es la cuota de ESE producto.
+  //
+  // Solo aplica a la frecuencia mensual: `minTermQuota` es mensual y no hay de
+  // donde sacar la semanal/quincenal del grado. Hoy no se cruzan —los
+  // reacondicionados de la landing 241 son mensuales—, pero si algun dia lo
+  // fueran, mejor la cuota del hook (frecuencia correcta, grado equivocado) que
+  // una mensual presentada como semanal.
+  const usaCuotaDelGrado = !!selectedGradeSibling && selectedFrequency === 'mensual';
+  const displayQuotaForFreq = usaCuotaDelGrado
+    ? displayQuota
+    : freqHook?.price ?? displayQuota;
 
   const freqShort = selectedFrequency === 'semanal' ? '/sem' : selectedFrequency === 'quincenal' ? '/qcn' : '/mes';
   const displayTermMonths = freqHook?.termMonths
@@ -221,9 +427,45 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const displayInitialPercent = (freqHook?.initialPercent ?? selectedInitial) as InitialPaymentPercent;
   const { initialAmount: displayInitialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, displayInitialPercent);
 
-  const originalQuota = displayOriginalQuota;
+  // Snapshot del financiamiento visible en la card, para adjuntar a analítica (product_click)
+  // Plazo en la frecuencia nativa: 12 meses → 48 semanas / 24 quincenas (mensual = meses)
+  const nativeTermCount = selectedFrequency === 'semanal' ? displayTermMonths * 4
+    : selectedFrequency === 'quincenal' ? displayTermMonths * 2
+    : displayTermMonths;
+  const pricingSnapshot: ProductCardPricingSnapshot = {
+    // Exactamente lo que muestra la card
+    termMonths: displayTermMonths,                  // "en {displayTermMonths} meses"
+    term: nativeTermCount,                          // nº de cuotas en la frecuencia (48 sem / 24 qcn)
+    paymentFrequency: selectedFrequency,            // /mes · /qcn · /sem
+    installment: Math.floor(displayQuotaForFreq),   // S/{Math.floor(displayQuotaForFreq)}
+    downPayment: Math.floor(displayInitialAmount),  // inicial S/{Math.floor(displayInitialAmount)}
+    downPaymentPercent: displayInitialPercent,
+  };
+  // La landing sale de la ruta ([landing]/catalogo): el card no la recibia
+  // por props y agregarsela obligaria a tocar a todos sus consumidores.
+  const routeParams = useParams();
+  const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
 
-  const couponQuotaDisplay = campaignCoupon
+  const handleViewDetail = (slug?: string) => onViewDetail?.(slug, pricingSnapshot);
+
+  // El precio "antes" que manda el listado es el de la frecuencia del gancho
+  // por defecto. Al elegir otra frecuencia se lleva a la cuota de ESA
+  // frecuencia con el mismo descuento: sin esto la card quincenal del iPhone
+  // mostraba el tachado de la semanal, ~~S/91~~ -30% sobre S/127/qcn
+  // (BAL-4163). Promo fija: la misma diferencia en soles; porcentual o
+  // descuento real: la misma proporcion.
+  const originalQuota =
+    displayOriginalQuota && selectedFrequency !== hookFrequency && quota > 0
+      ? product.promotion?.discountType === 'fixed'
+        ? Math.round(displayQuotaForFreq + (displayOriginalQuota - quota))
+        : Math.round(displayQuotaForFreq * (displayOriginalQuota / quota))
+      : displayOriginalQuota;
+
+  // La vitrina "solo 1.ª cuota" (cuota lista tachada + primera cuota con
+  // descuento) es narrativa de cupón de REFERIDO: solo se calcula/muestra
+  // cuando el cupón trae referidor. Cupones genéricos aplican su descuento
+  // en el checkout, sin este tratamiento especial en la card.
+  const couponQuotaDisplay = campaignCoupon?.referrerName
     ? getCouponQuotaDisplay(displayQuotaForFreq, campaignCoupon, originalQuota)
     : null;
   const showCampaignFirstQuota = couponQuotaDisplay?.hasFirstQuotaOffer ?? false;
@@ -242,7 +484,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const createCartItem = (): CartItem => ({
     productId: activeProductId,
-    slug: selectedColor?.slug || product.slug,  // For API calls when fetching payment plans
+    slug: activeSlug,  // For API calls when fetching payment plans
     name: displayName,
     shortName: product.name,
     brand: product.brand,
@@ -254,7 +496,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     colorHex: selectedColor?.hex,
     months: displayTermMonths as TermMonths,
     term: nativeTerm,
-    paymentFrequency: isSubMonthlyFreq ? selectedFrequency : undefined,
+    // La frecuencia se manda SIEMPRE, mensual incluida. Omitirla dejaba la
+    // clave fuera del JSON del submit y el backend la inventaba como
+    // "mensual"; si el producto no tiene celda de pricing mensual, buscaba
+    // un precio inexistente y la solicitud nacia con TEA 0, inicial 0 o la
+    // cuota de otra frecuencia (BAL-3994).
+    paymentFrequency: selectedFrequency,
     initialPercent: displayInitialPercent,
     initialAmount: displayInitialAmount,
     monthlyPayment: displayQuotaForFreq,
@@ -271,7 +518,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // ============================================
   const createWishlistItem = (): WishlistItem => ({
     productId: activeProductId,
-    slug: selectedColor?.slug || product.slug,
+    slug: activeSlug,
     name: displayName,           // Full name for display
     shortName: product.name,     // Short name
     brand: product.brand,
@@ -289,6 +536,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     addedAt: Date.now(),
   });
 
+  // "Lo quiero": si el producto tiene entrega diferida, primero el aviso de fecha;
+  // al confirmar se agrega al carrito.
+  const handleQuieroClick = () => {
+    if (displayIsDeferred) {
+      setShowDeferredModal(true);
+      return;
+    }
+    onAddToCart?.(createCartItem());
+  };
+
   // Promotion template data
   const promoTemplate = product.promotion?.template;
   const promoBorderColor = promoTemplate?.borderColor || 'var(--color-primary)';
@@ -297,11 +554,79 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const PromoBannerIcon = promoTemplate?.bannerIcon ? PROMO_BANNER_ICONS[promoTemplate.bannerIcon] : null;
   const isTopBarBanner = promoTemplate?.bannerStyle === 'top_bar' || !promoTemplate?.bannerStyle;
 
-  // Condición cruda para el badge: prioriza el código del API (nueva/reacondicionada/open_box);
-  // cae al enum normalizado para mock data sin conditionCode.
-  const conditionCode = product.conditionCode || product.condition;
-  // El badge se muestra SOLO para reacondicionados (no para nuevos ni open_box).
-  const showCondition = isRefurbishedCondition(conditionCode);
+  // Qué condición amerita badge lo decide el backend (BAL-3261,
+  // `catalog_rules.condition_badges`): si no manda texto, esta card no lleva
+  // badge. La card ya no repite esa regla comparando códigos de condición.
+  // Condición y grado se ocultan juntos: describen el mismo estado del equipo, y
+  // la campaña que suprime uno suprime el par.
+  const showCondition = !hideStateBadges && !!product.conditionLabelText;
+  // El badge nombra el grado ELEGIDO, no el que trajo el listado: con el chip en
+  // C, un badge que dijera "Grado A" seria la misma card afirmando dos grados a
+  // la vez (BAL-3340). Fuera de `compact` no hay chip, asi que `selectedGrade`
+  // sigue siendo el del producto y el badge no cambia para el resto de landings.
+  //
+  // La card normal también muestra el chip cuando el producto está agrupado por
+  // grado (`tieneGradosAgrupados`): ahí el badge sigue al grado elegido igual
+  // que en la compacta.
+  const gradosEnCardNormal = !compact && tieneGradosAgrupados(product);
+
+  // La franja de grados: una pill por grado, el agotado deshabilitado y el
+  // nombre del elegido debajo. La usan la card compacta (reacondicionados) y
+  // la normal cuando el producto está agrupado por grado.
+  const renderGrados = () => {
+    const grados = product.gradeSiblings ?? [];
+    const elegido = grados.find((g) => g.grade === selectedGrade);
+    // Nombre del grado elegido ("Buen estado"), no solo su letra:
+    // una "B" suelta no significa nada para quien no conoce la
+    // escala, y la card es el primer sitio donde la ve.
+    const nombreElegido = elegido && isGradeKey(elegido.grade)
+      ? GRADE_COPY[elegido.grade].titulo
+      : null;
+
+    return (
+      <div data-testid="card-grades" className="flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          {grados.map((g) => {
+            const agotado = !g.isAvailable;
+            const esElegido = g.grade === selectedGrade;
+            return (
+              <button
+                key={g.grade}
+                type="button"
+                aria-label={`Grado ${g.grade}`}
+                aria-pressed={esElegido}
+                disabled={agotado}
+                // El agotado explica POR QUÉ no responde: un
+                // botón muerto sin motivo se lee como un fallo.
+                title={agotado ? `Grado ${g.grade} — sin stock` : `Grado ${g.grade}`}
+                onClick={() => setSelectedGrade(g.grade)}
+                // min-h-8: las pills tenían ~24px, por debajo de
+                // lo cómodo para el pulgar en móvil.
+                className={`flex-1 min-h-8 rounded-lg border text-xs font-bold transition-colors ${
+                  agotado
+                    ? 'border-dashed border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-muted,#f3f4f6)] text-[var(--text-faint,#9ca3af)] cursor-not-allowed line-through decoration-1'
+                    : esElegido
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm cursor-pointer'
+                    : 'border-[var(--color-primary)] text-[var(--color-primary)] cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.08)]'
+                }`}
+              >
+                {g.grade}
+              </button>
+            );
+          })}
+        </div>
+        {/* Alto reservado aunque no haya nombre: sin él, una card
+            con grado sin copy (el D) mediría menos que sus
+            vecinas y la fila quedaría dispareja. */}
+        <span className="min-h-[14px] text-[10px] leading-[14px] text-[var(--text-muted,#6b7280)]">
+          {nombreElegido}
+        </span>
+      </div>
+    );
+  };
+  const gradoMostrado =
+    (compact || gradosEnCardNormal ? selectedGrade : undefined) ?? product.grade;
+  const showGrade = !hideStateBadges && !!gradoMostrado;
   const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
 
   return (
@@ -315,18 +640,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <Card
         className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-[var(--surface,#fff)]"
-        style={promoTemplate ? {
-          border: `3px solid ${promoBorderColor}`,
-          boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
-        } : undefined}
+        style={
+          approvedTag
+            ? { border: '2px solid #16a34a', boxShadow: '0 0 16px 3px #16a34a33, 0 4px 12px #16a34a26' }
+            : promoTemplate
+            ? {
+                border: `3px solid ${promoBorderColor}`,
+                boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
+              }
+            : undefined
+        }
       >
         <CardBody className="p-0 flex flex-col">
+          {/* Banner "Aprobado para ti" (flujo de oferta): reemplaza al banner de
+              promoción — en la oferta todas las cards llevan el mismo banner verde.
+              Mismo lenguaje visual que la card del recomendado del index de oferta
+              (OfertaEquipoCard): texto "Aprobado para ti" + 2 checks que laten. */}
+          {approvedTag && (
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
+              style={{ background: 'linear-gradient(135deg, #16a34a 0%, #16a34acc 50%, #16a34a 100%)' }}
+            >
+              <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </motion.div>
+              <span
+                className="text-base font-black tracking-widest uppercase text-center text-white"
+                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+              >
+                Aprobado para ti
+              </span>
+              <motion.div animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </motion.div>
+            </div>
+          )}
           {/* Spacer for non-promo cards in rows that have promo cards */}
-          {needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
+          {!approvedTag && needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
             <div className="h-[44px] shrink-0" />
           )}
-          {/* Promotion Banner */}
-          {promoTemplate && isTopBarBanner && (
+          {/* Promotion Banner (oculto en oferta: lo reemplaza el banner Aprobado) */}
+          {!approvedTag && promoTemplate && isTopBarBanner && (
             <div
               className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
               style={{
@@ -358,7 +712,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
           )}
-          {promoTemplate && !isTopBarBanner && (
+          {!approvedTag && promoTemplate && !isTopBarBanner && (
             <div className="absolute top-0 left-0 z-20">
               <div
                 className="px-4 py-1.5 text-sm font-black rounded-br-xl"
@@ -392,22 +746,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Action buttons - top right (p-3 = 44px touch target WCAG 2.5.5) */}
             <div className="absolute top-3 right-3 flex flex-col gap-1.5">
               {/* Favorite */}
-              <button
-                id={favoriteButtonId}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite?.(createWishlistItem());
-                }}
-                className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
-              >
-                <Heart
-                  className={`w-5 h-5 transition-colors ${
-                    resolvedIsFavorite
-                      ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
-                  }`}
-                />
-              </button>
+              {!hideFavorite && (
+                <button
+                  id={favoriteButtonId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite?.(createWishlistItem());
+                  }}
+                  className="p-3 rounded-full bg-[var(--surface,#fff)]/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
+                >
+                  <Heart
+                    className={`w-5 h-5 transition-colors ${
+                      resolvedIsFavorite
+                        ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
+                        : 'text-[var(--text-faint,#d4d4d4)] hover:text-[var(--color-primary)]'
+                    }`}
+                  />
+                </button>
+              )}
               {/* Compare */}
               {onCompare && (
                 <button
@@ -415,7 +771,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!compareDisabled || resolvedIsCompareSelected) {
-                      onCompare(activeProductId);
+                      onCompare(activeCardKey);
                     }
                   }}
                   disabled={compareDisabled && !resolvedIsCompareSelected}
@@ -448,12 +804,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             {/* Condition badge + regular tags — top-left */}
-            {(showCondition || hasTopLeftTags) && (
+            {(showCondition || showGrade || hasTopLeftTags) && (
               <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
                 {showCondition && (
-                  <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
+                  <ConditionBadge
+                    conditionLabelText={product.conditionLabelText}
+                    conditionLabelColor={product.conditionLabelColor}
+                  />
                 )}
-                {hasTopLeftTags && <ProductTags tags={product.tags} />}
+                {showGrade && (
+                  <CardBadge backgroundColor="rgba(0,0,0,0.7)">
+                    Grado {gradoMostrado}
+                  </CardBadge>
+                )}
+                {hasTopLeftTags && <ProductTags tags={product.tags} labels={labels} />}
               </div>
             )}
             {/* Badge NVIDIA derivado del spec GPU + ribbons de partners (no-NVIDIA) — bottom-left */}
@@ -484,12 +848,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="relative group/title min-h-[3rem] sm:min-h-[3.5rem] mb-3">
               {getDetailHref ? (
                 <Link
-                  href={getDetailHref(selectedColor?.slug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
+                  href={getDetailHref(activeSlug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
                   onClick={() => {
                     if (promoTemplate) {
-                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
+                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: activeSlug });
                     }
-                    onViewDetail?.(selectedColor?.slug);
+                    handleViewDetail(activeSlug);
                   }}
                   className="block"
                 >
@@ -506,9 +870,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   className="font-bold text-[var(--text-strong,#1f2937)] text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
                   onClick={() => {
                     if (promoTemplate) {
-                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
+                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: activeSlug });
                     }
-                    onViewDetail?.(selectedColor?.slug);
+                    handleViewDetail(activeSlug);
                   }}
                 >
                   {displayName}
@@ -522,8 +886,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Color Selector - solo visible en cards de familia (colors.length > 1) */}
-            {!hideColors && product.colors && product.colors.length > 1 && (
+            {/* Variante compacta (reacondicionados): una sola franja que muestra
+                grados O colores, nunca los dos. El contenedor se dibuja SIEMPRE,
+                aunque quede vacío, para que todas las cards de la fila midan lo
+                mismo y la grilla no quede dispareja. */}
+            {compact ? (
+              <div
+                data-testid="card-selector-slot"
+                className="mb-4 min-h-[44px] flex flex-col justify-center gap-1"
+              >
+                {(() => {
+                  const modo = cardSelectorMode(product);
+
+                  if (modo === 'grades') return renderGrados();
+
+                  if (modo === 'colors' && product.colors) {
+                    return (
+                      <div className="flex justify-center">
+                        <ColorSelector
+                          colors={product.colors}
+                          selectedColorId={selectedColorId}
+                          onColorSelect={setSelectedColorId}
+                          version={colorSelectorVersion}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
+              </div>
+            ) : (
+            /* Producto agrupado por grado (A, B…): los grados reemplazan a los
+                colores, igual que en la card compacta. Sin esto el grado B
+                quedaba escondido detrás del A. */
+            gradosEnCardNormal ? (
+              <div data-testid="card-selector-slot" className="mb-4 min-h-[44px] flex flex-col justify-center gap-1">
+                {renderGrados()}
+              </div>
+            ) :
+            /* Color Selector — visible desde un color: los de una familia
+                (color_siblings) y tambien el color propio de la variante. */
+            !hideColors && product.colors && product.colors.length >= 1 && (
               <div className="flex justify-center mb-4 min-h-[32px]">
                 <ColorSelector
                   colors={product.colors}
@@ -532,9 +936,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   version={colorSelectorVersion}
                 />
               </div>
+            )
             )}
 
-            {/* Specs técnicas con iconos - solo muestra specs con dato real */}
+            {/* Specs técnicas con iconos - solo muestra specs con dato real. */}
             <div className="space-y-2 min-h-[120px]">
               {displaySpecs?.processor?.model && (
                 <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted,#4b5563)]">
@@ -624,7 +1029,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
                     <div className="flex items-baseline justify-center gap-0.5 min-w-0 mt-1">
                       <span className="text-3xl sm:text-4xl font-black text-white break-words leading-none">
-                        S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.firstQuota))}
+                        S/{formatCuotaDeLanding(couponQuotaDisplay.firstQuota, landingSlug)}
                       </span>
                       <span className="text-base sm:text-lg text-white/80">{freqShort}</span>
                     </div>
@@ -640,22 +1045,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     </span>
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-sm sm:text-base font-bold text-[var(--text-muted,#6b7280)]">
-                        S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.listQuota))}
+                        S/{formatCuotaDeLanding(couponQuotaDisplay.listQuota, landingSlug)}
                       </span>
                       <span className="text-xs text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                     </div>
                   </div>
 
                   <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-2 break-words text-center">
-                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
+                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatCuotaDeLanding(displayInitialAmount, landingSlug)}` : ' · sin inicial'}
                   </p>
                 </>
               ) : (
                 <>
                   <div className="h-5 flex items-center justify-center gap-1.5">
-                    {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
+                    {originalQuota && originalQuota > displayQuotaForFreq && (!product.promotion || product.promotion.discountValue > 0) ? (
                       <>
-                        <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
+                        <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">S/{formatCuotaDeLanding(originalQuota, landingSlug)}{freqShort}</span>
                         {displayDiscount && displayDiscount > 0 && (
                           <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
                             {product.promotion?.discountType === 'fixed'
@@ -670,16 +1075,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   </div>
                   <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
                     <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">
-                      S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}
+                      S/{formatCuotaDeLanding(displayQuotaForFreq, landingSlug)}
                     </span>
                     <span className="text-base sm:text-lg text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                   </div>
                   <p className="text-[11px] sm:text-xs text-[var(--text-muted,#6b7280)] mt-2 break-words">
-                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
+                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatCuotaDeLanding(displayInitialAmount, landingSlug)}` : ' · sin inicial'}
                   </p>
                 </>
               )}
             </div>
+
+            {/* Entrega diferida (informativa) — OCULTO a pedido de negocio (BAL-2824).
+                El aviso de fecha se mantiene en el modal previo a "Lo quiero"
+                (handleQuieroClick) y en el detalle de producto; se retiró de la
+                grilla porque la fecha estimada quedaba a la vista y desactualizada.
+                Para reactivarlo, descomentar.
+            {product.deferredDelivery?.isDeferred && (() => {
+              const range = formatDeferredFrom(product.deferredDelivery.estimatedFrom);
+              return (
+                <div className="mb-3 text-xs">
+                  <div className="flex items-center justify-center gap-1.5 font-semibold text-[var(--text-strong,#1f2937)]">
+                    <Truck className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+                    <span>Envío gratis</span>
+                  </div>
+                  {range && (
+                    <p className="text-center text-[var(--text-muted,#6b7280)] mt-0.5">
+                      Entrega: <span className="font-semibold text-[var(--text-strong,#1f2937)]">{range}</span>
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+            */}
 
             {/* CTAs */}
             <div className="flex gap-2 w-full">
@@ -687,14 +1115,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <Button
                   id={detailButtonId}
                   as={Link}
-                  href={getDetailHref(selectedColor?.slug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
+                  href={getDetailHref(activeSlug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
                   size="lg"
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                  onPress={() => onViewDetail?.(selectedColor?.slug)}
+                  onPress={() => handleViewDetail(activeSlug)}
                 >
-                  Detalle
+                  {compact ? 'Ver detalle' : 'Detalle'}
                 </Button>
               ) : (
                 <Button
@@ -703,9 +1131,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                   startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                  onPress={() => onViewDetail?.(selectedColor?.slug)}
+                  onPress={() => handleViewDetail(activeSlug)}
                 >
-                  Detalle
+                  {compact ? 'Ver detalle' : 'Detalle'}
                 </Button>
               )}
               <Button
@@ -726,15 +1154,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       }
                     : undefined
                 }
-                onPress={!resolvedIsInCart ? () => onAddToCart?.(createCartItem()) : undefined}
-                isDisabled={resolvedIsInCart}
+                onPress={
+                  onCtaClick
+                    ? onCtaClick
+                    : !resolvedIsInCart
+                      ? handleQuieroClick
+                      : undefined
+                }
+                isDisabled={onCtaClick ? false : resolvedIsInCart || addToCartDisabled}
               >
-                {resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
+                {onCtaClick ? (ctaLabel ?? 'Elegir este equipo') : resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>
             </div>
           </div>
         </CardBody>
       </Card>
+
+      {/* Aviso de entrega diferida al dar "Lo quiero" */}
+      <DeferredDeliveryModal
+        isOpen={showDeferredModal}
+        onClose={() => setShowDeferredModal(false)}
+        onConfirm={() => onAddToCart?.(createCartItem())}
+        deferredDelivery={displayDeferredDelivery}
+        productName={displayName}
+      />
     </motion.div>
   );
 };

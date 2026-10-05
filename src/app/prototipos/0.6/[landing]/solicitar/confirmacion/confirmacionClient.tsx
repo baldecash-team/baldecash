@@ -10,24 +10,27 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { readOtpHandoff, type OtpHandoff } from '../utils/otpHandoff';
+import { isDemoLanding, readDemoApplication } from '../utils/demoApplication';
+import { reclamarEmisionDelEnvio } from '../utils/envioEmitido';
+import type { ApplicationStatusData } from './types/applicationStatus';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
 import { displayMonths } from '../../../utils/paymentTerm';
-import { ReceivedScreen } from './components/received';
+import { ReceivedScreen, ContactInfo } from './components/received';
+import { Illustration } from './components/received/illustration';
+import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 
 /**
@@ -45,81 +48,6 @@ function getStoredSessionUuid(landing: string): string | null {
   } catch {
     return null;
   }
-}
-
-// Types
-interface ApplicationStatusData {
-  code: string;
-  status: string;
-  submitted_at: string | null;
-  evaluated_at?: string | null;
-  approved_at?: string | null;
-  applicant_name?: string | null;
-
-  // Products array (multiple products support)
-  products?: Array<{
-    name: string;
-    brand?: string | null;
-    image: string | null;
-    quantity: number;
-    unit_price: number;
-    final_price: number;
-    monthly_quota: number;
-    specs?: {
-      processor?: string;
-      ram?: string;
-      storage?: string;
-    } | null;
-    // v0.6.1: Variant/color info
-    variant?: {
-      id: number;
-      color_name: string;
-      color_hex: string;
-    } | null;
-    // v0.6.1: Per-product initial payment
-    initial_payment_percent?: number;
-    initial_payment?: number;
-  }>;
-
-  /** Número real de cuotas en la frecuencia natural (preferido sobre `term_months`). */
-  term?: number;
-  /** @deprecated Usar `term` + `payment_frequency`. */
-  term_months?: number;
-  payment_frequency?: string;
-
-  // v0.6.1: Initial payment info for data coherence
-  initial_payment_percent?: number;
-  initial_payment?: number;
-
-  accessories?: Array<{
-    name: string;
-    monthly_quota: number;
-  }> | null;
-
-  insurance?: {
-    name: string;
-    monthly_price: number;
-  } | null;
-
-  insurances?: Array<{
-    name: string;
-    monthly_price: number;
-  }> | null;
-
-  coupon?: {
-    code: string;
-    discount_amount: number;
-  } | null;
-
-  total_monthly_payment?: number;
-
-  status_history: Array<{
-    previous_status: string | null;
-    new_status: string;
-    reason_code: string | null;
-    reason_text: string | null;
-    changed_at: string | null;
-  }>;
 }
 
 // Demo options for testing
@@ -154,8 +82,50 @@ const RESULT_OPTIONS = [
 ];
 
 /**
+ * Cómo cierra la confirmación en Family Farms, donde la solicitud no queda "en
+ * evaluación" como en el resto del catálogo.
+ *
+ * Los dos modos existen porque los tres perfiles del convenio terminan en
+ * lugares distintos:
+ *
+ * - `completado` (cosechador) — cierra el KYC, que aprueba y firma en el acto
+ *   (`/completar` contra legacy). Sale con un calendario concreto por delante:
+ *   su primera armada, con fecha fija de campaña. Se le celebra el proceso
+ *   terminado porque el siguiente paso es suyo y ya lo sabe. Requiere `?kyc=1`,
+ *   que pone `kycClient` cuando de verdad cerró el flujo.
+ *
+ * - `aprobado` (administrativo y obrero fijo) — NO tienen KYC: su landing lo
+ *   trae apagado, así que van del submit directo acá. En el convenio la
+ *   aprobación está garantizada por la whitelist de DNI, y el siguiente paso no
+ *   es suyo sino de un asesor que los contacta. Por eso no depende de `?kyc=1`:
+ *   no hay KYC del que volver.
+ *
+ * Fuera de Family Farms no aplica ninguno: ahí la solicitud sí se evalúa y la
+ * pantalla del submit tiene que quedarse tal cual, con su plazo y su timeline.
+ *
+ * Que la landing mande y no solo el flag importa porque el parámetro es pegable
+ * a mano: sin este filtro, cualquiera podría hacer que una solicitud en
+ * evaluación se anuncie como resuelta.
+ */
+export type ModoCierreKyc = 'completado' | 'aprobado';
+
+export function modoCierreDelKyc(
+  searchParams: URLSearchParams,
+  landing: string
+): ModoCierreKyc | null {
+  if (!esFamilyFarms(landing)) return null;
+  if (esFamilyFarmsCosechador(landing)) {
+    return searchParams.get('kyc') === '1' ? 'completado' : null;
+  }
+  return 'aprobado';
+}
+
+/**
  * Build ReceivedData from API response (preferred) or URL params (fallback)
  */
+/** UUID: el `code` de la URL es el token publico, no el numero (BAL-4188). */
+const ES_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function buildReceivedData(
   applicationCode: string,
   applicationData: ApplicationStatusData | null,
@@ -173,6 +143,7 @@ function buildReceivedData(
   // Mapear productos desde API (v0.6.1: incluye variant info y initial payment)
   const products = applicationData?.products?.map((p) => ({
     name: p.name,
+    type: p.type || undefined,
     brand: p.brand || undefined,
     image: p.image || '',
     quantity: p.quantity || 1,
@@ -197,6 +168,7 @@ function buildReceivedData(
   const accessories = applicationData?.accessories?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
+    isGift: acc.is_gift ?? false,
   }));
 
   // Mapear seguro(s) desde API — soporta array (insurances) y singular (insurance)
@@ -224,7 +196,12 @@ function buildReceivedData(
     : undefined;
 
   return {
-    applicationId: applicationData?.code || applicationCode,
+    // El `code` de la URL puede ser el token secreto (BAL-4188): nunca se
+    // muestra como "N° de solicitud". Sin respuesta del API, va un guion.
+    applicationId:
+      applicationData?.reference ||
+      applicationData?.code ||
+      (ES_TOKEN.test(applicationCode) ? '—' : applicationCode),
     userName,
     submittedAt: applicationData?.submitted_at
       ? new Date(applicationData.submitted_at)
@@ -247,6 +224,120 @@ function buildReceivedData(
 }
 
 /**
+ * Vista limitada — se abrió el link con `?code=APP-…` (sin token, D2).
+ *
+ * ws2 responde `/status` recortado: sin nombre, sin equipo ni cuota, porque
+ * el `application_code` es adivinable y esos datos no se pueden exponer sin
+ * la prueba de titularidad que da el token. Se pinta solo el N° de solicitud
+ * con el mensaje y la ilustración de siempre, más el CTA de WhatsApp.
+ */
+function LimitedConfirmationContent({
+  applicationData,
+  onGoHome,
+}: {
+  applicationData: ApplicationStatusData;
+  onGoHome: () => void;
+}) {
+  const numero = applicationData.reference || applicationData.code;
+
+  // Siempre el mismo mensaje y la misma ilustracion animada que la pantalla
+  // completa: sin token no se dice el estado (rechazada, aprobada...), porque
+  // el `code` es adivinable y el resultado de otra persona tambien es privado.
+  return (
+    <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
+        <Illustration />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-center mb-6 sm:mb-8"
+        >
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight">
+            ¡Hemos recibido tu solicitud!
+          </h1>
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-neutral-100 rounded-full max-w-full">
+            <span className="text-xs sm:text-sm text-neutral-500 flex-shrink-0">N° de solicitud</span>
+            <span className="text-xs sm:text-sm font-mono font-semibold text-neutral-700 break-all">
+              {numero}
+            </span>
+          </div>
+        </motion.div>
+        <ContactInfo onGoToHome={onGoHome} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * OtpValidationCta — CTA opcional para validar el correo desde la confirmación.
+ *
+ * Se muestra SOLO cuando existe un handoff de OTP sin verificar para esta
+ * solicitud. Como el handoff únicamente se escribe durante el submit cuando la
+ * landing tiene `otp_verification` habilitado, su sola presencia funciona como
+ * condición "OTP activo para esta landing" — sin acoplar esta página a la
+ * config de solicitar / PreviewProvider.
+ *
+ * El handoff se lee en un efecto (sessionStorage es client-only): en SSR y en el
+ * primer render cliente devuelve null, y tras hidratar aparece el CTA si aplica.
+ */
+function OtpValidationCta({
+  landing,
+  applicationCode,
+  onValidate,
+}: {
+  landing: string;
+  applicationCode: string;
+  onValidate: (applicationId: number) => void;
+}) {
+  const [handoff, setHandoff] = useState<OtpHandoff | null>(null);
+
+  useEffect(() => {
+    setHandoff(readOtpHandoff(landing));
+  }, [landing]);
+
+  const show =
+    !!handoff &&
+    !handoff.verified &&
+    (!handoff.code || handoff.code === applicationCode);
+
+  if (!show || !handoff) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="otp-cta-animated-border mb-6 sm:mb-8 rounded-2xl border border-[var(--color-primary)]/20
+                 bg-[var(--color-primary)]/5 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+    >
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">
+          <Mail className="w-5 h-5 text-[var(--color-primary)]" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm sm:text-base font-semibold text-neutral-800 break-words">
+            Validar tu correo puede agilizar tu proceso
+          </p>
+          <p className="text-xs sm:text-sm text-neutral-500 break-words">
+            Confirma tu email para avanzar más rápido.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onValidate(handoff.applicationId)}
+        className="w-full sm:w-auto flex-shrink-0 px-4 py-2.5 min-h-[44px] flex items-center justify-center
+                   bg-[var(--color-primary)] text-white rounded-lg font-medium text-sm
+                   cursor-pointer hover:opacity-90 transition-opacity"
+      >
+        Validar mi correo
+      </button>
+    </motion.div>
+  );
+}
+
+/**
  * Real Confirmation View - Shown when ?code= is present
  */
 function RealConfirmationContent({
@@ -256,6 +347,8 @@ function RealConfirmationContent({
   searchParams,
   onGoHome,
   overlayVariant,
+  otpCta,
+  landing,
 }: {
   applicationCode: string;
   applicationData: ApplicationStatusData | null;
@@ -263,14 +356,57 @@ function RealConfirmationContent({
   searchParams: URLSearchParams;
   onGoHome: () => void;
   overlayVariant?: string | null;
+  otpCta?: React.ReactNode;
+  landing: string;
 }) {
   if (isLoading) {
     return <LoadingFallback />;
   }
 
+  // Respuesta limitada (BAL-4188, D2): ws2 la recorta cuando el link no trae
+  // token — no hay nombre, equipo ni cuota que pintar, así que ni se intenta
+  // armar `receivedData` con eso ausente.
+  if (applicationData?.limited) {
+    return (
+      <LimitedConfirmationContent
+        applicationData={applicationData}
+        onGoHome={onGoHome}
+      />
+    );
+  }
+
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} overlayVariant={overlayVariant} />;
+  const modoCierreKyc = modoCierreDelKyc(searchParams, landing);
+
+  return (
+    <ReceivedScreen
+      data={receivedData}
+      onGoToHome={onGoHome}
+      overlayVariant={overlayVariant}
+      otpCta={otpCta}
+      modoCierreKyc={modoCierreKyc}
+      cierre={applicationData?.cierre ?? null}
+      landing={landing}
+      applicationCode={applicationCode}
+      onDescargarConstancia={() => {
+        // Que la copia se haya ofrecido ya queda registrado al cerrar el KYC;
+        // esto es lo otro que el §4 paso 12 pide poder decir: que la persona
+        // efectivamente la tomo. Fire-and-forget, como el resto de esta
+        // pantalla: si el envio del evento falla, la descarga sigue.
+        const sessionId = getStoredSessionUuid(landing);
+        if (!sessionId || !applicationCode) return;
+        sendEventsBatch(sessionId, [
+          {
+            event_type: 'kyc_contract_copy_downloaded',
+            client_ts: Date.now(),
+            page_url: window.location.pathname,
+            properties: { application_code: applicationCode },
+          },
+        ]);
+      }}
+    />
+  );
 }
 
 /**
@@ -361,6 +497,9 @@ function ConfirmacionContent() {
   // Scroll to top on page load
   useScrollToTop();
 
+  // OTP ya NO es un gate: la verificación de correo se ofrece como CTA opcional
+  // dentro de la vista de confirmación (ver <OtpValidationCta/>), no se fuerza.
+
   // Get layout data from context
   const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData } = useLayout();
 
@@ -368,17 +507,44 @@ function ConfirmacionContent() {
   useEffect(() => {
     if (!applicationCode) return;
     let cancelled = false;
+
+    // Landings demo: la solicitud no existe en ws2. El submit dejó el detalle
+    // armado en sessionStorage; se lee de ahí y no se consulta la API ni se
+    // emite `application_submitted` (no hay solicitud que reportar).
+    if (isDemoLanding(landing)) {
+      setApplicationData(readDemoApplication(landing, applicationCode));
+      setIsLoadingStatus(false);
+      return;
+    }
+
     setIsLoadingStatus(true);
+    // El link funciona con cualquier landing (D3): si la solicitud es de
+    // otra, se redirige antes de pintar nada de esta — `redirecting` frena el
+    // `.finally()` de abajo para que el loader siga mientras la navegación
+    // ocurre, en vez de destaparse un resumen a medio armar.
+    let redirecting = false;
 
     getApplicationStatus(applicationCode)
       .then((data) => {
         if (cancelled) return;
         if (data) {
+          if (data.landing_slug && data.landing_slug !== landing) {
+            redirecting = true;
+            const newPathname = window.location.pathname.replace(
+              `/${landing}/`,
+              `/${data.landing_slug}/`
+            );
+            router.replace(`${newPathname}${window.location.search}`);
+            return;
+          }
+
           setApplicationData(data);
 
-          // Fire-and-forget: track application_submitted
+          // Fire-and-forget: track application_submitted. Una sola vez por
+          // solicitud: reabrir esta pantalla no vuelve a emitirlo (ver
+          // `reclamarEmisionDelEnvio`).
           const sessionId = getStoredSessionUuid(landing);
-          if (sessionId) {
+          if (sessionId && reclamarEmisionDelEnvio(landing, data.code)) {
             sendEventsBatch(sessionId, [
               {
                 event_type: 'application_submitted',
@@ -406,11 +572,11 @@ function ConfirmacionContent() {
         console.error('[Confirmacion] getApplicationStatus failed:', err);
       })
       .finally(() => {
-        if (!cancelled) setIsLoadingStatus(false);
+        if (!cancelled && !redirecting) setIsLoadingStatus(false);
       });
 
     return () => { cancelled = true; };
-  }, [applicationCode]);
+  }, [applicationCode, landing, router]);
 
   // Navigation handlers
   const handleSelectResult = (path: string) => {
@@ -443,7 +609,37 @@ function ConfirmacionContent() {
     router.push(routes.landingHome(landing));
   };
 
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  // CTA opcional de validación de correo (OTP). Navega a /verificacion llevando
+  // el application_id del handoff + el code de la solicitud actual.
+  const handleValidateEmail = (applicationId: number) => {
+    const sessionId = getStoredSessionUuid(landing);
+    if (sessionId) {
+      sendEventsBatch(sessionId, [
+        {
+          event_type: 'confirmation_cta_click',
+          client_ts: Date.now(),
+          page_url: window.location.pathname,
+          properties: { cta_type: 'validate_email' },
+        },
+      ]);
+    }
+    router.push(
+      routes.solicitarVerificacion(landing, {
+        applicationId,
+        code: applicationCode ?? undefined,
+      })
+    );
+  };
+
+  const otpCta = applicationCode ? (
+    <OtpValidationCta
+      landing={landing}
+      applicationCode={applicationCode}
+      onValidate={handleValidateEmail}
+    />
+  ) : null;
+
+  const isGamer = isGamerLanding(params?.landing as string);
 
   // 404 if landing not found — checked before the gamer wrap so the user sees
   // NotFoundContent instead of an empty gamer shell when the landing fails.
@@ -470,6 +666,8 @@ function ConfirmacionContent() {
             searchParams={searchParams}
             onGoHome={handleGoHome}
             overlayVariant={overlayVariant}
+            otpCta={otpCta}
+            landing={landing}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
@@ -505,6 +703,8 @@ function ConfirmacionContent() {
             searchParams={searchParams}
             onGoHome={handleGoHome}
             overlayVariant={overlayVariant}
+            otpCta={otpCta}
+            landing={landing}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
@@ -517,7 +717,7 @@ function ConfirmacionContent() {
 
 function LoadingFallback() {
   const params = useParams();
-  const isGamer = (params?.landing as string) === 'zona-gamer';
+  const isGamer = isGamerLanding(params?.landing as string);
 
   if (isGamer) {
     return (
@@ -714,17 +914,21 @@ function GamerConfirmacionWrapper({ children, footerData }: { children: React.Re
         .gamer-confirmacion-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
       `}</style>
       <div className={isDark ? 'gamer-confirmacion-dark' : 'gamer-confirmacion-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
+          promoBannerData={navbarProps?.promoBannerData}
         />
-        {children}
+        <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
+          {children}
+        </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

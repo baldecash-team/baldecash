@@ -12,7 +12,7 @@
  * Validates coupons via API: POST /api/v1/public/coupons/validate
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Loader2, Check, X, Sparkles, Lock } from 'lucide-react';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
@@ -21,6 +21,45 @@ import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
+
+/**
+ * Cuánto se muestra el mensaje de error antes de volver a 'idle'.
+ * Estaba en 2s, que no alcanza a leer un texto como "Este cupón no aplica
+ * para el producto seleccionado" — desaparecía a mitad de lectura.
+ */
+const ERROR_VISIBLE_MS = 7000;
+
+/**
+ * Marca de "este cupón de URL ya se reportó", para no emitir el evento de
+ * nuevo en cada montaje del componente.
+ *
+ * Va en `sessionStorage` y no en un `useRef` porque el ref solo sobrevive al
+ * montaje: el wizard monta y desmonta este input al moverse entre pasos, y con
+ * un ref el mismo cupón emitiría un evento por cada ida y vuelta. Tampoco va en
+ * `localStorage`: ahí la marca sobreviviría para siempre y una visita nueva
+ * -- otro día, otra sesión, la misma persona y el mismo link -- no reportaría
+ * nada. La sesión es exactamente la ventana que queremos.
+ */
+const claveReportado = (code: string) => `baldecash-coupon-tracked-${code}`;
+
+function yaSeReporto(code: string): boolean {
+  try {
+    return sessionStorage.getItem(claveReportado(code)) === '1';
+  } catch {
+    // Modo privado o storage bloqueado: se prefiere emitir de más antes que
+    // perder el evento. Un duplicado se deduplica después; el que no se mandó
+    // no existe.
+    return false;
+  }
+}
+
+function marcarReportado(code: string): void {
+  try {
+    sessionStorage.setItem(claveReportado(code), '1');
+  } catch {
+    /* sin storage no hay marca: ver el comentario de arriba */
+  }
+}
 
 interface CouponInputProps {
   /**
@@ -44,11 +83,43 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   } = useProduct();
   const { config } = useWizardConfig();
 
+  /**
+   * El cupón que llega auto-aplicado por el link también tiene que reportarse.
+   *
+   * `coupon_applied` se emitía SOLO desde `handleApplyCoupon`, o sea únicamente
+   * si la persona tipeaba el código. Pero cuando el link trae `?coupon=`, quien
+   * lo aplica es `useCampaignCoupon` --en el catálogo, no acá-- y ese hook no
+   * trackea nada: llega a /solicitar con el cupón puesto, este componente lo
+   * pinta como aplicado y sale por el `return` de abajo sin avisarle a nadie.
+   * Resultado: los cupones de campaña, que son los que traen los links de los
+   * socios, no existían en la instrumentación.
+   *
+   * Se emite acá y no en `useCampaignCoupon` a propósito: el hook corre en el
+   * catálogo y en sus dos variantes de copia-home, así que habría que tocar
+   * tres sitios y el evento saldría antes de que el cupón llegue a la
+   * solicitud. Este componente es el punto único por donde pasan las dos vías.
+   *
+   * `source` distingue el origen: sin eso, un `coupon_applied` de campaña se
+   * lee igual que uno que la persona escribió, y son dos conductas distintas.
+   */
+  useEffect(() => {
+    if (!appliedCoupon?.lockedFromUrl) return;
+    const code = appliedCoupon.code;
+    if (!code || yaSeReporto(code)) return;
+    marcarReportado(code);
+    tracker?.track('coupon_applied', {
+      coupon_code: code,
+      coupon_type: appliedCoupon.couponType,
+      discount_value: String(appliedCoupon.discount),
+      source: 'url',
+    });
+  }, [appliedCoupon, tracker]);
+
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       setState('error');
       setErrorMessage('Ingresa un código de cupón');
-      setTimeout(() => setState('idle'), 2000);
+      setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
       return;
     }
 
@@ -75,6 +146,11 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           coupon_code: result.coupon.code,
           coupon_type: result.coupon.couponType,
           discount_value: String(result.coupon.discount),
+          // La vía de siempre: lo escribió la persona. El efecto de arriba
+          // marca `url` para el que viene del link. Los eventos anteriores a
+          // este cambio no traen la clave, así que "sin source" se lee como
+          // manual -- que es lo que eran.
+          source: 'manual',
         });
       } else {
         setState('error');
@@ -83,7 +159,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           coupon_code: couponCode.trim(),
           error_message: result.error ?? 'invalid',
         });
-        setTimeout(() => setState('idle'), 2000);
+        setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
       }
     } catch {
       setState('error');
@@ -92,7 +168,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
         coupon_code: couponCode.trim(),
         error_message: 'network_error',
       });
-      setTimeout(() => setState('idle'), 2000);
+      setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
     }
   };
 
@@ -113,19 +189,12 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   const firstQuotaOnly = (appliedCoupon?.quotasAffected ?? 1) <= 1;
   // Cupón de regalo: no aplica descuento monetario sino que entrega un producto.
   // Se muestra "Cantidad asociada" + el regalo en vez de "-S/x".
-  //
-  // HARDCODE FE: el backend aún no envía el regalo (solo value=0.00), así que
-  // tratamos todo cupón con descuento 0 que NO sea de referido como cupón de
-  // regalo y mostramos un nombre/cantidad fijos. Si en el futuro el API envía
-  // gift_name/gift_quantity, esos valores reales tienen prioridad.
-  const FALLBACK_GIFT_NAME = 'Audífonos Samsung Galaxy Buds';
-  const FALLBACK_GIFT_QUANTITY = 1;
   const isReferralCoupon = !!appliedCoupon?.referrerName;
   const isGiftCoupon =
     !isReferralCoupon &&
-    (!!appliedCoupon?.giftName || appliedCoupon?.discount === 0);
-  const giftName = appliedCoupon?.giftName || FALLBACK_GIFT_NAME;
-  const giftQuantity = appliedCoupon?.giftQuantity ?? FALLBACK_GIFT_QUANTITY;
+    (appliedCoupon?.couponType === 'free_accessory' || !!appliedCoupon?.giftName);
+  const giftName = appliedCoupon?.giftName ?? 'Periférico de regalo';
+  const giftQuantity = appliedCoupon?.giftQuantity ?? 1;
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {

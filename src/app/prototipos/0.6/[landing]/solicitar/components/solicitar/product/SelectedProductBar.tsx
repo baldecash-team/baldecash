@@ -8,26 +8,117 @@
  * Desktop: Top bar below stepper
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { TermSelect, getTermUnit } from './TermSelect';
+import { useSolicitudCongelada } from '../../../hooks/useSolicitudCongelada';
+import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
 import Image from 'next/image';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+
+/**
+ * Lo que mide la barra plegada con la imagen del producto puesta (48px de
+ * miniatura + 24px de padding). Es el valor que antes estaba hardcodeado en
+ * `SelectedProductBar` y en `MobileStickyCta`; ahora solo se usa de respaldo.
+ */
+const ALTO_POR_DEFECTO = 72;
+
+/**
+ * El `padding-bottom` del panel blanco de la barra fija: cuánto del safe-area
+ * del home indicator le corresponde.
+ *
+ * El inset le toca a lo que está ÚLTIMO en la pantalla, no a cualquiera. En el
+ * resto del flujo eso es la barra. En `renueva-*` debajo hay un CTA que ya se
+ * pone el inset de padding propio, así que si la barra se lo pusiera también
+ * pintaría un rectángulo blanco vacío de ~34px entre su botón y el CTA.
+ *
+ * POR QUÉ LA RESTA Y NO UN BOOLEANO MÁS: «hay algo debajo» no se sabe en JS.
+ * `offsetInferior` es la cadena `'var(--sticky-cta-height, 0px)'`, y si ese CTA
+ * se desmonta —teclado, celebración, o cualquier motivo que se agregue después—
+ * la variable desaparece, el CSS la resuelve a `0px` y la barra baja al borde
+ * real, pero la cadena en JS sigue siendo la misma. Comparar strings sería
+ * ciego a eso y dejaría la barra en el borde sin safe-area: el bug original,
+ * otra vez, en un estado transitorio.
+ *
+ * Restando en CSS queda correcto por construcción y sin que la barra tenga que
+ * enterarse de por qué se fue el CTA: con el CTA montado la variable vale ~73px,
+ * la resta da negativo y el `max` la deja en 0 (sin franja blanca); con el CTA
+ * ausente la variable cae a `0px` y la expresión vuelve a valer el inset entero.
+ *
+ * Se exporta para poder probarla: jsdom descarta `env()`, `var()` y `max()`, así
+ * que las dos ramas se leen igual (`''`) desde el DOM. Mismo motivo que
+ * `posicionDelCta` en `MobileStickyCta`.
+ */
+export function paddingInferiorDelPanel({
+  drawerAbierto,
+  offsetInferior,
+}: {
+  drawerAbierto: boolean;
+  offsetInferior: string;
+}): string {
+  /**
+   * La barra toca el borde por una razón que se sabe ACÁ, sin depender de si
+   * algún otro componente está montado:
+   *
+   * - `offsetInferior === '0px'`: nadie la levantó. Es el caso de todo el flujo
+   *   fuera de `renueva-*`, y NO se puede dejar en manos de la resta: ahí el CTA
+   *   está montado y publicando su alto, pero apilado ENCIMA de la barra, no
+   *   debajo. La resta le comería el inset a una barra que sí toca el borde.
+   * - `drawerAbierto`: fuerza `bottom: 0px` y el panel crece desde el borde. Hoy
+   *   es redundante —al abrir el drawer el CTA se desmonta solo y la resta
+   *   llegaría al mismo resultado—, pero se conserva a propósito: es la única
+   *   rama en la que la barra sabe por sí misma que está en el borde, sin
+   *   depender de la lógica de desmontaje de otro componente. Y no puede estar
+   *   mal: con el drawer abierto el panel es lo último de la pantalla.
+   */
+  const pegadaAlBorde = drawerAbierto || offsetInferior === '0px';
+  if (pegadaAlBorde) return 'env(safe-area-inset-bottom)';
+  return 'max(0px, calc(env(safe-area-inset-bottom) - var(--sticky-cta-height, 0px)))';
+}
 
 interface SelectedProductBarProps {
   mobileOnly?: boolean;
   /** Hide insurance and accessories cards in desktop view (e.g., on complementos page where they're shown separately) */
   hideAddons?: boolean;
+  /**
+   * Las condiciones de la operación no se pueden mover: se esconden el
+   * selector de plazo y el de inicial.
+   *
+   * Es para el flujo con contrato: el documento se emite con ESTE plazo y ESTA
+   * inicial y el hash lo sella, así que cambiarlos dejaría la pantalla diciendo
+   * una cuota y el contrato otra. Lo decide quien monta el wizard, que es quien
+   * conoce la config del flujo; la barra no la consulta —se monta en todas las
+   * pantallas y no va a arrastrar un fetch para pintar un selector—.
+   */
+  condicionesFijas?: boolean;
+  /**
+   * Desplaza la barra fija hacia arriba, para dejar lugar a algo pegado al
+   * borde inferior. Valor CSS; lo normal es la variable que publica quien está
+   * abajo, con fallback a 0: `'var(--sticky-cta-height, 0px)'`.
+   * @default '0px'
+   */
+  offsetInferior?: string;
 }
 
-export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
+export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false, condicionesFijas = false, offsetInferior = '0px' }) => {
   const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
-  const { landingId } = useLayout();
+  const { landingId, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
+  const params = useParams();
+  const landingSlug = (params?.landing as string) || '';
   const analytics = useAnalytics();
+  /**
+   * O bien la landing tiene el módulo del contrato (y entonces nunca se
+   * eligieron acá), o bien la solicitud ya se creó y el contrato salió con
+   * estos números. En los dos casos, no se tocan.
+   */
+  const yaEnviada = useSolicitudCongelada(landingSlug);
+  const congelada = condicionesFijas || yaEnviada;
 
   // Wrappers que disparan analytics antes de mutar el state global
   const handleTermChange = (term: number) => {
@@ -69,14 +160,86 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   // Get all products (cart or single)
   const allProducts = getAllProducts();
 
+  /**
+   * EL CONTRATO DE LOS DOS ALTOS MEDIDOS (referencia única; el resto del código
+   * apunta acá).
+   *
+   * Hay tres elementos `fixed` peleando por el borde inferior en móvil: esta
+   * barra, el CTA (`MobileStickyCta`) y el teclado virtual. Antes cada uno
+   * suponía el alto del otro con un literal hardcodeado —`72px` para la barra,
+   * `68px` para el CTA, duplicados en dos archivos—, y eran suposiciones: la
+   * barra mide 72px SOLO con la imagen del producto puesta (48px de miniatura +
+   * 24px de padding); con `mostrarImagenProducto` apagado mide menos y lo
+   * apilado encima quedaba con un hueco. Así que cada uno publica su alto real
+   * y el otro lo lee. Mismo patrón que `--referral-banner-offset` en
+   * `ReferralBanner`.
+   *
+   * | Variable               | La publica        | La lee                            | Fallback |
+   * |------------------------|-------------------|-----------------------------------|----------|
+   * | `--product-bar-height` | esta barra        | el `bottom` de `MobileStickyCta`  | `72px`   |
+   * |                        |                   | `SelectedProductSpacer`           | `72px`   |
+   * | `--sticky-cta-height`  | `MobileStickyCta` | el `offsetInferior` de esta barra | `0px`    |
+   * |                        |                   | `MobileStickyCtaSpacer`           | `68px`   |
+   *
+   * QUÉ SE MIDE: el botón plegado, no el panel que lo envuelve. El panel se
+   * pone el safe-area de padding cuando toca el borde, y los lectores le SUMAN
+   * ese mismo inset, así que medir el panel lo contaría dos veces.
+   *
+   * Hay un lector más, que no está en la tabla porque no lee un alto sino una
+   * presencia: `paddingInferiorDelPanel` le RESTA `--sticky-cta-height` al
+   * safe-area del panel. Con el CTA montado la resta da negativo y el inset
+   * queda en 0; con el CTA ausente la variable cae a `0px` y el inset vuelve
+   * entero. Es lo que hace que la barra no necesite saber POR QUÉ se fue el CTA.
+   *
+   * QUÉ PASA CUANDO FALTAN: el valor cae al fallback, que es el literal viejo.
+   * Y faltan a propósito: cada elemento borra su variable al desmontarse. El
+   * caso que importa es el CTA, que se desmonta con el teclado, con el drawer y
+   * con la celebración — ahí `--sticky-cta-height` desaparece, el
+   * `var(--sticky-cta-height, 0px)` de `offsetInferior` cae a `0px` y la barra
+   * vuelve al borde en vez de quedarse flotando sobre un hueco. Por eso ese
+   * lector —y solo ese— usa `0px` de fallback en vez del alto por defecto: no
+   * quiere el alto del CTA, quiere «no hay CTA».
+   *
+   * NUNCA SE PUBLICA `0`: en escritorio los nodos son `lg:hidden` y miden 0, y
+   * un `0px` publicado le ganaría al fallback para cualquier lector que no sea
+   * `lg:hidden`. Por eso el `|| ALTO_POR_DEFECTO`, igual que
+   * `ReferralBanner.tsx:118`.
+   *
+   * El efecto va ANTES del early return de «sin productos»: los hooks no pueden
+   * quedar detrás de un return condicional. Por eso contempla que el nodo no
+   * exista, y por eso depende de si hay productos: cuando aparecen, el nodo
+   * recién existe y hay que medirlo.
+   */
+  const barraRef = useRef<HTMLButtonElement>(null);
+  const hayProductos = allProducts.length > 0;
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const nodo = barraRef.current;
+    if (!nodo) {
+      raiz.style.removeProperty('--product-bar-height');
+      return;
+    }
+    const medir = () =>
+      raiz.style.setProperty('--product-bar-height', `${nodo.offsetHeight || ALTO_POR_DEFECTO}px`);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(nodo);
+    return () => {
+      ro.disconnect();
+      raiz.style.removeProperty('--product-bar-height');
+    };
+  }, [hayProductos]);
+
   if (allProducts.length === 0) return null;
 
   // For display purposes, use first product as main product
   const mainProduct = allProducts[0];
 
-  const formatPrice = (price: number) => {
-    return `S/${Math.floor(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
+  // El resumen tiene que decir lo mismo que la tarjeta y que el contrato: en
+  // Family Farms las cuotas tienen centavos reales (S/15,20 la cuota y S/71,75
+  // la armada), y truncarlos acá prometía S/15 sobre un contrato de S/15,20.
+  // El resto del catálogo sigue truncando, que es lo que hacía siempre.
+  const formatPrice = (price: number) => `S/${formatCuotaDeLanding(price, landingSlug)}`;
 
   const freqSuffix = (freq?: string) =>
     freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
@@ -87,6 +250,13 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const hasCoupon = !!appliedCoupon;
   const availableTerms = getAvailableTerms();
 
+  // Con la inicial fraccionada el `term` son las cuotas, no el plazo que la
+  // persona vive: el rotulo lo traduce a «17 semanas · 4 armadas» y ordena por
+  // plazo total. Sin armadas el mapa viene vacio y el selector no cambia.
+  const planesDelPrincipal = mainProduct?.paymentPlans ?? [];
+  const termLabels = etiquetasDePlazo(planesDelPrincipal, mainProduct?.paymentFrequency);
+  const termOptions = ordenarTerms(planesDelPrincipal, availableTerms);
+
   // Calculate total initial payment from all products
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);
   const hasInitialPayment = totalInitialPayment > 0;
@@ -94,7 +264,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   return (
     <>
       {/* Mobile & Tablet: Bottom Fixed Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
+      {/* `bottom-0` se conserva aunque el `bottom` lo fije el estilo inline:
+          el CSS de las landings gamer engancha la barra por `.fixed.bottom-0`
+          (`StepClient.tsx:1232`, `complementosClient.tsx:560-587`, `:638`) para
+          pintarla en modo oscuro/claro. Sin la clase, esas landings perderían su
+          tema. El inline gana por especificidad, así que la posición es la del
+          `offsetInferior` igual. */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+        // Con el drawer abierto el offset se anula: el panel crece desde el borde y
+        // lo que estaba pegado abajo (el CTA) ya se desmontó solo.
+        style={{ bottom: isExpanded ? '0px' : offsetInferior }}
+      >
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -110,14 +291,20 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
         <motion.div
           layout
           className="bg-white border-t border-neutral-200 shadow-lg relative z-50"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          style={{
+            paddingBottom: paddingInferiorDelPanel({ drawerAbierto: isExpanded, offsetInferior }),
+          }}
         >
           {/* Collapsed State */}
+          {/* El ref mide ESTE botón y no el panel que lo envuelve, que lleva el
+              safe-area de padding. Ver el contrato de los altos medidos, arriba. */}
           <button
+            ref={barraRef}
             onClick={() => setIsExpanded(!isExpanded)}
             className="w-full px-4 py-3 flex items-center gap-3 cursor-pointer"
           >
             {/* Product Thumbnail */}
+            {mostrarImagenProducto && (
             <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
               {allProducts.length > 1 ? (
                 <div className="w-full h-full flex items-center justify-center bg-[var(--color-primary)]/10">
@@ -135,6 +322,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 <Package className="w-6 h-6 text-neutral-400" />
               )}
             </div>
+            )}
 
             {/* Product Info */}
             <div className="flex-1 text-left min-w-0">
@@ -186,6 +374,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   <div className="space-y-3">
                     {allProducts.map((product, index) => (
                       <div key={`${product.id}-${index}`} className={`flex gap-4 ${index > 0 ? 'pt-3 border-t border-neutral-100' : ''}`}>
+                        {mostrarImagenProducto && (
                         <div className="w-20 h-20 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                           {product.image ? (
                             <Image
@@ -199,6 +388,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             <Package className="w-10 h-10 text-neutral-300" />
                           )}
                         </div>
+                        )}
 
                         {/* Full Details */}
                         <div className="flex-1 min-w-0">
@@ -227,7 +417,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           {/* Initial Payment Selector - Mobile */}
                           {(() => {
                             const initialOptions = getInitialOptionsForProduct(product.id);
-                            if (initialOptions.length === 0) return null;
+                            if (initialOptions.length === 0 || congelada) return null;
                             return (
                               <div className="mt-2">
                                 <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
@@ -322,16 +512,19 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       </div>
                     </div>
                     {/* Term Selector - Mobile */}
+                    {puedeCambiarPlazo && !congelada && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
                         value={mainProduct.term ?? mainProduct.months}
-                        options={availableTerms}
+                        options={termOptions}
                         onChange={handleTermChange}
                         size="sm"
                         frequency={mainProduct.paymentFrequency}
+                        labels={termLabels}
                       />
                     </div>
+                    )}
                     {hasInitialPayment && !isGamer && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
                         <span className="text-xs text-neutral-500">Inicial total</span>
@@ -377,15 +570,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               </span>
             </div>
             {/* Term Selector - Desktop */}
+            {puedeCambiarPlazo && !congelada && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
                 value={mainProduct.term ?? mainProduct.months}
-                options={availableTerms}
+                options={termOptions}
                 onChange={handleTermChange}
                 frequency={mainProduct.paymentFrequency}
+                labels={termLabels}
               />
             </div>
+            )}
           </div>
 
           {/* Products List */}
@@ -393,6 +589,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             {allProducts.map((product, index) => (
               <div key={`${product.id}-${index}`} className={`flex items-center gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
                 {/* Product Image */}
+                {mostrarImagenProducto && (
                 <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.image ? (
                     <Image
@@ -406,6 +603,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <Package className="w-8 h-8 text-neutral-300" />
                   )}
                 </div>
+                )}
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
@@ -428,7 +626,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {/* Initial Payment Selector - Desktop */}
                   {(() => {
                     const initialOptions = getInitialOptionsForProduct(product.id);
-                    if (initialOptions.length === 0) return null;
+                    if (initialOptions.length === 0 || congelada) return null;
                     return (
                       <div className="mt-2">
                         <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
@@ -647,7 +845,9 @@ export const SelectedProductSpacer: React.FC = () => {
   return (
     <div
       className="lg:hidden"
-      style={{ height: 'calc(72px + env(safe-area-inset-bottom))' }}
+      style={{
+        height: `calc(var(--product-bar-height, ${ALTO_POR_DEFECTO}px) + env(safe-area-inset-bottom))`,
+      }}
     />
   );
 };

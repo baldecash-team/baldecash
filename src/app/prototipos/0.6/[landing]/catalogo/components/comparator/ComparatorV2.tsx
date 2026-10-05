@@ -10,6 +10,7 @@ import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { cardKey } from '../../utils/cardKey';
 
 import type { TermMonths } from '../../types/catalog';
 
@@ -58,7 +59,13 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
       variantId: product.variantId,
-      paymentFrequency: product.paymentFrequency,
+      // Combo de la card comparada (el equipo convive en varias cards)
+      comboId: product.comboId,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: product.paymentFrequency ?? 'mensual',
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -214,7 +221,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <div className="flex -space-x-3">
             {products.slice(0, 3).map((product, index) => (
               <div
-                key={product.id}
+                key={cardKey(product)}
                 className="w-10 h-10 rounded-lg border-2 border-white bg-[var(--surface-2,#f3f4f6)] overflow-hidden shadow-sm"
                 style={{ zIndex: products.length - index }}
               >
@@ -295,7 +302,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                   variant="bordered"
                   className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold"
                   startContent={<ShoppingCart className="w-4 h-4" />}
-                  onPress={() => onAddToCart?.(bestProduct.id)}
+                  onPress={() => onAddToCart?.(cardKey(bestProduct))}
                 >
                   Al carrito
                 </Button>

@@ -4,8 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import { JsonLd } from "./JsonLd";
-
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+import { GA_MEASUREMENT_ID } from "@/lib/ga";
 
 const asap = Asap({
   variable: "--font-asap",

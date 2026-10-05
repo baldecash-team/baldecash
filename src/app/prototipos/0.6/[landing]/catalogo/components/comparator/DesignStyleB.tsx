@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardFooter, Button } from '@nextui-org/reac
 import { Trophy, TrendingDown, Check, X, ArrowRight, Cpu, HardDrive, Monitor, MemoryStick, Zap, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
+import { cardKey } from '../../utils/cardKey';
 
 interface DesignStyleBProps {
   products: ComparisonProduct[];
@@ -90,7 +91,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
 
         return (
           <Card
-            key={product.id}
+            key={cardKey(product)}
             className={`relative transition-all duration-300 ${
               isBest
                 ? 'border-2 border-[#22c55e] shadow-xl scale-[1.02]'
@@ -104,7 +105,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               isIconOnly
               size="sm"
               variant="flat"
-              onPress={() => onRemoveProduct(product.id)}
+              onPress={() => onRemoveProduct(cardKey(product))}
               className="absolute top-3 right-3 w-7 h-7 min-w-7 rounded-full bg-[var(--surface,#fff)]/80 backdrop-blur border border-[var(--border-soft,#e5e7eb)] hover:bg-red-50 hover:border-red-200 cursor-pointer z-10 shadow-sm"
             >
               <X className="w-4 h-4 text-[var(--text-muted,#6b7280)]" />
@@ -253,7 +254,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                     : 'border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                 }`}
                 startContent={cartItems.includes(product.id) ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-                onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
+                onPress={() => !cartItems.includes(product.id) && onAddToCart?.(cardKey(product))}
                 isDisabled={cartItems.includes(product.id)}
               >
                 {cartItems.includes(product.id) ? 'Añadido al carrito' : 'Añadir al carrito'}

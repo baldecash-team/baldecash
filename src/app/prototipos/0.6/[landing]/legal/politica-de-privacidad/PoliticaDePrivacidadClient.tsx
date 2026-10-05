@@ -2,7 +2,7 @@
 
 /**
  * Política de Privacidad - BaldeCash v0.6
- * Basado en contenido de https://www.baldecash.com/politica-de-privacidad-baldecash
+ * Contenido oficial Junio 2026.
  */
 
 import React from 'react';
@@ -11,230 +11,95 @@ import { LegalPageLayout, LegalSection as Section } from '../components';
 export function PoliticaDePrivacidadClient() {
   return (
     <LegalPageLayout
-      title="Políticas de Privacidad"
-      lastUpdated="Junio 2023"
+      title="Política de Privacidad"
+      lastUpdated="Junio 2026"
     >
-      <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 sm:mb-8">
-        Balde K S.A.C. (RUC N° 20605530509) con domicilio en Av. El Ejército N° 1146, Magdalena del Mar, Lima,
-        se compromete a proteger la privacidad y cumplir las leyes sobre protección de datos personales recopilados
-        a través de su plataforma web baldecash.com.
-      </p>
+      <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-4">Balde K S.A.C. (en adelante, “Baldecash”) se compromete a proteger la privacidad y los datos personales de sus usuarios, clientes, potenciales clientes, obligados solidarios, representantes, contactos comerciales y demás personas que interactúen con sus plataformas, formularios, campañas, puntos de atención y canales digitales.</p>
 
-      <Section title="1. Objetivo">
-        <p>
-          BaldeCash proporciona financiamientos mediante: (i) arrendamiento operativo para equipos de cómputo y
-          (ii) créditos de consumo para gastos educativos. Los servicios van dirigidos a estudiantes universitarios
-          e institutos técnicos, prestados directamente o mediante &quot;Entidades Vinculadas&quot;. La presente política
-          detalla cómo se tratan los datos personales en sus actividades comerciales.
-        </p>
+      <Section title="1. Identidad del responsable">
+        <p>Balde K S.A.C., identificada con RUC N.° 20605530509, con domicilio en Av. Alfredo Benavides 1238, oficina 404, Miraflores, Lima, Perú, titular de la marca Baldecash y de la plataforma www.Baldecash.com, es responsable del tratamiento de los datos personales que recopila a través de sus canales físicos y digitales.</p>
       </Section>
 
-      <Section title="2. Información General">
-        <p>
-          BaldeCash administra la plataforma www.baldecash.com y está vinculada con Campus Control Sociedad
-          Gestora de Fondos de Inversión S.A.C. Trata datos personales conforme a: Ley 29733, su Reglamento
-          (DS 003-2013-JUS) y normas complementarias.
-        </p>
+      <Section title="2. Alcance de la Política">
+        <p>Esta Política aplica al tratamiento de datos personales realizado por Baldecash mediante su sitio web, subdominios, formularios, landing pages, campañas comerciales, redes sociales, WhatsApp, correo electrónico, llamadas, módulos físicos, solicitudes, procesos de evaluación, contratación electrónica, atención al cliente, soporte, garantías, cobranzas y demás canales relacionados con sus servicios.</p>
+        <p className="mt-3">Cuando una campaña, convenio, promoción, sorteo, formulario o contrato cuente con condiciones de privacidad específicas, dichas condiciones complementarán esta Política.</p>
       </Section>
 
-      <Section title="3. Normativa de Protección de Datos Personales">
-        <p>
-          Se rige por: Constitución Política del Perú, Ley N° 29733, Decreto Supremo N° 003-2013-JUS y
-          Resolución Directoral N° 019-2013-JUS/DGPDP. Define datos personales como &quot;información sobre
-          persona natural que la identifica o hace identificable&quot;.
-        </p>
+      <Section title="3. Normativa aplicable">
+        <p>El tratamiento de datos personales se realiza conforme a la Constitución Política del Perú, la Ley N.° 29733 - Ley de Protección de Datos Personales, su Reglamento vigente aprobado por Decreto Supremo N.° 016-2024-JUS, la Ley N.° 27269 - Ley de Firmas y Certificados Digitales, el Código de Protección y Defensa del Consumidor y demás normas aplicables.</p>
       </Section>
 
-      <Section title="4. Principios Rectores del Tratamiento">
-        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
-          <li><strong>Legalidad:</strong> Rechaza recopilación fraudulenta</li>
-          <li><strong>Consentimiento:</strong> Mediará consentimiento del usuario</li>
-          <li><strong>Finalidad:</strong> Determinada, explícita y lícita</li>
-          <li><strong>Proporcionalidad:</strong> Adecuado y no excesivo</li>
-          <li><strong>Calidad:</strong> Veraces, exactos, actualizados</li>
-          <li><strong>Seguridad:</strong> Medidas técnicas, organizativas y legales garantizando confidencialidad</li>
+      <Section title="4. Datos personales tratados">
+        <p>Baldecash recopila únicamente los datos personales adecuados, pertinentes y necesarios para cada finalidad informada. Según el canal o servicio utilizado, estos datos pueden comprender información de identificación, contacto, elegibilidad académica, evaluación comercial o crediticia, contratación, pagos, atención al cliente, garantías, soporte, cobranzas, navegación web, cookies y validación de identidad.</p>
+        <p className="mt-3">Cuando Baldecash solicite imagen, voz, firma, fotografía, documento de identidad o video-selfie, dichos datos serán tratados para validar identidad, prevenir fraude, acreditar la manifestación de voluntad y reforzar la seguridad de la contratación electrónica. Si algún dato califica como sensible conforme a la normativa, será tratado bajo las exigencias legales correspondientes.</p>
+      </Section>
+
+      <Section title="5. Finalidades del tratamiento">
+        <p>Baldecash trata datos personales para finalidades necesarias vinculadas a la atención de solicitudes, evaluación, contratación y ejecución de sus servicios, así como para cumplir obligaciones legales y proteger la seguridad de sus operaciones.</p>
+        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2 mt-2">
+          <li>Recibir, evaluar, aprobar o rechazar solicitudes de financiamiento, arrendamiento, venta financiada, beneficios, campañas o servicios relacionados.</li>
+          <li>Validar la identidad del usuario y prevenir fraude, suplantación o uso indebido de la plataforma.</li>
+          <li>Realizar evaluación comercial, crediticia o de riesgo, incluyendo consultas o comunicaciones permitidas con centrales de riesgo y terceros necesarios.</li>
+          <li>Formalizar, firmar, conservar y ejecutar contratos, anexos, cronogramas, consentimientos, constancias y documentos electrónicos.</li>
+          <li>Gestionar entrega de bienes, soporte, garantías, pagos, facturación, cobranzas, atención de consultas, quejas, reclamos y Libro de Reclamaciones.</li>
+          <li>Cumplir obligaciones legales, contractuales, tributarias, contables, administrativas, regulatorias o requerimientos de autoridades competentes.</li>
         </ul>
       </Section>
 
-      <Section title="5. Derechos del Usuario">
-        <p>
-          Derecho a conocer qué datos personales se poseen, exigir eliminación o actualización de información
-          incompleta, incorrecta o desactualizada, solicitar detención del tratamiento. Pueden contactar a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
-            prestamos@baldecash.com
-          </a>{' '}
-          para ejercer derechos de información, acceso, rectificación, cancelación y oposición.
-        </p>
+      <Section title="6. Finalidades comerciales o facultativas">
+        <p>De manera independiente a las finalidades necesarias, Baldecash podrá tratar datos personales para enviar promociones, campañas, beneficios, sorteos, novedades, encuestas, comunicaciones comerciales, remarketing o acciones con aliados comerciales, siempre que cuente con el consentimiento correspondiente o con otra base legal válida.</p>
+        <p className="mt-3">El usuario puede negarse, revocar u oponerse al tratamiento de sus datos para publicidad o prospección comercial en cualquier momento, mediante un canal sencillo y gratuito. La negativa o revocación no afecta la evaluación ni prestación del servicio principal, salvo que el tratamiento sea indispensable para una campaña o beneficio específico solicitado por el usuario.</p>
       </Section>
 
-      <Section title="6. Tiempo de Conservación de Datos">
-        <p>
-          Los datos se conservan solo lo necesario para cumplir la finalidad. No se almacenan cuando:
-          (i) se conoce su carácter inexacto o incompleto, o (ii) han dejado de ser necesarios,
-          salvo procesos de anonimización.
-        </p>
+      <Section title="7. Consentimiento y aceptación">
+        <p>Cuando el tratamiento requiera consentimiento, Baldecash lo solicitará de manera libre, previa, expresa, inequívoca e informada. El consentimiento podrá otorgarse mediante firma manuscrita, firma electrónica, aceptación digital, marcación de casillas, clic, grabación de voz, video-selfie, aceptación contractual u otro mecanismo permitido que permita acreditar la manifestación de voluntad.</p>
+        <p className="mt-3">La publicación de esta Política cumple una finalidad informativa y no reemplaza la obtención del consentimiento cuando este sea exigido. Las finalidades comerciales, publicitarias, de prospección, cookies no necesarias y cesión de datos a aliados para campañas deberán contar con mecanismos diferenciados de aceptación cuando corresponda.</p>
       </Section>
 
-      <Section title="7. Información Recolectada">
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">a) Información proporcionada por clientes:</h4>
-        <p>
-          Nombre, fecha de nacimiento, dirección, ubicación geográfica, documentos de identidad,
-          fotografía, teléfono, firma, datos académicos.
-        </p>
-
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">b) Información recopilada automáticamente:</h4>
-        <p>
-          Dirección IP, información de navegador, tipo de sistema operativo, búsquedas realizadas,
-          información de contacto con servicio al cliente.
-        </p>
-
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">c) Información de terceros:</h4>
-        <p>
-          De otras webs asociadas, agencias de historial crediticio, proveedores de análisis de datos,
-          negocios aliados.
-        </p>
-
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">d) Cookies:</h4>
-        <p>
-          Se utilizan para gestionar solicitudes de usuarios y mejorar la experiencia de navegación.
-          Pueden ser aceptadas o rechazadas según Política de Cookies.
-        </p>
+      <Section title="8. Comunicación y acceso por terceros">
+        <p>Baldecash podrá compartir, comunicar o permitir acceso a datos personales únicamente cuando sea necesario para las finalidades informadas, exista consentimiento, corresponda a una relación contractual, exista mandato legal o resulte necesario para ejercer o defender derechos.</p>
+        <p className="mt-3">Los terceros pueden incluir, según corresponda, entidades vinculadas, aliados educativos o comerciales, centrales de riesgo, proveedores tecnológicos, servicios de nube, firma electrónica, mensajería, analítica, atención al cliente, pagos, logística, soporte técnico, garantías, seguros, cobranzas, asesores, auditores, consultores y autoridades competentes.</p>
+        <p className="mt-3">Cuando los terceros actúen por encargo de Baldecash, se procurará que existan obligaciones de confidencialidad, seguridad y uso limitado de los datos personales.</p>
       </Section>
 
-      <Section title="8. Usos de la Información Recolectada">
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Información proporcionada:</h4>
-        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
-          <li>Cumplir obligaciones contractuales</li>
-          <li>Comunicarse por cualquier medio</li>
-          <li>Notificar cambios en servicios</li>
-          <li>Presentar contenido efectivamente</li>
-          <li>Cumplir requerimientos legales</li>
-        </ul>
-
-        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Información recopilada automáticamente:</h4>
-        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
-          <li>Administrar operaciones internas</li>
-          <li>Mejorar la plataforma</li>
-          <li>Asegurar seguridad</li>
-        </ul>
+      <Section title="9. Flujo transfronterizo y almacenamiento">
+        <p>Los datos personales pueden ser almacenados, respaldados, procesados o accedidos mediante servicios tecnológicos ubicados dentro o fuera del Perú, incluyendo servicios de nube, hosting, CRM, analítica, comunicaciones o seguridad. Baldecash adoptará medidas razonables para procurar que los datos reciban un nivel de protección adecuado, conforme a la normativa aplicable.</p>
       </Section>
 
-      <Section title="9. Finalidad del Tratamiento">
-        <p>
-          Los datos se utilizan para la ejecución correcta de servicios, absolver consultas, peticiones,
-          reclamos y quejas. Se almacenan en banco de datos de BaldeCash ubicado en Alfredo Benavides 1238,
-          Oficina 404, Lima. Solo personal necesario accede a esta información.
-        </p>
+      <Section title="10. Banco de datos personales">
+        <p>Los datos personales podrán incorporarse en bancos de datos de titularidad de Baldecash relacionados con clientes, potenciales clientes, usuarios, solicitudes, contratos, campañas, atención al cliente, reclamos, cobranzas, seguridad y otros necesarios para la operación, los cuales deberán mantenerse registrados o actualizados ante la Autoridad Nacional de Protección de Datos Personales cuando corresponda.</p>
       </Section>
 
-      <Section title="10. Consentimiento y Consecuencias">
-        <p>
-          Al aceptar los Términos y Condiciones, la Política de Privacidad y Cookies, acepta el tratamiento descrito.
-          Sin aceptación no puede acceder a servicios ni usar la plataforma correctamente.
-        </p>
+      <Section title="11. Plazo de conservación">
+        <p>Baldecash conservará los datos personales durante el tiempo necesario para cumplir las finalidades informadas, evaluar solicitudes, ejecutar contratos, atender reclamos, gestionar cobranzas, cumplir obligaciones legales, prevenir fraude, sustentar auditorías y ejercer o defender derechos.</p>
+        <p className="mt-3">Cuando los datos ya no sean necesarios y no exista obligación legal, contractual o interés legítimo permitido para conservarlos, Baldecash procederá a su eliminación, bloqueo, anonimización o conservación restringida, según corresponda.</p>
       </Section>
 
-      <Section title="11. Revelación de Información">
-        <p>
-          Se puede compartir con miembros del grupo, subsidiarias, holding u autoridades por mandato legal,
-          vinculadas exclusivamente a servicios brindados.
-        </p>
+      <Section title="12. Derechos del titular">
+        <p>El titular de datos personales puede ejercer los derechos de información, acceso, rectificación, actualización, inclusión, cancelación o supresión, oposición, revocación del consentimiento, portabilidad cuando corresponda, tratamiento objetivo frente a decisiones automatizadas y demás derechos reconocidos por la normativa aplicable.</p>
+        <p className="mt-3">Para ejercer sus derechos, el titular puede enviar una solicitud al correo <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>prestamos@baldecash.com</a> con el asunto “Solicitud de Datos Personales”, indicando su nombre completo, documento de identidad, medio de respuesta, derecho que desea ejercer y descripción clara de la solicitud. Si actúa mediante representante, deberá adjuntar la documentación que acredite dicha representación.</p>
+        <p className="mt-3">Baldecash atenderá las solicitudes dentro de los plazos legales aplicables. Si el titular considera que su solicitud no fue atendida conforme a ley, podrá acudir ante la Autoridad Nacional de Protección de Datos Personales.</p>
       </Section>
 
-      <Section title="12. Compartir Información con Terceros">
-        <p>
-          Los datos se pueden compartir con: negocios aliados, proveedores contratados, entidades relacionadas,
-          entidades financieras, proveedores de análisis de datos, potenciales compradores/vendedores en
-          caso de transacciones, y según requerimientos legales o protección contra fraudes.
-        </p>
+      <Section title="13. Cookies y tecnologías similares">
+        <p>Baldecash puede utilizar cookies, píxeles, etiquetas, identificadores en línea y tecnologías similares para operar la plataforma, recordar preferencias, mejorar la experiencia de navegación, medir campañas, prevenir fraude, analizar tráfico y personalizar contenidos o comunicaciones.</p>
+        <p className="mt-3">Las cookies necesarias pueden ser indispensables para el funcionamiento de la plataforma. Las cookies analíticas, publicitarias o de terceros se gestionarán conforme a la Política de Cookies y al mecanismo de consentimiento implementado en la web, cuando corresponda.</p>
       </Section>
 
-      <Section title="13. Flujo Transfronterizo de Datos">
-        <p>
-          Los datos se almacenan en servidores de Amazon Com Inc (RUC 911646860) en Estados Unidos
-          (410 Terry Avenue North). Se realiza transferencia exclusivamente para almacenamiento.
-          Terceras compañías pueden acceder mediante cookies, conforme Política de Cookies.
-        </p>
+      <Section title="14. Seguridad y confidencialidad">
+        <p>Baldecash adopta medidas técnicas, organizativas y legales razonables para proteger los datos personales contra acceso no autorizado, pérdida, alteración, comunicación, exposición o tratamiento indebido. Estas medidas son proporcionales a la naturaleza de los datos, los riesgos, las finalidades y los medios utilizados.</p>
+        <p className="mt-3">En caso de incidentes de seguridad que involucren datos personales, Baldecash realizará las acciones de contención, análisis, mitigación, documentación y comunicación que correspondan conforme a la normativa vigente.</p>
       </Section>
 
-      <Section title="14. Almacenamiento de Información Personal">
-        <p>
-          La información se puede transferir y almacenar fuera de Perú. Al enviar datos, acepta esta transferencia.
-          Se toman medidas de seguridad, aunque la transmisión por internet no es completamente segura.
-          El acceso está restringido a empleados con necesidad de conocerla. El personal recibe capacitación continua
-          sobre confidencialidad.
-        </p>
+      <Section title="15. Datos de menores, enlaces externos y actualización">
+        <p>Los servicios de Baldecash se dirigen principalmente a personas mayores de edad con capacidad legal para contratar. Baldecash no busca recopilar conscientemente datos personales de menores de edad sin la autorización correspondiente de sus padres, tutores o representantes legales cuando esta sea exigible.</p>
+        <p className="mt-3">La plataforma puede contener enlaces a sitios, aplicaciones, redes sociales, pasarelas de pago, plataformas de firma electrónica o servicios de terceros. Cuando dichos terceros actúen como responsables independientes, sus propias políticas de privacidad serán aplicables.</p>
+        <p className="mt-3">Baldecash podrá actualizar esta Política por cambios normativos, tecnológicos, operativos, comerciales o de seguridad. La versión vigente será publicada en www.Baldecash.com o en el canal que Baldecash habilite.</p>
       </Section>
 
-      <Section title="15. Derechos de Clientes/Usuarios">
-        <p>
-          Pueden revocar consentimiento o ejercer derechos como titulares de datos presentando solicitud a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
-            prestamos@baldecash.com
-          </a>
-          . La plataforma contiene enlaces a terceros con políticas propias; BaldeCash no asume responsabilidad por ellas.
-        </p>
-      </Section>
-
-      <Section title="16. Enlaces Externos">
-        <p>
-          BaldeCash no es responsable por contenido publicado en enlaces externos, políticas de privacidad
-          ni servicios accesibles en esas páginas. Los enlaces no implican recomendación de productos o servicios.
-        </p>
-      </Section>
-
-      <Section title="17. Acceso a Información">
-        <p>
-          Los usuarios tienen derecho de acceso a los datos personales que BaldeCash posea sobre ellos y las condiciones
-          del tratamiento, según Normativa de Protección de Datos Personales.
-        </p>
-      </Section>
-
-      <Section title="18. Cambios, Vigencia y Modificación">
-        <p>
-          La política fue actualizada en junio de 2023. BaldeCash se reserva el derecho de modificarla ante cambios
-          normativos. Las modificaciones se publican en la plataforma. Se recomienda revisar cada vez que use la plataforma.
-        </p>
-      </Section>
-
-      <Section title="19. Privacidad de Menores de Edad">
-        <p>
-          La plataforma no está diseñada para menores. No se tratan conscientemente datos de menores sin
-          consentimiento de padres/tutores. Si se detecta, se eliminarán datos lo antes posible.
-        </p>
-      </Section>
-
-      <Section title="20. Calidad de Datos">
-        <p>
-          Se mantienen datos exactos y se eliminan incorrectos o innecesarios. Es responsabilidad del
-          usuario actualizar información proporcionada.
-        </p>
-      </Section>
-
-      <Section title="21. Medidas de Salvaguarda">
-        <p>
-          Privacidad y seguridad son consideraciones clave. Responsabilidades específicas asignadas,
-          cumplimiento de políticas internas, gestión de riesgos, ingeniería de seguridad, capacitación
-          y evaluaciones. Se abordan seguridad en línea, física, riesgo de pérdida de datos.
-          Acceso a bases de datos restringido a personas autorizadas.
-        </p>
-      </Section>
-
-      <Section title="22. Legislación Aplicable y Jurisdicción">
-        <p>
-          Política normada por ley peruana. Cualquier disputa o reclamo se rige por esta legislación.
-        </p>
-      </Section>
-
-      <Section title="23. Contacto">
-        <p>
-          Preguntas, solicitudes y comentarios dirigidos a:{' '}
-          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
-            prestamos@baldecash.com
-          </a>
-        </p>
+      <Section title="16. Contacto">
+        <p>Para consultas, solicitudes, revocaciones, oposiciones, reclamos o comentarios relacionados con esta Política y el tratamiento de datos personales, el usuario puede comunicarse con Baldecash al correo <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>prestamos@baldecash.com</a>.</p>
       </Section>
     </LegalPageLayout>
   );
 }
-

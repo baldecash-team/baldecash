@@ -1,13 +1,53 @@
+import { isReacondicionadosLanding } from './theme';
+
 /**
  * Helpers de condición de producto.
  *
  * Importante: el VALOR de BD sigue siendo "reacondicionada"/"reacondicionado"
- * (y "refurbished"). Aquí solo se centraliza la DETECCIÓN y la ETIQUETA VISIBLE,
- * que de cara al usuario se muestra como "Semi nuevo".
+ * (y "refurbished"). Aquí solo se centraliza la DETECCIÓN y la ETIQUETA VISIBLE.
+ *
+ * El texto lo manda la BD: sale del facet `conditions[]` de
+ * `GET /{slug}/products/filters`, que a su vez lee `product_condition_catalog`.
+ * Editar esa fila cambia la web sin desplegar (BAL-3204).
  */
 
-/** Texto visible al usuario para la condición reacondicionada. */
-export const REFURBISHED_DISPLAY_LABEL = 'Semi nuevo';
+/**
+ * Texto de respaldo para la condición reacondicionada.
+ *
+ * Solo se usa si el facet no resolvió la condición (p. ej. la card se pinta
+ * antes de que carguen los filtros). Con facet disponible manda la BD.
+ *
+ * Dice lo mismo que `product_condition_catalog` en producción. Cuando decía
+ * "Semi nuevo" y la BD "Reacondicionado", la card podía pintarse un instante
+ * con un texto y cambiar al otro al llegar el facet (BAL-3228). No se elimina:
+ * sin respaldo se caería al código crudo de BD, "Reacondicionada".
+ */
+export const REFURBISHED_DISPLAY_LABEL = 'Reacondicionado';
+
+/**
+ * ¿Hay que pedir confirmación del aviso "equipo semi nuevo" antes de solicitar?
+ *
+ * En cualquier landing, sí: el aviso es lo único que le dice a la persona que
+ * el equipo puede tener señales de uso, y confirmarlo queda como constancia.
+ *
+ * En `reacondicionados`, NO. Ahí la condición no es un detalle escondido en la
+ * ficha: es de lo que trata la landing entera, el grado va en el nombre del
+ * producto y en un chip de la card, y después de aprobar la persona ve las
+ * FOTOS Y EL VIDEO REALES de la unidad que le toca, con sus daños estéticos
+ * listados uno por uno, antes de reservarla. Un modal que interrumpe el "Lo
+ * quiero" para anunciar lo que la pantalla ya viene diciendo —y que se vuelve a
+ * decir, mucho mejor, más adelante— solo agrega un clic.
+ *
+ * Se decide por slug exacto, igual que el resto de lo específico de esta
+ * landing, para que ninguna otra lo herede por accidente.
+ */
+export function pideConfirmacionSemiNuevo(
+  landing: string | null | undefined,
+  condition?: string | null,
+): boolean {
+  if (!isRefurbishedCondition(condition)) return false;
+  return !isReacondicionadosLanding(landing ?? '');
+}
 
 /** ¿El código de condición corresponde a un reacondicionado? (match contra el valor crudo de BD) */
 export function isRefurbishedCondition(condition?: string | null): boolean {
@@ -16,14 +56,54 @@ export function isRefurbishedCondition(condition?: string | null): boolean {
 }
 
 /**
- * Etiqueta visible para una condición. Para reacondicionados fuerza
- * "Semi nuevo"; para el resto usa el label provisto (p. ej. del facet) o uno
- * derivado del código.
+ * Etiqueta visible para una condición.
+ *
+ * Prioridad: el label del facet (BD) > el respaldo del reacondicionado >
+ * uno derivado del código. Antes esta función forzaba "Semi nuevo" y
+ * descartaba lo que mandaba el backend, así que cambiar el texto en BD no
+ * tenía efecto en la web (BAL-3204).
  */
 export function conditionDisplayLabel(condition?: string | null, fallbackLabel?: string | null): string {
-  if (isRefurbishedCondition(condition)) return REFURBISHED_DISPLAY_LABEL;
   if (fallbackLabel) return fallbackLabel;
+  if (isRefurbishedCondition(condition)) return REFURBISHED_DISPLAY_LABEL;
   const c = condition?.trim();
   if (!c) return '';
   return c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ');
+}
+
+/**
+ * Variantes de overlay cuyas tarjetas de catálogo no repiten el estado del equipo.
+ *
+ * Family Farms ya lo dice dos veces antes de llegar al chip: el banner
+ * "REACONDICIONADO" encabeza la tarjeta y el selector A/B/C de la ficha abre el
+ * grado con su propio diseño (BAL-2812). Los chips de condición y grado sobre
+ * la foto son la misma información dicha por tercera vez.
+ *
+ * Va por variante de overlay y no por slug, igual que el resto de la campaña,
+ * para que una landing nueva lo herede sin deploy. Cuando se decida por landing
+ * desde el admin, esta constante se reemplaza por el preset (BAL-3262).
+ */
+const OVERLAY_VARIANTS_WITHOUT_STATE_BADGES = new Set(['familyfarm']);
+
+/** ¿Esta variante de overlay oculta los badges de condición y grado en la tarjeta? */
+export function hidesEquipmentStateBadges(overlayVariant?: string | null): boolean {
+  return !!overlayVariant && OVERLAY_VARIANTS_WITHOUT_STATE_BADGES.has(overlayVariant);
+}
+
+/**
+ * Normaliza cualquier variante de condición a su forma canónica del API:
+ * 'nueva' | 'reacondicionada'. Resuelve el desajuste entre el enum FE
+ * ('nuevo'/'reacondicionado') y el API/facet ('nueva'/'reacondicionada').
+ */
+export function normalizeCondition(condition?: string | null): string {
+  const c = condition?.toLowerCase().trim() ?? '';
+  if (isRefurbishedCondition(c)) return 'reacondicionada';
+  if (c === 'nuevo' || c === 'nueva' || c === 'new') return 'nueva';
+  return c;
+}
+
+/** ¿Dos valores de condición son equivalentes pese a nuevo/nueva, etc.? */
+export function sameCondition(a?: string | null, b?: string | null): boolean {
+  const na = normalizeCondition(a);
+  return na !== '' && na === normalizeCondition(b);
 }

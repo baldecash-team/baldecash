@@ -71,11 +71,11 @@ import { fetchCatalogData, fetchProductsByIds } from '../../services/catalogApi'
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Zona Gamer components
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
-import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
+import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import type { OnboardingStep } from './types/catalog';
 import { Toast, useToast, CubeGridSpinner, useIsMobile, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -94,12 +94,15 @@ import {
   GamerSortDropdown,
   GamerActiveFilters,
 } from './components/gamer';
+import { gamerTermMonths, gamerDisplayTerm, gamerNativeTerm, gamerInitialLabel } from './components/gamer/gamerPricing';
 
 // Quiz
 import { HelpQuiz } from '@/app/prototipos/0.6/quiz/components/quiz/HelpQuiz';
 import type { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/quiz';
 import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { mapQuizAnswersToFilters } from './utils/quizFilters';
+import { resolveSavedItemDetail } from './utils/resolveSavedItemDetail';
+import { cardKey } from './utils/cardKey';
 
 // ============================================
 // Main export
@@ -132,7 +135,7 @@ function GamerLoadingFallback() {
 // Content
 // ============================================
 
-function GamerCatalogoContent() {
+export function GamerCatalogoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
@@ -196,7 +199,7 @@ function GamerCatalogoContent() {
   }, []);
 
   // Layout data (navbar items, promo banner) desde /landing/zona-gamer/layout
-  const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, newsletterData } = useLayout();
+  const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, newsletterData, footerData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
@@ -299,7 +302,10 @@ function GamerCatalogoContent() {
   const [sheetDragY, setSheetDragY] = useState(0);
   const sheetDragStartRef = useRef<number | null>(null);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
-  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; images: string[]; quotaMonthly: number; maxTermMonths: number }[]>([]);
+  // hookTermMonths/paymentFrequency: el plazo que corresponde a `quotaMonthly`.
+  // El mapeo los descartaba y el buscador movil mostraba el plazo maximo junto
+  // a la cuota del hook (BAL-3001).
+  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; images: string[]; quotaMonthly: number; maxTermMonths: number; hookTermMonths?: number; paymentFrequency?: string; hookInitialAmount?: number }[]>([]);
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const mobileSearchDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Monotonic request id: only the latest in-flight mobile search applies to state.
@@ -379,9 +385,13 @@ function GamerCatalogoContent() {
       recommended: 'display_order',
       price_asc: 'price_asc',
       price_desc: 'price_desc',
-      quota_asc: 'price_asc',
+      // BAL-2860: antes iba a 'price_asc' — la cuota no es proporcional al
+      // precio (depende de TEA, plazo y frecuencia de cada producto).
+      quota_asc: 'quota_asc',
+      quota_desc: 'quota_desc',
       newest: 'newest',
-      popular: 'featured',
+      // BAL-2860: antes 'featured' (marca manual), ahora solicitudes reales.
+      popular: 'popular',
     };
     return map[sort];
   }, [sort]);
@@ -770,7 +780,10 @@ function GamerCatalogoContent() {
   }, [analytics, products.length, total, loadMore]);
 
   const handleWishlistToggle = useCallback((product: CatalogProduct) => {
-    const wasInWishlist = isInWishlist(product.id);
+    // Por clave de card, no por id: el suelto y sus combos comparten `id` y el
+    // toast diría lo contrario de lo que hizo (BAL-3328). Sin slug cae al id,
+    // así que una card sin combos se comporta igual que antes.
+    const wasInWishlist = isInWishlist(cardKey(product));
     const item: WishlistItem = {
       productId: product.id,
       slug: product.slug,
@@ -781,9 +794,13 @@ function GamerCatalogoContent() {
       image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
       lowestQuota: product.quotaMonthly,
       type: product.deviceType,
-      months: (product.maxTermMonths || 24) as TermMonths,
-      term: product.maxTermMonths,
-      paymentFrequency: product.paymentFrequency,
+      months: gamerTermMonths(product) as TermMonths,
+      term: gamerNativeTerm(product),
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: product.paymentFrequency ?? 'mensual',
       initialPercent: WIZARD_SELECTED_INITIAL,
       initialAmount: 0,
       monthlyPayment: product.quotaMonthly,
@@ -803,15 +820,17 @@ function GamerCatalogoContent() {
     if (wishlistToastTimerRef.current) clearTimeout(wishlistToastTimerRef.current);
   }, []);
 
-  const handleProductDetail = useCallback((product: CatalogProduct) => {
-    tracker?.track('product_click', {
+  const handleProductDetail = useCallback((product: CatalogProduct, position?: number) => {
+    analytics.trackProductClick({
       product_id: product.id,
       product_name: product.name,
       brand: product.brand,
       slug: product.slug,
+      context: 'catalogo',
+      position,
     });
     router.push(routes.producto(landing, product.slug));
-  }, [router, landing, tracker]);
+  }, [router, landing, analytics]);
 
   // Helper: find a product by ID in allProducts, or build one from a color sibling.
   // Parity with CatalogoClient normal — needed when a productId comes from wishlist/cart
@@ -841,6 +860,19 @@ function GamerCatalogoContent() {
     return null;
   }, [allProducts]);
 
+  /**
+   * La card exacta cuya clave coincide. Buscar por id devolvería la primera
+   * card del producto — normalmente la del combo — y no la que el usuario
+   * eligió (BAL-3328, mismo criterio que `CatalogoClient`).
+   */
+  const findCardByKey = useCallback((key: string): CatalogProduct | null => {
+    const exacta = allProducts.find((p: CatalogProduct) => cardKey(p) === key);
+    if (exacta) return exacta;
+    // El slug ya no está en el catálogo (combo archivado): la card viva del
+    // producto es mejor que nada. Misma degradación que resolveSavedItemDetail.
+    return allProducts.find((p: CatalogProduct) => p.id === key) ?? null;
+  }, [allProducts]);
+
   // "Lo quiero" handler — respects ALLOW_MULTI_PRODUCT.
   // Accepts optional variantInfo (CartItem) when the user selected a variant/color/initial from the card.
   const selectProductForWizard = useCallback((product: CatalogProduct, variantInfo?: CartItem | null) => {
@@ -852,9 +884,13 @@ function GamerCatalogoContent() {
       brand: product.brand,
       price: product.price,
       monthlyPayment: variantInfo?.monthlyPayment ?? product.quotaMonthly,
-      months: (variantInfo?.months ?? product.maxTermMonths ?? 24) as TermMonths,
-      term: variantInfo?.term ?? variantInfo?.months ?? product.maxTermMonths,
-      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      months: (variantInfo?.months ?? gamerTermMonths(product)) as TermMonths,
+      term: variantInfo?.term ?? variantInfo?.months ?? gamerNativeTerm(product),
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency || 'mensual',
       initialPercent: variantInfo?.initialPercent ?? product.hookInitialPercent ?? 0,
       initialAmount: variantInfo?.initialAmount ?? 0,
       image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
@@ -896,7 +932,7 @@ function GamerCatalogoContent() {
       if (cartItem) {
         addCartItem(cartItem);
       } else if (product) {
-        const months = (product.maxTermMonths || 24) as TermMonths;
+        const months = gamerTermMonths(product) as TermMonths;
         addCartItem({
           productId: product.id,
           slug: product.slug,
@@ -906,8 +942,8 @@ function GamerCatalogoContent() {
           image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
           price: product.price,
           months,
-          term: product.maxTermMonths ?? months,
-          paymentFrequency: product.paymentFrequency,
+          term: gamerNativeTerm(product),
+          paymentFrequency: product.paymentFrequency ?? 'mensual',
           initialPercent: WIZARD_SELECTED_INITIAL,
           initialAmount: 0,
           monthlyPayment: product.quotaMonthly,
@@ -982,7 +1018,9 @@ function GamerCatalogoContent() {
           monthlyPayment: item.monthlyPayment,
           months: item.months,
           term: item.term ?? item.months,
-          paymentFrequency: item.paymentFrequency,
+          // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+          // campo: se completa aqui en vez de dejar que el backend lo adivine.
+          paymentFrequency: item.paymentFrequency ?? 'mensual',
           initialPercent: item.initialPercent,
           initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
@@ -1159,8 +1197,9 @@ function GamerCatalogoContent() {
   if (error && activeFilterCount === 0) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif" }}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -1229,8 +1268,9 @@ function GamerCatalogoContent() {
       `}</style>
 
       {/* ====== HEADER (promo banner incluido dentro del sticky wrapper de GamerNavbar) ====== */}
-      <GamerNavbar
-        theme={theme}
+      <Navbar
+        theme="gamer"
+        gamerTheme={theme}
         onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
         catalogUrl={routes.catalogo(landing)}
         hideSecondaryBar
@@ -1389,7 +1429,7 @@ function GamerCatalogoContent() {
                               S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: T.textMuted }}>/mes</span>
                             </div>
                             <div style={{ fontSize: 10, color: T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                              x {product.maxTermMonths || 24} meses
+                              x {gamerDisplayTerm(product)} meses{gamerInitialLabel(product.hookInitialAmount)}
                             </div>
                           </div>
                         </button>
@@ -1471,7 +1511,7 @@ function GamerCatalogoContent() {
                     <div style={{ maxHeight: 340, overflowY: 'auto', padding: 10 }}>
                       {wishlist.map((item) => (
                         <div
-                          key={item.productId}
+                          key={cardKey(item)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: isDark ? '#222' : '#fafafa', marginBottom: 6 }}
                         >
                           <div
@@ -1508,7 +1548,7 @@ function GamerCatalogoContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => removeFromWishlist(item.productId)}
+                            onClick={() => removeFromWishlist(cardKey(item))}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: T.textMuted, display: 'flex' }}
                             aria-label="Quitar de favoritos"
                             title="Quitar"
@@ -1826,20 +1866,23 @@ function GamerCatalogoContent() {
                     product={product}
                     isDark={isDark}
                     T={T}
-                    isWishlisted={isInWishlist(product.id)}
+                    isWishlisted={isInWishlist(cardKey(product))}
                     onWishlistToggle={() => handleWishlistToggle(product)}
                     isCompared={isInCompare(product.id)}
                     onCompare={() => handleToggleCompare(product)}
-                    onDetail={() => handleProductDetail(product)}
+                    onDetail={() => handleProductDetail(product, idx + 1)}
                     onSolicitar={() => handleProductSolicitar(product)}
                     isInCart={ALLOW_MULTI_PRODUCT ? isInCart(product.id) : false}
                     isFirstCard={idx === 0}
                     needsPromoSpacer={promoSpacerFlags[idx]}
                     onHoverStart={() => {
-                      tracker?.track('product_hover', {
+                      analytics.trackProductHover({
                         product_id: product.id,
                         product_name: product.name,
                         brand: product.brand,
+                        slug: product.slug,
+                        context: 'catalogo',
+                        position: idx + 1,
                       });
                     }}
                   />
@@ -2338,6 +2381,8 @@ function GamerCatalogoContent() {
                             id: p.id, slug: p.slug, name: p.name, displayName: p.displayName,
                             brand: p.brand, thumbnail: p.thumbnail, images: p.images || [],
                             quotaMonthly: p.quotaMonthly, maxTermMonths: p.maxTermMonths,
+                            hookTermMonths: p.hookTermMonths, paymentFrequency: p.paymentFrequency,
+                            hookInitialAmount: p.hookInitialAmount,
                           })));
                         } else { setMobileSearchResults([]); }
                       } catch {
@@ -2398,7 +2443,7 @@ function GamerCatalogoContent() {
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 600, color: T.neonCyan, margin: 0, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(p.quotaMonthly)}/mes</p>
-                        <p style={{ fontSize: 10, color: T.textMuted, margin: 0 }}>x {p.maxTermMonths} meses</p>
+                        <p style={{ fontSize: 10, color: T.textMuted, margin: 0 }}>x {gamerDisplayTerm(p)} meses{gamerInitialLabel(p.hookInitialAmount)}</p>
                       </div>
                     </button>
                   ))}
@@ -2536,24 +2581,30 @@ function GamerCatalogoContent() {
         isOpen={isWishlistDrawerOpen && isMobileViewport}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlist}
-        onRemoveProduct={(productId) => removeFromWishlist(productId)}
+        onRemoveProduct={(key) => removeFromWishlist(key)}
         onClearAll={() => clearWishlist()}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
-          const prod = findProductOrSibling(productId);
-          if (prod) {
-            router.push(routes.producto(landing, prod.slug));
-            return;
-          }
-          // Fall back to the slug stored in the wishlist item if the product is no longer in the catalog
-          const item = wishlist.find((w) => w.productId === productId);
-          if (item?.slug) router.push(routes.producto(landing, item.slug));
+          // El drawer emite la clave de card (slug), no el productId (BAL-3328).
+          // El slug guardado identifica la card exacta; el lookup por id devuelve
+          // la primera card del producto y el suelto y sus combos comparten
+          // `id` (BAL-3272). Se conserva la URL sin params de esta pantalla.
+          const item = wishlist.find((w) => cardKey(w) === key);
+          const cardGuardada = item?.slug
+            ? allProducts.find((p: CatalogProduct) => p.slug === item.slug) ?? null
+            : null;
+          const destino = resolveSavedItemDetail(item, cardGuardada, findProductOrSibling(item?.productId ?? key));
+          if (destino) router.push(routes.producto(landing, destino.slug));
         }}
-        onAddToCompare={(productId) => {
-          const prod = findProductOrSibling(productId);
+        onAddToCompare={(key) => {
+          // La clave es el slug de la card; buscarla por id traería la primera
+          // card del producto y no la que el usuario guardó (BAL-3328).
+          const prod = findCardByKey(key);
           if (prod) handleToggleCompare(prod);
         }}
         onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
+          // onAddToCart sigue emitiendo el productId: el carrito tiene identidad
+          // propia via comboId y queda fuera del alcance de BAL-3328.
           const wishlistItem = wishlist.find((w) => w.productId === productId);
           if (wishlistItem) {
             handleAddToCart(productId, undefined, {
@@ -2699,7 +2750,7 @@ function GamerCatalogoContent() {
       )}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <GamerFooter theme={theme} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}
       <BlipChat
@@ -2749,12 +2800,14 @@ function GamerCatalogoContent() {
       )}
 
       {/* Onboarding Tour */}
-      <GamerOnboardingTour
+      <OnboardingTour
         isActive={tourActive}
         currentStep={currentTourStep}
         currentStepIndex={tourStep}
         totalSteps={gamerTourSteps.length}
-        theme={theme}
+        highlightStyle="pulse"
+        theme="gamer"
+        isDark={isDark}
         onNext={handleTourNext}
         onPrev={handleTourPrev}
         onSkip={handleTourSkip}
@@ -2874,6 +2927,6 @@ function GamerCatalogoContent() {
   );
 }
 
-// NOTE: PromoBanner, GamerCatalogHeader, GamerSidebar, FilterSection, SortDropdown,
+// NOTE: PromoBanner, GamerSidebar, FilterSection, SortDropdown,
 // ActiveFiltersBar, GamerProductCard, BrandButton, GamerHelpButton, GamerCompareModal,
 // and GamerCardSkeleton have been extracted to ./components/gamer/

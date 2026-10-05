@@ -14,16 +14,11 @@ import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody } f
 import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, ShoppingCart, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { SimilarProductsProps, SimilarProduct, SimilarProductImage } from '../../../types/detail';
-import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
-import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
-
-// Dynamic storage keys based on landing slug (same pattern as ProductContext)
-const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
-const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 
 // State per product for image selection
 interface ProductCardState {
@@ -172,46 +167,33 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
     }
   };
 
+  /**
+   * "Lo quiero" de una card del carrusel: lleva a la FICHA de ese equipo.
+   *
+   * Antes armaba acá mismo un `SelectedProduct`, lo escribía en localStorage y
+   * saltaba a /solicitar. El problema es que `SimilarProduct` trae
+   * `monthlyQuota` —el HOOK de la card— y nada más: ni precio, ni plazo, ni
+   * inicial, ni frecuencia de pago. Así que los inventaba:
+   *
+   *     price = Math.floor(monthlyQuota * 24); months = 24;
+   *     initialPercent = 0; initialAmount = 0;   // y sin paymentFrequency
+   *
+   * En un celular —que sólo se vende semanal o quincenal— ese hook es la cuota
+   * SEMANAL: el precio quedaba en la mitad del real (iPhone 17: 2.040 contra
+   * 4.463) y se perdía la inicial del 25%. Es la forma exacta con la que nació
+   * L-130507. En una laptop mensual rompe al revés: 239 x 24 = 5.736 contra un
+   * precio de 3.200, y el submit se queda con el número inflado porque acepta
+   * el `unit_price` del payload cuando supera al del catálogo.
+   *
+   * No hay de dónde sacar esos datos en este componente. La ficha sí los tiene
+   * —es la que publica los planes reales— y desde ahí el carrito se arma por
+   * las rutas que BAL-4027 ya cerró. Un plazo supuesto no es un atajo: es un
+   * pricing equivocado que viaja hasta el contrato.
+   */
   const handleAddToCart = (product: SimilarProduct) => {
-    // Save product to localStorage before navigating
-    if (typeof window !== 'undefined') {
-      const landing = landingProp || 'home';
-
-      // Build SelectedProduct from SimilarProduct
-      // Note: SimilarProduct doesn't have price, so we estimate it from monthlyQuota
-      // Price ≈ monthlyQuota * months (plazo más alto, sin inicial)
-      const estimatedPrice = Math.floor(product.monthlyQuota * 24);
-
-      const selectedProduct: SelectedProduct = {
-        id: product.id,
-        name: product.displayName,
-        shortName: product.name,
-        brand: product.brand,
-        price: estimatedPrice,
-        monthlyPayment: product.monthlyQuota,
-        months: 24, // Fallback — SimilarProduct no trae maxTermMonths
-        initialPercent: 0,
-        initialAmount: 0,
-        image: product.thumbnail,
-        variantId: product.variantId != null ? String(product.variantId) : undefined,
-        specs: product.specs ? {
-          processor: product.specs.processor || '',
-          ram: product.specs.ram || '',
-          storage: product.specs.storage || '',
-        } : undefined,
-      };
-
-      // Save to localStorage
-      try {
-        localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProduct));
-        // Clear cart products since this is a single product selection
-        localStorage.removeItem(getCartProductsKey(landing));
-      } catch {
-        // localStorage not available
-      }
-
-      window.location.href = routes.solicitar(landing);
-    }
+    if (typeof window === 'undefined') return;
+    const landing = landingProp || 'home';
+    window.location.href = routes.producto(landing, product.slug);
   };
 
   const checkScroll = () => {

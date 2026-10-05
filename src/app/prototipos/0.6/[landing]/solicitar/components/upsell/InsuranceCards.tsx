@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users } from 'lucide-react';
+import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users, HeartPulse } from 'lucide-react';
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { InsuranceDetailModal } from './InsuranceDetailModal';
+import { MultiasistenciaCard } from './MultiasistenciaCard';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface InsuranceCardsProps {
@@ -18,6 +19,32 @@ interface InsuranceCardsProps {
 
 function getInsuranceIcon(type: string) {
   return type === 'seguro_robo' ? Lock : ShieldCheck;
+}
+
+/**
+ * BAL-2338: cuadrito del seguro en la card. Si el plan tiene `imageUrl`
+ * (insurance_category.image_url) muestra la imagen; si no hay o falla la carga,
+ * cae al ícono por tipo (fallback nunca vacío). Mismo patrón que la oferta
+ * (SeguroCard.tsx). El estado de error es por-card (por eso es un componente).
+ */
+function InsuranceThumb({ imageUrl, type, name }: { imageUrl?: string | null; type: string; name: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const Icon = getInsuranceIcon(type);
+  return (
+    <div className="w-10 h-10 bg-[var(--color-primary)] rounded-xl flex items-center justify-center overflow-hidden">
+      {imageUrl && !imgFailed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <Icon className="w-5 h-5 text-white" />
+      )}
+    </div>
+  );
 }
 
 function getInsuranceLabel(type: string): string {
@@ -62,12 +89,25 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   const [detailPlan, setDetailPlan] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
-  const gridCols = plans.length === 1
+  const maPlans = plans.filter((p) => p.insuranceType === 'multiasistencia');
+  const equipoPlans = plans.filter((p) => p.insuranceType !== 'multiasistencia');
+
+  // La Multiasistencia (A365) es su PROPIA sección, independiente de los seguros
+  // de equipo (Insurama). Se muestra aunque no haya garantía/robo, pero SOLO si
+  // el backend devuelve un plan A365; si no hay plan disponible, no se renderiza
+  // nada (sin tarjeta ni aviso).
+  const showMultiasistenciaSection = maPlans.length > 0;
+
+  // Los seguros de equipo van solos en su grilla: 1 sola → centrada; 2+ → 2 cols.
+  const gridCols = equipoPlans.length === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
     : 'grid-cols-1 sm:grid-cols-2';
 
   return (
     <>
+      {/* ===== Sección: Protege tu equipo (seguros Insurama) ===== */}
+      {equipoPlans.length > 0 && (
+      <>
       {/* Intro */}
       {showIntro && (
         <motion.div
@@ -99,8 +139,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
 
       {/* Cards Grid */}
       <div className={`grid ${gridCols} gap-4`}>
-        {plans.map((plan, index) => {
-          const Icon = getInsuranceIcon(plan.insuranceType);
+        {equipoPlans.map((plan, index) => {
           const isSelected = selectedPlanIds.includes(plan.id);
           const benefits = getBenefits(plan.insuranceType);
           const description = getDescription(plan.insuranceType);
@@ -123,9 +162,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[var(--color-primary)] rounded-xl flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-white" />
-                      </div>
+                      <InsuranceThumb imageUrl={plan.imageUrl} type={plan.insuranceType} name={plan.name} />
                       <div>
                         <p className="text-[11px] font-medium text-[var(--color-secondary)] uppercase tracking-wide">
                           {getInsuranceLabel(plan.insuranceType)}
@@ -217,6 +254,50 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
           );
         })}
       </div>
+      </>
+      )}
+
+      {/* ===== Sección propia: Protégete tú y tu familia (Multiasistencia A365) =====
+          Independiente de los seguros de equipo. Solo se renderiza si el backend
+          devuelve un plan A365; si no hay plan disponible, no se muestra nada. */}
+      {showMultiasistenciaSection && (
+        <div className={equipoPlans.length > 0 ? 'mt-8' : ''}>
+          {showIntro && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-[var(--color-primary)] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <HeartPulse className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-800">
+                    Protégete tú y tu familia
+                  </h2>
+                  <p className="text-sm text-neutral-500">
+                    Mientras pagas tu equipo, tú y hasta 3 familiares quedan cubiertos. Es opcional.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {maPlans.map((plan) => (
+            <MultiasistenciaCard
+              key={plan.id}
+              plan={plan}
+              isSelected={selectedPlanIds.includes(plan.id)}
+              onToggle={() => onToggle(plan.id)}
+              onSeeMore={() => {
+                analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+                setDetailPlan(plan);
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Social proof */}
       {badgeText && (
@@ -236,6 +317,10 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
           if (detailPlan) onToggle(detailPlan.id);
         }}
         badgeText={badgeText}
+        // BAL-2338: imagen del tipo de seguro en el detalle del flujo regular.
+        // Reusa la prop `offerImageUrl` del modal compartido (BAL-2251); si el plan
+        // no tiene imagen (null) el modal no muestra imagen (comportamiento actual).
+        offerImageUrl={detailPlan?.imageUrl ?? null}
       />
     </>
   );

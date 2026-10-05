@@ -12,12 +12,13 @@ import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogProduct, CartItem, WishlistItem, TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
-import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
+import { searchProductSuggestions, termInFrequency, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { cardKey } from '../../utils/cardKey';
 
 // Configuración fija para sugerencias: plazo más alto del producto, sin inicial
 const SELECTED_INITIAL = 0;
@@ -31,6 +32,19 @@ interface NavbarSearchProps {
   onClear: () => void;
   onSubmit?: () => void;
   placeholder?: string;
+  /**
+   * Fuente de sugerencias. Por defecto usa el catálogo NORMAL de la landing.
+   * La oferta (Caso 4) inyecta aquí su propio buscador (catálogo filtrado por
+   * cuota, sin el equipo pedido, con cuota a 24m/0%) para que el dropdown no
+   * fugue productos fuera de la oferta.
+   */
+  fetchSuggestions?: (query: string) => Promise<ProductSuggestion[]>;
+  /**
+   * Acción al elegir una sugerencia. Por defecto navega a /[landing]/producto.
+   * La oferta la sobreescribe para quedarse en /oferta/{token}/producto y no
+   * salir del flujo.
+   */
+  onSelectSuggestion?: (suggestion: ProductSuggestion) => void;
 }
 
 export const NavbarSearch: React.FC<NavbarSearchProps> = ({
@@ -39,6 +53,8 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   onClear,
   onSubmit,
   placeholder = 'Buscar equipos...',
+  fetchSuggestions,
+  onSelectSuggestion,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -65,7 +81,10 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
 
     setIsLoading(true);
     try {
-      const results = await searchProductSuggestions(landing, query, 6, previewKey);
+      // Fuente inyectada (oferta) o el catálogo normal de la landing por defecto.
+      const results = fetchSuggestions
+        ? await fetchSuggestions(query)
+        : await searchProductSuggestions(landing, query, 6, previewKey);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     } catch (error) {
@@ -74,7 +93,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [landing, previewKey]);
+  }, [landing, previewKey, fetchSuggestions]);
 
   // Handle input change with debounce
   const handleInputChange = (newValue: string) => {
@@ -93,13 +112,17 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   // Track if we're navigating to prevent parent's useEffect from overriding
   const isNavigatingRef = useRef(false);
 
-  // Navigate to product detail
+  // Navigate to product detail (default: catálogo normal; oferta: inyecta la suya)
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
     if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
     setShowSuggestions(false);
     setSuggestions([]);
-    router.push(routes.producto(landing, suggestion.slug));
+    if (onSelectSuggestion) {
+      onSelectSuggestion(suggestion);
+    } else {
+      router.push(routes.producto(landing, suggestion.slug));
+    }
   };
 
   // Keyboard navigation
@@ -111,8 +134,9 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
       } else if (value.trim()) {
         setShowSuggestions(false);
         analytics.trackSearchSubmit({
-          query_length: value.length,
+          query: value,
           has_results: suggestions.length > 0,
+          results_count: suggestions.length,
           location: 'navbar',
         });
         onSubmit?.();
@@ -210,7 +234,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
             <div className="py-2">
               {suggestions.map((suggestion, index) => (
                 <button
-                  key={suggestion.id}
+                  key={`${suggestion.id}-${index}`}
                   onMouseDown={(e) => {
                     e.preventDefault(); // Prevent input blur
                     handleSelectSuggestion(suggestion);
@@ -245,7 +269,14 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
 
                   {/* Monthly Quota with term & initial */}
                   {suggestion.price > 0 && (() => {
-                    const term = (suggestion.maxTermMonths || 24) as TermMonths;
+                    // El plazo del hook, no el máximo: la cuota que muestra el
+                    // backend corresponde a ese plazo. Mezclarlos daba "S/293
+                    // x 36 meses" cuando la card decía 24 (BAL-2983).
+                    // El plazo viene en meses; la card lo convierte a la unidad
+                    // de la frecuencia (ProductCard.tsx:316-319). Sin esto el
+                    // desplegable decia "24 meses" y la card "6" en semanales.
+                    const termMeses = suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24;
+                    const term = termInFrequency(termMeses, suggestion.paymentFrequency) as TermMonths;
                     const quota = suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota;
                     return (
                       <div className="text-right flex-shrink-0">
@@ -254,6 +285,9 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                         </p>
                         <p className="text-[10px] text-[var(--text-muted,#6b7280)]">
                           x {term} meses
+                          {suggestion.hookInitialAmount
+                            ? ` · inicial S/${formatMoney(suggestion.hookInitialAmount)}`
+                            : ' · sin inicial'}
                         </p>
                       </div>
                     );
@@ -270,8 +304,9 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                     e.preventDefault();
                     setShowSuggestions(false);
                     analytics.trackSearchSubmit({
-                      query_length: value.length,
+                      query: value,
                       has_results: suggestions.length > 0,
+                      results_count: suggestions.length,
                       location: 'navbar_view_all',
                     });
                     onSubmit?.();
@@ -438,9 +473,11 @@ interface NavbarWishlistConfig {
 
 interface NavbarWishlistProps {
   items: WishlistItem[];
-  onRemoveItem: (productId: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onRemoveItem: (cardKey: string) => void;
   onClearAll: () => void;
-  onViewProduct: (productId: string) => void;
+  /** Recibe la clave de card (cardKey/slug), NO el productId (BAL-3328) */
+  onViewProduct: (cardKey: string) => void;
   id?: string;
   config?: NavbarWishlistConfig;
   unavailableIds?: string[];
@@ -533,16 +570,19 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
               <div className="max-h-[280px] overflow-y-auto">
                 <div className="p-3 space-y-2">
                   {items.map((item) => {
-                    const isUnavailable = unavailableSet.has(item.productId);
+                    // unavailableWishlistIds trae cardKey (slug), no productId
+                    // — el suelto y sus combos comparten productId (BAL-3328).
+                    const itemKey = cardKey(item);
+                    const isUnavailable = unavailableSet.has(itemKey);
                     const hasInitial = item.initialAmount > 0;
                     return (
                       <div
-                        key={item.productId}
+                        key={itemKey}
                         className={`flex items-center gap-3 p-2 rounded-lg group ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-[var(--surface-bg,#fafafa)]'}`}
                       >
                         <div
                           onClick={() => {
-                            onViewProduct(item.productId);
+                            onViewProduct(itemKey);
                             setIsOpen(false);
                           }}
                           className="w-12 h-12 bg-[var(--surface,#fff)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)] cursor-pointer hover:border-[var(--color-primary)] transition-colors"
@@ -559,7 +599,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           </p>
                           <p
                             onClick={() => {
-                              onViewProduct(item.productId);
+                              onViewProduct(itemKey);
                               setIsOpen(false);
                             }}
                             className="text-sm font-medium text-[var(--text-strong,#1f2937)] truncate cursor-pointer hover:text-[var(--color-primary)] transition-colors"
@@ -588,7 +628,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           )}
                         </div>
                         <button
-                          onClick={() => onRemoveItem(item.productId)}
+                          onClick={() => onRemoveItem(itemKey)}
                           className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--text-faint,#9ca3af)] hover:text-red-500 transition-colors cursor-pointer"
                         >
                           <X className="w-4 h-4" />

@@ -11,12 +11,10 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useLayout } from '../../context/LayoutContext';
 import { Zap } from 'lucide-react';
 
@@ -37,7 +35,7 @@ function LoadingFallback() {
 export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayoutProps) {
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing, newsletterData } = useLayout();
   const isConvenio = !!agreementData;
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(landing);
 
   useScrollToTop();
 
@@ -96,9 +94,10 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
         `}</style>
 
-        {/* Header — shared GamerNavbar */}
-        <GamerNavbar
-          theme={theme}
+        {/* Header — shared Navbar con theme="gamer" */}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme ?? 'dark'}
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -107,7 +106,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         />
 
         {/* Main Content */}
-        <main className="px-4 sm:px-6 pt-6 sm:pt-10 pb-12 sm:pb-16" style={{ maxWidth: 896, margin: '0 auto' }}>
+        <main className="px-4 sm:px-6 pb-12 sm:pb-16" style={{ maxWidth: 896, margin: '0 auto', paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + 24px)' }}>
           {/* Header */}
           <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: `1px solid ${border}` }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '5px 14px', borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: neonCyan, background: isDark ? 'rgba(0,255,213,0.05)' : 'rgba(14,148,133,0.06)', border: `1px solid ${isDark ? 'rgba(0,255,213,0.12)' : 'rgba(14,148,133,0.15)'}` }}>
@@ -153,7 +152,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         </main>
 
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     );
   }

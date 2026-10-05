@@ -7,14 +7,22 @@
 
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
+import { sanitizeEmailInput } from '../../../../../services/emailValidation';
+import { isPersonNameField, sanitizeNameInput } from '../../../../../services/nameValidation';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
+import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
+import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
+import { resolverForma } from './formaDeLista';
 import { TextInput } from './TextInput';
+import { CurrencyInput } from './CurrencyInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
 import { SelectInput } from './SelectInput';
 import { CascadingSelectField } from './CascadingSelectField';
 import { DateInput } from './DateInput';
+import { limitesDelCampo } from '../../../../../services/fechaLimites';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
 import { CheckboxField } from './CheckboxField';
@@ -30,6 +38,7 @@ interface DynamicFieldProps {
 
 export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+  const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
 
   // Get current value and error
@@ -73,6 +82,74 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
 
   const isLockedByMinor = forcedValue != null;
 
+  // Prellenado desde el lead que el socio empujó: solo lectura. Es el dato que
+  // el socio declaró y sobre el que se le liquida; si el postulante lo edita,
+  // el lead y la solicitud dejan de ser la misma persona.
+  const isLockedFromLead = formData[leadLockKey(field.code)]?.value === 'true';
+
+  // For convenio landings: auto-populate and lock the institution field
+  const isConvenioInstitution = field.code === 'institution' && !!agreementData?.study_center_id;
+  useEffect(() => {
+    if (!isConvenioInstitution) return;
+    const studyCenterId = String(agreementData!.study_center_id);
+    const label = agreementData!.institution_short_name || agreementData!.institution_name || agreementData!.name || '';
+    if (getFieldValue('institution') !== studyCenterId) {
+      updateField('institution', studyCenterId, label);
+    }
+  }, [isConvenioInstitution, agreementData, getFieldValue, updateField]);
+
+  // For convenio landings: auto-populate and lock the institution_type field.
+  // The value (university/institute/school) comes from the study_center's
+  // institution_type and matches the field option values 1:1.
+  const isConvenioInstitutionType = field.code === 'institution_type' && !!agreementData?.institution_type;
+  useEffect(() => {
+    if (!isConvenioInstitutionType) return;
+    const typeValue = agreementData!.institution_type!;
+    // Label from the field's own options (fallback to the raw value).
+    const typeLabel = field.options?.find((o) => String(o.value) === typeValue)?.label ?? typeValue;
+    if (getFieldValue('institution_type') !== typeValue) {
+      updateField('institution_type', typeValue, typeLabel);
+    }
+  }, [isConvenioInstitutionType, agreementData, getFieldValue, updateField, field.options]);
+
+  // Producto de matrícula: la institución NO se elige acá. Se eligió en la
+  // primera pantalla del recorrido (`/{landing}/universidad`), es la que define
+  // el convenio con el que se simuló la cuota, y volver a pedirla en el paso
+  // académico invita a contestar otra cosa. Se rellena y se bloquea.
+  //
+  // El convenio de la landing manda sobre esto: si la landing tiene uno, la
+  // institución sale de ahí y este bloque no interviene.
+  const datosMatricula = useDatosMatricula(landing);
+
+  const isMatriculaInstitution =
+    field.code === 'institution' &&
+    !isConvenioInstitution &&
+    !!datosMatricula?.institucionId;
+  useEffect(() => {
+    if (!isMatriculaInstitution) return;
+    const studyCenterId = String(datosMatricula!.institucionId);
+    const label = datosMatricula!.institucionNombre || '';
+    if (getFieldValue('institution') !== studyCenterId) {
+      updateField('institution', studyCenterId, label);
+    }
+  }, [isMatriculaInstitution, datosMatricula, getFieldValue, updateField]);
+
+  // El tipo se deriva de la institución elegida, no se pregunta. Los valores
+  // (university/institute/school) son los mismos que usan las opciones del
+  // campo, así que entran sin traducir.
+  const isMatriculaInstitutionType =
+    field.code === 'institution_type' &&
+    !isConvenioInstitutionType &&
+    !!datosMatricula?.institucionTipo;
+  useEffect(() => {
+    if (!isMatriculaInstitutionType) return;
+    const typeValue = datosMatricula!.institucionTipo!;
+    const typeLabel = field.options?.find((o) => String(o.value) === typeValue)?.label ?? typeValue;
+    if (getFieldValue('institution_type') !== typeValue) {
+      updateField('institution_type', typeValue, typeLabel);
+    }
+  }, [isMatriculaInstitutionType, datosMatricula, getFieldValue, updateField, field.options]);
+
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
     let options = filterFieldOptions(field, formValues);
@@ -87,6 +164,18 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     }
     return options;
   }, [field, formValues, forcedValue]);
+
+  // BAL-4383: con `auto_select_single`, si a una lista le queda una sola
+  // opción visible (p. ej. tras filtrar por dependencias) se elige sola, sin
+  // que el cliente tenga que tocarla. Antes del switch/return para no romper
+  // el orden de hooks.
+  useEffect(() => {
+    if (!field.auto_select_single) return;
+    if (field.type !== 'select' && field.type !== 'autocomplete') return;
+    if (filteredOptions.length !== 1 || value) return;
+    const unica = filteredOptions[0];
+    updateField(field.code, unica.value, unica.label);
+  }, [field.auto_select_single, field.type, field.code, filteredOptions, value, updateField]);
 
   // Build tooltip from API help_text (100% from BD)
   // NOTE: Must be before conditional return to maintain hooks order
@@ -125,7 +214,14 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly || isLockedByMinor,
+    disabled:
+      field.readonly ||
+      isLockedByMinor ||
+      isConvenioInstitution ||
+      isConvenioInstitutionType ||
+      isMatriculaInstitution ||
+      isMatriculaInstitutionType ||
+      isLockedFromLead,
     tooltip,
     helpText: undefined as string | undefined,
   };
@@ -156,6 +252,15 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <TextInput
           {...commonProps}
+          // Los campos `text` son dinámicos (vienen de `form_field`), así que
+          // el filtro se aplica SOLO a los que son nombres de persona:
+          // "Empresa donde Labora" o "¿Qué beca tiene?" llevan números con
+          // todo derecho. Ver `PERSON_NAME_FIELD_CODES`.
+          onChange={
+            isPersonNameField(field.code)
+              ? (newValue: string) => updateField(field.code, sanitizeNameInput(newValue))
+              : commonProps.onChange
+          }
           type="text"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
@@ -167,6 +272,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <TextInput
           {...commonProps}
+          // Pegar el hipervínculo del correo (`mailto:alguien@dominio.pe`) era la
+          // forma más común de guardar un address que Mailgun luego no podía
+          // entregar. Se limpia al vuelo, igual que `phone` filtra los no-dígitos.
+          onChange={(newValue: string) => updateField(field.code, sanitizeEmailInput(newValue))}
           type="email"
           placeholder={field.placeholder || undefined}
           inputMode="email"
@@ -189,18 +298,19 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'currency':
+      // BAL-4395: el cliente ve «2,500»; a form_data va «2500» como siempre.
+      // BAL-4400: `decimal_places` 0 = solo soles enteros; null = como hoy.
       return (
-        <TextInput
+        <CurrencyInput
           {...commonProps}
-          type="number"
           placeholder={field.placeholder || undefined}
-          inputMode="numeric"
           success={!error && !!value}
           startContent={field.prefix || undefined}
           endContent={field.suffix || undefined}
           min={field.min_value ?? undefined}
           max={field.max_value ?? undefined}
           step={field.step ?? undefined}
+          decimales={field.decimal_places}
         />
       );
 
@@ -226,6 +336,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       // work_start_date y otros: 0 (año actual)
       const dateYearOffset = field.code === 'birth_date' ? -20 : 0;
       const dateMinAge = field.code === 'birth_date' ? 17 : 0;
+      // Fecha mínima / máxima exactas del panel (BAL-4396), resueltas contra hoy.
+      const limitesFecha = limitesDelCampo(field);
       return (
         <DateInput
           {...commonProps}
@@ -233,6 +345,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           success={!error && !!value}
           defaultYearOffset={dateYearOffset}
           minAge={dateMinAge}
+          dateRange={field.date_range ?? 'past'}
+          minDate={limitesFecha.min}
+          maxDate={limitesFecha.max}
+          limitMessage={limitesFecha.mensaje}
         />
       );
 
@@ -275,75 +391,37 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'select':
-      // Map options for select
-      const selectOptions = filteredOptions.map((opt) => ({
+    case 'autocomplete': {
+      const opcionesLista = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
         description: opt.description || undefined,
       }));
-
-      // Check if this is a dynamic select (API-sourced options)
-      const isDynamicSelect = Boolean(field.options_source || field.cascade_from);
-
-      // For dynamic selects (API), always use dropdown
-      if (isDynamicSelect) {
-        return (
-          <CascadingSelectField
-            field={field}
-            staticOptions={selectOptions}
-            showError={showError}
-            searchable={true}
-          />
-        );
+      const delSistema = Boolean(field.options_source || field.cascade_from);
+      const forma = resolverForma({
+        tipo: field.type,
+        displayMode: field.display_mode,
+        cantidad: opcionesLista.length,
+        delSistema,
+      });
+      if (forma === 'buttons') {
+        return <SegmentedControl {...commonProps} options={opcionesLista} success={!error && !!value} />;
       }
-
-      // For static selects, apply visual rules based on option count
-      if (selectOptions.length <= 3) {
-        // 2-3 options: horizontal buttons (SegmentedControl)
-        return (
-          <SegmentedControl
-            {...commonProps}
-            options={selectOptions}
-            success={!error && !!value}
-          />
-        );
+      if (forma === 'cards') {
+        return <RadioGroup {...commonProps} options={opcionesLista} success={!error && !!value} />;
       }
-      if (selectOptions.length <= 5) {
-        // 4-5 options: vertical card list (RadioGroup)
-        return (
-          <RadioGroup
-            {...commonProps}
-            options={selectOptions}
-            success={!error && !!value}
-          />
-        );
-      }
-      // 6+ options: dropdown select
       return (
         <CascadingSelectField
           field={field}
-          staticOptions={selectOptions}
+          staticOptions={opcionesLista}
           showError={showError}
-          searchable={selectOptions.length >= 10}
+          searchable={forma === 'search'}
+          disabled={commonProps.disabled}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       );
-
-    case 'autocomplete':
-      // Use CascadingSelectField for all autocompletes (handles both regular and cascading)
-      const autocompleteOptions = filteredOptions.map((opt) => ({
-        value: opt.value,
-        label: opt.label,
-        description: opt.description || undefined,
-      }));
-
-      return (
-        <CascadingSelectField
-          field={field}
-          staticOptions={autocompleteOptions}
-          showError={showError}
-          searchable={true}
-        />
-      );
+    }
 
     case 'textarea':
       return (

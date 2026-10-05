@@ -153,18 +153,21 @@ describe('ConfirmacionClient', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Solicitud Enviada/i)
+          screen.getByText(/Hemos recibido tu solicitud/i)
         ).toBeInTheDocument();
       });
     });
 
-    it('shows application status', async () => {
+    it('no muestra el timeline de estado ni llama "Tu solicitud" al resumen', async () => {
       render(<ConfirmacionPage />);
 
       await waitFor(() => {
-        // Status should be displayed (translated to Spanish)
-        expect(screen.getByText(/Enviada|submitted/i)).toBeInTheDocument();
+        expect(screen.getByText(/Tu financiamiento/i)).toBeInTheDocument();
       });
+      // El timeline "Solicitud enviada → En revisión → Respuesta" ya no va en
+      // la confirmación: el mensaje de arriba dice cómo terminó.
+      expect(screen.queryByText(/En revisi/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Tu solicitud$/i)).not.toBeInTheDocument();
     });
 
     it('does NOT show demo options when code is present', async () => {

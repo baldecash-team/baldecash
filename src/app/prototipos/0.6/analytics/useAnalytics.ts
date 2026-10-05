@@ -16,9 +16,57 @@ import { useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type { EventType } from '@/app/prototipos/0.6/services/eventsApi';
+import { normalizeSearchQuery } from './searchQuery';
 
 type Primitive = string | number | boolean | null | undefined;
 type Props = Record<string, Primitive | Primitive[]>;
+
+/** Eventos de catálogo compartido → su versión con prefijo offer_ (BAL-2236).
+ *  Solo se aplica en contexto de oferta (ruta con params.token). El resto de
+ *  eventos (incluidos los que ya empiezan con offer_) pasan sin cambio. */
+const OFFER_EVENT_ALIAS: Partial<Record<EventType, EventType>> = {
+  filter_toggle: 'offer_filter_toggle',
+  filter_clear_single: 'offer_filter_clear_single',
+  filter_clear_all: 'offer_filter_clear_all',
+  filter_range_change: 'offer_filter_range_change',
+  filter_section_toggle: 'offer_filter_section_toggle',
+  filter_snapshot: 'offer_filter_snapshot',
+  sort_change: 'offer_sort_change',
+  catalog_load_more: 'offer_catalog_load_more',
+  search_focus: 'offer_search_focus',
+  search_submit: 'offer_search_submit',
+  search_clear: 'offer_search_clear',
+};
+
+/**
+ * Dónde se disparó un evento de producto.
+ *
+ * Sin esto las métricas por producto no son comparables entre sí: una vista de
+ * ficha y una impresión de catálogo son actos distintos contados con el mismo
+ * nombre, y cualquier ranking de modelos que los mezcle está mal.
+ *
+ * El vocabulario es cerrado a propósito — es el que consume analítica del otro
+ * lado, y un valor libre acá se convierte en una categoría huérfana allá.
+ */
+export type ProductContext =
+  | 'catalogo'
+  | 'hero'
+  | 'ficha'
+  | 'similares'
+  | 'resultado_busqueda';
+
+/** Identificación del producto, común a view / click / hover. */
+export interface ProductEventArgs {
+  product_id: string | number;
+  product_name?: string;
+  brand?: string;
+  slug?: string;
+  context: ProductContext;
+  /** Orden dentro de la lista, 1-based. Solo aplica en listados. */
+  position?: number;
+  /** Propiedades extra del call site (financiamiento visible en la card, etc). */
+  extra?: Props;
+}
 
 export type FilterCode =
   | 'brand'
@@ -87,7 +135,12 @@ export interface UseAnalyticsReturn {
 
   // Search
   trackSearchFocus: (args?: { location?: string }) => void;
-  trackSearchSubmit: (args: { query_length: number; has_results?: boolean; location?: string }) => void;
+  trackSearchSubmit: (args: {
+    query: string;
+    has_results?: boolean;
+    results_count?: number;
+    location?: string;
+  }) => void;
   trackSearchClear: (args?: { location?: string }) => void;
   trackSearchSuggestionClick: (args: { original: string; suggested: string }) => void;
   trackSearchDrawer: (args: { open: boolean }) => void;
@@ -95,6 +148,21 @@ export interface UseAnalyticsReturn {
   // Banners
   trackBannerClick: (args: { banner_id?: string; location: string; href?: string; variant?: string }) => void;
   trackBannerHover: (args: { banner_id?: string; location: string; variant?: string }) => void;
+
+  /**
+   * Manda el buffer ya mismo, sin esperar al intervalo de 5s.
+   *
+   * Para los clics que navegan fuera en la misma pestaña: el evento queda
+   * encolado, la página se va, y el flush de `beforeunload` usa `fetch` (no
+   * `sendBeacon`), que el navegador puede cancelar. Sin esto, parte de esos
+   * clics no llega nunca.
+   */
+  flush: () => void;
+
+  // Producto (view / click / hover) — siempre con `context`
+  trackProductView: (args: ProductEventArgs) => void;
+  trackProductClick: (args: ProductEventArgs) => void;
+  trackProductHover: (args: ProductEventArgs) => void;
 
   // Detalle de producto
   trackCronogramaDownload: (args: { product_id: string; term: number; initial_percent: number }) => void;
@@ -181,6 +249,17 @@ export interface UseAnalyticsReturn {
     total_monthly_payment: number | null;
   }) => void;
 
+  /**
+   * Vinculación de sesión. El disparo automático vive en EventTrackerContext y
+   * ocurre sólo al nacer una sesión; este helper existe para los flujos que
+   * necesiten emitirlo explícitamente (p. ej. una sesión con token fijo).
+   */
+  trackSesionVinculada: (args: {
+    session_id: string;
+    session_db_id?: number | null;
+    source?: string;
+  }) => void;
+
   // Landing / Home
   trackHeroCtaClick: (args: { landing_slug: string; cta_id?: string | null; variant?: string | null }) => void;
   trackSectionCtaClick: (args: { section_name: string; cta_id?: string | null; href?: string | null }) => void;
@@ -194,15 +273,22 @@ export interface UseAnalyticsReturn {
 export function useAnalytics(): UseAnalyticsReturn {
   const tracker = useEventTrackerOptional();
   const params = useParams();
+  const isOffer = !!params?.token;
   const landing = (params?.landing as string) || 'home';
 
   const track = useCallback(
     (eventType: EventType, properties?: Props, elementId?: string) => {
       if (!tracker) return;
-      tracker.track(eventType, { landing, ...(properties || {}) }, elementId);
+      const finalType = isOffer ? (OFFER_EVENT_ALIAS[eventType] ?? eventType) : eventType;
+      tracker.track(finalType, { landing, ...(properties || {}) }, elementId);
     },
-    [tracker, landing]
+    [tracker, landing, isOffer]
   );
+
+  // Sin provider no hay nada que mandar: mismo criterio que `track`.
+  const flush = useCallback(() => {
+    tracker?.flush();
+  }, [tracker]);
 
   // Filtros
   const trackFilterToggle = useCallback<UseAnalyticsReturn['trackFilterToggle']>(
@@ -249,9 +335,10 @@ export function useAnalytics(): UseAnalyticsReturn {
   const trackFilterSnapshot = useCallback<UseAnalyticsReturn['trackFilterSnapshot']>(
     (args) => {
       if (!tracker) return;
-      tracker.track('filter_snapshot', { landing, ...args });
+      const type = isOffer ? 'offer_filter_snapshot' : 'filter_snapshot';
+      tracker.track(type, { landing, ...args });
     },
-    [tracker, landing]
+    [tracker, landing, isOffer]
   );
 
   // Sort + paginado (debounce: NextUI Select dispara onSelectionChange dos veces)
@@ -294,10 +381,16 @@ export function useAnalytics(): UseAnalyticsReturn {
   );
 
   const trackSearchSubmit = useCallback<UseAnalyticsReturn['trackSearchSubmit']>(
-    ({ query_length, has_results, location = 'navbar' }) => {
+    ({ query, has_results, results_count, location = 'navbar' }) => {
       track('search_submit', {
-        query_length,
+        // `query_length` se mide sobre lo que el usuario escribió, no sobre el
+        // término ya normalizado: es la serie histórica que ya existe en la base.
+        query_length: query.length,
+        // El saneado (minúsculas, tope de 60, descarte de documento/teléfono)
+        // vive en `normalizeSearchQuery`, no en cada call site.
+        query: normalizeSearchQuery(query) ?? null,
         has_results: has_results ?? null,
+        results_count: results_count ?? null,
         location,
       });
     },
@@ -353,6 +446,49 @@ export function useAnalytics(): UseAnalyticsReturn {
   const trackBannerHover = useCallback<UseAnalyticsReturn['trackBannerHover']>(
     (args) => debouncedBannerHover(args),
     [debouncedBannerHover]
+  );
+
+  // ============================================================================
+  // Producto (view / click / hover)
+  //
+  // Un solo armador para los tres eventos: el payload tiene que ser idéntico
+  // entre ellos para que `context` sirva de eje de comparación. Armado a mano
+  // en cada call site, la primera divergencia rompe el cruce.
+  //
+  // `landing` no va acá: `track` ya lo antepone a todos los eventos.
+  // ============================================================================
+  const buildProductProps = useCallback(
+    ({
+      product_id,
+      product_name,
+      brand,
+      slug,
+      context,
+      position,
+      extra,
+    }: ProductEventArgs): Props => ({
+      product_id: String(product_id),
+      product_name: product_name ?? null,
+      brand: brand ?? null,
+      slug: slug ?? null,
+      context,
+      position: position ?? null,
+      ...(extra ?? {}),
+    }),
+    []
+  );
+
+  const trackProductView = useCallback<UseAnalyticsReturn['trackProductView']>(
+    (args) => track('product_view', buildProductProps(args)),
+    [track, buildProductProps]
+  );
+  const trackProductClick = useCallback<UseAnalyticsReturn['trackProductClick']>(
+    (args) => track('product_click', buildProductProps(args)),
+    [track, buildProductProps]
+  );
+  const trackProductHover = useCallback<UseAnalyticsReturn['trackProductHover']>(
+    (args) => track('product_hover', buildProductProps(args)),
+    [track, buildProductProps]
   );
 
   // ============================================================================
@@ -651,9 +787,21 @@ export function useAnalytics(): UseAnalyticsReturn {
     [track]
   );
 
+  const trackSesionVinculada = useCallback<UseAnalyticsReturn['trackSesionVinculada']>(
+    ({ session_id, session_db_id, source = 'manual' }) => {
+      track('sesion_vinculada', {
+        session_id,
+        session_db_id: session_db_id ?? null,
+        source,
+      });
+    },
+    [track]
+  );
+
   return useMemo(
     () => ({
       track,
+      trackSesionVinculada,
       // Filtros
       trackFilterToggle,
       trackFilterRangeChange,
@@ -674,6 +822,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       // Banners
       trackBannerClick,
       trackBannerHover,
+      flush,
       // Detalle
       trackCronogramaDownload,
       trackCronogramaModal,
@@ -683,6 +832,9 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackGalleryZoom,
       trackColorSelect,
       trackDetailTabClick,
+      trackProductView,
+      trackProductClick,
+      trackProductHover,
       trackSimilarProductClick,
       trackSimilarProductAddToCart,
       trackSpecSheetDownload,
@@ -751,6 +903,9 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackGalleryZoom,
       trackColorSelect,
       trackDetailTabClick,
+      trackProductView,
+      trackProductClick,
+      trackProductHover,
       trackSimilarProductClick,
       trackSimilarProductAddToCart,
       trackSpecSheetDownload,
@@ -788,6 +943,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackHeroCtaClick,
       trackSectionCtaClick,
       trackPromoCardClick,
+      trackSesionVinculada,
     ]
   );
 }

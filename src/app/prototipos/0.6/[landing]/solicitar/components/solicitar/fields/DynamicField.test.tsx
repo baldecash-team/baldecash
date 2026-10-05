@@ -14,7 +14,6 @@
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { WizardField } from '../../../../../services/wizardApi';
 
 // Mock the WizardContext
@@ -32,9 +31,28 @@ jest.mock('../../../context/WizardContext', () => ({
   }),
 }));
 
+// Registro de las últimas props que recibió cada componente mockeado, para
+// probar cosas que el DOM no expone (p. ej. `disabled` en el desplegable).
+const mockUltimasProps: Record<string, unknown> = {};
+
+// El componente vive dentro del layout de la landing y del rastreo de campos.
+// Acá se prueba el mapeo de tipos, así que ambos se sustituyen por lo mínimo:
+// sin esto `useLayout` revienta por falta de proveedor y no se renderiza nada.
+jest.mock('../../../../context/LayoutContext', () => ({
+  useLayout: () => ({ agreementData: null, landing: 'una-landing-cualquiera' }),
+}));
+
+const mockOnFieldFocus = jest.fn();
+const mockOnFieldBlur = jest.fn();
+jest.mock('../../../hooks/useFieldTracking', () => ({
+  useFieldTracking: () => ({ onFieldFocus: mockOnFieldFocus, onFieldBlur: mockOnFieldBlur }),
+}));
+
 // Mock the field components
 jest.mock('./TextInput', () => ({
-  TextInput: ({ label, type, ...props }: { label: string; type?: string }) => (
+  // `inputRef` (lo usa el campo Monto) no es un atributo del DOM: se descarta.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  TextInput: ({ label, type, inputRef: _inputRef, ...props }: { label: string; type?: string; inputRef?: unknown }) => (
     <div data-testid="text-input" data-type={type || 'text'}>
       <label>{label}</label>
       <input type={type || 'text'} {...props} />
@@ -43,32 +61,40 @@ jest.mock('./TextInput', () => ({
 }));
 
 jest.mock('./SegmentedControl', () => ({
-  SegmentedControl: ({ label, options }: { label: string; options: Array<{ value: string; label: string }> }) => (
-    <div data-testid="segmented-control">
-      <label>{label}</label>
-      <div data-option-count={options.length}>
-        {options.map((opt) => (
-          <button key={opt.value}>{opt.label}</button>
-        ))}
+  SegmentedControl: (props: { label: string; options: Array<{ value: string; label: string }>; disabled?: boolean }) => {
+    mockUltimasProps['segmented-control'] = props;
+    const { label, options } = props;
+    return (
+      <div data-testid="segmented-control">
+        <label>{label}</label>
+        <div data-option-count={options.length}>
+          {options.map((opt) => (
+            <button key={opt.value}>{opt.label}</button>
+          ))}
+        </div>
       </div>
-    </div>
-  ),
+    );
+  },
 }));
 
 jest.mock('./RadioGroup', () => ({
-  RadioGroup: ({ label, options }: { label: string; options: Array<{ value: string; label: string }> }) => (
-    <div data-testid="radio-group">
-      <label>{label}</label>
-      <div data-option-count={options.length}>
-        {options.map((opt) => (
-          <label key={opt.value}>
-            <input type="radio" value={opt.value} />
-            {opt.label}
-          </label>
-        ))}
+  RadioGroup: (props: { label: string; options: Array<{ value: string; label: string }>; disabled?: boolean }) => {
+    mockUltimasProps['radio-group'] = props;
+    const { label, options } = props;
+    return (
+      <div data-testid="radio-group">
+        <label>{label}</label>
+        <div data-option-count={options.length}>
+          {options.map((opt) => (
+            <label key={opt.value}>
+              <input type="radio" value={opt.value} />
+              {opt.label}
+            </label>
+          ))}
+        </div>
       </div>
-    </div>
-  ),
+    );
+  },
 }));
 
 jest.mock('./SelectInput', () => ({
@@ -86,9 +112,23 @@ jest.mock('./SelectInput', () => ({
   ),
 }));
 
+jest.mock('./CascadingSelectField', () => ({
+  CascadingSelectField: (props: { field: { code: string; label: string }; searchable?: boolean; disabled?: boolean }) => {
+    mockUltimasProps['cascading-select'] = props;
+    const { field, searchable } = props;
+    return (
+      <div data-testid="cascading-select" data-searchable={searchable ? 'true' : 'false'}>
+        <label>{field.label}</label>
+      </div>
+    );
+  },
+}));
+
 jest.mock('./DateInput', () => ({
-  DateInput: ({ label }: { label: string }) => (
-    <div data-testid="date-input">
+  DateInput: ({ label, minDate, maxDate, limitMessage }: {
+    label: string; minDate?: string | null; maxDate?: string | null; limitMessage?: string | null;
+  }) => (
+    <div data-testid="date-input" data-min={minDate ?? ''} data-max={maxDate ?? ''} data-msg={limitMessage ?? ''}>
       <label>{label}</label>
       <input type="date" />
     </div>
@@ -154,6 +194,34 @@ function createField(overrides: Partial<WizardField> = {}): WizardField {
   };
 }
 
+/** Última prop recibida por el mock del componente con ese testid. */
+function ultimasPropsDe(testId: string): Record<string, unknown> {
+  return (mockUltimasProps[testId] as Record<string, unknown>) ?? {};
+}
+
+/**
+ * Renderiza `DynamicField` con un campo tipo lista. El código por defecto es
+ * `lista` (no `test_field`, el de `createField`) porque estos casos sí
+ * comprueban qué código viaja a `updateField`.
+ */
+function renderField(
+  overrides: Partial<WizardField> = {},
+  wizard: { updateField?: (...args: unknown[]) => void } = {}
+) {
+  if (wizard.updateField) {
+    mockUpdateField.mockImplementation(wizard.updateField);
+  }
+  const field = createField({ code: 'lista', label: 'Lista', ...overrides });
+  return render(<DynamicField field={field} />);
+}
+
+const dosOpciones = [
+  { value: 'a', label: 'Opción A' },
+  { value: 'b', label: 'Opción B' },
+];
+const seisOpciones = Array.from({ length: 6 }, (_, i) => ({ value: `op${i}`, label: `Opción ${i}` }));
+const ochoOpciones = Array.from({ length: 8 }, (_, i) => ({ value: `op${i}`, label: `Opción ${i}` }));
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -163,6 +231,8 @@ describe('DynamicField', () => {
     jest.clearAllMocks();
     mockGetFieldValue.mockReturnValue('');
     mockGetFieldError.mockReturnValue(undefined);
+    mockUpdateField.mockImplementation(() => {});
+    for (const key of Object.keys(mockUltimasProps)) delete mockUltimasProps[key];
   });
 
   describe('Type Mapping - Basic Text Inputs', () => {
@@ -197,11 +267,11 @@ describe('DynamicField', () => {
   });
 
   describe('Type Mapping - Numeric Inputs', () => {
-    it('renders TextInput with type="number" for type="currency"', () => {
+    it('renders TextInput with type="text" for type="currency" (coma de miles, BAL-4395)', () => {
       const field = createField({ type: 'currency', label: 'Monto', prefix: 'S/' });
       render(<DynamicField field={field} />);
 
-      expect(screen.getByTestId('text-input')).toHaveAttribute('data-type', 'number');
+      expect(screen.getByTestId('text-input')).toHaveAttribute('data-type', 'text');
     });
 
     it('renders TextInput with type="number" for type="number"', () => {
@@ -218,6 +288,26 @@ describe('DynamicField', () => {
       render(<DynamicField field={field} />);
 
       expect(screen.getByTestId('date-input')).toBeInTheDocument();
+    });
+
+    it('pasa la fecha mínima / máxima ya resueltas y el mensaje (BAL-4396)', () => {
+      const field = createField({
+        type: 'date',
+        label: 'Fecha',
+        date_min: '1990-01-01',
+        date_max: '2008-10-03',
+        date_limit_message: 'Debes ser mayor de 18 años',
+      });
+      render(<DynamicField field={field} />);
+      const el = screen.getByTestId('date-input');
+      expect(el).toHaveAttribute('data-min', '1990-01-01');
+      expect(el).toHaveAttribute('data-max', '2008-10-03');
+      expect(el).toHaveAttribute('data-msg', 'Debes ser mayor de 18 años');
+    });
+
+    it('sin límites no pasa nada (como antes)', () => {
+      render(<DynamicField field={createField({ type: 'date', label: 'Fecha' })} />);
+      expect(screen.getByTestId('date-input')).toHaveAttribute('data-max', '');
     });
   });
 
@@ -288,7 +378,9 @@ describe('DynamicField', () => {
   });
 
   describe('Type Mapping - Select and Autocomplete', () => {
-    it('renders SelectInput for type="select"', () => {
+    // Un `select` estatico sigue la misma regla visual que un `radio`: con dos
+    // o tres opciones se dibujan como botones, no como desplegable.
+    it('renders SegmentedControl for a 2-option type="select"', () => {
       const field = createField({
         type: 'select',
         label: 'Departamento',
@@ -299,11 +391,10 @@ describe('DynamicField', () => {
       });
       render(<DynamicField field={field} />);
 
-      expect(screen.getByTestId('select-input')).toBeInTheDocument();
-      expect(screen.getByTestId('select-input')).toHaveAttribute('data-searchable', 'false');
+      expect(screen.getByTestId('segmented-control')).toBeInTheDocument();
     });
 
-    it('renders SelectInput with searchable=true for type="autocomplete"', () => {
+    it('renders a searchable CascadingSelectField for type="autocomplete"', () => {
       const field = createField({
         type: 'autocomplete',
         label: 'Distrito',
@@ -315,8 +406,56 @@ describe('DynamicField', () => {
       });
       render(<DynamicField field={field} />);
 
-      expect(screen.getByTestId('select-input')).toBeInTheDocument();
-      expect(screen.getByTestId('select-input')).toHaveAttribute('data-searchable', 'true');
+      expect(screen.getByTestId('cascading-select')).toBeInTheDocument();
+      expect(screen.getByTestId('cascading-select')).toHaveAttribute('data-searchable', 'true');
+    });
+
+    it('las listas que van por CascadingSelectField emiten foco y salida (BAL-4384)', () => {
+      const field = createField({ type: 'select', code: 'department', label: 'Departamento',
+        options_source: 'geo-units/departments', options: [] });
+      render(<DynamicField field={field} />);
+      const props = mockUltimasProps['cascading-select'] as { onFocus: () => void; onBlur: () => void };
+      props.onFocus();
+      props.onBlur();
+      expect(mockOnFieldFocus).toHaveBeenCalledWith('department');
+      expect(mockOnFieldBlur).toHaveBeenCalledWith('department', false);
+    });
+  });
+
+  // BAL-4383: la forma de una lista la puede elegir el panel (`display_mode`).
+  // Con `display_mode` null/ausente, select y autocomplete se dibujan
+  // exactamente igual que antes (casos arriba); estos casos cubren lo nuevo.
+  describe('Type Mapping - Lista con forma elegida (BAL-4383)', () => {
+    it('autocomplete con 2 opciones y sin forma sigue con buscador', () => {
+      renderField({ type: 'autocomplete', options: dosOpciones });
+      expect(screen.getByTestId('cascading-select')).toBeInTheDocument();
+    });
+
+    it('autocomplete con forma "auto" y 2 opciones se ve como botones', () => {
+      renderField({ type: 'autocomplete', display_mode: 'auto', options: dosOpciones });
+      expect(screen.getByTestId('segmented-control')).toBeInTheDocument();
+    });
+
+    it('select con forma "cards" y 8 opciones se ve como tarjetas', () => {
+      renderField({ type: 'select', display_mode: 'cards', options: ochoOpciones });
+      expect(screen.getByTestId('radio-group')).toBeInTheDocument();
+    });
+
+    it('desplegable de 6+ opciones respeta el bloqueo (antes no recibía disabled)', () => {
+      renderField({ type: 'select', options: seisOpciones, readonly: true });
+      expect(ultimasPropsDe('cascading-select').disabled).toBe(true);
+    });
+
+    it('con una sola opción y autoselección, queda elegida', () => {
+      const updateField = jest.fn();
+      renderField({ type: 'select', auto_select_single: true, options: [{ value: 'u', label: 'Única' }] }, { updateField });
+      expect(updateField).toHaveBeenCalledWith('lista', 'u', 'Única');
+    });
+
+    it('sin autoselección no elige nada solo', () => {
+      const updateField = jest.fn();
+      renderField({ type: 'select', options: [{ value: 'u', label: 'Única' }] }, { updateField });
+      expect(updateField).not.toHaveBeenCalled();
     });
   });
 
@@ -345,7 +484,7 @@ describe('DynamicField', () => {
 
   describe('Type Mapping - Fallback', () => {
     it('renders TextInput for unknown type', () => {
-      // @ts-ignore - Testing unknown type
+      // @ts-expect-error - Testing unknown type
       const field = createField({ type: 'unknown_type', label: 'Unknown' });
       render(<DynamicField field={field} />);
 
@@ -353,15 +492,22 @@ describe('DynamicField', () => {
     });
   });
 
+  /**
+   * Quien decide QUE campos se dibujan es el paso (`DynamicWizardStep`): filtra
+   * por `hidden` y por dependencias antes de montar nada. Este componente solo
+   * elige COMO se dibuja lo que le llega, y por eso no vuelve a evaluar la
+   * visibilidad; el unico caso que no dibuja es el tipo `hidden`, que existe
+   * para guardar un valor sin pedirlo.
+   */
   describe('Visibility', () => {
-    it('does not render when field is hidden', () => {
-      const field = createField({ hidden: true, label: 'Hidden Field' });
+    it('renders nothing for type="hidden"', () => {
+      const field = createField({ type: 'hidden', label: 'Campo oculto' });
       const { container } = render(<DynamicField field={field} />);
 
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render when conditional visibility is false', () => {
+    it('dibuja el campo aunque su dependencia no se cumpla: filtrar es del paso', () => {
       const field = createField({
         label: 'Conditional Field',
         dependency_groups: [
@@ -379,9 +525,8 @@ describe('DynamicField', () => {
         ],
       });
 
-      // formData doesn't have show_extra = 'yes', so field should be hidden
-      const { container } = render(<DynamicField field={field} />);
-      expect(container).toBeEmptyDOMElement();
+      render(<DynamicField field={field} />);
+      expect(screen.getByTestId('text-input')).toBeInTheDocument();
     });
   });
 

@@ -223,6 +223,7 @@ export const sortOptions = [
   { value: 'price_asc', label: 'Precio: Menor a mayor' },
   { value: 'price_desc', label: 'Precio: Mayor a menor' },
   { value: 'quota_asc', label: 'Cuota: Menor a mayor' },
+  { value: 'quota_desc', label: 'Cuota: Mayor a menor' },
   { value: 'newest', label: 'Más nuevos' },
   { value: 'popular', label: 'Más populares' },
 ];
@@ -1328,6 +1329,8 @@ export function sortProducts(products: CatalogProduct[], sortBy: string): Catalo
       return sorted.sort((a, b) => b.price - a.price);
     case 'quota_asc':
       return sorted.sort((a, b) => a.quotaMonthly - b.quotaMonthly);
+    case 'quota_desc':
+      return sorted.sort((a, b) => b.quotaMonthly - a.quotaMonthly);
     case 'newest':
       return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     case 'popular':

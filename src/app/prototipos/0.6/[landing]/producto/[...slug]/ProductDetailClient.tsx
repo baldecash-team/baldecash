@@ -5,9 +5,9 @@
  * Fetches product data from API with fallback to mock data
  */
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, useScrollToTop, Toast, useToast, useIsMobile } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
@@ -18,13 +18,20 @@ import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, isSecondFinancingLanding, isReacondicionadosLanding } from '@/app/prototipos/0.6/utils/theme';
+import { tieneGradosAgrupados } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardSelectorMode';
+import { resolveDetailVariant } from '../utils/detailVariant';
+import { GamerProductDetailClient } from '../GamerProductDetailClient';
+import { CopiaHomeMobileDetail } from '../copia-home/CopiaHomeMobileDetail';
+import { CopiaHomeDesktopDetail } from '../copia-home/CopiaHomeDesktopDetail';
+import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Secondary Navbar with search, wishlist, cart
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
+import { cardKey } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardKey';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 
 // Drawers for mobile
@@ -38,7 +45,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 
 // Product context for solicitar flow
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
-import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Import ProductDetail component and API
 import { ProductDetail } from '../components/detail/ProductDetail';
@@ -51,6 +58,8 @@ import {
 } from '../types/detail';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
+import { inicioDelCronograma } from '../components/detail/cronograma/inicioDelCronograma';
+import { fechaIsoALocal, obtenerPrimeraFechaPago } from '../../solicitar/utils/primeraFechaPago';
 
 function ProductDetailContent() {
   const router = useRouter();
@@ -61,11 +70,22 @@ function ProductDetailContent() {
   const slug = slugArray?.[0] || '';
   const landing = (params.landing as string) || 'home';
 
+  /**
+   * Clave de la card que esta página muestra (BAL-3328).
+   *
+   * El slug de la URL, no `apiData.product.slug`: el endpoint resuelve el combo
+   * al producto que lo compone, así que la página del combo y la del suelto
+   * devuelven el mismo `product.slug` y el mismo `id`. Marcar el corazón por
+   * `product.id` hacía que el suelto apareciera en favoritos sin tocarlo.
+   */
+  const pageKey = cardKey({ slug });
+
   // Lead guard — DEBE ir antes de otros hooks (no puede haber return antes de hooks)
   const hasLeadAccess = useLeadGuard(landing);
+  const isMobile = useIsMobile();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, overlayVariant } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
@@ -91,7 +111,7 @@ function ProductDetailContent() {
 
   // Shared state for catalog (wishlist, cart)
   const catalogState = useCatalogSharedState(landing, previewKey);
-  const tracker = useEventTrackerOptional();
+  const analytics = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Toast for feedback
@@ -108,7 +128,9 @@ function ProductDetailContent() {
 
   // Toggle wishlist with toast feedback
   const handleToggleWishlist = useCallback((wishlistItem: WishlistItem) => {
-    const wasInWishlist = catalogState.isInWishlist(wishlistItem.productId);
+    // Por clave de card, no por productId: el suelto y sus combos comparten
+    // productId, y el toast diría lo contrario de lo que hizo (BAL-3328).
+    const wasInWishlist = catalogState.isInWishlist(cardKey(wishlistItem));
     catalogState.toggleWishlist(wishlistItem);
     showToast(
       wasInWishlist ? 'Eliminado de favoritos' : 'Agregado a favoritos',
@@ -162,7 +184,9 @@ function ProductDetailContent() {
       monthlyPayment: cartItem.monthlyPayment,  // User's selected config
       months: cartItem.months,                   // User's selected config (normalized to months)
       term: cartItem.term ?? cartItem.months,    // Raw term in native units
-      paymentFrequency: cartItem.paymentFrequency,
+      // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+      // campo: se completa aqui en vez de dejar que el backend lo adivine.
+      paymentFrequency: cartItem.paymentFrequency ?? 'mensual',
       initialPercent: cartItem.initialPercent,   // User's selected config
       initialAmount: cartItem.initialAmount,     // User's selected config
       image: cartItem.image,
@@ -186,6 +210,23 @@ function ProductDetailContent() {
   }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   const hasCatalog = landingConfig.layout.has_catalog;
+
+  // Los convenios que cobran contra planilla arrancan en una fecha fija de
+  // campaña, no el día en que se mira el producto. Se recalcula solo cuando
+  // llega la config: `new Date()` en el render daría una fecha nueva por render.
+  // Sin fecha fija, el "desde" lo calcula ws2 con el diferido (BAL-4308).
+  const [desdeBackend, setDesdeBackend] = useState<Date | null>(null);
+  useEffect(() => {
+    let cancelado = false;
+    obtenerPrimeraFechaPago(landing).then((iso) => {
+      if (!cancelado) setDesdeBackend(iso ? fechaIsoALocal(iso) : null);
+    });
+    return () => { cancelado = true; };
+  }, [landing]);
+  const inicioCronograma = useMemo(
+    () => inicioDelCronograma(landingConfig, new Date(), desdeBackend),
+    [landingConfig, desdeBackend],
+  );
 
   // Build catalog URL helper (falls back to landing home if no catalog)
   const getCatalogUrl = (queryParams?: Record<string, string>) => {
@@ -261,11 +302,12 @@ function ProductDetailContent() {
         const data = await fetchProductDetail(landing, slug);
         if (data) {
           setApiData(data);
-          tracker?.track('product_view', {
+          analytics.trackProductView({
             product_id: data.product.id,
             product_name: data.product.name,
             brand: data.product.brand,
             slug,
+            context: 'ficha',
           });
         } else {
           setApiError(`Producto "${slug}" no disponible`);
@@ -314,8 +356,34 @@ function ProductDetailContent() {
 
   const isAvailable = apiData.isAvailable;
 
+  // Detección de reacondicionado (misma lógica que las variantes copia-home):
+  // por condición o por el nombre ("Semi Nuevo"). Solo los seminuevos de
+  // copia-home reciben el detalle rediseñado en desktop; los nuevos siguen en
+  // el detalle estándar.
+  const productIsRefurbished =
+    isRefurbishedCondition(apiData.product.condition) ||
+    /semi\s*nuevo|seminuevo|reacondicion/i.test(`${apiData.product.name ?? ''} ${apiData.product.displayName ?? ''}`);
+  // Qué ficha corresponde: copia-home entra por slug (renueva-* ya no); Family Farms
+  // por variante de overlay, que llega por API. Ver resolveDetailVariant.
+  const detailVariant = resolveDetailVariant({
+    landing,
+    overlayVariant,
+    isMobile,
+    isRefurbished: productIsRefurbished,
+  });
+
+  // La configuración de la landing llega en su propio pedido, después del layout.
+  // Dibujar ahora mostraría la ficha estándar y saltaría al selector de grados al
+  // resolver: media columna cambiando entera. Se espera.
+  if (detailVariant === 'pending') {
+    return <LoadingFallback />;
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-hidden">
+    // overflow-x-clip (no -hidden): clipea el desborde horizontal SIN crear un
+    // scroll container, para que el detalle de copia-home pueda usar position:
+    // sticky en la galería. Neutral para el resto de detalles.
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-clip">
       {/* Navbar — nvidia usa su header propio en todas sus rutas */}
       {isNvidiaLanding(landing) ? (
         <NvidiaNavbar landing={landing} />
@@ -348,12 +416,15 @@ function ProductDetailContent() {
         wishlistItems={catalogState.wishlist}
         onWishlistRemove={catalogState.removeFromWishlist}
         onWishlistClear={catalogState.clearWishlist}
-        onWishlistViewProduct={(productId) => {
-          const item = catalogState.wishlist.find((w) => w.productId === productId);
+        onWishlistViewProduct={(key) => {
+          // El favorito llega identificado por clave de card (slug), no por
+          // productId: buscarlo por productId abría el suelto en vez del
+          // combo guardado (BAL-3328).
+          const item = catalogState.wishlist.find((w) => cardKey(w) === key);
           if (item?.slug) {
             router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
           } else {
-            const product = wishlistProducts.find((p) => p.id === productId);
+            const product = wishlistProducts.find((p) => cardKey(p) === key);
             if (product) {
               router.push(getDetailUrl(product.slug));
             }
@@ -385,6 +456,34 @@ function ProductDetailContent() {
           paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
       >
+        {detailVariant === 'grades-mobile' ? (
+          <CopiaHomeMobileDetail
+            apiData={apiData}
+            landing={landing}
+            isAvailable={isAvailable}
+            secondFinancing={isSecondFinancingLanding(landing)}
+            defaultTerm={defaultTerm ?? apiData.defaultTerm}
+            defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+            defaultFrequency={defaultFrequency}
+            onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
+            isInWishlist={isAvailable ? catalogState.isInWishlist(pageKey) : false}
+            gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
+            startDate={inicioCronograma}
+          />
+        ) : detailVariant === 'grades-desktop' ? (
+          <CopiaHomeDesktopDetail
+            apiData={apiData}
+            landing={landing}
+            isAvailable={isAvailable}
+            defaultTerm={defaultTerm ?? apiData.defaultTerm}
+            defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+            defaultFrequency={defaultFrequency}
+            onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
+            isInWishlist={isAvailable ? catalogState.isInWishlist(pageKey) : false}
+            gradeVariant={overlayVariant === 'familyfarm' ? 'familyfarm' : 'default'}
+            startDate={inicioCronograma}
+          />
+        ) : (
         <ProductDetail
           product={apiData.product}
           combo={apiData.combo}
@@ -394,19 +493,28 @@ function ProductDetailContent() {
           certifications={apiData.certifications}
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
+          // Selector de grado con el diseño de reacondicionados (BAL-3344).
+          // Exclusivo de la landing 241: el resto sigue con el detalle de
+          // siempre. Si el equipo no tiene grados, el componente no se dibuja.
+          // Fuera de reacondicionados, solo si el producto está agrupado por
+          // grado (2+ hermanos): si no, el grado B quedaba sin forma de elegirse.
+          gradeSelectorReacondicionados={
+            isReacondicionadosLanding(landing) || tieneGradosAgrupados(apiData.product)
+          }
           isAvailable={isAvailable}
           defaultTerm={defaultTerm ?? apiData.defaultTerm}
           defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
           defaultFrequency={defaultFrequency}
           paymentFrequencies={apiData.paymentFrequencies}
           showPlatformCommission={landingConfig.features.show_platform_commission}
+          startDate={inicioCronograma}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
           onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
           onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}
           cartItem={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.getCartItem(apiData.product.id) : undefined}
           isInCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.isInCart(apiData.product.id) : false}
           onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
-          isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
+          isInWishlist={isAvailable ? catalogState.isInWishlist(pageKey) : false}
           onSimilarAddToCart={ALLOW_MULTI_PRODUCT ? (similarProduct) => {
             // Similar products are independent — always allow add-to-cart
             const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24);
@@ -433,6 +541,7 @@ function ProductDetailContent() {
           } : undefined}
           cartItems={ALLOW_MULTI_PRODUCT ? catalogState.cartIds : []}
         />
+        )}
       </main>
 
       {/* Footer from Hero */}
@@ -458,13 +567,14 @@ function ProductDetailContent() {
         products={catalogState.wishlist}
         onRemoveProduct={catalogState.removeFromWishlist}
         onClearAll={catalogState.clearWishlist}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
-          const item = catalogState.wishlist.find((w) => w.productId === productId);
+          // Clave de card (slug), no productId — ver onWishlistViewProduct.
+          const item = catalogState.wishlist.find((w) => cardKey(w) === key);
           if (item?.slug) {
             router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
           } else {
-            const product = wishlistProducts.find((p) => p.id === productId);
+            const product = wishlistProducts.find((p) => cardKey(p) === key);
             if (product) {
               router.push(getDetailUrl(product.slug));
             }
@@ -524,6 +634,10 @@ function LoadingFallback() {
 export function ProductDetailClient() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  if (isGamerLanding(landing)) {
+    return <GamerProductDetailClient />;
+  }
 
   return (
     <ProductProvider landingSlug={landing}>

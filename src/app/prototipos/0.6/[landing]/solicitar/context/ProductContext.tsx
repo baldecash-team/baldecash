@@ -6,12 +6,17 @@
  * Persists to localStorage for refresh survival
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import type { Accessory, InsurancePlan } from '../types/upsell';
 import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
-import { getLandingAccessories, getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingAccessories, getLandingInsurances, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
+import {
+  necesitaPlanesDePago,
+  admiteRecalculoDeCuota,
+  soloLosDelCatalogo,
+} from './productoFueraDeCatalogo';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSessionOptional } from './SessionContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -21,11 +26,47 @@ import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 
 // Dynamic storage keys based on landing slug
-const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+//
+// `getStorageKey` se exporta porque la calculadora de matrícula escribe el
+// producto seleccionado ANTES de entrar a /solicitar: no pasa por catálogo ni
+// por el detalle de producto, así que arma el SelectedProduct por su cuenta.
+// Se exporta el builder en vez de repetir el string para que el formato de la
+// clave viva en un solo lugar.
+export const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
 const getInsuranceKey = (landing: string) => `baldecash-${landing}-solicitar-selected-insurance`;
+const getMaAvailableKey = (landing: string) => `baldecash-${landing}-solicitar-available-ma`;
 const getCouponKey = (landing: string) => `baldecash-${landing}-solicitar-applied-coupon`;
+
+/**
+ * Drops every product-flow selection persisted for a landing: the chosen
+ * equipment, the application cart, accessories, insurance, the multiasistencia
+ * availability flag and the applied coupon.
+ *
+ * Exported as a plain function, not only as the context's clear* methods, so
+ * callers outside the `/solicitar` provider tree can clear this state without
+ * re-deriving the keys. It reuses the builders above, so the keys stay defined
+ * once and both paths follow any rename automatically.
+ */
+export function clearProductStorage(landing: string): void {
+  if (typeof window === 'undefined') return;
+  const keys = [
+    getStorageKey(landing),
+    getCartProductsKey(landing),
+    getAccessoriesKey(landing),
+    getInsuranceKey(landing),
+    getMaAvailableKey(landing),
+    getCouponKey(landing),
+  ];
+  for (const key of keys) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage unavailable (private mode / quota). Keep clearing the rest.
+    }
+  }
+}
 
 
 // Payment plan option for a specific initial percentage
@@ -34,12 +75,63 @@ export interface PaymentPlanOption {
   initialAmount: number;
   monthlyQuota: number;
   originalQuota?: number;
+  /**
+   * En cuantas armadas se paga la inicial de esta opcion (1 = un solo pago).
+   *
+   * Hace falta para saber cuanto DURA el plan: las armadas se descuentan del
+   * plazo, asi que 13 cuotas con 4 armadas son 17 periodos.
+   */
+  initialInstallments?: number;
+}
+
+/**
+ * Completa `paymentFrequency` en el producto que el wizard dejo guardado.
+ *
+ * NO es el carrito: el carrito multi-producto (`marketing.allow_multi_product`)
+ * esta en `false` desde el 02-abr-2026 y nunca se encendio. Esto aplica al
+ * UNICO producto que `/solicitar` persiste entre visitas, en la clave
+ * `baldecash-<landing>-solicitar-selected-product`.
+ *
+ * BAL-4029. El campo nacio representando "mensual" como su propia AUSENCIA, y
+ * los objetos guardados antes del fix de BAL-3994 no lo tienen. Al
+ * rehidratarlos, el submit los completa con 'mensual': en los equipos que no se
+ * venden en mensual eso hace nacer la solicitud con TEA 0 y la cuota de otra
+ * frecuencia (L-130507, APP-2026-99835331).
+ *
+ * La frecuencia se DERIVA de los planes que el propio objeto ya guarda, que
+ * vienen del catalogo y son la unica fuente que sabe cual se vende. No se
+ * asume ninguna: asumir es lo que causo el bug. Si no hay de donde derivarla
+ * se deja ausente, y entonces actua el guard del backend
+ * (`submit.pricing_guard_enforce`), que rechaza con un mensaje claro en vez de
+ * inventar un pricing.
+ *
+ * Un producto fuera del catalogo (la calculadora de matricula) se devuelve
+ * intacto: sus planes no salen del catalogo y su frecuencia no se deriva de ahi.
+ */
+export function completarFrecuenciaPersistida<T extends {
+  paymentFrequency?: string;
+  paymentPlans?: PaymentPlan[];
+  outOfCatalog?: boolean;
+}>(product: T | null): T | null {
+  if (!product) return product;
+  if (product.paymentFrequency) return product;      // ya la tiene: no se pisa
+  if (product.outOfCatalog) return product;          // no vive en el catalogo
+
+  const derivada = product.paymentPlans?.find(p => p.paymentFrequency)?.paymentFrequency;
+  return derivada ? { ...product, paymentFrequency: derivada } : product;
 }
 
 // Payment plan for a specific term
 export interface PaymentPlan {
   term: number;           // raw period count (weeks for semanal, fortnights for quincenal, months for mensual)
   termMonths?: number | null; // month equivalent — use for display and matching
+  /**
+   * Frecuencia que el catalogo declara para este plazo ('semanal',
+   * 'quincenal', 'mensual'). El backend ya la envia en cada plan; se declara
+   * acá para poder DERIVAR la del producto cuando el carrito persistido no la
+   * trae, en vez de asumir 'mensual' (BAL-4029).
+   */
+  paymentFrequency?: string;
   options: PaymentPlanOption[];
 }
 
@@ -56,6 +148,12 @@ export interface SelectedProduct {
   term?: number;
   initialPercent: number;  // 0, 10, 20, 30 - percentage of initial payment
   initialAmount: number;   // Calculated initial payment amount
+  /**
+   * En cuantas armadas se cobra la inicial. 1 = pago unico, el default de todo
+   * el catalogo. Viaja hasta el submit porque legacy genera una fila de
+   * cronograma por armada y necesita saber cuantas son.
+   */
+  initialInstallments?: number;
   image: string;
   type?: string;           // Product type: "celular", "laptop", "tablet", etc. Used for accessory compatibility
   /** Condición del equipo: 'nueva' | 'reacondicionada' | 'open_box'. Para el aviso de reacondicionado. */
@@ -73,6 +171,12 @@ export interface SelectedProduct {
   paymentPlans?: PaymentPlan[];
   // Payment frequency selected by user (e.g. 'semanal', 'quincenal', 'mensual')
   paymentFrequency?: string;
+  // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
+  comboId?: number;
+  // El producto NO viene del catálogo: lo armó una calculadora, con su cuota ya
+  // resuelta contra el simulador. No se le piden planes, no se valida su
+  // disponibilidad y su cuota no se recalcula. Ver `productoFueraDeCatalogo`.
+  outOfCatalog?: boolean;
 }
 
 export type { Accessory, InsurancePlan };
@@ -81,7 +185,7 @@ export interface AppliedCoupon {
   code: string;
   discount: number;
   label: string;
-  couponType?: 'fixed' | 'percent_quotas';
+  couponType?: 'fixed' | 'percent_quotas' | 'free_accessory';
   quotasAffected?: number;
   /** Cupón de URL de campaña (?coupon=) — no se puede quitar ni se limpia al cambiar producto */
   lockedFromUrl?: boolean;
@@ -118,6 +222,12 @@ interface ProductContextValue {
   setSelectedInsurance: (insurance: InsurancePlan | null) => void;
   toggleInsurance: (insurance: InsurancePlan) => void;
   clearInsurance: () => void;
+  // Plan Multiasistencia (A365) disponible para el producto/término actual.
+  // Lo setea InsuranceSection al cargar sus planes (fuente de verdad de la
+  // lista); se expone acá para que complementosClient pueda mostrar el modal
+  // de segunda oportunidad sin tener que re-fetchear el listado de seguros.
+  availableMultiasistencia: InsurancePlan | null;
+  setAvailableMultiasistencia: (plan: InsurancePlan | null) => void;
   getTotalPrice: () => number;
   getTotalMonthlyPayment: () => number;
   getDiscountAmount: () => number;
@@ -126,6 +236,10 @@ interface ProductContextValue {
   // Estado de la barra de producto (mobile)
   isProductBarExpanded: boolean;
   setIsProductBarExpanded: (expanded: boolean) => void;
+  // Loading state de AccessoriesSection, expuesto para poder bloquear
+  // "Comenzar Solicitud" mientras las recomendaciones de Molti cargan (BAL-2486)
+  isLoadingAccessories: boolean;
+  setIsLoadingAccessories: (loading: boolean) => void;
   // Quota limit validation
   isOverQuotaLimit: boolean;
   maxMonthlyQuota: number;
@@ -178,54 +292,92 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const { settings, landingId } = useLayout();
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
-  const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
-  const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
-  const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
-  const [selectedInsurances, setSelectedInsurancesState] = useState<InsurancePlan[]>([]);
-  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
+  // Storage keys must be computed before useState lazy initializers
+  const storageKey = getStorageKey(landingSlug);
+  const cartProductsKey = getCartProductsKey(landingSlug);
+  const accessoriesKey = getAccessoriesKey(landingSlug);
+  const insuranceKey = getInsuranceKey(landingSlug);
+  const couponKey = getCouponKey(landingSlug);
+  const maKey = getMaAvailableKey(landingSlug);
+
+  // Read localStorage synchronously on first client render so isHydrated starts true.
+  // Lazy initializers only run on the client (typeof window check guards SSR).
+  const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const s = localStorage.getItem(storageKey);
+      // Se sanea AL ENTRAR, no al enviar: un producto guardado en una visita
+      // anterior, sin `paymentFrequency`, tiene que quedar completo antes de
+      // que cualquier pantalla lo lea (BAL-4029).
+      return s ? completarFrecuenciaPersistida(JSON.parse(s)) : null;
+    } catch { return null; }
+  });
+  const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem(cartProductsKey);
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem(accessoriesKey);
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [selectedInsurances, setSelectedInsurancesState] = useState<InsurancePlan[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem(insuranceKey);
+      if (!s) return [];
+      const parsed = JSON.parse(s);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch { return []; }
+  });
+  const [availableMultiasistencia, setAvailableMultiasistenciaState] = useState<InsurancePlan | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const s = localStorage.getItem(maKey);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const s = localStorage.getItem(couponKey);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  // isHydrated: true from the start on the client (lazy init ran synchronously).
+  // Stays false during SSR so downstream guards don't run server-side.
+  const [isHydrated, setIsHydrated] = useState(() => typeof window !== 'undefined');
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
+  const [isLoadingAccessories, setIsLoadingAccessories] = useState(false);
   const [isSyncingPaymentPlans, setIsSyncingPaymentPlans] = useState(false);
   const [unavailableProductIds, setUnavailableProductIds] = useState<string[]>([]);
   const [isValidatingAvailability, setIsValidatingAvailability] = useState(true);
 
-  // Memoize storage keys based on landing
-  const storageKey = useMemo(() => getStorageKey(landingSlug), [landingSlug]);
-  const cartProductsKey = useMemo(() => getCartProductsKey(landingSlug), [landingSlug]);
-  const accessoriesKey = useMemo(() => getAccessoriesKey(landingSlug), [landingSlug]);
-  const insuranceKey = useMemo(() => getInsuranceKey(landingSlug), [landingSlug]);
-  const couponKey = useMemo(() => getCouponKey(landingSlug), [landingSlug]);
-
-  // Load from localStorage on mount (client-side only)
-  useEffect(() => {
+  // Persistimos availableMultiasistencia a localStorage. En algunas landings la
+  // sección de seguros es PRE-wizard (order 1), por lo que InsuranceSection no se
+  // re-renderiza en /complementos (donde ocurre el submit). Sin persistir, el
+  // plan MA disponible se perdería al navegar y el upsell de segunda oportunidad
+  // nunca se dispararía.
+  const setAvailableMultiasistencia = useCallback((plan: InsurancePlan | null) => {
+    setAvailableMultiasistenciaState(plan);
     try {
-      const storedProduct = localStorage.getItem(storageKey);
-      if (storedProduct) {
-        setSelectedProductState(JSON.parse(storedProduct));
-      }
-      const storedCartProducts = localStorage.getItem(cartProductsKey);
-      if (storedCartProducts) {
-        setCartProductsState(JSON.parse(storedCartProducts));
-      }
-      const storedAccessories = localStorage.getItem(accessoriesKey);
-      if (storedAccessories) {
-        setSelectedAccessoriesState(JSON.parse(storedAccessories));
-      }
-      const storedInsurance = localStorage.getItem(insuranceKey);
-      if (storedInsurance) {
-        const parsed = JSON.parse(storedInsurance);
-        // Support both old (single) and new (array) format
-        setSelectedInsurancesState(Array.isArray(parsed) ? parsed : [parsed]);
-      }
-      const storedCoupon = localStorage.getItem(couponKey);
-      if (storedCoupon) {
-        setAppliedCouponState(JSON.parse(storedCoupon));
-      }
+      if (plan) localStorage.setItem(maKey, JSON.stringify(plan));
+      else localStorage.removeItem(maKey);
     } catch {
-      // localStorage not available or invalid JSON
+      // localStorage no disponible
     }
+  }, [maKey]);
+
+  // Mark hydrated on client if SSR rendered false (safety net — normally the lazy
+  // initializer already set it to true, but this covers any edge case).
+  useEffect(() => {
     setIsHydrated(true);
-  }, [storageKey, cartProductsKey, accessoriesKey, insuranceKey, couponKey]);
+  }, []);
 
   // Save to localStorage when product changes
   const setSelectedProduct = useCallback((product: SelectedProduct | null) => {
@@ -545,6 +697,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       if (p.paymentPlans && p.paymentPlans.length > 0) {
         // Unified frequency: return native raw term (48, 24, 12, ...)
         // Mixed frequencies: normalize to months
+        // El `term` crudo: una opcion por celda de pricing. Con armadas el term
+        // son las CUOTAS y el plazo que la persona vive es `cuotas + armadas`,
+        // pero eso se resuelve en el rotulo (`etiquetaDePlazo`), no aca: el term
+        // sigue siendo la identidad de la celda y lo que viaja al backend.
         return p.paymentPlans.map(plan =>
           unifiedFrequency ? plan.term : (plan.termMonths ?? plan.term)
         );
@@ -557,7 +713,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       return acc.filter(t => terms.includes(t));
     });
 
-    return intersection.sort((a, b) => a - b);
+    // Deduplicado defensivo: el `term` identifica la celda, asi que en teoria
+    // ya es unico. Si dos celdas compartieran term, el selector ofreceria dos
+    // veces la misma opcion y elegir cualquiera de las dos daria lo mismo.
+    return [...new Set(intersection)].sort((a, b) => a - b);
   }, [getAllProducts, landingId]);
 
   /**
@@ -573,6 +732,11 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const unifiedFrequency = frequencies.size === 1;
 
     const updatedProducts = products.map(p => {
+      // Un producto fuera del catálogo conserva la cuota con la que llegó: la
+      // resolvió el simulador con el plazo que la persona eligió, y la grilla
+      // del catálogo no describe este financiamiento.
+      if (!admiteRecalculoDeCuota(p)) return p;
+
       // When frequencies are unified, the incoming `term` is the raw value
       // (e.g. 48 weeks). When mixed, it represents months.
       const plan = p.paymentPlans?.find(pl => {
@@ -594,6 +758,12 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
             monthlyPayment: option.monthlyQuota,
             initialAmount: option.initialAmount,
             initialPercent: option.initialPercent,
+            // Cambiar de plazo puede cambiar como se paga la inicial: en Family
+            // Farms cada celda trae su propia modalidad, y el selector ofrece
+            // "17 semanas · 4 armadas" como una opcion distinta de "17 · 1 pago".
+            // Sin esto el producto se quedaba con las armadas del plan anterior
+            // y eso es lo que viaja al submit (`initial_installments`).
+            initialInstallments: option.initialInstallments ?? 1,
           };
         }
       }
@@ -651,7 +821,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         else if (activePaymentFrequency === 'quincenal') rawTerm = months * 2;
         else rawTerm = months;
       }
-      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], rawTerm, previewKey, activePaymentFrequency)
+      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], rawTerm, previewKey, activePaymentFrequency, undefined, resolveEcosistema(activeProduct?.brand, activeProduct?.type))
         .then((apiAccessories) => {
           if (!apiAccessories || apiAccessories.length === 0) return;
           const accessoriesMap = new Map(apiAccessories.map(a => [a.id, a]));
@@ -747,9 +917,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    */
   const syncMissingPaymentPlans = useCallback(async () => {
     const products = getAllProducts();
-    const productsWithoutPlans = products.filter(
-      p => !p.paymentPlans || p.paymentPlans.length === 0
-    );
+    const productsWithoutPlans = products.filter(necesitaPlanesDePago);
 
     if (productsWithoutPlans.length === 0) return;
 
@@ -807,6 +975,24 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         const option = plan?.options.find(o => o.initialPercent === product.initialPercent)
           || plan?.options[0];
 
+        // BAL-4029: un carrito guardado ANTES del fix de BAL-3994 no tiene
+        // `paymentFrequency` —ese campo nacio representando "mensual" como su
+        // propia ausencia— y el objeto persistido no lo delata: el tipo lo
+        // declara opcional. Sin esto, el submit lo completa con 'mensual' y en
+        // los equipos que no se venden en mensual la solicitud nace con TEA 0
+        // y la cuota de otra frecuencia (L-130507, APP-2026-99835331).
+        //
+        // La frecuencia se DERIVA del plan que el catalogo acaba de devolver,
+        // que es la unica fuente que sabe cual se vende. No se asume ninguna:
+        // asumir es exactamente lo que causo el bug.
+        //
+        // Solo se completa cuando falta. Una frecuencia ya elegida no se pisa:
+        // el catalogo puede ofrecer varias y la de la persona es la que vale.
+        const frecuenciaDelCatalogo =
+          product.paymentFrequency
+          ?? plan?.paymentFrequency
+          ?? plans?.[0]?.paymentFrequency;
+
         return {
           ...product,
           slug: product.slug || slug,
@@ -815,6 +1001,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
           ...(plan && {
             term: plan.term,
             months: plan.termMonths ?? plan.term,
+          }),
+          ...(frecuenciaDelCatalogo && {
+            paymentFrequency: frecuenciaDelCatalogo,
           }),
           ...(option && {
             monthlyPayment: option.monthlyQuota,
@@ -847,7 +1036,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    * Runs after hydration, sharing the same flow as syncMissingPaymentPlans.
    */
   const validateProductsAvailability = useCallback(async () => {
-    const products = getAllProducts();
+    // Los que no vienen del catálogo quedan afuera: la consulta los devolvería
+    // como no disponibles justamente porque están fuera a propósito, y eso
+    // bloquearía el botón de continuar de un recorrido válido.
+    const products = soloLosDelCatalogo(getAllProducts());
     if (products.length === 0) {
       setIsValidatingAvailability(false);
       return;
@@ -896,6 +1088,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const updateProductInitial = useCallback((productId: string, newInitialPercent: number) => {
     const updateProduct = (product: SelectedProduct): SelectedProduct => {
       if (product.id !== productId) return product;
+
+      // Mismo motivo que al cambiar el plazo: su cuota no sale de esta grilla.
+      if (!admiteRecalculoDeCuota(product)) return product;
 
       // Try to use paymentPlans data first
       const plan = product.paymentPlans?.find(p => p.term === product.months);
@@ -951,9 +1146,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (!isHydrated || hasSyncedRef.current || isSyncingPaymentPlans) return;
 
     const products = getAllProducts();
-    const hasProductsWithoutPlans = products.some(
-      p => !p.paymentPlans || p.paymentPlans.length === 0
-    );
+    const hasProductsWithoutPlans = products.some(necesitaPlanesDePago);
 
     if (hasProductsWithoutPlans && products.length > 0) {
       hasSyncedRef.current = true;
@@ -996,6 +1189,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         setSelectedInsurance,
         toggleInsurance,
         clearInsurance,
+        availableMultiasistencia,
+        setAvailableMultiasistencia,
         getTotalPrice,
         getTotalMonthlyPayment,
         getDiscountAmount,
@@ -1003,6 +1198,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         isHydrated,
         isProductBarExpanded,
         setIsProductBarExpanded,
+        isLoadingAccessories,
+        setIsLoadingAccessories,
         isOverQuotaLimit,
         maxMonthlyQuota: MAX_MONTHLY_QUOTA,
         getAllProducts,

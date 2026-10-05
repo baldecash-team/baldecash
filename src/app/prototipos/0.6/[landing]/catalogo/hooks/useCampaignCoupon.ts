@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
+import { captureLandingParams, getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 
 export interface UseCampaignCouponResult {
@@ -27,6 +27,13 @@ export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult 
 
   useEffect(() => {
     if (!isHydrated || attemptedRef.current) return;
+
+    // Capturar acá y no confiar en el efecto del componente: los efectos
+    // corren en orden de declaración, y este hook se declara ANTES del
+    // `captureLandingParams` del catálogo. Sin esta línea, la primera pasada
+    // lee un pendiente que todavía no existe y el cupón depende de que algún
+    // otro estado cambie después para reintentar. `capture` es idempotente.
+    captureLandingParams(landingSlug);
 
     const pendingCode = getPendingCoupon(landingSlug);
 

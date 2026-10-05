@@ -22,6 +22,7 @@ import type {
 } from '../[landing]/catalogo/types/catalog';
 
 import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/catalog';
+import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../utils/deferredDelivery';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -39,6 +40,7 @@ export interface ApiPricingHook {
   original_monthly_price?: number | null; // Cuota original antes de descuento
   term_months: number;
   initial_percent: number;
+  initial_amount?: number; // Monto (S/) de la inicial a la celda del hook
   tea: number;
   payment_frequency?: string; // 'mensual' | 'semanal' | 'quincenal'
 }
@@ -81,6 +83,13 @@ export interface ApiColorSibling {
   color_hex: string;
   image_url?: string;
   specs: Record<string, string | number | boolean>;
+  /**
+   * Entrega diferida de ESTE color. El flag es del producto —con override por
+   * landing— y no de la familia, así que basta con que uno de los colores esté
+   * diferido para que el resto herede un aviso que no es suyo. Opcional porque
+   * contra un backend viejo el campo no viene.
+   */
+  is_deferred_delivery?: boolean;
   pricing: {
     list_price: number;
     final_price: number;
@@ -93,6 +102,13 @@ export interface ApiColorSibling {
       initial_percent: number;
       tea: number;
     } | null;
+    /** Cuota por frecuencia de ESTE sibling. Sin esto la tarjeta muestra la
+     *  cuota del producto primario al elegir otro color. */
+    payment_hooks?: Record<string, {
+      price: number;
+      term_months?: number | null;
+      initial_percent?: number;
+    }> | null;
   };
   variant?: {
     id: number;
@@ -120,6 +136,43 @@ export interface ApiCatalogProduct {
   slug: string;
   type: string;
   condition: string;
+  /**
+   * Badge de condición ya resuelto por el backend (BAL-3261). `null` cuando
+   * esa condición no amerita badge (la condición "nueva" se excluye a
+   * propósito). El front ya no deriva esta regla, solo la pinta.
+   */
+  condition_label_text?: string | null;
+  condition_label_color?: string | null;
+  grade?: string | null;
+  /**
+   * Grados hermanos del equipo. El endpoint de DETALLE ya lo devuelve desde
+   * hace tiempo; en el LISTADO es nuevo (BAL-3288), así que puede no venir
+   * contra un backend viejo: el mapeo cae a lista vacía.
+   */
+  grade_siblings?: {
+    grade: string;
+    product_id: number;
+    slug: string;
+    price: number | null;
+    stock_available: number;
+    is_available: boolean;
+    /** Nombre real del grado en BD ("… (Reacondicionada Grado C)"). */
+    name?: string | null;
+    min_term_quota?: number | null;
+    /**
+     * Cuota más baja del grado (la del plazo más largo). Es la que muestra la
+     * card: "Desde S/40/mes" sale de acá, no de `min_term_quota` —esa es la del
+     * plazo más CORTO (S/90) y es la que usa el detalle en sus tarjetas.
+     */
+    lowest_quota?: number | null;
+    /**
+     * Entrega diferida de ESTE grado. En `copia-home` el Advance CN4058 grado B
+     * está diferido y el Semi Nuevo y el C no: el flag es del producto (con
+     * override por landing), no de la familia. Opcional porque contra un backend
+     * viejo el campo no viene.
+     */
+    is_deferred_delivery?: boolean;
+  }[];
   short_description?: string;
   brand: ApiBrand;
   display_order: number;
@@ -141,6 +194,9 @@ export interface ApiCatalogProduct {
   } | null;
   promotion?: ApiProductPromotion | null;
   combo?: unknown | null;
+  // El listado viene en snake_case; aceptamos camelCase por robustez.
+  deferred_delivery?: ApiDeferredDelivery | null;
+  deferredDelivery?: ApiDeferredDelivery | null;
 }
 
 export interface ApiPromotionTemplate {
@@ -265,7 +321,15 @@ export interface CatalogFilters {
   coupon_code?: string;
 }
 
-export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured' | 'newest';
+export type SortBy =
+  | 'display_order'
+  | 'price_asc'
+  | 'price_desc'
+  | 'quota_asc'
+  | 'quota_desc'
+  | 'popular'
+  | 'featured'
+  | 'newest';
 
 // ============================================
 // API Functions
@@ -338,6 +402,11 @@ export async function getCatalogProducts(
     if (options.page_size && options.limit === undefined) params.set('page_size', String(options.page_size));
 
     const queryString = params.toString();
+    // `/products` ya aplica el hook best-offer donde corresponde: el backend
+    // consulta `catalog.best_offer_landing_slugs` de system_config
+    // (ws2 catalog.py:504-510, BAL-2874). El front elegia entre los dos
+    // endpoints con una lista quemada de 2 slugs mientras system_config tenia
+    // 33 — redundante y ya desalineada (BAL-3002).
     const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(url, {
@@ -501,20 +570,22 @@ export async function calculateInstallment(
 /**
  * Map API device type to frontend CatalogDeviceType
  */
-function mapDeviceType(type: string): CatalogDeviceType {
+function mapDeviceType(type: string | null | undefined): CatalogDeviceType {
   const typeMap: Record<string, CatalogDeviceType> = {
     laptop: 'laptop',
     celular: 'celular',
     tablet: 'tablet',
     accesorio: 'accesorio',
   };
-  return typeMap[type.toLowerCase()] || 'laptop';
+  // El campo puede venir null desde el API; sin el guard el catalogo entero
+  // muere con "Cannot read properties of null".
+  return typeMap[(type ?? '').toLowerCase()] || 'laptop';
 }
 
 /**
  * Map API condition to frontend ProductCondition
  */
-function mapCondition(condition: string): ProductCondition {
+function mapCondition(condition: string | null | undefined): ProductCondition {
   const conditionMap: Record<string, ProductCondition> = {
     nueva: 'nuevo',
     new: 'nuevo',
@@ -523,7 +594,9 @@ function mapCondition(condition: string): ProductCondition {
     refurbished: 'reacondicionado',
     reacondicionado: 'reacondicionado',
   };
-  return conditionMap[condition.toLowerCase()] || 'nuevo';
+  // Igual que arriba: un producto sin `condition` no puede tumbar la pagina.
+  // Uno de los dos callers ya pasaba `|| 'nuevo'` y el otro no.
+  return conditionMap[(condition ?? '').toLowerCase()] || 'nuevo';
 }
 
 /**
@@ -537,6 +610,13 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   const pricing = apiProduct.pricing;
   const hook = pricing.hook;
 
+  // Combo (cuando aplica): su portada encabeza thumbnail y galería de la card.
+  const combo = apiProduct.combo as { id?: number; image_url?: string | null; thumbnail_url?: string | null } | null | undefined;
+  const comboImage = combo ? (combo.thumbnail_url || combo.image_url || apiProduct.images?.[0] || undefined) : undefined;
+  // Combo del que nace el ítem (para reenviarlo en el submit/select y resolver
+  // el accesorio correcto en legacy). Un equipo puede estar en varios combos.
+  const comboId = combo?.id != null ? Number(combo.id) : undefined;
+
   // Calculate biweekly and weekly from monthly
   const quotaMonthly = hook.monthly_price;
   const quotaBiweekly = Math.floor(quotaMonthly / 2);
@@ -544,11 +624,12 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
 
   // Determine tags from BD labels + automatic derivations
   const labels = apiProduct.labels || [];
-  const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
   const badgeLabels = labels.filter(l => l.label_type !== 'ribbon');
-  const tags: ProductTagType[] = badgeLabels
-    .filter(l => validTagTypes.has(l.code))
-    .map(l => l.code as ProductTagType);
+  // Cualquier etiqueta activa de la base llega a la tarjeta (BAL-3212). Antes se
+  // filtraba contra una lista fija de códigos, así que una etiqueta nueva creada
+  // en el admin salía en el filtro pero nunca en la tarjeta. El texto y el color
+  // los resuelve `ProductTags` con el catálogo del facet.
+  const tags: ProductTagType[] = badgeLabels.map(l => l.code as ProductTagType);
   // Automatic: is_featured → recomendado (if not already from labels)
   if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
   // Automatic: discount → oferta (if not already from labels)
@@ -571,7 +652,11 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand.name.toLowerCase(),
     brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1'),
-    thumbnail: apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
+    // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
+    thumbnail: comboImage || apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
+    comboImage,
+    comboId,
+    comboAddons: (apiProduct as { combo_addons?: CatalogProduct['comboAddons'] }).combo_addons,
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
@@ -592,10 +677,25 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
             displayName: sib.display_name || sib.name,
             price: sib.pricing.final_price,
             quotaMonthly: sib.pricing.hook?.monthly_price || 0,
+            // BAL-2859: elegir un color equivale a ver esa card como si fuera
+            // independiente, asi que su descuento y su "antes" salen de SU pricing
+            // — no del producto primario. El MacBook Neo Citrus no tiene promocion
+            // y mostraba el -30% del Silver con un tachado que no era suyo.
             originalQuotaMonthly: sib.pricing.hook?.original_monthly_price ?? undefined,
             discount: sib.pricing.discount_percent > 0 ? sib.pricing.discount_percent : undefined,
             specs: sibSpecs,
             rawSpecs: sib.specs && Object.keys(sib.specs).length > 0 ? sib.specs : undefined,
+            // El diferido es POR COLOR, igual que el pricing y las specs.
+            // `undefined` (backend viejo) deja que la card caiga al del padre.
+            isDeferredDelivery: sib.is_deferred_delivery,
+            paymentHooks: sib.pricing.payment_hooks
+              ? Object.fromEntries(
+                  Object.entries(sib.pricing.payment_hooks).map(([freq, h]) => [
+                    freq,
+                    { price: h.price, termMonths: h.term_months ?? undefined, initialPercent: h.initial_percent },
+                  ])
+                )
+              : undefined,
           };
         })
       : apiProduct.colors?.map(c => ({
@@ -604,6 +704,15 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
           hex: c.hex,
           imageUrl: c.image_url,
           images: c.images || (c.image_url ? [c.image_url] : []),
+          // El color propio del producto no viene de color_siblings, asi que el API
+          // no manda datos de producto junto a el. Los heredamos del padre: al
+          // mostrarse el swatch con un solo color, la card lee estos campos para el
+          // href de detalle y el item de carrito, y sin ellos quedaban en undefined.
+          productId: String(apiProduct.id),
+          slug: apiProduct.slug,
+          displayName: apiProduct.display_name || apiProduct.name,
+          price: pricing.final_price,
+          quotaMonthly: hook.monthly_price,
         })) || [],
     deviceType: mapDeviceType(apiProduct.type),
     price: pricing.final_price,
@@ -618,6 +727,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
       ? Math.round(hook.monthly_price / (1 - apiProduct.promotion.discount_value / 100))
       : hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
+    // Plazo real del hook (backend). En la oferta acota al array; en el general
+    // coincide con maxTermMonths. La card lo prefiere sobre maxTermMonths.
+    hookTermMonths: hook.term_months,
     paymentFrequency: hook.payment_frequency || undefined,
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
     paymentHooks: pricing.payment_hooks
@@ -630,10 +742,45 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
         )
       : undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
+    // El backend no siempre manda `initial_amount` (verificado: `/products` y
+    // `/products/best-offer` lo devuelven null aun con `initial_percent: 10`).
+    // Cuando falta se deriva del precio con la formula de negocio: la inicial
+    // se redondea al MULTIPLO DE 10 hacia arriba, igual que
+    // `calculateQuotaWithInitial` (catalogo/types/catalog.ts:120). Sin esto los
+    // componentes que leen este campo mostraban "sin inicial" en productos que
+    // si la tienen (BAL-2998).
+    hookInitialAmount: (() => {
+      if (hook.initial_amount != null && hook.initial_amount > 0) return hook.initial_amount;
+      const pct = hook.initial_percent ?? 0;
+      const precio = pricing.final_price ?? pricing.list_price ?? 0;
+      if (pct <= 0 || precio <= 0) return undefined;
+      return Math.ceil((precio * (pct / 100)) / 10) * 10;
+    })(),
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
+    // Badge resuelto por el backend (BAL-3261): se copia tal cual, sin
+    // derivar nada acá. `null`/`undefined` = sin badge para esta card.
+    conditionLabelText: apiProduct.condition_label_text ?? undefined,
+    conditionLabelColor: apiProduct.condition_label_color ?? undefined,
+    grade: apiProduct.grade ?? undefined,
+    // Siempre un array: si el backend no manda el campo, queda vacío y la card
+    // cae al selector de colores sin necesitar guardas contra `null`.
+    gradeSiblings: (apiProduct.grade_siblings ?? []).map((s) => ({
+      grade: s.grade,
+      productId: s.product_id,
+      slug: s.slug,
+      price: s.price,
+      name: s.name ?? null,
+      minTermQuota: s.min_term_quota ?? null,
+      lowestQuota: s.lowest_quota ?? null,
+      isAvailable: s.is_available,
+      // El diferido es POR GRADO. Sin esto la card resolvía el aviso una sola
+      // vez —con el producto del listado— y no cambiaba al elegir otro grado.
+      // `undefined` (backend viejo) deja que la card caiga al flag del padre.
+      isDeferredDelivery: s.is_deferred_delivery,
+    })),
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response
     usage: inferUsage(apiProduct.type, apiProduct.name),
@@ -651,6 +798,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     specs: productSpecs,
     rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),
+    deferredDelivery: mapApiDeferredDelivery(apiProduct.deferred_delivery ?? apiProduct.deferredDelivery),
     promotion: apiProduct.promotion ? {
       id: apiProduct.promotion.id,
       name: apiProduct.promotion.name,
@@ -698,11 +846,20 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   // Deduplicate color siblings: keep only the first representative per family.
   // Each product that has color siblings already contains all siblings in its
   // `colors` array, so subsequent siblings in the list are redundant cards.
+  //
+  // Solo cuentan los hermanos que vienen de color_siblings (una familia real).
+  // El color propio de la variante NO agrupa nada: su productId es el del mismo
+  // producto, y marcarlo hacia que un equipo repetido en la lista con otro combo
+  // — mismo product_id, distinto landing_product_id — se descartara como si
+  // fuera su propio hermano. Asi desaparecian de la grilla el Lenovo V15 con
+  // seguro y el MacBook Neo Silver sin combo.
   const seenSiblingIds = new Set<string>();
   const products = allProducts.filter(p => {
     if (seenSiblingIds.has(p.id)) return false;
     if (p.colors && p.colors.length > 0) {
-      p.colors.forEach(c => { if (c.productId) seenSiblingIds.add(c.productId); });
+      p.colors.forEach(c => {
+        if (c.productId && c.productId !== p.id) seenSiblingIds.add(c.productId);
+      });
     }
     return true;
   });
@@ -967,143 +1124,6 @@ function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
   };
 }
 
-// ============================================
-// Direct Catalog Endpoint (no landing required)
-// ============================================
-
-/**
- * Response types for /public/catalog/products
- */
-export interface DirectApiProduct {
-  id: number;
-  sku: string;
-  name: string;
-  display_name?: string;
-  short_name?: string;
-  slug: string;
-  type: string | null;
-  condition: string | null;
-  short_description?: string;
-  brand: {
-    slug: string | null;
-    name: string | null;
-    logo_url: string | null;
-  };
-  category: {
-    slug: string;
-    name: string;
-  } | null;
-  price: number;
-  is_featured: boolean;
-  stock_available: number;
-  specs: Record<string, string | number | boolean>;
-  colors: { id: string; name: string; hex: string }[];
-  images: string[];
-  thumbnail_url?: string;
-  micro_url?: string;
-  labels: string[];
-}
-
-export interface DirectCatalogResponse {
-  products: DirectApiProduct[];
-  total: number;
-}
-
-/**
- * Fetch all products directly (no landing context needed).
- * Uses GET /public/catalog/products which returns all active/visible products.
- */
-export async function getDirectCatalogProducts(): Promise<DirectCatalogResponse | null> {
-  try {
-    const url = `${API_BASE_URL}/public/catalog/products`;
-
-    const response = await fetch(url, {
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      let errorDetail = '';
-      try {
-        const errorBody = await response.json();
-        errorDetail = JSON.stringify(errorBody);
-      } catch {
-        errorDetail = response.statusText;
-      }
-      console.error(`[Catalog API Direct] Error ${response.status}:`, errorDetail);
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('[Catalog API Direct] Error fetching products:', error);
-    return null;
-  }
-}
-
-/**
- * Map a direct API product to frontend CatalogProduct.
- * Uses real specs from the EAV model when available.
- */
-export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct): CatalogProduct {
-  const specs = apiProduct.specs || {};
-  const price = apiProduct.price || 0;
-
-  // Calculate quotas using real French amortization formula (TEA 75%, 24 months default)
-  const quotaMonthly = price > 0 ? calculateQuotaForTerm(price, 24) : 0;
-  const quotaBiweekly = Math.floor(quotaMonthly / 2);
-  const quotaWeekly = Math.floor(quotaMonthly / 4);
-
-  // Determine tags from BD labels + automatic derivations
-  const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
-  const tags: ProductTagType[] = apiProduct.labels.filter(l => validTagTypes.has(l)) as ProductTagType[];
-  if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
-
-  // Map real specs from EAV to ProductSpecs structure
-  const productSpecs = createSpecsFromEav(specs, apiProduct.type || 'laptop');
-
-  // Map colors to ProductColor format (deduplicate by hex)
-  const seenHex = new Set<string>();
-  const colors: ProductColor[] = [];
-  for (const c of apiProduct.colors) {
-    if (!seenHex.has(c.hex)) {
-      seenHex.add(c.hex);
-      colors.push({ id: c.id, name: c.name, hex: c.hex });
-    }
-  }
-
-  return {
-    id: String(apiProduct.id),
-    slug: apiProduct.slug || `product-${apiProduct.id}`,
-    name: apiProduct.name,
-    displayName: apiProduct.display_name || apiProduct.short_name || apiProduct.name,
-    brand: (apiProduct.brand.name || 'Sin marca').toLowerCase(),
-    brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1') || undefined,
-    thumbnail: apiProduct.thumbnail_url || apiProduct.images[0] || '/images/products/placeholder.jpg',
-    images: apiProduct.images.length > 0 ? apiProduct.images : ['/images/products/placeholder.jpg'],
-    colors: colors.length > 0 ? colors : undefined,
-    deviceType: mapDeviceType(apiProduct.type || 'laptop'),
-    price,
-    originalPrice: undefined,
-    discount: undefined,
-    quotaMonthly,
-    quotaBiweekly,
-    quotaWeekly,
-    maxTermMonths: 24,
-    gama: inferGamaTier(price),
-    condition: mapCondition(apiProduct.condition || 'nuevo'),
-    conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
-    stock: apiProduct.stock_available > 0 ? 'available' as StockStatus : 'out_of_stock' as StockStatus,
-    stockQuantity: apiProduct.stock_available,
-    usage: inferUsage(apiProduct.type || 'laptop', apiProduct.name),
-    isFeatured: apiProduct.is_featured,
-    isNew: apiProduct.labels.includes('nuevo'),
-    tags,
-    specs: productSpecs,
-    rawSpecs: Object.keys(specs).length > 0 ? specs : undefined,
-    createdAt: new Date().toISOString(),
-  };
-}
-
 /**
  * Create ProductSpecs from real EAV spec values.
  * Maps flat spec dict (e.g. { processor: "AMD Ryzen 5", ram: 16 }) to structured ProductSpecs.
@@ -1345,61 +1365,85 @@ export async function fetchCatalogData(
 }
 
 /**
- * Fetch products directly without landing context.
- * Returns products mapped to frontend format.
+ * Fetch products by their IDs
+ * Useful for getting wishlist/cart products
  */
-export async function fetchDirectCatalogData(): Promise<{
-  products: CatalogProduct[];
-  total: number;
-} | null> {
-  const response = await getDirectCatalogProducts();
+/** Tope duro del API: `limit` > 500 responde 422. */
+const LIMIT_MAX = 500;
 
-  if (!response || response.products.length === 0) {
+/**
+ * Trae TODAS las cards de esos productos en la landing.
+ *
+ * Un producto puede tener varias cards —el suelto y una por cada combo— y todas
+ * comparten `id`. Pedir un slot por id devolvia la respuesta truncada, siempre
+ * con la primera card. Verificado contra prod: `product_ids=518,491&limit=2`
+ * devuelve 2 de 5.
+ *
+ * Devuelve `null` si el API fallo, para que quien llame pueda distinguir "no
+ * pude preguntar" de "no hay nada". Confundirlos hace que un 5xx se lea como
+ * "todo el carrito esta muerto".
+ *
+ * CARDS_POR_PRODUCTO es solo una pista para resolverlo en un request; la
+ * correccion real es releer con `total` cuando `has_more` lo indica.
+ */
+export async function fetchAllCardsByIds(
+  landingSlug: string,
+  productIds: string[],
+  previewKey?: string | null
+): Promise<CatalogProduct[] | null> {
+  const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+  if (numericIds.length === 0) return [];
+
+  const CARDS_POR_PRODUCTO = 3;
+  const pedir = (limit: number) => getCatalogProducts(landingSlug, {
+    filters: { product_ids: numericIds },
+    limit: Math.min(limit, LIMIT_MAX),
+    previewKey,
+  });
+
+  try {
+    const response = await pedir(numericIds.length * CARDS_POR_PRODUCTO);
+    if (!response || !response.items) return null;
+
+    const truncada = response.has_more === true
+      || (typeof response.total === 'number' && response.total > response.items.length);
+
+    if (truncada) {
+      const completa = await pedir(typeof response.total === 'number' ? response.total : LIMIT_MAX);
+      if (completa?.items?.length) {
+        return completa.items.map(mapApiProductToCatalogProduct);
+      }
+    }
+
+    return response.items.map(mapApiProductToCatalogProduct);
+  } catch (error) {
+    console.error('[Catalog API] Error fetching all cards by IDs:', error);
     return null;
   }
-
-  return {
-    products: response.products.map(mapDirectApiProductToCatalogProduct),
-    total: response.total,
-  };
 }
 
 /**
- * Fetch products by their IDs
- * Useful for getting wishlist/cart products
+ * Trae UNA card por producto: la primera que devuelve la landing.
+ *
+ * Es lo que esperan el comparador, la wishlist y el carrito, que renderizan una
+ * fila por id. Ojo: cual card sea "la primera" es arbitrario cuando el producto
+ * tiene combos — el `id` no identifica una card. Quien necesite la card exacta
+ * tiene que resolver por slug, no por aca (BAL-3277).
  */
 export async function fetchProductsByIds(
   landingSlug: string,
   productIds: string[],
   previewKey?: string | null
 ): Promise<CatalogProduct[]> {
-  if (!productIds || productIds.length === 0) {
-    return [];
-  }
+  const todas = await fetchAllCardsByIds(landingSlug, productIds, previewKey);
+  if (!todas) return [];
 
-  try {
-    // Convert string IDs to numbers
-    const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-
-    if (numericIds.length === 0) {
-      return [];
-    }
-
-    const response = await getCatalogProducts(landingSlug, {
-      filters: { product_ids: numericIds },
-      limit: numericIds.length,
-      previewKey,
-    });
-
-    if (!response || !response.items) {
-      return [];
-    }
-
-    return response.items.map(mapApiProductToCatalogProduct);
-  } catch (error) {
-    console.error('[Catalog API] Error fetching products by IDs:', error);
-    return [];
-  }
+  const vistas = new Set<string>();
+  return todas.filter((p) => {
+    if (vistas.has(p.id)) return false;
+    vistas.add(p.id);
+    return true;
+  });
 }
 
 // ============================================
@@ -1415,7 +1459,39 @@ export interface ProductSuggestion {
   price: number;
   image: string | null;
   maxTermMonths: number;
+  /**
+   * Plazo del hook que devuelve el backend — el mismo que muestra la card.
+   * NO siempre coincide con `maxTermMonths`: la cuota del hook corresponde a
+   * este plazo, así que mostrar el máximo junto a esa cuota arma una
+   * combinación que no existe. Preferir este campo sobre `maxTermMonths`.
+   */
+  hookTermMonths: number | null;
   quotaMonthly: number | null;
+  /**
+   * Inicial del hook, igual que en la card. `undefined` cuando es 0 — asi el
+   * render distingue "sin inicial" de "no vino el dato" (BAL-2998).
+   */
+  hookInitialPercent?: number;
+  hookInitialAmount?: number;
+  /**
+   * Frecuencia de pago del hook: 'mensual' | 'quincenal' | 'semanal'.
+   * El plazo viene SIEMPRE en meses; hay que convertirlo con
+   * `termInFrequency()` o el desplegable dice 24 donde la card dice 6.
+   */
+  paymentFrequency?: string;
+}
+
+/**
+ * Convierte un plazo en meses a la unidad de su frecuencia de pago.
+ *
+ * Replica lo que hace la card en `ProductCard.tsx:316-319`. Sin esto el
+ * desplegable mostraba "24 meses" donde la card decia "6" para los productos
+ * de pago semanal (BAL-2998).
+ */
+export function termInFrequency(termMonths: number, frequency?: string | null): number {
+  if (frequency === 'semanal') return Math.round(termMonths / 4);
+  if (frequency === 'quincenal') return Math.round(termMonths / 2);
+  return termMonths;
 }
 
 /**
@@ -1463,7 +1539,18 @@ export async function searchProductSuggestions(
       display_name?: string;
       slug: string;
       brand?: { name: string } | string | null;
-      pricing?: { final_price?: number; list_price?: number; available_terms?: number[]; hook?: { monthly_price?: number } } | null;
+      pricing?: {
+        final_price?: number;
+        list_price?: number;
+        available_terms?: number[];
+        hook?: {
+          monthly_price?: number;
+          term_months?: number;
+          initial_percent?: number;
+          initial_amount?: number;
+          payment_frequency?: string;
+        };
+      } | null;
       image_url?: string | null;
       images?: string[] | null;
       colors?: { image_url?: string }[] | null;
@@ -1478,7 +1565,30 @@ export async function searchProductSuggestions(
       maxTermMonths: item.pricing?.available_terms?.length
         ? Math.max(...item.pricing.available_terms)
         : 24,
+      hookTermMonths: item.pricing?.hook?.term_months ?? null,
       quotaMonthly: item.pricing?.hook?.monthly_price ?? null,
+      // Misma normalizacion que la card (catalogApi.ts:711-712): 0 -> undefined.
+      hookInitialPercent: (item.pricing?.hook?.initial_percent ?? 0) > 0
+        ? Math.round(item.pricing!.hook!.initial_percent!)
+        : undefined,
+      // `/products` manda `initial_percent` pero NO `initial_amount` (si lo hace
+      // `/products/best-offer`). Cuando falta, se deriva del precio con la MISMA
+      // formula que la card — `calculateQuotaWithInitial` en
+      // `catalogo/types/catalog.ts:120`:
+      //
+      //   Math.ceil(precio * pct / 100 / 10) * 10
+      //
+      // La inicial se redondea al multiplo de 10 hacia arriba, no es el
+      // porcentaje exacto. Con `round` daba S/525 donde la card decia S/530.
+      hookInitialAmount: (() => {
+        const monto = item.pricing?.hook?.initial_amount ?? 0;
+        if (monto > 0) return monto;
+        const pct = item.pricing?.hook?.initial_percent ?? 0;
+        const precio = item.pricing?.final_price ?? item.pricing?.list_price ?? 0;
+        if (pct <= 0 || precio <= 0) return undefined;
+        return Math.ceil((precio * (pct / 100)) / 10) * 10;
+      })(),
+      paymentFrequency: item.pricing?.hook?.payment_frequency ?? undefined,
     }));
   } catch (error) {
     console.error('[Search API] Error searching products:', error);

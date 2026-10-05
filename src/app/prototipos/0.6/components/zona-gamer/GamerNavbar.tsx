@@ -13,12 +13,14 @@ import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/h
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/catalogo/utils/formatMoney';
+import { cardKey } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardKey';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 import { GamerPromoBanner } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/GamerPromoBanner';
+import { gamerDisplayTerm, gamerInitialLabel } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/gamerPricing';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -52,6 +54,15 @@ interface SearchResult {
   thumbnail: string;
   quotaMonthly: number;
   maxTermMonths: number;
+  /**
+   * Plazo del hook: es el que corresponde a `quotaMonthly`. El mapeo lo
+   * descartaba y el desplegable mostraba el plazo maximo junto a la cuota del
+   * hook — dos plazos distintos en la misma linea (BAL-3001).
+   */
+  hookTermMonths?: number;
+  paymentFrequency?: string;
+  /** Monto (S/) de la inicial. El desplegable no decia nada de la inicial. */
+  hookInitialAmount?: number;
 }
 
 export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange, portalButtonText, customerPortalUrl, promoBannerData }: GamerNavbarProps) {
@@ -145,6 +156,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             thumbnail: p.images?.[0] || p.thumbnail,
             quotaMonthly: p.quotaMonthly,
             maxTermMonths: p.maxTermMonths || 24,
+            hookTermMonths: p.hookTermMonths,
+            paymentFrequency: p.paymentFrequency,
+            hookInitialAmount: p.hookInitialAmount,
           })));
         } else {
           setSearchResults([]);
@@ -463,7 +477,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                   <>
                     {searchResults.map((product) => (
                       <button
-                        key={product.id}
+                        // Por clave de card: el suelto y sus combos comparten
+                        // `id` y React duplicaría la key (BAL-3328).
+                        key={cardKey(product)}
                         onClick={() => handleSelectProduct(product.slug)}
                         style={{
                           display: 'flex',
@@ -523,7 +539,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
                           </div>
                           <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                            x {product.maxTermMonths} meses
+                            x {gamerDisplayTerm(product)} meses{gamerInitialLabel(product.hookInitialAmount)}
                           </div>
                         </div>
                       </button>
@@ -671,10 +687,12 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                           if (href) router.push(href);
                         };
                         const hasInitial = (item.initialAmount ?? 0) > 0;
-                        const isUnavailable = unavailableWishlistIds?.includes(item.productId) ?? false;
+                        // unavailableWishlistIds trae cardKey (slug), no
+                        // productId — el suelto y sus combos lo comparten (BAL-3328).
+                        const isUnavailable = unavailableWishlistIds?.includes(cardKey(item)) ?? false;
                         return (
                           <div
-                            key={item.productId}
+                            key={cardKey(item)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, marginBottom: 6,
                               background: isUnavailable
@@ -725,7 +743,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                               )}
                             </div>
                             <button
-                              onClick={() => removeFromWishlist(item.productId)}
+                              onClick={() => removeFromWishlist(cardKey(item))}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: V.textMuted, display: 'flex' }}
                               title="Quitar"
                               aria-label="Quitar de favoritos"
@@ -861,7 +879,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                   <>
                     {searchResults.map((product) => (
                       <button
-                        key={product.id}
+                        // Por clave de card: el suelto y sus combos comparten
+                        // `id` y React duplicaría la key (BAL-3328).
+                        key={cardKey(product)}
                         onClick={() => { handleSelectProduct(product.slug); setIsMobileSearchOpen(false); }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12, width: '100%',
@@ -900,7 +920,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
                           </div>
                           <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                            x {product.maxTermMonths} meses
+                            x {gamerDisplayTerm(product)} meses{gamerInitialLabel(product.hookInitialAmount)}
                           </div>
                         </div>
                       </button>
@@ -1051,16 +1071,19 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         isOpen={isWishlistDrawerOpen && isMobileViewport}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlist}
-        onRemoveProduct={(productId) => removeFromWishlist(productId)}
+        onRemoveProduct={(key) => removeFromWishlist(key)}
         onClearAll={() => clearWishlist()}
-        onViewProduct={(productId) => {
+        onViewProduct={(key) => {
           setIsWishlistDrawerOpen(false);
-          const item = wishlist.find((w) => w.productId === productId);
+          // El drawer emite la clave de card (slug), no el productId (BAL-3328).
+          const item = wishlist.find((w) => cardKey(w) === key);
           if (item?.slug) {
             router.push(routes.producto(LANDING_SLUG, item.slug));
           }
         }}
         onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
+          // onAddToCart sigue emitiendo el productId: el carrito tiene identidad
+          // propia via comboId y queda fuera del alcance de BAL-3328.
           const item = wishlist.find((w) => w.productId === productId);
           if (item) {
             addToCart({

@@ -5,15 +5,28 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSubmitApplication } from '../useSubmitApplication';
+import { calcularPrellenado, marcadoresDeBloqueo } from '../useLeadPrefill';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { readDemoApplication } from '../../utils/demoApplication';
+import type { LeadPrefill } from '@/app/prototipos/0.6/services/leadPrefillApi';
+import type { WizardStep } from '../../../../services/wizardApi';
 
 // Mock next/navigation
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockParams = { landing: 'test-landing' };
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useParams: () => mockParams,
+}));
+
+// El handoff del envio anticipado: lo que habilita la pantalla del contrato.
+const mockSaveEnvioAnticipadoHandoff = jest.fn();
+jest.mock('../../utils/envioAnticipadoHandoff', () => ({
+  ...jest.requireActual('../../utils/envioAnticipadoHandoff'),
+  saveEnvioAnticipadoHandoff: (...args: unknown[]) =>
+    mockSaveEnvioAnticipadoHandoff(...args),
 }));
 
 // Mock contexts with complete implementation
@@ -25,7 +38,7 @@ const mockSelectedProduct = {
 };
 
 const mockSelectedAccessories = [
-  { id: '1', name: 'Accessory 1', price: 50 },
+  { id: '1', name: 'Accessory 1', price: 50, monthlyQuota: 5 },
 ];
 
 const mockAppliedCoupon = {
@@ -44,7 +57,7 @@ const mockFormData = {
 
 const mockSessionUuid = 'test-session-uuid';
 
-const mockClearSession = jest.fn();
+const mockMarcarSesionConvertida = jest.fn();
 const mockResetForm = jest.fn();
 const mockClearProduct = jest.fn();
 const mockClearCartProducts = jest.fn();
@@ -61,6 +74,7 @@ jest.mock('../../context/ProductContext', () => ({
     getAllProducts: () => [mockSelectedProduct],
     selectedAccessories: mockSelectedAccessories,
     selectedInsurance: mockSelectedInsurance,
+    selectedInsurances: [mockSelectedInsurance],
     appliedCoupon: mockAppliedCoupon,
     getDiscountAmount: () => 10, // Fixed coupon: returns discount value directly
     getDiscountedMonthlyPayment: () => 90,
@@ -83,8 +97,14 @@ jest.mock('../../context/WizardContext', () => ({
 jest.mock('../../context/SessionContext', () => ({
   useSession: () => ({
     sessionUuid: mockSessionUuid,
-    clearSession: mockClearSession,
+    marcarSesionConvertida: mockMarcarSesionConvertida,
   }),
+}));
+
+// Config del wizard: trae el form_id que el backend le sirvió a esta sesión.
+let mockWizardConfig: { form_id?: number } | null = null;
+jest.mock('../../context/WizardConfigContext', () => ({
+  useWizardConfig: () => ({ config: mockWizardConfig }),
 }));
 
 // Mock useAnalytics (returns no-ops by default)
@@ -113,11 +133,263 @@ describe('useSubmitApplication', () => {
     jest.clearAllMocks();
   });
 
+  describe('mensajes de error por codigo', () => {
+    // El backend manda `error` sin tildes (viaja por varios sistemas) y a
+    // veces con un texto que solo dice que paso, no que hacer. El hook los
+    // reescribe por `error_code`.
+
+    it('UNIT_OUT_OF_STOCK: dice que el equipo se agoto y que vuelva al catalogo', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'UNIT_OUT_OF_STOCK',
+        error: 'Alguien acaba de tomar la ultima unidad de este equipo.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      let ok: boolean = true;
+      await act(async () => {
+        ok = await result.current.submit();
+      });
+
+      expect(ok).toBe(false);
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toContain('última unidad de ese modelo');
+      expect(msg).toContain('catálogo');
+      // No se cuela el texto crudo del API.
+      expect(msg).not.toContain('Alguien acaba de tomar la ultima unidad');
+      expect(result.current.error).toBe(msg);
+    });
+
+    it('OUT_OF_STOCK (stock por conteo) conserva el mensaje del API', async () => {
+      // Ese codigo lo emite `stock_ws2_managed`, que esta vivo en landings que
+      // no son reacondicionados: copia-home, renueva-tu-equipo, family-farms,
+      // remate-ucv. El texto de unidades unicas no les corresponde y no puede
+      // volver a colarseles.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'OUT_OF_STOCK',
+        error: 'Sin stock disponible para este equipo',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toBe('Sin stock disponible para este equipo');
+      expect(msg).not.toContain('última unidad de ese modelo');
+    });
+
+    it('UNIT_OUT_OF_STOCK va al MODAL, no al toast', async () => {
+      // El toast dura 4 segundos y `StepClient` no renderiza el `error` del
+      // hook: seria la unica superficie del mensaje. Y este mensaje pide una
+      // accion —volver al catalogo— justo cuando el envio fallo.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'UNIT_OUT_OF_STOCK',
+        error: 'Alguien acaba de tomar la ultima unidad de este equipo.',
+      });
+
+      const onToast = jest.fn();
+      const onUnidadTomada = jest.fn();
+      const { result } = renderHook(() =>
+        useSubmitApplication({ onToast, onUnidadTomada }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onUnidadTomada).toHaveBeenCalledTimes(1);
+      expect(onUnidadTomada.mock.calls[0][0]).toContain('catálogo');
+      // Nunca los dos: dos avisos del mismo hecho se leen como dos problemas.
+      expect(onToast).not.toHaveBeenCalled();
+    });
+
+    it('OUT_OF_STOCK sigue yendo al toast aunque haya modal', async () => {
+      // El aislamiento, del lado del front: el stock por conteo esta vivo en
+      // una decena de landings ajenas y su aviso no cambia.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'OUT_OF_STOCK',
+        error: 'Sin stock disponible para este equipo',
+      });
+
+      const onToast = jest.fn();
+      const onUnidadTomada = jest.fn();
+      const { result } = renderHook(() =>
+        useSubmitApplication({ onToast, onUnidadTomada }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onUnidadTomada).not.toHaveBeenCalled();
+      expect(onToast).toHaveBeenCalledTimes(1);
+    });
+
+    it('sin modal, UNIT_OUT_OF_STOCK cae al toast de siempre', async () => {
+      // Un caller que no maneje el canal nuevo no puede quedarse sin aviso.
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'UNIT_OUT_OF_STOCK',
+        error: 'Alguien acaba de tomar la ultima unidad de este equipo.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledTimes(1);
+      expect(onToast.mock.calls[0][0]).toContain('catálogo');
+    });
+
+    it('COUPON_USER_LIMIT_REACHED: pide quitar el cupon', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'COUPON_USER_LIMIT_REACHED',
+        error: 'Ya has utilizado este cupón el máximo de veces permitido',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toContain('Quítalo');
+      expect(result.current.error).toBe(msg);
+    });
+
+    it('un codigo desconocido cae al mensaje del API', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'ALGO_NUEVO',
+        error: 'Mensaje del backend',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledWith('Mensaje del backend', 'error');
+    });
+
+    it('sin codigo ni mensaje cae al texto generico', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({ success: false });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledWith(
+        'Error al enviar la solicitud. Por favor intenta nuevamente.',
+        'error'
+      );
+    });
+  });
+
+  describe('solicitud que nace rechazada', () => {
+    // ws2 puede cerrar la solicitud dentro del propio submit (lista negra, y
+    // los filtros duros que corren ahi mismo). Ahi no hay contrato que emitir
+    // ni KYC que completar: mandarla a esas pantallas la deja esperando un
+    // documento que nunca llega y rebotando sola a la confirmacion.
+
+    it('con KYC prendido va a la confirmacion, no al KYC', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_code: 'APP-RECHAZADA',
+        kyc_resume_token: 'tok-123',
+        status: 'rejected',
+      });
+
+      const { result } = renderHook(() => useSubmitApplication({}));
+
+      await act(async () => {
+        await result.current.submit({ kycEnabled: true });
+      });
+
+      expect(mockPush).toHaveBeenCalledWith(
+        routes.solicitarConfirmacion('test-landing', 'APP-RECHAZADA')
+      );
+      expect(mockPush).not.toHaveBeenCalledWith(
+        expect.stringContaining('/prototipos/0.6/kyc/')
+      );
+    });
+
+    it('en envio anticipado no deja handoff y se va a la confirmacion', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_code: 'APP-RECHAZADA',
+        kyc_resume_token: 'tok-123',
+        status: 'rejected',
+      });
+
+      const { result } = renderHook(() => useSubmitApplication({}));
+
+      let ok: boolean = true;
+      await act(async () => {
+        ok = await result.current.submit({
+          kycEnabled: true,
+          stayInWizard: true,
+          conContrato: true,
+        });
+      });
+
+      // `false` es lo que frena al wizard: quien llamo no empuja el paso del
+      // contrato porque esta pantalla ya navego.
+      expect(ok).toBe(false);
+      expect(mockSaveEnvioAnticipadoHandoff).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith(
+        routes.solicitarConfirmacion('test-landing', 'APP-RECHAZADA')
+      );
+    });
+
+    it('la que sigue viva deja el handoff y sigue en el wizard', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_code: 'APP-VIVA',
+        kyc_resume_token: 'tok-456',
+        status: 'pending',
+      });
+
+      const { result } = renderHook(() => useSubmitApplication({}));
+
+      let ok: boolean = false;
+      await act(async () => {
+        ok = await result.current.submit({
+          kycEnabled: true,
+          stayInWizard: true,
+          conContrato: true,
+        });
+      });
+
+      expect(ok).toBe(true);
+      expect(mockSaveEnvioAnticipadoHandoff).toHaveBeenCalledWith(
+        'test-landing',
+        expect.objectContaining({ applicationCode: 'APP-VIVA' })
+      );
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+  });
+
   describe('successful submission', () => {
     it('submits application and redirects on success', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        public_token: 'APP-123',
+        application_code: 'APP-123',
       });
 
       const onToast = jest.fn();
@@ -154,8 +426,10 @@ describe('useSubmitApplication', () => {
         })
       );
 
-      // Should clear all state
-      expect(mockClearSession).toHaveBeenCalled();
+      // Should clear all state. La sesión de tracking se MARCA, no se borra:
+      // la confirmación tiene que emitir `application_submitted` sobre la misma
+      // fila que ws2 acaba de atar a la solicitud.
+      expect(mockMarcarSesionConvertida).toHaveBeenCalled();
       expect(mockResetForm).toHaveBeenCalled();
       expect(mockClearProduct).toHaveBeenCalled();
       expect(mockClearCartProducts).toHaveBeenCalled();
@@ -175,7 +449,7 @@ describe('useSubmitApplication', () => {
     it('includes insurance_id and insurance_premium when provided', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        public_token: 'APP-456',
+        application_code: 'APP-456',
       });
 
       const { result } = renderHook(() => useSubmitApplication());
@@ -196,7 +470,7 @@ describe('useSubmitApplication', () => {
     it('includes accessories in product_data', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        public_token: 'APP-789',
+        application_code: 'APP-789',
       });
 
       const { result } = renderHook(() => useSubmitApplication());
@@ -212,6 +486,110 @@ describe('useSubmitApplication', () => {
           }),
         })
       );
+    });
+
+    // El catalogo lista el producto suelto y cada uno de sus combos como cards
+    // distintas, pero todas comparten product_id. Si el submit no manda cual se
+    // eligio, el backend solo puede deducirlo del precio — y un combo de regalo
+    // (mismo precio que el pelado) queda indistinguible y se pierde.
+    describe('combo_id', () => {
+      const mutable = mockSelectedProduct as { comboId?: number };
+      afterEach(() => { delete mutable.comboId; });
+
+      it('envia combo_id: null cuando se compro el producto suelto', async () => {
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-1' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        // null explicito, no undefined: el backend distingue "eligio el pelado"
+        // de "este front no lo manda".
+        expect(payload.product_data.combo_id).toBeNull();
+        expect(payload.product_data.products?.[0].combo_id).toBeNull();
+      });
+
+      it('envia el combo_id de la card cuando se compro un combo', async () => {
+        mutable.comboId = 49;
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-2' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        expect(payload.product_data.combo_id).toBe(49);
+        expect(payload.product_data.products?.[0].combo_id).toBe(49);
+      });
+
+      // Red de seguridad: `comboId` se copia a mano en cada punto de entrada al
+      // wizard (catalogo, comparador, copia-home, detalle) y es facil que uno
+      // nuevo se olvide. El slug siempre viaja y lleva el sufijo `-combo-{id}`.
+      it('deduce el combo del slug cuando comboId no viajo', async () => {
+        const slugged = mockSelectedProduct as { slug?: string };
+        const originalSlug = slugged.slug;
+        slugged.slug = 'lenovo-v15-g4-iru-lpleba0000767-combo-37';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-3' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { combo_id?: number | null; products?: { combo_id?: number | null }[] };
+        };
+        expect(payload.product_data.combo_id).toBe(37);
+        expect(payload.product_data.products?.[0].combo_id).toBe(37);
+        slugged.slug = originalSlug;
+      });
+    });
+
+    // BAL-3994: el front representaba "mensual" como AUSENCIA del campo, asi que
+    // JSON.stringify borraba la clave y el backend la rellenaba con "mensual" a
+    // ciegas. Con un producto sin celda de pricing mensual eso hacia nacer la
+    // solicitud con TEA 0, inicial 0 o la cuota de otra frecuencia
+    // (L-130507, L-128954, L-128199, L-127830).
+    describe('payment_frequency', () => {
+      const mutable = mockSelectedProduct as { paymentFrequency?: string };
+      afterEach(() => { delete mutable.paymentFrequency; });
+
+      it('el payload siempre lleva payment_frequency, incluso cuando el usuario eligio mensual', async () => {
+        // mockSelectedProduct no trae paymentFrequency: ese ES el caso "mensual"
+        // tal como lo dejaba el carrito antes del fix.
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F1' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('mensual');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('mensual');
+
+        // Y la clave sobrevive al JSON: undefined desaparecia aqui.
+        const serializado = JSON.parse(JSON.stringify(payload)) as {
+          product_data: Record<string, unknown> & { products: Record<string, unknown>[] };
+        };
+        expect('payment_frequency' in serializado.product_data).toBe(true);
+        expect('payment_frequency' in serializado.product_data.products[0]).toBe(true);
+      });
+
+      it('respeta la frecuencia sub-mensual que eligio el usuario', async () => {
+        mutable.paymentFrequency = 'quincenal';
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-F2' });
+
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+
+        const payload = mockSubmitApplication.mock.calls[0][0] as {
+          product_data: { payment_frequency?: string; products?: { payment_frequency?: string }[] };
+        };
+        expect(payload.product_data.payment_frequency).toBe('quincenal');
+        expect(payload.product_data.products?.[0].payment_frequency).toBe('quincenal');
+      });
     });
   });
 
@@ -232,7 +610,7 @@ describe('useSubmitApplication', () => {
 
       expect(success).toBe(false);
       expect(onToast).toHaveBeenCalledWith('Error del servidor', 'error');
-      expect(mockClearSession).not.toHaveBeenCalled();
+      expect(mockMarcarSesionConvertida).not.toHaveBeenCalled();
       expect(mockPush).not.toHaveBeenCalled();
     });
 
@@ -299,7 +677,7 @@ describe('useSubmitApplication', () => {
     it('clears error on new submission', async () => {
       mockSubmitApplication
         .mockResolvedValueOnce({ success: false, error: 'First error' })
-        .mockResolvedValueOnce({ success: true, public_token: 'APP-100' });
+        .mockResolvedValueOnce({ success: true, application_code: 'APP-100' });
 
       const { result } = renderHook(() => useSubmitApplication());
 
@@ -315,5 +693,507 @@ describe('useSubmitApplication', () => {
       });
       expect(result.current.error).toBe(null);
     });
+  });
+
+  describe('email normalization', () => {
+    const original = mockFormData.email.value;
+    afterEach(() => {
+      mockFormData.email.value = original;
+    });
+
+    /**
+     * Prod 2026-08-07: `mailto:cgonzalesas@isise.edu.pe` llegó al backend y Mailgun
+     * rechazó el OTP con 400. El input ya limpia lo que se teclea; esto cubre el
+     * valor que nunca pasa por ahí (prefill por DNI, restaurado de localStorage).
+     */
+    it('cleans the email field before sending it to the API', async () => {
+      mockFormData.email.value = '  MAILTO:CGonzalesAS@isise.edu.pe ';
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({ email: 'cgonzalesas@isise.edu.pe' }),
+        })
+      );
+    });
+
+    it('leaves an unusable value untouched instead of sending an empty string', async () => {
+      mockFormData.email.value = 'mailto:';
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({ email: 'mailto:' }),
+        })
+      );
+    });
+  });
+
+  /**
+   * BAL-4353. El archivo viaja como `file__{código del campo}` y el backend busca
+   * el campo por ese código para saber qué tipo de documento es. El código se
+   * cortaba en el primer guion bajo (`minor_enrollment_certificate` → `minor`):
+   * el backend no encontraba el campo y guardaba la constancia de matrícula como
+   * «Documento General» (260 documentos en prod entre jul y sep de 2026).
+   */
+  describe('código del campo de los archivos', () => {
+    const data = mockFormData as Record<string, { value: unknown; error: null }>;
+    const adjunto = (nombre: string) => ({
+      id: nombre,
+      file: new File(['x'], nombre, { type: 'application/pdf' }),
+    });
+
+    afterEach(() => {
+      delete data.minor_enrollment_certificate;
+      delete data.dni_front;
+      delete data.dni_back;
+      delete data.constancia;
+    });
+
+    it('envía el código completo cuando lleva guiones bajos', async () => {
+      const archivo = adjunto('constancia.pdf');
+      data.minor_enrollment_certificate = { value: [archivo], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [{ fieldCode: 'minor_enrollment_certificate', file: archivo.file }],
+        })
+      );
+    });
+
+    it('dos campos con el mismo inicio no se confunden', async () => {
+      const frente = adjunto('frente.jpg');
+      const reverso = adjunto('reverso.jpg');
+      data.dni_front = { value: [frente], error: null };
+      data.dni_back = { value: [reverso], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [
+            { fieldCode: 'dni_front', file: frente.file },
+            { fieldCode: 'dni_back', file: reverso.file },
+          ],
+        })
+      );
+    });
+
+    it('un código sin guion bajo viaja igual que antes', async () => {
+      const archivo = adjunto('constancia.pdf');
+      data.constancia = { value: [archivo], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F3' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [{ fieldCode: 'constancia', file: archivo.file }],
+        })
+      );
+    });
+
+    it('el archivo no se cuela como dato del formulario', async () => {
+      data.minor_enrollment_certificate = { value: [adjunto('constancia.pdf')], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-F4' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data).not.toHaveProperty('minor_enrollment_certificate');
+    });
+  });
+
+  /**
+   * BAL-4354. `CheckboxField` en modo múltiple guarda el valor como
+   * `string[]` con las opciones marcadas (ver `CheckboxField.tsx`,
+   * `handleMultipleChange`). `mapFormData` trataba TODA lista como lista de
+   * archivos: recorría el array buscando objetos `File` y, si no encontraba
+   * ninguno, descartaba el campo entero — la casilla múltiple nunca llegaba
+   * al backend aunque el Resumen la mostrara marcada.
+   */
+  describe('casilla de selección múltiple (BAL-4354)', () => {
+    const data = mockFormData as Record<string, { value: unknown; error: null } | undefined>;
+    const adjunto = (nombre: string) => ({
+      id: nombre,
+      file: new File(['x'], nombre, { type: 'application/pdf' }),
+    });
+
+    afterEach(() => {
+      delete data.intereses;
+      delete data.beneficios;
+      delete data.minor_enrollment_certificate;
+    });
+
+    it('envía las opciones marcadas como lista de textos', async () => {
+      data.intereses = { value: ['deportes', 'tecnologia'], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({
+            intereses: ['deportes', 'tecnologia'],
+          }),
+        })
+      );
+    });
+
+    it('una sola opción marcada también viaja como lista (no como string suelto)', async () => {
+      data.intereses = { value: ['deportes'], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data.intereses).toEqual(['deportes']);
+    });
+
+    it('ninguna opción marcada (array vacío) no manda la llave', async () => {
+      data.intereses = { value: [], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C3' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data).not.toHaveProperty('intereses');
+    });
+
+    it('conviven una casilla múltiple y un archivo en el mismo submit', async () => {
+      const archivo = adjunto('constancia.pdf');
+      data.intereses = { value: ['deportes', 'tecnologia'], error: null };
+      data.minor_enrollment_certificate = { value: [archivo], error: null };
+      mockSubmitApplication.mockResolvedValue({ success: true, public_token: 'APP-C4' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          form_data: expect.objectContaining({ intereses: ['deportes', 'tecnologia'] }),
+          files: [{ fieldCode: 'minor_enrollment_certificate', file: archivo.file }],
+        })
+      );
+      const payload = mockSubmitApplication.mock.calls.at(-1)?.[0] as { form_data: Record<string, unknown> };
+      expect(payload.form_data).not.toHaveProperty('minor_enrollment_certificate');
+    });
+  });
+
+  /**
+   * JuicyScore (antifraude). El `session_id` lo emite el pixel y lo deja en
+   * sessionStorage; el submit solo lo adjunta. Nada de esto puede impedir que la
+   * solicitud se envíe: sin pixel, el campo simplemente no viaja.
+   */
+  describe('JuicyScore session_id', () => {
+    const LANDING = 'test-landing';
+    const STORAGE_KEY = `baldecash-${LANDING}-juicy-session`;
+
+    beforeEach(() => {
+      mockParams.landing = LANDING;
+      sessionStorage.clear();
+    });
+
+    afterEach(() => {
+      sessionStorage.clear();
+    });
+
+    it('adjunta el session_id del pixel cuando existe', async () => {
+      sessionStorage.setItem(STORAGE_KEY, 'w.20260813-abc.A_GS');
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-J1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({ juicyscore_session_id: 'w.20260813-abc.A_GS' })
+      );
+    });
+
+    it('omite el campo cuando el pixel no llegó a emitir sesión', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-J2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      let success = false;
+      await act(async () => {
+        success = await result.current.submit();
+      });
+
+      expect(success).toBe(true);
+      const payload = mockSubmitApplication.mock.calls[0][0] as {
+        juicyscore_session_id?: string;
+      };
+      expect(payload.juicyscore_session_id).toBeUndefined();
+    });
+  });
+
+  /**
+   * `wizard_form_id`: el formulario que el backend le sirvió a esta sesión
+   * (varios formularios por landing, repartidos por peso). Viaja en el submit
+   * para que la solicitud quede ligada a ESE formulario aunque el reparto
+   * cambie mientras la persona lo está llenando.
+   */
+  describe('wizard_form_id', () => {
+    afterEach(() => {
+      mockWizardConfig = null;
+    });
+
+    it('adjunta el form_id de la config del wizard cuando existe', async () => {
+      mockWizardConfig = { form_id: 42 };
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F1' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({ wizard_form_id: 42 })
+      );
+    });
+
+    it('omite el campo cuando la config no trae form_id', async () => {
+      mockWizardConfig = {};
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F2' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls[0][0] as {
+        wizard_form_id?: number;
+      };
+      expect(payload.wizard_form_id).toBeUndefined();
+    });
+  });
+
+  /**
+   * Landings demo (`*-demo`): mismo wizard, misma pantalla de confirmación,
+   * pero sin crear la solicitud en ws2.
+   */
+  describe('landing demo', () => {
+    const DEMO_LANDING = 'cibertec-express-demo';
+
+    beforeEach(() => {
+      mockParams.landing = DEMO_LANDING;
+      sessionStorage.clear();
+    });
+
+    afterEach(() => {
+      mockParams.landing = 'test-landing';
+    });
+
+    it('never posts the application to the API', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+
+      let success: boolean = false;
+      await act(async () => {
+        success = await result.current.submit();
+      });
+
+      expect(success).toBe(true);
+      expect(mockSubmitApplication).not.toHaveBeenCalled();
+    });
+
+    it('redirects to the confirmation with a demo code', async () => {
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockPush).toHaveBeenCalledTimes(1);
+      const target = mockPush.mock.calls[0][0] as string;
+      const code = new URL(target, 'https://x').searchParams.get('code');
+      expect(code).toMatch(/^SOL-DEMO-[0-9A-F]{8}$/);
+      expect(target).toBe(routes.solicitarConfirmacion(DEMO_LANDING, code!));
+      expect(onToast).toHaveBeenCalledWith('Solicitud enviada correctamente', 'success');
+    });
+
+    it('leaves the application detail in sessionStorage for /confirmacion', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const code = new URL(mockPush.mock.calls[0][0] as string, 'https://x')
+        .searchParams.get('code');
+      const stored = readDemoApplication(DEMO_LANDING, code);
+
+      expect(stored).not.toBeNull();
+      expect(stored!.status).toBe('pending');
+      expect(stored!.applicant_name).toBe('John Doe');
+      expect(stored!.products).toEqual([
+        expect.objectContaining({ name: 'Test Product', unit_price: 1000 }),
+      ]);
+      expect(stored!.accessories).toEqual([{ name: 'Accessory 1', monthly_quota: 5 }]);
+      expect(stored!.insurances).toEqual([{ name: 'Protección', monthly_price: 45 }]);
+      expect(stored!.coupon).toEqual({ code: 'TEST10', discount_amount: 10 });
+      expect(stored!.total_monthly_payment).toBe(90);
+    });
+
+    it('resets the wizard so the next demo starts clean', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockMarcarSesionConvertida).toHaveBeenCalled();
+      expect(mockResetForm).toHaveBeenCalled();
+      expect(mockClearProduct).toHaveBeenCalled();
+      expect(mockClearAccessories).toHaveBeenCalled();
+      expect(mockClearInsurance).toHaveBeenCalled();
+      expect(mockClearCoupon).toHaveBeenCalled();
+    });
+  });
+});
+
+/**
+ * Lo que el link corto del socio prellena tiene que terminar en el submit.
+ *
+ * Es la unica parte de la cadena que ningun otro test cubre: `calcularPrellenado`
+ * prueba que los campos se calculan bien, pero no que sobrevivan al mapeo de
+ * `form_data` — y ahi es donde se caerian sin que nadie se entere, porque los
+ * marcadores de bloqueo viajan en el mismo formData y SI tienen que quedarse
+ * afuera. Se usan las funciones reales del prellenado, no un formData escrito a
+ * mano: si mañana `institution` pasara a llamarse `_institution`, este test lo
+ * ve.
+ */
+describe('lead de socio (A365): institucion y sede llegan al submit', () => {
+  const LEAD: LeadPrefill = {
+    document_type: 'dni',
+    document_number: '70123456',
+    first_name: 'Ana',
+    last_name: 'Quispe',
+    phone: '999888777',
+    email: 'ana@ejemplo.com',
+    institution_id: 812,
+    institution_name: 'Universidad Privada del Norte',
+    institution_type: 'university',
+    sede_id: 45,
+    sede_name: 'UCV Norte',
+  };
+
+  const PASOS = [
+    { fields: [{ code: 'institution_type' }, { code: 'institution' }, { code: 'sede' }] },
+  ] as unknown as WizardStep[];
+
+  /** El caso real de A365: su landing no declara `sede` ni `institution`. */
+  const PASOS_SIN_CAMPOS = [
+    { fields: [{ code: 'document_number' }, { code: 'email' }] },
+  ] as unknown as WizardStep[];
+
+  const originales = Object.keys(mockFormData);
+
+  afterEach(() => {
+    for (const key of Object.keys(mockFormData)) {
+      if (!originales.includes(key)) delete (mockFormData as Record<string, unknown>)[key];
+    }
+  });
+
+  const prellenarComoElHook = (pasos: WizardStep[] = PASOS) => {
+    const updates = calcularPrellenado(LEAD, pasos, () => '');
+    for (const u of [...updates, ...marcadoresDeBloqueo(updates)]) {
+      (mockFormData as Record<string, unknown>)[u.fieldId] = { value: u.value, error: null };
+    }
+  };
+
+  it('manda institution y sede con el id del catalogo, no el nombre', async () => {
+    mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
+    prellenarComoElHook();
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockSubmitApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form_data: expect.objectContaining({
+          institution: '812',
+          institution_type: 'university',
+          sede: '45',
+        }),
+      })
+    );
+  });
+
+  it('llegan al submit aunque la landing no tenga los campos', async () => {
+    // El caso de A365: su formulario no declara `sede`. Este es el test que
+    // vale — el de arriba pasaria igual si el prellenado solo funcionara en
+    // landings que ya tienen los campos, que es justo lo que NO sirve aca.
+    mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
+    prellenarComoElHook(PASOS_SIN_CAMPOS);
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockSubmitApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form_data: expect.objectContaining({
+          institution: '812',
+          institution_type: 'university',
+          sede: '45',
+        }),
+      })
+    );
+  });
+
+  it('los marcadores de bloqueo NO viajan al backend', async () => {
+    mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-A365' });
+    prellenarComoElHook();
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    const enviado = mockSubmitApplication.mock.calls[0][0].form_data;
+    expect(Object.keys(enviado).some(k => k.startsWith('_'))).toBe(false);
   });
 });

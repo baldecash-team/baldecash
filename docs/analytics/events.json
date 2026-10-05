@@ -123,12 +123,18 @@
       }
     },
     "product_click": {
-      "description": "Click en card de producto en catálogo/similares.",
+      "description": "Click en card de producto en catálogo/similares (abrir detalle desde título o botón 'Detalle'). Desde catálogo se adjunta el snapshot de financiamiento visible en la card al momento del click (plazo, frecuencia, cuota e inicial). Los campos de financiamiento son opcionales: solo se envían desde el catálogo estándar; en otros orígenes pueden venir undefined.",
       "properties": {
         "product_id": "string",
         "product_name": "string",
         "brand": "string",
-        "slug": "string"
+        "slug": "string",
+        "term": "number (optional) — nº de cuotas en la frecuencia nativa (mensual = meses, quincenal = meses×2, semanal = meses×4). Ej.: 12 meses semanal → 48.",
+        "term_months": "number (optional) — plazo en meses, tal como lo muestra la card ('en X meses').",
+        "payment_frequency": "'mensual' | 'quincenal' | 'semanal' (optional) — frecuencia de pago activa; da la unidad de la cuota y de `term`.",
+        "installment": "number (optional) — valor de la cuota mostrada (Math.floor), en la frecuencia activa.",
+        "down_payment": "number (optional) — monto de la inicial en S/ (Math.floor); 0 si es 'sin inicial'.",
+        "down_payment_percent": "number (optional) — porcentaje de la inicial."
       }
     },
     "product_hover": {

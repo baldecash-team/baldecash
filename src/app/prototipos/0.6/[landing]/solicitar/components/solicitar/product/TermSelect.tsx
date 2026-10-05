@@ -8,6 +8,9 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import { getTermUnit } from './etiquetaDePlazo';
+
+export { getTermUnit };
 
 interface TermSelectProps {
   value: number;
@@ -21,13 +24,16 @@ interface TermSelectProps {
   placeholder?: string;
   /** Payment frequency to pluralize the label: 'semanal' | 'quincenal' | 'mensual' */
   frequency?: string;
+  /**
+   * Rótulo por term, para cuando el número no se explica solo.
+   *
+   * Con la inicial fraccionada el `term` son las cuotas, y el plazo que la
+   * persona vive es `cuotas + armadas`: el rótulo dice «17 semanas · 4 armadas»
+   * donde el valor es 13. Sin entrada para un term se usa `${term} ${unidad}`,
+   * que es lo que ve todo el catálogo.
+   */
+  labels?: Map<number, string>;
 }
-
-export const getTermUnit = (count: number, frequency?: string): string => {
-  if (frequency === 'semanal') return count === 1 ? 'semana' : 'semanas';
-  if (frequency === 'quincenal') return count === 1 ? 'quincena' : 'quincenas';
-  return count === 1 ? 'mes' : 'meses';
-};
 
 export const TermSelect: React.FC<TermSelectProps> = ({
   value,
@@ -37,6 +43,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
   warning = false,
   placeholder,
   frequency,
+  labels,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -45,7 +52,9 @@ export const TermSelect: React.FC<TermSelectProps> = ({
     setIsOpen(false);
   }, [onChange]);
 
-  const displayLabel = value ? `${value} ${getTermUnit(value, frequency)}` : placeholder || 'Seleccionar';
+  const etiqueta = (term: number) => labels?.get(term) ?? `${term} ${getTermUnit(term, frequency)}`;
+
+  const displayLabel = value ? etiqueta(value) : placeholder || 'Seleccionar';
   const hasValue = !!value;
 
   const sizeClasses = size === 'sm'
@@ -79,7 +88,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute z-50 top-full right-0 mt-1 min-w-[140px] bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute z-50 top-full right-0 mt-1 min-w-[140px] whitespace-nowrap bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
             <div className="p-1">
               {options.map((term) => (
                 <button
@@ -95,7 +104,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
                     }
                   `}
                 >
-                  <span>{term} {getTermUnit(term, frequency)}</span>
+                  <span>{etiqueta(term)}</span>
                   {value === term && <Check className="w-3.5 h-3.5" />}
                 </button>
               ))}

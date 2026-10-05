@@ -12,12 +12,10 @@ import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
 import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useLayout } from '../../context/LayoutContext';
 
 interface FormData {
@@ -72,7 +70,7 @@ function LoadingFallback() {
 export function LibroReclamacionesClient() {
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
   const isConvenio = !!agreementData;
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(landing);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -194,9 +192,10 @@ export function LibroReclamacionesClient() {
           .gamer-libro [data-slot="description"] { color: ${textMuted} !important; }
         `}</style>
 
-        {/* Header — shared GamerNavbar */}
-        <GamerNavbar
-          theme={theme || 'dark'}
+        {/* Header — shared Navbar con theme="gamer" */}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -205,7 +204,7 @@ export function LibroReclamacionesClient() {
         />
 
         {/* Main Content */}
-        <main className="gamer-libro" style={{ maxWidth: 896, margin: '0 auto', padding: '40px 16px 64px' }}>
+        <main className="gamer-libro" style={{ maxWidth: 896, margin: '0 auto', padding: '0 16px 64px', paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + 24px)' }}>
           {/* Header */}
           <div style={{ marginBottom: 32, textAlign: 'center' }}>
             <div style={{
@@ -366,7 +365,7 @@ export function LibroReclamacionesClient() {
           </div>
         </main>
 
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
 
         {isSuccess && (
           <div style={{

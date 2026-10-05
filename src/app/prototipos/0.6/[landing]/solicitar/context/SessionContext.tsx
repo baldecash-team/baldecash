@@ -21,9 +21,107 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
+import {
+  getUserAgentData,
+  resolveOsVersion,
+} from '@/app/prototipos/0.6/analytics/clientHints';
+import { getLeadLinkCode, getPromotorRef, readPromotorRef } from '@/app/prototipos/0.6/utils/landingParams';
+import { persistUtmParams, readUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 
 // Dynamic storage key based on landing slug
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
+
+/**
+ * Uuid de la sesión que ya envió una solicitud.
+ *
+ * Es una MARCA, no un borrado, y esa es toda la diferencia: la solicitud se
+ * envía desde `/solicitar` y se confirma en `/solicitar/confirmacion`, dos
+ * rutas de la misma visita. Soltar la sesión en el medio —lo que se hacía—
+ * hacía que la confirmación abriera una fila de `session` nueva, así que el
+ * evento `application_submitted` caía sobre una sesión sin `application_id` y
+ * la que sí lo tenía nunca veía el envío. Pasaba en toda solicitud, no sólo en
+ * las de activación.
+ *
+ * La marca se consume cuando alguien arranca OTRA solicitud
+ * (`renovarSesionSiConvertida`, desde el layout de `/solicitar`).
+ */
+const getConvertedKey = (landing: string) =>
+  `baldecash-${landing}-wizard-session-converted`;
+
+/**
+ * Drops the persisted tracking session for a landing.
+ *
+ * Exported as a plain function, not only as the context's `clearSession`, so
+ * callers outside the `/solicitar` provider tree can clear it without
+ * re-deriving the key. The key stays defined once, here.
+ */
+/**
+ * True si la sesión guardada para la landing ya envió una solicitud.
+ *
+ * Lo consulta el reset por link de promotora: sobre una sesión que ya
+ * convirtió, volver a abrir el MISMO link también estrena sesión — el que
+ * está llegando es otro alumno, no el que acaba de enviar.
+ */
+export function sesionYaConvertida(landing: string): boolean {
+  const convertida = safeGetItem(getConvertedKey(landing));
+  return !!convertida && convertida === safeGetItem(getSessionKey(landing));
+}
+
+/**
+ * Uuid de sesión que ya está guardado en el navegador para la landing, o null.
+ *
+ * SOLO LEE: no genera ni escribe nada. El uuid lo crea `initSession`, y de que
+ * no exista antes depende `sesion_vinculada` (ver `isNew` ahí). Sirve para
+ * quien necesita el uuid antes de que responda la API de sesión: `initSession`
+ * lo guarda en storage ANTES de llamarla.
+ */
+export function leerUuidDeSesionGuardado(landing: string): string | null {
+  return safeGetItem(getSessionKey(landing)) || null;
+}
+
+export function clearSessionStorage(landing: string): void {
+  // safeRemoveItem is hoisted; it already guards SSR and storage failures.
+  safeRemoveItem(getSessionKey(landing));
+  // La marca se va con la sesión que describe. Si sobreviviera, la sesión que
+  // nace después del reset arrancaría marcada como convertida y se renovaría
+  // sola en la primera solicitud del cliente siguiente.
+  safeRemoveItem(getConvertedKey(landing));
+}
+
+/**
+ * Safe localStorage helpers.
+ *
+ * Accessing `localStorage` throws in some sandboxed WebKit contexts (Apple Mail
+ * link previews, private mode, storage disabled) even when `window` is defined,
+ * producing "ReferenceError: Can't find variable: localStorage". These wrappers
+ * swallow that so tracking degrades gracefully instead of crashing the app.
+ */
+function safeGetItem(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage unavailable — ignore.
+  }
+}
+
+function safeRemoveItem(key: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Storage unavailable — ignore.
+  }
+}
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -31,14 +129,36 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 interface SessionContextValue {
   /** The tracking session UUID */
   sessionUuid: string | null;
+  /**
+   * True SOLO cuando la sesión se creó en esta carga (no había uuid en
+   * localStorage). Queda en false al recuperar una sesión existente, al
+   * recargar la página y cuando se usa `fixedSessionId`.
+   *
+   * Lo consume EventTrackerContext para emitir `sesion_vinculada` una única
+   * vez por sesión, en el momento en que nace.
+   */
+  isNewSession: boolean;
   /** Whether the session has been initialized */
   isInitialized: boolean;
   /** Whether the session creation is in progress */
   isCreating: boolean;
   /** Initialize or retrieve existing session */
   initSession: (landingSlug: string) => Promise<string | null>;
-  /** Clear the session (on successful submission or manual reset) */
+  /** Clear the session (on manual reset) */
   clearSession: () => void;
+  /**
+   * Marca que esta sesión ya envió una solicitud, SIN soltarla.
+   *
+   * La confirmación tiene que seguir emitiendo sobre la misma fila: es el único
+   * lugar donde el evento del envío trae el `application_code`, y por ahí se
+   * ata la sesión con su solicitud sin heurística.
+   */
+  marcarSesionConvertida: () => void;
+  /**
+   * Suelta la sesión y abre una nueva si la actual ya envió una solicitud.
+   * Devuelve true cuando renovó.
+   */
+  renovarSesionSiConvertida: () => boolean;
   /** Get the session ID (backend ID, not UUID) */
   sessionId: number | null;
 }
@@ -63,7 +183,10 @@ export const useSessionOptional = () => {
 
 interface SessionProviderProps {
   children: ReactNode;
-  landingSlug: string;
+  landingSlug?: string;
+  /** Cuando se pasa, se usa como session_id fijo (p.ej. el token de una oferta):
+   *  NO se crea session anónima en backend; el tracking usa este id tal cual. */
+  fixedSessionId?: string;
 }
 
 /**
@@ -94,7 +217,14 @@ function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {
 }
 
 /**
- * Get OS info from user agent
+ * Get OS info from user agent.
+ *
+ * Respaldo, no fuente de verdad: los navegadores congelaron la versión del
+ * sistema dentro del user agent (*User-Agent Reduction*), así que de acá salen
+ * "Android 10" y "Windows 10" para casi cualquier equipo moderno. La versión
+ * real se pide por Client Hints en `resolveOsVersion`, y este valor solo se usa
+ * cuando no están disponibles — en Safari, que no los implementa, es todo lo
+ * que hay.
  */
 function getOsInfo(): { os: string; osVersion: string } {
   if (typeof window === 'undefined') {
@@ -162,18 +292,48 @@ function getBrowserInfo(): { browser: string; browserVersion: string } {
 }
 
 /**
- * Extract UTM params from URL
+ * Extract UTM params from URL.
+ *
+ * Además de los 5 UTM estándar viajan tres parámetros propios de las difusiones:
+ * `promotor` (el código del promotor, que no va dentro de utm_term para no
+ * mezclarlo con la sede), `alk` (el código del link corto, que da atribución
+ * exacta aunque se recorten las UTMs) y `ref` (el código del link del hub de
+ * activaciones). Sin reenviarlos acá, el backend no puede saber quién trajo la
+ * visita.
+ *
+ * `ref` se lee de la URL Y, si ahí no está, del valor que `captureLandingParams`
+ * dejó guardado al entrar. Los otros no lo necesitan porque la sesión nace en el
+ * layout de la landing, con el querystring todavía intacto; `ref` sí, porque es
+ * el que tiene que sobrevivir a que la sesión se cree en un reintento posterior
+ * —ya sobre /catalogo, cuyo link se arma limpio— y es el único identificador de
+ * la promotora que viaja en todos los flyers.
  */
-function getUtmParams(): Record<string, string | undefined> {
+function getUtmParams(landingSlug: string): Record<string, string | undefined> {
   if (typeof window === 'undefined') return {};
 
-  const params = new URLSearchParams(window.location.search);
+  // Guardar ANTES de leer, y no sólo en la landing: así la atribución sobrevive
+  // aunque la visita entre directo a una ruta interna con el querystring puesto
+  // (un link compartido a mitad de camino), sin depender de que
+  // `LandingPageClient` se haya montado antes.
+  persistUtmParams();
+
+  // `readUtmParams` da los UTMs de la URL y, si no hay ninguno, los que dejó la
+  // entrada. La regla es la que pidió Activaciones: el que llega con parámetros
+  // gana, el que llega sin parámetros hereda. Nunca al revés.
+  const params = readUtmParams();
+  const enLaUrl = new URLSearchParams(window.location.search);
+
   return {
-    utm_source: params.get('utm_source') || undefined,
-    utm_medium: params.get('utm_medium') || undefined,
-    utm_campaign: params.get('utm_campaign') || undefined,
-    utm_term: params.get('utm_term') || undefined,
-    utm_content: params.get('utm_content') || undefined,
+    utm_source: params.utm_source || undefined,
+    utm_medium: params.utm_medium || undefined,
+    utm_campaign: params.utm_campaign || undefined,
+    utm_term: params.utm_term || undefined,
+    utm_content: params.utm_content || undefined,
+    promotor: params.promotor || undefined,
+    // `alk` y `ref` tienen su propio guardado, por landing y desde antes
+    // (`captureLandingParams`): se leen de ahí, no del store de UTMs.
+    alk: enLaUrl.get('alk') || getLeadLinkCode(landingSlug) || undefined,
+    ref: readPromotorRef(window.location.search) || getPromotorRef(landingSlug) || undefined,
   };
 }
 
@@ -199,14 +359,21 @@ function getReferrerInfo(): { referrer_url?: string; referrer_domain?: string } 
 export const SessionProvider: React.FC<SessionProviderProps> = ({
   children,
   landingSlug,
+  fixedSessionId,
 }) => {
-  const [sessionUuid, setSessionUuid] = useState<string | null>(null);
+  const [sessionUuid, setSessionUuid] = useState<string | null>(fixedSessionId ?? null);
   const [sessionId, setSessionId] = useState<number | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(!!fixedSessionId);
   const [isCreating, setIsCreating] = useState(false);
+  // Con fixedSessionId la sesión viene dada (token de oferta): no nace acá.
+  const [isNewSession, setIsNewSession] = useState(false);
 
   // Memoize storage key based on landing
-  const sessionKey = useMemo(() => getSessionKey(landingSlug), [landingSlug]);
+  const sessionKey = useMemo(() => getSessionKey(landingSlug ?? 'default'), [landingSlug]);
+  const convertedKey = useMemo(
+    () => getConvertedKey(landingSlug ?? 'default'),
+    [landingSlug]
+  );
 
   /**
    * Create a new tracking session via API with retry logic
@@ -220,8 +387,11 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
       const { browser, browserVersion } = getBrowserInfo();
       const { os, osVersion } = getOsInfo();
-      const utmParams = getUtmParams();
+      const utmParams = getUtmParams(slug);
       const referrer = getReferrerInfo();
+      // Client Hints: la versión que declara el user agent está congelada.
+      // Nunca lanza — ante cualquier problema devuelve el valor de respaldo.
+      const realOsVersion = await resolveOsVersion(osVersion, getUserAgentData());
 
       const payload = {
         landing_slug: slug,
@@ -230,9 +400,15 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         browser,
         browser_version: browserVersion,
         os,
-        os_version: osVersion,
+        os_version: realOsVersion,
         screen_width: window.screen.width,
         screen_height: window.screen.height,
+        // Se mandan aunque el user agent ya viaje en `session_start`: ahí vive
+        // dentro del payload de un evento, y para separar un navegador
+        // embebido de uno normal —o para emparejar una sesión con su par en
+        // GA4— hace falta en la fila de la sesión.
+        user_agent: navigator.userAgent,
+        entry_url: window.location.href,
         ...utmParams,
         ...referrer,
       };
@@ -298,16 +474,17 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
       try {
         // Get UUID from localStorage or generate new one
-        const existingUuid =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(sessionKey)
-            : null;
+        const existingUuid = safeGetItem(sessionKey);
 
         const uuid = existingUuid || generateUUID();
+        // Sin uuid previo en storage ⇒ la sesión nace en esta carga. Este es
+        // el único caso en el que se emite `sesion_vinculada`.
+        const isNew = !existingUuid;
+        setIsNewSession(isNew);
 
         // Persist UUID immediately so it survives page redirects (e.g. vip_auto)
-        if (!existingUuid && typeof window !== 'undefined') {
-          localStorage.setItem(sessionKey, uuid);
+        if (!existingUuid) {
+          safeSetItem(sessionKey, uuid);
         }
 
         // ALWAYS call API (creates new or recovers existing session)
@@ -315,9 +492,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
         if (result) {
           // Save to localStorage
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(sessionKey, result.uuid);
-          }
+          safeSetItem(sessionKey, result.uuid);
           setSessionUuid(result.uuid);
           setSessionId(result.id);
           setIsInitialized(true);
@@ -329,9 +504,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         // accept them or they'll simply be lost, but the client-side tracking
         // (scroll, page_enter, etc.) will still fire.
         console.warn('[Session] API unavailable — using local UUID for tracking');
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(sessionKey, uuid);
-        }
+        safeSetItem(sessionKey, uuid);
         setSessionUuid(uuid);
         setIsInitialized(true);
         return uuid;
@@ -349,28 +522,64 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     setSessionUuid(null);
     setSessionId(null);
     setIsInitialized(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(sessionKey);
-    }
+    setIsNewSession(false);
+    safeRemoveItem(sessionKey);
   }, [sessionKey]);
+
+  /**
+   * Deja constancia de que esta sesión ya convirtió. No toca el uuid.
+   *
+   * Lee el uuid de storage además del estado porque el submit puede resolver
+   * antes de que el provider haya terminado de hidratar en una recarga.
+   */
+  const marcarSesionConvertida = useCallback(() => {
+    const uuid = sessionUuid ?? safeGetItem(sessionKey);
+    if (uuid) safeSetItem(convertedKey, uuid);
+  }, [sessionUuid, sessionKey, convertedKey]);
+
+  /**
+   * Renueva la sesión al arrancar una solicitud nueva sobre una que ya convirtió.
+   *
+   * Sólo renueva si la sesión guardada ES la que convirtió. Cuando no coincide,
+   * otra vía ya la soltó —el reset del activador, el cambio de link de
+   * promotora, un DNI distinto— y lo único que queda por hacer es descartar la
+   * marca vieja: tirar la sesión recién nacida le costaría al alumno que está
+   * entrando la atribución del link con el que entró.
+   */
+  const renovarSesionSiConvertida = useCallback((): boolean => {
+    const convertida = safeGetItem(convertedKey);
+    if (!convertida) return false;
+
+    safeRemoveItem(convertedKey);
+
+    const actual = safeGetItem(sessionKey);
+    if (actual && actual !== convertida) return false;
+
+    clearSession();
+    return true;
+  }, [convertedKey, sessionKey, clearSession]);
 
   // Auto-initialize session on mount for the current landing so tracking
   // starts from the first page the user visits (home, catálogo, producto).
   // The backend endpoint is idempotent: it recovers the existing session
   // when the UUID stored in localStorage is reused across pages/reloads.
   useEffect(() => {
+    if (fixedSessionId) return; // session_id fijo → no crear session anónima
     if (!landingSlug || isInitialized || isCreating) return;
     initSession(landingSlug);
-  }, [landingSlug, isInitialized, isCreating, initSession]);
+  }, [fixedSessionId, landingSlug, isInitialized, isCreating, initSession]);
 
   return (
     <SessionContext.Provider
       value={{
         sessionUuid,
+        isNewSession,
         isInitialized,
         isCreating,
         initSession,
         clearSession,
+        marcarSesionConvertida,
+        renovarSesionSiConvertida,
         sessionId,
       }}
     >

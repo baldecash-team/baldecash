@@ -12,15 +12,16 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert, Keyboard, Camera, Music, Settings, Volume2, Fingerprint } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
+import { cardKey } from '@/app/prototipos/0.6/[landing]/catalogo/utils/cardKey';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import type { CartItem, TermMonths, InitialPaymentPercent, CatalogDeviceType, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -39,7 +40,6 @@ import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi'
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { CubeGridSpinner, Toast, useToast, useScrollToTop } from '@/app/prototipos/_shared';
-import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
@@ -143,6 +143,17 @@ function DetailContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   const slugArray = params.slug as string[] | undefined;
   const slug = slugArray?.join('/') || '';
+
+  /**
+   * Clave de la card que esta página muestra (BAL-3328).
+   *
+   * El slug de la URL, no `product.slug` ni `product.id`: el endpoint resuelve
+   * el combo al producto que lo compone, así que la página del combo y la del
+   * suelto devuelven el mismo `product.slug` y el mismo `id`. Marcar el corazón
+   * por `product.id` hacía que el suelto apareciera en favoritos sin tocarlo.
+   */
+  const pageKey = cardKey({ slug });
+
   // Note: we write directly to localStorage instead of using context setters
   // because each page has its own ProductProvider instance.
 
@@ -165,9 +176,8 @@ function DetailContent() {
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-  const { settings, newsletterData, navbarProps } = useLayout();
+  const { settings, newsletterData, navbarProps, footerData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
-  const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -299,7 +309,9 @@ function DetailContent() {
       monthlyPayment: item.monthlyPayment,
       months: item.months,
       term: item.term ?? item.months,
-      paymentFrequency: item.paymentFrequency,
+      // Un carrito persistido en localStorage antes de BAL-3994 no trae el
+      // campo: se completa aqui en vez de dejar que el backend lo adivine.
+      paymentFrequency: item.paymentFrequency ?? 'mensual',
       initialPercent: item.initialPercent,
       initialAmount: item.initialAmount,
       image: item.image,
@@ -366,11 +378,12 @@ function DetailContent() {
         if (cancelled) return;
         if (result) {
           setData(result);
-          tracker?.track('product_view', {
+          analytics.trackProductView({
             product_id: result.product.id,
             product_name: result.product.name,
             brand: result.product.brand,
             slug,
+            context: 'ficha',
           });
         } else {
           setError('Producto no encontrado');
@@ -428,7 +441,15 @@ function DetailContent() {
     // para mensual meses. `selectedTerm` ya está en native units así que se manda tal cual.
     const term = selectedTerm || data?.paymentPlans?.[0]?.term;
     const paymentFrequency = data?.paymentFrequencies?.[0];
-    getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
+    // productSlug (param 10) es obligatorio para que el backend aplique las
+    // reglas de accesorios por dispositivo (BAL-2767): sin el no puede saber
+    // que equipo es y deja pasar los accesorios de reacondicionados y celulares
+    // Android nuevos. Los params intermedios van en undefined para conservar
+    // sus defaults.
+    getLandingAccessories(
+      landing, deviceType, term, previewKey, paymentFrequency,
+      undefined, undefined, undefined, undefined, slug,
+    ).then((items) => {
       if (cancelled || !items?.length) return;
       setAccessories(items.map((a) => {
         const override = findAccessoryOverride(a.name);
@@ -470,11 +491,13 @@ function DetailContent() {
   }, [product?.specs]);
 
   // Thumbnail: filter out video URLs (same as normal landing)
+  // Cuando hay combo, la portada usa el thumbnail del combo (fallback a la imagen del producto).
   const productThumbnail = useMemo(() => {
+    if (data?.combo?.thumbnailUrl) return data.combo.thumbnailUrl;
     if (!product?.images?.length) return '';
     const img = product.images.find((i: { type?: string; url: string }) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
     return img?.url || product.images[0]?.url || '';
-  }, [product?.images]);
+  }, [product?.images, data?.combo]);
 
   const paymentPlans = data?.paymentPlans || [];
   const similarProducts = data?.similarProducts || [];
@@ -484,7 +507,7 @@ function DetailContent() {
   const isAvailable = data?.isAvailable !== false;
   const activePlan = paymentPlans.find((p) => p.term === selectedTerm) || paymentPlans[0];
   const lowestOption = activePlan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || activePlan?.options?.[0];
-  const isWishlisted = product ? catalogState.isInWishlist(String(product.id)) : false;
+  const isWishlisted = product ? catalogState.isInWishlist(pageKey) : false;
 
   // Month-equivalent of the selected term. For semanal (term=48 weeks → 12 months)
   // or quincenal (term=24 fortnights → 12 months) we need the normalized value
@@ -543,6 +566,9 @@ function DetailContent() {
     return paymentPlans.map((plan) => ({
       term: plan.term,
       termMonths: plan.termMonths ?? null,
+      // Viaja al objeto persistido: es la unica pista de frecuencia que
+      // sobrevive si el producto se recupera en otra visita (BAL-4029).
+      paymentFrequency: plan.paymentFrequency,
       options: plan.options.map((opt) => ({
         initialPercent: opt.initialPercent,
         initialAmount: opt.initialAmount,
@@ -559,7 +585,7 @@ function DetailContent() {
     : null;
   const displayColors = siblingColors || product?.colors || [];
   const defaultColorId = hasSiblings
-    ? String(product!.colorSiblings.find((s) => s.slug === product!.slug)?.productId || displayColors[0]?.id)
+    ? String(product!.colorSiblings.find((s) => String(s.productId) === String(product!.id))?.productId || displayColors[0]?.id)
     : displayColors[0]?.id || '';
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
 
@@ -602,7 +628,10 @@ function DetailContent() {
   const handleToggleWishlist = () => {
     if (!product) return;
     const pid = String(product.id);
-    const wasWishlisted = catalogState.isInWishlist(pid);
+    // Por clave de card (el slug de la URL), no por productId: el suelto y sus
+    // combos comparten `id` y el toast diría lo contrario de lo que hizo, y el
+    // favorito del suelto se encendería sin haberlo tocado (BAL-3328).
+    const wasWishlisted = catalogState.isInWishlist(pageKey);
     const selectedColor = displayColors.find((c) => c.id === selectedColorId);
     const initialAmount = lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100);
     catalogState.toggleWishlist({
@@ -613,11 +642,17 @@ function DetailContent() {
       price: product.price,
       lowestQuota: lowestOption?.monthlyQuota || 0,
       brand: product.brand,
-      slug: product.slug,
+      // El slug de la URL, no `product.slug`: es lo único que distingue la
+      // página del combo de la del suelto, y debe coincidir con `pageKey`
+      // para que el corazón siga marcado al volver (BAL-3328).
+      slug: pageKey || product.slug,
       type: product.deviceType as 'laptop' | 'tablet' | 'celular' | 'accesorio',
       months: (selectedTermMonths || 24) as TermMonths,
       term: selectedTerm ?? undefined,
-      paymentFrequency: data?.paymentFrequencies?.[0],
+      // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+      // default la clave se va del JSON del submit y el backend la adivina
+      // (BAL-3994).
+      paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
       initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20,
       initialAmount,
       monthlyPayment: lowestOption?.monthlyQuota || 0,
@@ -654,7 +689,10 @@ function DetailContent() {
         price: product.price,
         months: (selectedTermMonths || 24) as TermMonths,
         term: selectedTerm ?? undefined,
-        paymentFrequency: data?.paymentFrequencies?.[0],
+        // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+        // default la clave se va del JSON del submit y el backend la adivina
+        // (BAL-3994).
+        paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
         initialPercent: (selectedInitialPercent || 0) as InitialPaymentPercent,
         initialAmount,
         monthlyPayment: lowestOption?.monthlyQuota || 0,
@@ -694,7 +732,10 @@ function DetailContent() {
       monthlyPayment: lowestOption?.monthlyQuota || 0,
       months: selectedTermMonths || 24,
       term: selectedTerm ?? undefined,
-      paymentFrequency: data?.paymentFrequencies?.[0],
+      // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+      // default la clave se va del JSON del submit y el backend la adivina
+      // (BAL-3994).
+      paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
       initialPercent: selectedInitialPercent || 0,
       initialAmount: lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       image: productThumbnail,
@@ -1013,12 +1054,14 @@ function DetailContent() {
       `}</style>
 
       {/* HEADER */}
-      <GamerNavbar
-        theme={theme}
+      <Navbar
+        theme="gamer"
+        gamerTheme={theme}
         onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}
         catalogUrl={routes.catalogo(landing)}
         portalButtonText={navbarProps?.portalButtonText}
         customerPortalUrl={navbarProps?.customerPortalUrl}
+        promoBannerData={navbarProps?.promoBannerData}
       />
 
       {/* SIDE NAV - only visible on xl+ */}
@@ -1433,7 +1476,10 @@ function DetailContent() {
                           catalogState.updateCartItem(pid, {
                             months: (selectedTermMonths || 24) as TermMonths,
                             term: selectedTerm ?? undefined,
-                            paymentFrequency: data?.paymentFrequencies?.[0],
+                            // `paymentFrequencies` es opcional y el [0] puede no existir: sin el
+                            // default la clave se va del JSON del submit y el backend la adivina
+                            // (BAL-3994).
+                            paymentFrequency: data?.paymentFrequencies?.[0] ?? 'mensual',
                             initialPercent: (selectedInitialPercent || 0) as InitialPaymentPercent,
                             initialAmount,
                             monthlyPayment: lowestOption?.monthlyQuota || 0,
@@ -1783,7 +1829,7 @@ function DetailContent() {
       {/* Newsletter — before footer */}
       <GamerNewsletter theme={theme} data={newsletterData} />
 
-      <GamerFooter theme={theme} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       {/* Spacer for mobile fixed CTA bar */}
       <div className="gamer-detail-mobile-spacer" />
 

@@ -8,10 +8,50 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import { WizardStepId, FieldState, ValidationRule } from '../types/solicitar';
 import { CascadingOption } from '../../../services/wizardApi';
+import { useWizardConfigOptional } from './WizardConfigContext';
+import { descartarValoresFueraDeOpciones } from '../utils/valoresFueraDeOpciones';
 
 // Dynamic storage key based on landing slug (100% scalable)
 // Follows project convention: baldecash-{feature}-{context}
 const getStorageKey = (landingSlug: string) => `baldecash-wizard-${landingSlug}-data`;
+
+/**
+ * Drops the persisted form for a landing.
+ *
+ * Exported as a plain function, not only as the context's `resetForm`, so that
+ * callers outside the `/solicitar` provider tree (the activator's session reset
+ * lives in `/catalogo`) can clear this state without re-deriving the key. The
+ * key stays defined once, here, in the module that owns it.
+ */
+/**
+ * Reads the document number stored inside the persisted form, or null.
+ *
+ * This is the authoritative answer to "whose data is this": the saved DNI key
+ * can be cleared on its own, but the form always carries the document of the
+ * person who filled it. Used to detect that the person changed even when there
+ * is no saved DNI left to compare against.
+ */
+export function readWizardDocumentNumber(landingSlug: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getStorageKey(landingSlug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, { value?: unknown } | undefined>;
+    const value = parsed?.document_number?.value;
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearWizardFormStorage(landingSlug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(getStorageKey(landingSlug));
+  } catch {
+    // Storage unavailable (private mode / quota).
+  }
+}
 
 interface WizardContextValue {
   formData: Record<string, FieldState>;
@@ -126,6 +166,21 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     }
     setIsHydrated(true);
   }, [storageKey]);
+
+  // Borrador con opciones que ya no existen (BAL-4433). El borrador no vence:
+  // si en el panel se ocultó una opción después de que la persona la eligió,
+  // el valor viejo seguía ahí, la lista no lo pintaba, «requerido» pasaba y se
+  // enviaba (caso 128137, `billetera_digital`). Cuando llegan los pasos del
+  // wizard, se vacían esos valores para que la persona vuelva a elegir.
+  const wizardSteps = useWizardConfigOptional()?.steps;
+  useEffect(() => {
+    if (!isHydrated || !wizardSteps || wizardSteps.length === 0) return;
+    // Los pasos llegan por red después de restaurar: no hay otro momento para
+    // contrastar. Devuelve el mismo objeto si no hay nada que limpiar, así que
+    // no provoca un render extra.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData((prev) => descartarValoresFueraDeOpciones(prev, wizardSteps));
+  }, [isHydrated, wizardSteps]);
 
   // Persist to localStorage whenever formData changes (only after hydration)
   useEffect(() => {
@@ -319,11 +374,8 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     setFormData({});
     setCompletedSteps([]);
     dynamicOptionsCache.current = {};
-    // Clear localStorage for this landing
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(storageKey);
-    }
-  }, [storageKey]);
+    clearWizardFormStorage(landingSlug);
+  }, [landingSlug]);
 
   // Store dynamic options for a field (used for validation lookup)
   const setDynamicOptions = useCallback((fieldCode: string, options: CascadingOption[]) => {

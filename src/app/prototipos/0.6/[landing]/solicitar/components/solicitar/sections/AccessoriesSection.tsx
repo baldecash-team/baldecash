@@ -14,14 +14,17 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Search, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Package, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
-import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingAccessories, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { Accessory, AccessoryCategory } from '../../../types/upsell';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { AccessoriesLoadingScreen } from './AccessoriesLoadingScreen';
+import { useSessionOptional } from '../../../context/SessionContext';
+import { patchTrackingSession } from '@/app/prototipos/0.6/services/sessionApi';
 
 /** Responsive page size: 2 mobile, 4 tablet, 6 desktop */
 function usePageSize() {
@@ -62,11 +65,22 @@ interface AccessoriesSectionProps {
    * Optional: Custom class name for the container
    */
   className?: string;
+  /**
+   * La sección se pliega y arranca CERRADA. Se usa en la intro de las landings
+   * de segundo financiamiento, donde el formulario va embebido justo debajo y
+   * accesorios no puede empujarlo fuera de la pantalla.
+   *
+   * El loader NO se pliega: mientras carga se ve en la cabecera, o un bloque
+   * cerrado y mudo se leería como una sección vacía.
+   * @default false
+   */
+  colapsable?: boolean;
 }
 
 export function AccessoriesSection({
   showIntro = true,
   className = '',
+  colapsable = false,
 }: AccessoriesSectionProps) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
@@ -74,10 +88,20 @@ export function AccessoriesSection({
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const { badgeText } = useWizardConfig();
-  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
+  const { config, badgeText } = useWizardConfig();
+  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts, setIsLoadingAccessories } = useProduct();
   const analytics = useAnalytics();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
+
+  // A/B variant: assign once per browser session, persist in sessionStorage
+  const [abVariant] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'A';
+    const stored = sessionStorage.getItem('ab_accessories_variant');
+    if (stored) return stored;
+    const assigned = Math.random() < 0.5 ? 'A' : 'B';
+    sessionStorage.setItem('ab_accessories_variant', assigned);
+    return assigned;
+  });
 
   // Wrapper con tracking. Diferencia add vs remove mirando si ya está en la lista.
   const toggleAccessoryTracked = (accessory: Accessory) => {
@@ -99,7 +123,15 @@ export function AccessoriesSection({
     toggleAccessory(accessory);
   };
   const [isLoading, setIsLoading] = useState(true);
+  const session = useSessionOptional();
+  const hasFetchedOnceRef = useRef(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
+
+  // Plegado. Solo aplica con `colapsable`; sin él la sección está siempre
+  // abierta y este estado no se lee.
+  const [abierto, setAbierto] = useState(false);
+  const contenidoVisible = !colapsable || abierto;
 
   // Filters — activeCategory es un slug de subcategoría o 'todos'
   const [activeCategory, setActiveCategory] = useState<string>('todos');
@@ -142,13 +174,43 @@ export function AccessoriesSection({
     return products[0]?.paymentFrequency;
   }, [getAllProducts]);
 
+  // Ecosystem filter for Molti accessories
+  const ecosistema = useMemo(() => {
+    const p = cartProducts?.length > 0 ? cartProducts[0] : selectedProduct;
+    if (!p) return undefined;
+    return resolveEcosistema(p.brand, p.type);
+  }, [cartProducts, selectedProduct]);
+
   // Load accessories from API - filtered by all device types in cart
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+
     async function fetchAccessories() {
+      const isRefresh = !hasFetchedOnceRef.current;
       setIsLoading(true);
+      setIsLoadingAccessories(true);
+      const loadingScreenTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        if (!cancelled) setShowLoadingScreen(true);
+      }, 500);
       try {
-        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency);
+        const apiAccessories = await getLandingAccessories(
+          landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency, abVariant, ecosistema,
+          session?.sessionUuid ?? null, isRefresh, selectedProduct?.slug ?? null,
+          selectedProduct?.initialAmount ?? null,
+        );
+        if (cancelled) return;
+        hasFetchedOnceRef.current = true;
         if (apiAccessories && apiAccessories.length > 0) {
+          analytics.track('accessory_variant_assigned', { variant: abVariant, count: apiAccessories.length, ecosistema: ecosistema ?? null });
+          // La variante también va a la fila de la sesión. En el evento solo
+          // no sirve: el resultado del test (¿creó solicitud?, ¿agregó
+          // accesorios?) vive en la sesión y en la solicitud, así que sin esto
+          // no hay forma de comparar A contra B — el experimento consume
+          // tráfico sin poder concluir cuál gana.
+          void patchTrackingSession(session?.sessionUuid ?? null, {
+            ab_accessories_variant: ecosistema ? `${abVariant}:${ecosistema}` : abVariant,
+          });
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
             name: acc.name,
@@ -160,6 +222,7 @@ export function AccessoriesSection({
             thumbnailUrl: acc.image || acc.thumbnail_url,
             category: acc.category ?? { slug: 'otro', name: 'Otro' },
             isRecommended: acc.isRecommended || false,
+            isMoltiTop: acc.isMoltiTop || false,
             compatibleWith: acc.compatibleWith || ['all'],
             specs: acc.specs || [],
             brand: acc.brand,
@@ -169,16 +232,26 @@ export function AccessoriesSection({
           setAccessories([]);
         }
       } catch (error) {
+        if (cancelled) return;
         console.error('Error loading accessories:', error);
         setAccessories([]);
       } finally {
-        setIsLoading(false);
+        clearTimeout(loadingScreenTimer);
+        setShowLoadingScreen(false);
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsLoadingAccessories(false);
+        }
       }
     }
 
-    fetchAccessories();
+    timer = setTimeout(fetchAccessories, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(',')]);
+  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(','), abVariant, ecosistema]);
 
   // Update selected accessories when term changes or accessories list changes
   const selectedAccessoriesRef = useRef(selectedAccessories);
@@ -260,6 +333,9 @@ export function AccessoriesSection({
   // Track accessory impressions when visible set changes
   const prevVisibleIdsRef = useRef<string>('');
   useEffect(() => {
+    // Plegado no hubo impresión: nadie vio las cards. Reportarlas igual
+    // ensuciaría la métrica justo en las landings donde arranca cerrado.
+    if (!contenidoVisible) return;
     if (visibleAccessories.length === 0) return;
     const ids = visibleAccessories.map(a => String(a.id)).join(',');
     if (ids === prevVisibleIdsRef.current) return;
@@ -269,7 +345,7 @@ export function AccessoriesSection({
       count: visibleAccessories.length,
       page: currentPage,
     });
-  }, [visibleAccessories, currentPage, analytics]);
+  }, [visibleAccessories, currentPage, analytics, contenidoVisible]);
 
   // Si no hay accesorios disponibles, no mostrar la sección
   if (!isLoading && accessories.length === 0) {
@@ -278,14 +354,63 @@ export function AccessoriesSection({
 
   return (
     <div className={`bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 ${className}`}>
-      {showIntro && <AccessoryIntro />}
-
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
-        </div>
+      {/* Cabecera. Con `colapsable` es el botón que pliega; sin él, la intro
+          de siempre. El loader vive acá para que se vea también cerrado. */}
+      {colapsable ? (
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          aria-expanded={abierto}
+          className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
+        >
+          <span className="text-base font-semibold text-neutral-800">
+            {config?.form_extra_data?.accessories?.title ?? 'Accesorios'}
+          </span>
+          <span className="flex items-center gap-2 flex-shrink-0">
+            {isLoading ? (
+              <span
+                role="status"
+                aria-label="Cargando accesorios"
+                className="w-5 h-5 border-2 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin"
+              />
+            ) : (
+              selectedAccessories.length > 0 && (
+                <span className="px-2.5 py-1 bg-[#22c55e]/10 text-[#22c55e] text-xs font-semibold rounded-full">
+                  {selectedAccessories.length}
+                </span>
+              )
+            )}
+            {abierto ? (
+              <ChevronUp className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)]" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)]" />
+            )}
+          </span>
+        </button>
       ) : (
-        <>
+        showIntro && (
+          <AccessoryIntro
+            icon={config?.form_extra_data?.accessories?.icon}
+            title={config?.form_extra_data?.accessories?.title}
+            description={config?.form_extra_data?.accessories?.description}
+          />
+        )
+      )}
+
+      {/* Cuerpo. Plegado no se monta: los filtros y la paginación guardan
+          estado que no tiene sentido mantener vivo detrás de un bloque cerrado. */}
+      {contenidoVisible && (
+        isLoading ? (
+          // Con `colapsable` el loader ya está en la cabecera: no se repite acá.
+          colapsable ? null : showLoadingScreen ? (
+            <AccessoriesLoadingScreen productName={selectedProduct?.name} />
+          ) : (
+            <div className="flex justify-center py-8">
+              <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
+            </div>
+          )
+        ) : (
+          <div className={colapsable ? 'mt-4 animate-in slide-in-from-top-2 duration-200' : undefined}>
           {/* Toolbar: Category chips + Arrows + Search + Selected count */}
           <div className="mb-4 space-y-3">
             {/* Category chips + navigation arrows */}
@@ -396,7 +521,7 @@ export function AccessoriesSection({
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleAccessories.map((accessory) => (
+                {visibleAccessories.map((accessory, index) => (
                   <AccessoryCard
                     key={accessory.id}
                     accessory={accessory}
@@ -410,13 +535,14 @@ export function AccessoriesSection({
                       setDetailAccessory(accessory);
                     }}
                     paymentFrequency={currentPaymentFrequency}
+                    isMoltiTop={accessory.isMoltiTop && index === 0}
                   />
                 ))}
               </div>
-
             </>
           )}
-        </>
+          </div>
+        )
       )}
 
       {/* Accessory Detail Modal */}

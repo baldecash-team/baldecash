@@ -8,22 +8,38 @@
  */
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown, Gift } from 'lucide-react';
 import Image from 'next/image';
 import { ReceivedData } from '../../../types/received';
 import { displayMonths, periodUnitLabel } from '../../../../../../utils/paymentTerm';
+import { formatCuotaDeLanding, landingMuestraCentavos } from '@/app/prototipos/0.6/utils/formatCuota';
+import { TIPO_EFECTIVO } from '../../../../../calculadora/utils/entrega';
 
 interface ProductSummaryProps {
   data: ReceivedData;
 }
 
-/** Format number as price (floor, a favor del usuario) */
-const formatPrice = (n: number): string => `S/${Math.floor(n).toLocaleString('en-US')}`;
-
 export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+  const params = useParams();
+  const landingSlug = (params?.landing as string) || '';
+  const { mostrarImagenProducto } = useLayout();
+
+  // Truncar (a favor del usuario) es lo de siempre, salvo donde la cuota tiene
+  // centavos reales: en Family Farms el cierre del flujo mostraba S/15 sobre un
+  // contrato de S/15,20.
+  const muestraCentavos = landingMuestraCentavos(landingSlug);
+  const formatPrice = (n: number): string => `S/${formatCuotaDeLanding(n, landingSlug)}`;
+
+  // El rotulo decia "mensual" incluso en planes semanales, al lado de un monto
+  // con sufijo /sem. La unidad sale de la frecuencia, como el sufijo.
+  const rotuloTotal = data.paymentFrequency === 'semanal' ? 'Cuota semanal total'
+    : data.paymentFrequency === 'quincenal' ? 'Cuota quincenal total'
+    : 'Cuota mensual total';
 
   const freqSuffix =
     data.paymentFrequency === 'semanal' ? '/sem'
@@ -65,9 +81,13 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   // Calcular total de seguros
   const insuranceSubtotal = allInsurances.reduce((sum, ins) => sum + ins.monthlyPrice, 0);
 
-  // Calcular total sin descuento (para mostrar tachado)
-  const totalWithoutDiscount = Math.floor(productsSubtotal) +
-    Math.floor(accessoriesSubtotal) +
+  // Calcular total sin descuento (para mostrar tachado).
+  // El truncado por parte es el comportamiento historico del catalogo; donde la
+  // cuota tiene centavos reales truncar aca borraba lo que el propio renglon de
+  // arriba ya mostraba: S/45,40 el equipo y S/45 el total, en la misma tarjeta.
+  const truncarSiCorresponde = (n: number) => (muestraCentavos ? n : Math.floor(n));
+  const totalWithoutDiscount = truncarSiCorresponde(productsSubtotal) +
+    truncarSiCorresponde(accessoriesSubtotal) +
     insuranceSubtotal;
 
   return (
@@ -77,7 +97,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       transition={{ delay: 0.5 }}
       className="mb-6 sm:mb-8 space-y-3"
     >
-      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 font-['Baloo_2',_sans-serif]">Tu solicitud</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 font-['Baloo_2',_sans-serif]">Tu financiamiento</h3>
 
       {/* Products Card */}
       <Card className="border border-neutral-200 shadow-sm">
@@ -100,6 +120,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                 className={`flex items-start gap-4 ${idx > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}
               >
                 {/* Product Image */}
+                {mostrarImagenProducto && (
                 <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.image ? (
                     <Image
@@ -113,10 +134,18 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                     <Package className="w-8 h-8 text-neutral-300" />
                   )}
                 </div>
+                )}
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  {product.brand && (
+                  {/*
+                    Un préstamo no lleva marca. El riel de efectivo corre sobre
+                    un producto del catálogo y hereda la suya —`brand_id` es
+                    obligatorio en la base, no se puede vaciar—, así que sin
+                    esta condición la confirmación de titulación anuncia «ASUS»
+                    y la de matrícula «Acer».
+                  */}
+                  {product.brand && product.type !== TIPO_EFECTIVO && (
                     <p className="text-xs text-neutral-500 uppercase tracking-wide break-words">
                       {product.brand}
                     </p>
@@ -258,12 +287,22 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                     {data.accessories.map((acc, idx) => (
                       <div key={`${acc.name}-${idx}`} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                          {acc.isGift ? (
+                            <Gift className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                          ) : (
+                            <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                          )}
                           <span className="text-neutral-700 truncate">{acc.name}</span>
                         </div>
-                        <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                          +{formatPrice(acc.monthlyQuota)}{freqSuffix}
-                        </span>
+                        {acc.isGift ? (
+                          <span className="text-emerald-600 font-medium flex-shrink-0 ml-4">
+                            Regalo · Incluido
+                          </span>
+                        ) : (
+                          <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
+                            +{formatPrice(acc.monthlyQuota)}{freqSuffix}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -277,7 +316,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       {/* Total Card */}
       <div className="p-4 rounded-xl bg-[var(--color-primary)]/5">
         <div className="flex justify-between items-center gap-3">
-          <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</span>
+          <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">{rotuloTotal}</span>
           <div className="text-right flex-shrink-0">
             <span className="text-lg sm:text-xl font-bold text-[var(--color-primary)] break-words">
               {formatPrice(totalWithoutDiscount)}{freqSuffix}

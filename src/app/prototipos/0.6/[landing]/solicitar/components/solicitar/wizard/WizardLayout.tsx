@@ -12,6 +12,8 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import { WizardProgress } from './WizardProgress';
 import { WizardNavigation } from './WizardNavigation';
+import { MobileStickyCtaSpacer } from './MobileStickyCta';
+import { useTecladoVirtualAbierto } from '../../../hooks/useTecladoVirtualAbierto';
 import { MotivationalCard } from './MotivationalCard';
 import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/solicitar';
@@ -40,6 +42,15 @@ interface WizardLayoutProps {
   onSubmit?: () => void;
   onStepClick?: (stepId: WizardStepId) => void;
   isLastStep?: boolean;
+  /**
+   * Oculta la navegación del wizard. Para pantallas cuyo contenido trae sus
+   * propios botones —el contrato, que valida sus casillas antes de aceptar—:
+   * con la navegación puesta quedarían dos acciones principales, y la de
+   * arriba no sabría nada de las casillas.
+   */
+  sinNavegacion?: boolean;
+  /** Las condiciones de la operación no se pueden mover: ver `SelectedProductBar`. */
+  condicionesFijas?: boolean;
   isFirstStep?: boolean;
   isSubmitting?: boolean;
   canProceed?: boolean;
@@ -52,6 +63,15 @@ interface WizardLayoutProps {
   motivational?: WizardMotivational | null;
   /** Nombre del usuario para personalización VIP */
   firstName?: string;
+  /**
+   * La acción principal va fija abajo (`MobileStickyCta`), así que la navegación
+   * en flujo se oculta en móvil para no duplicarla, y se reserva el alto del
+   * CTA. En desktop no cambia nada.
+   *
+   * Se usa en todo el flujo de solicitar: los pasos del formulario, el resumen
+   * y complementos.
+   */
+  ctaFijoEnMovil?: boolean;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -64,6 +84,8 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   onSubmit,
   onStepClick,
   isLastStep = false,
+  sinNavegacion = false,
+  condicionesFijas = false,
   isFirstStep = false,
   isSubmitting = false,
   canProceed = true,
@@ -72,9 +94,16 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   hideNavbar = false,
   motivational,
   firstName,
+  ctaFijoEnMovil = false,
 }) => {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  // El CTA fijo se esconde solo mientras el teclado esta abierto. En ese rato
+  // hay que devolver la navegacion en flujo, o el paso se queda sin ninguna
+  // accion visible en movil.
+  const tecladoAbierto = useTecladoVirtualAbierto();
+  const ocultarNavEnMovil = ctaFijoEnMovil && !tecladoAbierto;
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
@@ -98,7 +127,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
             {/* Selected Product Bar (Desktop: top position) */}
             <div className="mt-6">
-              <SelectedProductBar />
+              <SelectedProductBar condicionesFijas={condicionesFijas} />
             </div>
 
             {/* Header */}
@@ -115,7 +144,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             </div>
 
             {/* Navigation */}
-            <WizardNavigation
+            {!sinNavegacion && <WizardNavigation
               onBack={onBack}
               onNext={onNext}
               onSubmit={onSubmit}
@@ -124,18 +153,22 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               isSubmitting={isSubmitting}
               canProceed={canProceed}
               submitMessage={submitMessage}
-            />
+              hideOnMobile={ocultarNavEnMovil}
+            />}
 
             {/* Bottom Spacer for Mobile fixed product bar */}
             <SelectedProductSpacer />
+            {/* Reserva el alto del CTA fijo, que se apila sobre esa barra */}
+            {ctaFijoEnMovil && <MobileStickyCtaSpacer />}
           </div>
 
           {/* Right Column - Motivational Card (Desktop only).
-              sticky top offset follows --header-total-height with a small extra gap. */}
+              sticky top offset follows --header-total-height with a small extra gap,
+              plus --referral-banner-offset while the referral banner is on screen. */}
           <div className="hidden lg:block">
             <div
               className="sticky"
-              style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}
+              style={{ top: 'calc(var(--header-total-height, 6.5rem) + var(--referral-banner-offset, 0px) + 1rem)' }}
             >
               <MotivationalCard currentStep={currentStep} motivational={motivational} firstName={firstName} />
             </div>

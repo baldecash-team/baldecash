@@ -26,9 +26,30 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WizardField, fetchCascadingOptions, fetchOptionsFromSource, fetchOptionsWithSearch, fetchOptionById, CascadingOption } from '../../../../../services/wizardApi';
+import { parametrosDeFiltro } from '../../../../../services/filtroDeOpciones';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { SelectInput } from './SelectInput';
+
+/**
+ * Landings sin convenio que igual ofrecen el selector de sedes, y de qué
+ * convenio salen esas sedes.
+ *
+ * `lead-flujo-normal` es la landing de captación de A365: no es de convenio
+ * —y no puede serlo, porque el convenio impone su institución y acá cada lead
+ * trae la suya— pero sus postulantes son de SENATI y tienen que poder decir en
+ * qué sede estudian. El agente puede mandarla en el push, y cuando no la manda
+ * la elige el postulante de la lista.
+ *
+ * Es un mapa a mano a propósito y no una columna: hoy es un caso, y una
+ * landing acá es una decisión comercial, no un dato que alguien administre.
+ * Si aparece un tercero, conviene mover esto a `landing.sede_agreement_id`.
+ */
+const SEDES_SIN_CONVENIO: Record<string, number> = {
+  'lead-flujo-normal': 16, // SENATI
+  'lead-flujo-ucv': 32, // UCV — clon de captación A365 para UCV (Ate/Callao)
+};
 
 interface CascadingSelectFieldProps {
   field: WizardField;
@@ -37,6 +58,11 @@ interface CascadingSelectFieldProps {
   showError?: boolean;
   /** Whether to enable search in dropdown */
   searchable?: boolean;
+  /** External disabled override (e.g. auto-locked convenio fields) */
+  disabled?: boolean;
+  /** Rastreo de foco (`input_focus`/`input_blur`); lo pasa DynamicField. */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
@@ -44,17 +70,34 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   staticOptions,
   showError = false,
   searchable = false,
+  disabled = false,
+  onFocus,
+  onBlur,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
-  const { agreementData } = useLayout();
-  const agreementId = agreementData?.id;
+  const { agreementData, landing } = useLayout();
+  // El convenio de la landing manda; si no tiene, cae al mapa de arriba. Solo
+  // se usa para resolver sedes: `agreementData` sigue en null, así que la
+  // landing no se comporta como de convenio en nada más (branding, footer, y
+  // sobre todo la institución, que acá la trae cada lead).
+  const agreementId = agreementData?.id ?? SEDES_SIN_CONVENIO[landing];
+
+  // Un campo prellenado desde el lead del socio trae su propio id y su propia
+  // etiqueta, y queda bloqueado: no necesita el catálogo para mostrarse.
+  const isLockedFromLead = getFieldValue(leadLockKey(field.code)) === 'true';
 
   // If the field depends on a landing agreement (e.g. "sede") but the current
   // landing has no agreement, hide it silently so it doesn't render as an
   // empty dropdown on non-convenio landings.
-  if (field.options_source === 'agreement-branches' && !agreementId) {
-    return null;
-  }
+  //
+  // La excepción es el lead del socio. Ahí la sede NO sale del convenio de la
+  // landing: la eligió el agente al empujar el lead, viaja en `agreement_branch_id`
+  // y el prellenado la escribe con su nombre. Esconderla por no haber convenio
+  // borraría de la pantalla un dato que el socio ya declaró, que se le liquida
+  // y que igual viaja en el submit — el postulante vería menos de lo que se
+  // está registrando a su nombre.
+  const ocultoSinConvenio =
+    field.options_source === 'agreement-branches' && !agreementId && !isLockedFromLead;
 
   // Current field value, saved label, and error
   const value = getFieldValue(field.code) as string;
@@ -122,6 +165,13 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // Load initial options for root-level fields with options_source (e.g., department)
   useEffect(() => {
     if (!hasOptionsSource || initialLoadDone.current) {
+      return;
+    }
+
+    // Sin convenio no hay catálogo de sedes que pedir: `/public/options/agreement-branches`
+    // exige `agreement_id` y respondería 422. Se llega acá solo con el valor
+    // prellenado del lead, que ya trae su etiqueta y no necesita opciones.
+    if (field.options_source === 'agreement-branches' && !agreementId) {
       return;
     }
 
@@ -257,6 +307,15 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // Note: Clearing of this field when filter changes is handled by WizardContext.updateField
   // via the registered dependency (registerDependency above)
   const filterValue = filterFieldCode ? (getFieldValue(filterFieldCode) as string) : undefined;
+  // Pares del filtro (BAL-4384). Con `{depends_on}` solo, sale `type=<valor>`:
+  // la misma URL de siempre.
+  const extraDeFiltro = parametrosDeFiltro(field.options_filter, {
+    valorDe: (code) => (code === filterFieldCode ? filterValue : (getFieldValue(code) as string)),
+    // Solo el convenio REAL de la landing: el de `SEDES_SIN_CONVENIO` es
+    // prestado para resolver sedes y esas landings traen su propia institución.
+    agreementId: agreementData?.id,
+  });
+  const claveDeFiltro = JSON.stringify(extraDeFiltro);
 
   // Handle lazy search (debounced)
   const handleSearch = useCallback((searchTerm: string) => {
@@ -280,7 +339,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         const options = await fetchOptionsWithSearch(
           field.options_source!,
           searchTerm,
-          filterValue // Use filterValue from outer scope (institution_type value)
+          extraDeFiltro
         );
         setLocalDynamicOptions(options);
       } catch (error) {
@@ -290,7 +349,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         setIsSearching(false);
       }
     }, 300);
-  }, [isLazySearch, field.options_source, minSearchLength, filterValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLazySearch, field.options_source, minSearchLength, claveDeFiltro]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -329,7 +389,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         department: 'departamento',
         province: 'provincia',
       };
-      const parentLabel = parentLabels[field.cascade_from!] || field.cascade_from;
+      const parentLabel =
+        parentLabels[field.cascade_from!] ||
+        field.cascade_from_label?.toLowerCase() ||
+        field.cascade_from;
       return `Primero selecciona ${parentLabel}`;
     }
 
@@ -350,7 +413,14 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // - readonly from field config
   // - cascading field without parent value
   // - field with options_source still loading initial options
-  const isDisabled = field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
+  const isDisabled = disabled || field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
+
+  // El corte va DESPUÉS de todos los hooks (BAL-4384): antes estaba arriba de
+  // los useState y, si la landing pasaba a tener convenio, React cambiaba la
+  // cantidad de hooks entre renders.
+  if (ocultoSinConvenio) {
+    return null;
+  }
 
   return (
     <SelectInput
@@ -373,6 +443,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       searchPrompt={isLazySearch ? `Escribe al menos ${minSearchLength} letras para buscar` : undefined}
       // Saved label for lazy-loaded fields (persisted across refresh)
       savedLabel={savedLabel}
+      onFocus={onFocus}
+      onBlur={onBlur}
     />
   );
 };

@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import type { CatalogFiltersResponse } from '../../../types/filters';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import type { DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
 // ============================================
 // Enums y tipos base
@@ -20,6 +21,7 @@ export type SortOption =
   | 'price_asc'
   | 'price_desc'
   | 'quota_asc'
+  | 'quota_desc'
   | 'newest'
   | 'popular';
 
@@ -230,6 +232,7 @@ export interface FilterState {
   brands: string[];
   quotaRange: [number, number];
   quotaFrequency: QuotaFrequency;
+  priceRange: { min: number | null; max: number | null };
   usage: UsageType[];
   ram: number[];
   ramExpandable: boolean | null;
@@ -263,6 +266,7 @@ export const defaultFilterState: FilterState = {
   brands: [],
   quotaRange: [0, 99999],  // Sentinel: "no filter" — synced to API range on load
   quotaFrequency: 'monthly',
+  priceRange: { min: null, max: null },
   usage: [],
   ram: [],
   ramExpandable: null,
@@ -469,6 +473,14 @@ export interface ProductColor {
   discount?: number;
   specs?: ProductSpecs; // Specs del sibling
   rawSpecs?: Record<string, string | number | boolean>;
+  /** Cuota por frecuencia de este color (semanal/quincenal). La tarjeta la
+   *  usa cuando la landing no es mensual; sin esto cae a la del primario. */
+  paymentHooks?: Record<string, { price: number; termMonths?: number; initialPercent?: number }>;
+  /**
+   * Entrega diferida de ESTE color. `undefined` = el backend no lo mandó (API
+   * vieja): quien lo lea debe caer al flag de la card, no asumir `false`.
+   */
+  isDeferredDelivery?: boolean;
 }
 
 export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: string; description: string }> = {
@@ -682,6 +694,17 @@ export interface CatalogProduct {
   brandLogo?: string;
   thumbnail: string;
   images: string[];
+  /** Portada del combo (cuando el producto es un combo). Encabeza la galería de la card. */
+  comboImage?: string;
+  /** Id del combo del que nace el ítem (para reenviarlo en submit/select y
+   *  resolver el accesorio correcto en legacy). Un equipo puede estar en varios combos. */
+  comboId?: number;
+  /** Accesorios/seguros incluidos del combo (para los badges "Incluye: ..." en
+   *  la card recomendada). Solo presente cuando el ítem es un combo. */
+  comboAddons?: {
+    accessories: { id: number | null; name: string }[];
+    insurances: { id: number | null; name: string }[];
+  };
   colors?: ProductColor[]; // NUEVO v0.6: colores disponibles
   deviceType?: CatalogDeviceType; // NUEVO v0.6: tipo de dispositivo para link al detalle
   price: number;
@@ -692,16 +715,39 @@ export interface CatalogProduct {
   quotaWeekly: number;
   originalQuotaMonthly?: number; // Cuota original antes de descuento (del backend)
   maxTermMonths: number;
+  /** Plazo REAL del hook (backend). En la oferta con array acotado (ej. [6,12])
+   *  es el plazo de la celda mostrada (12), no el máximo del producto (36). En el
+   *  catálogo general coincide con maxTermMonths. Fuente de verdad para el plazo
+   *  que pinta la card. */
+  hookTermMonths?: number;
   paymentFrequency?: string; // Frecuencia de la cuota hook: 'mensual' | 'semanal' | 'quincenal'
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, { price: number; termMonths: number | null; initialPercent: number | null }>;
   hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
+  hookInitialAmount?: number; // Monto (S/) de la inicial del hook — la card muestra el monto
   /** Variant ID del producto base (viene del API como `variant.id`). Fallback cuando no hay colores. */
   variantId?: string;
   gama: GamaTier;
   condition: ProductCondition;
-  /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Conserva el valor sin normalizar para el badge de condición y el match contra el facet. */
+  /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Se conserva para lógica que aún compara condiciones (ej. el modal de aviso de reacondicionado); el badge visual ya no lo usa. */
   conditionCode?: string;
+  /**
+   * Badge de condición ya resuelto por el backend (BAL-3261,
+   * `catalog_rules.condition_badges`). `null` = esta card no lleva badge
+   * (la condición "nueva" se excluye a propósito). El front ya no decide
+   * qué condición amerita badge: solo pinta lo que llega.
+   */
+  conditionLabelText?: string | null;
+  conditionLabelColor?: string | null;
+  /** Grado de reacondicionamiento (A/B/C/D) si el producto es un grado; si no, undefined. */
+  grade?: string;
+  /**
+   * Grados hermanos del equipo (`grade_siblings` del API). Cada grado es un
+   * producto distinto, con su propio precio y stock: el backend los agrupa por
+   * familia. Solo lo traen los reacondicionados con hermanos cargados; el resto
+   * lo recibe vacío (nunca `null`, para que `.length` no necesite guarda).
+   */
+  gradeSiblings?: CatalogGradeSibling[];
   stock: StockStatus;
   stockQuantity: number;
   usage: UsageType[];
@@ -713,6 +759,8 @@ export interface CatalogProduct {
   rawSpecs?: Record<string, string | number | boolean>;
   createdAt: string;
   promotion?: ProductPromotion | null;
+  /** Entrega diferida (informativa). isDeferred=false → el FE oculta el bloque. */
+  deferredDelivery?: DeferredDelivery;
 }
 
 export interface ProductSpecs {
@@ -855,6 +903,8 @@ export interface CatalogLayoutProps {
   gridRef?: React.RefObject<HTMLDivElement | null>;
   // Catalog banner configuration from layout
   catalogBanner?: Record<string, unknown> | null;
+  /** Id del componente del banner, para la analítica. Ver LayoutContext. */
+  catalogBannerId?: number | null;
   // VIP countdown date (ISO string) — shows VIP banner when set and not expired
   vipCountdownDate?: string | null;
   // Overlay variant slug (e.g. 'cade') for showing promo disclaimer
@@ -862,6 +912,56 @@ export interface CatalogLayoutProps {
   /** Cupón de campaña (?coupon=) — banner bajo filtros de uso */
   campaignCoupon?: AppliedCoupon | null;
   isCampaignCouponValidating?: boolean;
+  /**
+   * Preset `features.has_usage_chips` (BAL-3880). En mobile, cambia las 4
+   * cards de uso a chips en una fila. Default `false` (opt-in).
+   */
+  chipsDeUso?: boolean;
+  /**
+   * Preset `features.has_usage_filter` (BAL-3883). Muestra las 4 tarjetas de
+   * uso y su título "Encuentra tu equipo ideal". Default `true` (opt-out).
+   */
+  filtroPorUso?: boolean;
+  /**
+   * Preset `features.has_catalog_sort_bar` (BAL-3883). Muestra la franja con
+   * el contador de equipos y el selector de orden. Default `true` (opt-out).
+   */
+  barraDeOrden?: boolean;
+}
+
+/**
+ * Un grado hermano tal como llega del listado público (`grade_siblings`).
+ * Misma forma que la del endpoint de detalle: los dos se parsean igual.
+ */
+export interface CatalogGradeSibling {
+  /** Letra del grado: "A", "B", "C"… */
+  grade: string;
+  productId: number;
+  slug: string;
+  /** Precio de lista del grado. `null` cuando no está cargado. */
+  price: number | null;
+  /**
+   * Nombre real del grado, tal como está en BD. La card lo muestra al elegir un
+   * grado distinto del que trajo el listado: sin él, el título seguiría
+   * nombrando el grado equivocado.
+   */
+  name?: string | null;
+  /** Cuota del plazo más corto (BAL-2864). `null` = no calculable. */
+  minTermQuota: number | null;
+  /**
+   * Cuota más baja del grado (plazo más largo). Es la que muestra la card
+   * —"Desde S/40/mes"—, la misma punta que el hook del catálogo. `null` = no
+   * calculable. Distinta de `minTermQuota`, que es la del plazo más corto y la
+   * que usan las tarjetas del detalle.
+   */
+  lowestQuota?: number | null;
+  /** Con stock disponible. Los agotados SÍ se muestran, en gris. */
+  isAvailable: boolean;
+  /**
+   * Entrega diferida de ESTE grado. `undefined` = el backend no lo mandó (API
+   * vieja): quien lo lea debe caer al flag de la card, no asumir `false`.
+   */
+  isDeferredDelivery?: boolean;
 }
 
 export interface BrandFilterProps {
@@ -972,6 +1072,9 @@ export interface CartItem {
   // Metadata
   addedAt: number;
 
+  // Combo del que nace el ítem (para resolver el combo correcto en el submit)
+  comboId?: number;
+
   // Payment plans from API (for term standardization in /solicitar)
   paymentPlans?: CartPaymentPlan[];
 }
@@ -982,11 +1085,34 @@ export interface CartPaymentPlanOption {
   initialAmount: number;
   monthlyQuota: number;
   originalQuota?: number;
+  /**
+   * En cuántas armadas se paga la inicial de esta celda (1 = un solo pago).
+   *
+   * No se puede deducir del plazo: en el perfil del cosechador las armadas se
+   * descuentan del plazo total, así que `term: 8` puede ser "plazo 10 pagando
+   * la inicial en 2 armadas" o "plazo 8 sin armadas" — mismo número de cuotas,
+   * cronogramas distintos.
+   */
+  initialInstallments?: number;
+  /**
+   * Monto de cada armada. Se manda la lista completa y no solo el unitario
+   * porque la última absorbe el sobrante del redondeo y difiere en centavos.
+   */
+  initialInstallmentAmounts?: number[];
 }
 
 export interface CartPaymentPlan {
   term: number;           // raw period count (weeks for semanal, fortnights for quincenal, months for mensual)
   termMonths?: number | null; // month equivalent — use this for display and matching
+  /**
+   * Frecuencia que el catalogo declara para este plazo.
+   *
+   * Se persiste a proposito: es lo que permite RECUPERAR la frecuencia de un
+   * producto guardado en una visita anterior, cuando el objeto no la trae
+   * (BAL-4029). Sin esto no hay de donde derivarla y la solicitud termina
+   * rechazada por el guard del backend.
+   */
+  paymentFrequency?: string;
   options: CartPaymentPlanOption[];
 }
 

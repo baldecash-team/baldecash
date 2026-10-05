@@ -15,15 +15,14 @@ import { Button } from '@nextui-org/react';
 import { Loader2, Shield, Package } from 'lucide-react';
 import { useProduct } from '../context/ProductContext';
 import { SelectedProductBar, SelectedProductSpacer } from '../components/solicitar/product/SelectedProductBar';
+import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
-import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, useScrollToTop, Toast, useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
@@ -37,7 +36,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -72,9 +71,24 @@ function ComplementosContent() {
   }, []);
 
   // Submit application hook
+  // Mismo criterio que en `StepClient`: la unidad tomada va en modal, no en un
+  // toast que se borra a los 4 segundos, porque el mensaje pide una accion.
+  const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+
   const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded, error: submitError } = useSubmitApplication({
     onToast: showToast,
+    onUnidadTomada: setUnidadTomada,
   });
+
+  const modalUnidadTomada = unidadTomada ? (
+    <ModalAviso
+      titulo="Ese equipo ya no está disponible"
+      mensaje={unidadTomada}
+      textoBoton="Elegir otro equipo"
+      onCerrar={() => router.push(routes.catalogo(landing))}
+      tono="error"
+    />
+  ) : null;
   const isProductDisabled = submitError?.includes('ya no están disponibles') ?? false;
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
@@ -113,42 +127,44 @@ function ComplementosContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const isGamer = isGamerLanding(params?.landing as string);
 
   // Get solicitar flow configuration
   const {
     sectionsAfterWizard,
     isCouponRequired,
+    isEnabled,
+    kycEnabled,
     isLoading: isFlowConfigLoading,
   } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
-    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, submitSucceeded, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
-    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
+    if (cartProducts.length > 1 && !hasUnifiedTerms() && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+  }, [cartProducts.length, hasUnifiedTerms, submitSucceeded, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
-    if (isOverQuotaLimit) {
+    if (isOverQuotaLimit && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [isOverQuotaLimit, landing, router]);
+  }, [isOverQuotaLimit, submitSucceeded, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
-    if (unavailableProductIds.length > 0) {
+    if (unavailableProductIds.length > 0 && !submitSucceeded) {
       router.push(routes.solicitar(landing));
     }
-  }, [unavailableProductIds, landing, router]);
+  }, [unavailableProductIds, submitSucceeded, landing, router]);
 
   // Build form values for cross-step validation
   const formValues = useMemo(() => {
@@ -229,9 +245,16 @@ function ComplementosContent() {
       }
     }
 
-    // Pass insurance IDs from context (multi-select)
-    const insuranceIds = selectedInsurances.map(i => i.id);
-    await submitApplication({ insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null, insuranceIds });
+    // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
+    // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
+    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
+    await submitApplication({
+      insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
+      insuranceIds,
+      // OTP gate full-screen tras submit (antes del resumen) si la landing lo activa.
+      otpEnabled: isEnabled('otp_verification'),
+      kycEnabled,
+    });
   };
 
   // Total monthly is now calculated in ProductContext (includes insurance + accessories)
@@ -342,7 +365,7 @@ function ComplementosContent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 * (sectionsAfterWizard.length + 2) }}
-          className="mt-6 flex flex-col-reverse gap-3 lg:flex-row"
+          className="mt-6 hidden lg:flex flex-col-reverse gap-3 lg:flex-row"
         >
           <Button
             size="lg"
@@ -355,7 +378,7 @@ function ComplementosContent() {
           <Button
             size="lg"
             className="w-full lg:flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90"
-            onPress={handleSubmit}
+            onPress={() => handleSubmit()}
             isLoading={isSubmitting}
             spinner={<Loader2 className="w-5 h-5 animate-spin" />}
           >
@@ -396,10 +419,19 @@ function ComplementosContent() {
       <GamerComplementosWrapper footerData={footerData}>
         {pageContent}
         <SelectedProductSpacer />
+        <MobileStickyCtaSpacer />
+        <MobileStickyCta
+          onBack={handleBack}
+          onPrimary={() => handleSubmit()}
+          isLastStep
+          isSubmitting={isSubmitting}
+          submitMessage={submitMessage}
+        />
         <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
         {toast && (
           <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
         )}
+        {modalUnidadTomada}
       </GamerComplementosWrapper>
     );
   }
@@ -421,6 +453,15 @@ function ComplementosContent() {
     <>
       {pageContent}
       <SelectedProductSpacer />
+      <MobileStickyCtaSpacer />
+      {/* Esta ES la pantalla que envia la solicitud en 69 de 72 landings */}
+      <MobileStickyCta
+        onBack={handleBack}
+        onPrimary={() => handleSubmit()}
+        isLastStep
+        isSubmitting={isSubmitting}
+        submitMessage={submitMessage}
+      />
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
 
       {/* Submit progress overlay */}
@@ -436,13 +477,14 @@ function ComplementosContent() {
           duration={4000}
         />
       )}
+      {modalUnidadTomada}
     </>
   );
 }
 
 function LoadingFallback() {
   const params = useParams();
-  const isGamer = (params?.landing as string) === 'zona-gamer';
+  const isGamer = isGamerLanding(params?.landing as string);
 
   if (isGamer) {
     return (
@@ -719,17 +761,21 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
         .gamer-complementos-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
       `}</style>
       <div className={isDark ? 'gamer-complementos-dark' : 'gamer-complementos-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
+          promoBannerData={navbarProps?.promoBannerData}
         />
-        {children}
+        <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
+          {children}
+        </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

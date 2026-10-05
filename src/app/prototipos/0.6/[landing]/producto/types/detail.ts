@@ -2,6 +2,7 @@
 // Copied from v0.5 with mock data support
 
 import type { PaymentFrequency } from '../../../utils/paymentTerm';
+import type { DeferredDelivery } from '../../../utils/deferredDelivery';
 
 // ============================================
 // Device Type Configuration (Iterable)
@@ -120,6 +121,30 @@ export interface ColorSibling {
   imageUrl?: string;
 }
 
+/** Grado reacondicionado hermano (A/B/C/D): cada uno un Product real con su stock/precio. */
+export interface GradeSibling {
+  grade: string; // 'A' | 'B' | 'C' | 'D'
+  productId: number;
+  slug: string;
+  price: number | null;
+  stockAvailable: number;
+  isAvailable: boolean;
+  /**
+   * Cuota del plazo más corto del grado (BAL-2864). YA NO es la que muestra la
+   * tarjeta del selector: decía "Desde S/674" cuando 674 es la cuota MÁS CARA
+   * del grado (6 meses). Se conserva porque el campo llega del backend y otras
+   * pantallas lo leen. `price` se queda para el panel de ahorro.
+   */
+  minTermQuota?: number;
+  /**
+   * Cuota más baja del grado, la del plazo más largo (`lowest_quota` del API).
+   * Es la que muestra la tarjeta del selector: es lo que la palabra "Desde"
+   * promete, y coincide con lo que la calculadora de abajo ofrece por defecto.
+   * `undefined` = no calculable, la tarjeta no muestra número.
+   */
+  lowestQuota?: number;
+}
+
 export interface ProductDetail {
   id: string;
   slug: string;
@@ -138,6 +163,7 @@ export interface ProductDetail {
   images: ProductImage[];
   colors: ProductColor[];
   colorSiblings: ColorSibling[];
+  gradeSiblings?: GradeSibling[];
   description: string;
   shortDescription: string;
   specs: ProductSpec[];
@@ -157,6 +183,8 @@ export interface ProductDetail {
   tcea?: number;
   /** Variant ID real del producto (extraído de colors[].id o images[].variant_id). */
   variantId?: number;
+  /** Entrega diferida (informativa). isDeferred=false → el FE oculta el bloque. */
+  deferredDelivery?: DeferredDelivery;
 }
 
 // ============================================
@@ -172,6 +200,12 @@ export interface ComboAccessory {
   imageUrl?: string;
 }
 
+export interface ComboInsurance {
+  planId: number | string;
+  name: string;
+  price: number;
+}
+
 export interface ComboInfo {
   id: number;
   code: string;
@@ -182,13 +216,23 @@ export interface ComboInfo {
   thumbnailUrl?: string;
   microUrl?: string;
   accessories: ComboAccessory[];
+  /** Seguro incluido en el combo, o undefined si no aplica. */
+  insurance?: ComboInsurance;
 }
 
 // ============================================
 // Payment Types
 // ============================================
 
-export type InitialPaymentPercentage = 0 | 10 | 20 | 30;
+/**
+ * Porcentajes de inicial que ofrece el catálogo.
+ *
+ * El 25 lo usan las landings de Family Farms, donde la inicial es obligatoria y
+ * el convenio la fijó en ese valor. Estuvo fuera del tipo un tiempo y funcionaba
+ * igual porque el transform castea el valor del wire — o sea que el tipo decía
+ * una cosa y por la pantalla pasaba otra.
+ */
+export type InitialPaymentPercentage = 0 | 10 | 20 | 25 | 30;
 
 /** Opción de pago inicial precalculada */
 export interface InitialPaymentOption {
@@ -200,6 +244,28 @@ export interface InitialPaymentOption {
   tea?: number | null;
   teaIrr?: number | null;
   tcea?: number | null;
+  /**
+   * En cuántas armadas se paga la inicial (1 = un solo pago).
+   *
+   * No se deduce del plazo: en el perfil del cosechador las armadas se
+   * descuentan del plazo total, así que `term: 8` puede ser "plazo 10 con la
+   * inicial en 2 armadas" o "plazo 8 sin armadas" — mismo número de cuotas,
+   * cronogramas distintos.
+   */
+  initialInstallments?: number;
+  /** Monto de cada armada; la última absorbe el sobrante del redondeo. */
+  initialInstallmentAmounts?: number[];
+  /**
+   * Plazo total del plan, en la unidad de la frecuencia: lo que la persona
+   * elige.
+   *
+   * Es el complemento de `initialInstallments`. Como las armadas se descuentan
+   * del plazo, dos opciones con `term` distinto pueden ser el MISMO plazo: 13
+   * cuotas con 4 armadas y 15 con 2 son las dos "17 semanas". Agrupar por este
+   * campo es lo que convierte seis plazos sueltos en dos con tres modalidades
+   * de inicial cada uno.
+   */
+  totalTerm?: number;
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */
@@ -251,6 +317,8 @@ export interface SimilarProduct {
   name: string;  // Nombre corto (ej: "Dell 14"")
   displayName: string;  // Nombre completo (ej: "Laptop Dell Inspiron 14 i5")
   brand: string;
+  /** Condición (nueva|reacondicionada|open_box) — para el badge "Seminuevo" en recomendados. */
+  condition?: string | null;
   thumbnail: string;
   images?: SimilarProductImage[]; // Imágenes con variantId para filtrar por color
   colors?: SimilarProductColor[]; // Para selector de colores

@@ -7,18 +7,13 @@
  */
 
 import React from 'react';
-import { Recycle, Sparkles, ShieldCheck, Tag } from 'lucide-react';
+import { Recycle, Sparkles, Tag } from 'lucide-react';
 
 const POINTS: { icon: React.ReactNode; title: string; description: string }[] = [
   {
     icon: <Sparkles className="w-4 h-4 text-amber-600" />,
     title: 'Certificado',
     description: 'Revisado, probado y reparado por técnicos certificados.',
-  },
-  {
-    icon: <ShieldCheck className="w-4 h-4 text-amber-600" />,
-    title: 'Con garantía',
-    description: 'Incluye garantía, igual que un equipo nuevo.',
   },
   {
     icon: <Tag className="w-4 h-4 text-amber-600" />,
@@ -40,8 +35,8 @@ export const RefurbishedInfoBanner: React.FC = () => {
         <span className="font-semibold text-neutral-800">Producto semi nuevo</span>
       </div>
       <p className="text-sm text-neutral-600 mb-3">
-        Equipo revisado y restaurado a su funcionamiento óptimo. Funciona como nuevo,
-        con garantía y a un precio más accesible.
+        Equipo revisado y restaurado a su funcionamiento óptimo. Funciona como nuevo
+        y a un precio más accesible.
       </p>
       <div className="space-y-2">
         {POINTS.map((p) => (

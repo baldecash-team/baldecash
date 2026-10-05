@@ -9,6 +9,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { PricingCalculatorProps, PaymentPlan, InitialPaymentOption, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { fetchProductDetail } from '../../../api/productDetailApi';
 
 // Detect hover-capable devices (desktop) so touch-only devices don't keep a
@@ -34,6 +35,17 @@ export interface PricingSelection {
   monthlyQuota: number;
   initialAmount: number;
   paymentFrequency: string;
+  /**
+   * En cuántas armadas se cobra la inicial de la opción elegida. 1 = pago
+   * único, que es lo que trae todo el catálogo.
+   *
+   * No es una elección aparte: viene con la opción. Cada modalidad es una celda
+   * propia del pricing con su plazo, así que al elegir el plazo el cliente ya
+   * eligió cómo paga la inicial.
+   */
+  initialInstallments: number;
+  /** Monto de cada armada. La última absorbe el sobrante del redondeo. */
+  initialInstallmentAmounts: number[];
 }
 
 /** Labels for each payment frequency (cuota suffix) */
@@ -58,6 +70,24 @@ function termToMonths(term: number, frequency: string): number {
   if (frequency === 'semanal') return Math.round(term / 4);
   if (frequency === 'quincenal') return Math.round(term / 2);
   return term;
+}
+
+/**
+ * Cómo se nombra el plazo de un plan, en la unidad en que se cobra.
+ *
+ * Un plan semanal de 17 semanas se mostraba como «5 meses» —el resultado de
+ * `Math.round(17 / 4)`— y el número no coincidía con nada: ni con las 17
+ * semanas que dura, ni con las cuotas que la persona va a pagar. En un
+ * convenio de cosecha, además, la gente razona en semanas, no en meses.
+ */
+const UNIDAD_DE_PLAZO: Record<string, string> = {
+  semanal: 'semanas',
+  quincenal: 'quincenas',
+  mensual: 'meses',
+};
+
+function unidadDePlazo(frequency: string): string {
+  return UNIDAD_DE_PLAZO[frequency] ?? UNIDAD_DE_PLAZO.mensual;
 }
 
 export const PricingCalculator: React.FC<PricingCalculatorProps & {
@@ -109,19 +139,26 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(defaultInitialPercent as InitialPaymentPercentage);
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
   const isHoverCapable = useHoverCapable();
-  const isMountedRef = useRef(false);
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
 
-  // Sync term from external controller (e.g. Cronograma chips)
+  // Sync term from external controller (e.g. Cronograma chips).
+  // Guard: skip if already selected to avoid triggering the notification effect.
   useEffect(() => {
     if (controlledTerm == null) return;
     if (paymentPlans.some(p => p.term === controlledTerm)) {
-      setSelectedTerm(controlledTerm);
+      setSelectedTerm(prev => prev === controlledTerm ? prev : controlledTerm);
     }
   }, [controlledTerm, paymentPlans]);
 
   // On mount: if default frequency differs from mensual, fetch correct plans
   useEffect(() => {
     if (defaultFrequency === 'mensual' || !landing || !productSlug) return;
+    // Si los planes iniciales YA vienen en la frecuencia deseada (el consumidor
+    // los pidió con esa frecuencia), no hay nada que refetchear. Evita una
+    // llamada redundante al detalle cuando el equipo se carga ya en su
+    // frecuencia real (ej. celular semanal en la oferta).
+    if (initialPaymentPlans.some((p) => p.paymentFrequency === defaultFrequency)) return;
     let cancelled = false;
     setIsLoadingPlans(true);
     fetchProductDetail(landing, productSlug, defaultFrequency)
@@ -176,6 +213,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             monthlyQuota: newOption.monthlyQuota,
             initialAmount: newOption.initialAmount,
             paymentFrequency: freq,
+            initialInstallments: newOption.initialInstallments ?? 1,
+            initialInstallmentAmounts: newOption.initialInstallmentAmounts ?? [],
           });
         }
       }
@@ -196,9 +235,76 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       amount: opt.initialAmount,
       label: opt.initialPercent === 0
         ? 'Sin inicial'
-        : `S/${formatMoneyNoDecimals(Math.floor(opt.initialAmount))}`,
+        : `S/${formatCuotaDeLanding(opt.initialAmount, landing)}`,
     }));
   }, [paymentPlans]);
+
+  // ── Armadas de la inicial ────────────────────────────────────────────────
+  //
+  // Cada modalidad (1, 2 o 4 armadas) es una celda propia del pricing con su
+  // propio plazo de financiamiento, y las armadas SE DESCUENTAN del plazo
+  // total: 13 cuotas + 4 armadas = 15 + 2 = 17 + 0 = 17 semanas. Por eso el
+  // chip cambia el plazo de financiamiento pero deja intacto el plazo total,
+  // que es lo que el cliente tiene en la cabeza ("son 17 semanas").
+
+  /** Armadas de un plan, para el % de inicial elegido. */
+  const armadasDe = useCallback((plan: PaymentPlan | undefined): number => {
+    if (!plan?.options) return 1;
+    const opt = plan.options.find(o => o.initialPercent === selectedInitialPercent) ?? plan.options[0];
+    return opt?.initialInstallments ?? 1;
+  }, [selectedInitialPercent]);
+
+  /** Semanas/meses totales del plan: financiamiento + armadas. */
+  const plazoTotalDe = useCallback((plan: PaymentPlan | undefined): number => {
+    if (!plan) return 0;
+    const n = armadasDe(plan);
+    return plan.term + (n > 1 ? n : 0);
+  }, [armadasDe]);
+
+  /**
+   * Modalidades ofrecidas. Con una sola no hay nada que elegir y los chips no
+   * se renderizan: es el caso de todo el catálogo, que queda igual que antes.
+   */
+  const armadasDisponibles = useMemo(() => {
+    const vistas = new Set<number>();
+    paymentPlans.forEach(p => vistas.add(armadasDe(p)));
+    return [...vistas].sort((a, b) => a - b);
+  }, [paymentPlans, armadasDe]);
+
+  const hayArmadas = armadasDisponibles.length > 1;
+
+  const [selectedArmadas, setSelectedArmadas] = useState(1);
+
+  // Si la modalidad elegida deja de existir (cambió el % de inicial o la
+  // frecuencia), cae a la primera disponible en vez de quedar sin planes.
+  useEffect(() => {
+    if (hayArmadas && !armadasDisponibles.includes(selectedArmadas)) {
+      setSelectedArmadas(armadasDisponibles[0]);
+    }
+  }, [armadasDisponibles, hayArmadas, selectedArmadas]);
+
+  /** Planes de la modalidad elegida. Sin armadas, todos. */
+  const planesVisibles = useMemo(
+    () => (hayArmadas ? paymentPlans.filter(p => armadasDe(p) === selectedArmadas) : paymentPlans),
+    [paymentPlans, hayArmadas, selectedArmadas, armadasDe],
+  );
+
+  /** Un plan cualquiera de esa modalidad — solo para leer los montos del chip. */
+  const planesVisiblesPara = (n: number) => paymentPlans.find(p => armadasDe(p) === n);
+
+  /** Cambia la modalidad conservando el plazo total. */
+  const cambiarArmadas = (n: number) => {
+    const totalActual = plazoTotalDe(paymentPlans.find(p => p.term === selectedTerm));
+    setSelectedArmadas(n);
+
+    const candidatos = paymentPlans.filter(p => armadasDe(p) === n);
+    // El mismo plazo total; si no existe, el más cercano — nunca dejar al
+    // usuario sin plazo seleccionado.
+    const destino = candidatos.find(p => plazoTotalDe(p) === totalActual)
+      ?? candidatos.sort((a, b) =>
+        Math.abs(plazoTotalDe(a) - totalActual) - Math.abs(plazoTotalDe(b) - totalActual))[0];
+    if (destino) setSelectedTerm(destino.term);
+  };
 
   // Obtener la opción seleccionada para un plazo específico
   const getOptionForTerm = (term: number): InitialPaymentOption | null => {
@@ -213,22 +319,31 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
     return getOptionForTerm(selectedTerm);
   }, [selectedTerm, selectedInitialPercent, paymentPlans]);
 
-  // Notify parent only when user changes selection (skip initial mount)
+  // Se avisa TAMBIEN en el montaje, no solo cuando el usuario cambia algo.
+  //
+  // Saltarse la primera emision dejaba a los consumidores sin saber que hay
+  // seleccionado hasta que alguien tocara el calculador, y ellos caen a los
+  // defaults del producto mientras tanto. En la barra de "Lo quiero" de
+  // copia-home eso se veia entero: el calculador decia "S/52.90/sem, 17
+  // semanas, + S/250 de inicial" y justo debajo la barra decia "S/52/mes, en
+  // 15 meses, sin inicial" — los cuatro valores equivocados a la vez, sobre el
+  // mismo equipo.
+  //
+  // No dispara analytics de mas: `handlePricingSelectionChange` solo trackea
+  // cuando hay un `prev` con el que comparar, y en la primera emision no lo hay.
   useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      return;
-    }
-    if (onSelectionChange && selectedOption) {
-      onSelectionChange({
+    if (onSelectionChangeRef.current && selectedOption) {
+      onSelectionChangeRef.current({
         term: selectedTerm,
         initialPercent: selectedInitialPercent,
         monthlyQuota: selectedOption.monthlyQuota,
         initialAmount: selectedOption.initialAmount,
         paymentFrequency: selectedFrequency,
+        initialInstallments: selectedOption.initialInstallments ?? 1,
+        initialInstallmentAmounts: selectedOption.initialInstallmentAmounts ?? [],
       });
     }
-  }, [selectedTerm, selectedInitialPercent, selectedOption, onSelectionChange]);
+  }, [selectedTerm, selectedInitialPercent, selectedOption]);
 
   const freqLabel = getFreqLabel(selectedFrequency);
   const hasFrequencySelector = paymentFrequencies && paymentFrequencies.length > 1;
@@ -289,6 +404,48 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         </div>
       </div>
 
+      {/* Armadas de la inicial — solo si hay mas de una modalidad */}
+      {hayArmadas && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-[var(--text,#374151)] mb-1">
+            ¿Cómo pagas la inicial?
+          </label>
+          <p className="text-xs text-[var(--text-muted,#6b7280)] mb-3">
+            Fraccionarla baja lo que pagas al inicio, pero sube la cuota: el
+            plazo total no cambia.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {armadasDisponibles.map((n) => {
+              const plan = planesVisiblesPara(n);
+              const opt = plan?.options?.find(o => o.initialPercent === selectedInitialPercent) ?? plan?.options?.[0];
+              const cadaUna = opt?.initialInstallmentAmounts?.[0]
+                ?? (opt ? opt.initialAmount / n : 0);
+              const activo = selectedArmadas === n;
+
+              return (
+                <button
+                  key={n}
+                  onClick={() => cambiarArmadas(n)}
+                  aria-pressed={activo}
+                  className={`py-2.5 px-4 text-sm font-medium rounded-full transition-all cursor-pointer min-h-[40px] ${
+                    activo
+                      ? 'bg-[var(--color-primary)] text-white shadow-md'
+                      : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
+                  }`}
+                >
+                  {n === 1 ? 'En 1 pago' : `En ${n} partes`}
+                  <span className={`block text-[11px] font-normal ${activo ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'}`}>
+                    {n === 1
+                      ? `S/${formatCuotaDeLanding(opt?.initialAmount ?? 0, landing)}`
+                      : `S/${formatCuotaDeLanding(cadaUna, landing)} c/u`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Term Cards */}
       {isLoadingPlans ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -298,7 +455,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[...paymentPlans].sort((a, b) => a.term - b.term).map((plan) => {
+          {[...planesVisibles].sort((a, b) => a.term - b.term).map((plan) => {
             const option = getOptionForTerm(plan.term);
             if (!option) return null;
 
@@ -333,7 +490,10 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                       isSelected ? 'text-white/80' : 'text-[var(--text-muted,#6b7280)]'
                     }`}
                   >
-                    {plan.termMonths ?? termToMonths(plan.term, selectedFrequency)}<br />meses
+                    {/* El plazo TOTAL en la unidad en que se cobra. Un plan de 17
+                        semanas decia «5 meses» y ese numero no coincidia con nada:
+                        ni con lo que dura ni con las cuotas que se pagan. */}
+                    {plazoTotalDe(plan)}<br />{unidadDePlazo(selectedFrequency)}
                   </p>
 
                   {option.originalQuota && (
@@ -342,7 +502,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                         isSelected ? 'text-white/60' : 'text-[var(--text-faint,#9ca3af)]'
                       }`}
                     >
-                      S/{formatMoneyNoDecimals(Math.floor(option.originalQuota))}
+                      S/{formatCuotaDeLanding(option.originalQuota, landing)}
                     </p>
                   )}
 
@@ -351,7 +511,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                       option.monthlyQuota >= 1000 ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'
                     } ${isSelected ? 'text-white' : 'text-[var(--color-primary)]'}`}
                   >
-                    S/{formatMoneyNoDecimals(Math.floor(option.monthlyQuota))}
+                    S/{formatCuotaDeLanding(option.monthlyQuota, landing)}
                   </p>
 
                   <p
@@ -374,17 +534,28 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
           <p className="text-sm text-[var(--text-muted,#6b7280)] mb-1">{freqLabel.summary}</p>
           {selectedOption?.originalQuota && (
             <p className="line-through text-[var(--text-faint,#9ca3af)] text-xl mb-1">
-              S/{formatMoneyNoDecimals(Math.floor(selectedOption.originalQuota))}{freqLabel.short}
+              S/{formatCuotaDeLanding(selectedOption.originalQuota, landing)}{freqLabel.short}
             </p>
           )}
           <p className="text-4xl font-bold text-[var(--color-primary)]">
-            S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}{freqLabel.short}
+            S/{formatCuotaDeLanding(selectedOption?.monthlyQuota || 0, landing)}{freqLabel.short}
           </p>
           <p className="text-sm text-[var(--text-muted,#6b7280)] mt-2">
-            durante {(paymentPlans.find(p => p.term === selectedTerm)?.termMonths ?? termToMonths(selectedTerm, selectedFrequency))} meses
+            durante {plazoTotalDe(paymentPlans.find(p => p.term === selectedTerm))}{' '}
+            {unidadDePlazo(selectedFrequency)}
             {selectedInitialPercent > 0 && selectedOption && (
               <span className="block text-xs text-[var(--text-faint,#9ca3af)] mt-1">
-                + S/{formatMoneyNoDecimals(Math.floor(selectedOption.initialAmount))} de inicial
+                + S/{formatCuotaDeLanding(selectedOption.initialAmount, landing)} de inicial
+                {/* Con la inicial fraccionada el monto de arriba es el total, no
+                    lo que se paga de una: sin este detalle el cliente cree que
+                    debe juntar los S/114 completos antes de empezar. */}
+                {(selectedOption.initialInstallments ?? 1) > 1 && (
+                  <span className="block mt-0.5">
+                    en {selectedOption.initialInstallments} armadas semanales de{' '}
+                    S/{formatCuotaDeLanding(selectedOption.initialInstallmentAmounts?.[0]
+                        ?? selectedOption.initialAmount / selectedOption.initialInstallments!, landing)}
+                  </span>
+                )}
               </span>
             )}
           </p>

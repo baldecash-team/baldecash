@@ -1,6 +1,7 @@
 // Hero Section Types - BaldeCash v0.5 (Simplificado)
 
 import { ReactNode } from 'react';
+import type { FiltroDeOpciones } from '../services/filtroDeOpciones';
 
 // ============================================
 // Underline Style (para headlines)
@@ -36,6 +37,15 @@ export interface MediaLogo {
   url?: string;
 }
 
+export interface Partner {
+  id: string;
+  code: string;
+  name: string;
+  shortName?: string;
+  logo?: string;
+  type?: string;
+}
+
 export interface SocialProofData {
   title?: string;
   subtitle?: string;
@@ -47,6 +57,7 @@ export interface SocialProofData {
   institutionCount: number;
   yearsInMarket: number;
   studyCenters: StudyCenter[];
+  partners: Partner[];
   mediaLogos: MediaLogo[];
 }
 
@@ -91,6 +102,12 @@ export interface HeroContent {
   mobilePositionY?: number;
   mobileZoom?: number;
   badgeText?: string;
+  /**
+   * Switch "Mostrar textos sobre la imagen" del admin (BAL-2782).
+   * Ausente o true = banner completo. false = solo imagen clickeable.
+   * Aplica a landings institucional y convenio.
+   */
+  showHeroContent?: boolean;
 }
 
 // ============================================
@@ -123,6 +140,16 @@ export interface HeroBannerProps {
   underlineStyle?: UnderlineStyle;
   /** Landing slug for dynamic URL building */
   landing?: string;
+  /**
+   * BAL-2782: false = solo imagen clickeable, sin textos ni overlay.
+   * Ausente o true = comportamiento actual.
+   */
+  showHeroContent?: boolean;
+  /**
+   * Preset `hero-quota-off` (BAL-3477). false = sin el recuadro «Desde S/X»,
+   * aunque haya monto. Ausente o true = se muestra si hay monto.
+   */
+  showMinQuota?: boolean;
 }
 
 export interface SocialProofProps {
@@ -223,6 +250,8 @@ export interface Testimonial {
   id: string;
   name: string;
   institution: string;
+  location?: string;
+  show_institution_logo?: boolean;
   institutionLogo?: string;
   institutionName?: string;
   quote: string;
@@ -445,6 +474,21 @@ export interface AgreementData {
   institution_name?: string;
   institution_short_name?: string;
   institution_logo?: string;
+  /**
+   * La landing pidió ocultar la marca del convenio (`hide_agreement_logo`).
+   *
+   * Lo marca `LayoutContext` al vaciar `institution_logo`. Sin esta señal, el
+   * fallback de texto del footer se encendería justo por esa ausencia y
+   * imprimiría el nombre de la institución — el efecto que el flag evita.
+   *
+   * El nombre NO se vacía: ConvenioHero, ConvenioFaq y ConvenioTestimonials lo
+   * usan como texto y deben seguir mostrándolo (BAL-2970).
+   */
+  hide_logo?: boolean;
+  study_center_id?: number;
+  /** Tipo de institución del study_center (university/institute/school/...).
+   *  El wizard de convenio auto-setea y bloquea el campo 'institution_type' con este valor. */
+  institution_type?: string;
 }
 
 // ============================================
@@ -463,12 +507,58 @@ export interface BannerImage {
   mobile_zoom?: number;
 }
 
+/** Mismo contrato que el wizard (BAL-4384). */
+export type LeadFormFieldOptionsFilter = FiltroDeOpciones;
+
+export type LeadFormFieldGroup = 'student' | 'guardian';
+
+export interface LeadFormFieldOption {
+  value: string;
+  label: string;
+}
+
+export interface LeadFormFieldConfig {
+  code: string;
+  /** Agrupa el campo bajo "Datos del estudiante" / "Datos del apoderado" en el form de lead */
+  group?: LeadFormFieldGroup;
+  label: string;
+  field_type: string;
+  placeholder?: string;
+  is_required: boolean;
+  is_visible: boolean;
+  display_order: number;
+  input_mode?: string;
+  max_length?: number;
+  min_length?: number;
+  pattern?: string;
+  mask?: string;
+  options_source?: string;
+  options_filter?: LeadFormFieldOptionsFilter | null;
+  /** Opciones fijas para field_type='select' */
+  options_static?: LeadFormFieldOption[];
+  min_search_length?: number;
+}
+
 export interface LeadFormConfig {
   title_count: number;
   title: string;
   description: string;
   cta_text: string;
   redirect_url?: string;
+  study_center_label?: string;
+  study_center_placeholder?: string;
+  fields?: LeadFormFieldConfig[];
+  /** Renderiza el form en 2 columnas en pantallas no-mobile (lg+) */
+  two_columns?: boolean;
+  /** Versión simplificada "split" (panel lateral + form). Default false → landing normal. */
+  split_version?: boolean;
+  /** Config del panel lateral del split (solo se usa si split_version=true) */
+  split?: {
+    headline?: string;
+    description?: string;
+    steps?: { title: string; subtitle: string }[];
+    foot_text?: string;
+  };
 }
 
 export interface LeadProductsConfig {

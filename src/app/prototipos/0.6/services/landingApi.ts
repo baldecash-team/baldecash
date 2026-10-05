@@ -10,6 +10,7 @@ import type {
   FaqData,
   Testimonial,
   StudyCenter,
+  Partner,
   TrustSignal,
   CtaData,
   PromoBannerData,
@@ -28,6 +29,7 @@ import type {
 } from '../types/hero';
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
+import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -46,7 +48,28 @@ function appendVipToken(url: string, slug: string): string {
 
 function handleVip403(slug: string): void {
   if (typeof window === 'undefined') return;
+  if (hasLockertruckEvalCache(slug)) {
+    clearVipData(slug);
+    window.location.assign(`/prototipos/0.6/${slug}/catalogo`);
+    return;
+  }
+
+  // La recarga solo sirve si había algo que descartar: token guardado que el
+  // backend rechazó, o uno recién llegado por `?vip_auto=` que VipGate todavía
+  // no persistió (ahí la recarga sí puede resolver la carrera, porque el param
+  // sigue en la URL).
+  //
+  // Sin ninguno de los dos, recargar vuelve a pedir la MISMA URL sin token y el
+  // backend vuelve a responder 403: bucle infinito de recargas. En `[landing]/**`
+  // no se notaba porque VipGate corta antes y muestra el overlay del DNI; en
+  // `/kyc/{token}`, que es hermano de `[landing]` y no tiene ese gate, la
+  // pantalla quedaba recargándose sola y el KYC nunca llegaba a verse.
+  const hadToken =
+    Boolean(getVipToken(slug)) ||
+    new URLSearchParams(window.location.search).has('vip_auto');
+
   clearVipData(slug);
+  if (!hadToken) return;
   window.location.reload();
 }
 
@@ -176,11 +199,21 @@ interface ApiCompanyInfo {
   } | null;
 }
 
-interface LandingHeroResponse {
+interface ApiPartner {
+  id: string;
+  code: string;
+  name: string;
+  short_name?: string;
+  logo?: string;
+  type?: string;
+}
+
+export interface LandingHeroResponse {
   landing: LandingResponse;
   components: HomeComponentResponse[];
   faqs?: ApiFaqItem[];
   study_centers?: ApiStudyCenter[];
+  partners?: ApiPartner[];
   company?: ApiCompanyInfo;
 }
 
@@ -342,6 +375,20 @@ export interface LandingLayoutResponse {
     institution_name?: string;
     institution_short_name?: string;
     institution_logo?: string;
+    study_center_id?: number;
+    institution_type?: string;
+  } | null;
+  /**
+   * Marca de la institución de una landing que NO es de convenio.
+   *
+   * Viene aparte de `agreement` a propósito: `isConvenio = !!agreementData`
+   * (HeroSection) prende el hero, el FAQ y el CTA de convenio, y estas
+   * landings solo quieren el logo en el navbar y el footer. Meterlo en
+   * `agreement` les cambiaría la página entera.
+   */
+  institution_branding?: {
+    institution_logo?: string;
+    institution_name?: string;
   } | null;
   settings?: Record<string, string> | null;
 }
@@ -394,6 +441,7 @@ export async function getFooterData(slug: string, previewKey?: string | null): P
         legal_name: company.legal_name,
         logo_url: company.logo_url,
         main_phone: company.main_phone,
+        main_address: company.main_address,
         main_email: company.main_email,
         website_url: company.website_url,
         customer_portal_url: company.customer_portal_url,
@@ -493,6 +541,9 @@ export function transformLandingData(data: LandingHeroResponse): {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Marca de la institucion de las landings SIN convenio (ver arriba,
+  // donde se arma): separada de `agreementData` a proposito.
+  institutionBranding: { institution_logo?: string; institution_name?: string } | null;
   landingType?: string;
   bannerImages: BannerImage[];
   leadFormConfig: LeadFormConfig | null;
@@ -635,6 +686,9 @@ export function transformLandingData(data: LandingHeroResponse): {
       mobilePositionY,
       mobileZoom,
       badgeText: (heroConfig.badge_text as string) || undefined,
+      // `!== false` a proposito: la ausencia del campo significa "mostrar",
+      // que es como estan hoy las 60 landings activas.
+      showHeroContent: heroConfig.show_hero_content !== false,
     };
   }
 
@@ -677,6 +731,15 @@ export function transformLandingData(data: LandingHeroResponse): {
         : 0;
     const institutionCount = parsedInstitutionCount > 0 ? parsedInstitutionCount : studyCenters.length;
 
+    const partners: Partner[] = (data.partners || []).map((p) => ({
+      id: p.id,
+      code: p.code || '',
+      name: p.name || '',
+      shortName: p.short_name || p.name || '',
+      logo: p.logo || '',
+      type: p.type,
+    }));
+
     socialProof = {
       title: socialTitle,
       subtitle: socialSubtitle,
@@ -688,13 +751,14 @@ export function transformLandingData(data: LandingHeroResponse): {
       institutionCount,
       yearsInMarket: stats.years_in_market || 0,
       studyCenters,
+      partners,
       mediaLogos: (socialConfig.media_logos as { name: string; logo: string; url?: string }[]) || [],
     };
   }
 
-  // Extraer datos de how_it_works (null si el componente no existe)
+  // Extraer datos de how_it_works (null si el componente no existe o está oculto a nivel sección)
   let howItWorksData: HowItWorksData | null = null;
-  if (howItWorksComponent) {
+  if (howItWorksComponent && howItWorksComponent.is_visible !== false) {
     const howConfig = (howItWorksComponent.content_config || {}) as Record<string, unknown>;
 
     // Extraer título y subtítulo desde content_config
@@ -779,6 +843,8 @@ export function transformLandingData(data: LandingHeroResponse): {
         id: t.id || String(index + 1),
         name: t.name || '',
         institution: t.institution || '',
+        location: t.location,
+        show_institution_logo: t.show_institution_logo !== false,
         quote: t.quote || '',
         avatar: t.avatar,
         rating: t.rating ?? 0,
@@ -949,18 +1015,25 @@ export function transformLandingData(data: LandingHeroResponse): {
   // Extract lead form config from hero component (for lead landings)
   const heroContentConfig = (heroComponent?.content_config || {}) as Record<string, unknown>;
   const rawLeadForm = heroContentConfig.lead_form as Record<string, unknown> | null | undefined;
-  const leadFormConfig: import('../types/hero').LeadFormConfig | null = rawLeadForm ? {
+  const leadFormConfig: LeadFormConfig | null = rawLeadForm ? {
     title_count: (rawLeadForm.title_count as number) ?? 0,
     title: (rawLeadForm.title as string) ?? '',
     description: (rawLeadForm.description as string) ?? '',
     cta_text: (rawLeadForm.cta_text as string) ?? '',
     redirect_url: (rawLeadForm.redirect_url as string) || undefined,
+    study_center_label: (rawLeadForm.study_center_label as string) || undefined,
+    study_center_placeholder: (rawLeadForm.study_center_placeholder as string) || undefined,
+    two_columns: (rawLeadForm.two_columns as boolean) || false,
+    split_version: (rawLeadForm.split_version as boolean) || false,
+    split: (rawLeadForm.split as LeadFormConfig['split']) || undefined,
   } : null;
 
   // Extract lead products config from lead_products component (for lead landings)
   const leadProductsComponent = components.find(c => c.component_code === 'lead_products');
   const rawLeadProducts = (leadProductsComponent?.content_config || {}) as Record<string, unknown>;
-  const leadProductsConfig: LeadProductsConfig | null = leadProductsComponent ? {
+  // null si no existe el componente O si está oculto a nivel sección (is_visible=false).
+  // La landing lead sin componente lead_products no muestra el bloque "Próximamente".
+  const leadProductsConfig: LeadProductsConfig | null = (leadProductsComponent && leadProductsComponent.is_visible !== false) ? {
     title: (rawLeadProducts.title as string) ?? '',
     subtitle: (rawLeadProducts.subtitle as string) ?? '',
     product_ids: ((rawLeadProducts.product_ids as number[]) || []),
@@ -978,6 +1051,17 @@ export function transformLandingData(data: LandingHeroResponse): {
     institution_name: (agreementRaw.institution_name as string) || undefined,
     institution_short_name: (agreementRaw.institution_short_name as string) || undefined,
     institution_logo: (agreementRaw.institution_logo as string) || undefined,
+  } : null;
+
+  // Marca de la institucion de las landings SIN convenio (`lead-flujo-normal`
+  // -> SENATI). NO se fusiona con `agreementData` a proposito: HeroSection
+  // decide `isConvenio = !!agreementData` y le cambiaria el hero, el FAQ y el
+  // CTA a una landing que no es de convenio. Viaja como su propia cosa y solo
+  // alimenta el logo del navbar y del footer.
+  const brandingRaw = landingData.institution_branding as Record<string, unknown> | null | undefined;
+  const institutionBranding = brandingRaw ? {
+    institution_logo: (brandingRaw.institution_logo as string) || undefined,
+    institution_name: (brandingRaw.institution_name as string) || undefined,
   } : null;
 
   // Replace {convenioName} template variable with institution short name
@@ -1012,6 +1096,7 @@ export function transformLandingData(data: LandingHeroResponse): {
     footerData,
     benefitsData,
     agreementData,
+    institutionBranding,
     landingType,
     bannerImages,
     leadFormConfig,
@@ -1048,6 +1133,9 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Igual que en `transformLandingData`: la marca institucional de las landings
+  // sin convenio viaja aparte para no prenderles el layout de convenio.
+  institutionBranding: { institution_logo?: string; institution_name?: string } | null;
   landingType?: string;
   bannerImages: BannerImage[];
   leadFormConfig: LeadFormConfig | null;
@@ -1088,6 +1176,7 @@ interface ApiAccessory {
   micro_url?: string;
   category: { slug: string; name: string } | null;
   isRecommended: boolean;
+  isMoltiTop?: boolean;
   compatibleWith: string[];
   specs?: { label: string; value: string }[];
   brand?: {
@@ -1108,12 +1197,27 @@ interface ApiAccessory {
  *               semanal ∈ {12,24,36,48}, quincenal ∈ {12,24}, mensual = múltiplo de 4.
  * @param paymentFrequency - Optional payment frequency ('semanal' | 'quincenal' | 'mensual')
  */
+export function resolveEcosistema(brand?: string, type?: string): 'apple' | 'samsung' | 'windows' | undefined {
+  const b = (brand || '').toLowerCase();
+  const t = (type || '').toLowerCase();
+  if (b.includes('apple') || b.includes('iphone') || b.includes('macbook') || b.includes('ipad')) return 'apple';
+  if (t === 'celular' && b.includes('samsung')) return 'samsung';
+  if (t === 'laptop' || t === 'laptop gamer' || t === 'tablet') return 'windows';
+  return undefined;
+}
+
 export async function getLandingAccessories(
   slug: string,
   deviceType?: string | string[],
   term?: number,
   previewKey?: string | null,
   paymentFrequency?: string,
+  variant?: string,
+  ecosistema?: string,
+  sessionId?: string | null,
+  refreshRecommendations?: boolean,
+  productSlug?: string | null,
+  initialAmount?: number | null,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1136,6 +1240,20 @@ export async function getLandingAccessories(
     if (previewKey) {
       queryParams.set('preview_key', previewKey);
     }
+    if (variant) {
+      queryParams.set('variant', variant);
+    }
+    if (ecosistema) {
+      queryParams.set('ecosistema', ecosistema);
+    }
+    if (sessionId) {
+      queryParams.set('session_id', sessionId);
+    }
+    if (refreshRecommendations) {
+      queryParams.set('refresh_recommendations', 'true');
+    }
+    if (productSlug) { queryParams.set('product_slug', productSlug); }
+    if (initialAmount) { queryParams.set('initial_amount', String(initialAmount)); }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
     const accessoriesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, slug);
@@ -1200,6 +1318,9 @@ interface ApiInsurancePlan {
   durationMonths: number;
   waitingPeriodDays: number;
   termsUrl: string | null;
+  // BAL-2338: imagen del tipo de seguro (insurance_category.image_url). El backend
+  // la resuelve para ambos flujos; el regular la consume desde BAL-2338.
+  imageUrl?: string | null;
 }
 
 /**
@@ -1297,7 +1418,28 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
 /**
  * Tipos de sección disponibles en el flujo de solicitud
  */
-export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance';
+export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance' | 'otp_verification' | 'kyc';
+
+export type KycStepType = 'dni_selfie' | 'contract' | 'documents' | 'payment';
+
+export interface KycStep {
+  type: KycStepType;
+  enabled: boolean;
+  order: number;
+}
+
+/**
+ * Cuándo se crea la solicitud (solo en la sección `wizard_steps`).
+ *
+ * Prendido: se crea al terminar la pantalla `step` del wizard, en vez de al
+ * final. Es lo que permite que la pantalla siguiente muestre el contrato —sin
+ * solicitud no hay nada que emitir—.
+ */
+export interface EnvioAnticipadoConfig {
+  enabled: boolean;
+  /** Pantalla al terminar la cual se envía. 1 = la primera. */
+  step?: number;
+}
 
 /**
  * Configuración de una sección del flujo
@@ -1306,6 +1448,24 @@ export interface SolicitarSection {
   type: SolicitarSectionType;
   enabled: boolean;
   order: number;
+  /** Solo presente en la sección `kyc`: sub-pasos configurables. */
+  steps?: KycStep[];
+  /** Solo presente en la sección `wizard_steps`: en qué paso se envía. */
+  envio_anticipado?: EnvioAnticipadoConfig;
+  /**
+   * Solo presente en la sección `kyc`: la aceptación del contrato ES la firma.
+   *
+   * No alcanza con que el sub-paso `contract` esté prendido: `copia-home` y las
+   * tres de Family Farms lo tienen desde antes, con el contrato que sale al
+   * aprobar y la firma por Keynua. Esto distingue un flujo del otro.
+   */
+  firma?: { enabled: boolean };
+  /**
+   * Solo en la sección `kyc`: al terminar, la pantalla final muestra el
+   * formulario de entrega en vez de mandar el enlace por WhatsApp. Se prende
+   * por landing desde admin2 y viene apagado por default.
+   */
+  entrega?: { enabled: boolean };
 }
 
 /**
@@ -1330,6 +1490,20 @@ export const DEFAULT_SOLICITAR_FLOW: SolicitarFlowConfig = {
   ],
   is_coupon_required: false,
 };
+
+/**
+ * La config de una landing con gate no se pudo leer porque el `vip_token` no
+ * viajó (o venció). Existe como error propio para que el flujo pueda distinguir
+ * "no sé qué secciones tiene" de "sé que tiene las del default".
+ */
+export class SolicitarConfigUnavailableError extends Error {
+  readonly slug: string;
+  constructor(slug: string) {
+    super(`No se pudo leer la config de solicitar de "${slug}" (403)`);
+    this.name = 'SolicitarConfigUnavailableError';
+    this.slug = slug;
+  }
+}
 
 /**
  * Obtiene la configuración del flujo de solicitud para una landing
@@ -1357,7 +1531,16 @@ export async function getSolicitarConfig(
     );
 
     if (!response.ok) {
-      if (response.status === 403) { handleVip403(slug); return DEFAULT_SOLICITAR_FLOW; }
+      // 403 = landing con gate y token ausente/vencido. Acá NO se puede caer al
+      // default: ese default afirma `accessories` e `insurance` —que estas
+      // landings tienen apagados— y omite `kyc` —que tienen prendido—, así que
+      // un token perdido se convertía en "esta landing no tiene KYC" y en un
+      // wizard que se iba a /complementos y terminaba en la pantalla de demo
+      // sin haber creado la solicitud. Se propaga para que el flujo lo trate
+      // como "config desconocida" en vez de inventarla.
+      if (response.status === 403) { handleVip403(slug); throw new SolicitarConfigUnavailableError(slug); }
+      // 404 sí puede usar el default: es lo mismo que responde el backend para
+      // una landing sin `solicitar_flow` configurado.
       if (response.status === 404) return DEFAULT_SOLICITAR_FLOW;
       throw new Error(`API error: ${response.status}`);
     }
@@ -1370,6 +1553,10 @@ export async function getSolicitarConfig(
       is_coupon_required: data.is_coupon_required ?? false,
     };
   } catch (error) {
+    // El 403 es el único que sube: el resto (red, 5xx) conserva el
+    // comportamiento de siempre para no cambiarle el flujo a las landings
+    // públicas, donde el default coincide con su config real.
+    if (error instanceof SolicitarConfigUnavailableError) throw error;
     console.error('Error fetching solicitar config:', error);
     return DEFAULT_SOLICITAR_FLOW;
   }
@@ -1395,6 +1582,85 @@ export function isSectionEnabled(
   return section?.enabled ?? true;
 }
 
+/** True SOLO si la landing tiene la sección `kyc` presente y habilitada.
+ *  Fail-safe: sección ausente ⇒ false (a diferencia de isSectionEnabled que
+ *  hace `?? true`). Úsalo para el gate de los pasos posteriores kyc. */
+export function isKycEnabled(config: SolicitarFlowConfig): boolean {
+  return config.sections.find(s => s.type === 'kyc')?.enabled ?? false;
+}
+
+/** Orden canónico de los sub-pasos de la sección `kyc`. */
+export const KYC_STEP_TYPES: KycStepType[] = [
+  'dni_selfie',
+  'contract',
+  'documents',
+  'payment',
+];
+
+/** Sub-pasos habilitados de la sección `kyc`, ordenados por `order`. Vacío si la
+ *  sección está apagada o ausente. */
+export function getKycSteps(config: SolicitarFlowConfig): KycStep[] {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc || !kyc.enabled || !kyc.steps) return [];
+  return kyc.steps
+    .filter(step => step.enabled)
+    .sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Pantalla del wizard al terminar la cual se crea la solicitud, o `null` si la
+ * landing no tiene envío anticipado (el caso normal: se crea al final).
+ *
+ * Fail-safe en los dos sentidos: sin bloque, apagado, o con cualquier cosa que
+ * no sea `enabled === true`, devuelve `null` —crear solicitudes reales a mitad
+ * del formulario no puede pasar por un valor raro—; y prendido sin un `step`
+ * válido cae en la primera pantalla en vez de quedarse sin ninguna.
+ */
+export function getEnvioAnticipadoStep(config: SolicitarFlowConfig): number | null {
+  const wizard = config.sections.find(s => s.type === 'wizard_steps');
+  if (!wizard?.enabled) return null;
+
+  const envio = wizard.envio_anticipado;
+  if (envio?.enabled !== true) return null;
+
+  const step = envio.step;
+
+  return Number.isInteger(step) && (step as number) >= 1 ? (step as number) : 1;
+}
+
+/**
+ * True si la landing firma el contrato aceptándolo en pantalla.
+ *
+ * Fail-safe: sección ausente, apagada o sin el bloque ⇒ false, que es el
+ * comportamiento de siempre (contrato al aprobar, firma por Keynua).
+ */
+export function isFirmaPorAceptacion(config: SolicitarFlowConfig): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc?.enabled) return false;
+
+  return kyc.firma?.enabled === true;
+}
+
+/**
+ * True si la landing coordina la entrega dentro del flujo.
+ *
+ * Fail-safe: sección ausente, apagada o sin el bloque ⇒ false, que es el
+ * comportamiento de siempre (el enlace del formulario llega por WhatsApp).
+ */
+export function isEntregaEnElCierre(config: SolicitarFlowConfig): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc?.enabled) return false;
+
+  return kyc.entrega?.enabled === true;
+}
+
+/** True si el sub-paso `type` está habilitado y la sección `kyc` también. */
+export function isKycStepEnabled(config: SolicitarFlowConfig, type: KycStepType): boolean {
+  const kyc = config.sections.find(s => s.type === 'kyc');
+  if (!kyc || !kyc.enabled || !kyc.steps) return false;
+  return kyc.steps.find(step => step.type === type)?.enabled ?? false;
+}
+
 // ============================================
 // Evaluate Access — locker-truck gate
 // ============================================
@@ -1418,6 +1684,7 @@ export interface EvaluateResponse {
   status: 'normal' | 'no_normal' | 'no_access';
   catalog_url: string | null;
   first_name?: string | null;
+  access_token?: string | null;
 }
 
 /**
@@ -1461,4 +1728,73 @@ export async function evaluateLandingAccess(
   }
 
   return response.json() as Promise<EvaluateResponse>;
+}
+
+// ============================================
+// Evaluate Access — family-farm gate (BAL-2521/BAL-2522)
+// ============================================
+
+/**
+ * Respuesta tipada de POST /public/landing/{slug}/evaluate-family-farm.
+ * Contrato FROZEN (ver decisión sdd/landing-family-farm-gate, PR-1 ws2): las
+ * claves opcionales se OMITEN (no se envían como null) cuando no aplican, por
+ * lo que el consumidor debe leerlas con optional-chaining / `in`, nunca
+ * asumir que siempre existen.
+ */
+export interface EvaluateFamilyFarmResponse {
+  valid: boolean;
+  first_name?: string;
+  found_in_sibling?: boolean;
+  sibling_landing_slug?: string;
+  sibling_landing_name?: string;
+  access_token?: string;
+  /**
+   * Token de acceso de la landing HERMANA (destino), presente solo cuando
+   * `found_in_sibling` es true. Deliberadamente NO reutiliza `access_token`:
+   * ver decisión sdd/landing-router-gate-handoff — `access_token` se persiste
+   * incondicionalmente para la landing ACTUAL en FamilyFarmOverlayGate.tsx,
+   * y confundir ambos campos abriría el catálogo de la puerta-router.
+   */
+  sibling_access_token?: string;
+  /**
+   * Presente solo cuando el DNI esta en la whitelist y el acceso fue
+   * retenido. Se OMITE en cualquier otro caso; nunca llega como false ni
+   * null. Leer siempre como truthy-check, nunca como `=== true` ni
+   * `!== undefined`.
+   */
+  access_withheld?: boolean;
+}
+
+/**
+ * Llama a POST /public/landing/{slug}/evaluate-family-farm.
+ *
+ * Mirrors validate-dni's whitelist-only shape (NO Equifax). Usado
+ * exclusivamente por el gate `familyfarm` (FamilyFarmOverlayGate); NO tocar
+ * useDniValidation ni el flujo /evaluate de locker-truck.
+ *
+ * NOTA: nunca loggear el valor del DNI.
+ */
+export async function evaluateFamilyFarmAccess(
+  slug: string,
+  { dni, sessionUuid }: { dni: string; sessionUuid?: string },
+): Promise<EvaluateFamilyFarmResponse> {
+  const body: Record<string, string> = { dni };
+  if (sessionUuid) {
+    body.session_uuid = sessionUuid;
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/public/landing/${encodeURIComponent(slug)}/evaluate-family-farm`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`evaluate-family-farm error: ${response.status}`);
+  }
+
+  return response.json() as Promise<EvaluateFamilyFarmResponse>;
 }

@@ -10,7 +10,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { Search, X, Trash2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
+import { searchProductSuggestions, termInFrequency, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -27,6 +27,13 @@ interface SearchDrawerProps {
   onChange: (value: string) => void;
   onClear: () => void;
   onSubmit?: () => void;
+  /** Fuente de sugerencias inyectable. Si se pasa, se usa en vez del buscador de
+   *  la landing (searchProductSuggestions). La oferta le pasa su buscador topado
+   *  por cuota; el catálogo general NO la pasa → fallback al comportamiento actual. */
+  fetchSuggestions?: (query: string) => Promise<ProductSuggestion[]>;
+  /** Navegación al elegir una sugerencia. Si se pasa, reemplaza el router.push a
+   *  la landing (la oferta navega a su propio detalle por token). */
+  onSelectSuggestion?: (suggestion: ProductSuggestion) => void;
 }
 
 export const SearchDrawer: React.FC<SearchDrawerProps> = ({
@@ -36,6 +43,8 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   onChange,
   onClear,
   onSubmit,
+  fetchSuggestions,
+  onSelectSuggestion,
 }) => {
   const dragControls = useDragControls();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,14 +68,17 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     }
     setIsLoadingSuggestions(true);
     try {
-      const results = await searchProductSuggestions(landing, query, 6, previewKey);
+      // Fuente inyectada (oferta: topada por cuota) o fallback a la landing (general).
+      const results = fetchSuggestions
+        ? await fetchSuggestions(query)
+        : await searchProductSuggestions(landing, query, 6, previewKey);
       setSuggestions(results);
     } catch {
       setSuggestions([]);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [landing, previewKey]);
+  }, [landing, previewKey, fetchSuggestions]);
 
   const handleInputChange = (newValue: string) => {
     onChange(newValue);
@@ -77,7 +89,12 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
     onClose();
     setSuggestions([]);
-    router.push(routes.producto(landing, suggestion.slug));
+    // Navegación inyectada (oferta: detalle por token) o fallback a la landing.
+    if (onSelectSuggestion) {
+      onSelectSuggestion(suggestion);
+    } else {
+      router.push(routes.producto(landing, suggestion.slug));
+    }
   };
 
   // Clear suggestions when drawer closes
@@ -137,8 +154,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     e.preventDefault();
     if (value && onSubmit) {
       analytics.trackSearchSubmit({
-        query_length: value.length,
+        query: value,
         has_results: suggestions.length > 0,
+        results_count: suggestions.length,
         location: 'search_drawer',
       });
       onSubmit();
@@ -261,9 +279,17 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
               <div className="flex-1 overflow-y-auto px-4 pb-2">
                 <div className="space-y-1">
                   {suggestions.map((suggestion) => {
-                    const term = (suggestion.maxTermMonths || 24) as TermMonths;
+                    // El plazo del hook, no el máximo: la cuota que muestra el
+                    // backend corresponde a ese plazo. Mezclarlos daba "S/293
+                    // x 36 meses" cuando la card decía 24 (BAL-2983).
+                    const termMeses = (suggestion.hookTermMonths ?? suggestion.maxTermMonths ?? 24) as TermMonths;
+                    // El plazo se muestra en la unidad de la frecuencia (la card
+                    // divide por 4 en semanal, ProductCard.tsx:316-319), pero la
+                    // cuota de respaldo se calcula con los MESES: pasarle 6 a la
+                    // francesa daria una cuota cuatro veces mayor.
+                    const term = termInFrequency(termMeses, suggestion.paymentFrequency) as TermMonths;
                     const quota = suggestion.price > 0
-                      ? (suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota)
+                      ? (suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, termMeses, SELECTED_INITIAL).quota)
                       : null;
                     return (
                       <button
@@ -302,6 +328,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                             </p>
                             <p className="text-[10px] text-[var(--text-muted,#6b7280)]">
                               x {term} meses
+                              {suggestion.hookInitialAmount
+                                ? ` · inicial S/${formatMoney(suggestion.hookInitialAmount)}`
+                                : ' · sin inicial'}
                             </p>
                           </div>
                         )}
@@ -329,8 +358,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 onPress={() => {
                   if (value && onSubmit) {
                     analytics.trackSearchSubmit({
-                      query_length: value.length,
+                      query: value,
                       has_results: suggestions.length > 0,
+                      results_count: suggestions.length,
                       location: 'search_drawer',
                     });
                     onSubmit();

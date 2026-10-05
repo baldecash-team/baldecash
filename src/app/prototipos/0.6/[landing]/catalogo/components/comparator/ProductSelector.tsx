@@ -5,6 +5,7 @@ import { Card, CardBody, Checkbox, Button } from '@nextui-org/react';
 import { Check, Scale } from 'lucide-react';
 import { ProductSelectorProps, ComparisonProduct, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
+import { cardKey } from '../../utils/cardKey';
 
 /**
  * ProductSelector - Grid de productos seleccionables
@@ -34,7 +35,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
 
         return (
           <Card
-            key={product.id}
+            key={cardKey(product)}
             isPressable
             isDisabled={isDisabled}
             onPress={() => handleToggle(product)}
@@ -115,7 +116,7 @@ export const CompareFloatingBar: React.FC<CompareFloatingBarProps> = ({
       <div className="flex -space-x-2">
         {selectedProducts.map((product) => (
           <div
-            key={product.id}
+            key={cardKey(product)}
             className="w-10 h-10 rounded-lg border-2 border-white bg-[var(--surface-2,#f3f4f6)] overflow-hidden shadow-sm"
           >
             <img

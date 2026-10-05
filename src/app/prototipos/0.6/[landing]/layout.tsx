@@ -18,13 +18,20 @@ import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
 import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipToken, saveVipName } from '../components/hero/DniModal';
+import {
+  resetLandingSessionIfIdentityChanged,
+  resetLandingClientDataIfIdentityChanged,
+} from '../utils/landingSession';
 import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
 import { routes, normalizeCatalogUrl } from '../utils/routes';
 import { evaluateLandingAccess } from '../services/landingApi';
 import type { EvaluatePayload } from '../services/landingApi';
+import { FamilyFarmOverlayGate } from './overlays/FamilyFarmOverlayGate';
+import { ReferralBannerGate } from '../components/referral/ReferralBannerGate';
 import { usePreview } from '../context/PreviewContext';
+import { sendEventsBatch } from '../services/eventsApi';
 import { isDarkLanding } from '../utils/theme';
 
 /**
@@ -86,11 +93,26 @@ function useDniValidation(landing: string, onValidated: () => void) {
     setErrorMsg(null);
     setSiblingMatch(null);
     setShowRegister(false);
+    // Garantizar UUID para tracking: contexto → localStorage → generar nuevo
+    // El UUID generado aquí es reutilizado por SessionProvider al entrar al wizard
+    const sessionUuid = session?.sessionUuid
+      ?? (typeof window !== 'undefined'
+        ? localStorage.getItem(`baldecash-${landing}-wizard-session-uuid`)
+          ?? (() => {
+              const uuid = crypto.randomUUID();
+              localStorage.setItem(`baldecash-${landing}-wizard-session-uuid`, uuid);
+              return uuid;
+            })()
+        : '');
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const clientTs = Date.now();
+    sendEventsBatch(sessionUuid, [{ event_type: 'dni_submit', client_ts: clientTs, page_url: pageUrl, properties: { landing_slug: landing, whitelist: true, source: 'vip_overlay', dni } }]);
     try {
-      const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${session?.sessionUuid ? `?session_uuid=${session.sessionUuid}` : ''}`;
+      const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${sessionUuid ? `?session_uuid=${sessionUuid}` : ''}`;
       const res = await fetch(validateUrl);
       const data = await res.json();
       if (!data.valid) {
+        sendEventsBatch(sessionUuid, [{ event_type: 'dni_rejected', client_ts: Date.now(), page_url: pageUrl, properties: { landing_slug: landing, source: 'vip_overlay', dni } }]);
         if (data.found_in_sibling && data.sibling_landing_slug) {
           setSiblingMatch({
             slug: data.sibling_landing_slug,
@@ -105,15 +127,22 @@ function useDniValidation(landing: string, onValidated: () => void) {
         setSubmitting(false);
         return;
       }
+      // ANTES de escribir la identidad nueva: si el DNI validado es de otra
+      // persona, borrar la sesion del anterior. Invertir el orden borraria el
+      // token que se emite justo abajo y dejaria al cliente en bucle contra el
+      // overlay (BAL-2661).
+      resetLandingSessionIfIdentityChanged(landing, dni);
+
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
       try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
+      sendEventsBatch(sessionUuid, [{ event_type: 'dni_validated', client_ts: Date.now(), page_url: pageUrl, properties: { landing_slug: landing, source: 'vip_overlay', dni } }]);
       onValidated();
     } catch {
       setErrorMsg('Error de conexión. Intenta de nuevo.');
       setSubmitting(false);
     }
-  }, [isValidDni, submitting, landing, dni, onValidated]);
+  }, [isValidDni, submitting, landing, dni, onValidated, session?.sessionUuid]);
 
   return { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister };
 }
@@ -668,7 +697,7 @@ function setGatePass(slug: string): void {
 // un cliente que ya validó su DNI en este navegador no tenga que reingresarlo ni
 // re-evaluar Equifax al volver. Cubre todos los destinos (catálogo propio y
 // convenio), no solo el normal. Vencido el TTL, se vuelve a pedir DNI y evaluar.
-const LOCKERTRUCK_EVAL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const LOCKERTRUCK_EVAL_TTL_MS = 24 * 60 * 60 * 1000;
 
 interface LockertruckEvalCache {
   status: string;
@@ -745,12 +774,11 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('vip_auto')
         : null;
-    // Camino vip_auto: guardar el token antes de correr /evaluate para que
-    // appendVipToken lo encuentre disponible en las rutas protegidas posteriores.
-    // El guard del backend acepta este token vía fallback landing_dni_whitelist.access_token.
+    // Camino vip_auto: el token de la URL se guarda solo en ctx.accessToken para
+    // correr /evaluate. NO se guarda en localStorage como vip_token porque el
+    // backend no lo acepta en /wizard — el vip_token válido lo genera validate-dni.
     // El ?vip_auto= tiene prioridad sobre el caché: un link fresco re-evalúa.
     if (token) {
-      saveVipToken(landing, token);
       return { state: 'd2-loading', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: token };
     }
     // Reingreso sin ?vip_auto=: si hay un resultado de evaluación cacheado y
@@ -771,6 +799,20 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     }
     return { state: 'd1', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: null };
   });
+
+  // Limpiar ?vip_auto= de la URL después del primer render — no se puede hacer
+  // en el inicializador de useState (causa "setState during render" en React).
+  useEffect(() => {
+    if (ctx.accessToken && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('vip_auto')) {
+        url.searchParams.delete('vip_auto');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  // Solo al montar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Ref-guard para evitar doble disparo en StrictMode
   // Se resetea cuando el estado sale de 'd2-loading' (permite reintentar)
@@ -885,7 +927,10 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
           (resp.status === 'normal' || resp.status === 'no_normal') &&
           resp.catalog_url
         ) {
-          // Acceso normal o no_normal con catálogo → mostrar botón "Ver catálogo".
+          // Acceso normal: guardar el access_token válido para /wizard y /solicitar-config.
+          if (resp.status === 'normal' && resp.access_token) {
+            saveVipToken(landing, resp.access_token);
+          }
           // Cacheamos el outcome (7 días) para no re-pedir DNI ni re-evaluar al
           // reingresar a este navegador.
           setEvalCache(landing, {
@@ -944,21 +989,25 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     if (target.includes(`/${landing}/catalogo`)) {
       setGatePass(landing);
     }
-    // Reenviar el cupón de campaña (?coupon=) SOLO en el redirect del gate: el
-    // cupón acompaña al cliente a la URL que le corresponde según su clasificación
-    // Equifax (misma landing o convenio). normalizeCatalogUrl descarta el
-    // querystring, así que sin esto el cupón se perdería al salir del overlay.
-    // No altera la regla general: la navegación orgánica a otra landing sigue sin
-    // arrastrar cupón, porque únicamente este link del overlay lo reenvía. El
-    // catálogo destino lo captura de su propia URL y lo valida con su landing_id;
-    // si no aplica a esa landing, el backend responde valid:false y no se muestra.
-    const coupon =
-      typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('coupon')
-        : null;
-    if (coupon) {
-      const sep = target.includes('?') ? '&' : '?';
-      target = `${target}${sep}coupon=${encodeURIComponent(coupon)}`;
+    // Reenviar al catálogo TODOS los query params de la URL actual (utm_*, coupon,
+    // gclid/fbclid, y cualquier param futuro) SOLO en el redirect del gate: así no
+    // se pierde la atribución/tracking ni el cupón al salir del overlay.
+    // normalizeCatalogUrl descarta el querystring del backend, por lo que sin esto
+    // se perderían. Se EXCLUYEN los params de control del gate: vip_auto (re-dispara
+    // la evaluación del overlay y puede reabrir el loop de recarga) y keepData
+    // (flag de testing). La navegación orgánica a otra landing sigue sin arrastrar
+    // nada: únicamente este link del overlay reenvía los params. El catálogo destino
+    // valida el coupon con su propio landing_id; si no aplica, el backend responde
+    // valid:false y no se muestra.
+    if (typeof window !== 'undefined') {
+      const CONTROL_PARAMS = ['vip_auto', 'keepData'];
+      const forwarded = new URLSearchParams(window.location.search);
+      CONTROL_PARAMS.forEach((key) => forwarded.delete(key));
+      const qs = forwarded.toString();
+      if (qs) {
+        const sep = target.includes('?') ? '&' : '?';
+        target = `${target}${sep}${qs}`;
+      }
     }
     window.location.assign(target);
   }, [ctx.catalogUrl, landing]);
@@ -1389,6 +1438,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
 const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: () => void; deadline?: string }>> = {
   cade: CadeOverlayGate,
   lockertruck: LockertruckOverlayGate,
+  familyfarm: FamilyFarmOverlayGate,
 };
 
 // ── VipGate ───────────────────────────────────────────────────────────────
@@ -1402,6 +1452,7 @@ const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: 
  *       overlay_variant → custom overlay component (e.g. 'cade')
  *       dni_capture_mode 'inline' → InlineDniGate (default fullscreen)
  *       dni_capture_mode 'modal'  → DniModal (popup)
+ *       dni_capture_mode 'form'   → no bloquea: el DNI se pide en el formulario
  */
 function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
   const router = useRouter();
@@ -1410,7 +1461,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const preview = usePreview();
   const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
-  const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
+  const [captureMode, setCaptureMode] = useState<'modal' | 'inline' | 'form'>('modal');
   const [overlayVariant, setOverlayVariant] = useState('');
   const [overlayDeadline, setOverlayDeadline] = useState('');
   const [showWelcome, setShowWelcome] = useState(false);
@@ -1423,7 +1474,28 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   // Fetch lead info (name, dni) as soon as we have a token — no session needed
   useEffect(() => {
     if (infoFetchedRef.current) return;
-    const token = getVipToken(landing);
+    // Tambien se lee `?vip_auto=` de la URL, no solo el token ya guardado.
+    //
+    // Cuando el link personalizado apunta directo a una URL de catalogo, este
+    // efecto corre ANTES de que el gate guarde el token, salia por el early
+    // return de abajo y no reintentaba nunca (sus deps son [landing], que no
+    // cambian). Resultado: la persona entraba con el acceso de una y los datos
+    // de otra, porque sin esta llamada nunca se sabe de quien es el token y la
+    // verificacion de identidad no llega a correr (BAL-2661).
+    //
+    // Entrando por el home no se notaba: ahi el token se guarda y recien
+    // despues se redirige al catalogo, asi que al montar ya existia.
+    // El de la URL tiene PRIORIDAD sobre el guardado: un link personalizado
+    // fresco es un acto explicito de identidad. Al reves, si llegaba un link de
+    // otra persona con una sesion ya abierta, se le preguntaba al backend por
+    // el token viejo, respondia el DNI viejo, y la comparacion concluia que no
+    // habia cambiado nadie: la segunda persona quedaba navegando como la
+    // primera (BAL-2661).
+    const urlToken =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('vip_auto')
+        : null;
+    const token = urlToken || getVipToken(landing);
     if (!token) return;
     infoFetchedRef.current = true;
     fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
@@ -1434,6 +1506,15 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (!data?.linked) return;
+        // Mismo criterio que en la validacion del overlay, pero limpiando SOLO
+        // los datos: aca no se toca el acceso ni el estado del gate.
+        //
+        // El gate de locker-truck NO guarda el token que llega por `?vip_auto=`:
+        // siempre corre su propio /evaluate y recien guarda token cuando el
+        // resultado es `normal` (:926). Borrarle el eval cache y el gate pass a
+        // mitad de camino, o entregarle un token que el no emitio, le permitiria
+        // a alguien saltearse esa calificacion (BAL-2661).
+        if (data.dni) resetLandingClientDataIfIdentityChanged(landing, data.dni);
         if (data.first_name) saveVipName(landing, data.first_name);
         if (data.dni) {
           try { localStorage.setItem(`baldecash-dni-${landing}`, data.dni); } catch {}
@@ -1464,6 +1545,18 @@ function VipGate({ landing, children }: { landing: string; children: React.React
     if (!preview.isHydrated) return;
 
     fetchLandingConfig(landing).then((cfg) => {
+      // En modo `form` el gate no bloquea NADA: ni el catalogo, ni el producto,
+      // ni el formulario. El DNI se pide y se valida dentro de /solicitar.
+      //
+      // Va PRIMERO, antes de cualquier otra rama, porque mas abajo hay varios
+      // `return` que cortan la funcion. Uno de ellos redirige /solicitar al
+      // catalogo cuando no hay token; con este corte mas abajo, el estado
+      // quedaba en `loading` para siempre y /solicitar se veia EN BLANCO.
+      if (cfg.features.dni_capture_mode === 'form') {
+        setStatus('allowed');
+        return;
+      }
+
       // Admin preview bypasses all access checks — no redirect, no block
       if (preview.isPreviewingLanding(landing)) {
         setStatus('allowed');
@@ -1491,9 +1584,15 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       // llega con ?vip_auto=. El token queda en la URL para que el overlay lo lea.
       if (VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW.includes(variant)) {
         if (hasGatePass(landing)) {
-          // El usuario ya pasó el gate en esta sesión → acceso directo
-          setStatus('allowed');
-          return;
+          // El usuario ya pasó el gate en esta sesión — verificar que el eval
+          // cache sigue vigente. Si lo borraron (DevTools), invalidar el pass
+          // y caer al overlay para re-validar.
+          const cachedEvalForPass = getEvalCache(landing);
+          if (cachedEvalForPass) {
+            setStatus('allowed');
+            return;
+          }
+          sessionStorage.removeItem(`baldecash-gate-pass-${landing}`);
         }
         // Reingreso dentro de la ventana de caché (7 días): si el outcome
         // cacheado fue acceso normal a ESTA landing, se concede acceso directo
@@ -1515,6 +1614,13 @@ function VipGate({ landing, children }: { landing: string; children: React.React
             return;
           }
         }
+        // Si el usuario está en /solicitar o /producto y va a ver el overlay,
+        // redirigir al catálogo en lugar de mostrar el gate encima.
+        // También aplica cuando handleVip403 borró el token (sin token + en subpágina).
+        if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
+          window.location.assign(routes.catalogo(landing));
+          return;
+        }
         setOverlayVariant(variant);
         setOverlayDeadline(overlayDl);
         setStatus('blocked');
@@ -1524,7 +1630,11 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       if (hasWhitelist && typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const vipAuto = params.get('vip_auto');
-        if (vipAuto && !getVipToken(landing)) {
+        // Un link fresco REEMPLAZA el token guardado. Antes solo se guardaba
+        // cuando no habia ninguno, asi que si una segunda persona abria su link
+        // sobre una sesion ya iniciada, su token se descartaba en silencio y
+        // quedaba navegando con el acceso de la primera (BAL-2661).
+        if (vipAuto && vipAuto !== getVipToken(landing)) {
           saveVipToken(landing, vipAuto);
         }
       }
@@ -1534,6 +1644,12 @@ function VipGate({ landing, children }: { landing: string; children: React.React
           setStatus('redirecting');
           router.replace(routes.landingHome(landing));
         } else {
+          // Si el usuario está en /solicitar o /producto sin token, redirigir
+          // al catálogo en lugar de mostrar el gate encima.
+          if (typeof window !== 'undefined' && (window.location.pathname.includes('/solicitar') || window.location.pathname.includes('/producto'))) {
+            window.location.assign(routes.catalogo(landing));
+            return;
+          }
           setCaptureMode(cfg.features.dni_capture_mode || 'modal');
           setOverlayVariant(variant);
           setOverlayDeadline(overlayDl);
@@ -1646,6 +1762,22 @@ export default function LandingLayout({
           <Suspense>
             <KeepDataFlag />
           </Suspense>
+          {/*
+            La franja de referido acompaña TODO el recorrido, no sólo la landing:
+            las dudas que este canal existe para resolver aparecen en el catálogo
+            y en el formulario, no mirando el hero.
+
+            Va acá arriba por dos motivos. Uno, es el primer elemento del flujo
+            del documento, que es de donde el header fijo saca su offset (ver
+            `ReferralBanner`). Dos, está DENTRO de los providers a propósito: así
+            su evento de impresión viaja con el mismo `session_uuid` que el resto
+            de la visita y se puede cruzar con la conversión.
+
+            Fuera del VipGate a propósito: la franja se pinta igual mientras el
+            visitante resuelve el DNI o espera el countdown. No es contenido del
+            catálogo, es de quién lo trajo.
+          */}
+          <ReferralBannerGate />
           {/* Fondo oscuro para las páginas de flujo de landings dark (nvidia).
               Los tokens viven en <html data-theme="nvidia"> (LayoutContext). THEME_DARK.md §5.2 */}
           <div className={dark ? 'min-h-screen bg-[var(--surface-bg,#06060A)]' : undefined}>

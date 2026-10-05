@@ -7,3 +7,5 @@ export { InsuranceIntro } from './InsuranceIntro';
 export { PlanComparison } from './PlanComparison';
 export { InsuranceCards } from './InsuranceCards';
 export { InsuranceDetailModal } from './InsuranceDetailModal';
+export { MultiasistenciaCard } from './MultiasistenciaCard';
+export { MultiasistenciaUpsellModal } from './MultiasistenciaUpsellModal';

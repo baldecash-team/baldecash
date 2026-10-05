@@ -5,6 +5,7 @@ import { Button } from '@nextui-org/react';
 import { Trophy, TrendingDown, Check, X, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
+import { cardKey } from '../../utils/cardKey';
 
 interface DesignStyleAProps {
   products: ComparisonProduct[];
@@ -98,7 +99,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                   const isCheapest = priceDiff.quota[index] === 0;
                   return (
                     <th
-                      key={product.id}
+                      key={cardKey(product)}
                       style={{ width: productColumnWidth }}
                       className={`p-4 text-center relative group ${
                         isBest ? 'bg-[#22c55e]/5' : 'bg-[var(--surface,#fff)]'
@@ -106,7 +107,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                     >
                       {/* Remove button */}
                       <button
-                        onClick={() => onRemoveProduct(product.id)}
+                        onClick={() => onRemoveProduct(cardKey(product))}
                         className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--surface-2,#f3f4f6)] hover:bg-red-100 flex items-center justify-center cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <X className="w-3 h-3 text-[var(--text-muted,#6b7280)] hover:text-red-500" />
@@ -172,7 +173,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                                 : 'border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                             }`}
                             startContent={cartItems.includes(product.id) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
-                            onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
+                            onPress={() => !cartItems.includes(product.id) && onAddToCart?.(cardKey(product))}
                             isDisabled={cartItems.includes(product.id)}
                           >
                             {cartItems.includes(product.id) ? 'Añadido' : 'Carrito'}
@@ -205,7 +206,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                     const isBest = showBestOption && index === bestProductIndex;
                     return (
                       <td
-                        key={`${product.id}-${spec.key}`}
+                        key={`${cardKey(product)}-${spec.key}`}
                         className={`p-4 text-center transition-colors ${
                           getWinnerStyle(spec, index)
                         } ${isBest && !getWinnerStyle(spec, index) ? 'bg-[#22c55e]/5' : ''} ${

@@ -14,6 +14,7 @@ import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { PreviewBanner } from '../../components/PreviewBanner';
 import MacBookNeoLanding from '../../components/product-landing/MacBookNeoLanding';
+import SeminuevosLanding from '../../components/product-landing/seminuevos/SeminuevosLanding';
 import { LeadLanding } from '../../components/lead/LeadLanding';
 import { SessionProvider } from '../../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTrackerContext';
@@ -58,6 +59,9 @@ interface HeroData {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Marca de la institucion de las landings SIN convenio: viaja aparte de
+  // `agreementData` para no prenderles el layout de convenio.
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
   primaryColor?: string;
   secondaryColor?: string;
   slug?: string;
@@ -75,6 +79,9 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [landingSlug, setLandingSlug] = useState<string>('preview');
   const [floatingCtaConfig, setFloatingCtaConfig] = useState<FloatingCtaConfig | null>(null);
+  // El preview del admin tiene que verse igual que la landing publicada: si el
+  // logo de convenio esta apagado alla, aca tambien (BAL-2970).
+  const [showInstitutionLogo, setShowInstitutionLogo] = useState(true);
 
   // Get ID from path param first, then fall back to query param
   const queryId = searchParams.get('id');
@@ -130,6 +137,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         // Fetch landing config for feature flags (floating CTA, etc.)
         const landingConfig = await fetchLandingConfig(slug);
         setFloatingCtaConfig(landingConfig.features.floating_cta ?? null);
+        setShowInstitutionLogo(landingConfig.layout?.show_agreement_logo !== false);
 
         // Save preview state to context (persists in sessionStorage)
         // This allows navigation to catalog/product/solicitar to maintain preview mode
@@ -395,6 +403,33 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
     );
   }
 
+  // Landing de equipos seminuevos.
+  if (heroData.landingId === LANDING_IDS.SEMINUEVOS) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData.primaryColor || '#4654CD',
+          '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <SeminuevosLanding
+          footerData={mergedFooterData}
+          landing={landingSlug}
+          previewBannerOffset={24}
+          promoBannerData={heroData.promoBannerData}
+          faqData={mergedFaq}
+          logoUrl={heroData.logoUrl}
+          primaryColor={heroData.primaryColor}
+          whatsappUrl={mergedCta?.buttons.whatsapp.url}
+          // Igual que en la landing publicada: el menú sale de BD. Acá además
+          // pasa por el merge del preview, así que los cambios sin guardar del
+          // admin también se ven (BAL-3288).
+          navbarItems={mergedNavbarItems}
+        />
+      </div>
+    );
+  }
+
   const showPreviewBanner = isPreviewMode || hasPreviewKey;
   const previewBannerHeight = 24;
 
@@ -425,6 +460,8 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         footerData={mergedFooterData}
         benefitsData={heroData.benefitsData}
         agreementData={heroData.agreementData}
+        institutionBranding={heroData.institutionBranding}
+        showInstitutionLogo={showInstitutionLogo}
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}

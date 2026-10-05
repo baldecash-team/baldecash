@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
@@ -14,6 +15,7 @@ import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
 import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { FilterChips } from '../filters/FilterChips';
 import { TagsFilter } from '../filters/TagsFilter';
+import { ConditionRadioFilter } from '../filters/ConditionRadioFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
 import { CouponCampaignBanner } from '../CouponCampaignBanner';
@@ -63,14 +65,155 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   totalProducts,
   gridRef,
   catalogBanner,
+  catalogBannerId,
   vipCountdownDate,
   overlayVariant,
   campaignCoupon,
   isCampaignCouponValidating,
+  chipsDeUso,
+  filtroPorUso,
+  barraDeOrden,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const analytics = useAnalytics();
+
+  // La landing sale de la ruta ([landing]/catalogo). El banner la necesita
+  // para resolver los enlaces que guarda el admin, que vienen sin barra
+  // inicial (`catalogo?device=laptop`). Mismo patrón que ProductCard.
+  const routeParams = useParams();
+  const landingSlug = typeof routeParams?.landing === 'string' ? routeParams.landing : null;
+
+  /**
+   * Banner y countdown VIP son excluyentes, y el countdown manda: el banner
+   * solo se pinta cuando NO hay countdown.
+   *
+   * El `!== null` es un guard de "la config ya cargó": sin él el banner
+   * parpadearía en la primera pintada y desaparecería al llegar el countdown.
+   */
+  const hayBanner = vipCountdownDate !== null && !vipCountdownDate && !!catalogBanner;
+
+  /**
+   * `banner_type` se resuelve por AUSENCIA, no por igualdad a 'imagen': las
+   * landings con banner ya en producción no tienen esa clave. Ver CatalogBanner.tsx.
+   */
+  const tipoBanner = ((catalogBanner?.banner_type as string | undefined) ?? 'imagen');
+
+  /**
+   * Destino del clic, para la analítica. Cada tipo guarda el suyo en una clave
+   * distinta, y la imagen además puede tener uno por viewport: se manda el de
+   * desktop, que es el que existe siempre (el de móvil cae a él si está vacío).
+   */
+  const destinoDelBanner = (
+    tipoBanner === 'tira_remate'
+      ? (catalogBanner?.strip_cta_url as string | undefined)
+      : ((catalogBanner?.desktop_link_url as string | undefined)
+          || (catalogBanner?.link_url as string | undefined))
+  ) || undefined;
+
+  /**
+   * Dónde va el banner respecto del bloque "Encuentra tu equipo ideal".
+   * Ausente = 'arriba', que es donde estuvo siempre: las landings ya
+   * publicadas no deben moverse solas al desplegar.
+   */
+  const posicionDelBanner =
+    (catalogBanner?.strip_position as string | undefined) === 'abajo' ? 'abajo' : 'arriba';
+
+  /**
+   * Con banner se oculta la presentación del encabezado -el título, la bajada
+   * y el icono que los acompaña-, pero SOLO EN MÓVIL: ahí el alto es escaso y
+   * las dos piezas compiten por el primer golpe de vista. En desktop hay sitio
+   * de sobra y el encabezado se queda completo.
+   *
+   * Las tres van juntas. El icono no se queda solo: sin el texto al lado queda
+   * una caja de 40x40 con una lupa suelta y un gap esperando un hermano que ya
+   * no existe.
+   *
+   * El corte se aplica con `hidden sm:flex` donde se usa esta bandera; acá solo
+   * se decide SI corresponde ocultarlo.
+   *
+   * Lo que SÍ sigue en ambos tamaños es el conteo, el orden y las cuatro
+   * tarjetas de uso: son controles, no presentación, y sin ellos no hay cómo
+   * filtrar ni ordenar.
+   *
+   * EXCEPCIÓN: si el banner va DEBAJO de ese texto, ocultarlo lo dejaría sin
+   * la referencia que le da sentido a "abajo de". La posición manda.
+   */
+  const ocultarTextoEncabezado = hayBanner && posicionDelBanner === 'arriba';
+
+  /**
+   * El banner, listo para pintar. Se extrae a una constante porque va en
+   * DOS sitios distintos según `posicionDelBanner`, y duplicar 60 líneas de
+   * JSX -handlers de analítica incluidos- es pedir que las dos copias se
+   * separen con el primer cambio.
+   *
+   * La tira va a sangre: se neutraliza el padding del wrapper SOLO para
+   * ese tipo.
+   */
+  const bloqueDelBanner = hayBanner && catalogBanner ? (
+    <div
+      className={[
+        tipoBanner === 'tira_remate'
+          ? 'w-full'
+          : 'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4',
+        // Abajo, el banner queda contra la grilla de productos: el bloque que
+        // lo seguía cuando iba arriba traía su propio margen superior, y acá
+        // no hay nada que los separe -la tira terminaba pegada a la primera
+        // card-. Solo en esta posición: arriba el espaciado ya funciona.
+        posicionDelBanner === 'abajo' ? 'mb-4 sm:mb-6' : '',
+      ].filter(Boolean).join(' ')}
+      onClick={() => {
+        // Sin destino el banner es decorativo: no se envuelve en <a> y
+        // no lleva a ninguna parte, así que no hay clic que medir. El
+        // handler vive en este contenedor -no en el <a>-, de modo que
+        // sin este guard se registraría igual y contaría una visita que
+        // nunca ocurrió.
+        if (!destinoDelBanner) return;
+        analytics.trackBannerClick({
+          location: 'catalog_top',
+          banner_id: catalogBannerId?.toString(),
+          variant: tipoBanner,
+          href: destinoDelBanner,
+        });
+        // El banner navega fuera en la misma pestaña: si el evento se
+        // queda esperando el intervalo de 5s, la página se va antes y
+        // el clic se pierde.
+        analytics.flush();
+      }}
+      onMouseEnter={() => {
+        // Mismo motivo que el clic: un banner que no lleva a ningún
+        // lado no genera interés que medir.
+        if (!destinoDelBanner) return;
+        analytics.trackBannerHover({
+          location: 'catalog_top',
+          banner_id: catalogBannerId?.toString(),
+          variant: tipoBanner,
+        });
+      }}
+    >
+      <CatalogBanner
+        desktopImageUrl={catalogBanner.desktop_image_url as string}
+        mobileImageUrl={catalogBanner.mobile_image_url as string}
+        linkUrl={catalogBanner.link_url as string | undefined}
+        desktopLinkUrl={catalogBanner.desktop_link_url as string | undefined}
+        mobileLinkUrl={catalogBanner.mobile_link_url as string | undefined}
+        landing={landingSlug ?? undefined}
+        linkTarget={catalogBanner.link_target as string | undefined}
+        altText={catalogBanner.alt_text as string | undefined}
+        bannerType={catalogBanner.banner_type as string | undefined}
+        stripTitle={catalogBanner.strip_title as string | undefined}
+        stripPriceText={catalogBanner.strip_price_text as string | undefined}
+        stripCtaText={catalogBanner.strip_cta_text as string | undefined}
+        stripCtaUrl={catalogBanner.strip_cta_url as string | undefined}
+        stripBgColor={catalogBanner.strip_bg_color as string | undefined}
+        stripBgColor2={catalogBanner.strip_bg_color_2 as string | undefined}
+        stripTextColor={catalogBanner.strip_text_color as string | undefined}
+        stripConfetti={catalogBanner.strip_confetti === true}
+        stripIconUrl={catalogBanner.strip_icon_url as string | undefined}
+        stripIntro={catalogBanner.strip_intro as string | undefined}
+      />
+    </div>
+  ) : null;
 
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
@@ -139,7 +282,22 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       return [];
     }
     return filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions;
-  }, [apiFilters, filterCounts]);
+  }, [apiFilters, filterCounts, overlayVariant]);
+
+  // Family Farms cambia "Destacados" por "Estado del equipo": la condición sube al
+  // segundo lugar del sidebar y pasa a selección única, porque es la segunda
+  // pregunta de la atención presencial. Va por variante de overlay (no por slug)
+  // para que una landing nueva de la campaña lo herede sin deploy.
+  const isFamilyFarm = overlayVariant === 'familyfarm';
+
+  // Contador de "Todos los equipos". Se suma sobre las mismas opciones que se
+  // muestran, no sobre `totalProducts`, que ya viene filtrado por condición: si
+  // no, elegir "Nuevo" bajaría también el número de "Todos los equipos".
+  const conditionTotal = React.useMemo(
+    () => (dynamicConditionOptions ?? []).reduce((acc, opt) => acc + (opt.count || 0), 0),
+    [dynamicConditionOptions],
+  );
+
   const dynamicRamOptions = React.useMemo(() => {
     if (apiFilters) {
       if (apiFilters.specs?.ram?.values && apiFilters.specs.ram.values.length > 0) {
@@ -292,7 +450,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     });
 
     filters.condition.forEach((condition) => {
-      const opt = conditionOptions.find((o) => o.value === condition);
+      // Contra las opciones del API, no contra las del mock: el mock trae los
+      // valores del enum del front ('reacondicionado') y el filtro guarda los del
+      // API ('reacondicionada'), así que nunca casaban y la píldora mostraba el
+      // valor crudo. De paso hereda la etiqueta propia de la campaña.
+      const opt = dynamicConditionOptions?.find((o) => o.value === condition);
       applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
     });
 
@@ -375,7 +537,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     return applied;
-  }, [filters, searchQuery, dynamicGpuOptions]);
+  }, [filters, searchQuery, dynamicGpuOptions, dynamicConditionOptions]);
 
   const appliedFiltersCount = React.useMemo(() => {
     return (
@@ -567,7 +729,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       <div className="min-h-screen">
         {/* Campaign Coupon Banner — sobre el header del catálogo
             (nada se muestra mientras se valida; aparece sólo cuando hay cupón válido) */}
-        {campaignCoupon && (
+        {/* El banner de campaña es EXCLUSIVO de cupones de referido:
+            solo se muestra cuando el cupón trae referidor (referrerName). */}
+        {campaignCoupon?.referrerName && (
           <div className="w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
             <CouponCampaignBanner
               coupon={campaignCoupon}
@@ -576,7 +740,20 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Full Width Header Section - Inside Card */}
+        {/* Banner arriba del encabezado: la posición por defecto, y donde
+            estuvo siempre. Ver `posicionDelBanner`. */}
+        {posicionDelBanner === 'arriba' && bloqueDelBanner}
+
+        {/* Full Width Header Section - Inside Card.
+            Cada mitad la prende un preset propio (BAL-3883), ya no una regex
+            sobre el slug: `filtroPorUso` decide el título + las 4 tarjetas de
+            uso, `barraDeOrden` decide el contador de equipos + el selector de
+            orden. En segundo financiamiento (`renueva-*`) el backend apaga
+            ambos: quien vuelve por un equipo concreto no necesita explorar
+            por uso ni ordenar una oferta de unos pocos equipos que ya entran
+            en pantalla. La card entera se omite cuando no queda nada dentro,
+            para no envolver una sección vacía en sombra y borde. */}
+        {(filtroPorUso || barraDeOrden) && (
         <div className="w-full p-3 sm:p-4 lg:p-6">
           <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
             <CardBody className="p-4 sm:p-5 md:p-6">
@@ -586,7 +763,20 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                {/* Dos capas distintas, no una sola:
+                    - `filtroPorUso` (BAL-3883) decide si esta mitad EXISTE en
+                      esta landing; si no, no se monta.
+                    - `ocultarTextoEncabezado` decide si, existiendo, se ve en
+                      movil: con banner el alto es escaso y las dos piezas
+                      compiten por el primer golpe de vista. En desktop hay
+                      sitio de sobra y el encabezado se queda completo.
+                    Lo segundo va con `hidden sm:flex` y no desmontando: el
+                    breakpoint es de CSS, y en JS habria que duplicarlo con un
+                    matchMedia que ademas rompe la hidratacion en SSR. */}
+                {filtroPorUso && (
+                <div
+                  className={`${ocultarTextoEncabezado ? 'hidden sm:flex' : 'flex'} items-center gap-3 min-w-0`}
+                >
                   <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                     <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
@@ -599,7 +789,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     </p>
                   </div>
                 </div>
+                )}
 
+                {barraDeOrden && (
                 <div id="onboarding-sort">
                   <SortDropdown
                     value={sort}
@@ -607,20 +799,30 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     totalProducts={totalProducts}
                   />
                 </div>
+                )}
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
+              {filtroPorUso && (
               <div id="onboarding-quick-cards">
                 <QuickUsageCards
                   selected={filters.usage}
                   onChange={(usage) => updateFilter('usage', usage)}
                   className=""
+                  chipsEnMobile={chipsDeUso}
                 />
               </div>
+              )}
 
             </CardBody>
           </Card>
         </div>
+        )}
+
+        {/* Banner debajo del encabezado. En esta posición el texto de
+            "Encuentra tu equipo ideal" NO se oculta en móvil: sin él delante,
+            "abajo de" no tendría referencia. Ver `ocultarTextoEncabezado`. */}
+        {posicionDelBanner === 'abajo' && bloqueDelBanner}
 
         {/* VIP Countdown Banner */}
         {vipCountdownDate && (
@@ -629,29 +831,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config) */}
-        {vipCountdownDate !== null && !vipCountdownDate && catalogBanner && (
-          <div
-            className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4"
-            onClick={() =>
-              analytics.trackBannerClick({
-                location: 'catalog_top',
-                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
-              })
-            }
-            onMouseEnter={() =>
-              analytics.trackBannerHover({
-                location: 'catalog_top',
-                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
-              })
-            }
-          >
-            <CatalogBanner
-              desktopImageUrl={catalogBanner.desktop_image_url as string}
-              mobileImageUrl={catalogBanner.mobile_image_url as string}
-            />
-          </div>
-        )}
 
         {/* CADE promo disclaimer — deshabilitado temporalmente
         {overlayVariant === 'cade' && (
@@ -702,12 +881,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         <div className="flex items-start">
           {/* Floating Filter Card - Sticky — top offset follows the dynamic
               header height (preview + promo + main navbar + secondary navbar)
-              via CSS variables exposed by each component. */}
+              via CSS variables exposed by each component, plus the referral
+              banner while it is still on screen (`--referral-banner-offset`):
+              the fixed header starts that much lower, so must this. */}
           <aside
             id="onboarding-filters-desktop"
             className="hidden lg:block w-[320px] p-6 pt-0 self-start sticky"
             style={{
-              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
+              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + var(--referral-banner-offset, 0px) + 0.5rem)',
             }}
           >
             <Card className="bg-[var(--surface,rgba(255,255,255,.95))] backdrop-blur-sm shadow-lg border border-[var(--border-soft,rgba(229,231,235,.5))]">
@@ -715,7 +896,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 className="p-4 overflow-y-auto lg:pb-32"
                 style={{
                   maxHeight:
-                    'calc(100vh - var(--header-total-height, 6.5rem) - var(--catalog-secondary-height, 3.5rem) - 2rem)',
+                    'calc(100vh - var(--header-total-height, 6.5rem) - var(--catalog-secondary-height, 3.5rem) - var(--referral-banner-offset, 0px) - 2rem)',
                 }}
               >
                 {/* Header */}
@@ -794,13 +975,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </FilterSection>
                 )}
 
-                {/* Tags Filter */}
-                <TagsFilter
-                  tagOptions={dynamicTagOptions}
-                  selectedTags={filters.tags}
-                  onTagsChange={(tags) => updateFilter('tags', tags)}
-                  showCounts={config.showFilterCounts}
-                />
+                {/* Tags Filter — en Family Farms lo reemplaza "Estado del equipo" */}
+                {isFamilyFarm ? (
+                  <ConditionRadioFilter
+                    conditionOptions={dynamicConditionOptions}
+                    selectedCondition={filters.condition}
+                    onConditionChange={(condition) => updateFilter('condition', condition)}
+                    totalProducts={conditionTotal}
+                    showCounts={config.showFilterCounts}
+                  />
+                ) : (
+                  <TagsFilter
+                    tagOptions={dynamicTagOptions}
+                    selectedTags={filters.tags}
+                    onTagsChange={(tags) => updateFilter('tags', tags)}
+                    showCounts={config.showFilterCounts}
+                  />
+                )}
 
                 {/* Brand Filter - hide if 1 or fewer options */}
                 {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
@@ -838,14 +1029,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </FilterSection>
                 )}
 
-                {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
+                {/* Main Filters (Uso recomendado, Condición) - styled based on version.
+                    En Family Farms la condición ya vive arriba, en "Estado del equipo":
+                    sin opciones acá, esa sección no se dibuja y no queda duplicada. */}
                 <TechnicalFiltersStyled
                   version={config.technicalFiltersVersion}
                   showFilters="main"
                   usageOptions={dynamicUsageOptions}
                   selectedUsage={filters.usage}
                   onUsageChange={(usage) => updateFilter('usage', usage)}
-                  conditionOptions={dynamicConditionOptions}
+                  conditionOptions={isFamilyFarm ? [] : dynamicConditionOptions}
                   selectedCondition={filters.condition}
                   onConditionChange={(condition) => updateFilter('condition', condition)}
                   showCounts={config.showFilterCounts}
@@ -1029,13 +1222,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </FilterSection>
             )}
 
-            {/* Tags Filter */}
-            <TagsFilter
-              tagOptions={dynamicTagOptions}
-              selectedTags={filters.tags}
-              onTagsChange={(tags) => updateFilter('tags', tags)}
-              showCounts={config.showFilterCounts}
-            />
+            {/* Tags Filter — en Family Farms lo reemplaza "Estado del equipo" */}
+            {isFamilyFarm ? (
+              <ConditionRadioFilter
+                conditionOptions={dynamicConditionOptions}
+                selectedCondition={filters.condition}
+                onConditionChange={(condition) => updateFilter('condition', condition)}
+                totalProducts={conditionTotal}
+                showCounts={config.showFilterCounts}
+              />
+            ) : (
+              <TagsFilter
+                tagOptions={dynamicTagOptions}
+                selectedTags={filters.tags}
+                onTagsChange={(tags) => updateFilter('tags', tags)}
+                showCounts={config.showFilterCounts}
+              />
+            )}
 
             {/* Brand Filter - hide if 1 or fewer options */}
             {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
@@ -1073,14 +1276,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </FilterSection>
             )}
 
-            {/* Main Filters (Uso recomendado, Condición) */}
+            {/* Main Filters (Uso recomendado, Condición).
+                En Family Farms la condición ya vive arriba, en "Estado del equipo":
+                sin opciones acá, esa sección no se dibuja y no queda duplicada. */}
             <TechnicalFiltersStyled
               version={config.technicalFiltersVersion}
               showFilters="main"
               usageOptions={dynamicUsageOptions}
               selectedUsage={filters.usage}
               onUsageChange={(usage) => updateFilter('usage', usage)}
-              conditionOptions={dynamicConditionOptions}
+              conditionOptions={isFamilyFarm ? [] : dynamicConditionOptions}
               selectedCondition={filters.condition}
               onConditionChange={(condition) => updateFilter('condition', condition)}
               showCounts={config.showFilterCounts}

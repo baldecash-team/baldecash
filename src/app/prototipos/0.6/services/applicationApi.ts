@@ -21,12 +21,23 @@ export interface UploadedFileData {
 export interface SubmitApplicationRequest {
   /** Tracking session UUID */
   session_uuid: string;
-  /** Form data collected from wizard steps */
-  form_data: Record<string, string | number | boolean>;
+  /**
+   * Form data collected from wizard steps. `string[]` es para las opciones
+   * marcadas de una casilla de selección múltiple (BAL-4354) — el resto de
+   * campos sigue siendo escalar.
+   */
+  form_data: Record<string, string | number | boolean | string[]>;
   /** Product and pricing configuration - backend calculates final amounts */
   product_data: {
     product_id: number;
     variant_id?: number;
+    /**
+     * Combo de la card elegida, o `null` si el cliente compro el producto suelto.
+     * SIEMPRE se envia, incluido el `null`: el backend necesita distinguir "eligio
+     * el pelado" de "este front no lo manda". Sin el, cae a una heuristica por
+     * precio que no ve los combos de regalo (mismo precio que el equipo solo).
+     */
+    combo_id?: number | null;
     /** Raw term in native units of payment_frequency (weeks / fortnights / months). */
     term: number;
     /** Term normalized to months (12 for 24 quincenas, etc.). */
@@ -34,6 +45,14 @@ export interface SubmitApplicationRequest {
     initial_percent: number; // 0, 10, 20, 30 - backend calculates amounts
     /** Initial payment amount in soles (hint for backend; it still recomputes). */
     initial_amount?: number;
+    /**
+     * En cuantas armadas se cobra la inicial: 1 (pago unico), 2 o 4.
+     *
+     * Es un fallback, no la fuente de verdad: manda la celda del pricing y el
+     * backend solo mira esto si la celda no configuro armadas. Ademas lo sanea
+     * a {2,4}, asi que un valor cualquiera degrada a pago unico.
+     */
+    initial_installments?: number;
     unit_price?: number; // Hint for backend, will be validated against DB
     /** Payment frequency of the primary product: 'semanal' | 'quincenal' | 'mensual' */
     payment_frequency?: string;
@@ -41,6 +60,8 @@ export interface SubmitApplicationRequest {
     products?: {
       product_id: number;
       variant_id?: number;  // Color/variant selection
+      /** Combo de la card elegida para este item, o `null` si es el producto suelto. */
+      combo_id?: number | null;
       quantity: number;
       unit_price?: number;
       monthly_price?: number;  // Cuota mensual con intereses
@@ -60,6 +81,20 @@ export interface SubmitApplicationRequest {
   };
   /** Optional coupon code for discount */
   coupon_code?: string;
+  /**
+   * `session_id` del pixel JuicyScore, cuando la integración está activa.
+   * Es lo único que el backend necesita para lanzar el GetScore server-to-server
+   * (etapa 2 de JuicyScore). Se omite del payload si no hay pixel o si no
+   * alcanzó a emitir sesión — el submit nunca depende de esto.
+   */
+  juicyscore_session_id?: string;
+  /**
+   * `form_id` del formulario que el wizard le mostró a esta sesión (varios
+   * formularios por landing, repartidos por peso). Viaja para que la
+   * solicitud se guarde con ESE formulario aunque el reparto cambie mientras
+   * la persona lo está llenando. Se omite si no se conoce el formulario.
+   */
+  wizard_form_id?: number;
   /** Optional files to upload (e.g., DNI, payslips) */
   files?: UploadedFileData[];
 }
@@ -77,6 +112,17 @@ export interface SubmitApplicationResponse {
   application_id?: number;
   application_code?: string;
   public_token?: string;  // UUID for secure public URLs
+  /**
+   * Token del KYC emitido en el submit: el mismo del link de "continuar
+   * despues" (hasheado, con TTL, revocable). Sirve de prueba de titularidad
+   * para que el KYC no tenga que pedir el DNI.
+   *
+   * Opcional a proposito: el mint es best-effort y nunca bloquea el submit, asi
+   * que el front debe caer a la ruta por `application_code` si no llega.
+   */
+  kyc_resume_token?: string;
+  kyc_resume_url?: string;
+  kyc_resume_expires_at?: string;
   status?: string;
   error?: string;
   error_code?: string;
@@ -94,6 +140,21 @@ export interface SubmitApplicationResponse {
 export interface CheckPersonRequest {
   document_type: 'dni' | 'ce' | 'passport';
   document_number: string;
+  /** Slug de la landing (p. ej. "canal-preferente"). El backend lo usa para evaluar whitelist. */
+  landing_slug?: string;
+}
+
+/** Resultado de whitelist devuelto por check-person. allowed=false bloquea el flujo. */
+export interface CheckPersonWhitelist {
+  allowed: boolean;
+  message: string;
+  /** true si el DNI esta invitado a otra landing del mismo `whitelist_group`. */
+  found_in_sibling?: boolean;
+  /** Slug de esa landing hermana, para ofrecer ir alla en vez de rechazar. */
+  sibling_landing_slug?: string | null;
+  sibling_landing_name?: string | null;
+  /** Nombre de pila en la whitelist de la hermana. Puede venir vacio. */
+  first_name?: string | null;
 }
 
 export interface PrefillData {
@@ -108,6 +169,8 @@ export interface PrefillData {
 export interface CheckPersonResponse {
   exists: boolean;
   prefill_data: PrefillData | null;
+  /** Si viene con allowed=false, el flujo se bloquea mostrando `message`. */
+  whitelist?: CheckPersonWhitelist | null;
 }
 
 export interface SaveStepRequest {
@@ -148,6 +211,17 @@ export async function submitApplication(
       form_data: data.form_data,
       product_data: data.product_data,
       coupon_code: data.coupon_code,
+      // Solo viaja cuando el pixel emitió sesión. La clave se omite por completo
+      // en caso contrario, para no cambiar el payload de las landings sin JuicyScore.
+      ...(data.juicyscore_session_id
+        ? { juicyscore_session_id: data.juicyscore_session_id }
+        : {}),
+      // Igual que juicyscore_session_id: se omite la clave por completo si no
+      // se conoce el formulario mostrado, para no cambiar el payload de las
+      // landings que todavía no reparten varios formularios.
+      ...(data.wizard_form_id !== undefined
+        ? { wizard_form_id: data.wizard_form_id }
+        : {}),
     };
     formData.append('form_data', JSON.stringify(jsonData));
 
@@ -174,6 +248,12 @@ export async function submitApplication(
       return {
         success: false,
         error: result.detail || 'Error al enviar la solicitud',
+        // El 400 del submit trae el motivo en `error_code` junto a `detail`
+        // (OUT_OF_STOCK, COUPON_USER_LIMIT_REACHED, ...). Sin pasarlo acá,
+        // useSubmitApplication no puede elegir el mensaje y la analítica
+        // registra `unknown`: así se perdió el caso del DNI 60477990
+        // (21/22-09-2026, 27 envíos fallidos, todos `unknown`).
+        error_code: result.error_code ?? undefined,
       };
     }
 
@@ -206,6 +286,7 @@ export async function checkPerson(
       return {
         exists: false,
         prefill_data: null,
+        whitelist: null,
       };
     }
 
@@ -215,6 +296,7 @@ export async function checkPerson(
     return {
       exists: false,
       prefill_data: null,
+      whitelist: null,
     };
   }
 }
@@ -258,6 +340,8 @@ export async function saveFormStep(
  * Application status response type
  */
 export interface ApplicationStatusResponse {
+  /** Ver `ApplicationStatusData.reference`: el numero que se le muestra al cliente. */
+  reference?: string | null;
   code: string;
   status: string;
   submitted_at: string | null;
@@ -298,6 +382,8 @@ export interface ApplicationStatusResponse {
   accessories?: Array<{
     name: string;
     monthly_quota: number;
+    /** BAL-4200: regalo del combo (viene incluido, no suma a la cuota). */
+    is_gift?: boolean;
   }> | null;
 
   insurance?: {
@@ -325,6 +411,14 @@ export interface ApplicationStatusResponse {
     reason_text: string | null;
     changed_at: string | null;
   }>;
+
+  /**
+   * `true` cuando `/status` respondió recortado (link sin token, BAL-4188):
+   * sin nombre, equipo ni cuota. Ver `ApplicationStatusData.limited`.
+   */
+  limited?: boolean;
+  /** Slug de la landing dueña de la solicitud. Ver `ApplicationStatusData.landing_slug`. */
+  landing_slug?: string | null;
 }
 
 /**

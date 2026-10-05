@@ -1,0 +1,59 @@
+/**
+ * Formato compartido de cuota / plazo / inicial para las cards de oferta.
+ * Fuente ÚNICA de verdad usada por el Caso 4 (OfertaEquipoCard) y el Caso 5
+ * (EquipoCard de UpsellPortada), para que ambos muestren el mismo formato y no
+ * se desincronicen (BAL-2100).
+ */
+
+/** Sufijo de la cuota según la frecuencia: /mes | /sem | /qcn. */
+export function cuotaSuffix(freq?: string | null): string {
+  const f = freq ?? 'mensual';
+  return f === 'semanal' ? '/sem' : f === 'quincenal' ? '/qcn' : '/mes';
+}
+
+/**
+ * BAL-2379: factor para llevar una cuota de su frecuencia nativa a MENSUAL, para
+ * poder compararla contra la cuota aprobada (que es mensual). quincenal→2 (24
+ * periodos/año ÷ 12), semanal→4 (48÷12), mensual→1. Espejo del `_monthly_factor`
+ * del backend (conditional_offer_service.py).
+ */
+export function monthlyFactor(freq?: string | null): number {
+  const f = (freq ?? 'mensual').toLowerCase();
+  return f === 'semanal' ? 4 : f === 'quincenal' ? 2 : 1;
+}
+
+/**
+ * Plazo en la unidad de su frecuencia (nº de cuotas). El backend manda
+ * `term` = cuotas (48 semanas) y `term_months` = meses (12); para semanal/
+ * quincenal va `term`, si no la card dice "12 semanas" por un plan de 48.
+ */
+export function plazoNativo(
+  term: number | null | undefined,
+  termMonths: number | null | undefined,
+  freq?: string | null,
+): number | null {
+  const f = (freq ?? 'mensual').toLowerCase();
+  if (f === 'semanal' || f === 'quincenal') return term ?? termMonths ?? null;
+  return termMonths ?? term ?? null;
+}
+
+/** Unidad del plazo (singular/plural) según frecuencia: mes(es)/semana(s)/quincena(s). */
+export function plazoUnit(n: number | null | undefined, freq?: string | null): string {
+  const f = freq ?? 'mensual';
+  if (f === 'semanal') return n === 1 ? 'semana' : 'semanas';
+  if (f === 'quincenal') return n === 1 ? 'quincena' : 'quincenas';
+  return n === 1 ? 'mes' : 'meses';
+}
+
+/**
+ * Texto del subíndice de inicial. Prioriza el MONTO (S/) sobre el porcentaje;
+ * cae a "sin inicial" si no hay monto ni % positivos.
+ */
+export function inicialText(
+  initialAmount?: number | null,
+  initialPercent?: number | null,
+): string {
+  if (initialAmount != null && initialAmount > 0) return ` · inicial S/${Math.round(initialAmount)}`;
+  if (initialPercent != null && initialPercent > 0) return ` · inicial ${initialPercent}%`;
+  return ' · sin inicial';
+}

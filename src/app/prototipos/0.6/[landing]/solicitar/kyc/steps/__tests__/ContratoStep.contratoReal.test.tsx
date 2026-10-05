@@ -1,0 +1,225 @@
+/**
+ * El paso de firma muestra el contrato de la solicitud.
+ *
+ * `disponible: false` no es un error: el contrato nace con la aprobación, así
+ * que antes de eso su ausencia es el estado normal del flujo. Lo que NO puede
+ * pasar es mostrar un documento genérico como si fuera el propio.
+ */
+
+interface RespuestaContrato {
+  disponible: boolean;
+  html?: string;
+}
+
+type Vista = 'documento' | 'esperando';
+
+function vistaDelPaso(r: RespuestaContrato): Vista {
+  return r.disponible && r.html ? 'documento' : 'esperando';
+}
+
+describe('qué se muestra en el paso de firma', () => {
+  it('el contrato cuando está emitido', () => {
+    expect(vistaDelPaso({ disponible: true, html: '<p>Contrato</p>' })).toBe('documento');
+  });
+
+  it('espera cuando todavía no se aprobó', () => {
+    expect(vistaDelPaso({ disponible: false })).toBe('esperando');
+  });
+
+  it('un disponible sin html no pinta nada', () => {
+    expect(vistaDelPaso({ disponible: true })).toBe('esperando');
+  });
+});
+
+/**
+ * Y lo mismo sobre el componente real: lo que importa es que nunca se muestre
+ * un documento que no sea el de esta solicitud.
+ */
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext', () => ({
+  useEventTrackerOptional: () => ({ track: jest.fn(), flush: jest.fn() }),
+}));
+
+jest.mock('@/app/prototipos/0.6/services/kycApi', () => {
+  const actual = jest.requireActual('@/app/prototipos/0.6/services/kycApi');
+  return { ...actual, getContrato: jest.fn() };
+});
+
+import { ContratoStep } from '../ContratoStep';
+import { getContrato } from '@/app/prototipos/0.6/services/kycApi';
+
+const mockGetContrato = getContrato as jest.MockedFunction<typeof getContrato>;
+
+describe('el paso de firma sobre el componente', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('pinta el contrato emitido de la solicitud', async () => {
+    mockGetContrato.mockResolvedValue({
+      modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato de Juana Pérez</p>',
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
+    expect(screen.getByText(/Juana Pérez/)).toBeInTheDocument();
+    expect(screen.getByText('He leído y acepto el contrato')).toBeInTheDocument();
+  });
+
+  it('sin contrato emitido no muestra espera ni ofrece aceptar nada', async () => {
+    // En `emitido` el contrato nace con la aprobación, que corre DESPUÉS de
+    // esta pantalla: no hay nada que esperar acá. Mostrar «se está generando»
+    // prometía un documento que en este paso no puede llegar.
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByTestId('contrato-esperando')).not.toBeInTheDocument());
+    expect(screen.queryByTestId('contrato-error')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('contrato-documento')).not.toBeInTheDocument();
+    expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
+  });
+
+  it('en modo emitido, sin documento, deja continuar', async () => {
+    // El contrato de este camino nace con la aprobacion, que en el KYC corre
+    // DESPUES de esta pantalla: bloquear el boton dejaria el flujo trabado
+    // esperando algo que no llega aca.
+    mockGetContrato.mockResolvedValue({
+      modo: 'emitido' as const, estado: 'generando' as const, disponible: false,
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.queryByTestId('contrato-esperando')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeEnabled();
+  });
+
+  it('un error de red tampoco cae a un documento ajeno', async () => {
+    mockGetContrato.mockResolvedValue(null);
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    // Un fallo de red se muestra como error reintentable —no como una espera
+    // eterna—, pero lo que este test protege sigue siendo lo mismo: NUNCA se
+    // pinta un documento cuando no se pudo traer el propio.
+    await waitFor(() => expect(screen.getByTestId('contrato-error')).toBeInTheDocument());
+    expect(screen.queryByTestId('contrato-documento')).not.toBeInTheDocument();
+  });
+
+  it('manda la prueba de titularidad que corresponde al flujo por link', async () => {
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" resumeToken="TOK" />);
+
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalledWith(
+      expect.objectContaining({ applicationCode: 'APP-77', resumeToken: 'TOK' }),
+    ));
+  });
+});
+
+/**
+ * El contrato tambien puede llegar como PDF.
+ *
+ * `contrato_emitido` no tiene escritor en legacy, asi que el snapshot HTML no
+ * llega nunca; lo que si existe es el PDF que la solicitud ya tiene en su
+ * documentacion, que ademas es el mismo documento que despues se firma.
+ */
+describe('el contrato como PDF', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('lo embebe cuando llega la url', async () => {
+    mockGetContrato.mockResolvedValue({
+      modo: 'emitido' as const, estado: 'listo' as const, disponible: true, url: 'https://ws.baldecash.com/storage/contrato-v3-abc.pdf',
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    const visor = await screen.findByTestId('contrato-documento');
+    expect(visor).toHaveAttribute('src', 'https://ws.baldecash.com/storage/contrato-v3-abc.pdf');
+    expect(screen.getByText('He leído y acepto el contrato')).toBeInTheDocument();
+  });
+
+  it('el html gana cuando llegan los dos', async () => {
+    // El snapshot es el documento congelado; el PDF es el archivo. Si estan los
+    // dos, el snapshot es el que tiene el hash que lo respalda.
+    mockGetContrato.mockResolvedValue({
+      modo: 'emitido' as const, estado: 'listo' as const, disponible: true, html: '<p>Contrato de Juana</p>', url: 'https://ws.baldecash.com/x.pdf',
+    });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByText(/Juana/)).toBeInTheDocument());
+  });
+
+  it('disponible sin html ni url no pinta ningún documento', async () => {
+    // Un `listo` sin archivo sería prometer un documento que no existe. En
+    // `emitido` eso se resuelve no mostrando nada; lo que este test protege es
+    // que NUNCA aparezca un visor vacío o con contenido ajeno.
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByTestId('contrato-esperando')).not.toBeInTheDocument());
+    expect(screen.queryByTestId('contrato-documento')).not.toBeInTheDocument();
+    expect(screen.queryByText('He leído y acepto el contrato')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * El contrato aparece unos segundos después de la aprobación.
+ *
+ * Medido en producción: el paso pidió el contrato a las 03:27:30 y legacy lo
+ * emitió a las 03:27:31. Con una sola consulta al montar, esa ventana de
+ * segundos deja al paso en «se está generando» para siempre, aunque el
+ * documento exista un segundo después.
+ */
+describe('el contrato que todavía se está emitiendo', () => {
+  beforeEach(() => { jest.clearAllMocks(); jest.useFakeTimers(); });
+  afterEach(() => jest.useRealTimers());
+
+  it('reintenta y lo muestra cuando aparece', async () => {
+    mockGetContrato
+      .mockResolvedValueOnce({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false })
+      .mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-esperando')).toBeInTheDocument());
+
+    await act(async () => { jest.advanceTimersByTime(5000); });
+
+    await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
+  });
+
+  it('deja de reintentar cuando ya lo tiene', async () => {
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'listo' as const, disponible: true, url: 'https://ws.baldecash.com/x.pdf' });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(screen.getByTestId('contrato-documento')).toBeInTheDocument());
+    await act(async () => { jest.advanceTimersByTime(30000); });
+
+    expect(mockGetContrato).toHaveBeenCalledTimes(1);
+  });
+
+  it('no reintenta para siempre: se rinde y deja el paso utilizable', async () => {
+    // Antes de la aprobación el contrato NO existe, y puede tardar mucho más que
+    // unos segundos. Reintentar sin techo dejaría el paso pidiendo indefinidamente.
+    mockGetContrato.mockResolvedValue({ modo: 'emitido' as const, estado: 'generando' as const, disponible: false });
+
+    render(<ContratoStep onDone={jest.fn()} applicationCode="APP-77" documentNumber="70020010" />);
+
+    await waitFor(() => expect(mockGetContrato).toHaveBeenCalled());
+    await act(async () => { jest.advanceTimersByTime(120000); });
+
+    expect(mockGetContrato.mock.calls.length).toBeLessThanOrEqual(7);
+    // Y rendirse en `emitido` no deja un error falso en pantalla: no falló
+    // nada, el contrato simplemente todavía no existe.
+    expect(screen.queryByTestId('contrato-error')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Firmar electrónicamente' })).toBeEnabled();
+  });
+});

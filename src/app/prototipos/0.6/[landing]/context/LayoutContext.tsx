@@ -16,7 +16,7 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
-import { OVERLAY_VARIANT_LOGOS } from '@/app/prototipos/0.6/types/landingConfig';
+import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { isDarkLanding, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
 
 interface NavbarProps {
@@ -30,6 +30,12 @@ interface NavbarProps {
   activeSections?: string[];
   institutionLogo?: string;
   institutionName?: string;
+  /**
+   * Visibilidad del logo institucional, resuelta desde
+   * `layout.show_agreement_logo`. Las paginas secundarias la reenvian al
+   * Navbar y al Footer tal cual (BAL-2970).
+   */
+  showInstitutionLogo?: boolean;
 }
 
 interface LayoutContextValue {
@@ -53,10 +59,72 @@ interface LayoutContextValue {
   /** Public system configuration flags from backend */
   settings: Record<string, string>;
   catalogBanner: Record<string, unknown> | null;
+  /**
+   * Id del componente del banner, para la analítica.
+   *
+   * `catalogBanner` es el `content_config` -la configuración-, no el
+   * componente: el id vive un nivel arriba. Leerlo de ahí con un cast daba
+   * siempre `undefined`, y por eso `banner_id` llegaba null a `user_event`.
+   */
+  catalogBannerId: number | null;
   /** Newsletter component config from layout */
   newsletterData: { title?: string; subtitle?: string; button_text?: string; placeholder?: string } | null;
   /** Overlay variant from landing config (e.g. 'cade') */
   overlayVariant: string | null;
+  /** Pago diferido de la landing (null si no está habilitado). */
+  deferredPayment: DeferredPaymentConfig | null;
+  /**
+   * Configuración de la calculadora de efectivo, o null si esta landing no la
+   * tiene. Vive acá por el mismo motivo que el selector de plazo: la decisión
+   * es de la landing, no de la pantalla que la dibuja.
+   */
+  calculadora: CalculadoraConfig | null;
+  /**
+   * Si el plazo se puede cambiar desde el resumen del producto.
+   *
+   * Vive acá y no en cada pantalla porque el selector se dibuja en tres —la
+   * portada de solicitar, cada paso del formulario y complementos— y antes solo
+   * la primera consultaba la configuración. El resultado era que el ingrediente
+   * tapaba una de tres, y el selector reaparecía apenas la persona avanzaba.
+   */
+  puedeCambiarPlazo: boolean;
+  /**
+   * Si la imagen del producto se muestra durante el recorrido de solicitud.
+   *
+   * Vive acá y no en cada pantalla porque la imagen se dibuja en cuatro
+   * lugares: la portada de solicitar y tres bloques de la barra de producto
+   * seleccionado. Con la decisión repartida, apagarla en una y olvidarse de
+   * otra es cuestión de tiempo, que es exactamente lo que pasó con el selector
+   * de plazo.
+   */
+  mostrarImagenProducto: boolean;
+  /**
+   * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
+   * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
+   *
+   * A diferencia de los flags de arriba, este preset es opt-in: ninguna
+   * landing lo trae hoy y el default es APAGADO. Por eso abajo se compara
+   * contra `=== true` y no contra `!== false` — con `!== false` los chips se
+   * prenderían de golpe en las 100+ landings que no tienen la clave.
+   */
+  chipsDeUso: boolean;
+  /**
+   * Si el catálogo muestra las 4 tarjetas de uso ("Encuentra tu equipo
+   * ideal") y su título.
+   *
+   * Reemplaza la regex sobre el slug (`isSecondFinancingLanding`) que hasta
+   * BAL-3883 decidía esto: una landing nueva de segundo financiamiento ya no
+   * hereda el comportamiento por su nombre, lo decide el preset.
+   */
+  filtroPorUso: boolean;
+  /**
+   * Si el catálogo muestra la franja con el contador de equipos y el
+   * selector de orden.
+   *
+   * Mismo motivo que `filtroPorUso`: la decisión viaja por preset, no por el
+   * slug de la landing.
+   */
+  barraDeOrden: boolean;
 }
 
 /**
@@ -74,9 +142,21 @@ function hexToRgb(hex: string): string {
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
-export function LayoutProvider({ children }: { children: React.ReactNode }) {
+export function LayoutProvider({
+  children,
+  landingOverride,
+}: {
+  children: React.ReactNode;
+  /**
+   * Fuerza el slug de landing en vez de leerlo de `useParams()`. Necesario
+   * para rutas fuera de `[landing]/**` (ej. `/kyc/[token]`, Task 5) que no
+   * tienen ese segmento en la URL pero sí conocen el landing por otra vía
+   * (`landing_slug` del estado resuelto por el backend).
+   */
+  landingOverride?: string;
+}) {
   const params = useParams();
-  const landing = (params.landing as string) || 'home';
+  const landing = landingOverride || (params.landing as string) || 'home';
 
   const layoutSlug = landing;
 
@@ -92,11 +172,46 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [overlayVariant, setOverlayVariant] = useState<string | null>(null);
+  const [deferredPayment, setDeferredPayment] = useState<DeferredPaymentConfig | null>(null);
+  const [calculadora, setCalculadora] = useState<CalculadoraConfig | null>(null);
+  const [showAgreementLogo, setShowAgreementLogo] = useState(true);
+  const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
+  const [mostrarImagenProducto, setMostrarImagenProducto] = useState(true);
+  const [chipsDeUso, setChipsDeUso] = useState(false);
+  const [filtroPorUso, setFiltroPorUso] = useState(true);
+  const [barraDeOrden, setBarraDeOrden] = useState(true);
 
-  // Fetch landing config for overlay variant (logo override)
+  // Fetch landing config for overlay variant (logo override) + pago diferido
+  // + visibilidad del logo de convenio
   useEffect(() => {
     fetchLandingConfig(landing).then(cfg => {
-      setOverlayVariant(cfg.features.overlay_variant || '');
+      // Encadenamiento opcional: una landing sin ingredientes de este grupo no
+      // trae el espacio de nombres, y sin esto el contexto entero se cae.
+      setOverlayVariant(cfg.features?.overlay_variant || '');
+      setDeferredPayment(getDeferredPayment(cfg));
+      setCalculadora(getCalculadora(cfg));
+      // `!== false` y no `=== true`: si el backend no manda la clave el valor
+      // es undefined, y ausencia significa encendido. Al reves, cualquier
+      // landing de convenio sin el ingrediente perderia su logo.
+      setShowAgreementLogo(cfg.layout?.show_agreement_logo !== false);
+      // Mismo criterio que el logo: ausencia significa encendido. Con `=== true`
+      // cualquier landing sin el ingrediente perdería su selector de plazo.
+      setPuedeCambiarPlazo(cfg.features?.can_change_term !== false);
+      // Mismo criterio que arriba: ausencia significa encendido. El preset es
+      // nuevo, así que ninguna landing existente trae la clave; comparar contra
+      // verdadero les borraría la imagen a todas de golpe.
+      setMostrarImagenProducto(cfg.features?.show_product_image !== false);
+      // Al reves que los flags de arriba: este preset es opt-in y ninguna
+      // landing lo trae todavia, asi que ausencia significa APAGADO. Copiar
+      // el `!== false` del vecino prenderia los chips en las 100+ landings
+      // existentes de golpe.
+      setChipsDeUso(cfg.features?.has_usage_chips === true);
+      // Mismo criterio que el logo y el selector de plazo: ausencia significa
+      // encendido. Antes de BAL-3883 esto se decidía con una regex sobre el
+      // slug (`renueva-*`); ahora lo decide el preset y una landing nueva de
+      // segundo financiamiento no hereda el comportamiento por su nombre.
+      setFiltroPorUso(cfg.features?.has_usage_filter !== false);
+      setBarraDeOrden(cfg.features?.has_catalog_sort_bar !== false);
     });
   }, [landing]);
 
@@ -162,8 +277,18 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       dismissible: (promoConfig.dismissible as boolean) ?? true,
     } : null;
 
-    // Agreement data for co-branding (convenio landings)
+    // Agreement data for co-branding (convenio landings).
+    // El logo se omite si `layout.show_agreement_logo` esta apagado; el nombre
+    // se conserva porque el Navbar lo usa como alt text cuando si hay logo.
     const agreement = layoutData.agreement;
+    // El convenio manda; el branding suelto es el fallback de las landings que
+    // NO son de convenio y aun asi tienen una institucion de referencia
+    // (`lead-flujo-normal` -> SENATI). El backend nunca manda los dos: cuando
+    // hay convenio propio, `institution_branding` viene en null.
+    const branding = layoutData.institution_branding;
+    const institutionLogo = showAgreementLogo
+      ? (agreement?.institution_logo || branding?.institution_logo)
+      : undefined;
 
     const variantLogo = overlayVariant !== null ? OVERLAY_VARIANT_LOGOS[overlayVariant] : undefined;
     const logoResolved = overlayVariant !== null;
@@ -180,10 +305,11 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       activeSections: (navbarItems || [])
         .filter((item) => item.section)
         .map((item) => item.section as string),
-      institutionLogo: agreement?.institution_logo || undefined,
-      institutionName: agreement?.institution_name || undefined,
+      institutionLogo: institutionLogo || undefined,
+      institutionName: agreement?.institution_name || branding?.institution_name || undefined,
+      showInstitutionLogo: showAgreementLogo,
     };
-  }, [layoutData, overlayVariant]);
+  }, [layoutData, overlayVariant, showAgreementLogo]);
 
   // Transform layout data for Footer props
   const footerData = useMemo((): FooterData | null => {
@@ -278,6 +404,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 
   // Extract catalog banner data
   const catalogBanner = useMemo(() => (layoutData?.catalog_banner?.content_config as Record<string, unknown>) ?? null, [layoutData]);
+  const catalogBannerId = useMemo(() => layoutData?.catalog_banner?.id ?? null, [layoutData]);
 
   // Newsletter lives inside footer.content_config.newsletter (set from admin Footer tab)
   const newsletterData = useMemo(() => {
@@ -292,11 +419,26 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   }, [footerData]);
 
   // Extract agreement data for convenio pages
+  //
+  // Cuando `layout.show_agreement_logo` esta apagado se vacia el logo ACA, en
+  // el origen, en vez de pasar una prop a cada pagina. El Footer condiciona por
+  // `agreementData?.institution_logo`, asi que esto apaga de una sus 21 call
+  // sites (y los 11 del Navbar, que leen el mismo objeto) sin poder olvidarse
+  // de ninguno.
+  //
+  // Se borra SOLO el logo: el nombre de la institucion se sigue usando como
+  // texto en ConvenioHero, ConvenioFaq y ConvenioCta, y ahi debe seguir.
   const agreementData = useMemo((): AgreementData | null => {
     if (!layoutData) return null;
     const agreement = layoutData.agreement;
-    return agreement || null;
-  }, [layoutData]);
+    if (!agreement) return null;
+    if (showAgreementLogo) return agreement;
+    // `hide_logo` va junto al logo vacio: el footer tiene un fallback de texto
+    // que se enciende cuando NO hay logo, asi que vaciarlo a secas hacia que
+    // imprimiera el nombre de la institucion. Con la marca en el objeto, los 21
+    // call sites del Footer la reciben sin tener que pasarles una prop.
+    return { ...agreement, institution_logo: undefined, hide_logo: true };
+  }, [layoutData, showAgreementLogo]);
 
   const value = useMemo(() => ({
     layoutData,
@@ -315,9 +457,17 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     previewLandingId,
     settings,
     catalogBanner,
+    catalogBannerId,
     newsletterData,
     overlayVariant,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant]);
+    deferredPayment,
+    calculadora,
+    puedeCambiarPlazo,
+    mostrarImagenProducto,
+    chipsDeUso,
+    filtroPorUso,
+    barraDeOrden,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso, filtroPorUso, barraDeOrden]);
 
   return (
     <LayoutContext.Provider value={value}>

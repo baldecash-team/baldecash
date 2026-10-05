@@ -12,7 +12,9 @@
  */
 
 import React, { useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { Check } from 'lucide-react';
+import { isSecondFinancingLanding } from '@/app/prototipos/0.6/utils/theme';
 import { WizardStepId } from '../../../types/solicitar';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useWizard } from '../../../context/WizardContext';
@@ -75,6 +77,8 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 }) => {
   const { steps: apiSteps, isLoading } = useWizardConfig();
   const { formData } = useWizard();
+  const params = useParams();
+  const soloContador = isSecondFinancingLanding((params?.landing as string) || '');
 
   // Build form values object for completion check
   const formValues = useMemo(() => {
@@ -146,6 +150,25 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 
   // Loading state - show skeleton
   if (isLoading || progressSteps.length === 0) {
+    // El esqueleto tiene que prometer lo que va a aparecer. Con los cuatro
+    // circulos, la pantalla de segundo financiamiento mostraba el recorrido
+    // completo un instante y despues lo cambiaba por una linea.
+    if (soloContador) {
+      return (
+        <>
+          <div className="lg:hidden">
+            <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 animate-pulse">
+              <div className="w-14 h-14 bg-neutral-200 rounded-full" />
+              <div className="h-5 bg-neutral-200 rounded w-28" />
+            </div>
+          </div>
+          <div className="hidden lg:flex justify-center animate-pulse">
+            <div className="h-4 bg-neutral-200 rounded w-24" />
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         {/* Mobile Skeleton */}
@@ -179,10 +202,44 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
     );
   }
 
+  /**
+   * Segundo financiamiento: solo el contador.
+   *
+   * El recorrido de estas landings es corto y no se navega — la persona ya es
+   * cliente y viene a confirmar, no a explorar—. Los cuatro pasos con su título
+   * y su círculo ocupaban el ancho entero prometiendo una navegación que acá no
+   * lleva a ninguna parte. Queda "Paso X de Y", que es lo único que se mira:
+   * cuánto falta.
+   */
+  if (soloContador) {
+    return (
+      <>
+        <div className="lg:hidden">
+          <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100">
+            <img
+              src={getIllustration(currentStep)}
+              alt="Baldi"
+              className="w-14 h-14 object-contain flex-shrink-0"
+            />
+            {/* Sin el título del paso: el encabezado de la pantalla ya lo dice,
+                y repetirlo acá era la única línea que sobraba. */}
+            <p className="text-base font-bold text-neutral-800">
+              Paso {currentIndex + 1} de {totalSteps}
+            </p>
+          </div>
+        </div>
+
+        <p className="hidden lg:block text-center text-sm font-semibold text-neutral-600">
+          Paso {currentIndex + 1} de {totalSteps}
+        </p>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Mobile Version */}
-      <div className="lg:hidden">
+      <div className="lg:hidden" data-testid="wizard-progress-mobile">
         <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100">
           {/* Baldi Illustration */}
           <img
@@ -203,8 +260,11 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
             {/* Progress Dots - Clickeable (WCAG 2.5.5: touch target ≥24×24) */}
             <div className="flex items-center mt-1 -mx-1.5">
               {progressSteps.map((step, index) => {
-                const isReached = index <= currentIndex;
+                const isCompleted = completedSteps.includes(step.slug);
                 const isCurrent = step.slug === currentStep;
+                // Paso anterior al actual pero con datos faltantes de verdad
+                // (no basta con haberlo "pasado": ver BAL-4357).
+                const isPastIncomplete = index < currentIndex && !isCompleted;
                 const clickable = isStepClickable(step.slug, index);
 
                 return (
@@ -217,15 +277,17 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                         flex items-center justify-center w-6 h-6 flex-shrink-0 rounded-full
                         ${clickable ? 'cursor-pointer' : 'cursor-default'}
                       `}
-                      aria-label={`Ir a ${step.title}`}
+                      aria-label={`Ir a ${step.title}${isPastIncomplete ? ', datos incompletos' : ''}`}
                     >
                       <span
                         className={`
                           block w-2.5 h-2.5 rounded-full transition-all duration-200
                           ${isCurrent
                             ? 'bg-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
-                            : isReached
+                            : isCompleted
                             ? 'bg-[var(--color-primary)]'
+                            : isPastIncomplete
+                            ? 'bg-white border-2 border-[var(--color-primary)]'
                             : 'bg-neutral-200'}
                           ${clickable ? 'hover:scale-125 hover:ring-2 hover:ring-[rgba(var(--color-primary-rgb),0.5)]' : ''}
                         `}
@@ -248,11 +310,14 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
       </div>
 
       {/* Desktop Version */}
-      <div className="hidden lg:flex items-center justify-between">
+      <div className="hidden lg:flex items-center justify-between" data-testid="wizard-progress-desktop">
         {progressSteps.map((step, index) => {
-          const isReached = index <= currentIndex;
-          const isPast = index < currentIndex;
+          const isCompleted = completedSteps.includes(step.slug);
           const isCurrent = step.slug === currentStep;
+          // Paso anterior al actual pero con datos faltantes de verdad
+          // (no basta con haberlo "pasado": ver BAL-4357).
+          const isPastIncomplete = index < currentIndex && !isCompleted;
+          const isReached = isCurrent || isCompleted;
           const clickable = isStepClickable(step.slug, index);
 
           return (
@@ -267,24 +332,35 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                   ${clickable ? 'cursor-pointer' : 'cursor-default'}
                 `}
               >
-                <div
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                    transition-all duration-200
-                    ${isCurrent
-                      ? 'bg-[var(--color-primary)] text-white ring-4 ring-[rgba(var(--color-primary-rgb),0.2)]'
-                      : isReached
-                      ? 'bg-[var(--color-primary)] text-white'
-                      : 'bg-neutral-200 text-neutral-500'}
-                    ${clickable
-                      ? 'group-hover:scale-110 group-hover:ring-4 group-hover:ring-[rgba(var(--color-primary-rgb),0.3)]'
-                      : ''}
-                  `}
-                >
-                  {isPast ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    index + 1
+                <div className="relative">
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
+                      transition-all duration-200
+                      ${isCurrent
+                        ? 'bg-[var(--color-primary)] text-white ring-4 ring-[rgba(var(--color-primary-rgb),0.2)]'
+                        : isCompleted
+                        ? 'bg-[var(--color-primary)] text-white'
+                        : isPastIncomplete
+                        ? 'bg-white text-[var(--color-primary)] border-2 border-[var(--color-primary)]'
+                        : 'bg-neutral-200 text-neutral-500'}
+                      ${clickable
+                        ? 'group-hover:scale-110 group-hover:ring-4 group-hover:ring-[rgba(var(--color-primary-rgb),0.3)]'
+                        : ''}
+                    `}
+                  >
+                    {isCompleted && !isCurrent ? (
+                      <Check className="w-5 h-5" aria-hidden="true" />
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  {/* Aviso visual (no solo color) de que a este paso le falta algo */}
+                  {isPastIncomplete && (
+                    <span
+                      className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white"
+                      aria-hidden="true"
+                    />
                   )}
                 </div>
                 <span
@@ -297,6 +373,9 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                 >
                   {step.title}
                 </span>
+                {isPastIncomplete && (
+                  <span className="sr-only">Datos incompletos</span>
+                )}
               </button>
 
               {/* Connector Line */}

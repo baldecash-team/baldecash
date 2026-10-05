@@ -15,7 +15,7 @@ export interface FieldTooltipInfo {
   recommendation?: string;
 }
 
-interface TextInputProps {
+export interface TextInputProps {
   id: string;
   label: string;
   value: string;
@@ -50,6 +50,14 @@ interface TextInputProps {
   max?: number;
   /** Step increment for number inputs */
   step?: number;
+  /** Extra onWheel handler from the caller (still called before our own handling) */
+  onWheel?: React.WheelEventHandler<HTMLInputElement>;
+  /** Ref al <input> real (p. ej. para reubicar el cursor tras reformatear) */
+  inputRef?: React.Ref<HTMLInputElement>;
+  /** Teclas sobre el <input> (p. ej. flechas o borrar en el campo Monto) */
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+  /** Pegar sobre el <input> (p. ej. el campo Monto lee el texto pegado) */
+  onPaste?: React.ClipboardEventHandler<HTMLInputElement>;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -79,6 +87,10 @@ export const TextInput: React.FC<TextInputProps> = ({
   min,
   max,
   step,
+  onWheel,
+  inputRef,
+  onKeyDown,
+  onPaste,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -135,11 +147,14 @@ export const TextInput: React.FC<TextInputProps> = ({
           <span className="text-neutral-500 text-base flex-shrink-0 select-none">{startContent}</span>
         )}
         <input
+          ref={inputRef}
           name={id}
           type={type}
           inputMode={getInputMode()}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onPaste={onPaste}
           onFocus={() => {
             setIsFocused(true);
             onFocus?.();
@@ -154,6 +169,17 @@ export const TextInput: React.FC<TextInputProps> = ({
           min={min}
           max={max}
           step={step}
+          onWheel={(e) => {
+            onWheel?.(e);
+            // Un input type="number" enfocado cambia su valor con la rueda del
+            // mouse (medido en prod: 500 -> rueda abajo -> 499). React expone
+            // onWheel como passive, así que preventDefault() acá no sirve: la
+            // única forma de frenarlo es sacarle el foco. Sin foco, el navegador
+            // ya no toca el valor y la página sigue scrolleando normal.
+            if (type === 'number') {
+              e.currentTarget.blur();
+            }
+          }}
           className={`
             flex-1 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400

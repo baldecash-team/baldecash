@@ -16,7 +16,9 @@ import { useRouter } from 'next/navigation';
 import type { CtaData, AgreementData, HeroContent, CtaQuickLink } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { safeExternalUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 
 const AVATAR_COLORS = [
   '#4654CD', '#E85D75', '#03DBD0', '#F59E0B', '#8B5CF6',
@@ -43,6 +45,11 @@ interface ConvenioCtaProps {
   agreementData: AgreementData;
   heroContent: HeroContent | null;
   landing: string;
+  /**
+   * Preset `hero-quota-off` (BAL-3477). false = sin el recuadro «Cuotas desde»
+   * al pie, aunque haya monto.
+   */
+  showMinQuota?: boolean;
 }
 
 export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
@@ -50,11 +57,19 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
   agreementData,
   heroContent,
   landing,
+  showMinQuota,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
+
+  /**
+   * El segundo acceso a la calculadora desde la portada. Instancia propia y no
+   * compartida con el hero: cada uno abre su diálogo, y lo que se comparte —que
+   * las condiciones ya se aceptaron— viaja por la sesión del navegador.
+   */
+  const compuerta = useCompuertaLegal(normalizedLanding);
 
   const transformLink = (href: string): string => {
     if (!href) return '#';
@@ -66,7 +81,10 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
 
   const institutionShortName = agreementData.institution_short_name || agreementData.institution_name || '';
   const discountPct = agreementData.discount_percentage ? parseFloat(agreementData.discount_percentage) : 0;
-  const whatsappUrl = ctaData?.buttons.whatsapp.url || '';
+  // El campo es texto libre editable desde el admin y va directo a window.open:
+  // sin validar el esquema, un `javascript:...` guardado en BD se ejecutaría
+  // en el navegador del visitante al hacer clic (BAL-3292).
+  const whatsappUrl = safeExternalUrl(ctaData?.buttons.whatsapp.url);
 
   // Quick links from config (editable from admin)
   const quickLinks: CtaQuickLink[] = ctaData?.quickLinks || [];
@@ -180,6 +198,24 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                       href={linkUrl}
                       onClick={(e) => {
                         tracker?.track('cta_click', { cta_name: link.text, target: linkUrl, source: 'convenio_quick_links' });
+
+                        // Con condiciones pendientes se intercepta SIEMPRE, sea
+                        // el enlace relativo o absoluto: esta landing configura
+                        // el suyo con el dominio completo, y dejar que el ancla
+                        // navegue sola con ese formato es lo que tenia muda a la
+                        // compuerta. Al aceptar se navega a mano, que es lo
+                        // mismo que hacia el ancla.
+                        if (compuerta.aplicaA(linkUrl)) {
+                          e.preventDefault();
+                          compuerta.pedirPaso(linkUrl, () => {
+                            window.location.href = linkUrl;
+                          });
+                          return;
+                        }
+
+                        // Sin compuerta, el comportamiento de siempre: los
+                        // enlaces del propio sitio los empuja el enrutador y los
+                        // externos salen por el href del ancla.
                         if (!linkUrl.startsWith('http')) {
                           e.preventDefault();
                           router.push(linkUrl);
@@ -206,7 +242,7 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
             </div>
 
             {/* Price recap */}
-            {heroContent && heroContent.minQuota > 0 && (
+            {heroContent && showMinQuota !== false && heroContent.minQuota > 0 && (
               <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/20 text-center">
                 <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
                 <p className="text-2xl sm:text-3xl font-bold text-white font-['Baloo_2',_sans-serif]">
@@ -222,6 +258,8 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
           </div>
         </div>
       </div>
+
+      <CompuertaLegal {...compuerta} />
     </section>
   );
 };

@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'rea
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { AlertTriangle, FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2, Package, Plus, Search, ShoppingCart, Tag, Users, X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { useWizardConfig } from './context/WizardConfigContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -19,8 +20,8 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { useScrollToTop, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { SectionRenderer } from './components/solicitar/sections';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -71,12 +72,12 @@ const ACC_PAGE_SIZE = 6;
 export function GamerSolicitarClient() {
   return (
     <Suspense fallback={<div className="gamer-loading-fallback"><CubeGridSpinner /></div>}>
-      <SolicitarContent />
+      <GamerSolicitarContent />
     </Suspense>
   );
 }
 
-function SolicitarContent() {
+export function GamerSolicitarContent() {
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
@@ -311,13 +312,27 @@ function SolicitarContent() {
     return selectedMonths || 24;
   }, [getAllProducts, selectedMonths]);
 
+  // Slug del equipo principal — se toma el primero del carrito, igual criterio
+  // que `currentTerm`. El backend lo necesita para aplicar las reglas de
+  // accesorios por dispositivo (BAL-2767): sin el no sabe que equipo es y deja
+  // pasar los accesorios de reacondicionados y celulares Android nuevos.
+  const mainProductSlug = useMemo(() => {
+    const products = getAllProducts();
+    return products[0]?.slug ?? null;
+  }, [getAllProducts]);
+
   // Fetch accessories from backend
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setAccLoading(true);
       try {
-        const data = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey);
+        // productSlug es el param 10; los intermedios van en undefined para
+        // conservar sus defaults.
+        const data = await getLandingAccessories(
+          landing, deviceTypes, currentTerm, previewKey,
+          undefined, undefined, undefined, undefined, undefined, mainProductSlug,
+        );
         if (cancelled) return;
         if (data && data.length > 0) {
           const mapped: Accessory[] = data.map((acc) => {
@@ -354,7 +369,7 @@ function SolicitarContent() {
     load();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing, currentTerm, deviceTypes.join(',')]);
+  }, [landing, currentTerm, deviceTypes.join(','), mainProductSlug]);
 
   // Sync selectedMonths with product
   useEffect(() => {
@@ -474,16 +489,17 @@ function SolicitarContent() {
       return;
     }
 
-    // Validate terms
+    // Validate terms & privacy: marcar AMBOS si faltan (no cortar en el primero)
+    let hasConsentError = false;
     if (!acceptTerms) {
       setTermsError(true);
-      scrollToSection('terms-section');
-      return;
+      hasConsentError = true;
     }
-
-    // Validate privacy
     if (!acceptPrivacy) {
       setPrivacyError(true);
+      hasConsentError = true;
+    }
+    if (hasConsentError) {
       scrollToSection('terms-section');
       return;
     }
@@ -543,7 +559,7 @@ function SolicitarContent() {
       `}</style>
 
       {/* NAVBAR */}
-      <GamerNavbar theme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} />
+      <Navbar theme="gamer" gamerTheme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} promoBannerData={navbarProps?.promoBannerData} />
 
       {/* MAIN */}
       <main style={{ maxWidth: 896, margin: '0 auto', padding: '56px 16px 80px' }}>
@@ -574,24 +590,33 @@ function SolicitarContent() {
           </div>
 
           <div style={{ background: T.bgCard, borderRadius: 12, padding: 16, border: `1px solid ${T.border}`, marginBottom: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 12 }}>Lo que necesitarás</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { num: '1', title: 'Documento de identidad', sub: 'DNI, CE o Pasaporte vigente' },
-                { num: '2', title: 'Constancia de estudios', sub: 'Matrícula vigente' },
-                { num: '3', title: 'Información de contacto', sub: 'Teléfono y correo activos' },
-              ].map((item) => (
-                <div key={item.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: T.neonCyan }}>{item.num}</span>
+            {(() => {
+              const reqData = wizardConfigData?.form_extra_data?.requirements;
+              const reqTitle = reqData?.title ?? 'Lo que necesitarás';
+              const reqItems = reqData?.items ?? [
+                { title: 'Documento de identidad', description: 'DNI, CE o Pasaporte vigente' },
+                { title: 'Constancia de estudios', description: 'Matrícula vigente' },
+                { title: 'Información de contacto', description: 'Teléfono y correo activos' },
+              ];
+              return (
+                <>
+                  <h2 style={{ fontSize: 16, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 12 }}>{reqTitle}</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {reqItems.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: T.neonCyan }}>{idx + 1}</span>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 500, color: T.textPrimary, margin: 0 }}>{item.title}</p>
+                          <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{item.description}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 500, color: T.textPrimary, margin: 0 }}>{item.title}</p>
-                    <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{item.sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -822,24 +847,33 @@ function SolicitarContent() {
 
         {/* Lo que necesitarás — desktop only */}
         <div className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${T.border}`, marginBottom: 32 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 16 }}>Lo que necesitarás</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { num: '1', title: 'Documento de identidad', sub: 'DNI, CE o Pasaporte vigente' },
-              { num: '2', title: 'Constancia de estudios', sub: 'Documento que acredite tu matrícula vigente' },
-              { num: '3', title: 'Información de contacto', sub: 'Teléfono y correo electrónico activos' },
-            ].map((item) => (
-              <div key={item.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T.neonCyan }}>{item.num}</span>
+          {(() => {
+            const reqData = wizardConfigData?.form_extra_data?.requirements;
+            const reqTitle = reqData?.title ?? 'Lo que necesitarás';
+            const reqItems = reqData?.items ?? [
+              { title: 'Documento de identidad', description: 'DNI, CE o Pasaporte vigente' },
+              { title: 'Constancia de estudios', description: 'Documento que acredite tu matrícula vigente' },
+              { title: 'Información de contacto', description: 'Teléfono y correo electrónico activos' },
+            ];
+            return (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 16 }}>{reqTitle}</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {reqItems.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: T.neonCyan }}>{idx + 1}</span>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary }}>{item.title}</p>
+                        <p style={{ fontSize: 12, color: T.textMuted }}>{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary }}>{item.title}</p>
-                  <p style={{ fontSize: 12, color: T.textMuted }}>{item.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Accesorios — solo si el backend habilita la sección en la landing */}
@@ -849,11 +883,11 @@ function SolicitarContent() {
           <div style={{ background: cyanAlpha(0.05), borderRadius: 12, padding: 16, marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
               <div style={{ width: 48, height: 48, background: cyanAlpha(0.1), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Users size={24} style={{ color: T.neonCyan }} />
+                {(() => { const AccIcon = (LucideIcons as unknown as Record<string, typeof Users>)[wizardConfigData?.form_extra_data?.accessories?.icon ?? 'Users'] ?? Users; return <AccIcon size={24} style={{ color: T.neonCyan }} />; })()}
               </div>
               <div>
-                <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 4 }}>Los estudiantes también llevan...</h2>
-                <p style={{ fontSize: 14, color: T.textSecondary }}>7 de cada 10 estudiantes agregan al menos un accesorio a su compra.</p>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 4 }}>{wizardConfigData?.form_extra_data?.accessories?.title ?? 'Los estudiantes también llevan...'}</h2>
+                <p style={{ fontSize: 14, color: T.textSecondary }}>{wizardConfigData?.form_extra_data?.accessories?.description ?? '7 de cada 10 estudiantes agregan al menos un accesorio a su compra.'}</p>
               </div>
             </div>
           </div>
@@ -977,30 +1011,30 @@ function SolicitarContent() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Términos - obligatorio */}
             <div>
-              <button type="button" onClick={() => { setAcceptTerms(!acceptTerms); if (!acceptTerms) setTermsError(false); }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+              <div role="checkbox" aria-checked={acceptTerms} tabIndex={0} onClick={() => { setAcceptTerms(!acceptTerms); if (!acceptTerms) setTermsError(false); }} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setAcceptTerms(!acceptTerms); if (!acceptTerms) setTermsError(false); } }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
                 <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${termsError && !acceptTerms ? T.neonCyan : (acceptTerms ? T.neonCyan : (isDark ? T.border : '#d1d5db'))}`, background: acceptTerms ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s', boxShadow: termsError && !acceptTerms ? `0 0 0 2px ${cyanAlpha(0.3)}` : 'none' }}>
                   {acceptTerms && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
                 </div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: termsError && !acceptTerms ? T.neonCyan : T.textPrimary }}>Acepto los términos y condiciones</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: termsError && !acceptTerms ? T.neonCyan : T.textPrimary }}>Acepto los <a href={routes.legal(landing, 'terminos-y-condiciones')} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: T.neonCyan, textDecoration: 'underline' }}>términos y condiciones</a></p>
                   <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto los términos de uso del servicio</p>
                 </div>
-              </button>
+              </div>
               {termsError && !acceptTerms && (
                 <p style={{ fontSize: 12, color: T.neonCyan, marginTop: 8, marginLeft: 36 }}>Debes aceptar los términos y condiciones para continuar</p>
               )}
             </div>
             {/* Privacidad - obligatorio */}
             <div>
-              <button type="button" onClick={() => { setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+              <div role="checkbox" aria-checked={acceptPrivacy} tabIndex={0} onClick={() => { setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); }} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); } }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
                 <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${privacyError && !acceptPrivacy ? T.neonCyan : (acceptPrivacy ? T.neonCyan : (isDark ? T.border : '#d1d5db'))}`, background: acceptPrivacy ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s', boxShadow: privacyError && !acceptPrivacy ? `0 0 0 2px ${cyanAlpha(0.3)}` : 'none' }}>
                   {acceptPrivacy && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
                 </div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: privacyError && !acceptPrivacy ? T.neonCyan : T.textPrimary }}>Acepto la política de privacidad</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: privacyError && !acceptPrivacy ? T.neonCyan : T.textPrimary }}>Acepto la <a href={routes.legal(landing, 'politica-de-privacidad')} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: T.neonCyan, textDecoration: 'underline' }}>política de privacidad</a></p>
                   <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto cómo se usan y protegen mis datos personales</p>
                 </div>
-              </button>
+              </div>
               {privacyError && !acceptPrivacy && (
                 <p style={{ fontSize: 12, color: T.neonCyan, marginTop: 8, marginLeft: 36 }}>Debes aceptar la política de privacidad para continuar</p>
               )}
@@ -1371,7 +1405,7 @@ function SolicitarContent() {
       })()}
 
       <GamerNewsletter theme={theme} data={newsletterData} />
-      <GamerFooter theme={theme} footerData={footerData} />
+      <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
     </div>
   );
 }

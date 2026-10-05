@@ -25,6 +25,23 @@ const PLAN_COPY: Record<string, Pick<V5FinancingPlan, 'id' | 'nombre' | 'subtitu
     ahorroText: '',
     colorAccent: '#B8B8B8',
   },
+  avanzado: {
+    id: 'avanzado',
+    nombre: 'Avanzado',
+    subtitulo: 'Pack media-alta',
+    descripcion: 'MacBook Neo 512GB',
+    icono: 'Star',
+    imagen: 'https://baldecash.s3.amazonaws.com/images/macbook-neo/plan-avanzado.jpeg',
+    items: [
+      'Procesador A18 Pro · 6-core CPU + 5-core GPU',
+      '512GB SSD',
+      'Pantalla Liquid Retina 13" · 500 nits',
+      'Apple Intelligence',
+      'Envío gratis a todo el Perú',
+    ],
+    ahorroText: '',
+    colorAccent: '#4654CD',
+  },
   premium: {
     id: 'premium',
     nombre: 'Combo Apple',
@@ -52,7 +69,7 @@ function resolvePlanId(item: ApiCatalogProduct): string | null {
 
   if (isCombo) return 'premium';
   if (storage === 256) return 'esencial';
-  // 'avanzado' (512GB) se omite intencionalmente del financing
+  if (storage === 512) return 'avanzado';
   return null;
 }
 
@@ -83,10 +100,7 @@ interface FinancingPlansResult {
 }
 
 export function useMacbookNeoFinancingPlans(): FinancingPlansResult {
-  const [plans, setPlans] = useState<V5FinancingPlan[]>(
-    // Arrancamos con los planes estáticos (sin 'avanzado') como fallback inmediato
-    staticPlans.filter((p) => p.id !== 'avanzado'),
-  );
+  const [plans, setPlans] = useState<V5FinancingPlan[]>(staticPlans);
   const [minPrice, setMinPrice] = useState<number | null>(null);
 
   useEffect(() => {
@@ -103,8 +117,20 @@ export function useMacbookNeoFinancingPlans(): FinancingPlansResult {
         const planId = resolvePlanId(item);
         if (!planId) continue;
 
-        const siblings = (item.color_siblings ?? []).map(siblingToColorOption);
-        if (siblings.length === 0) continue; // sin colores disponibles → no mostrar card
+        let siblings = (item.color_siblings ?? []).map(siblingToColorOption);
+        if (siblings.length === 0) {
+          // Sin color_siblings: derivar color del nombre del producto
+          const nameLower = item.name.toLowerCase();
+          const colorKey = Object.keys(COLOR_IMAGES).find(c => nameLower.includes(c)) ?? 'citrus';
+          siblings = [{
+            id: colorKey,
+            label: colorKey.charAt(0).toUpperCase() + colorKey.slice(1),
+            hex: colorKey === 'citrus' ? '#D4E157' : colorKey === 'indigo' ? '#4B5EAA' : colorKey === 'blush' ? '#F2A7B0' : '#E3E3E3',
+            productUrl: `/macbook-neo/producto/${item.slug}/`,
+            image: COLOR_IMAGES[colorKey] ?? item.thumbnail_url ?? undefined,
+            monthlyPrice: item.pricing.hook.monthly_price,
+          }];
+        }
 
         const minQuota = item.pricing.hook.monthly_price;
 
@@ -113,9 +139,9 @@ export function useMacbookNeoFinancingPlans(): FinancingPlansResult {
         }
       }
 
-      // Construye los planes dinámicos en orden fijo (esencial primero, premium segundo)
+      // Construye los planes dinámicos en orden fijo
       const ordered: V5FinancingPlan[] = [];
-      for (const planId of ['esencial', 'premium'] as const) {
+      for (const planId of ['esencial', 'avanzado', 'premium'] as const) {
         const copy = PLAN_COPY[planId];
         const dynamic = planMap[planId];
 

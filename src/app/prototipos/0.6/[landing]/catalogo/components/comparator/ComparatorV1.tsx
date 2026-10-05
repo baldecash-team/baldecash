@@ -10,6 +10,7 @@ import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { cardKey } from '../../utils/cardKey';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 import type { TermMonths } from '../../types/catalog';
@@ -59,7 +60,13 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
       variantId: product.variantId,
-      paymentFrequency: product.paymentFrequency,
+      // Combo de la card comparada (el equipo convive en varias cards)
+      comboId: product.comboId,
+      // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
+      // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
+      // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
+      // adivina (BAL-3994).
+      paymentFrequency: product.paymentFrequency ?? 'mensual',
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -293,7 +300,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     onPress={() => {
                       if (bestProduct) {
                         analytics.trackCompareBestAddToCart({ product_id: bestProduct.id });
-                        onAddToCart(bestProduct.id);
+                        onAddToCart(cardKey(bestProduct));
                       }
                     }}
                   >

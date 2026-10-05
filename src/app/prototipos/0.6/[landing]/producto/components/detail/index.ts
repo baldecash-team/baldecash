@@ -11,6 +11,7 @@ export { Cronograma } from './cronograma/Cronograma';
 export { SimilarProducts } from './similar/SimilarProducts';
 export { ProductLimitations } from './honesty/ProductLimitations';
 export { Certifications } from './certifications/Certifications';
+export { ProductCommitment } from './commitment/ProductCommitment';
 export { PortsDisplay, SpecSheetDownload } from './ports/PortsDisplay';
 export { DetalleSettingsModal } from './DetalleSettingsModal';
 export { ColorSelector } from './color-selector/ColorSelector';

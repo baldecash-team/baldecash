@@ -1,0 +1,837 @@
+'use client';
+
+/**
+ * KYC (pasos posteriores) — ruta dedicada `…/solicitar/kyc`.
+ *
+ * Se llega aquí tras el submit cuando la landing tiene la sección `kyc`
+ * habilitada. Fase 2: orquesta los sub-pasos habilitados (`kycSteps`, ya
+ * filtrados/ordenados por `useSolicitarFlow`) con UI real de captura/carga.
+ * Si la landing NO habilita `kyc` (entrada por URL directa), redirige al
+ * resumen, respetando el switch.
+ *
+ * La pantalla usa el mismo chrome que el resto del sitio (navbar + footer +
+ * fondo `bg-neutral-50`, vía `useLayout`), igual que la confirmación — no un
+ * fondo blanco pelado.
+ */
+
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { CubeGridSpinner } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import type { KycStep, KycStepType } from '@/app/prototipos/0.6/services/landingApi';
+import { getKycProgress, completeKycStep, completarKyc, type KycProgressState } from '@/app/prototipos/0.6/services/kycApi';
+import { guardarConstancia, olvidarConstancia } from './constanciaStorage';
+import { withUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
+import { useKycTracker, type KycTrack } from './useKycTracker';
+import { DniSelfieStep } from './steps/DniSelfieStep';
+import { ContratoStep, type ContratoStepHandle } from './steps/ContratoStep';
+import { useAceptarContrato } from './useAceptarContrato';
+import { DocumentosStep } from './steps/DocumentosStep';
+import { PausarModal } from './PausarModal';
+import { KycLayout } from './KycLayout';
+import { PagoStep } from './steps/PagoStep';
+import { KycChrome } from './KycChrome';
+
+const STEP_LABELS: Record<KycStepType, string> = {
+  dni_selfie: 'DNI + selfie',
+  contract: 'Contrato',
+  documents: 'Documentos',
+  payment: 'Pago de inicial',
+};
+
+/**
+ * Persistencia del avance KYC (índice de sub-paso) por solicitud: si el usuario
+ * refresca o vuelve, retoma en el sub-paso donde estaba en vez de reiniciar
+ * desde la selfie. Solo se guarda el índice (las fotos son efímeras: si estaba
+ * en DNI+selfie se re-capturan). Keyed por `application_code`. El acceso a
+ * localStorage va protegido (falla en SSR / sandbox WebKit → se ignora).
+ */
+const kycStepKey = (landing: string, code: string) => `baldecash-${landing}-kyc-step-${code}`;
+
+function readKycStep(landing: string, code?: string): number {
+  if (!code) return 0;
+  try {
+    const raw = window.localStorage.getItem(kycStepKey(landing, code));
+    const n = raw ? parseInt(raw, 10) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeKycStep(landing: string, code: string | undefined, idx: number): void {
+  if (!code) return;
+  try {
+    window.localStorage.setItem(kycStepKey(landing, code), String(idx));
+  } catch {
+    /* noop: localStorage no disponible */
+  }
+}
+
+function clearKycStep(landing: string, code?: string): void {
+  if (!code) return;
+  try {
+    window.localStorage.removeItem(kycStepKey(landing, code));
+  } catch {
+    /* noop */
+  }
+}
+
+/**
+ * DNI que el cliente ya dio en esta landing; es la prueba de titularidad del
+ * flujo en sesión (el backend la exige porque los `application_code` son
+ * secuenciales).
+ *
+ * Hay TRES formas de guardarlo según el tipo de landing, y hay que probarlas
+ * todas: leer solo la primera dejaba sin DNI justamente a la única landing con
+ * el feature prendido en producción (`copia-home`, de tipo `institutional`),
+ * con tres consecuencias mudas — el botón de pausa nunca aparecía,
+ * `step-complete` devolvía 422 `missing_proof` y, sin filas de progreso, el API
+ * respondía `next_step_index: 0` y rebobinaba al cliente ya verificado.
+ *
+ * 1. `baldecash-{landing}-wizard-field-document_number` — prefill del form de
+ *    leads (`saveLeadPrefill`, solo landings `lead`).
+ * 2. `baldecash-wizard-{landing}-data` — blob del wizard estándar
+ *    (`WizardContext`), con forma `{ campo: { value, touched, label } }`.
+ * 3. `baldecash-dni-{landing}` — gate de DNI de las landings VIP (`DniModal`).
+ */
+function readWizardDni(landing: string): string | undefined {
+  try {
+    const prefill = window.localStorage.getItem(`baldecash-${landing}-wizard-field-document_number`);
+    if (prefill) return prefill;
+
+    const raw = window.localStorage.getItem(`baldecash-wizard-${landing}-data`);
+    if (raw) {
+      // `try` propio: si el blob está corrupto hay que seguir probando la
+      // fuente 3, no abortar la búsqueda entera.
+      try {
+        // El blob guarda File[] como marcador y arrays para multi-select, así
+        // que solo sirve si `document_number.value` es un string con contenido.
+        const parsed = JSON.parse(raw) as Record<string, { value?: unknown }> | null;
+        const value = parsed?.document_number?.value;
+        if (typeof value === 'string' && value.trim() !== '') return value;
+      } catch {
+        /* blob corrupto: se ignora y se sigue con la fuente 3 */
+      }
+    }
+
+    const dniGate = window.localStorage.getItem(`baldecash-dni-${landing}`);
+    if (dniGate) return dniGate;
+
+    return undefined;
+  } catch {
+    // localStorage no disponible (SSR / sandbox WebKit) o JSON corrupto.
+    return undefined;
+  }
+}
+
+interface RenderStepArgs {
+  type: KycStepType;
+  /** El paso `contract` devuelve el hash de lo aceptado; el resto, nada. */
+  onDone: (datos?: { contractHash?: string; externalId?: string }) => void;
+  onBack?: () => void;
+  applicationCode?: string;
+  onTrack?: KycTrack;
+  /** DNI ya conocido; solo lo consume `dni_selfie`, que lo contrasta con la foto. */
+  documentNumber?: string;
+  onDniVerified?: (dni: string) => void;
+  /** Solo lo consume `payment`: magic link a Zona Estudiantes. */
+  linkPago?: string | null;
+  /** Prueba de titularidad del flujo por link; la consume `contract` para traer su contrato. */
+  resumeToken?: string;
+  /**
+   * Landing del flujo. La consume `contract`: las autorizaciones del convenio
+   * Family Farms dependen del perfil, y el perfil se deduce de la landing.
+   */
+  landing?: string;
+  /** Solo lo consume `contract`: por ahí se lo reabre cuando quedó viejo. */
+  contratoRef?: React.RefObject<ContratoStepHandle | null>;
+  /** Solo lo consume `contract`: se volvió al paso con el contrato ya firmado. */
+  contratoYaAceptado?: boolean;
+  /** Solo lo consume `contract`: la solicitud quedó rechazada/cancelada. */
+  onNoAplica?: () => void;
+}
+
+// Args por objeto y no posicionales: sumando `documentNumber`/`onDniVerified`
+// la lista llegaba a siete parámetros, casi todos opcionales y varios del
+// mismo tipo — un orden equivocado no lo habría cazado el compilador.
+function renderStep({
+  type, onDone, onBack, applicationCode, onTrack, documentNumber, onDniVerified, linkPago, resumeToken, landing, contratoRef, contratoYaAceptado, onNoAplica,
+}: RenderStepArgs) {
+  switch (type) {
+    case 'dni_selfie':
+      return (
+        <DniSelfieStep
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          documentNumber={documentNumber}
+          onDniVerified={onDniVerified}
+          onTrack={onTrack}
+        />
+      );
+    case 'contract':
+      return (
+        <ContratoStep
+          // El orquestador necesita poder reabrir este paso: el 409 al avanzar
+          // y el `contrato_vencido` al cerrar llegan acá, no al paso.
+          ref={contratoRef}
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          onTrack={onTrack}
+          // El contrato es una lectura sensible: trae nombre, documento, equipo
+          // y cronograma. Va con la misma prueba que el resto del KYC.
+          documentNumber={documentNumber}
+          resumeToken={resumeToken}
+          landing={landing}
+          // Retroceder desde un sub-paso posterior trae de vuelta a esta
+          // pantalla con el contrato ya aceptado: ahí no se pide la casilla de
+          // nuevo, se ofrece releerlo y continuar.
+          yaAceptado={contratoYaAceptado}
+          onNoAplica={onNoAplica}
+        />
+      );
+    case 'documents':
+      return (
+        <DocumentosStep
+          onDone={onDone}
+          onBack={onBack}
+          applicationCode={applicationCode}
+          // Registrar los documentos escribe en la solicitud: misma prueba de
+          // titularidad que step-complete (DNI en sesión, token por link).
+          documentNumber={documentNumber}
+          resumeToken={resumeToken}
+          onTrack={onTrack}
+        />
+      );
+    case 'payment':
+      // Solo se llega con veredicto aprobado y cuota inicial impaga, asi que
+      // `linkPago` existe; el guard es defensivo.
+      return linkPago ? <PagoStep linkPago={linkPago} /> : null;
+    default:
+      return null;
+  }
+}
+
+// `KycChrome` (navbar + footer + fondo neutro) vive en su propio módulo
+// (`./KycChrome`) desde que `entrega/[token]` lo necesitó también: dos rutas
+// fuera de `[landing]/**` compartiendo el mismo chrome, no una copia cada una.
+
+function KycContent({ resumeToken, initialState, onTrack }: KycClientProps) {
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
+  // esa ruta vive FUERA de `[landing]/**` (no tiene ese segmento en la URL),
+  // así que `params.landing` viene vacío ahí — sin este fallback, `landing`
+  // caía siempre a 'home' sin importar la landing real de la solicitud
+  // (romperían kycSteps, navbar/footer, la URL de confirmación, etc.).
+  const landing = initialState?.landing_slug || (params.landing as string) || 'home';
+  // Prioridad al estado ya resuelto (ruta tokenizada /kyc/[token], Task 5):
+  // esa ruta NO manda `?code=` a propósito (es justamente lo que oculta el
+  // token), así que `code` no puede depender solo del query param.
+  const code = initialState?.application_code ?? searchParams.get('code') ?? undefined;
+
+  const {
+    kycEnabled: landingKycEnabled,
+    kycSteps: landingKycSteps,
+    isLoading: configLoading,
+    firmaPorAceptacion,
+  } = useSolicitarFlow({ slug: landing });
+
+  /**
+   * Autoridad sobre si el KYC aplica, según la vía de entrada:
+   *
+   * - Por link (`/kyc/[token]`, hay `initialState`): manda el estado
+   *   POR-SOLICITUD que devolvió `resume`. En campañas por invitación (ej.
+   *   Family Farms) la sección `kyc` está APAGADA en la config pública de la
+   *   landing y el backend la destraba por solicitud (invitación
+   *   `admin_grant`): `solicitar-config` reporta `enabled:false` mientras
+   *   `resume` dice `kyc_enabled:true`. Decidir con la config pública mandaba
+   *   al invitado a la confirmación en vez de abrir el flujo de fotos.
+   * - En sesión: manda la config de la landing, como siempre.
+   */
+  const kycEnabled = initialState ? initialState.kyc_enabled : landingKycEnabled;
+  // Por link, los sub-pasos también salen del resume: con la sección apagada
+  // `getKycSteps(config)` viene vacío y el gate expulsaría igual por length 0.
+  // Se filtran tipos desconocidos (el resume tipa `type` como string) para que
+  // `STEP_LABELS[currentStep.type]` y `renderStep` nunca reciban un tipo nuevo
+  // del backend que este cliente aún no sabe pintar.
+  const kycSteps = useMemo<KycStep[]>(() => {
+    if (!initialState) return landingKycSteps;
+    return initialState.steps
+      .filter((s) => s.type in STEP_LABELS)
+      .map((s, i) => ({ type: s.type as KycStepType, enabled: true, order: i + 1 }));
+  }, [initialState, landingKycSteps]);
+  // Por link no hay que esperar la config pública: el resume ya trajo todo lo
+  // que el gate necesita (y la config podría además fallar con 403 en landings
+  // con gate VIP, dejando el spinner eterno).
+  const isLoading = initialState ? false : configLoading;
+  const [index, setIndex] = useState(0);
+  // Link de pago de la inicial. Null hasta que el veredicto de aprobacion diga
+  // que hay algo que cobrar; su presencia es la que habilita el paso `payment`.
+  const [linkPago, setLinkPago] = useState<string | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+  /**
+   * Guard REENTRANTE de `cerrarKyc`, en un ref y no en el estado.
+   *
+   * `setCerrando(true)` no se ve hasta el siguiente render, asi que dos
+   * llamadas casi simultaneas —el efecto de reentrada mas el StrictMode de
+   * React en dev, que monta dos veces— pasaban las dos por el `if (cerrando)`.
+   * Y cada llamada genera un magic link NUEVO invalidando el anterior
+   * (`invalidarParaUser`), asi que el link que quedaba pintado en pantalla ya
+   * estaba muerto: de ahi el "Tu enlace expiro o no es valido".
+   */
+  const cerrandoRef = useRef(false);
+  /**
+   * El paso del contrato, para poder reabrirlo. Las dos noticias de "lo que
+   * aceptaste ya no es el contrato vigente" —el 409 al avanzar y el
+   * `contrato_vencido` al cerrar— llegan al orquestador, no al paso.
+   */
+  const contratoRef = useRef<ContratoStepHandle | null>(null);
+  // Estado de progreso completo (no solo el índice): necesario para leer
+  // `resume.enabled`, que gobierna si el botón de pausa puede mostrarse.
+  const [progressState, setProgressState] = useState<KycProgressState | undefined>(initialState);
+  // La aceptación de ESTA sesión: `progressState` se pide una vez al montar,
+  // así que después de aceptar sigue diciendo `pending` y retroceder volvería a
+  // pedir la casilla del contrato que se acaba de firmar.
+  const [contratoAceptado, setContratoAceptado] = useState(false);
+  const [showPausarModal, setShowPausarModal] = useState(false);
+  // `onTrack` (ruta tokenizada) o el tracker del contexto (flujo en sesión).
+  const track = useKycTracker(onTrack);
+  const startedTrackedRef = useRef(false);
+  // Memoizado: se lee (y ahora se parsea JSON) en cada render y el DNI del
+  // wizard no cambia mientras dura el KYC. Antes del early return porque es un
+  // hook.
+  const wizardDni = useMemo(() => readWizardDni(landing), [landing]);
+
+  /**
+   * DNI que el postulante tipeó en el modal de pausa y que el BACKEND aceptó
+   * como prueba de titularidad.
+   *
+   * Existe porque el modal puede pedir el DNI cuando no está en `localStorage`
+   * (postulante que llega al KYC sin el estado del wizard en ese navegador),
+   * pero `step-complete` exige esa MISMA prueba en cada sub-paso. Sin
+   * propagarlo, seguía avanzando contra un backend que respondía 422 y su
+   * progreso no se guardaba — en silencio, porque la llamada es
+   * fire-and-forget.
+   *
+   * Se persiste en la clave del prefill del wizard para que `readWizardDni` lo
+   * encuentre si recarga la página. Es el propio documento del titular, ya
+   * validado contra la solicitud, así que no agrega exposición.
+   */
+  const [verifiedDni, setVerifiedDni] = useState<string | undefined>();
+  // El DNI del canje del token (`/resume/{token}`) manda sobre el de
+  // localStorage: viene de la SOLICITUD (autoritativo), mientras que el del
+  // wizard es lo que quedó en ese navegador — podría ser de otra persona.
+  // Sin esta fuente, quien abría el link de WhatsApp en otro dispositivo no
+  // tenía DNI local y el botón "Verificar identidad" quedaba deshabilitado
+  // para siempre (dniReady=false en DniSelfieStep).
+  const effectiveDni = verifiedDni ?? initialState?.document_number ?? wizardDni;
+
+  const rememberVerifiedDni = (dni: string) => {
+    setVerifiedDni(dni);
+    try {
+      window.localStorage.setItem(`baldecash-${landing}-wizard-field-document_number`, dni);
+    } catch {
+      /* localStorage puede fallar en WebKit sandboxeado; el estado alcanza */
+    }
+  };
+
+  // Los UTM se arrastran a la confirmacion: quien llega hasta aca —sobre todo
+  // si siguio sin poder verificarse— tiene que seguir siendo atribuible a la
+  // campana con la que entro. `routes.*` arma solo lo que la ruta necesita.
+  // `kycCompletado` solo cuando de verdad se cerró el KYC (`cerrarKyc`), no
+  // cuando se cae acá por el gate de landing sin KYC: la pantalla promete cosas
+  // distintas en cada caso.
+  // Sin token explícito se usa el del estado del KYC (BAL-4188): así también
+  // el camino `avanzar()`, que no pasa por `/completar`, arma el link con el token.
+  const goToConfirmacion = (kycCompletado = false, token?: string) =>
+    router.replace(
+      withUtmParams(
+        routes.solicitarConfirmacion(
+          landing, code, kycCompletado, token || progressState?.public_token || undefined
+        )
+      )
+    );
+
+  // El avance vive en la BD: el `localStorage` no cruza dispositivos y el link
+  // de WhatsApp abre en otro navegador. Solo se cae al valor local si el API
+  // no responde, para no dejar al cliente sin flujo.
+  //
+  // Sin ref-guard síncrono: bajo StrictMode (mount→cleanup→mount en dev) un
+  // guard como `restoredRef.current = true` antes del fetch async bloquea el
+  // segundo montaje sin relanzar el fetch, y el original ya llegó cancelado
+  // — la restauración nunca se aplica en dev. Un refetch idempotente al
+  // remontar no hace daño; el único guard necesario es el flag de
+  // cancelación del cleanup.
+  useEffect(() => {
+    if (!code) return;
+
+    if (initialState) {                       // vino de /kyc/[token]
+      setIndex(initialState.next_step_index ?? 0);
+      // El link ya viene con el estado: el paso de pago puede existir desde el
+      // arranque en vez de aparecer recién cuando `/completar` lo devuelve.
+      if (initialState.link_pago) setLinkPago(initialState.link_pago);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const remote = await getKycProgress(code);
+      if (cancelled) return;
+      if (remote) setProgressState(remote); // resume.enabled vive acá, no en el índice
+      if (remote?.link_pago) setLinkPago(remote.link_pago);
+
+      // Se toma el MÁXIMO entre remoto y local, no el remoto a secas:
+      // `completeKycStep` es fire-and-forget por diseño, así que un POST caído
+      // (offline, 429, `ownership_locked`) deja el remoto atrás del local. Con
+      // aplicación incondicional, el siguiente montaje rebobinaba al cliente y
+      // además pisaba la caché con el valor viejo (perdiendo el avance para
+      // siempre). El API sigue ganando al cruzar de dispositivo, que es donde
+      // el local vale 0.
+      const stored = readKycStep(landing, code);
+      if (remote && remote.next_step_index != null) {
+        const idx = Math.max(remote.next_step_index, stored);
+        setIndex(idx);
+        writeKycStep(landing, code, idx); // refresca la caché
+      } else if (stored > 0) {
+        setIndex(stored);                 // fallback: el API no respondió
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+  // Reentrada con el pago pendiente: al volver por el link hay que ABRIR el
+  // paso de pago, no rebobinar al anterior.
+  //
+  // `payment` solo entra en `pasos` cuando ya hay `linkPago`, asi que al montar
+  // la lista tiene un elemento menos y el `next_step_index` del backend (que si
+  // lo cuenta) queda fuera de rango: el clamp lo devolvia al sub-paso previo,
+  // ya completado. Se pide el veredicto para tener el link y recien ahi el paso
+  // existe.
+  const pagoPendienteRemoto = useMemo(() => {
+    const pasosRemotos = progressState?.steps ?? [];
+    if (!pasosRemotos.length) return false;
+
+    const pago = pasosRemotos.find((p) => p.type === 'payment');
+    if (!pago || pago.status === 'completed') return false;
+
+    // Solo si TODO lo anterior esta cerrado; si no, el orden normal manda.
+    return pasosRemotos
+      .filter((p) => p.type !== 'payment')
+      .every((p) => p.status === 'completed');
+  }, [progressState]);
+
+  /**
+   * El contrato ya está firmado: o se aceptó recién, o el estado del KYC dice
+   * que el sub-paso está cerrado. Lo segundo vale también al retomar por el
+   * link o desde otro dispositivo, donde el flag de sesión vale cero.
+   */
+  const contratoYaAceptado = contratoAceptado
+    || (progressState?.steps ?? []).some(
+      (paso) => paso.type === 'contract' && paso.status === 'completed',
+    );
+
+  /**
+   * Con el contrato pendiente de firma no hay constancia vigente. Si quedó una
+   * guardada es la de un contrato anterior: la solicitud se revirtió (cambio de
+   * equipo, de plazo, de accesorios) y ws2 emitió uno nuevo. Mostrarla en la
+   * confirmación sería entregarle a la persona la copia de algo que ya no
+   * firmó (L-132023, 25-sep-2026).
+   */
+  const contratoPendiente = (progressState?.steps ?? []).some(
+    (paso) => paso.type === 'contract' && paso.status !== 'completed',
+  );
+  useEffect(() => {
+    if (contratoPendiente && !contratoAceptado && code) {
+      olvidarConstancia(landing, code);
+    }
+  }, [contratoPendiente, contratoAceptado, landing, code]);
+
+  /** Hay pago pendiente y todavia no llego el link: se esta resolviendo. */
+  const resolviendoPago = pagoPendienteRemoto && !linkPago;
+
+  useEffect(() => {
+    if (resolviendoPago && !cerrando) {
+      void cerrarKyc();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagoPendienteRemoto, linkPago]);
+
+  // Gate: landing sin `kyc` habilitado (o sin sub-pasos habilitados) → saltar
+  // directo al resumen. `kycEnabled` viene de `useSolicitarFlow` (fail-safe:
+  // sección ausente ⇒ false), así que una entrada por URL directa a una
+  // landing sin `kyc` nunca queda varada aquí.
+  useEffect(() => {
+    if (isLoading) return;
+    if (!kycEnabled || kycSteps.length === 0) {
+      goToConfirmacion();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, kycEnabled, kycSteps.length]);
+
+  // Track kyc_started once, cuando el flujo KYC está habilitado y tiene pasos.
+  useEffect(() => {
+    if (isLoading || !kycEnabled || kycSteps.length === 0) return;
+    if (startedTrackedRef.current) return;
+    startedTrackedRef.current = true;
+    track('kyc_started', { steps: kycSteps.map((s) => s.type), application_code: code });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, kycEnabled, kycSteps]);
+
+  if (isLoading || !kycEnabled || kycSteps.length === 0) {
+    return (
+      <KycChrome landing={landing}>
+        <div className="flex items-center justify-center py-20">
+          <CubeGridSpinner />
+        </div>
+      </KycChrome>
+    );
+  }
+
+  // Clamp defensivo por si `kycSteps` cambiara de tamaño en caliente.
+  // `payment` no es un sub-paso mas: solo existe si el veredicto dijo que hay
+  // cuota inicial impaga. Se mantiene FUERA de la lista hasta tenerlo, para que
+  // el contador "Paso N de M" no prometa un paso que quiza nunca aparezca.
+  const pasosBase = kycSteps.filter((s) => s.type !== 'payment');
+  const pasoPagoConfigurado = kycSteps.some((s) => s.type === 'payment');
+  // Con link, el pago va donde la landing lo puso: antes se lo empujaba al
+  // final siempre, asi que configurarlo primero no lo adelantaba.
+  const pasos = linkPago ? kycSteps : pasosBase;
+
+  const safeIndex = Math.min(index, pasos.length - 1);
+  const currentStep = pasos[safeIndex];
+
+  // La regla del 409 vive en `useAceptarContrato`: la comparte con la pantalla
+  // del contrato dentro del wizard (envio anticipado), y escrita dos veces se
+  // desincroniza justo en el caso que nadie prueba a mano.
+  const { aceptar: aceptarContrato } = useAceptarContrato({
+    applicationCode: code,
+    resumeToken,
+    documentNumber: effectiveDni,
+    onAceptado: (state) => {
+      if (state?.link_pago) setLinkPago(state.link_pago);
+      setContratoAceptado(true);
+      avanzar();
+    },
+    ref: contratoRef,
+  });
+
+  const goNext = (datos?: { contractHash?: string; externalId?: string }) => {
+    track('kyc_step_complete', {
+      step: currentStep.type, index: safeIndex, application_code: code,
+    });
+
+    // El paso del contrato es el ÚNICO que espera la respuesta: un 409
+    // (`contract_outdated`) no puede avanzar, porque lo que la persona aceptó
+    // ya no es el contrato vigente. El resto sigue siendo fire-and-forget: ahí
+    // un fallo se reconcilia en el próximo montaje y no hay nada que invalidar.
+    if (code && currentStep.type === 'contract' && datos?.contractHash) {
+      aceptarContrato(datos);
+      return;
+    }
+
+    // Fire-and-forget: la UI no espera al backend. Si falla, el localStorage
+    // sostiene el flujo en este dispositivo y el próximo montaje reconcilia.
+    //
+    // Sin prueba de titularidad el backend responde 422 `missing_proof` y el
+    // avance NO se persiste. Como esto no bloquea la UI, el fallo sería mudo:
+    // el postulante avanzaría en pantalla y su link de reanudación lo traería
+    // de vuelta al paso 1. Por eso se emite un evento cuando no se pudo
+    // guardar, para que quede rastro en vez de perderse.
+    if (code) {
+      // Se usa el tipo `error`, que YA está en el catálogo del backend. Un
+      // tipo inventado se descartaría en silencio (`is_valid_event`), que es
+      // justo el modo de falla que este evento viene a hacer visible.
+      const proofDni = resumeToken ? undefined : effectiveDni;
+      if (!resumeToken && !proofDni) {
+        track('error', {
+          scope: 'kyc_step_persist', reason: 'no_proof',
+          step: currentStep.type, index: safeIndex, application_code: code,
+        });
+      } else {
+        void completeKycStep({
+          applicationCode: code,
+          stepType: currentStep.type,
+          resumeToken,                        // flujo por link
+          documentNumber: proofDni,           // en sesión
+        }).then(({ state }) => {
+          if (!state) {
+            track('error', {
+              scope: 'kyc_step_persist', reason: 'request_failed',
+              step: currentStep.type, index: safeIndex, application_code: code,
+            });
+            return;
+          }
+          // La aprobacion tarda unos segundos, asi que si el KYC cargo antes de
+          // que el link se persistiera, el estado inicial vino sin el. Esta
+          // respuesta es un estado FRESCO y llega en cada avance: leerla es la
+          // forma de enterarse sin pedir nada extra. Sin esto el paso de pago
+          // quedaba invisible hasta el final del flujo, con el link ya existiendo.
+          if (state.link_pago) setLinkPago(state.link_pago);
+        });
+      }
+    }
+
+    avanzar();
+  };
+
+  /** Lo que pasa cuando el sub-paso quedó cerrado: siguiente, o cierre del KYC. */
+  const avanzar = () => {
+    if (safeIndex + 1 < pasos.length) {
+      const next = safeIndex + 1;
+      setIndex(next);
+      writeKycStep(landing, code, next); // persistir avance (refresh/volver)
+      return;
+    }
+
+    // Ultimo sub-paso: si la landing configuro el pago y aun no hay veredicto,
+    // o si la firma es por aceptacion, se consulta antes de cerrar. En el
+    // segundo caso `/completar` es lo que registra la aceptacion en legacy,
+    // emite la constancia y manda el aviso de cierre: sin esto, quien entraba
+    // por el link de reanudacion (el del recordatorio) aceptaba el contrato y
+    // se iba a la confirmacion sin cerrar nada (125281, 17-sep-2026 — el
+    // wizard si cerraba; esta ruta no).
+    if ((pasoPagoConfigurado && !linkPago) || firmaPorAceptacion) {
+      void cerrarKyc();
+      return;
+    }
+
+    track('kyc_completed', { application_code: code });
+    clearKycStep(landing, code); // KYC completo → limpiar sesión guardada
+    goToConfirmacion(true);
+  };
+
+  /**
+   * Cierra el KYC contra el backend y decide si toca mostrar el paso de pago.
+   *
+   * Degrada a confirmacion ante cualquier respuesta que no lo habilite (no
+   * aprobado, sin cuota inicial, error, o sin DNI). Un fallo aca no puede
+   * dejar al solicitante atrapado: si la solicitud igual quedo aprobada, el
+   * seguimiento normal la recoge.
+   */
+  async function cerrarKyc() {
+    if (cerrandoRef.current) return;
+    cerrandoRef.current = true;
+    setCerrando(true);
+
+    // Misma prueba de titularidad que usa `completeKycStep`.
+    const veredicto = code ? await completarKyc(code, effectiveDni, resumeToken) : null;
+
+    // El contrato aceptado quedo viejo: legacy NO aprobo. Se vuelve al paso
+    // para que la persona lea el nuevo y lo acepte; ws2 ya lo regenero y
+    // reabrio el sub-paso.
+    if (veredicto?.motivo === 'contrato_vencido') {
+      const indiceContrato = pasos.findIndex((s) => s.type === 'contract');
+      if (indiceContrato >= 0) {
+        setIndex(indiceContrato);
+        writeKycStep(landing, code, indiceContrato);
+      }
+      contratoRef.current?.marcarVencido();
+      cerrandoRef.current = false;
+      setCerrando(false);
+      return;
+    }
+
+    if (veredicto?.aprobado && veredicto.tiene_cuota_inicial && veredicto.link_pago) {
+      track('kyc_payment_step_shown', { application_code: code });
+      setLinkPago(veredicto.link_pago);
+      // Se deriva de `kycSteps` y NO de `pasosBase`: los hooks van antes del
+      // gate que hace `return` temprano, y `pasosBase` se declara despues, asi
+      // que leerla desde aca reventaba con "Cannot access before initialization".
+      const next = kycSteps.filter((s) => s.type !== 'payment').length;
+      setIndex(next);
+      writeKycStep(landing, code, next);
+      cerrandoRef.current = false;
+      setCerrando(false);
+      return;
+    }
+
+    // La copia, a disposición en el acto (§4 paso 12). Se guarda para la
+    // pantalla siguiente porque acá mismo se navega; si no vino, la pantalla no
+    // la ofrece y no pasa nada: sigue archivada del lado de Balde K.
+    if (veredicto?.constancia_url && code) {
+      guardarConstancia(landing, code, veredicto.constancia_url);
+      track('kyc_contract_copy_available', { application_code: code });
+    }
+
+    track('kyc_completed', { application_code: code });
+    clearKycStep(landing, code);
+
+    // Coordinar la entrega es el paso que sigue, en su propia pantalla: se
+    // firmó y no queda inicial por pagar, así que lo único que falta es decir a
+    // dónde va el equipo. Al terminar, el formulario devuelve a la
+    // confirmación.
+    //
+    // "Atrás" (gate G1) es distinto: vuelve al contrato, no a la confirmación.
+    // `code` viaja en la query porque esta ruta (`/solicitar/kyc`, sesión, no
+    // por token) lo necesita para reconstruir el estado al reabrirse — sin
+    // él, `KycContent` no tiene cómo saber de qué solicitud se trata.
+    if (veredicto?.entrega_token) {
+      router.push(withUtmParams(routes.entregaPorToken(
+        veredicto.entrega_token,
+        routes.solicitarConfirmacion(landing, code, true, veredicto.public_token || undefined),
+        routes.solicitarKyc(landing, { code }),
+      )));
+      return;
+    }
+
+    goToConfirmacion(true, veredicto?.public_token || undefined);
+  }
+  const goBack =
+    safeIndex > 0
+      ? () => {
+          const prev = safeIndex - 1;
+          setIndex(prev);
+          writeKycStep(landing, code, prev);
+        }
+      : undefined;
+
+  // El botón solo se ofrece si de verdad puede funcionar:
+  // - `resume.enabled` en el estado del API (la landing tiene la pausa habilitada)
+  // - hay `code` (application_code efectivo)
+  // - NO hay `resumeToken`: quien ya entró por el link no necesita pedir otro
+  //
+  // YA NO se exige DNI en localStorage: esa condición dejaba sin botón a
+  // CUALQUIER solicitante que llegara a KYC sin el estado del wizard en ESE
+  // mismo navegador (ej. abrir el link en otro dispositivo/navegador, o con
+  // localStorage limpio) — no era un edge case, era la mayoría silenciosa.
+  // El backend ya valida el DNI contra la solicitud (con lockout + auditoría),
+  // así que ahora se le pide al usuario en el propio modal (`PausarModal`)
+  // cuando no hay uno disponible localmente.
+  // Se ofrece en TODOS los pasos y por las dos vias de entrada. Antes se
+  // excluia la entrada por token (`!resumeToken`) —"ya tiene un link"— pero eso
+  // hacia que el boton apareciera y desapareciera segun como hubiera entrado la
+  // persona, y el link viejo vence: quien retoma a las 70 h necesita pedir uno
+  // nuevo justamente desde aca.
+  const canPause = Boolean(progressState?.resume?.enabled && code);
+
+  const handlePauseClick = () => {
+    track('kyc_pause_click', { application_code: code });
+    setShowPausarModal(true);
+  };
+
+  return (
+    <KycChrome landing={landing}>
+      <KycLayout>
+        {/*
+          Mobile: la card angosta de siempre (rounded-2xl + border + shadow).
+          Desktop (`md:`): se quita ese chrome de card — el panel blanco de
+          `KycLayout` ya lo provee, con más padding y sin el ancho limitado a
+          `max-w-md`, para que la cámara y las previews de DniSelfieStep
+          respiren en vez de verse apretadas.
+        */}
+        <div className="w-full space-y-6 rounded-2xl bg-white border border-neutral-200 shadow-sm px-5 py-6 sm:px-6 sm:py-7 md:rounded-none md:border-0 md:shadow-none md:px-10 md:py-10 lg:px-12 lg:py-12">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#6b7280] text-center md:text-left">
+            Paso {safeIndex + 1} de {pasos.length} · {STEP_LABELS[currentStep.type]}
+          </p>
+
+          {/*
+            Mientras se resuelve el pago pendiente se muestra carga, no el paso.
+            `payment` no existe en la lista hasta tener `linkPago`, asi que el
+            clamp caia al sub-paso anterior y se veia un segundo la pantalla de
+            la foto —ya superada— antes de saltar al pago.
+          */}
+          {resolviendoPago ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10">
+              <CubeGridSpinner />
+              <p className="text-sm text-neutral-500">Estamos preparando tu pago…</p>
+            </div>
+          ) : renderStep({
+            type: currentStep.type,
+            onDone: goNext,
+            onBack: goBack,
+            applicationCode: code,
+            onTrack,
+            documentNumber: effectiveDni,
+            onDniVerified: rememberVerifiedDni,
+            linkPago,
+            resumeToken,
+            landing,
+            // Rechazada mientras esperaba el contrato: "solicitud recibida".
+            onNoAplica: () => goToConfirmacion(false),
+            contratoRef,
+            contratoYaAceptado,
+          })}
+
+          {canPause && code && (
+            <div className="border-t border-neutral-100 pt-4">
+              {/*
+                El tooltip explica qué hace el enlace ANTES de abrir el modal.
+                "Continuar en otro momento" no dice si se pierde el avance ni
+                cómo se vuelve, y esa duda es justo la que frena a alguien que
+                no puede terminar ahora.
+              */}
+              {/*
+                Boton, no enlace de texto: aparece en todos los pasos y tiene
+                que verse igual en todos. El texto de abajo dice lo que el
+                tooltip escondia —que llega por WhatsApp y cuanto dura—, porque
+                esa duda es justo la que frena a alguien que no puede terminar
+                ahora, y en tactil no hay hover que lo revele.
+              */}
+              <button
+                type="button"
+                onClick={handlePauseClick}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white py-2.5 text-sm font-semibold text-[#4654CD] transition-colors hover:border-[#4654CD] hover:bg-[#ECECFB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4654CD] cursor-pointer"
+              >
+                <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                Continuar en otro momento
+              </button>
+              <p className="mt-2 text-center text-xs leading-snug text-neutral-500">
+                Te enviamos un enlace por WhatsApp para retomar donde quedaste.
+                Vence en {progressState?.resume?.ttl_hours ?? 72} horas.
+              </p>
+              <PausarModal
+                open={showPausarModal}
+                onClose={() => setShowPausarModal(false)}
+                applicationCode={code}
+                documentNumber={effectiveDni}
+                landing={landing}
+                onSent={rememberVerifiedDni}
+              />
+            </div>
+          )}
+        </div>
+      </KycLayout>
+    </KycChrome>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <CubeGridSpinner />
+    </div>
+  );
+}
+
+export interface KycClientProps {
+  /** Presente solo cuando se entra por /kyc/[token]. */
+  resumeToken?: string;
+  /** Estado ya resuelto por la ruta tokenizada; evita un fetch redundante. */
+  initialState?: KycProgressState;
+  /**
+   * Emisor de eventos alternativo. Lo usa la ruta tokenizada `/kyc/[token]`,
+   * que vive fuera de `EventTrackerProvider`: sin esto, ninguno de los eventos
+   * `kyc_*` (ni los del orquestador ni los de los sub-pasos) se emitía en el
+   * camino de reanudación. Ausente ⇒ comportamiento idéntico al de siempre
+   * (tracker del contexto).
+   */
+  onTrack?: KycTrack;
+}
+
+export default function KycClient(props: KycClientProps = {}) {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <KycContent {...props} />
+    </Suspense>
+  );
+}

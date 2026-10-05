@@ -64,6 +64,27 @@ interface CatalogSecondaryNavbarProps {
   showCart?: boolean;
 }
 
+/**
+ * Dónde arranca la barra: justo debajo del header fijo.
+ *
+ * `--header-total-height` es lo que mide el stack fijo (preview + promo +
+ * navbar) y lo publica `Navbar`. Pero debajo del header puede haber una pieza
+ * más: la franja de referido, que se pega justo ahí y publica su alto en
+ * `--referral-banner-offset` (ver `components/referral/ReferralBanner`). Sin
+ * sumar lo mismo acá la barra le pasa por encima. La franja no se va con el
+ * scroll, así que el valor es permanente mientras esté; vale 0 en las visitas
+ * que no vienen de un link de activación, que son la mayoría.
+ *
+ * Con `hidePromoBanner` se descuenta el promo a mano, porque el Navbar lo sigue
+ * contando en el total aunque esta pantalla no lo pinte.
+ */
+export function topDeLaBarra(hidePromoBanner: boolean): string {
+  const header = hidePromoBanner
+    ? 'var(--header-total-height, 6.5rem) - var(--promo-banner-height, 0px)'
+    : 'var(--header-total-height, 6.5rem)';
+  return `calc(${header} + var(--referral-banner-offset, 0px))`;
+}
+
 export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   hidePromoBanner = false,
   fullWidth = false,
@@ -96,12 +117,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   // accounts for the preview banner via Navbar.tsx.
   void previewBannerOffsetProp;
 
-  // Position below navbar using the --header-total-height CSS variable exposed
-  // by the Navbar component (preview banner + promo banner + main navbar).
-  // If `hidePromoBanner` is true, subtract the promo banner height manually.
-  const topPosition = hidePromoBanner
-    ? `calc(var(--header-total-height, 6.5rem) - var(--promo-banner-height, 0px))`
-    : `var(--header-total-height, 6.5rem)`;
+  const topPosition = topDeLaBarra(hidePromoBanner);
 
   // Expose this navbar's own height as a CSS variable so downstream layouts
   // (sticky sidebar, main content padding) can compensate for it dynamically.

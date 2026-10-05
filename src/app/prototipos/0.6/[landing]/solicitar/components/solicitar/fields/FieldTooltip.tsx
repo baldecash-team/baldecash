@@ -187,7 +187,15 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
       return (
         <>
           <p className="font-semibold text-neutral-800 text-sm">{resolvedContent.title}</p>
-          <p className="text-xs text-neutral-500 mt-1">{resolvedContent.description}</p>
+          {/*
+            `whitespace-pre-line` respeta los saltos de linea del texto y sigue
+            colapsando los espacios de sobra. Sin esto, una ayuda escrita como
+            pasos numerados se dibuja como una sola oracion corrida, que es lo
+            peor posible para algo que hay que seguir en otra pantalla.
+          */}
+          <p className="text-xs text-neutral-500 mt-1 whitespace-pre-line">
+            {resolvedContent.description}
+          </p>
           {resolvedContent.recommendation && (
             <p className="text-xs text-[var(--color-primary)] mt-2 flex items-center gap-1">
               <Info className="w-3 h-3 flex-shrink-0" />

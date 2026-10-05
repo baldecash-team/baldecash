@@ -4,12 +4,21 @@
  */
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
+import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
+import { isValidEmail } from './emailValidation';
+import { errorDeFecha } from './fechaLimites';
+import type { FiltroDeOpciones } from './filtroDeOpciones';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 function handleVip403(slug: string): void {
   if (typeof window === 'undefined') return;
+  if (hasLockertruckEvalCache(slug)) {
+    clearVipData(slug);
+    window.location.assign(`/prototipos/0.6/${slug}/catalogo`);
+    return;
+  }
   clearVipData(slug);
   window.location.reload();
 }
@@ -94,11 +103,24 @@ export interface WizardField {
   min_value?: number | null;
   max_value?: number | null;
   step?: number | null;
+  /** Monto (BAL-4400): 0 = solo soles enteros, 2 = hasta 2 decimales, null/ausente = como hoy. */
+  decimal_places?: 0 | 2 | null;
+  /** Para campos date: qué fechas habilita el calendario. Ausente = 'past'. */
+  date_range?: 'past' | 'future' | 'any' | null;
+  /**
+   * Fecha mínima / máxima exactas (BAL-4396): `AAAA-MM-DD` o relativa a hoy
+   * (`-18y` = hace 18 años). Ausente o null = sin límite extra. Ver
+   * `fechaLimites.ts`.
+   */
+  date_min?: string | null;
+  date_max?: string | null;
+  /** Mensaje propio cuando la fecha queda fuera; null = texto automático. */
+  date_limit_message?: string | null;
   pattern?: string | null;
   mask?: string | null;
   input_mode?: string | null;
   options_source?: string | null;
-  options_filter?: Record<string, string> | null;
+  options_filter?: FiltroDeOpciones | null;
   options: WizardFieldOption[];
   validations: WizardFieldValidation[];
   dependency_groups: DependencyGroup[];
@@ -108,8 +130,13 @@ export interface WizardField {
   // Cascading selects (department → province → district)
   cascade_from?: string | null;    // Parent field code (e.g., "department")
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
+  cascade_from_label?: string | null; // Label del campo padre, para «Primero selecciona …»
   // Lazy loading for large datasets (study-centers, careers)
   min_search_length?: number | null; // Minimum characters before searching
+  /** Forma elegida en el panel; null = como antes. */
+  display_mode?: 'auto' | 'buttons' | 'cards' | 'dropdown' | 'search' | null;
+  /** Con una sola opción visible, dejarla elegida. */
+  auto_select_single?: boolean | null;
   // Dynamic validation from another field's option (e.g., document_number validated by document_type selection)
   validation_source_field?: string | null; // Field code whose selected option provides validation rules
   // Default value for auto-selection (e.g., "dni" for document_type)
@@ -142,6 +169,10 @@ export interface WizardField {
     fields_to_fill?: string[];
     trigger?: 'on_blur' | 'on_change';
   } | null;
+  // BAL-4343: dominios de correo permitidos para este campo en este paso.
+  // Solo aplica a campos type === 'email'. Lista vacía/null = acepta cualquiera.
+  allowed_email_domains?: string[] | null;
+  allowed_email_domains_message?: string | null;
 }
 
 /**
@@ -189,6 +220,24 @@ export interface WizardConfigForm {
   estimated_time_minutes: number;
 }
 
+export interface WizardConfigRequirementItem {
+  icon?: string;
+  title: string;
+  description: string;
+}
+
+export interface WizardConfigExtraData {
+  requirements?: {
+    title?: string;
+    items?: WizardConfigRequirementItem[];
+  };
+  accessories?: {
+    icon?: string;
+    title?: string;
+    description?: string;
+  };
+}
+
 /**
  * WizardConfig supports two coexisting shapes from the backend during migration:
  * - Legacy flat: `landing_id`, `landing_slug`, `landing_name`, `display_steps_count`,
@@ -211,6 +260,13 @@ export interface WizardConfig {
   badge_text?: string | null;
   total_fields?: number;
 
+  // Dynamic texts configured per form in admin
+  form_extra_data?: WizardConfigExtraData | null;
+
+  // Formulario que le tocó a la sesión (varios formularios por landing)
+  form_id?: number;
+  form_code?: string | null;
+
   // Shared
   steps: WizardStep[];
   total_steps?: number;
@@ -221,16 +277,26 @@ export interface WizardConfig {
 // ============================================================================
 
 /**
- * Obtiene la configuración del wizard para una landing
+ * Obtiene la configuración del wizard para una landing.
+ *
+ * `sessionUuid`: con varios formularios por landing, el backend sirve el que
+ * le tocó a esa sesión. Sin él devuelve el formulario principal.
  */
-export async function getWizardConfig(slug: string, previewKey?: string | null): Promise<WizardConfig | null> {
+export async function getWizardConfig(
+  slug: string,
+  previewKey?: string | null,
+  sessionUuid?: string | null,
+): Promise<WizardConfig | null> {
   try {
-    let url = previewKey
-      ? `${API_BASE_URL}/public/landing/${slug}/wizard?preview_key=${encodeURIComponent(previewKey)}`
-      : `${API_BASE_URL}/public/landing/${slug}/wizard`;
+    const params = new URLSearchParams();
+    if (previewKey) params.set('preview_key', previewKey);
+    if (sessionUuid) params.set('session_uuid', sessionUuid);
+    const qs = params.toString();
+    let url = `${API_BASE_URL}/public/landing/${slug}/wizard${qs ? `?${qs}` : ''}`;
     url = appendVipToken(url, slug);
     const response = await fetch(url, {
-      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
+      // Con sesión la respuesta es por persona: no se cachea.
+      ...(previewKey || sessionUuid ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -252,11 +318,17 @@ export async function getWizardConfig(slug: string, previewKey?: string | null):
  * @param landingId - Landing ID
  * @param previewKey - Hash de preview para acceder a landings no publicadas
  */
-export async function getWizardConfigById(landingId: number, previewKey: string | null = null): Promise<WizardConfig | null> {
+export async function getWizardConfigById(
+  landingId: number,
+  previewKey: string | null = null,
+  sessionUuid: string | null = null,
+): Promise<WizardConfig | null> {
   try {
-    const url = previewKey
-      ? `${API_BASE_URL}/public/landing/id/${landingId}/wizard?preview_key=${encodeURIComponent(previewKey)}`
-      : `${API_BASE_URL}/public/landing/id/${landingId}/wizard`;
+    const params = new URLSearchParams();
+    if (previewKey) params.set('preview_key', previewKey);
+    if (sessionUuid) params.set('session_uuid', sessionUuid);
+    const qs = params.toString();
+    const url = `${API_BASE_URL}/public/landing/id/${landingId}/wizard${qs ? `?${qs}` : ''}`;
 
     const response = await fetch(url, {
       cache: 'no-store', // Siempre no-store para preview por ID
@@ -373,6 +445,40 @@ export function evaluateFieldVisibility(
     return true;
   }
   return evaluateGroupedVisibility(field.dependency_groups, formValues);
+}
+
+/**
+ * Visibilidad efectiva de un campo que ademas es destino de un prellenado por
+ * documento (`prefill_config`). Son dos compuertas en serie, no una sola:
+ *
+ *  1. Sus `dependency_groups` — la condicion de negocio. `supporter_full_name`
+ *     ("Nombres y Apellidos" del familiar) solo existe si la fuente de ingreso
+ *     es "me apoya un familiar directo".
+ *  2. El estado del lookup del documento — el campo llega `hidden` y lo destapa
+ *     el buro: `not_found` lo muestra vacio para que lo escriban, y `found` solo
+ *     si el buro no trajo ese dato.
+ *
+ * Antes las tres pantallas (paso, validacion y resumen) miraban SOLO la segunda
+ * y devolvian temprano. Con eso, cambiar el documento del familiar destapaba el
+ * campo y despues volver a "Sueldo de trabajo" lo dejaba en pantalla: su regla
+ * `show` nunca se evaluaba (BAL-4026). El campo del familiar es hoy el unico del
+ * wizard que es destino de prellenado Y tiene `dependency_groups`, pero la
+ * compuerta va en el mecanismo para que el proximo que se configure asi nazca
+ * bien.
+ */
+export function evaluatePrefillFieldVisibility(
+  field: WizardField,
+  formValues: Record<string, string | string[]>,
+  docFieldCode: string
+): boolean {
+  // Compuerta 1: la condicion de negocio manda sobre el lookup.
+  if (!evaluateFieldVisibility(field, formValues)) return false;
+
+  // Compuerta 2: el estado del lookup del documento que prellena este campo.
+  const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
+  if (prefillStatus === 'not_found') return true;
+  if (prefillStatus === 'found') return formValues[`_prefill_empty_${field.code}`] === 'true';
+  return false;
 }
 
 function evaluateGroupedVisibility(
@@ -554,6 +660,180 @@ export function filterFieldOptions(
 // ============================================================================
 
 /**
+ * Reglas de largo/formato del numero de documento, por tipo.
+ *
+ * BAL-4025: el largo exigido depende del tipo elegido (DNI / CE / pasaporte) y
+ * hasta ahora el formulario no lo miraba: el input quedaba con el `max_length`
+ * del campo (9) y la validacion exigia `^\d{9}$` al CE, o sea SOLO digitos,
+ * cuando hay carnets de extranjeria reales con letras.
+ *
+ * La fuente de verdad es `GET /public/options/document-types`, que ya devuelve
+ * por opcion `{min_length, max_length, pattern, input_mode, placeholder,
+ * error_message}`. Esas opciones viven en el cache de opciones dinamicas del
+ * wizard (`dynamicOptionsCache`), que llena `CascadingSelectField` al montar.
+ *
+ * El backend manda; esta tabla es solo el respaldo para cuando el cache
+ * todavia no cargo (primer render, o un formulario sin el select dinamico).
+ * Por eso copia exactamente lo que hoy responde ese endpoint.
+ *
+ * OJO: solo el DNI es numerico. CE y pasaporte son ALFANUMERICOS a proposito.
+ */
+const DOCUMENT_RULES_FALLBACK: Record<string, OptionValidation> = {
+  dni: {
+    min_length: 8,
+    max_length: 8,
+    pattern: '^\\d{8}$',
+    input_mode: 'numeric',
+    placeholder: '12345678',
+    error_message: 'El DNI debe tener 8 dígitos',
+  },
+  ce: {
+    min_length: 9,
+    max_length: 12,
+    pattern: '^[a-zA-Z0-9]{9,12}$',
+    input_mode: 'text',
+    placeholder: '001234567',
+    error_message: 'El CE debe tener entre 9 y 12 caracteres',
+  },
+  pasaporte: {
+    min_length: 6,
+    max_length: 12,
+    pattern: '^[a-zA-Z0-9]{6,12}$',
+    input_mode: 'text',
+    placeholder: 'AB123456',
+    error_message: 'El pasaporte debe tener entre 6 y 12 caracteres',
+  },
+};
+
+/**
+ * `passport` y `pasaporte` conviven: el endpoint de opciones dice `pasaporte`,
+ * pero `DocumentNumberField`/`useCheckPerson` hablan de `passport`. Se
+ * normaliza para que ninguna de las dos formas se quede sin reglas.
+ */
+function normalizeDocumentType(docType: string | undefined | null): string {
+  const t = String(docType || '').trim().toLowerCase();
+  return t === 'passport' ? 'pasaporte' : t;
+}
+
+/**
+ * Devuelve las reglas del tipo de documento seleccionado.
+ *
+ * Prioridad: la opcion que trajo el backend (cache de opciones dinamicas) y,
+ * si no esta, la tabla de respaldo. Si el tipo es desconocido devuelve null:
+ * ahi no se exige largo ninguno, porque inventar uno bloquea solicitudes.
+ *
+ * @param docTypeFieldCode - Codigo del campo que tiene el tipo (normalmente `document_type`)
+ */
+export function getDocumentTypeRules(
+  docTypeFieldCode: string,
+  formValues: Record<string, string | string[]>,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>
+): OptionValidation | null {
+  const rawValue = formValues[docTypeFieldCode];
+  const selectedValue = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+  const docType = normalizeDocumentType(selectedValue);
+  if (!docType) return null;
+
+  const options = dynamicOptionsCache?.[docTypeFieldCode] || [];
+  const fromApi = options.find(
+    (opt) => normalizeDocumentType(String(opt.value)) === docType
+  )?.validation;
+  if (fromApi) return fromApi;
+
+  return DOCUMENT_RULES_FALLBACK[docType] || null;
+}
+
+/**
+ * Aplica las reglas de un tipo de documento sobre un valor ya recortado.
+ * Devuelve el mensaje de error, o null si pasa.
+ */
+export function checkDocumentAgainstRules(
+  trimmedValue: string,
+  rules: OptionValidation
+): string | null {
+  const fallbackMessage = rules.error_message || 'El formato del documento no es válido';
+
+  if (rules.min_length && trimmedValue.length < rules.min_length) return fallbackMessage;
+  if (rules.max_length && trimmedValue.length > rules.max_length) return fallbackMessage;
+
+  if (rules.pattern) {
+    try {
+      if (!new RegExp(rules.pattern).test(trimmedValue)) return fallbackMessage;
+    } catch {
+      // Pattern invalido del backend: no se bloquea al postulante por eso.
+    }
+  }
+
+  return null;
+}
+
+/**
+ * BAL-4343: dominios de correo permitidos.
+ *
+ * El dominio del correo (lo que va después de la última `@`, en minúsculas)
+ * debe ser igual a alguno de los dominios de la lista, o terminar en
+ * `.` + ese dominio (subdominio). No basta con que el texto termine en el
+ * dominio: "fakeedu.pe" NO cumple con ["edu.pe"].
+ *
+ * Lista vacía/null/undefined -> acepta cualquier correo (comportamiento
+ * actual, sin cambios). Helper puro y exportado para poder probarlo solo.
+ */
+export function checkEmailDomain(
+  email: string,
+  domains: string[] | null | undefined
+): boolean {
+  if (!domains || domains.length === 0) return true;
+
+  const atIndex = email.lastIndexOf('@');
+  if (atIndex === -1) return false;
+  const emailDomain = email.slice(atIndex + 1).toLowerCase();
+
+  return domains.some((domain) => {
+    const d = domain.toLowerCase();
+    return emailDomain === d || emailDomain.endsWith(`.${d}`);
+  });
+}
+
+/**
+ * BAL-4351 — RUC con inicios permitidos.
+ *
+ * `prefixes` llega del backend ya normalizado como inicios de 2 dígitos
+ * separados por coma (p. ej. "10,15,17,20"); esta función es tolerante a
+ * espacios extra. null/undefined/vacío = cualquier inicio es válido.
+ */
+function parseRucPrefixes(prefixes: string | null | undefined): string[] {
+  if (!prefixes) return [];
+  return prefixes
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Valida que `value` (tras trim) sea exactamente 11 dígitos y, si se pasó
+ * una lista de inicios permitidos, que empiece por uno de ellos. Helper
+ * puro y exportado para poder probarlo solo.
+ */
+export function checkRuc(
+  value: string,
+  prefixes: string | null | undefined
+): boolean {
+  const trimmedValue = value.trim();
+  if (!/^\d{11}$/.test(trimmedValue)) return false;
+
+  const prefixList = parseRucPrefixes(prefixes);
+  if (prefixList.length === 0) return true;
+
+  return prefixList.some((prefix) => trimmedValue.startsWith(prefix));
+}
+
+/** "10, 15, 17 o 20" — comas entre todos, "o" antes del último. */
+function joinRucPrefixesForMessage(prefixes: string[]): string {
+  if (prefixes.length <= 1) return prefixes[0] || '';
+  return `${prefixes.slice(0, -1).join(', ')} o ${prefixes[prefixes.length - 1]}`;
+}
+
+/**
  * Resultado de validación de un campo
  */
 export interface FieldValidationResult {
@@ -644,8 +924,18 @@ export function validateField(
   }
 
   // 3. Validaciones de longitud (propiedades directas del campo)
-  // Skipped when dynamic validation (section 2) already handled length
-  if (!field.validation_source_field) {
+  // Skipped when dynamic validation (section 2) already handled length.
+  //
+  // BAL-4339: tampoco aplican cuando el campo se valida por tipo de documento
+  // (regla `dni`) y el tipo elegido tiene reglas. La ficha del campo dice
+  // «8 a 9» para todos y bloqueaba pasaportes de 6-7 y de 10-12, y CE de
+  // 10-12, que la regla del tipo sí acepta. El largo lo decide el tipo.
+  const reglaPorTipo = field.validations?.find((v) => v.type === 'dni');
+  const largoLoDecideElTipo =
+    !!reglaPorTipo &&
+    getDocumentTypeRules(reglaPorTipo.value || 'document_type', formValues, dynamicOptionsCache) !== null;
+
+  if (!field.validation_source_field && !largoLoDecideElTipo) {
     if (field.min_length && trimmedValue.length < field.min_length) {
       return { isValid: false, error: `Mínimo ${field.min_length} caracteres` };
     }
@@ -669,6 +959,43 @@ export function validateField(
     if (effectiveMax !== null && numValue > effectiveMax) {
       return { isValid: false, error: `El valor máximo es ${effectiveMax}` };
     }
+    // BAL-4400: campo «sin decimales». La web no deja escribirlos, pero un
+    // valor guardado de antes de que el panel cambiara la opción sí puede
+    // traerlos; el servidor también lo rechaza al enviar.
+    if (field.type === 'currency' && field.decimal_places === 0 && !Number.isInteger(numValue)) {
+      return { isValid: false, error: 'Solo soles enteros, sin céntimos.' };
+    }
+  }
+
+  // 3.b Un campo de correo se valida siempre, tenga o no la regla `email` cargada
+  // en el form builder: el backend no puede entregar un address mal formado y el
+  // postulante se queda esperando un código que nunca llega.
+  if (field.type === 'email' && !isValidEmail(trimmedValue)) {
+    return { isValid: false, error: 'Ingresa un correo válido (ejemplo: nombre@dominio.com)' };
+  }
+
+  // 3.c BAL-4343: dominios de correo permitidos por paso (solo si el formato ya es válido).
+  if (
+    field.type === 'email' &&
+    field.allowed_email_domains &&
+    field.allowed_email_domains.length > 0 &&
+    !checkEmailDomain(trimmedValue, field.allowed_email_domains)
+  ) {
+    const mensaje =
+      field.allowed_email_domains_message ||
+      `Usa un correo que termine en ${field.allowed_email_domains.map((d) => `@${d}`).join(' o ')}`;
+    return { isValid: false, error: mensaje };
+  }
+
+  // 3.d BAL-4396: fecha mínima / máxima exactas del campo.
+  if (field.type === 'date') {
+    const errorFecha = errorDeFecha(
+      trimmedValue,
+      field.date_min,
+      field.date_max,
+      field.date_limit_message
+    );
+    if (errorFecha) return { isValid: false, error: errorFecha };
   }
 
   // 4. Validación de pattern (regex)
@@ -712,7 +1039,7 @@ export function validateField(
         break;
 
       case 'email':
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
+        if (!isValidEmail(trimmedValue)) {
           hasError = true;
         }
         break;
@@ -723,18 +1050,42 @@ export function validateField(
         }
         break;
 
-      case 'dni':
-        // Validación dinámica según tipo de documento
-        const docType = formValues['document_type'] as string;
-        if (docType === 'dni' && !/^\d{8}$/.test(trimmedValue)) {
+      case 'dni': {
+        // BAL-4025: el largo y el formato salen del tipo de documento elegido.
+        //
+        // Antes esto tenia la tabla escrita a mano aca y estaba mal en dos
+        // puntos: exigia `^\d{9}$` al CE (digitos, exactamente 9) cuando el
+        // backend acepta 9..12 ALFANUMERICOS, y solo reconocia el pasaporte
+        // bajo el nombre `pasaporte`, con lo cual quien llegaba con `passport`
+        // -- el codigo que usan `DocumentNumberField` y `useCheckPerson` --
+        // no tenia validacion de largo ninguna.
+        //
+        // Ahora las reglas las da el backend via el cache de opciones.
+        const rules = getDocumentTypeRules(
+          validation.value || 'document_type',
+          formValues,
+          dynamicOptionsCache
+        );
+        if (rules) {
+          const ruleError = checkDocumentAgainstRules(trimmedValue, rules);
+          if (ruleError) {
+            hasError = true;
+            errorMessage = ruleError;
+          }
+        }
+        break;
+      }
+
+      case 'ruc':
+        if (!checkRuc(trimmedValue, validation.value)) {
           hasError = true;
-          errorMessage = 'El DNI debe tener 8 dígitos';
-        } else if (docType === 'ce' && !/^\d{9}$/.test(trimmedValue)) {
-          hasError = true;
-          errorMessage = 'El CE debe tener 9 dígitos';
-        } else if (docType === 'pasaporte' && !/^[a-zA-Z0-9]{6,12}$/.test(trimmedValue)) {
-          hasError = true;
-          errorMessage = 'El pasaporte debe tener entre 6 y 12 caracteres';
+          if (!errorMessage) {
+            const prefixList = parseRucPrefixes(validation.value);
+            errorMessage =
+              prefixList.length > 0
+                ? `Ingresa un RUC válido de 11 dígitos que empiece en ${joinRucPrefixesForMessage(prefixList)}`
+                : 'Ingresa un RUC válido de 11 dígitos';
+          }
         }
         break;
 
@@ -826,14 +1177,7 @@ export function validateStep(
     let isVisible: boolean;
     const docFieldCode = prefillFieldToDocField[field.code];
     if (field.hidden && docFieldCode) {
-      const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
-      if (prefillStatus === 'not_found') {
-        isVisible = true;
-      } else if (prefillStatus === 'found') {
-        isVisible = formValues[`_prefill_empty_${field.code}`] === 'true';
-      } else {
-        isVisible = false;
-      }
+      isVisible = evaluatePrefillFieldVisibility(field, formValues, docFieldCode);
     } else if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) {
       // hidden=true with no dependency groups = always hidden
       isVisible = false;
@@ -959,19 +1303,17 @@ export async function fetchOptionsFromSource(
  * Used for large datasets like study-centers (41k+) and careers (1100+)
  * @param optionsSource - API path (e.g., "study-centers", "careers")
  * @param searchTerm - Search query (min 3 characters)
- * @param filterType - Optional type filter (e.g., "university", "institute" for study-centers)
+ * @param extra - Pares de `parametrosDeFiltro` (BAL-4384): `type`, `ids`, `study_center_id`, `agreement_id`.
  */
 export async function fetchOptionsWithSearch(
   optionsSource: string,
   searchTerm: string,
-  filterType?: string
+  extra: Array<[string, string]> = []
 ): Promise<CascadingOption[]> {
   try {
     const params = new URLSearchParams();
     params.append('search', searchTerm);
-    if (filterType) {
-      params.append('type', filterType);
-    }
+    for (const [k, v] of extra) params.append(k, v);
 
     const url = `${API_BASE_URL}/public/options/${optionsSource}?${params.toString()}`;
     const response = await fetch(url, { cache: 'no-store' });

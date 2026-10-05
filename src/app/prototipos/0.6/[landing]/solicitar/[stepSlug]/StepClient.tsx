@@ -9,21 +9,18 @@
 import React, { Suspense, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
-import { AnimatePresence } from 'framer-motion';
 import { AlertCircle, Edit2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 // Components
-import { WizardLayout } from '../components/solicitar/wizard';
+import { WizardLayout, PasoDelWizard, usePasoDelWizard } from '../components/solicitar/wizard';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
-import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
-import { GamerStepSuccess } from '../components/solicitar/celebration/GamerStepSuccess';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 
 // Context
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -32,10 +29,19 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { useProduct } from '../context/ProductContext';
 
 // Hooks
+import { ContratoEnWizard } from './ContratoEnWizard';
+import { gatesDelContrato } from './contratoFirmadoGate';
+import { useSessionOptional } from '../context/SessionContext';
+import {
+  readEnvioAnticipadoHandoff,
+  type EnvioAnticipadoHandoff,
+} from '../utils/envioAnticipadoHandoff';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
+import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
@@ -45,7 +51,6 @@ import { WizardStepId } from '../types/solicitar';
 import {
   WizardStep,
   WizardField,
-  WizardMotivational,
   getStepSlug,
   validateStep as validateStepFields,
   evaluateFieldVisibility,
@@ -57,9 +62,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
-import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
-import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 
 
 // Helper function to get Lucide icon by name
@@ -95,8 +98,8 @@ function StepContent() {
   useScrollToTop();
 
   // State
-  const [showCelebration, setShowCelebration] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Reacondicionado: aceptación obligatoria antes de enviar la solicitud
   const [showRefurbAcceptance, setShowRefurbAcceptance] = useState(false);
@@ -125,6 +128,17 @@ function StepContent() {
     getAllDynamicOptions,
   } = useWizard();
 
+  // El DNI quedo fuera de la whitelist: el boton Continuar se DESHABILITA, no
+  // solo rechaza al pulsarlo. Un boton que se ve activo y no hace nada se lee
+  // como que la pagina fallo; deshabilitado dice "falta algo" sin ambiguedad.
+  // El motivo lo explica el modal de DocumentNumberField.
+  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true';
+
+  // Lead de un socio (A365): si entró por su link, el API ya tiene sus datos.
+  // Va acá y no en cada paso porque `steps` trae los campos de TODOS los pasos:
+  // se completa lo que corresponda aunque el dato viva en un paso posterior.
+  useLeadPrefill(landing, steps);
+
   // Event tracker
   const tracker = useEventTrackerOptional();
 
@@ -133,7 +147,11 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  // `flujo` entero ademas de los campos sueltos: `usePasoDelWizard` lo recibe
+  // inyectado en vez de volver a llamar `useSolicitarFlow`, que guarda su estado
+  // por instancia y saldria a buscar `solicitar-config` una segunda vez.
+  const flujo = useSolicitarFlow({ slug: landing, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = flujo;
 
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -142,17 +160,39 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
+  // El mensaje de "unidad tomada" solo tuvo modal en el paso regular, que ahora
+  // vive en `usePasoDelWizard` y monta el suyo. Esta instancia —la del resumen—
+  // nunca lo renderizo, asi que el valor no se lee: se conserva el callback para
+  // no cambiarle el contrato al hook de envio.
+  const [, setUnidadTomada] = useState<string | null>(null);
+
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
+    onUnidadTomada: setUnidadTomada,
   });
+
+  /**
+   * El paso regular completo: validación, envío, celebración y overlays. Vive
+   * en su propio hook para que la intro de las landings de segundo
+   * financiamiento pueda montar el mismo paso embebido.
+   *
+   * Va acá, junto al resto de los hooks y ANTES de los early returns, o se
+   * rompe el orden de hooks de React.
+   */
+  const paso = usePasoDelWizard({ stepSlug, flujo, gamer: isGamerLanding(landing) });
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
     if (!isProductHydrated) return;
-    if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded) {
+    // `paso.submitSucceeded` es el del envio del paso regular, que corre en su
+    // propio `useSubmitApplication`. Sin mirarlo, un envio que limpia el
+    // carrito se leeria acá como "entro sin elegir equipo" y mandaria a la
+    // persona de vuelta al inicio. Antes de la extraccion era una sola
+    // instancia y `submitSucceeded` cubria los dos caminos.
+    if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded && !paso.submitSucceeded) {
       router.replace(routes.solicitar(landing));
     }
-  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded]);
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded, paso.submitSucceeded]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -192,6 +232,72 @@ function StepContent() {
     isLast: true
   };
 
+  /**
+   * Esta pantalla es la que la landing eligió para crear la solicitud sin
+   * esperar al final del wizard (`envio_anticipado` en Flujo de Solicitud).
+   *
+   * Cuando se dispara, el wizard TERMINA acá: el submit navega a donde ya
+   * navegaba —la pantalla del KYC con el contrato si la landing lo tiene, o la
+   * confirmación— y las pantallas siguientes, complementos incluidos, no se
+   * muestran. Es lo que hace que la persona pueda leer y aceptar su contrato
+   * antes de que la solicitud se apruebe.
+   *
+   * `null` —el default— es el comportamiento de siempre.
+   */
+  const enviaEnEstePaso =
+    envioAnticipadoStep !== null &&
+    navigation.currentIndex >= 0 &&
+    navigation.currentIndex + 1 === envioAnticipadoStep;
+
+  /**
+   * La solicitud que el envío anticipado ya creó, si la hay. Se lee en un
+   * efecto y no en el render porque `sessionStorage` no existe en el servidor:
+   * leerlo directo rompe la hidratación.
+   */
+  const [handoff, setHandoff] = useState<EnvioAnticipadoHandoff | null>(null);
+  const sesion = useSessionOptional();
+  const sessionUuid = sesion?.sessionUuid ?? null;
+  useEffect(() => {
+    // Con la sesión: un handoff de OTRA sesión es de una solicitud anterior, y
+    // tomarlo por bueno hace que el wizard crea que ya envió y pase de largo el
+    // submit — la persona llena el formulario, aprieta Enviar y ve el contrato
+    // de la solicitud vieja, sin un solo POST. Pasó probando en local.
+    //
+    // Mientras la sesión todavía no resolvió (`null`) no se descarta nada: es
+    // el primer render, no una sesión distinta.
+    setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid));
+    // `stepSlug` en las dependencias: al pasar de la pantalla que envía a la
+    // siguiente el componente no se desmonta, y sin esto el handoff recién
+    // guardado no se vería hasta un refresh.
+  }, [landing, stepSlug, sessionUuid]);
+
+  /** Ya se envió (envío anticipado): no se puede volver a crear la solicitud. */
+  const yaEnviada = handoff !== null;
+
+  /**
+   * El contrato de ESTA solicitud ya se firmó (gate G2: firmó → no vuelve).
+   *
+   * Misma fuente de verdad que usa `ContratoEnWizard` para `yaAceptado` del
+   * `ContratoStep` (ver ese componente): sale del handoff porque vive en
+   * sessionStorage y sobrevive un refresh de esta misma pestaña. Gobierna acá
+   * que no se pueda volver a un paso anterior ni al contrato en modo edición,
+   * ni por el indicador de pasos (`handleStepClickContrato`), ni por
+   * "Atrás" (`handleSummaryBack`), ni por URL directa (efecto más abajo).
+   */
+  const contratoFirmado = Boolean(handoff?.contratoAceptado);
+
+  /**
+   * Con la firma por aceptación, la operación no se edita en el wizard: el
+   * documento se emite con ese plazo y esa inicial y el hash lo sella, así que
+   * moverlos dejaría la pantalla diciendo una cuota y el contrato otra.
+   *
+   * NO alcanza con que el sub-paso `contract` esté prendido: `copia-home` y las
+   * tres de Family Farms lo tienen desde antes, con el contrato que sale al
+   * aprobar y la firma por Keynua. Ahí el plazo se sigue eligiendo, y quitarles
+   * el selector seria cambiarles el flujo sin que nadie lo pidiera.
+   */
+  const condicionesFijas = firmaPorAceptacion && isKycStepEnabled('contract');
+
   // Separate regular steps from summary steps
   const { regularSteps, summarySteps } = useMemo(() => {
     const regular = steps.filter(s => !s.is_summary_step);
@@ -201,6 +307,29 @@ function StepContent() {
 
   // Is this a summary step?
   const isSummaryStep = step?.is_summary_step || false;
+
+  /**
+   * Las tres decisiones del gate G2 (bloquear el indicador de pasos, bloquear
+   * "Atrás", y a qué paso redirigir si se abrió uno anterior por URL), en un
+   * solo lugar — ver `contratoFirmadoGate.ts` para la regla en sí.
+   */
+  const { bloquearNavegacion: bloqueaContrato, redirigirA: redirigirAlContrato } = gatesDelContrato({
+    contratoFirmado, condicionesFijas, isSummaryStep, summarySteps,
+  });
+
+  /**
+   * Gate G2 por URL directa: firmó y trató de abrir un paso ANTERIOR al del
+   * contrato (ej. pegando `/solicitar/datos-personales` en la barra). El
+   * indicador de pasos y "Atrás" ya lo bloquean, pero escribir la URL a mano
+   * los salta a los dos: acá se redirige de vuelta al paso del contrato, que
+   * con `contratoFirmado` se ve en modo "Ya aceptaste este contrato" (no una
+   * firma nueva).
+   */
+  useEffect(() => {
+    if (!redirigirAlContrato) return;
+    router.replace(routes.solicitarStep(landing, redirigirAlContrato));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redirigirAlContrato, landing]);
 
   // Build form values for validation
   const formValues = useMemo(() => {
@@ -217,69 +346,6 @@ function StepContent() {
     }
     return values;
   }, [formData]);
-
-  // Override motivational when check-person finds data (personalized greeting)
-  // For VIP countdown landings, the MotivationalCard handles the "Hola, [Nombre]" greeting,
-  // so we skip this override to keep the original BD text.
-  const hasVipToken = !!getVipToken(landing);
-  const [hasVipCountdown, setHasVipCountdown] = useState(false);
-  useEffect(() => {
-    if (!hasVipToken) return;
-    fetchLandingConfig(landing).then(cfg => {
-      setHasVipCountdown(!!cfg.features.vip_countdown);
-    });
-  }, [landing, hasVipToken]);
-  const isVipLanding = hasVipToken && hasVipCountdown;
-
-  const stepMotivational = useMemo((): WizardMotivational | null => {
-    if (!step) return null;
-    if (isVipLanding) return step.motivational;
-
-    const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
-    if (prefillStatus !== 'found') return step.motivational;
-
-    const hasMainDocumentNumber = step.fields.some(f => f.type === 'document_number' && f.code === 'document_number');
-    if (!hasMainDocumentNumber) return step.motivational;
-
-    const firstName = (formData['first_name']?.value as string) || '';
-    if (!firstName) return step.motivational;
-
-    const name = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-    return {
-      title: `Hola <span class="highlight">${name}</span>, qué bueno verte por aquí`,
-      highlight: step.motivational?.highlight || '',
-      title_end: step.motivational?.title_end || '',
-      subtitle: 'Ya casi terminamos este paso, sigue adelante.',
-      illustration: step.motivational?.illustration || '',
-    };
-  }, [step, formData, isVipLanding]);
-
-  // Track form_abandon on beforeunload (when user closes/reloads mid-form)
-  useEffect(() => {
-    if (!step || !tracker) return;
-
-    const startTime = Date.now();
-
-    const handleBeforeUnload = () => {
-      const visibleFields = step.fields.filter(f => evaluateFieldVisibility(f, formValues));
-      const filledCount = visibleFields.filter(f => {
-        const val = formData[f.code]?.value;
-        return Array.isArray(val) ? val.length > 0 : !!val;
-      }).length;
-
-      tracker.track('form_abandon', {
-        form_id: 'onboarding-solicitud',
-        last_active_step: step.order + 1,
-        fields_completed: filledCount,
-        total_fields: visibleFields.length,
-        time_in_form_ms: Date.now() - startTime,
-      });
-      tracker.flush();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [step, tracker, formValues, formData]);
 
   // Load summary field values from localStorage
   useEffect(() => {
@@ -419,6 +485,8 @@ function StepContent() {
   const shouldDisplayField = (field: WizardField): boolean => {
     // Prefill target fields (like supporter_full_name) are internal — never show in summary
     if (field.hidden && prefillTargetFields.has(field.code)) return false;
+    // hidden=true with no dependency groups = always hidden (no condition can activate it)
+    if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) return false;
     return evaluateFieldVisibility(field, formValues);
   };
 
@@ -428,58 +496,19 @@ function StepContent() {
   };
 
   // Navigation handlers
-  const handleNext = () => {
-    setSubmitted(true);
-    const firstErrorField = validateStep();
-    if (firstErrorField) {
-      tracker?.track('form_step_validation_error', {
-        step_code: step?.code,
-        step_title: step?.title,
-        error_field: firstErrorField,
-      });
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    tracker?.track('form_step_complete', {
-      step_code: step?.code,
-      step_title: step?.title,
-      next_step: navigation.nextStep?.code ?? 'complementos_or_submit',
-    });
-    if (step) {
-      markStepCompleted(step.url_slug || step.code);
-    }
-    setShowCelebration(true);
-  };
-
-  const handleCelebrationComplete = () => {
-    if (navigation.nextStep) {
-      const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
-      router.push(routes.solicitarStep(landing, nextSlug));
-    } else if (shouldShowComplementos) {
-      // No more wizard steps - go to complementos (dynamic sections after wizard)
-      router.push(routes.solicitarComplementos(landing));
-    } else {
-      // No more steps and no complementos - submit directly
-      submitApplication({ insuranceId: null });
-    }
-  };
-
-  const handleBack = () => {
-    tracker?.track('form_step_back', {
-      step_code: step?.code,
-      prev_step: navigation.prevStep?.code ?? 'preview',
-    });
-    if (navigation.prevStep) {
-      const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
-      router.push(routes.solicitarStep(landing, prevSlug));
-    } else {
-      // First step - go back to preview
-      router.push(routes.solicitar(landing));
-    }
-  };
-
   const handleStepClick = (stepId: WizardStepId) => {
     router.push(routes.solicitarStep(landing, stepId));
+  };
+
+  /**
+   * El indicador de pasos DENTRO de la pantalla del contrato (gate G2):
+   * firmado, ningún paso anterior es clickeable — ahí ya no hay nada que
+   * editar, el documento quedó sellado con esos datos. Sin firmar se comporta
+   * exactamente como `handleStepClick`.
+   */
+  const handleStepClickContrato = (stepId: WizardStepId) => {
+    if (bloqueaContrato) return;
+    handleStepClick(stepId);
   };
 
   // Validate all regular steps (cross-step validation before submit)
@@ -545,14 +574,29 @@ function StepContent() {
       setIsSubmitting(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
       router.push(routes.solicitarComplementos(landing));
+    } else if (yaEnviada && handoff) {
+      // El envío anticipado ya creó la solicitud: mandarla otra vez crearía una
+      // segunda con los mismos datos.
+      router.push(routes.solicitarConfirmacion(
+        landing, handoff.applicationCode, false, handoff.publicToken
+      ));
     } else {
       // No sections after wizard - submit application directly
-      await submitApplication({ insuranceId: null });
+      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
       // The hook handles navigation to confirmation page on success
+      // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
   };
 
   const handleSummaryBack = () => {
+    // Gate G2: `bloqueaContrato` solo puede ser `true` cuando de verdad se
+    // está en la pantalla del contrato con el contrato firmado (ver
+    // `gatesDelContrato`: sin `condicionesFijas` o sin `contratoFirmado`
+    // siempre da `false`). El resumen de siempre —el otro dueño de este
+    // handler— nunca lo prende, así que se comporta exactamente igual que
+    // antes.
+    if (bloqueaContrato) return;
+
     // Usar navigation.prevStep para navegación dinámica
     if (navigation.prevStep) {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
@@ -575,6 +619,11 @@ function StepContent() {
     // Mark step as completed
     if (step) {
       markStepCompleted(step.url_slug || step.code);
+    }
+
+    if (enviaEnEstePaso) {
+      void submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
+      return;
     }
 
     // Navegar al siguiente paso
@@ -601,9 +650,10 @@ function StepContent() {
     return <NotFoundContent homeUrl={routes.home()} />;
   }
 
+  const isGamer = isGamerLanding(landing);
+
   // Error state - step not found
   if (configError || !step) {
-    const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
     const errorContent = (
       <div className="text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -673,9 +723,55 @@ function StepContent() {
 
   // Render summary step content
   if (isSummaryStep) {
+    /*
+      Envío anticipado: la solicitud ya existe y esta pantalla es la del
+      contrato. Sustituye al resumen de campos —el contrato ya trae su propio
+      resumen de la operación, y repetir los datos arriba empuja el documento
+      fuera de la vista— y no lleva la navegación del wizard: el paso valida
+      sus casillas y acepta con sus propios botones.
+    */
+    if (handoff && condicionesFijas) {
+      const contenido = (
+        <WizardLayout
+          currentStep={step.url_slug || step.code}
+          title={step.title}
+          description={step.description}
+          onStepClick={handleStepClickContrato}
+          isLastStep
+          sinNavegacion
+          condicionesFijas={condicionesFijas}
+          hideNavbar={isGamer}
+          navbarProps={isGamer ? undefined : (navbarProps || undefined)}
+          motivational={step.motivational}
+        >
+          <ContratoEnWizard
+            landing={landing}
+            handoff={handoff}
+            onBack={handleSummaryBack}
+            stepSlug={step.url_slug || step.code}
+            // El estado `handoff` de ACÁ (leído una vez por montaje) no se
+            // re-deriva solo cuando `ContratoEnWizard` limpia la marca de
+            // "aceptado" en sessionStorage tras un 409 — sin este callback,
+            // las gates de más abajo (Atrás, indicador de pasos, redirect)
+            // seguirían bloqueando con el `true` viejo.
+            onContratoVencido={() => setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid))}
+          />
+        </WizardLayout>
+      );
+
+      return isGamer ? (
+        <GamerWizardWrapper footerData={footerData}>{contenido}</GamerWizardWrapper>
+      ) : (
+        <>
+          {contenido}
+          <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        </>
+      );
+    }
+
     // Determinar dinámicamente si es el último paso del wizard
     // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-    const isActuallyLastStep = navigation.isLast && !shouldShowComplementos;
+    const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);
 
     // Determinar el handler correcto para el botón:
     // - Si NO es el último paso real: onNext maneja "Continuar"
@@ -694,14 +790,16 @@ function StepContent() {
         onNext={nextHandler}
         onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
         onStepClick={handleStepClick}
+        condicionesFijas={condicionesFijas}
         isLastStep={isActuallyLastStep}
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
-        canProceed={true}
-        hideNavbar={landingId === LANDING_IDS.ZONA_GAMER}
-        navbarProps={landingId === LANDING_IDS.ZONA_GAMER ? undefined : (navbarProps || undefined)}
+        canProceed={!bloqueadoPorWhitelist}
+        hideNavbar={isGamer}
+        navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
+        ctaFijoEnMovil
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -816,11 +914,33 @@ function StepContent() {
       </WizardLayout>
     );
 
+    // CTA fijo en movil: en el resumen la accion quedaba a dos o tres scrolls y
+    // el usuario creia que ya habia terminado (Marco, 26-ago). El texto sale de
+    // `isActuallyLastStep`, asi que dice "Continuar" en las landings con
+    // complementos y "Enviar Solicitud" en las que no.
+    //
+    // `isSubmitting` (local) y `isAppSubmitting` (del hook de envio) NO son lo
+    // mismo y no se pueden juntar: con complementos, `handleSummarySubmit` sube
+    // el flag local solo para navegar (:561). Si eso llegara como envio, el
+    // boton diria "Enviando..." en una pantalla que todavia no envia nada.
+    const stickyCta = (
+      <MobileStickyCta
+        onBack={handleSummaryBack}
+        onPrimary={isActuallyLastStep ? handleSummarySubmit : nextHandler}
+        isLastStep={isActuallyLastStep}
+        isBusy={isSubmitting}
+        isSubmitting={isAppSubmitting}
+        submitMessage={submitMessage}
+        canProceed={!bloqueadoPorWhitelist}
+      />
+    );
+
     // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
-    if (landingId === LANDING_IDS.ZONA_GAMER) {
+    if (isGamer) {
       return (
         <GamerWizardWrapper footerData={footerData}>
           {pageContent}
+          {stickyCta}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
         </GamerWizardWrapper>
       );
@@ -829,68 +949,71 @@ function StepContent() {
     return (
       <>
         {pageContent}
+        {stickyCta}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       </>
     );
   }
 
   // Render regular form step content
-  // Determinar dinámicamente si es el último paso del wizard
-  // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-  const isActuallyLastRegularStep = navigation.isLast && !shouldShowComplementos;
-
   const pageContent = (
     <>
-      <AnimatePresence>
-        {showCelebration && (
-          landingId === LANDING_IDS.ZONA_GAMER ? (
-            <GamerStepSuccess
-              stepName={step.title}
-              stepNumber={step.order + 1}
-              totalSteps={steps.length}
-              onComplete={handleCelebrationComplete}
-            />
-          ) : (
-            <StepSuccessMessage
-              stepName={step.title}
-              stepNumber={step.order + 1}
-              totalSteps={steps.length}
-              onComplete={handleCelebrationComplete}
-            />
-          )
-        )}
-      </AnimatePresence>
+      {paso.overlays}
 
       <WizardLayout
         currentStep={step.url_slug || step.code}
         title={step.title}
         description={step.description}
-        onBack={handleBack}
-        onNext={handleNext}
-        onStepClick={handleStepClick}
+        onBack={paso.handleBack}
+        onNext={paso.handleNext}
+        // `handleNext` tambien envia: valida, marca el paso y dispara el submit
+        // al terminar la celebracion. Es el mismo camino que ya usa el CTA fijo
+        // de movil, que nunca distinguio entre continuar y enviar.
+        onSubmit={paso.handleNext}
+        onStepClick={paso.handleStepClick}
+        condicionesFijas={condicionesFijas}
         isFirstStep={navigation.isFirst}
-        isLastStep={isActuallyLastRegularStep}
-        canProceed={true}
-        hideNavbar={landingId === LANDING_IDS.ZONA_GAMER}
-        navbarProps={landingId === LANDING_IDS.ZONA_GAMER ? undefined : (navbarProps || undefined)}
-        motivational={stepMotivational}
-        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
+        isLastStep={paso.esElQueEnvia}
+        isSubmitting={paso.isSubmitting}
+        submitMessage={paso.submitMessage}
+        canProceed={paso.canProceed}
+        ctaFijoEnMovil
+        hideNavbar={isGamer}
+        navbarProps={isGamer ? undefined : (navbarProps || undefined)}
+        motivational={paso.motivational}
+        firstName={paso.firstName}
       >
-        <DynamicWizardStep
-          step={step}
-          showErrors={submitted}
-          stepOrder={step.order}
-        />
+        <PasoDelWizard paso={paso} />
       </WizardLayout>
     </>
   );
 
+  // CTA fijo en movil, igual que en el resumen y complementos: el boton de
+  // avanzar queda siempre a la vista en vez de al final del scroll. Usa los
+  // mismos handlers que la navegacion en flujo, asi que la validacion y el
+  // scroll al primer campo con error se comportan identico.
+  //
+  // Se esconde durante la celebracion entre pasos (`paso.celebrando`), que monta
+  // un overlay a pantalla completa.
+  const stickyCtaPaso = (
+    <MobileStickyCta
+      onBack={paso.handleBack}
+      onPrimary={paso.handleNext}
+      isLastStep={paso.esElQueEnvia}
+      isSubmitting={paso.isSubmitting}
+      submitMessage={paso.submitMessage}
+      canProceed={paso.canProceed}
+      oculto={paso.celebrando}
+    />
+  );
+
   // Zona Gamer: wrap with dark theme, gamer navbar and footer
-  if (landingId === LANDING_IDS.ZONA_GAMER) {
+  if (isGamer) {
     return (
       <GamerWizardWrapper footerData={footerData}>
         {pageContent}
-        <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        {stickyCtaPaso}
       </GamerWizardWrapper>
     );
   }
@@ -898,15 +1021,15 @@ function StepContent() {
   return (
     <>
       {pageContent}
+      {stickyCtaPaso}
       <Footer data={footerData} landing={landing} agreementData={agreementData} />
-      <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
     </>
   );
 }
 
 function LoadingFallback() {
   const params = useParams();
-  const isGamer = (params?.landing as string) === 'zona-gamer';
+  const isGamer = isGamerLanding(params?.landing as string);
 
   if (isGamer) {
     return (
@@ -1033,6 +1156,8 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
           background: #1e1e1e !important;
           color: #f0f0f0 !important;
           border-color: #2a2a2a !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
         .gamer-wizard-dark input::placeholder,
         .gamer-wizard-dark textarea::placeholder { color: #555 !important; }
@@ -1041,6 +1166,29 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         .gamer-wizard-dark textarea:focus {
           border-color: #00ffd5 !important;
           box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
+          outline: none !important;
+        }
+        /* NextUI input wrapper — quitar inset shadow/ring doble */
+        .gamer-wizard-dark [data-slot="input-wrapper"],
+        .gamer-wizard-dark [data-slot="innerWrapper"],
+        .gamer-wizard-dark [data-slot="trigger"] {
+          box-shadow: none !important;
+          background: #1e1e1e !important;
+        }
+        .gamer-wizard-dark [data-slot="input-wrapper"]:hover,
+        .gamer-wizard-dark [data-slot="input-wrapper"][data-focus="true"] {
+          box-shadow: none !important;
+        }
+        /* Radio/Segmented buttons — quitar ring interior doble */
+        .gamer-wizard-dark [class*="ring-"] {
+          --tw-ring-shadow: none !important;
+          --tw-ring-offset-shadow: none !important;
+          box-shadow: none !important;
+        }
+        .gamer-wizard-dark .border-\\[\\#4654CD\\].ring-2,
+        .gamer-wizard-dark .border-\\[var\\(--color-primary\\)\\].ring-2 {
+          box-shadow: none !important;
+          --tw-ring-shadow: none !important;
         }
         /* Segmented controls */
         .gamer-wizard-dark .bg-neutral-100.border { background: #1e1e1e !important; }
@@ -1477,17 +1625,20 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
         }
       `}</style>
       <div className={isDark ? 'gamer-wizard-dark' : 'gamer-wizard-light'}>
-        <GamerNavbar
-          theme={theme}
+        <Navbar
+          theme="gamer"
+          gamerTheme={theme}
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           portalButtonText={navbarProps?.portalButtonText}
           customerPortalUrl={navbarProps?.customerPortalUrl}
         />
-        {children}
+        <div style={{ paddingTop: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }}>
+          {children}
+        </div>
         <GamerNewsletter theme={theme} data={newsletterData} />
-        <GamerFooter theme={theme} footerData={footerData} />
+        <Footer theme="gamer" gamerTheme={theme} data={footerData} landing={landing} />
       </div>
     </div>
   );

@@ -20,16 +20,21 @@ import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { captureLandingParams } from '@/app/prototipos/0.6/utils/landingParams';
+import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
+import { persistUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 import { DEFAULT_LANDING_CONFIG, OVERLAY_VARIANT_LOGOS, type LandingConfig } from '../types/landingConfig';
 import { FloatingCtaButton } from '../components/FloatingCtaButton';
+import { ReferralBanner } from '../components/referral/ReferralBanner';
+import type { ReferralBanner as ReferralBannerData } from '../services/referralBannerApi';
 
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
 import NvidiaLanding from '../components/product-landing/NvidiaLanding';
+import SeminuevosLanding from '../components/product-landing/seminuevos/SeminuevosLanding';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { LeadLanding } from '../components/lead/LeadLanding';
 import type { BannerImage, LeadFormConfig, LeadProductsConfig } from '../types/hero';
@@ -39,6 +44,12 @@ interface LandingPageClientProps {
   initialData?: HeroData | null;
   /** Resolved landing config preset (layout/features flags). Server-side fetched. */
   landingConfig?: LandingConfig;
+  /**
+   * Promotora que refirió la visita, ya resuelta server-side. `null` en el
+   * 99% del tráfico: sólo llega con valor cuando el link trae `?promotor=` y
+   * el token de `utm_term` coincide (ver `services/referralBannerApi`).
+   */
+  referralBanner?: ReferralBannerData | null;
 }
 
 interface HeroData {
@@ -62,6 +73,9 @@ interface HeroData {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  // Marca de la institucion de las landings SIN convenio: viaja aparte de
+  // `agreementData` para no prenderles el layout de convenio.
+  institutionBranding?: { institution_logo?: string; institution_name?: string } | null;
   landingType?: string;
   bannerImages?: BannerImage[];
   leadFormConfig?: LeadFormConfig | null;
@@ -86,6 +100,10 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   // el catálogo y el wizard de solicitar. Una sola vez por landing.
   useEffect(() => {
     captureLandingParams(slug);
+    // Los UTM se guardan al entrar porque las rutas internas del flujo
+    // (`/solicitar/kyc?code=…`, confirmacion) se arman solo con lo suyo y los
+    // dejarian atras. Sin esto se pierde la atribucion a mitad del embudo.
+    persistUtmParams();
   }, [slug]);
 
   // Preview mode listener - receives live updates from admin
@@ -307,9 +325,25 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const isAdminPreview = preview.isPreviewingLanding(slug);
   const isVipLanding = !!landingConfig.features.vip_countdown && !isAdminPreview;
   const hasWhitelist = landingConfig.features.has_dni_whitelist;
-  const [countdownActive, setCountdownActive] = useState(isVipLanding);
+
+  // La puerta a pantalla completa NO se muestra en modo `form`.
+  //
+  // El countdown y la puerta venian pegados: tener fecha implicaba tapar la
+  // landing. Eso tenia sentido cuando la puerta pedia el DNI, porque filtraba.
+  // En modo `form` el DNI se pide dentro del formulario, asi que la puerta ya
+  // no filtra nada — solo tapa la landing sin motivo. El catalogo, de hecho,
+  // ya se puede abrir sin pasar por ella.
+  //
+  // Se separa solo la PUERTA, no el countdown: `isVipLanding` sigue igual, asi
+  // que el contador del catalogo (VipCountdownBanner) y el resto del estilo VIP
+  // no se tocan. Apagar el preset los habria apagado a todos.
+  // Se lee de `features` y no de `dniCaptureMode`, que se declara mas abajo.
+  const mostrarPuertaVip =
+    isVipLanding && landingConfig.features.dni_capture_mode !== 'form';
+
+  const [countdownActive, setCountdownActive] = useState(mostrarPuertaVip);
   const [vipExpired, setVipExpired] = useState(() => {
-    if (!isVipLanding) return false;
+    if (!mostrarPuertaVip) return false;
     const end = new Date(landingConfig.features.vip_countdown);
     return new Date().getTime() >= end.getTime();
   });
@@ -324,7 +358,10 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
       const vipAuto = params.get('vip_auto');
       if (vipAuto) {
         saveVipToken(slug, vipAuto);
-        const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+        // Se arrastran también los parámetros propios de difusiones: si se pierden
+        // en este salto, la visita llega al catálogo sin promotor ni link de origen.
+        const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                         'promotor', 'alk'];
         const utmParams = new URLSearchParams();
         utmKeys.forEach((k) => { const v = params.get(k); if (v) utmParams.set(k, v); });
         const qs = utmParams.toString();
@@ -349,7 +386,8 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     // Inline capture owns the DNI UX — the modal never auto-opens in this mode.
     if (isInlineCapture) return;
     // VIP landing: don't auto-open DNI modal, it's triggered by the countdown overlay button
-    if (isVipLanding) return;
+    // Solo cuando la puerta existe: en modo `form` no hay boton que lo dispare.
+    if (mostrarPuertaVip) return;
 
     if (showDniFeature && !isLoading) {
       // Whitelist without countdown: open modal even without heroData (403 expected)
@@ -359,7 +397,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         }
       }
     }
-  }, [showDniFeature, slug, isLoading, heroData, dniRequired, isVipLanding, hasWhitelist, isInlineCapture]);
+  }, [showDniFeature, slug, isLoading, heroData, dniRequired, mostrarPuertaVip, hasWhitelist, isInlineCapture]);
 
   const handleDniModalClose = useCallback(() => {
     setIsDniModalOpen(false);
@@ -388,8 +426,9 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     }
   }, [heroData]);
 
-  // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
-  const showPreviewBanner = isPreviewMode || isPreviewParam || !!previewKey;
+  // Show preview banner only after hydration to avoid SSR mismatch.
+  // isPreviewMode and previewKey depend on sessionStorage which is client-only.
+  const showPreviewBanner = isPreviewHydrated && (isPreviewMode || isPreviewParam || !!previewKey);
   // Preview banner height in pixels (py-1 = 4px top + 4px bottom + ~16px text = ~24px)
   const previewBannerHeight = 24;
 
@@ -400,22 +439,6 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   }
 
   // Lead landing: formulario de captura + sección productos + secciones estándar
-  console.log('[LeadLanding DEBUG]', {
-    slug,
-    landingType: heroData?.landingType,
-    landingId: heroData?.landingId,
-    heroContent: heroData ? {
-      headline: mergedHeroContent?.headline,
-      subheadline: mergedHeroContent?.subheadline,
-      backgroundImage: mergedHeroContent?.backgroundImage,
-      badgeText: mergedHeroContent?.badgeText,
-    } : null,
-    bannerImages: heroData?.bannerImages,
-    leadFormConfig: heroData?.leadFormConfig,
-    leadProductsConfig: heroData?.leadProductsConfig,
-    primaryColor: heroData?.primaryColor,
-    activeSections: heroData?.activeSections,
-  });
   if (heroData?.landingType === 'lead') {
     return (
       <div
@@ -491,6 +514,34 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     );
   }
 
+  // Landing de equipos seminuevos — patrón NVIDIA: HOME especializado, detección por landingId.
+  if (heroData?.landingId === LANDING_IDS.SEMINUEVOS) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData?.primaryColor || '#4654CD',
+          '--color-secondary': heroData?.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <SeminuevosLanding
+          footerData={mergedFooterData}
+          landing={slug}
+          previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+          promoBannerData={heroData?.promoBannerData}
+          faqData={mergedFaq}
+          logoUrl={heroData.logoUrl}
+          primaryColor={heroData.primaryColor}
+          whatsappUrl={heroData.ctaData?.buttons.whatsapp.url}
+          // El mismo menú que ven el catálogo y el detalle de esta landing: sale
+          // de BD (`home_component.navbar`) y se gestiona desde el admin. Antes
+          // el index usaba una lista propia en `seminuevosData` y acababa con un
+          // menú distinto al del resto del flujo (BAL-3288).
+          navbarItems={mergedNavbarItems}
+        />
+      </div>
+    );
+  }
+
   // For whitelist landings, heroData is null (server got 403) — that's expected.
   // The user sees the countdown overlay or DNI modal, then gets redirected to catalog.
   const whitelistPending = hasWhitelist && !heroData;
@@ -542,6 +593,9 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
             footerData={mergedFooterData}
             benefitsData={heroData.benefitsData}
             agreementData={heroData.agreementData}
+            institutionBranding={heroData.institutionBranding}
+            showInstitutionLogo={landingConfig.layout.show_agreement_logo}
+            showMinQuota={landingConfig.features.show_hero_min_quota}
             landing={slug}
             previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
             previewKey={previewKey}
@@ -565,7 +619,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           <FloatingCtaButton config={landingConfig.features.floating_cta} />
 
           {/* VIP Countdown overlay - blocks page until countdown expires */}
-          {isVipLanding && (
+          {mostrarPuertaVip && (
             <VipCountdownOverlay
               endDate={landingConfig.features.vip_countdown}
               onExpired={() => { setCountdownActive(false); setVipExpired(true); }}
@@ -586,10 +640,23 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
 }
 
 // Main export with Suspense wrapper + tracking providers
-export function LandingPageClient({ slug, initialData, landingConfig }: LandingPageClientProps) {
+export function LandingPageClient({ slug, initialData, landingConfig, referralBanner }: LandingPageClientProps) {
+  // Si este equipo venía del link de OTRA promotora, se borra su visita entera
+  // (formulario, sesión de tracking, `ref`, UTMs, franja) antes de que arranque
+  // nada de abajo. Tiene que ir acá, en el padre y antes de renderizar hijos:
+  // ver `usePromoterLinkReset` para el porqué del orden.
+  usePromoterLinkReset(slug);
+
   return (
     <SessionProvider landingSlug={slug}>
       <EventTrackerProvider>
+        {/*
+          La franja va DENTRO de los providers a propósito: así su evento de
+          impresión viaja con el mismo `session_uuid` que el resto de la visita
+          y se puede cruzar con la conversión. Fuera del árbol quedaría como un
+          evento huérfano, sin sesión a la cual atribuirlo.
+        */}
+        {referralBanner && <ReferralBanner data={referralBanner} landingSlug={slug} />}
         <Suspense fallback={<HomeSkeleton />}>
           <LandingPageClientInner slug={slug} initialData={initialData} landingConfig={landingConfig} />
         </Suspense>

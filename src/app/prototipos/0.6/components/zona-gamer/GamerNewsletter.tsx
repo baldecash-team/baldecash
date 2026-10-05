@@ -93,7 +93,7 @@ export function GamerNewsletter({ theme, data }: GamerNewsletterProps) {
           ) : (
             <>
               <div
-                className="flex items-center gap-2 h-11 px-3 w-[280px] max-w-full rounded-xl border-2 transition-all focus-within:border-[#00ffd5] focus-within:shadow-[0_0_15px_rgba(0,255,213,0.1)]"
+                className={`flex items-center gap-2 h-11 px-3 w-[280px] max-w-full rounded-xl border-2 transition-all ${isDark ? 'focus-within:border-[#00ffd5] focus-within:shadow-[0_0_15px_rgba(0,255,213,0.1)]' : 'focus-within:border-[#00897a] focus-within:shadow-[0_0_15px_rgba(0,137,122,0.1)]'}`}
                 style={{ borderColor: border, background: bgSurface }}
               >
                 <Phone className="w-4 h-4 shrink-0" style={{ color: textMuted }} />

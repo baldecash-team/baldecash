@@ -10,6 +10,7 @@
 
 import {
   evaluateFieldVisibility,
+  evaluatePrefillFieldVisibility,
   validateField,
   filterFieldOptions,
   getStepByCode,
@@ -498,6 +499,24 @@ describe('validateField', () => {
       const result = validateField(field, 'user@example.com', {});
       expect(result.isValid).toBe(true);
     });
+
+    // Prod 2026-08-07: la regex vieja (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) daba por
+    // bueno cualquier prefijo pegado porque `:` cae dentro de `[^\s@]`.
+    it.each(['juan@uni', 'juan@uni..edu.pe', 'http://uni.edu.pe', 'juan perez@uni.edu.pe'])(
+      'fails for %s',
+      (value) => {
+        const field = createField({
+          validations: [{ type: 'email', message: 'Email inválido' }],
+        });
+        expect(validateField(field, value, {}).isValid).toBe(false);
+      }
+    );
+
+    it('validates email fields even without the email rule configured', () => {
+      const field = createField({ type: 'email', validations: [] });
+      expect(validateField(field, 'juan@uni', {}).isValid).toBe(false);
+      expect(validateField(field, 'alumno@uni.edu.pe', {}).isValid).toBe(true);
+    });
   });
 
   describe('phone validation', () => {
@@ -537,13 +556,17 @@ describe('validateField', () => {
       expect(result.isValid).toBe(true);
     });
 
-    it('fails for invalid CE (not 9 digits)', () => {
+    // BAL-4025: el CE se sigue rechazando con 8 caracteres, pero el mensaje es
+    // ahora el que manda el backend en `/public/options/document-types`
+    // ("entre 9 y 12"), no el "9 dígitos" que el front tenia escrito a mano y
+    // que ademas era falso: el CE acepta 9..12 y puede llevar letras.
+    it('fails for CE shorter than 9 characters', () => {
       const field = createField({
         validations: [{ type: 'dni', message: 'Documento inválido' }],
       });
       const result = validateField(field, '12345678', { document_type: 'ce' });
       expect(result.isValid).toBe(false);
-      expect(result.error).toBe('El CE debe tener 9 dígitos');
+      expect(result.error).toBe('El CE debe tener entre 9 y 12 caracteres');
     });
 
     it('passes for valid 9-digit CE', () => {
@@ -736,5 +759,79 @@ describe('getStepNavigation', () => {
     const nav = getStepNavigation(config, 'step_b');
     expect(nav.prevStep?.code).toBe('step_a');
     expect(nav.nextStep?.code).toBe('step_c');
+  });
+});
+
+// ============================================================================
+// evaluatePrefillFieldVisibility Tests (BAL-4026)
+// ============================================================================
+
+/**
+ * Un campo destino de prellenado tiene DOS compuertas en serie: su condicion de
+ * negocio (`dependency_groups`) y el estado del lookup del documento. Antes solo
+ * se miraba la segunda, y por eso "Nombres y Apellidos" del familiar sobrevivia
+ * al cambiar la fuente de ingreso a "Sueldo de trabajo".
+ */
+describe('evaluatePrefillFieldVisibility (BAL-4026)', () => {
+  const soloSiFamiliar: DependencyGroup[] = [{
+    action: 'show', logic: 'and',
+    conditions: [{ depends_on_field: 'income_source', operator: 'in', value: ['apoyo_familiar'] }],
+  }];
+
+  function campoDelFamiliar() {
+    return createField({
+      code: 'supporter_full_name',
+      hidden: true,
+      dependency_groups: soloSiFamiliar,
+    });
+  }
+
+  const DESTAPADO = {
+    _prefill_status_supporter_document_number: 'not_found',
+    supporter_full_name: 'JUAN PEREZ GOMEZ',
+  };
+
+  it('con la fuente en "familiar" y el lookup sin resultado, el campo se muestra', () => {
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(),
+      { income_source: 'apoyo_familiar', ...DESTAPADO },
+      'supporter_document_number',
+    )).toBe(true);
+  });
+
+  it('al cambiar la fuente a "sueldo de trabajo" el campo se oculta, aunque el lookup lo hubiera destapado', () => {
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(),
+      { income_source: 'sueldo_trabajo', ...DESTAPADO },
+      'supporter_document_number',
+    )).toBe(false);
+  });
+
+  it('la condicion de negocio no alcanza: sin lookup resuelto el campo sigue tapado', () => {
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(),
+      { income_source: 'apoyo_familiar' },
+      'supporter_document_number',
+    )).toBe(false);
+  });
+
+  it('con el lookup en "found" solo se muestra lo que el buro no trajo', () => {
+    const base = { income_source: 'apoyo_familiar', _prefill_status_supporter_document_number: 'found' };
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(), { ...base, _prefill_empty_supporter_full_name: 'true' }, 'supporter_document_number',
+    )).toBe(true);
+    expect(evaluatePrefillFieldVisibility(
+      campoDelFamiliar(), base, 'supporter_document_number',
+    )).toBe(false);
+  });
+
+  it('un campo de prellenado sin condicion propia sigue dependiendo solo del lookup', () => {
+    const firstName = createField({ code: 'first_name', hidden: true });
+    expect(evaluatePrefillFieldVisibility(
+      firstName, { _prefill_status_document_number: 'not_found' }, 'document_number',
+    )).toBe(true);
+    expect(evaluatePrefillFieldVisibility(
+      firstName, {}, 'document_number',
+    )).toBe(false);
   });
 });

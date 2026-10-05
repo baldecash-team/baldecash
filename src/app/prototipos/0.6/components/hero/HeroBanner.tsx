@@ -14,6 +14,10 @@ import { HeroBannerProps } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
+import { HeroOverlay } from './common/HeroOverlay';
+import { HeroImageCta } from './common/HeroImageCta';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
@@ -33,6 +37,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   badgeText,
   underlineStyle = 4,
   landing = 'home',
+  showHeroContent,
+  showMinQuota,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
@@ -55,6 +61,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
+
+  /**
+   * Condiciones que hay que aceptar antes de la calculadora, si la landing las
+   * tiene. Va acá y no solo en el hero de convenio: `titulo-senati` NO es una
+   * landing de convenio (no tiene acuerdo), así que se pinta con este hero.
+   */
+  const compuerta = useCompuertaLegal(normalizedLanding);
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {
@@ -92,9 +105,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     return href.includes('#');
   };
 
-  // Handle CTA click - external links in new tab, anchors with smooth scroll
-  const handleCtaClick = () => {
-    tracker?.track('hero_cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
+  // Navigation - external links in new tab, anchors with smooth scroll
+  const navegar = () => {
     if (isExternalLink(ctaUrl)) {
       window.open(ctaUrl, '_blank', 'noopener,noreferrer');
     } else if (isAnchorLink(ctaUrl)) {
@@ -122,6 +134,22 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       router.push(ctaUrl);
     }
   };
+
+  const handleCtaClick = () => {
+    tracker?.track('hero_cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
+    // La compuerta envuelve la navegación entera y no la reemplaza: si la landing
+    // no tiene condiciones para este destino, `navegar` corre tal cual. El
+    // seguimiento queda afuera porque el clic ocurrió igual.
+    compuerta.pedirPaso(ctaUrl, navegar);
+  };
+
+  // BAL-2782: el switch del admin apaga textos y overlay, y la imagen toma el
+  // destino del CTA. Es el unico mecanismo: los tres flags sueltos que antes
+  // hacian esto por separado ya no existen.
+  const soloImagen = showHeroContent === false;
+  const mostrarContenido = !soloImagen;
+  const ocultarOverlay = soloImagen;
+  const imagenClickeable = soloImagen && !!ctaUrl && ctaUrl !== '#';
 
   // Map icon names to components
   const getIconComponent = (iconName: string) => {
@@ -153,113 +181,145 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     >
       {/* Background Image */}
       {imageSrc && (
-        mobileImageSrc ? (
-          // Two distinct URLs: use <picture> so the browser picks the right source per viewport
-          <picture>
-            <source media="(max-width: 639px)" srcSet={mobileImageSrc} />
-            <source media="(min-width: 640px)" srcSet={imageSrc} />
-            <img
+        <HeroImageCta
+          enabled={imagenClickeable}
+          label={primaryCta?.text}
+          onActivate={handleCtaClick}
+          className="absolute inset-0"
+        >
+          {mobileImageSrc ? (
+            // Two distinct URLs: use <picture> so the browser picks the right source per viewport
+            <picture>
+              <source media="(max-width: 639px)" srcSet={mobileImageSrc} />
+              <source media="(min-width: 640px)" srcSet={imageSrc} />
+              <img
+                src={imageSrc}
+                alt="Estudiantes trabajando"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  objectPosition: `${posX}% ${posY}%`,
+                  transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
+                }}
+                fetchPriority="high"
+                onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+              />
+            </picture>
+          ) : (
+            // Single URL: keep next/image for LCP optimization
+            <Image
               src={imageSrc}
               alt="Estudiantes trabajando"
-              className="absolute inset-0 w-full h-full object-cover"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
               style={{
                 objectPosition: `${posX}% ${posY}%`,
                 transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
               }}
-              fetchPriority="high"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.opacity = '0';
+              }}
             />
-          </picture>
-        ) : (
-          // Single URL: keep next/image for LCP optimization
-          <Image
-            src={imageSrc}
-            alt="Estudiantes trabajando"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-            style={{
-              objectPosition: `${posX}% ${posY}%`,
-              transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-            }}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.opacity = '0';
-            }}
-          />
-        )
+          )}
+        </HeroImageCta>
       )}
 
       {/* Overlay — stronger gradient on mobile where text overlaps the image center */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20 sm:to-transparent" />
+      <HeroOverlay hidden={ocultarOverlay} variant="soft" />
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="max-w-2xl">
-          {/* Badge */}
-          {badgeText && (
-            <Chip
-              size="sm"
-              radius="sm"
-              classNames={{
-                base: 'bg-white/20 backdrop-blur-sm px-3 py-1 h-auto mb-4 sm:mb-6',
-                content: 'text-white text-xs font-medium',
-              }}
-            >
-              {badgeText}
-            </Chip>
-          )}
+      {mostrarContenido && (
+        <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <div className="max-w-2xl">
+            {/* Badge */}
+            {badgeText && (
+              <Chip
+                size="sm"
+                radius="sm"
+                classNames={{
+                  base: 'bg-white/20 backdrop-blur-sm px-3 py-1 h-auto mb-4 sm:mb-6',
+                  content: 'text-white text-xs font-medium',
+                }}
+              >
+                {badgeText}
+              </Chip>
+            )}
 
-          {/* Headline */}
-          <h1 className="font-['Baloo_2',_sans-serif] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6">
-            {headline || ''}
-          </h1>
+            {/* Headline */}
+            <h1 className="font-['Baloo_2',_sans-serif] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6">
+              {headline || ''}
+            </h1>
 
-          {/* Subheadline */}
-          <p className="text-base sm:text-lg md:text-xl text-white/80 mb-6 sm:mb-8 max-w-xl">
-            {subheadline}
-          </p>
+            {/* Subheadline */}
+            <p className="text-base sm:text-lg md:text-xl text-white/80 mb-6 sm:mb-8 max-w-xl">
+              {subheadline}
+            </p>
 
-          {/* Price Highlight */}
-          <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
-            <span className="text-white/70 text-sm sm:text-lg">Desde</span>
-            <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
-            <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
-          </div>
+            {/* Price Highlight */}
+            {/* Dos condiciones que responden preguntas distintas: sin monto no
+                hay precio que mostrar (BAL-3478), y el preset dice que hay uno
+                pero la landing no lo quiere en pantalla (BAL-3494). Por eso
+                conviven en vez de reemplazarse. */}
+            {showMinQuota !== false && minQuota > 0 && (
+              <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
+                <span className="text-white/70 text-sm sm:text-lg">Desde</span>
+                <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
+                <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
+              </div>
+            )}
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <Button
-              size="lg"
-              radius="lg"
-              className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors w-full sm:w-auto"
-              style={{
-                backgroundColor: 'var(--color-secondary, #03DBD0)',
-              }}
-              endContent={<ArrowRight className="w-5 h-5" />}
-              onPress={handleCtaClick}
-            >
-              {primaryCta?.text || ''}
-            </Button>
-          </div>
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <Button
+                size="lg"
+                radius="lg"
+                className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors w-full sm:w-auto"
+                style={{
+                  backgroundColor: 'var(--color-secondary, #03DBD0)',
+                }}
+                endContent={<ArrowRight className="w-5 h-5" />}
+                onPress={handleCtaClick}
+              >
+                {primaryCta?.text || ''}
+              </Button>
+            </div>
 
-          {/* Trust Signals */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-4 md:gap-6">
-            {trustSignals
-              .filter((signal) => signal.is_visible !== false)
-              .map((signal, index) => {
-                const IconComponent = getIconComponent(signal.icon);
-                return (
-                  <div key={index} className="flex items-center gap-2 text-white/80 text-xs sm:text-sm">
-                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
-                    <span>{signal.text}</span>
-                  </div>
-                );
-              })}
+            {/* Trust Signals */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-4 md:gap-6">
+              {trustSignals
+                .filter((signal) => signal.is_visible !== false)
+                .map((signal, index) => {
+                  const IconComponent = getIconComponent(signal.icon);
+                  return (
+                    <div key={index} className="flex items-center gap-2 text-white/80 text-xs sm:text-sm">
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+                      <span>{signal.text}</span>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         </div>
+      )}
+
+      {/*
+        Anclado al pie del hero y no debajo, que es donde estaba.
+
+        El hero mide una pantalla exacta —`100vh` menos el encabezado—, así que
+        una franja puesta a continuación arranca justo en el pliegue y hay que
+        desplazar para verla. Y este aviso existe para que se lea sin buscarlo.
+
+        Va encima de la imagen, como en el maquetado. No necesita apartarse del
+        sujeto de la foto: la franja trae fondo propio y opaco, así que se lee
+        igual sea cual sea la imagen que cargue la landing.
+      */}
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <AvisoLegal landing={normalizedLanding} variante="hero" />
       </div>
+
+      <CompuertaLegal {...compuerta} />
     </section>
   );
 };

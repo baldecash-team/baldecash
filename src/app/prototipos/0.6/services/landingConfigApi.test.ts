@@ -48,7 +48,9 @@ describe('mergeLandingConfig', () => {
       layout: { has_catalog: false },
       features: { has_dni_modal: true, dni_required: false },
     } as Parameters<typeof mergeLandingConfig>[0]);
-    expect(result.layout).toEqual({ has_catalog: false });
+    // `show_agreement_logo` no venia en el parcial, asi que conserva su default
+    // true del merge (BAL-2970).
+    expect(result.layout).toEqual({ has_catalog: false, show_agreement_logo: true });
     expect(result.features).toEqual(expect.objectContaining({ has_dni_modal: true, dni_required: false, show_platform_commission: false }));
   });
 

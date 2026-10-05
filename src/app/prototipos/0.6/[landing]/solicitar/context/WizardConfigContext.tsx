@@ -5,7 +5,8 @@
  * Fetches wizard config once per landing and provides it to all wizard steps
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   WizardConfig,
   WizardStep,
@@ -18,6 +19,14 @@ import {
   getStepSlug,
 } from '../../../services/wizardApi';
 import { usePreview } from '../../../context/PreviewContext';
+import { leerUuidDeSesionGuardado, sesionYaConvertida, useSessionOptional } from './SessionContext';
+import { debeRenovarSesionAlEntrar } from '../utils/renovacionDeSesion';
+
+// Respaldo: si a los 5s no apareció ningún uuid (ni en el contexto ni en
+// storage), se pide el wizard igual para que la persona no se quede esperando
+// para siempre. Se vuelve a leer storage en ese momento; solo si de verdad no
+// hay uuid se pide sin sesión y el backend sirve el formulario principal.
+const TIMEOUT_ESPERA_SESION_MS = 5000;
 
 interface WizardConfigContextValue {
   config: WizardConfig | null;
@@ -44,9 +53,67 @@ export const useWizardConfig = () => {
   return context;
 };
 
+/**
+ * Igual que `useWizardConfig`, pero sin tirar error fuera del provider. Lo usa
+ * `WizardProvider` para limpiar el borrador contra las opciones vigentes
+ * (BAL-4433) sin obligar a cada test que lo monta a levantar también la config.
+ */
+export const useWizardConfigOptional = () => useContext(WizardConfigContext);
+
 interface WizardConfigProviderProps {
   children: ReactNode;
   slug: string;
+}
+
+/**
+ * Decide si ya se puede pedir el wizard y con qué uuid de sesión.
+ *
+ * El backend elige el formulario con un hash del uuid: no necesita que la
+ * sesión exista todavía. Por eso no se espera a la API de sesión; alcanza con
+ * conocer el uuid, que está en el contexto o —antes— en storage, porque
+ * `initSession` lo guarda ahí antes de llamar a la API.
+ *
+ * - Sin provider de sesión: se pide ya, sin sesión.
+ * - Con uuid (contexto primero, storage después): se pide ya, con ese uuid.
+ * - Sin uuid: se espera a que aparezca; agotada la espera se pide sin sesión.
+ * - `renovacionPendiente`: el uuid conocido es de una sesión que ya envió una
+ *   solicitud y el layout de `/solicitar` la va a soltar al montar. Pedir con
+ *   él mostraría el formulario de la sesión vieja y se guardaría con el de la
+ *   nueva, así que se espera al uuid nuevo.
+ */
+export function decidirPedidoDeWizard({
+  haySesionProvider,
+  sessionUuid,
+  uuidGuardado,
+  renovacionPendiente = false,
+  esperaAgotada = false,
+}: {
+  haySesionProvider: boolean;
+  sessionUuid: string | null;
+  uuidGuardado: string | null;
+  renovacionPendiente?: boolean;
+  esperaAgotada?: boolean;
+}): { pedir: boolean; uuid: string | null } {
+  if (!haySesionProvider) return { pedir: true, uuid: null };
+
+  const uuid = sessionUuid || uuidGuardado || null;
+  if (esperaAgotada) return { pedir: true, uuid };
+  if (!uuid || renovacionPendiente) return { pedir: false, uuid: null };
+  return { pedir: true, uuid };
+}
+
+/**
+ * Un pedido del wizard ya decidido. El uuid queda CAPTURADO acá: que la sesión
+ * aparezca o cambie después no vuelve a pedir el wizard, porque eso cambiaría
+ * el formulario bajo la persona a mitad del llenado.
+ */
+interface PedidoDeWizard {
+  /** Identifica el formulario mostrado: slug + estado de preview. */
+  clave: string;
+  slug: string;
+  previewLandingId: number | null;
+  previewKey: string | null;
+  uuid: string | null;
 }
 
 export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ children, slug }) => {
@@ -61,9 +128,77 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
   const previewLandingId = isPreviewMode ? preview.landingId : null;
   const previewKey = isPreviewMode ? preview.previewKey : null;
 
-  // Fetch wizard config on mount (wait for preview hydration)
+  // Con varios formularios por landing, el backend sirve el que le toca al
+  // uuid de la sesión. Ver `decidirPedidoDeWizard`.
+  const sesion = useSessionOptional();
+  const haySesionProvider = sesion != null;
+  const sessionUuid = sesion?.sessionUuid ?? null;
+  // No se usa su valor: es la señal de que `initSession` arrancó y, por lo
+  // tanto, de que el uuid ya está en storage aunque la API no haya respondido.
+  const sesionCreandose = sesion?.isCreating ?? false;
+  const pathname = usePathname();
+
+  // Una sola carga por formulario mostrado: el wizard se vuelve a pedir solo
+  // si cambia esta clave (slug o preview), nunca porque cambie la sesión.
+  const clave = JSON.stringify([slug, isPreviewMode, previewLandingId, previewKey]);
+  const [pedido, setPedido] = useState<PedidoDeWizard | null>(null);
+  const yaPedido = pedido?.clave === clave;
+
+  // El respaldo de 5s corre fuera del render: lee el uuid del contexto de acá.
+  const sessionUuidRef = useRef(sessionUuid);
   useEffect(() => {
-    if (!isPreviewHydrated) return;
+    sessionUuidRef.current = sessionUuid;
+  }, [sessionUuid]);
+
+  // Decide el pedido en cuanto hay con qué (wait for preview hydration).
+  useEffect(() => {
+    if (!isPreviewHydrated || yaPedido) return;
+
+    const decision = decidirPedidoDeWizard({
+      haySesionProvider,
+      sessionUuid,
+      uuidGuardado: leerUuidDeSesionGuardado(slug),
+      renovacionPendiente: debeRenovarSesionAlEntrar(pathname) && sesionYaConvertida(slug),
+    });
+    if (!decision.pedir) return;
+
+    setPedido((prev) =>
+      prev?.clave === clave ? prev : { clave, slug, previewLandingId, previewKey, uuid: decision.uuid },
+    );
+  }, [
+    clave,
+    slug,
+    previewLandingId,
+    previewKey,
+    isPreviewHydrated,
+    yaPedido,
+    haySesionProvider,
+    sessionUuid,
+    sesionCreandose,
+    pathname,
+  ]);
+
+  // Respaldo por tiempo, solo mientras se espera un uuid.
+  useEffect(() => {
+    if (!isPreviewHydrated || yaPedido || !haySesionProvider) return;
+
+    const timeoutId = setTimeout(() => {
+      const decision = decidirPedidoDeWizard({
+        haySesionProvider: true,
+        sessionUuid: sessionUuidRef.current,
+        uuidGuardado: leerUuidDeSesionGuardado(slug),
+        esperaAgotada: true,
+      });
+      setPedido((prev) =>
+        prev?.clave === clave ? prev : { clave, slug, previewLandingId, previewKey, uuid: decision.uuid },
+      );
+    }, TIMEOUT_ESPERA_SESION_MS);
+    return () => clearTimeout(timeoutId);
+  }, [clave, slug, previewLandingId, previewKey, isPreviewHydrated, yaPedido, haySesionProvider]);
+
+  // Fetch wizard config: una vez por pedido. No depende de `sessionUuid`.
+  useEffect(() => {
+    if (!pedido) return;
 
     let isMounted = true;
 
@@ -74,15 +209,15 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
 
         let data: WizardConfig | null = null;
 
-        if (isPreviewMode && previewLandingId && previewKey) {
+        if (pedido.previewLandingId && pedido.previewKey) {
           // Use preview API with ID and preview_key
-          data = await getWizardConfigById(previewLandingId, previewKey);
+          data = await getWizardConfigById(pedido.previewLandingId, pedido.previewKey, pedido.uuid);
           // Fallback to slug-based API with preview_key
           if (!data) {
-            data = await getWizardConfig(slug, previewKey);
+            data = await getWizardConfig(pedido.slug, pedido.previewKey, pedido.uuid);
           }
         } else {
-          data = await getWizardConfig(slug);
+          data = await getWizardConfig(pedido.slug, null, pedido.uuid);
         }
 
         if (!isMounted) return;
@@ -108,7 +243,7 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     return () => {
       isMounted = false;
     };
-  }, [slug, isPreviewHydrated, isPreviewMode, previewLandingId, previewKey]);
+  }, [pedido]);
 
   // Memoized helper functions
   const getStep = useMemo(() => {

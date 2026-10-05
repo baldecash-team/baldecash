@@ -18,12 +18,21 @@ import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getContrastTextColor, getColorForDarkBg } from '@/app/prototipos/0.6/utils/colorContrast';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { HeroOverlay } from '../common/HeroOverlay';
+import { HeroImageCta } from '../common/HeroImageCta';
+import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
+import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 
 interface ConvenioHeroProps {
   heroContent: HeroContent;
   agreementData: AgreementData;
   landing: string;
   primaryColor?: string;
+  /**
+   * Preset `hero-quota-off` (BAL-3477). false = sin el recuadro «Cuotas desde»,
+   * aunque haya monto.
+   */
+  showMinQuota?: boolean;
 }
 
 export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
@@ -31,6 +40,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   agreementData,
   landing,
   primaryColor,
+  showMinQuota,
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
@@ -62,6 +72,25 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
 
   const ctaUrl = transformLink(heroContent.primaryCta?.href || 'catalogo');
 
+  /**
+   * Condiciones que hay que aceptar antes de la calculadora, si la landing las
+   * tiene. La compuerta decide sola si aplica al destino; acá no hay ninguna
+   * regla por landing.
+   *
+   * Con el slug normalizado, que es el mismo con el que se arma `ctaUrl`: con
+   * la barra final la ruta de la calculadora saldria con una barra de mas y no
+   * coincidiria nunca con el destino, dejando el paso abierto en silencio.
+   */
+  const compuerta = useCompuertaLegal(normalizedLanding);
+
+  // Modo "solo imagen" (BAL-2782): el switch del admin apaga textos y overlay,
+  // y la imagen toma el destino del CTA. Es el unico mecanismo: los tres
+  // flags sueltos que antes hacian esto por separado ya no existen.
+  const soloImagen = heroContent.showHeroContent === false;
+  const mostrarContenido = !soloImagen;
+  const ocultarOverlay = soloImagen;
+  const imagenClickeable = soloImagen && !!ctaUrl && ctaUrl !== '#';
+
   // Benefits list from trust signals (fully managed from admin)
   const beneficios = (heroContent.trustSignals || [])
     .filter((signal) => signal.is_visible !== false);
@@ -82,11 +111,16 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
 
   const handleCtaClick = () => {
     tracker?.track('hero_cta_click', { cta_text: heroContent.primaryCta?.text, target: ctaUrl, source: 'convenio_hero' });
-    if (ctaUrl.startsWith('http')) {
-      window.open(ctaUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      router.push(ctaUrl);
-    }
+    // La compuerta envuelve a la navegación entera, no la reemplaza: decide si
+    // hay algo que aceptar antes y, si no lo hay, esto corre tal cual. El
+    // seguimiento queda afuera porque el clic ocurrió igual.
+    compuerta.pedirPaso(ctaUrl, () => {
+      if (ctaUrl.startsWith('http')) {
+        window.open(ctaUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        router.push(ctaUrl);
+      }
+    });
   };
 
   return (
@@ -99,84 +133,102 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
     >
       {/* Background image - next/image with priority for LCP optimization */}
       {heroContent.backgroundImage && (
-        <Image
-          src={heroContent.backgroundImage}
-          alt="Campus universitario"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          style={{
-            objectPosition: `${posX}% ${posY}%`,
-            transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-          }}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.opacity = '0';
-          }}
-        />
+        <HeroImageCta
+          enabled={imagenClickeable}
+          label={heroContent.primaryCta?.text}
+          onActivate={handleCtaClick}
+          className="absolute inset-0"
+        >
+          <Image
+            src={heroContent.backgroundImage}
+            alt="Campus universitario"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+            style={{
+              objectPosition: `${posX}% ${posY}%`,
+              transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.opacity = '0';
+            }}
+          />
+        </HeroImageCta>
       )}
 
       {/* Gradient overlay — stronger on mobile (text overlaps image center) */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/20 sm:to-transparent" />
+      <HeroOverlay hidden={ocultarOverlay} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-8 sm:py-12">
-        <div className="max-w-xl lg:max-w-2xl">
-          {/* Badge */}
-          <Chip
-            radius="sm"
-            classNames={{
-              base: 'px-3 py-1 h-auto mb-3 sm:mb-4',
-              content: 'text-xs font-medium',
-            }}
-            style={{ backgroundColor: 'var(--color-primary, #4654CD)', color: ctaTextColor }}
-          >
-            {heroContent.badgeText}
-          </Chip>
+      {mostrarContenido && (
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-8 sm:py-12">
+          <div className="max-w-xl lg:max-w-2xl">
+            {/* Badge */}
+            <Chip
+              radius="sm"
+              classNames={{
+                base: 'px-3 py-1 h-auto mb-3 sm:mb-4',
+                content: 'text-xs font-medium',
+              }}
+              style={{ backgroundColor: 'var(--color-primary, #4654CD)', color: ctaTextColor }}
+            >
+              {heroContent.badgeText}
+            </Chip>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight">
-            {heroContent.headline}
-          </h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight">
+              {heroContent.headline}
+            </h1>
 
-          <p className="text-base sm:text-lg text-white/80 mb-5 sm:mb-6">
-            {heroContent.subheadline}
-          </p>
+            <p className="text-base sm:text-lg text-white/80 mb-5 sm:mb-6">
+              {heroContent.subheadline}
+            </p>
 
-          {/* Price highlight */}
-          {heroContent.minQuota > 0 && (
-            <div className="bg-white/10 backdrop-blur rounded-xl p-3 sm:p-4 mb-5 sm:mb-6 inline-block max-w-full">
-              <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
-              <p className="text-3xl sm:text-4xl font-bold text-white font-['Baloo_2',_sans-serif]">
-                S/{formatMoney(heroContent.minQuota)}
-                <span className="text-base sm:text-lg font-normal text-white/70">{heroContent.quotaSuffix || '/mes'}</span>
-              </p>
-            </div>
-          )}
+            {/* Price highlight */}
+            {showMinQuota !== false && heroContent.minQuota > 0 && (
+              <div className="bg-white/10 backdrop-blur rounded-xl p-3 sm:p-4 mb-5 sm:mb-6 inline-block max-w-full">
+                <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
+                <p className="text-3xl sm:text-4xl font-bold text-white font-['Baloo_2',_sans-serif]">
+                  S/{formatMoney(heroContent.minQuota)}
+                  <span className="text-base sm:text-lg font-normal text-white/70">{heroContent.quotaSuffix || '/mes'}</span>
+                </p>
+              </div>
+            )}
 
-          {/* Benefits list */}
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 sm:gap-3 mb-6 sm:mb-8">
-            {beneficios.map((signal, index) => {
-              const IconComponent = getIconComponent(signal.icon);
-              return (
-                <li key={index} className="flex items-center gap-2 text-white/90 text-sm sm:text-base">
-                  <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: insightIconColor }} />
-                  <span className="break-words min-w-0">{signal.text}</span>
-                </li>
-              );
-            })}
-          </ul>
+            {/* Benefits list */}
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 sm:gap-3 mb-6 sm:mb-8">
+              {beneficios.map((signal, index) => {
+                const IconComponent = getIconComponent(signal.icon);
+                return (
+                  <li key={index} className="flex items-center gap-2 text-white/90 text-sm sm:text-base">
+                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: insightIconColor }} />
+                    <span className="break-words min-w-0">{signal.text}</span>
+                  </li>
+                );
+              })}
+            </ul>
 
-          {/* CTA */}
-          <button
-            onClick={handleCtaClick}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity text-base sm:text-lg"
-            style={{ backgroundColor: 'var(--color-primary, #4654CD)', color: ctaTextColor }}
-          >
-            {heroContent.primaryCta?.text}
-            <ArrowRight className="w-5 h-5 flex-shrink-0" />
-          </button>
+            {/* CTA */}
+            <button
+              onClick={handleCtaClick}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity text-base sm:text-lg"
+              style={{ backgroundColor: 'var(--color-primary, #4654CD)', color: ctaTextColor }}
+            >
+              {heroContent.primaryCta?.text}
+              <ArrowRight className="w-5 h-5 flex-shrink-0" />
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Anclado al pie del hero por el mismo motivo que en `HeroBanner`: la
+          sección mide una pantalla exacta, y debajo el aviso queda siempre
+          fuera de vista. */}
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <AvisoLegal landing={normalizedLanding} variante="hero" />
       </div>
+
+      <CompuertaLegal {...compuerta} />
     </div>
   );
 };

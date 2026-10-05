@@ -6,6 +6,33 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const nextConfig: NextConfig = {
   basePath: basePath,
   trailingSlash: true,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            // JuicyScore valida el Raw_Data_ApiKey_Token contra el dominio
+            // registrado usando el header Referer de la página donde vive el
+            // pixel; con una política más estricta el token responde 403.
+            // Es el default de los navegadores modernos, pero la doc pide
+            // declararlo de forma explícita (APIv17 §2.1).
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiUrl}/api/:path*`,
+      },
+    ];
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -28,6 +55,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "databalde-cashsys.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.s3.us-east-1.amazonaws.com",
       },
       {
         protocol: "https",

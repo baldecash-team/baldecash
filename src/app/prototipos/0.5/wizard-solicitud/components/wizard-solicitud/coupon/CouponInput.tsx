@@ -19,6 +19,12 @@ import { useProduct } from '../../../context/ProductContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
 
+/**
+ * Cuánto se muestra el mensaje de error antes de volver a 'idle'.
+ * Estaba en 2s, que no alcanza a leer el texto completo.
+ */
+const ERROR_VISIBLE_MS = 7000;
+
 // Cupones válidos con sus descuentos
 const VALID_COUPONS: Record<string, { discount: number; label: string }> = {
   PROMO: { discount: 10, label: 'Descuento promocional' },
@@ -36,7 +42,7 @@ export const CouponInput: React.FC = () => {
     if (!couponCode.trim()) {
       setState('error');
       setErrorMessage('Ingresa un código de cupón');
-      setTimeout(() => setState('idle'), 2000);
+      setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
       return;
     }
 
@@ -58,7 +64,7 @@ export const CouponInput: React.FC = () => {
     } else {
       setState('error');
       setErrorMessage('Cupón no válido o expirado');
-      setTimeout(() => setState('idle'), 2000);
+      setTimeout(() => setState('idle'), ERROR_VISIBLE_MS);
     }
   };
 

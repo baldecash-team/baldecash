@@ -203,7 +203,7 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
 
       <style jsx>{`
         .group:hover {
-          border-color: rgba(0, 255, 213, 0.2);
+          border-color: ${isDark ? 'rgba(0, 255, 213, 0.2)' : 'rgba(0, 137, 122, 0.2)'};
           transform: translateY(-6px);
           box-shadow: ${isDark ? '0 14px 40px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.1)'};
         }
