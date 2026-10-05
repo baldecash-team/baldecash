@@ -216,6 +216,9 @@ function CatalogSkeleton() {
 }
 
 const CATALOG_CSS = `
+.nvidia-landing #catalogo .section-head{max-width:none;}
+.nvidia-landing #catalogo .section-head :is(h2,p){white-space:nowrap;max-width:none;}
+@media(max-width:1024px){.nvidia-landing #catalogo .section-head :is(h2,p){white-space:normal;}}
 .nvidia-landing #catalogo .sl-tabs{margin:0 auto 34px;width:max-content;max-width:100%;}
 .nvidia-landing .gt{margin-top:32px;}
 .nvidia-landing .gt-panel{display:grid;grid-template-columns:.78fr 2fr;gap:clamp(28px,4vw,56px);align-items:start;}
