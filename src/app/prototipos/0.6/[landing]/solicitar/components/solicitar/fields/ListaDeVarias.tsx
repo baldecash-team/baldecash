@@ -58,7 +58,7 @@ export function comoLista(valor: unknown): string[] {
 }
 
 /** «Deportes, Tecnología»: los textos de las marcadas, en el orden de la lista. */
-export function textosDeMarcadas(marcadas: string[], opciones: OpcionDeVarias[]): string {
+export function textosDeMarcadas(marcadas: string[], opciones: { value: string; label: string }[]): string {
   const orden = opciones.filter((o) => marcadas.includes(o.value)).map((o) => o.label);
   const sueltas = marcadas.filter((v) => !opciones.some((o) => o.value === v));
   return [...orden, ...sueltas].join(', ');

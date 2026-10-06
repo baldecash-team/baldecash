@@ -63,6 +63,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
+import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
 
 
 // Helper function to get Lucide icon by name
@@ -437,6 +438,12 @@ function StepContent() {
         ? num.toLocaleString('es-PE', { minimumFractionDigits: 2 })
         : value;
       return field.suffix ? `${prefix} ${formatted} ${field.suffix}` : `${prefix} ${formatted}`;
+    }
+
+    // Lista donde el cliente marcó varias (BAL-4354): «Deportes, Tecnología».
+    // Antes se mostraba solo la primera (`value[0]`).
+    if (Array.isArray(value) && field.options && field.options.length > 0) {
+      return value.length > 0 ? textosDeMarcadas(value, field.options) : '-';
     }
 
     // Check static options first
