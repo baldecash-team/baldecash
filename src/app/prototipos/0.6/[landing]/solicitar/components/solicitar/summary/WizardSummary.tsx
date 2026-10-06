@@ -49,7 +49,7 @@ const FIELD_OPTIONS_SOURCE_MAP: Record<string, string> = {
 /**
  * Resolves a field value to its display label
  */
-function resolveFieldValue(
+export function resolveFieldValue(
   field: WizardField,
   value: string | string[] | undefined,
   resolvedLabel?: string
