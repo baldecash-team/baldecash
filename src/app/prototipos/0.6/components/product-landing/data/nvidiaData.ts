@@ -95,8 +95,6 @@ export const gpuChipUrl = (model: string) =>
 // ============================================================
 /** logo de software en S3 */
 const sw = (file: string) => `${NVIDIA_ASSETS}/software/${file}.png`;
-/** imagen de software servida desde public/ del repo (aún no subida a S3) */
-const swLocal = (file: string) => `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/nvidia/software/${file}.png`;
 
 export interface NvidiaApp {
   name: string;
@@ -157,9 +155,9 @@ export const CAREERS: NvidiaCareer[] = [
     id: 'grafico', label: 'Diseño Gráfico y Fotografía', baseline: 'Sin tarjeta gráfica dedicada',
     apps: [
       { name: 'Lightroom', img: sw('adobe-lightroom'), sub: 'quitar ruido', card: 'RTX 4050', x: 8, similar: ['Capture One', 'DxO PhotoLab', 'Luminar Neo'], gain: 'Quita ruido con IA al instante', why: 'La GeForce RTX 4050 acelera el Quitar ruido con IA de Lightroom: lo que en CPU tarda minutos, en RTX toma segundos, para procesar sesiones enteras sin esperas.' },
-      { name: 'Illustrator', img: swLocal('adobe-illustrator'), imgPos: 'right center', sub: 'lienzo fluido', card: 'RTX 4050', x: 3, similar: ['CorelDRAW', 'Affinity Designer', 'Inkscape'], gain: 'Vectores pesados sin trabarte', why: 'La GeForce RTX 4050 impulsa el rendimiento por tarjeta gráfica de Illustrator: te desplazas y haces zoom en ilustraciones con miles de trazos sin saltos, y sus funciones de IA responden al instante.' },
+      { name: 'Illustrator', img: sw('adobe-illustrator'), imgPos: 'right center', sub: 'lienzo fluido', card: 'RTX 4050', x: 3, similar: ['CorelDRAW', 'Affinity Designer', 'Inkscape'], gain: 'Vectores pesados sin trabarte', why: 'La GeForce RTX 4050 impulsa el rendimiento por tarjeta gráfica de Illustrator: te desplazas y haces zoom en ilustraciones con miles de trazos sin saltos, y sus funciones de IA responden al instante.' },
       { name: 'Photoshop', img: sw('adobe-photoshop'), sub: 'edición con IA', card: 'RTX 4050', x: 2, similar: ['GIMP', 'Affinity Photo', 'Krita'], gain: 'Retoques con IA más ágiles', why: 'La GeForce RTX 4050 acelera los Filtros Neurales, la Súper resolución y la herramienta Quitar de Photoshop, y con suficiente VRAM trabajas con muchas capas sin ralentizaciones.' },
-      { name: 'CorelDRAW', img: swLocal('coreldraw'), imgPos: 'right center', sub: 'efectos con IA', card: 'RTX 4050', x: 2, similar: ['Illustrator', 'Affinity Designer', 'Inkscape'], gain: 'Diseña y amplía con IA', why: 'La GeForce RTX 4050 acelera la vista, los efectos y las funciones de IA de CorelDRAW, como ampliar imágenes sin perder calidad y quitar artefactos, para diseñar con fluidez aunque el archivo pese.' },
+      { name: 'CorelDRAW', img: sw('coreldraw'), imgPos: 'right center', sub: 'efectos con IA', card: 'RTX 4050', x: 2, similar: ['Illustrator', 'Affinity Designer', 'Inkscape'], gain: 'Diseña y amplía con IA', why: 'La GeForce RTX 4050 acelera la vista, los efectos y las funciones de IA de CorelDRAW, como ampliar imágenes sin perder calidad y quitar artefactos, para diseñar con fluidez aunque el archivo pese.' },
     ],
   },
   {
@@ -167,7 +165,7 @@ export const CAREERS: NvidiaCareer[] = [
     apps: [
       { name: 'DaVinci Resolve', img: sw('davinci-resolve'), sub: 'corrección de color', card: 'RTX 5060', x: 5, similar: ['Premiere Pro', 'Final Cut Pro', 'Avid'], gain: 'Color 4K e IA en tiempo real', why: 'La GeForce RTX 5060 lleva el color de DaVinci a otro nivel: corriges en 4K en tiempo real y sus Núcleos Tensor aceleran las herramientas de IA como Magic Mask, sin esperar a cada render.' },
       { name: 'Premiere', img: sw('adobe-premiere-pro'), sub: 'exportar video', card: 'RTX 4060', x: 4, similar: ['Final Cut Pro', 'DaVinci Resolve', 'Vegas Pro'], gain: 'Exporta 4K con NVENC', why: 'La GeForce RTX 4060 acelera Premiere con el codificador NVENC: exporta tus videos 4K en una fracción del tiempo y la línea de tiempo corre fluida, sin proxies ni interrupciones.' },
-      { name: 'CapCut', img: swLocal('capcut'), imgPos: 'right center', sub: 'exportar video', card: 'RTX 3050', x: 3, similar: ['Filmora', 'Premiere Rush', 'iMovie'], gain: 'Exporta tus videos en tiempo récord', why: 'La GeForce RTX 3050 acelera CapCut con su codificador y decodificador NVIDIA por hardware: la vista previa en alta resolución corre fluida y exportas tus videos mucho más rápido que solo con el procesador.' },
+      { name: 'CapCut', img: sw('capcut'), imgPos: 'right center', sub: 'exportar video', card: 'RTX 3050', x: 3, similar: ['Filmora', 'Premiere Rush', 'iMovie'], gain: 'Exporta tus videos en tiempo récord', why: 'La GeForce RTX 3050 acelera CapCut con su codificador y decodificador NVIDIA por hardware: la vista previa en alta resolución corre fluida y exportas tus videos mucho más rápido que solo con el procesador.' },
       { name: 'After Effects', img: sw('adobe-after-effects'), sub: 'efectos visuales', card: 'RTX 4070', x: 3, similar: ['Nuke', 'Fusion', 'Motion'], gain: 'Efectos 3D sin barra de progreso', why: 'La GeForce RTX 4070 acelera el Advanced 3D Renderer y los efectos por tarjeta gráfica de After Effects: previsualizas y renderizas composiciones 3D mucho más rápido, para iterar sin perder el hilo creativo.' },
     ],
   },
@@ -175,10 +173,10 @@ export const CAREERS: NvidiaCareer[] = [
 
 // ============================================================
 // Muro de logos de apps (#apps) — entre la franja partner y el Selector
-// Logos en public/ del repo (aún no subidos a S3). Dos filas, carreras mezcladas.
+// Logos en S3. Dos filas, carreras mezcladas.
 // fx: 'invert' = logo negro que no se ve sobre fondo oscuro; 'round' = trae fondo cuadrado blanco.
 // ============================================================
-const logo = (file: string) => `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/nvidia/logos/${file}`;
+const logo = (file: string) => `${NVIDIA_ASSETS}/logos/${file}`;
 
 export interface NvidiaAppLogo {
   name: string;
