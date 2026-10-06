@@ -9,7 +9,7 @@ import type { FooterData, PromoBannerData } from '../../types/hero';
 import {
   NVIDIA_ASSETS,
   heroData, quienesSomos, queEsData, gpuChipUrl,
-  CAREERS, estrellaData, beneficiosData, navLinks,
+  CAREERS, estrellaData, beneficiosData, navLinks, appsWallData,
 } from './data/nvidiaData';
 
 const GOOGLE_FONTS = 'https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap';
@@ -224,6 +224,11 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
         <span className="bc-partner-label">{quienesSomos.partnerLabel}</span>
         <img className="bc-partner" src={quienesSomos.partnerLogo} alt="BaldeCash × NVIDIA, partner oficial" />
       </div>
+
+      {/* ===== Muro de logos de apps ===== */}
+      <LazySection fallbackHeight={420}>
+        <AppsWall />
+      </LazySection>
 
       {/* ===== S3: Selector de software por carrera ===== */}
       <LazySection fallbackHeight={500}>
@@ -574,7 +579,35 @@ function PerformanceChart() {
             })}
           </div>
         </div>
-        <p className="perf-note">* Aceleración aproximada "hasta N×" de cada software con la GeForce RTX indicada frente a una laptop sin tarjeta gráfica dedicada (en Arquitectura, frente a otras tarjetas gráficas); varía según el equipo, el software y el proyecto. Fuentes: Puget Systems, Blender Open Data, NVIDIA, Adobe, MathWorks, Chaos, Epic.</p>
+        <p className="perf-note">* Aceleración aproximada "hasta N×" de cada software con la GeForce RTX indicada frente a una laptop sin tarjeta gráfica dedicada (en Arquitectura, frente a otras tarjetas gráficas); varía según el equipo, el software y el proyecto. Fuentes: Puget Systems, Blender Open Data, NVIDIA, Adobe, MathWorks, Chaos, Epic, Corel.</p>
+      </div>
+    </section>
+  );
+}
+
+function AppsWall() {
+  const [before, after] = appsWallData.headline.split(appsWallData.highlight);
+  return (
+    <section className="section apps-sec" id="apps">
+      <div className="wrap">
+        <div className="section-head reveal">
+          <span className="eyebrow">{appsWallData.eyebrow}</span>
+          <h2>{before}<span className="grad-text">{appsWallData.highlight}</span>{after}</h2>
+        </div>
+      </div>
+      <div className="apps-rows reveal">
+        {appsWallData.rows.map((row, r) => (
+          <div className={`apps-row${r % 2 ? ' rev' : ''}`} key={r}>
+            {/* 4 copias: la animación recorre la mitad (2 copias), así no queda hueco ni en pantallas muy anchas */}
+            <div className="apps-track">
+              {[0, 1, 2, 3].map((copy) => row.map((a) => (
+                <div className="apps-tile" key={`${copy}-${a.name}`} aria-hidden={copy > 0 || undefined}>
+                  <img src={a.src} alt={copy > 0 ? '' : a.name} title={a.name} loading="lazy" className={a.fx ? `fx-${a.fx}` : undefined} />
+                </div>
+              )))}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -696,6 +729,26 @@ const CSS = `
 .nvidia-landing .reveal{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease-out),transform .9s var(--ease-out);}
 .nvidia-landing .reveal.in{opacity:1;transform:none;}
 @media(prefers-reduced-motion:reduce){.nvidia-landing .reveal{opacity:1;transform:none;transition:none;}}
+/* ===== Muro de logos de apps (#apps) ===== */
+/* alto de pantalla completa con el contenido centrado (94px arriba = barra de navegación fija, igual que el hero) */
+.nvidia-landing .apps-sec{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:94px 0 46px;}
+@media(max-width:860px){.nvidia-landing .apps-sec{min-height:0;padding:clamp(56px,7vw,80px) 0;}}
+.nvidia-landing .apps-sec .section-head{margin-left:auto;margin-right:auto;text-align:center;max-width:960px;}
+.nvidia-landing .apps-sec .section-head .eyebrow{justify-content:center;}
+.nvidia-landing .apps-rows{display:flex;flex-direction:column;gap:36px;-webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 4%,#000 22%,#000 78%,transparent 96%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0%,transparent 4%,#000 22%,#000 78%,transparent 96%,transparent 100%);}
+.nvidia-landing .apps-row{overflow:hidden;}
+.nvidia-landing .apps-track{display:flex;align-items:center;gap:64px;padding-right:64px;width:max-content;animation:nv-apps-scroll 60s linear infinite;}
+.nvidia-landing .apps-row.rev .apps-track{animation-direction:reverse;}
+.nvidia-landing .apps-tile{flex:0 0 auto;height:64px;display:flex;align-items:center;justify-content:center;}
+.nvidia-landing .apps-tile img{max-height:64px;max-width:150px;width:auto;height:auto;object-fit:contain;}
+.nvidia-landing .apps-tile img.fx-invert{filter:invert(1);}
+.nvidia-landing .apps-tile img.fx-round{border-radius:14px;}
+@keyframes nv-apps-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@media(max-width:640px){.nvidia-landing .apps-tile{height:48px;}.nvidia-landing .apps-tile img{max-height:48px;max-width:112px;}.nvidia-landing .apps-track{gap:44px;padding-right:44px;animation-duration:45s;}.nvidia-landing .apps-rows{gap:28px;}}
+/* EXCEPCIÓN A PROPÓSITO: los carriles se mueven aun con prefers-reduced-motion (mismo criterio que los
+   carriles de convenios de la home). No se pausan al pasar el mouse. Para respetar la preferencia:
+   @media(prefers-reduced-motion:reduce){.nvidia-landing .apps-track{animation:none;}} */
+
 /* ===== Quiénes somos (#baldecash) ===== */
 /* Fondo NVIDIA en la sección (sin Baldi). Gradiente oscuro a la izquierda para que el
    texto se lea; el visual (chip/laptop) queda a la derecha. */

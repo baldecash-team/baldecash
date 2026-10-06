@@ -95,6 +95,8 @@ export const gpuChipUrl = (model: string) =>
 // ============================================================
 /** logo de software en S3 */
 const sw = (file: string) => `${NVIDIA_ASSETS}/software/${file}.png`;
+/** imagen de software servida desde public/ del repo (aún no subida a S3) */
+const swLocal = (file: string) => `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/nvidia/software/${file}.png`;
 
 export interface NvidiaApp {
   name: string;
@@ -134,7 +136,7 @@ export const CAREERS: NvidiaCareer[] = [
     ],
   },
   {
-    id: 'datos', label: 'Ciencia de Datos / IA', baseline: 'Sin tarjeta gráfica dedicada',
+    id: 'datos', label: 'Sistemas y Datos', baseline: 'Sin tarjeta gráfica dedicada',
     apps: [
       { name: 'RAPIDS', img: sw('rapids'), sub: 'procesar datos', card: 'RTX 5060', x: 12, similar: ['pandas', 'Polars', 'Dask'], gain: 'Tus datos, procesados en la tarjeta gráfica', why: 'La GeForce RTX 5060 acelera RAPIDS (cuDF/cuML): procesas DataFrames y entrenas modelos de machine learning clásico mucho más rápido que con pandas/scikit-learn en CPU, sin cambiar tu código.' },
       { name: 'Stable Diffusion', img: sw('stable-diffusion'), sub: 'imágenes con IA', card: 'RTX 5050', x: 12, similar: ['Midjourney', 'DALL·E', 'Leonardo AI'], gain: 'Genera imágenes con IA en segundos', why: 'La GeForce RTX 5050 genera imágenes con Stable Diffusion usando sus Núcleos Tensor: produces y ajustas resultados en segundos, para explorar muchas más ideas por sesión.' },
@@ -143,42 +145,84 @@ export const CAREERS: NvidiaCareer[] = [
     ],
   },
   {
-    id: '3d', label: 'Diseño 3D / Animación', baseline: 'Sin tarjeta gráfica dedicada',
+    id: '3d', label: 'Animación 3D y Videojuegos', baseline: 'Sin tarjeta gráfica dedicada',
     apps: [
       { name: 'Blender', img: sw('blender-3d-blender-videojuegos'), sub: 'render 3D', card: 'RTX 5060', x: 10, similar: ['Maya', '3ds Max', 'Houdini'], gain: 'Render con OptiX en una fracción del tiempo', why: 'La GeForce RTX 5060 acelera Blender con el motor OptiX: renderizas escenas complejas en una fracción del tiempo que toma la CPU y previsualizas con denoising por IA en tiempo real.' },
-      { name: 'Cinema 4D', img: sw('cinema-4d'), sub: 'animación 3D', card: 'RTX 5050', x: 9, similar: ['Blender', 'Houdini', 'Maya'], gain: 'Motion graphics que fluyen', why: 'La GeForce RTX 5050 acelera Cinema 4D con Redshift: renderizas motion graphics y escenas 3D en mucho menos tiempo, con un viewport fluido para iterar sin esperas.' },
-      { name: '3ds Max', img: sw('3ds-max'), imgPos: 'center top', sub: 'render de escenas', card: 'RTX 4060', x: 3, similar: ['Maya', 'Blender', 'Cinema 4D'], gain: 'Render acelerado con V-Ray', why: 'La GeForce RTX 4060 acelera el render de 3ds Max con V-Ray: renderizas escenas de arquitectura y producto en menos tiempo, y escala aún más si sumas varias tarjetas.' },
+      { name: 'Unreal Engine', img: sw('unreal-engine'), sub: 'crear mundos 3D', card: 'RTX 5060', x: 6, similar: ['Unity', 'Godot', 'CryEngine'], gain: 'Lumen y Nanite en tiempo real', why: 'La GeForce RTX 5060 activa Lumen, Nanite y el ray tracing de Unreal Engine, y calcula la iluminación con Lightmass por tarjeta gráfica mucho más rápido que en CPU, sin largas esperas.' },
+      { name: 'Unity', img: sw('unity'), sub: 'armar el juego', card: 'RTX 4060', x: 5, similar: ['Unreal Engine', 'Godot', 'GameMaker'], gain: 'Hornea luz e itera sin esperas', why: 'La GeForce RTX 4060 acelera el Progressive Lightmapper por tarjeta gráfica de Unity y el preview en tiempo real, para probar ideas de tu juego con total libertad.' },
       { name: 'Autodesk Maya', img: sw('autodesk-maya'), sub: 'animar y renderizar', card: 'RTX 5050', x: 3, similar: ['Blender', '3ds Max', 'Houdini'], gain: 'Preview y render con Arnold', why: 'La GeForce RTX 5050 acelera el preview y el render de Autodesk Maya con Arnold: animas y previsualizas proyectos pesados manteniendo tu ritmo.' },
     ],
   },
   {
-    id: 'video', label: 'Edición de Video', baseline: 'Sin tarjeta gráfica dedicada',
+    id: 'grafico', label: 'Diseño Gráfico y Fotografía', baseline: 'Sin tarjeta gráfica dedicada',
+    apps: [
+      { name: 'Lightroom', img: sw('adobe-lightroom'), sub: 'quitar ruido', card: 'RTX 4050', x: 8, similar: ['Capture One', 'DxO PhotoLab', 'Luminar Neo'], gain: 'Quita ruido con IA al instante', why: 'La GeForce RTX 4050 acelera el Quitar ruido con IA de Lightroom: lo que en CPU tarda minutos, en RTX toma segundos, para procesar sesiones enteras sin esperas.' },
+      { name: 'Illustrator', img: swLocal('adobe-illustrator'), imgPos: 'right center', sub: 'lienzo fluido', card: 'RTX 4050', x: 3, similar: ['CorelDRAW', 'Affinity Designer', 'Inkscape'], gain: 'Vectores pesados sin trabarte', why: 'La GeForce RTX 4050 impulsa el rendimiento por tarjeta gráfica de Illustrator: te desplazas y haces zoom en ilustraciones con miles de trazos sin saltos, y sus funciones de IA responden al instante.' },
+      { name: 'Photoshop', img: sw('adobe-photoshop'), sub: 'edición con IA', card: 'RTX 4050', x: 2, similar: ['GIMP', 'Affinity Photo', 'Krita'], gain: 'Retoques con IA más ágiles', why: 'La GeForce RTX 4050 acelera los Filtros Neurales, la Súper resolución y la herramienta Quitar de Photoshop, y con suficiente VRAM trabajas con muchas capas sin ralentizaciones.' },
+      { name: 'CorelDRAW', img: swLocal('coreldraw'), imgPos: 'right center', sub: 'efectos con IA', card: 'RTX 4050', x: 2, similar: ['Illustrator', 'Affinity Designer', 'Inkscape'], gain: 'Diseña y amplía con IA', why: 'La GeForce RTX 4050 acelera la vista, los efectos y las funciones de IA de CorelDRAW, como ampliar imágenes sin perder calidad y quitar artefactos, para diseñar con fluidez aunque el archivo pese.' },
+    ],
+  },
+  {
+    id: 'video', label: 'Comunicación y Video', baseline: 'Sin tarjeta gráfica dedicada',
     apps: [
       { name: 'DaVinci Resolve', img: sw('davinci-resolve'), sub: 'corrección de color', card: 'RTX 5060', x: 5, similar: ['Premiere Pro', 'Final Cut Pro', 'Avid'], gain: 'Color 4K e IA en tiempo real', why: 'La GeForce RTX 5060 lleva el color de DaVinci a otro nivel: corriges en 4K en tiempo real y sus Núcleos Tensor aceleran las herramientas de IA como Magic Mask, sin esperar a cada render.' },
       { name: 'Premiere', img: sw('adobe-premiere-pro'), sub: 'exportar video', card: 'RTX 4060', x: 4, similar: ['Final Cut Pro', 'DaVinci Resolve', 'Vegas Pro'], gain: 'Exporta 4K con NVENC', why: 'La GeForce RTX 4060 acelera Premiere con el codificador NVENC: exporta tus videos 4K en una fracción del tiempo y la línea de tiempo corre fluida, sin proxies ni interrupciones.' },
-      { name: 'Media Encoder', img: sw('adobe-media-encoder'), sub: 'exportar video', card: 'RTX 3050', x: 4, similar: ['HandBrake', 'FFmpeg', 'Compressor'], gain: 'Exporta en tiempo récord', why: 'La GeForce RTX 3050 acelera Media Encoder con su codificador NVENC por hardware: exporta tus videos mucho más rápido que la CPU, así entregas sin esperas y sin gastar de más.' },
+      { name: 'CapCut', img: swLocal('capcut'), imgPos: 'right center', sub: 'exportar video', card: 'RTX 3050', x: 3, similar: ['Filmora', 'Premiere Rush', 'iMovie'], gain: 'Exporta tus videos en tiempo récord', why: 'La GeForce RTX 3050 acelera CapCut con su codificador y decodificador NVIDIA por hardware: la vista previa en alta resolución corre fluida y exportas tus videos mucho más rápido que solo con el procesador.' },
       { name: 'After Effects', img: sw('adobe-after-effects'), sub: 'efectos visuales', card: 'RTX 4070', x: 3, similar: ['Nuke', 'Fusion', 'Motion'], gain: 'Efectos 3D sin barra de progreso', why: 'La GeForce RTX 4070 acelera el Advanced 3D Renderer y los efectos por tarjeta gráfica de After Effects: previsualizas y renderizas composiciones 3D mucho más rápido, para iterar sin perder el hilo creativo.' },
     ],
   },
-  {
-    id: 'foto', label: 'Fotografía', baseline: 'Sin tarjeta gráfica dedicada',
-    apps: [
-      { name: 'Lightroom', img: sw('adobe-lightroom'), sub: 'quitar ruido', card: 'RTX 4050', x: 8, similar: ['Capture One', 'DxO PhotoLab', 'Luminar Neo'], gain: 'Quita ruido con IA al instante', why: 'La GeForce RTX 4050 acelera el Quitar ruido con IA de Lightroom: lo que en CPU tarda minutos, en RTX toma segundos, para procesar sesiones enteras sin esperas.' },
-      { name: 'Camera Raw', img: sw('adobe-camera-raw'), sub: 'quitar ruido', card: 'RTX 4050', x: 8, similar: ['Lightroom', 'DxO PhotoLab', 'RawTherapee'], gain: 'RAW con IA, en un instante', why: 'La GeForce RTX 4050 acelera el Denoise IA de Camera Raw: revelas tus RAW y les quitas el ruido en segundos en vez de minutos, para editar tus fotos sin pausas.' },
-      { name: 'Photoshop', img: sw('adobe-photoshop'), sub: 'edición con IA', card: 'RTX 4050', x: 2, similar: ['GIMP', 'Affinity Photo', 'Krita'], gain: 'Filtros con IA más ágiles', why: 'La GeForce RTX 4050 acelera los Filtros Neurales y funciones de IA de Photoshop, y con suficiente VRAM evita las ralentizaciones al usar Denoise o Generative Fill.' },
-      { name: 'Capture One', img: sw('capture-one'), sub: 'revelar fotos', card: 'RTX 3050', x: 3, similar: ['Lightroom', 'DxO PhotoLab', 'Luminar Neo'], gain: 'Revela RAW con fluidez', why: 'La GeForce RTX 3050 acelera el procesado y export RAW de Capture One vía OpenCL: trabajas en tethering y revelas archivos de alta resolución sin esperas, ideal para sesiones largas.' },
-    ],
-  },
-  {
-    id: 'games', label: 'Desarrollo de Videojuegos', baseline: 'Sin tarjeta gráfica dedicada',
-    apps: [
-      { name: 'Substance 3D', img: sw('adobe-substance'), sub: 'crear texturas', card: 'RTX 4060', x: 9, similar: ['Quixel Mixer', 'Mari', '3D-Coat'], gain: 'Baking por la tarjeta gráfica casi instantáneo', why: 'La GeForce RTX 4060 acelera el baking de mapas (AO, thickness) de Substance 3D con ray tracing por la tarjeta gráfica: lo que tardaba minutos pasa a segundos, y previsualizas tus texturas en tiempo real.' },
-      { name: 'Blender', img: sw('blender-3d-blender-videojuegos'), sub: 'modelos 3D', card: 'RTX 5060', x: 8, similar: ['Maya', '3ds Max', 'ZBrush'], gain: 'Crea tus assets 3D sin esperas', why: 'La GeForce RTX 5060 acelera Blender con OptiX: modelas, texturizas y renderizas los assets 3D de tu juego en una fracción del tiempo, listos para tu videojuego.' },
-      { name: 'Unreal Engine', img: sw('unreal-engine'), sub: 'crear mundos 3D', card: 'RTX 5060', x: 6, similar: ['Unity', 'Godot', 'CryEngine'], gain: 'Lumen y Nanite en tiempo real', why: 'La GeForce RTX 5060 activa Lumen, Nanite y el ray tracing de Unreal Engine, y calcula la iluminación con Lightmass por tarjeta gráfica mucho más rápido que en CPU, sin largas esperas.' },
-      { name: 'Unity', img: sw('unity'), sub: 'armar el juego', card: 'RTX 4060', x: 5, similar: ['Unreal Engine', 'Godot', 'GameMaker'], gain: 'Hornea luz e itera sin esperas', why: 'La GeForce RTX 4060 acelera el Progressive Lightmapper por tarjeta gráfica de Unity y el preview en tiempo real, para probar ideas de tu juego con total libertad.' },
-    ],
-  },
 ];
+
+// ============================================================
+// Muro de logos de apps (#apps) — entre la franja partner y el Selector
+// Logos en public/ del repo (aún no subidos a S3). Dos filas, carreras mezcladas.
+// fx: 'invert' = logo negro que no se ve sobre fondo oscuro; 'round' = trae fondo cuadrado blanco.
+// ============================================================
+const logo = (file: string) => `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/nvidia/logos/${file}`;
+
+export interface NvidiaAppLogo {
+  name: string;
+  src: string;
+  fx?: 'invert' | 'round';
+}
+
+export const appsWallData = {
+  eyebrow: 'Apps aceleradas',
+  headline: 'Más de 130 apps aceleradas por tu GeForce RTX',
+  highlight: 'aceleradas por tu GeForce RTX',
+  rows: [
+    [
+      { name: 'Blender', src: logo('blender.webp') },
+      { name: 'Premiere Pro', src: logo('premiere-pro.webp') },
+      { name: 'AutoCAD', src: logo('autocad.svg') },
+      { name: 'PyTorch', src: logo('pytorch.webp') },
+      { name: 'Photoshop', src: logo('photoshop.webp') },
+      { name: 'Unreal Engine', src: logo('unreal-engine.webp'), fx: 'invert' },
+      { name: 'MATLAB', src: logo('matlab.webp') },
+      { name: 'D5 Render', src: logo('d5-render.webp') },
+      { name: 'DaVinci Resolve', src: logo('davinci-resolve.webp') },
+      { name: 'Illustrator', src: logo('illustrator.webp') },
+      { name: 'Revit', src: logo('revit.svg') },
+      { name: 'TensorFlow', src: logo('tensorflow.webp') },
+      { name: 'CapCut', src: logo('capcut.webp'), fx: 'round' },
+    ],
+    [
+      { name: 'Unity', src: logo('unity.webp') },
+      { name: 'Lightroom', src: logo('lightroom.webp') },
+      { name: 'SketchUp', src: logo('sketchup.webp') },
+      { name: 'Stable Diffusion', src: logo('stable-diffusion.webp') },
+      { name: '3ds Max', src: logo('3ds-max.webp') },
+      { name: 'ANSYS', src: logo('ansys.webp') },
+      { name: 'Cinema 4D', src: logo('cinema-4d.webp'), fx: 'round' },
+      { name: 'Enscape', src: logo('enscape.webp') },
+      { name: 'Substance 3D', src: logo('substance-3d.webp') },
+      { name: 'Maya', src: logo('maya.webp') },
+      { name: 'CorelDRAW', src: logo('coreldraw.webp') },
+      { name: 'RAPIDS', src: logo('rapids.webp') },
+      { name: 'Capture One', src: logo('capture-one.webp') },
+    ],
+  ] as NvidiaAppLogo[][],
+};
 
 // ============================================================
 // S7: Equipo estrella (#estrella) — HARDCODED
@@ -209,7 +253,7 @@ export const beneficiosData = {
     'Tu laptop GeForce RTX con BaldeCash suma mucho más que velocidad: todo un ecosistema de tecnologías NVIDIA para crear, estudiar y jugar mejor.',
   cards: [
     { title: 'GeForce Experience', img: sw('geforce-experience'), desc: 'Crea y comparte videos, capturas de pantalla y transmisiones en vivo desde tu laptop. Mantén los drivers al día y optimiza tus juegos con un clic, todo desde una sola app.' },
-    { title: 'NVIDIA Studio', img: sw('nvidia-studio'), desc: 'Drivers probados y optimizados para más de 100 apps creativas y de ingeniería (AutoCAD, Revit, Premiere, Blender). Tu laptop rinde estable y al máximo en los programas de tu carrera.' },
+    { title: 'NVIDIA Studio', img: sw('nvidia-studio'), desc: 'Drivers probados y optimizados para más de 130 apps creativas y de ingeniería (AutoCAD, Revit, Premiere, Blender). Tu laptop rinde estable y al máximo en los programas de tu carrera.' },
     { title: 'NVIDIA Broadcast', img: sw('nvidia-broadcast'), desc: 'Convierte tu cuarto en un estudio: elimina el ruido del micrófono, mejora tu cámara y agrega fondos virtuales en tus clases y reuniones online.' },
     { title: 'DLSS (Deep Learning Super Sampling)', img: sw('dlss'), desc: 'Inteligencia artificial que multiplica los cuadros por segundo en tu laptop. Juega y previsualiza tus proyectos con más fluidez, sin gastar de más la batería.' },
     { title: 'Ray Tracing RTX', img: sw('ray-tracing-rtx'), desc: 'Luz, sombras y reflejos calculados en tiempo real para que tus render 3D, maquetas y diseños se vean realistas y profesionales, directo desde tu laptop.' },
