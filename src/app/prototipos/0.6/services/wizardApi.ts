@@ -134,7 +134,13 @@ export interface WizardField {
   // Lazy loading for large datasets (study-centers, careers)
   min_search_length?: number | null; // Minimum characters before searching
   /** Forma elegida en el panel; null = como antes. */
-  display_mode?: 'auto' | 'buttons' | 'cards' | 'dropdown' | 'search' | null;
+  display_mode?: 'auto' | 'buttons' | 'cards' | 'dropdown' | 'search' | 'checkboxes' | null;
+  /**
+   * «El cliente puede marcar varias» (BAL-4354): la respuesta es `string[]`
+   * y cada forma se dibuja en su versión de varias (`ListaDeVarias`).
+   * Ausente = una sola respuesta (ws2 viejo).
+   */
+  allow_multiple?: boolean | null;
   /** Con una sola opción visible, dejarla elegida. */
   auto_select_single?: boolean | null;
   // Dynamic validation from another field's option (e.g., document_number validated by document_type selection)
@@ -529,11 +535,45 @@ export function calculateAge(dateString: string): number {
   return age;
 }
 
+/**
+ * Condición sobre una lista donde el cliente marcó varias (BAL-4354): se
+ * compara contra cada marcada, no contra el texto «a,b».
+ * - `in` = «marcó alguna de», `not_in` = «no marcó ninguna de».
+ * - `equals`/`contains` = «entre lo que marcó está X» (y sus negaciones).
+ * Devuelve `null` si el operador no aplica a una lista (cae a lo de siempre).
+ */
+function evaluarSobreMarcadas(cond: DependencyGroupCondition, marcadas: string[]): boolean | null {
+  const lista = marcadas.map((v) => String(v).toLowerCase());
+  const buscados = (Array.isArray(cond.value) ? cond.value : cond.value != null ? [cond.value] : [])
+    .map((v) => String(v).toLowerCase());
+  const marcoAlguno = buscados.some((v) => lista.includes(v));
+  switch (cond.operator) {
+    case 'in':
+    case 'equals':
+    case 'contains':
+      return marcoAlguno;
+    case 'not_in':
+    case 'not_equals':
+    case 'not_contains':
+      return !marcoAlguno;
+    case 'is_empty':
+      return lista.length === 0;
+    case 'is_not_empty':
+      return lista.length > 0;
+    default:
+      return null;
+  }
+}
+
 function evaluateCondition(
   cond: DependencyGroupCondition,
   formValues: Record<string, string | string[]>
 ): boolean {
   const raw = formValues[cond.depends_on_field];
+  if (Array.isArray(raw)) {
+    const resultado = evaluarSobreMarcadas(cond, raw);
+    if (resultado !== null) return resultado;
+  }
   const fieldValue = raw != null ? String(raw).toLowerCase() : '';
   const depValue = cond.value != null ? String(cond.value).toLowerCase() : '';
 
@@ -646,7 +686,11 @@ export function filterFieldOptions(
     // Evaluar cada condition (AND logic)
     for (const [fieldCode, expectedValue] of Object.entries(option.visibility_conditions)) {
       const actualValue = formValues[fieldCode];
-      if (actualValue !== expectedValue) {
+      // Con una lista de varias (BAL-4354) basta que esté entre las marcadas.
+      const cumple = Array.isArray(actualValue)
+        ? actualValue.includes(expectedValue)
+        : actualValue === expectedValue;
+      if (!cumple) {
         return false;
       }
     }

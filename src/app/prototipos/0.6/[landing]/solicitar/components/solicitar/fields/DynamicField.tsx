@@ -26,6 +26,7 @@ import { limitesDelCampo } from '../../../../../services/fechaLimites';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
 import { CheckboxField } from './CheckboxField';
+import { ListaDeVarias, comoLista } from './ListaDeVarias';
 import { DocumentNumberField } from './DocumentNumberField';
 import { AddressAutocompleteField } from './AddressAutocompleteField';
 
@@ -172,10 +173,17 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   useEffect(() => {
     if (!field.auto_select_single) return;
     if (field.type !== 'select' && field.type !== 'autocomplete') return;
-    if (filteredOptions.length !== 1 || value) return;
+    if (filteredOptions.length !== 1) return;
     const unica = filteredOptions[0];
+    if (field.allow_multiple) {
+      // Con varias el valor es una lista: `[]` también es «nada marcado».
+      if (comoLista(value).length > 0) return;
+      updateField(field.code, [unica.value], unica.label);
+      return;
+    }
+    if (value) return;
     updateField(field.code, unica.value, unica.label);
-  }, [field.auto_select_single, field.type, field.code, filteredOptions, value, updateField]);
+  }, [field.auto_select_single, field.allow_multiple, field.type, field.code, filteredOptions, value, updateField]);
 
   // Build tooltip from API help_text (100% from BD)
   // NOTE: Must be before conditional return to maintain hooks order
@@ -398,12 +406,34 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         description: opt.description || undefined,
       }));
       const delSistema = Boolean(field.options_source || field.cascade_from);
+      const varias = Boolean(field.allow_multiple) && !delSistema;
       const forma = resolverForma({
         tipo: field.type,
         displayMode: field.display_mode,
         cantidad: opcionesLista.length,
         delSistema,
+        varias,
       });
+      if (varias) {
+        // BAL-4354: el cliente marca varias; se guarda `string[]`.
+        return (
+          <ListaDeVarias
+            id={field.code}
+            label={field.label}
+            forma={forma}
+            value={comoLista(formData[field.code]?.value)}
+            onChange={(valores, textos) => updateField(field.code, valores, textos)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            options={opcionesLista}
+            placeholder={field.placeholder || undefined}
+            error={error}
+            tooltip={tooltip}
+            disabled={commonProps.disabled}
+            required={field.required}
+          />
+        );
+      }
       if (forma === 'buttons') {
         return <SegmentedControl {...commonProps} options={opcionesLista} success={!error && !!value} />;
       }

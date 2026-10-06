@@ -22,6 +22,18 @@ const casos: Array<[string, Parameters<typeof resolverForma>[0], string]> = [
   // Límites
   ['botones con 5 caen a auto', { tipo: 'select', displayMode: 'buttons', cantidad: 5, delSistema: false }, 'cards'],
   ['del sistema ignora botones', { tipo: 'select', displayMode: 'buttons', cantidad: 0, delSistema: true }, 'search'],
+  // Casillas sin varias no existe: cae a la automática
+  ['casillas sin varias', { tipo: 'select', displayMode: 'checkboxes', cantidad: 4, delSistema: false }, 'cards'],
+  // Con varias (BAL-4354): recomendada 2–5 Casillas, 6–9 Desplegable, 10+ Buscador
+  ['varias 2 sin forma', { tipo: 'select', displayMode: null, cantidad: 2, delSistema: false, varias: true }, 'checkboxes'],
+  ['varias 5 auto', { tipo: 'select', displayMode: 'auto', cantidad: 5, delSistema: false, varias: true }, 'checkboxes'],
+  ['varias 6 sin forma', { tipo: 'select', displayMode: null, cantidad: 6, delSistema: false, varias: true }, 'dropdown'],
+  ['varias 9 sin forma', { tipo: 'select', displayMode: null, cantidad: 9, delSistema: false, varias: true }, 'dropdown'],
+  ['varias 10 sin forma', { tipo: 'select', displayMode: null, cantidad: 10, delSistema: false, varias: true }, 'search'],
+  ['varias autocomplete 3 sin forma', { tipo: 'autocomplete', displayMode: null, cantidad: 3, delSistema: false, varias: true }, 'checkboxes'],
+  ['varias casillas elegida', { tipo: 'select', displayMode: 'checkboxes', cantidad: 12, delSistema: false, varias: true }, 'checkboxes'],
+  ['varias tarjetas elegida', { tipo: 'select', displayMode: 'cards', cantidad: 4, delSistema: false, varias: true }, 'cards'],
+  ['varias botones con 5 caen a auto de varias', { tipo: 'select', displayMode: 'buttons', cantidad: 5, delSistema: false, varias: true }, 'checkboxes'],
 ];
 
 describe('resolverForma', () => {
