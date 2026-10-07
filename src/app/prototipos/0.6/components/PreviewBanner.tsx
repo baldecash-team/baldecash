@@ -25,7 +25,7 @@ interface PreviewBannerProps {
 }
 
 export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName, stepName, showCloseButton = true }: PreviewBannerProps) {
-  const { isPreviewMode, isHydrated, slug: contextSlug, clearPreviewMode, isPreviewingLanding } = usePreview();
+  const { isPreviewMode, isHydrated, slug: contextSlug, clearPreviewMode, isPreviewingLanding, borrador } = usePreview();
   const pathname = usePathname();
 
   // Wait for sessionStorage to be read before deciding visibility (avoids hydration mismatch)
@@ -42,15 +42,21 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
   // Display landing name: use prop slug, context slug, or fallback to ID
   const displayLandingName = landingSlug || contextSlug;
   const displayText = stepName || pageName || 'Los cambios se muestran en tiempo real';
+  // Vista previa del borrador de un formulario (BAL-4484): lo dice claro.
+  const textoBorrador = 'Estás viendo el borrador del formulario: los clientes todavía no lo ven.';
 
   if (!shouldShow) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white text-xs text-center py-1 font-medium flex items-center justify-center gap-2">
       <Eye className="w-3.5 h-3.5" />
-      <span>
+      <span data-testid="preview-banner-texto">
         Modo Preview (Landing: {displayLandingName})
-        {displayText && <span className="ml-1">- {displayText}</span>}
+        {borrador ? (
+          <span className="ml-1">- {textoBorrador}</span>
+        ) : (
+          displayText && <span className="ml-1">- {displayText}</span>
+        )}
       </span>
       {showCloseButton && (
         <button

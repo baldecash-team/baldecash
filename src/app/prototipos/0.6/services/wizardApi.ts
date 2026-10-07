@@ -275,6 +275,9 @@ export interface WizardConfig {
   // Versión de ESE formulario (misma respuesta que form_id, para que viajen juntos)
   form_version_id?: number | null;
   form_version?: number | null;
+  // Vista previa del BORRADOR (taller sin publicar, BAL-4484). Solo llega en
+  // modo publicar; ausente = false.
+  es_borrador?: boolean;
 
   // Shared
   steps: WizardStep[];
@@ -286,6 +289,24 @@ export interface WizardConfig {
 // ============================================================================
 
 /**
+ * Opciones de la vista previa del panel (versionamiento de formularios,
+ * BAL-4484). Solo viajan CON llave de vista previa: sin llave el backend las
+ * ignora, y mandarlas ensuciaría la caché de 60 s del wizard público.
+ * - `formId`: el formulario a mirar (landings con varios formularios).
+ * - `borrador`: ver lo guardado que todavía no se publica.
+ */
+export interface OpcionesDeVistaPrevia {
+  formId?: number | null;
+  borrador?: boolean;
+}
+
+function sumarVistaPrevia(params: URLSearchParams, previewKey?: string | null, opciones?: OpcionesDeVistaPrevia) {
+  if (!previewKey) return;
+  if (opciones?.formId) params.set('form_id', String(opciones.formId));
+  if (opciones?.borrador) params.set('draft', '1');
+}
+
+/**
  * Obtiene la configuración del wizard para una landing.
  *
  * `sessionUuid`: con varios formularios por landing, el backend sirve el que
@@ -295,11 +316,13 @@ export async function getWizardConfig(
   slug: string,
   previewKey?: string | null,
   sessionUuid?: string | null,
+  opciones?: OpcionesDeVistaPrevia,
 ): Promise<WizardConfig | null> {
   try {
     const params = new URLSearchParams();
     if (previewKey) params.set('preview_key', previewKey);
     if (sessionUuid) params.set('session_uuid', sessionUuid);
+    sumarVistaPrevia(params, previewKey, opciones);
     const qs = params.toString();
     let url = `${API_BASE_URL}/public/landing/${slug}/wizard${qs ? `?${qs}` : ''}`;
     url = appendVipToken(url, slug);
@@ -331,11 +354,13 @@ export async function getWizardConfigById(
   landingId: number,
   previewKey: string | null = null,
   sessionUuid: string | null = null,
+  opciones?: OpcionesDeVistaPrevia,
 ): Promise<WizardConfig | null> {
   try {
     const params = new URLSearchParams();
     if (previewKey) params.set('preview_key', previewKey);
     if (sessionUuid) params.set('session_uuid', sessionUuid);
+    sumarVistaPrevia(params, previewKey, opciones);
     const qs = params.toString();
     const url = `${API_BASE_URL}/public/landing/id/${landingId}/wizard${qs ? `?${qs}` : ''}`;
 
