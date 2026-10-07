@@ -1,7 +1,8 @@
 import {
+  hasNonNameChars,
   isPersonNameField,
   isValidPersonName,
-  sanitizeNameInput,
+  personNameFieldError,
 } from './nameValidation';
 
 /**
@@ -9,43 +10,57 @@ import {
  * `person.first_name` en producción — no son inventados.
  */
 
-describe('sanitizeNameInput', () => {
-  it('borra el celular que se tecleó en el campo de nombres', () => {
-    // Persona 131363: quedó registrada como "981971607 Guerra Azabache".
-    expect(sanitizeNameInput('981971607')).toBe('');
+describe('personNameFieldError (BAL-4465)', () => {
+  // Los casos de prod del 16-abr al 1-sep-2026: el buró no trajo los datos y
+  // el cliente escribió su correo o un número en el nombre.
+  it.each([
+    ['first_name', 'drufastovillalobos@gmail.com', 'Escribe solo tu nombre, sin correo ni números'],
+    ['first_name', '916848556', 'Escribe solo tu nombre, sin correo ni números'],
+    ['maternal_surname', 'mpiocanto@gmail.com', 'Escribe solo tu apellido materno, sin correo ni números'],
+    ['supporter_full_name', 'rosa@gmail.com', 'Escribe solo el nombre de tu familiar, sin correo ni números'],
+    ['minor_full_name', '74125896', 'Escribe solo el nombre del estudiante, sin correo ni números'],
+    ['guardian_first_name', 'Ana#', 'Escribe solo el nombre del apoderado, sin correo ni números'],
+    ['paternal_surname', 'PEREZ_', 'Escribe solo tu apellido paterno, sin correo ni números'],
+  ])('%s = %p -> mensaje del campo', (code, value, mensaje) => {
+    expect(personNameFieldError(code, value)).toBe(mensaje);
   });
 
-  it('borra los dígitos pero conserva las letras', () => {
-    // Persona 128868: código de alumno "U26293402".
-    expect(sanitizeNameInput('U26293402')).toBe('U');
-    // Persona 118345: "CELIA EMPERATRIZ 06/07/1956".
-    expect(sanitizeNameInput('CELIA EMPERATRIZ 06/07/1956')).toBe('CELIA EMPERATRIZ ');
+  it.each([
+    ['first_name', 'José'],
+    ['first_name', 'Brenda del Pilar'],
+    ['paternal_surname', 'Ucañay'],
+    ['maternal_surname', "D'Angelo"],
+    ['maternal_surname', 'D’Angelo'],
+    ['last_name', 'García-Pérez'],
+    ['supporter_full_name', 'Vda. de Ríos'],
+    ['minor_full_name', 'Müller'],
+  ])('%s = %p pasa', (code, value) => {
+    expect(personNameFieldError(code, value)).toBeNull();
   });
 
-  it('borra la arroba y los puntos de un email', () => {
-    // Persona 131310.
-    expect(sanitizeNameInput('mpiocanto@gmail.com')).toBe('mpiocantogmailcom');
+  it('vacío no es asunto de esta regla (lo decide `required`)', () => {
+    expect(personNameFieldError('first_name', '')).toBeNull();
+    expect(personNameFieldError('first_name', '   ')).toBeNull();
+    expect(personNameFieldError('first_name', undefined)).toBeNull();
   });
 
-  it('deja intacto un nombre con tilde o ñ', () => {
-    expect(sanitizeNameInput('José')).toBe('José');
-    expect(sanitizeNameInput('Begoña')).toBe('Begoña');
-    expect(sanitizeNameInput('María José')).toBe('María José');
+  it('no toca campos que no son nombres', () => {
+    expect(personNameFieldError('company_name', 'Tienda 24 S.A.C.')).toBeNull();
+    expect(personNameFieldError('scholarship_name', 'Beca 18')).toBeNull();
+  });
+});
+
+describe('hasNonNameChars', () => {
+  it('marca arroba, dígitos y signos', () => {
+    expect(hasNonNameChars('juan@gmail.com')).toBe(true);
+    expect(hasNonNameChars('Juan 2')).toBe(true);
+    expect(hasNonNameChars('Juan_')).toBe(true);
   });
 
-  it('deja intacto apóstrofo, guión y partículas', () => {
-    expect(sanitizeNameInput("D'Angelo")).toBe("D'Angelo");
-    expect(sanitizeNameInput('Maria-Jose')).toBe('Maria-Jose');
-    expect(sanitizeNameInput('de la Cruz')).toBe('de la Cruz');
-  });
-
-  it('no pelea con el nombre a medio escribir', () => {
-    // No hace trim ni colapsa espacios: "Maria " va camino a "Maria Jose".
-    expect(sanitizeNameInput('Maria ')).toBe('Maria ');
-  });
-
-  it('tolera vacío', () => {
-    expect(sanitizeNameInput('')).toBe('');
+  it('no marca el nombre a medio escribir', () => {
+    expect(hasNonNameChars('Maria ')).toBe(false);
+    expect(hasNonNameChars('')).toBe(false);
+    expect(hasNonNameChars('Ñaña')).toBe(false);
   });
 });
 
@@ -95,6 +110,9 @@ describe('isPersonNameField', () => {
     'apellido_paterno',
     'maternal_surname',
     'last_name',
+    'supporter_full_name',
+    'minor_full_name',
+    'guardian_first_name',
   ])('reconoce %p como campo de nombre', (code) => {
     expect(isPersonNameField(code)).toBe(true);
   });
