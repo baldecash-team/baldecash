@@ -114,6 +114,9 @@ interface PedidoDeWizard {
   previewLandingId: number | null;
   previewKey: string | null;
   uuid: string | null;
+  /** Vista previa del borrador desde el panel (BAL-4484): formulario y si es borrador. */
+  formId: number | null;
+  borrador: boolean;
 }
 
 export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ children, slug }) => {
@@ -127,6 +130,8 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
   const isPreviewMode = preview.isPreviewingLanding(slug);
   const previewLandingId = isPreviewMode ? preview.landingId : null;
   const previewKey = isPreviewMode ? preview.previewKey : null;
+  const previewFormId = isPreviewMode ? preview.formId : null;
+  const previewBorrador = isPreviewMode ? preview.borrador : false;
 
   // Con varios formularios por landing, el backend sirve el que le toca al
   // uuid de la sesión. Ver `decidirPedidoDeWizard`.
@@ -140,7 +145,7 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
 
   // Una sola carga por formulario mostrado: el wizard se vuelve a pedir solo
   // si cambia esta clave (slug o preview), nunca porque cambie la sesión.
-  const clave = JSON.stringify([slug, isPreviewMode, previewLandingId, previewKey]);
+  const clave = JSON.stringify([slug, isPreviewMode, previewLandingId, previewKey, previewFormId, previewBorrador]);
   const [pedido, setPedido] = useState<PedidoDeWizard | null>(null);
   const yaPedido = pedido?.clave === clave;
 
@@ -163,13 +168,15 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     if (!decision.pedir) return;
 
     setPedido((prev) =>
-      prev?.clave === clave ? prev : { clave, slug, previewLandingId, previewKey, uuid: decision.uuid },
+      prev?.clave === clave ? prev : { clave, slug, previewLandingId, previewKey, uuid: decision.uuid, formId: previewFormId, borrador: previewBorrador },
     );
   }, [
     clave,
     slug,
     previewLandingId,
     previewKey,
+    previewFormId,
+    previewBorrador,
     isPreviewHydrated,
     yaPedido,
     haySesionProvider,
@@ -190,11 +197,11 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
         esperaAgotada: true,
       });
       setPedido((prev) =>
-        prev?.clave === clave ? prev : { clave, slug, previewLandingId, previewKey, uuid: decision.uuid },
+        prev?.clave === clave ? prev : { clave, slug, previewLandingId, previewKey, uuid: decision.uuid, formId: previewFormId, borrador: previewBorrador },
       );
     }, TIMEOUT_ESPERA_SESION_MS);
     return () => clearTimeout(timeoutId);
-  }, [clave, slug, previewLandingId, previewKey, isPreviewHydrated, yaPedido, haySesionProvider]);
+  }, [clave, slug, previewLandingId, previewKey, previewFormId, previewBorrador, isPreviewHydrated, yaPedido, haySesionProvider]);
 
   // Fetch wizard config: una vez por pedido. No depende de `sessionUuid`.
   useEffect(() => {
@@ -210,11 +217,15 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
         let data: WizardConfig | null = null;
 
         if (pedido.previewLandingId && pedido.previewKey) {
+          // Vista previa del borrador (BAL-4484): solo se agrega si el panel lo pidió.
+          const extra = pedido.formId || pedido.borrador
+            ? [{ formId: pedido.formId, borrador: pedido.borrador }] as const
+            : ([] as const);
           // Use preview API with ID and preview_key
-          data = await getWizardConfigById(pedido.previewLandingId, pedido.previewKey, pedido.uuid);
+          data = await getWizardConfigById(pedido.previewLandingId, pedido.previewKey, pedido.uuid, ...extra);
           // Fallback to slug-based API with preview_key
           if (!data) {
-            data = await getWizardConfig(pedido.slug, pedido.previewKey, pedido.uuid);
+            data = await getWizardConfig(pedido.slug, pedido.previewKey, pedido.uuid, ...extra);
           }
         } else {
           data = await getWizardConfig(pedido.slug, null, pedido.uuid);

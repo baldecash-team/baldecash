@@ -41,4 +41,28 @@ describe('wizard con varios formularios por landing', () => {
     expect(url).toContain('preview_key=clave');
     expect(url).toContain('session_uuid=uuid-123');
   });
+
+  it("en vista previa del borrador manda form_id y draft", async () => {
+    const mock = conFetch();
+    await getWizardConfigById(217, "clave", "uuid-123", { formId: 19, borrador: true });
+    const url = String(mock.mock.calls[0][0]);
+    expect(url).toContain("form_id=19");
+    expect(url).toContain("draft=1");
+  });
+
+  it("por slug con llave también manda form_id y draft", async () => {
+    const mock = conFetch();
+    await getWizardConfig("prueba-formulario", "clave", null, { formId: 19, borrador: true });
+    const url = String(mock.mock.calls[0][0]);
+    expect(url).toContain("form_id=19");
+    expect(url).toContain("draft=1");
+  });
+
+  it("sin llave no manda form_id ni draft", async () => {
+    const mock = conFetch();
+    await getWizardConfig("prueba-formulario", null, null, { formId: 19, borrador: true });
+    const url = String(mock.mock.calls[0][0]);
+    expect(url).not.toContain("form_id");
+    expect(url).not.toContain("draft");
+  });
 });

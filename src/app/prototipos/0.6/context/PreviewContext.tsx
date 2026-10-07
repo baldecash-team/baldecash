@@ -21,6 +21,16 @@ interface PreviewState {
   previewKey: string;
   slug: string;
   activatedAt: number; // Timestamp to expire old sessions
+  /** Formulario a mirar (vista previa del borrador desde el panel, BAL-4484). */
+  formId?: number | null;
+  /** Ver lo guardado que todavía no se publica. */
+  borrador?: boolean;
+}
+
+/** Opciones de la vista previa del borrador de un formulario. */
+export interface OpcionesDePreview {
+  formId?: number | null;
+  borrador?: boolean;
 }
 
 interface PreviewContextValue {
@@ -34,8 +44,12 @@ interface PreviewContextValue {
   previewKey: string | null;
   /** Landing slug for URL building */
   slug: string | null;
+  /** Formulario a mirar en la vista previa del borrador (o null) */
+  formId: number | null;
+  /** Si se está mirando el borrador del formulario (lo no publicado) */
+  borrador: boolean;
   /** Activate preview mode with credentials */
-  setPreviewMode: (landingId: number, previewKey: string, slug: string) => void;
+  setPreviewMode: (landingId: number, previewKey: string, slug: string, opciones?: OpcionesDePreview) => void;
   /** Deactivate preview mode */
   clearPreviewMode: () => void;
   /** Check if a specific landing is being previewed */
@@ -88,14 +102,19 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
     }
   }, [previewState, isHydrated]);
 
-  const setPreviewMode = useCallback((landingId: number, previewKey: string, slug: string) => {
-    setPreviewState({
-      landingId,
-      previewKey,
-      slug,
-      activatedAt: Date.now(),
-    });
-  }, []);
+  const setPreviewMode = useCallback(
+    (landingId: number, previewKey: string, slug: string, opciones?: OpcionesDePreview) => {
+      setPreviewState({
+        landingId,
+        previewKey,
+        slug,
+        activatedAt: Date.now(),
+        formId: opciones?.formId ?? null,
+        borrador: !!opciones?.borrador,
+      });
+    },
+    [],
+  );
 
   const clearPreviewMode = useCallback(() => {
     setPreviewState(null);
@@ -112,6 +131,8 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
     landingId: previewState?.landingId ?? null,
     previewKey: previewState?.previewKey ?? null,
     slug: previewState?.slug ?? null,
+    formId: previewState?.formId ?? null,
+    borrador: !!previewState?.borrador,
     setPreviewMode,
     clearPreviewMode,
     isPreviewingLanding,

@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { HeroSection } from '../../components/hero/HeroSection';
 import { getLandingHeroDataById, transformLandingData } from '../../services/landingApi';
 import { usePreviewListener } from '../../hooks/usePreviewListener';
@@ -93,6 +93,14 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   const previewKey = searchParams.get('preview_key');
   const hasPreviewKey = !!previewKey;
 
+  // Vista previa del BORRADOR de un formulario desde el panel (BAL-4484):
+  // /preview/{id}?preview_key=K&form_id=F&draft=1&ir=solicitar
+  const formIdParam = parseInt(searchParams.get('form_id') || '', 10);
+  const previewFormId = Number.isFinite(formIdParam) && formIdParam > 0 ? formIdParam : null;
+  const previewBorrador = searchParams.get('draft') === '1';
+  const irASolicitar = searchParams.get('ir') === 'solicitar';
+  const router = useRouter();
+
   // Preview mode listener - receives live updates from admin
   const { previewData, isPreviewMode } = usePreviewListener();
 
@@ -142,7 +150,11 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         // Save preview state to context (persists in sessionStorage)
         // This allows navigation to catalog/product/solicitar to maintain preview mode
         if (previewKey) {
-          setPreviewMode(landingId, previewKey, slug);
+          setPreviewMode(landingId, previewKey, slug, { formId: previewFormId, borrador: previewBorrador });
+          // Desde «Vista previa» del formulario: directo al formulario de la landing.
+          if (irASolicitar) {
+            router.replace(routes.solicitar(slug));
+          }
         }
       } catch (err) {
         console.error('[Preview] Error fetching landing data by ID:', err);

@@ -110,6 +110,10 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
   // Get preview key and landing ID
   const previewKey = searchParams.get('preview_key');
   const landingId = pathId ? parseInt(pathId, 10) : null;
+  // Borrador de un formulario (BAL-4484): ?form_id=F&draft=1 junto a la llave.
+  const formIdParam = parseInt(searchParams.get('form_id') || '', 10);
+  const previewFormId = Number.isFinite(formIdParam) && formIdParam > 0 ? formIdParam : null;
+  const previewBorrador = searchParams.get('draft') === '1';
 
   // Fetch data on mount
   useEffect(() => {
@@ -126,7 +130,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
 
         // Fetch wizard config and landing data in parallel
         const [wizardData, landingData] = await Promise.all([
-          getWizardConfigById(landingId, previewKey),
+          getWizardConfigById(landingId, previewKey, null, { formId: previewFormId, borrador: previewBorrador }),
           getLandingHeroDataById(landingId, previewKey),
         ]);
 
