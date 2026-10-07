@@ -272,6 +272,9 @@ export interface WizardConfig {
   // Formulario que le tocó a la sesión (varios formularios por landing)
   form_id?: number;
   form_code?: string | null;
+  // Versión de ESE formulario (misma respuesta que form_id, para que viajen juntos)
+  form_version_id?: number | null;
+  form_version?: number | null;
 
   // Shared
   steps: WizardStep[];

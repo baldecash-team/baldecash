@@ -569,6 +569,7 @@ export function useSubmitApplication(
           coupon_code: appliedCoupon?.code,
           juicyscore_session_id: juicySessionId ?? undefined,
           wizard_form_id: wizardConfig?.form_id ?? undefined,
+          wizard_form_version_id: wizardConfig?.form_version_id ?? undefined,
           files: uploadFiles.length > 0 ? uploadFiles : undefined,
         });
 
