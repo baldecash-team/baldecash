@@ -8,7 +8,7 @@
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
 import { sanitizeEmailInput } from '../../../../../services/emailValidation';
-import { isPersonNameField, sanitizeNameInput } from '../../../../../services/nameValidation';
+import { hasNonNameChars, isPersonNameField, nameErrorMessage } from '../../../../../services/nameValidation';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
@@ -256,25 +256,30 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         />
       );
 
-    case 'text':
+    case 'text': {
+      // BAL-4465: en un campo de nombre de persona el texto ya no se recorta
+      // en silencio (un correo pegado quedaba como «juangmailcom»). Si trae
+      // `@`, dígitos o signos, el aviso sale debajo del campo mientras se
+      // escribe, sin esperar a «Continuar». El resto de la regla (largo
+      // mínimo) la mira `validateField` al avanzar, como los demás campos.
+      // Solo los nombres: «Empresa donde Labora» o «¿Qué beca tiene?» llevan
+      // números con todo derecho. Ver `PERSON_NAME_FIELD_CODES`.
+      const errorDeNombre =
+        isPersonNameField(field.code) && hasNonNameChars(value)
+          ? nameErrorMessage(field.code)
+          : undefined;
+      const errorDelCampo = error || errorDeNombre;
       return (
         <TextInput
           {...commonProps}
-          // Los campos `text` son dinámicos (vienen de `form_field`), así que
-          // el filtro se aplica SOLO a los que son nombres de persona:
-          // "Empresa donde Labora" o "¿Qué beca tiene?" llevan números con
-          // todo derecho. Ver `PERSON_NAME_FIELD_CODES`.
-          onChange={
-            isPersonNameField(field.code)
-              ? (newValue: string) => updateField(field.code, sanitizeNameInput(newValue))
-              : commonProps.onChange
-          }
+          error={errorDelCampo}
           type="text"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
-          success={!error && !!value}
+          success={!errorDelCampo && !!value}
         />
       );
+    }
 
     case 'email':
       return (
