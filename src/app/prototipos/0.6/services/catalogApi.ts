@@ -1513,6 +1513,10 @@ export async function searchProductSuggestions(
     const params = new URLSearchParams({
       q: query,
       limit: String(limit),
+      // El desplegable lista cada color/variante de la familia por separado
+      // (MacBook Neo Silver e Indigo como dos opciones). La grilla del catalogo
+      // no manda este parametro y sigue con una tarjeta por familia.
+      group_families: 'false',
     });
     if (previewKey) {
       params.set('preview_key', previewKey);

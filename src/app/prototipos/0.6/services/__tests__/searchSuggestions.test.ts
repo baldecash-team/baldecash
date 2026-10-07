@@ -160,3 +160,29 @@ describe('termInFrequency', () => {
     expect(termInFrequency(18, 'semanal')).toBe(5); // 4.5 -> 5
   });
 });
+
+/**
+ * El desplegable lista CADA color/variante de la familia por separado
+ * (MacBook Neo Silver y MacBook Neo Indigo como dos opciones). La grilla del
+ * catalogo agrupa por familia; las sugerencias le piden al backend que no
+ * agrupe con `group_families=false` (BAL-4509).
+ */
+describe('searchProductSuggestions — cada color por separado', () => {
+  it('pide al backend que no agrupe por familia', async () => {
+    mockFetch([]);
+    await searchProductSuggestions('home', 'neo');
+    const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string, 'http://x');
+    expect(url.pathname).toContain('/public/landing/home/products');
+    expect(url.searchParams.get('q')).toBe('neo');
+    expect(url.searchParams.get('group_families')).toBe('false');
+  });
+
+  it('devuelve una sugerencia por cada color que manda el backend', async () => {
+    mockFetch([
+      { id: 1309, name: 'MacBook Neo Silver', slug: 'neo-silver-combo-191', pricing: null },
+      { id: 1321, name: 'MacBook Neo Indigo', slug: 'neo-indigo-combo-189', pricing: null },
+    ]);
+    const res = await searchProductSuggestions('home', 'neo');
+    expect(res.map((s) => s.slug)).toEqual(['neo-silver-combo-191', 'neo-indigo-combo-189']);
+  });
+});
