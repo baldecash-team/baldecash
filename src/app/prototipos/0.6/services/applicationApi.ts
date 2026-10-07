@@ -95,6 +95,12 @@ export interface SubmitApplicationRequest {
    * la persona lo está llenando. Se omite si no se conoce el formulario.
    */
   wizard_form_id?: number;
+  /**
+   * `form_version_id` del MISMO objeto de config de donde salió `wizard_form_id`,
+   * para que ambos siempre describan la misma respuesta del wizard. Se omite
+   * si no se conoce la versión.
+   */
+  wizard_form_version_id?: number;
   /** Optional files to upload (e.g., DNI, payslips) */
   files?: UploadedFileData[];
 }
@@ -221,6 +227,9 @@ export async function submitApplication(
       // landings que todavía no reparten varios formularios.
       ...(data.wizard_form_id !== undefined
         ? { wizard_form_id: data.wizard_form_id }
+        : {}),
+      ...(typeof data.wizard_form_version_id === 'number'
+        ? { wizard_form_version_id: data.wizard_form_version_id }
         : {}),
     };
     formData.append('form_data', JSON.stringify(jsonData));

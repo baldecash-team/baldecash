@@ -101,8 +101,8 @@ jest.mock('../../context/SessionContext', () => ({
   }),
 }));
 
-// Config del wizard: trae el form_id que el backend le sirvió a esta sesión.
-let mockWizardConfig: { form_id?: number } | null = null;
+// Config del wizard: trae el form_id (y su form_version_id) que el backend le sirvió a esta sesión.
+let mockWizardConfig: { form_id?: number; form_version_id?: number | null } | null = null;
 jest.mock('../../context/WizardConfigContext', () => ({
   useWizardConfig: () => ({ config: mockWizardConfig }),
 }));
@@ -1004,6 +1004,62 @@ describe('useSubmitApplication', () => {
         wizard_form_id?: number;
       };
       expect(payload.wizard_form_id).toBeUndefined();
+    });
+  });
+
+  /**
+   * `wizard_form_version_id`: versión del MISMO formulario que viaja en
+   * `wizard_form_id`, para que el backend sepa qué versión del wizard vio la
+   * persona. Debe salir de la misma config que `form_id`, así que siempre
+   * describen la misma respuesta.
+   */
+  describe('wizard_form_version_id', () => {
+    afterEach(() => {
+      mockWizardConfig = null;
+    });
+
+    it('adjunta el form_version_id de la config del wizard cuando existe', async () => {
+      mockWizardConfig = { form_id: 42, form_version_id: 7 };
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F3' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({ wizard_form_id: 42, wizard_form_version_id: 7 })
+      );
+    });
+
+    it('omite el campo cuando la config no trae form_version_id', async () => {
+      mockWizardConfig = { form_id: 42 };
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F4' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls[0][0] as {
+        wizard_form_version_id?: number | null;
+      };
+      expect(payload.wizard_form_version_id).toBeUndefined();
+    });
+
+    it('omite el campo cuando la config trae form_version_id null', async () => {
+      mockWizardConfig = { form_id: 42, form_version_id: null };
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, public_token: 'APP-F5' });
+
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const payload = mockSubmitApplication.mock.calls[0][0] as {
+        wizard_form_version_id?: number | null;
+      };
+      expect(payload.wizard_form_version_id ?? undefined).toBeUndefined();
     });
   });
 

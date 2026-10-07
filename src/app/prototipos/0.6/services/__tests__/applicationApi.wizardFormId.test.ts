@@ -45,3 +45,51 @@ describe('submitApplication: wizard_form_id', () => {
     expect('wizard_form_id' in sent).toBe(false);
   });
 });
+
+describe('submitApplication: wizard_form_version_id', () => {
+  afterEach(() => { jest.restoreAllMocks(); });
+
+  it('incluye wizard_form_version_id cuando se pasa', async () => {
+    const mock = jest.fn().mockResolvedValue(ok({ success: true }));
+    global.fetch = mock as unknown as typeof fetch;
+
+    await submitApplication({ ...baseRequest, wizard_form_version_id: 7 });
+
+    const sent = leerFormDataEnviado(mock);
+    expect(sent.wizard_form_version_id).toBe(7);
+  });
+
+  it('no incluye la clave wizard_form_version_id cuando no se pasa', async () => {
+    const mock = jest.fn().mockResolvedValue(ok({ success: true }));
+    global.fetch = mock as unknown as typeof fetch;
+
+    await submitApplication(baseRequest);
+
+    const sent = leerFormDataEnviado(mock);
+    expect('wizard_form_version_id' in sent).toBe(false);
+  });
+
+  it('no incluye la clave wizard_form_version_id cuando se pasa null', async () => {
+    const mock = jest.fn().mockResolvedValue(ok({ success: true }));
+    global.fetch = mock as unknown as typeof fetch;
+
+    await submitApplication({
+      ...baseRequest,
+      wizard_form_version_id: null as unknown as number | undefined,
+    });
+
+    const sent = leerFormDataEnviado(mock);
+    expect('wizard_form_version_id' in sent).toBe(false);
+  });
+
+  it('manda wizard_form_id y wizard_form_version_id juntos', async () => {
+    const mock = jest.fn().mockResolvedValue(ok({ success: true }));
+    global.fetch = mock as unknown as typeof fetch;
+
+    await submitApplication({ ...baseRequest, wizard_form_id: 42, wizard_form_version_id: 7 });
+
+    const sent = leerFormDataEnviado(mock);
+    expect(sent.wizard_form_id).toBe(42);
+    expect(sent.wizard_form_version_id).toBe(7);
+  });
+});
