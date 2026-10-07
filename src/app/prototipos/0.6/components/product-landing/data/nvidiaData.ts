@@ -222,7 +222,7 @@ export const appsWallData = {
       { name: 'Maya', src: logo('maya.webp') },
       { name: 'CorelDRAW', src: logo('coreldraw.webp') },
       { name: 'RAPIDS', src: logo('rapids.webp') },
-      { name: 'V-Ray', src: logo('vray.svg') },
+      { name: 'V-Ray', src: logo('v-ray.svg') },
       { name: 'Capture One', src: logo('capture-one.webp') },
     ],
   ] as NvidiaAppLogo[][],
