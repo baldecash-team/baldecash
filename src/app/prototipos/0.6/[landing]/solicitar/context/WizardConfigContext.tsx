@@ -217,12 +217,15 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
         let data: WizardConfig | null = null;
 
         if (pedido.previewLandingId && pedido.previewKey) {
-          const opciones = { formId: pedido.formId, borrador: pedido.borrador };
+          // Vista previa del borrador (BAL-4484): solo se agrega si el panel lo pidió.
+          const extra = pedido.formId || pedido.borrador
+            ? [{ formId: pedido.formId, borrador: pedido.borrador }] as const
+            : ([] as const);
           // Use preview API with ID and preview_key
-          data = await getWizardConfigById(pedido.previewLandingId, pedido.previewKey, pedido.uuid, opciones);
+          data = await getWizardConfigById(pedido.previewLandingId, pedido.previewKey, pedido.uuid, ...extra);
           // Fallback to slug-based API with preview_key
           if (!data) {
-            data = await getWizardConfig(pedido.slug, pedido.previewKey, pedido.uuid, opciones);
+            data = await getWizardConfig(pedido.slug, pedido.previewKey, pedido.uuid, ...extra);
           }
         } else {
           data = await getWizardConfig(pedido.slug, null, pedido.uuid);
