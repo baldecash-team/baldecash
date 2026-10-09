@@ -314,6 +314,12 @@ export function MiOfertaClient({ token }: { token: string }) {
           brand: product.brand,
           imageUrl: product.images?.[0] || product.thumbnail,
           monthly: product.quotaMonthly,
+          // La celda de la card (plazo e inicial con los que el equipo entra en
+          // la cuota aprobada). Sin esto complementos cotizaba a plazo máx /
+          // inicial mín y un equipo que solo entra con inicial salía "supera
+          // tu cuota".
+          term: product.hookTermMonths ?? undefined,
+          initial: product.hookTermMonths != null ? product.hookInitialPercent ?? 0 : undefined,
         },
       );
     },

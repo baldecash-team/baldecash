@@ -67,10 +67,18 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   // la página de accesorios. Null hasta que el selector emita (se usa el default).
   const [pickedTerm, setPickedTerm] = useState<number | null>(null);
   const [pickedInitial, setPickedInitial] = useState<number | null>(null);
-  const handleOfferSelection = useCallback((sel: { term: number; initialPercent: number }) => {
-    setPickedTerm(sel.term);
-    setPickedInitial(sel.initialPercent);
-  }, []);
+  // Downgrade: ¿la celda marcada entra en la cuota aprobada? El backend marca
+  // cada opción (`withinQuota`); `false` deshabilita "Elegir este equipo".
+  // `undefined` (upsell / respuesta sin marca) no bloquea nada.
+  const [pickedWithinQuota, setPickedWithinQuota] = useState<boolean | undefined>(undefined);
+  const handleOfferSelection = useCallback(
+    (sel: { term: number; initialPercent: number; withinQuota?: boolean }) => {
+      setPickedTerm(sel.term);
+      setPickedInitial(sel.initialPercent);
+      setPickedWithinQuota(sel.withinQuota);
+    },
+    [],
+  );
 
   const goToCatalog = useCallback(
     (q: string) => {
@@ -260,19 +268,32 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   //    default de menor cuota. Solo si esa celda existe en los planes.
   //  - resto: celda de menor cuota (plazo más alto + inicial más bajo), igual que
   //    la card de la oferta.
+  //  - downgrade (el backend marca qué celdas entran en el tope): la celda que
+  //    manda el backend en default_term/default_initial — la misma de la card
+  //    (menor inicial que entra; a igual inicial, mayor plazo). Un equipo que
+  //    solo entra con inicial abre en esa celda, no en 24 meses sin inicial.
   const reqTerm = state.kind === 'ready' ? state.reqTerm : null;
   const reqInitial = state.kind === 'ready' ? state.reqInitial : null;
+  const celdaDelBackend = useMemo(() => {
+    if (state.kind !== 'ready' || state.readOnly) return null;
+    const { defaultTerm: t, defaultInitial: i } = state.data;
+    if (t == null || i == null) return null;
+    const opt = offerPlans.find((p) => p.term === t)?.options?.find((o) => o.initialPercent === i);
+    return opt?.withinQuota === true ? { term: t, initial: i } : null;
+  }, [state, offerPlans]);
   const defaultTerm = useMemo(() => {
     if (!offerPlans.length) return 24;
     if (reqTerm != null && offerPlans.some((p) => p.term === reqTerm)) return reqTerm;
+    if (celdaDelBackend) return celdaDelBackend.term;
     return Math.max(...offerPlans.map((p) => p.term));
-  }, [offerPlans, reqTerm]);
+  }, [offerPlans, reqTerm, celdaDelBackend]);
   const defaultInitial = useMemo(() => {
     const inits = offerPlans.flatMap((p) => (p.options ?? []).map((o) => o.initialPercent));
     const matchReq = reqInitial != null ? inits.find((i) => i === reqInitial) : undefined;
     if (matchReq !== undefined) return matchReq;
+    if (celdaDelBackend) return celdaDelBackend.initial;
     return inits.length ? Math.min(...inits) : inits[0] ?? 0;
-  }, [offerPlans, reqInitial]);
+  }, [offerPlans, reqInitial, celdaDelBackend]);
 
   // Cuota de la oferta a la celda por defecto (la más baja) — la misma del catálogo.
   const offerMonthly = useMemo(() => {
@@ -287,6 +308,9 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   // equipo correcto. El combo se propaga para sincronizar el accesorio gratis del
   // bundle a legacy al confirmar.
   const goToAccesorios = useCallback(() => {
+    // La celda marcada no entra en la cuota aprobada: no se avanza (el botón
+    // ya sale deshabilitado; esto cubre cualquier otro camino al handler).
+    if (pickedWithinQuota === false) return;
     const base = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/complementos`;
     if (variantId != null && state.kind === 'ready') {
       const p = state.data.product;
@@ -303,7 +327,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
       });
     }
     window.location.href = base;
-  }, [token, variantId, comboId, slug, state, offerMonthly, defaultTerm, defaultInitial, pickedTerm, pickedInitial]);
+  }, [token, variantId, comboId, slug, state, offerMonthly, defaultTerm, defaultInitial, pickedTerm, pickedInitial, pickedWithinQuota]);
 
   // Funnel: click en "Elegir este equipo" del detalle (BAL-2236). Envuelve
   // goToAccesorios sin tocar ProductDetail: trackea y luego navega igual.
@@ -423,6 +447,11 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           // BAL-2064). Allí el cliente suma add-ons y confirma todo junto.
           onClickCTA={readOnly ? undefined : onElegirEquipo}
           ctaText="Elegir este equipo"
+          ctaDisabledReason={
+            !readOnly && pickedWithinQuota === false
+              ? 'Esta combinación supera tu cuota aprobada. Elige otro plazo o inicial.'
+              : undefined
+          }
           readOnlyNotice={
             readOnly
               ? 'Por ahora no tenemos disponible este equipo. Elige uno de los que preparamos para ti y tu solicitud quedará aprobada.'

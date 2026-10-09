@@ -126,6 +126,10 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         brand: product.brand,
         imageUrl: product.images?.[0] || product.thumbnail,
         monthly: product.quotaMonthly,
+        // La celda de la card (ver MiOfertaClient.handleSelect): el equipo que
+        // solo entra con inicial se elige CON esa inicial.
+        term: product.hookTermMonths ?? undefined,
+        initial: product.hookTermMonths != null ? product.hookInitialPercent ?? 0 : undefined,
       });
       window.location.href = base;
     },

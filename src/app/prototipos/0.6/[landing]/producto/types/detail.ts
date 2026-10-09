@@ -239,6 +239,13 @@ export interface InitialPaymentOption {
   initialPercent: InitialPaymentPercentage;
   initialAmount: number;
   monthlyQuota: number;
+  /**
+   * Solo en el detalle de la oferta condicional (downgrade): ¿esta celda
+   * (plazo × inicial) entra en la cuota aprobada? `false` = se muestra pero no
+   * se puede elegir. `undefined` en el catálogo general y en el upsell: ahí no
+   * hay tope que marcar y nada se deshabilita.
+   */
+  withinQuota?: boolean;
   originalQuota?: number;
   commissionAmount?: number | null;
   tea?: number | null;

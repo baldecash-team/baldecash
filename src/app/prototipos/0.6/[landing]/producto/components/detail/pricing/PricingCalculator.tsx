@@ -36,6 +36,11 @@ export interface PricingSelection {
   initialAmount: number;
   paymentFrequency: string;
   /**
+   * Oferta condicional (downgrade): la celda elegida entra en la cuota
+   * aprobada. `undefined` fuera de la oferta — nada que validar.
+   */
+  withinQuota?: boolean;
+  /**
    * En cuántas armadas se cobra la inicial de la opción elegida. 1 = pago
    * único, que es lo que trae todo el catálogo.
    *
@@ -236,6 +241,13 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       label: opt.initialPercent === 0
         ? 'Sin inicial'
         : `S/${formatCuotaDeLanding(opt.initialAmount, landing)}`,
+      // Oferta (downgrade): con esta inicial NINGÚN plazo entra en la cuota
+      // aprobada → el chip sale deshabilitado. Fuera de la oferta `withinQuota`
+      // no viene y nunca se deshabilita.
+      superaLaCuota: paymentPlans.every((p) => {
+        const o = p.options?.find((x) => x.initialPercent === opt.initialPercent);
+        return !o || o.withinQuota === false;
+      }),
     }));
   }, [paymentPlans]);
 
@@ -319,6 +331,19 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
     return getOptionForTerm(selectedTerm);
   }, [selectedTerm, selectedInitialPercent, paymentPlans]);
 
+  // Oferta (downgrade): al cambiar la inicial, el plazo marcado puede dejar de
+  // entrar en la cuota aprobada (24 meses entra con S/810 de inicial, pero 12
+  // no). Se pasa al plazo más largo que sí entra con esa inicial, para no dejar
+  // marcada una celda que no se puede elegir.
+  useEffect(() => {
+    if (selectedOption?.withinQuota !== false) return;
+    const queEntran = paymentPlans.filter((p) =>
+      p.options?.find((o) => o.initialPercent === selectedInitialPercent)?.withinQuota === true,
+    );
+    if (queEntran.length === 0) return;
+    setSelectedTerm(Math.max(...queEntran.map((p) => p.term)));
+  }, [selectedOption, selectedInitialPercent, paymentPlans]);
+
   // Se avisa TAMBIEN en el montaje, no solo cuando el usuario cambia algo.
   //
   // Saltarse la primera emision dejaba a los consumidores sin saber que hay
@@ -339,6 +364,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         monthlyQuota: selectedOption.monthlyQuota,
         initialAmount: selectedOption.initialAmount,
         paymentFrequency: selectedFrequency,
+        withinQuota: selectedOption.withinQuota,
         initialInstallments: selectedOption.initialInstallments ?? 1,
         initialInstallmentAmounts: selectedOption.initialInstallmentAmounts ?? [],
       });
@@ -392,10 +418,14 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             <button
               key={option.percent}
               onClick={() => setSelectedInitialPercent(option.percent)}
-              className={`py-2.5 px-4 text-sm font-medium rounded-full transition-all cursor-pointer min-h-[40px] ${
-                selectedInitialPercent === option.percent
-                  ? 'bg-[var(--color-primary)] text-white shadow-md'
-                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
+              disabled={option.superaLaCuota}
+              title={option.superaLaCuota ? 'Supera tu cuota aprobada' : undefined}
+              className={`py-2.5 px-4 text-sm font-medium rounded-full transition-all min-h-[40px] ${
+                option.superaLaCuota
+                  ? 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#9ca3af)] line-through cursor-not-allowed opacity-70'
+                  : selectedInitialPercent === option.percent
+                    ? 'bg-[var(--color-primary)] text-white shadow-md cursor-pointer'
+                    : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)] cursor-pointer'
               }`}
             >
               {option.label}
@@ -461,6 +491,35 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
 
             const isSelected = selectedTerm === plan.term;
             const isHovered = hoveredTerm === plan.term;
+
+            // Oferta (downgrade): la celda no entra en la cuota aprobada. Se
+            // muestra —el cliente ve cuánto costaría— pero no se puede marcar.
+            if (option.withinQuota === false) {
+              return (
+                <div
+                  key={plan.term}
+                  aria-disabled="true"
+                  data-supera-cuota="true"
+                  className="relative p-3 sm:p-4 rounded-xl min-w-0 cursor-not-allowed border-2 border-dashed border-[var(--border-soft,#e5e7eb)] bg-[var(--surface-2,#f3f4f6)] opacity-70"
+                >
+                  <div className="text-center min-w-0">
+                    <p className="text-xs sm:text-sm font-medium mb-2 text-[var(--text-faint,#9ca3af)]">
+                      {plazoTotalDe(plan)}<br />{unidadDePlazo(selectedFrequency)}
+                    </p>
+                    <p
+                      className={`font-bold whitespace-nowrap text-[var(--text-faint,#9ca3af)] ${
+                        option.monthlyQuota >= 1000 ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'
+                      }`}
+                    >
+                      S/{formatCuotaDeLanding(option.monthlyQuota, landing)}
+                    </p>
+                    <p className="text-[10px] sm:text-xs mt-1 font-medium text-[var(--text-muted,#6b7280)]">
+                      Supera tu cuota aprobada
+                    </p>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div

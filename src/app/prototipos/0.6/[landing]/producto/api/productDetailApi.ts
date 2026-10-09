@@ -157,6 +157,8 @@ interface ApiProductData {
 
 interface ApiInitialPaymentOption {
   initial_percent: number;
+  /** Solo en el detalle por token del downgrade: la celda entra en el tope. */
+  within_quota?: boolean;
   initial_amount: string;
   monthly_quota: string;
   original_quota: string | null;
@@ -388,6 +390,7 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       initialPercent: opt.initial_percent as InitialPaymentPercentage,
       initialAmount: parseFloat(opt.initial_amount),
       monthlyQuota: parseFloat(opt.monthly_quota),
+      withinQuota: opt.within_quota ?? undefined,
       originalQuota: opt.original_quota ? parseFloat(opt.original_quota) : undefined,
       commissionAmount: opt.commission_amount ? parseFloat(opt.commission_amount) : null,
       tea: opt.tea ?? null,

@@ -119,7 +119,18 @@ interface ProductDetailProps {
    * para que el flujo de oferta los propague a la página de accesorios. Aditivo:
    * el catálogo general no lo pasa y no cambia su comportamiento.
    */
-  onOfferSelectionChange?: (sel: { term: number; initialPercent: number }) => void;
+  onOfferSelectionChange?: (sel: {
+    term: number;
+    initialPercent: number;
+    /** La celda entra en la cuota aprobada (solo downgrade; ver `withinQuota`). */
+    withinQuota?: boolean;
+  }) => void;
+  /**
+   * Modo oferta (downgrade): cuando viene un texto, el CTA de `onClickCTA` sale
+   * deshabilitado con ese motivo debajo (la celda marcada no entra en la cuota
+   * aprobada). Aditivo: sin el prop, el botón de siempre.
+   */
+  ctaDisabledReason?: string;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -154,6 +165,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   startDate,
   onClickCTA,
   ctaText,
+  ctaDisabledReason,
   readOnlyNotice,
   onOfferSelectionChange,
 }) => {
@@ -382,7 +394,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     // Modo oferta (BAL-2097): propagar el plazo/inicial elegidos hacia el flujo
     // de oferta (para que la página de accesorios calcule al mismo plazo/inicial).
-    onOfferSelectionChange?.({ term: selection.term, initialPercent: selection.initialPercent });
+    onOfferSelectionChange?.({
+      term: selection.term,
+      initialPercent: selection.initialPercent,
+      withinQuota: selection.withinQuota,
+    });
   }, [analytics, product.id, onOfferSelectionChange]);
 
   // Sync pricingSelection → URL after every stable render.
@@ -788,12 +804,32 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <div
                 className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
               >
+                {onClickCTA && ctaDisabledReason ? (
+                  <div className="flex-1">
+                    <button
+                      type="button"
+                      disabled
+                      aria-describedby="cta-motivo-deshabilitado"
+                      className="w-full bg-[var(--surface-2,#e5e7eb)] text-[var(--text-faint,#9ca3af)] py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg cursor-not-allowed"
+                    >
+                      {ctaText ?? 'Elegir este equipo'}
+                    </button>
+                    <p
+                      id="cta-motivo-deshabilitado"
+                      role="status"
+                      className="mt-1.5 text-center text-xs text-[var(--text-muted,#6b7280)]"
+                    >
+                      {ctaDisabledReason}
+                    </p>
+                  </div>
+                ) : (
                 <button
                   onClick={onClickCTA ?? handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
                   {onClickCTA ? (ctaText ?? 'Elegir este equipo') : '¡Lo quiero!'}
                 </button>
+                )}
                 {!onClickCTA && onAddToCart && (() => {
                   // Determine cart button state
                   const configChanged = isInCart && cartItem && pricingSelection && (
