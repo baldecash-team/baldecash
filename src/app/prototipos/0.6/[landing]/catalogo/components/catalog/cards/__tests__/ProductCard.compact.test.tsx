@@ -373,14 +373,78 @@ describe('ProductCard — card normal con grados agrupados', () => {
     expect(screen.getAllByText('Advance grado B').length).toBeGreaterThan(0);
   });
 
-  // Antes «con un solo grado sigue mostrando los colores» y NADA del grado:
-  // era la conducta que se corrige. Ahora el grado sale como botón y el color
-  // se queda.
-  it('con un solo hermano muestra su grado y TAMBIEN los colores', () => {
+  // El nombre de venta ya compuesto manda sobre el `name` crudo de BD: con solo
+  // `name` el título perdía «Laptop» y «Reacondicionado» al cambiar de grado.
+  it('elegir el grado B usa su displayName, no el name crudo', async () => {
+    render(
+      <ProductCard
+        product={buildProduct({
+          grade: 'A',
+          gradeSiblings: [
+            GRADOS_AB[0],
+            { ...GRADOS_AB[1], name: 'Advance grado B', displayName: 'Laptop Advance Grado B Reacondicionado' },
+          ],
+        } as Partial<CatalogProduct>)}
+        hideColors={false}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Grado B' }));
+    expect(screen.getAllByText('Laptop Advance Grado B Reacondicionado').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Advance grado B')).toBeNull();
+  });
+
+  // El tachado del listado es el del grado con el que cargó la card. Caso real
+  // de Home (V15 G4 AMN R5): ~~S/204~~ -45% S/112 en A; al elegir B (S/102)
+  // seguía mostrando ~~S/204~~, que ya no es 45%.
+  describe('precio tachado al cambiar de grado', () => {
+    const conPromo = (promo: Partial<NonNullable<CatalogProduct['promotion']>>) =>
+      buildProduct({
+        grade: 'A',
+        quotaMonthly: 112,
+        originalQuotaMonthly: 204,
+        discount: 45,
+        promotion: { id: 36, name: 'REACONDICIONADO', code: 'SEMINUEVO', discountType: 'percentage', discountValue: 45, template: null, ...promo },
+        gradeSiblings: [
+          { grade: 'A', productId: 1566, slug: 'advance-notebook-cn4058', price: 1900, lowestQuota: 112, minTermQuota: 351, isAvailable: true },
+          { grade: 'B', productId: 2, slug: 'b', price: 1700, lowestQuota: 102, minTermQuota: 315, isAvailable: true },
+        ],
+      } as Partial<CatalogProduct>);
+
+    it('con el grado de la card muestra el tachado del listado', () => {
+      render(<ProductCard product={conPromo({})} hideColors={false} />);
+      expect(screen.getByText('S/204/mes')).toBeInTheDocument();
+    });
+
+    it('promo porcentual: el tachado se recalcula sobre la cuota del grado', async () => {
+      render(<ProductCard product={conPromo({})} hideColors={false} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Grado B' }));
+      // 102 / (1 - 0.45) = 185.45
+      expect(screen.getByText('S/185/mes')).toBeInTheDocument();
+      expect(screen.queryByText('S/204/mes')).toBeNull();
+    });
+
+    it('promo fija: conserva la misma diferencia en soles', async () => {
+      render(<ProductCard product={conPromo({ discountType: 'fixed', discountValue: 92 })} hideColors={false} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Grado B' }));
+      // 102 + (204 - 112)
+      expect(screen.getByText('S/194/mes')).toBeInTheDocument();
+    });
+
+    it('volver al grado de la card restaura el tachado del listado', async () => {
+      render(<ProductCard product={conPromo({})} hideColors={false} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Grado B' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Grado A' }));
+      expect(screen.getByText('S/204/mes')).toBeInTheDocument();
+    });
+  });
+
+  // Con un solo grado manda el grado, igual que con varios: el botón reemplaza
+  // al color.
+  it('con un solo hermano muestra su grado y NO los colores', () => {
     render(<ProductCard product={buildProduct({ grade: 'A', gradeSiblings: [GRADOS_AB[0]], colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
     expect(screen.getByTestId('card-grades')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Grado A' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('color-selector')).toBeInTheDocument();
+    expect(screen.queryByTestId('color-selector')).toBeNull();
   });
 
   it('sin grados sigue mostrando los colores', () => {
@@ -412,11 +476,11 @@ describe('ProductCard — un solo grado, sin hermanos', () => {
     expect(screen.getByText('Buen estado')).toBeInTheDocument();
   });
 
-  // La diferencia con el agrupado: el color NO desaparece, va en la misma fila.
-  it('el color convive con el grado', () => {
+  // Igual que el agrupado: el grado reemplaza al color.
+  it('el grado reemplaza al color', () => {
     render(<ProductCard product={soloB()} hideColors={false} />);
-    expect(screen.getByTestId('color-selector')).toBeInTheDocument();
-    expect(screen.getByTestId('card-grade-color')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grado B' })).toBeInTheDocument();
+    expect(screen.queryByTestId('color-selector')).toBeNull();
   });
 
   it('con los colores ocultos por la landing muestra solo el grado', () => {
@@ -461,7 +525,6 @@ describe('ProductCard — sin grado', () => {
     render(<ProductCard product={buildProduct({ grade: undefined, gradeSiblings: [], colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
     expect(screen.queryByTestId('card-grades')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Grado / })).toBeNull();
-    expect(screen.queryByTestId('card-grade-color')).toBeNull();
     // El color sigue donde estaba.
     expect(screen.getByTestId('color-selector')).toBeInTheDocument();
   });

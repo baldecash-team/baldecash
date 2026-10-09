@@ -158,6 +158,8 @@ export interface ApiCatalogProduct {
     is_available: boolean;
     /** Nombre real del grado en BD ("… (Reacondicionada Grado C)"). */
     name?: string | null;
+    /** Nombre de venta ya compuesto. Puede no venir contra un backend viejo. */
+    display_name?: string | null;
     min_term_quota?: number | null;
     /**
      * Cuota más baja del grado (la del plazo más largo). Es la que muestra la
@@ -773,6 +775,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
       slug: s.slug,
       price: s.price,
       name: s.name ?? null,
+      displayName: s.display_name ?? null,
       minTermQuota: s.min_term_quota ?? null,
       lowestQuota: s.lowest_quota ?? null,
       isAvailable: s.is_available,

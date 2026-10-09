@@ -49,9 +49,9 @@ export function cardSelectorMode(product: {
  *
  * Por qué desde 2 y no desde 1 como en reacondicionados: allí la card es
  * austera y el grado es lo que el equipo ES. En la card normal un grado solo no
- * es una opción, y quitar el color por él sería perder información sin ganar
- * ninguna. Por eso el grado único NO entra aquí: se pinta aparte, con su botón
- * ya elegido y el color al lado (ver `gradosDeLaCard`). Sin grado, sigue igual.
+ * es un grupo. Por eso el grado único NO entra aquí: lo resuelve
+ * `gradosDeLaCard`, que lo pinta con su botón ya elegido y, igual que el
+ * agrupado, en lugar del color. Sin grado, sigue igual.
  */
 const MIN_GRADOS_AGRUPADOS = 2;
 

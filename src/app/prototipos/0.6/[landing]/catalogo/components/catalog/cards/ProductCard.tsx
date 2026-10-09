@@ -276,8 +276,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // —el grado A suele venir sin sufijo y los demás con "(Reacondicionada Grado
   // X)"— así que fabricarlo daría un título que no existe en ninguna tabla y que
   // además discreparía del que muestra el detalle (BAL-3340).
+  //
+  // `displayName` del hermano primero: es el nombre de venta ya compuesto, con
+  // el mismo formato que el de la card. Con solo `name` el título perdía
+  // «Laptop» y «Reacondicionado» al cambiar de grado.
   const displayName =
-    selectedGradeSibling?.name || selectedColor?.displayName || product.displayName;
+    selectedGradeSibling?.displayName || selectedGradeSibling?.name || selectedColor?.displayName || product.displayName;
   // El grado manda sobre el color cuando hay uno elegido: `price` y `minTermQuota`
   // vienen del hermano y son los del grado, no los de la card. `??` y no `||`
   // porque el API manda `null` cuando el grado no tiene pricing cargado, y ahí sí
@@ -454,12 +458,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // mostraba el tachado de la semanal, ~~S/91~~ -30% sobre S/127/qcn
   // (BAL-4163). Promo fija: la misma diferencia en soles; porcentual o
   // descuento real: la misma proporcion.
-  const originalQuota =
+  //
+  // Con un grado elegido pasa lo mismo: el tachado del listado es el del grado
+  // con el que cargó la card, y la cuota ya es la del grado elegido. Sin
+  // recalcularlo el V15 mostraba ~~S/204~~ -45% sobre S/102 (grado B), que no
+  // es 45%. Promo porcentual: se deshace el descuento sobre la cuota del
+  // grado, igual que hace el backend; fija: la misma diferencia en soles.
+  const promoPct =
+    product.promotion?.discountType === 'percentage' ? product.promotion.discountValue : 0;
+  const originalQuotaDelGrado =
+    usaCuotaDelGrado && displayOriginalQuota && product.quotaMonthly > 0
+      ? product.promotion?.discountType === 'fixed'
+        ? Math.round(displayQuotaForFreq + (displayOriginalQuota - product.quotaMonthly))
+        : promoPct > 0 && promoPct < 100
+          ? Math.round(displayQuotaForFreq / (1 - promoPct / 100))
+          : Math.round(displayQuotaForFreq * (displayOriginalQuota / product.quotaMonthly))
+      : null;
+  const originalQuota = originalQuotaDelGrado ?? (
     displayOriginalQuota && selectedFrequency !== hookFrequency && quota > 0
       ? product.promotion?.discountType === 'fixed'
         ? Math.round(displayQuotaForFreq + (displayOriginalQuota - quota))
         : Math.round(displayQuotaForFreq * (displayOriginalQuota / quota))
-      : displayOriginalQuota;
+      : displayOriginalQuota
+  );
 
   // La vitrina "solo 1.ª cuota" (cuota lista tachada + primera cuota con
   // descuento) es narrativa de cupón de REFERIDO: solo se calcula/muestra
@@ -573,21 +594,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Los grados de la franja: los hermanos o, si el producto tiene grado pero no
   // está agrupado, él mismo como único grado (ver `gradosDeLaCard`).
   const gradosCard = gradosDeLaCard(product);
-  // Un solo grado en la card normal: se pinta su botón, ya elegido, y —a
-  // diferencia del agrupado— el color NO desaparece: va al lado. Con un grado
-  // solo no hay nada que elegir, así que quitar el color sería perder un dato
-  // sin ganar ninguno.
+  // Un solo grado en la card normal: se pinta su botón, ya elegido, y —igual
+  // que en el agrupado— el grado reemplaza al color. Así todas las cards de
+  // reacondicionados se leen igual, tengan uno o varios grados.
   const gradoUnicoEnCardNormal = !compact && gradosCard.length === 1;
   const muestraColores = !hideColors && !!product.colors && product.colors.length >= 1;
 
   // La franja de grados: una pill por grado, el agotado deshabilitado y el
   // nombre del elegido debajo. La usan la card compacta (reacondicionados) y
-  // la normal cuando el producto está agrupado por grado.
-  //
-  // `junto` es lo que acompaña a las pills en la MISMA fila (el color, cuando
-  // hay un solo grado): así la franja mide lo mismo que la de un agrupado y la
-  // fila de cards no queda dispareja.
-  const renderGrados = (junto?: React.ReactNode) => {
+  // la normal cuando el producto tiene grado (agrupado o uno solo).
+  const renderGrados = () => {
     const grados = gradosCard;
     const elegido = grados.find((g) => g.grade === selectedGrade);
     // Nombre del grado elegido ("Buen estado"), no solo su letra:
@@ -599,7 +615,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     return (
       <div data-testid="card-grades" className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex gap-1.5">
           {grados.map((g) => {
             const agotado = !g.isAvailable;
             const esElegido = g.grade === selectedGrade;
@@ -628,7 +644,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </button>
             );
           })}
-          {junto}
         </div>
         {/* Alto reservado aunque no haya nombre: sin él, una card
             con grado sin copy (el D) mediría menos que sus
@@ -934,34 +949,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 })()}
               </div>
             ) : (
-            /* Producto agrupado por grado (A, B…): los grados reemplazan a los
-                colores, igual que en la card compacta. Sin esto el grado B
-                quedaba escondido detrás del A. */
-            gradosEnCardNormal ? (
+            /* Producto con grado (agrupado A, B… o uno solo): los grados
+                reemplazan a los colores, igual que en la card compacta. Sin
+                esto el grado B quedaba escondido detrás del A. */
+            gradosEnCardNormal || gradoUnicoEnCardNormal ? (
               <div data-testid="card-selector-slot" className="mb-4 min-h-[44px] flex flex-col justify-center gap-1">
                 {renderGrados()}
-              </div>
-            ) :
-            /* Un solo grado (reacondicionado sin hermanos): su botón, ya
-                elegido, y el color al lado en la misma fila. */
-            gradoUnicoEnCardNormal ? (
-              <div data-testid="card-selector-slot" className="mb-4 min-h-[44px] flex flex-col justify-center gap-1">
-                {renderGrados(
-                  muestraColores && product.colors ? (
-                    // Al lado de la pill el selector va sin su rótulo móvil
-                    // («Color: Negro») ni su relleno inferior: en fila lo
-                    // descuadraban y hacían la franja más alta que la de un
-                    // agrupado. El nombre del color sigue en el tooltip.
-                    <div data-testid="card-grade-color" className="shrink-0 [&_p]:hidden [&_.pb-1]:pb-0">
-                      <ColorSelector
-                        colors={product.colors}
-                        selectedColorId={selectedColorId}
-                        onColorSelect={setSelectedColorId}
-                        version={colorSelectorVersion}
-                      />
-                    </div>
-                  ) : null,
-                )}
               </div>
             ) :
             /* Color Selector — visible desde un color: los de una familia

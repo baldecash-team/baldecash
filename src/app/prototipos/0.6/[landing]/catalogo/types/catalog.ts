@@ -946,6 +946,12 @@ export interface CatalogGradeSibling {
    * nombrando el grado equivocado.
    */
   name?: string | null;
+  /**
+   * Nombre de venta del grado, ya compuesto por el backend («Laptop … Grado B
+   * Reacondicionado»): el mismo formato que `displayName` de la card. Puede no
+   * venir contra un backend viejo; ahí la card cae a `name`.
+   */
+  displayName?: string | null;
   /** Cuota del plazo más corto (BAL-2864). `null` = no calculable. */
   minTermQuota: number | null;
   /**
