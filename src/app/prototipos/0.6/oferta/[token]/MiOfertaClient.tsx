@@ -28,6 +28,7 @@ import {
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/AvisoSeleccion';
+import { EquipoAgotadoAviso, esEquipoAgotado } from './components/EquipoAgotadoAviso';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { monthlyFactor, plazoNativo } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
@@ -144,6 +145,9 @@ export function MiOfertaClient({ token }: { token: string }) {
   // BAL-4196: el `/select` rechazó la opción elegida (no el link). Se muestra
   // el mensaje del backend como aviso y la oferta sigue en pantalla.
   const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
+  // El `/select` respondió `unit_out_of_stock` (otro cliente tomó la última
+  // unidad): aviso + recarga del catálogo de la oferta.
+  const [equipoAgotado, setEquipoAgotado] = useState(false);
   // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
   const [selected, setSelected] = useState<ChosenSummary | null>(null);
   // Nº de equipos del catálogo de la oferta (copy "Elige entre XX equipos" de
@@ -445,7 +449,9 @@ export function MiOfertaClient({ token }: { token: string }) {
         reason: err instanceof Error ? err.name : 'unknown',
       });
       setPending(null);
-      if (errorDeSeleccionTumbaLaPagina(reason)) {
+      if (esEquipoAgotado(err)) {
+        setEquipoAgotado(true);
+      } else if (errorDeSeleccionTumbaLaPagina(reason)) {
         // Link vencido/usado/revocado: ya no hay nada que elegir.
         setState({ kind: 'error', reason, message });
       } else {
@@ -800,6 +806,13 @@ export function MiOfertaClient({ token }: { token: string }) {
           </>
         )}
       </main>
+
+      <EquipoAgotadoAviso
+        isOpen={equipoAgotado}
+        onElegirOtro={() => {
+          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
+        }}
+      />
 
       <ConfirmarEleccionModal
         isOpen={pending !== null}

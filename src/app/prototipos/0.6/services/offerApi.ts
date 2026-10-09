@@ -32,6 +32,10 @@ export type OfferErrorReason =
   /** BAL-4198: el total recalculado al aceptar no es el que el cliente vio
    *  (`/select` con `expected_monthly`). La cuota nueva viaja en `data`. */
   | 'price_changed'
+  /** El equipo se agotó entre que el cliente lo vio y lo aceptó: otro cliente
+   *  tomó la última unidad (`/select` → 409). No se guarda nada y el link sigue
+   *  vivo para elegir otro. */
+  | 'unit_out_of_stock'
   | 'unknown';
 
 export class OfferApiError extends Error {
