@@ -28,6 +28,8 @@ import {
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaEstadoMensaje';
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/AvisoSeleccion';
+import { EquipoAgotadoAviso, esEquipoAgotado } from './components/EquipoAgotadoAviso';
+import { casoDelError, copyDeLinkMuerto } from './components/ofertaVencida';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { monthlyFactor, plazoNativo } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
@@ -56,7 +58,9 @@ const COLLAGE_ACCESORIOS_URL = 'https://baldecash.s3.amazonaws.com/images/oferta
 type PageState =
   | { kind: 'loading' }
   | { kind: 'ready'; offer: OfferView }
-  | { kind: 'error'; reason: OfferErrorReason; message: string };
+  // `offerCase`: el caso de la oferta cuando el backend lo manda con el error
+  // (link vencido). Decide el texto de la pantalla — ver `ofertaVencida`.
+  | { kind: 'error'; reason: OfferErrorReason; message: string; offerCase?: string | null };
 
 const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: string }> = {
   expired: { icon: 'clock', title: 'Esta oferta venció', body: 'El tiempo para elegir tu equipo ya terminó. Escríbenos y con gusto te ayudamos a reactivarla.' },
@@ -144,6 +148,9 @@ export function MiOfertaClient({ token }: { token: string }) {
   // BAL-4196: el `/select` rechazó la opción elegida (no el link). Se muestra
   // el mensaje del backend como aviso y la oferta sigue en pantalla.
   const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
+  // El `/select` respondió `unit_out_of_stock` (otro cliente tomó la última
+  // unidad): aviso + recarga del catálogo de la oferta.
+  const [equipoAgotado, setEquipoAgotado] = useState(false);
   // Equipo ya elegido → pantalla de confirmación (ReceivedScreen reutilizado).
   const [selected, setSelected] = useState<ChosenSummary | null>(null);
   // Nº de equipos del catálogo de la oferta (copy "Elige entre XX equipos" de
@@ -208,10 +215,11 @@ export function MiOfertaClient({ token }: { token: string }) {
         const reason = err instanceof OfferApiError ? err.reason : 'unknown';
         const message = err instanceof OfferApiError ? err.message : 'Error desconocido';
         // Funnel: el link cargó pero el backend indica que la oferta venció.
+        const offerCase = casoDelError(err);
         if (reason === 'expired') {
-          analytics.track('offer_expired_view', { offer_case: 'unknown' });
+          analytics.track('offer_expired_view', { offer_case: offerCase ?? 'unknown' });
         }
-        setState({ kind: 'error', reason, message });
+        setState({ kind: 'error', reason, message, offerCase });
       });
     return () => {
       active = false;
@@ -314,6 +322,12 @@ export function MiOfertaClient({ token }: { token: string }) {
           brand: product.brand,
           imageUrl: product.images?.[0] || product.thumbnail,
           monthly: product.quotaMonthly,
+          // La celda de la card (plazo e inicial con los que el equipo entra en
+          // la cuota aprobada). Sin esto complementos cotizaba a plazo máx /
+          // inicial mín y un equipo que solo entra con inicial salía "supera
+          // tu cuota".
+          term: product.hookTermMonths ?? undefined,
+          initial: product.hookTermMonths != null ? product.hookInitialPercent ?? 0 : undefined,
         },
       );
     },
@@ -439,7 +453,9 @@ export function MiOfertaClient({ token }: { token: string }) {
         reason: err instanceof Error ? err.name : 'unknown',
       });
       setPending(null);
-      if (errorDeSeleccionTumbaLaPagina(reason)) {
+      if (esEquipoAgotado(err)) {
+        setEquipoAgotado(true);
+      } else if (errorDeSeleccionTumbaLaPagina(reason)) {
         // Link vencido/usado/revocado: ya no hay nada que elegir.
         setState({ kind: 'error', reason, message });
       } else {
@@ -476,7 +492,9 @@ export function MiOfertaClient({ token }: { token: string }) {
   }
 
   if (state.kind === 'error') {
-    const copy = ERROR_COPY[state.reason] ?? ERROR_COPY.default;
+    const copy = copyDeLinkMuerto(
+      ERROR_COPY[state.reason] ?? ERROR_COPY.default, state.reason, state.offerCase,
+    );
     return (
       <OfertaEstadoMensaje
         icon={copy.icon}
@@ -794,6 +812,13 @@ export function MiOfertaClient({ token }: { token: string }) {
           </>
         )}
       </main>
+
+      <EquipoAgotadoAviso
+        isOpen={equipoAgotado}
+        onElegirOtro={() => {
+          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
+        }}
+      />
 
       <ConfirmarEleccionModal
         isOpen={pending !== null}

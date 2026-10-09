@@ -33,6 +33,7 @@ import {
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
 import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
 import { PrecioCambiadoAviso } from '../components/PrecioCambiadoAviso';
+import { EquipoAgotadoAviso, esEquipoAgotado } from '../components/EquipoAgotadoAviso';
 import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from '../components/AvisoSeleccion';
 import { cuotaSuffix, plazoUnit, monthlyFactor } from '../components/equipoCardFormat';
 import { readOfferSelection, clearOfferSelection, accesoriosIniciales } from '../offerStorage';
@@ -147,6 +148,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   // BAL-4196: el `/select` rechazó la selección (no el link). Se avisa con el
   // mensaje del backend sin tirar la página: el cliente ajusta y reintenta.
   const [avisoSeleccion, setAvisoSeleccion] = useState<string | null>(null);
+  // El `/select` respondió `unit_out_of_stock`: otro cliente se llevó la última
+  // unidad. Se avisa y se vuelve al catálogo de la oferta (ya sin ese equipo).
+  const [equipoAgotado, setEquipoAgotado] = useState(false);
   const [equipoInfo, setEquipoInfo] = useState<{ name: string; brand?: string; imageUrl?: string } | null>(null);
   // Nombre del cliente (feedback Marco): para el saludo "¡Felicitaciones {nombre}!"
   // arriba de la pantalla de complementos.
@@ -430,6 +434,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setConfirming(false);
         setShowSeguro(false);
         setModalOpen(false);
+        confirmLock.current = false;
+        return;
+      }
+      if (esEquipoAgotado(err)) {
+        // No se guardó nada y el link sigue vivo: solo este equipo ya no está.
+        analytics.track('offer_select_error', { offer_case: offerCase, reason: 'unit_out_of_stock' });
+        setEquipoAgotado(true);
+        setPrecioCambiado(null);
+        setConfirming(false);
+        setModalOpen(false);
+        setShowSeguro(false);
         confirmLock.current = false;
         return;
       }
@@ -1133,6 +1148,17 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* Otro cliente se llevó la última unidad: de vuelta al catálogo de la
+          oferta, que se recarga sin el equipo agotado. */}
+      <EquipoAgotadoAviso
+        isOpen={equipoAgotado}
+        onElegirOtro={() => {
+          if (variantId != null) clearStoredAddons(token, variantId);
+          clearOfferSelection(token);
+          window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/catalogo`;
+        }}
+      />
 
       {/* BAL-4198: el precio cambió entre ver y confirmar. */}
       <PrecioCambiadoAviso
