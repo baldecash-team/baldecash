@@ -29,6 +29,7 @@ import { OfertaEstadoMensaje, type OfertaEstadoIcon } from './components/OfertaE
 import { ConfirmarEleccionModal, type EquipoAConfirmar } from './components/ConfirmarEleccionModal';
 import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/AvisoSeleccion';
 import { EquipoAgotadoAviso, esEquipoAgotado } from './components/EquipoAgotadoAviso';
+import { casoDelError, copyDeLinkMuerto } from './components/ofertaVencida';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
 import { monthlyFactor, plazoNativo } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
@@ -57,7 +58,9 @@ const COLLAGE_ACCESORIOS_URL = 'https://baldecash.s3.amazonaws.com/images/oferta
 type PageState =
   | { kind: 'loading' }
   | { kind: 'ready'; offer: OfferView }
-  | { kind: 'error'; reason: OfferErrorReason; message: string };
+  // `offerCase`: el caso de la oferta cuando el backend lo manda con el error
+  // (link vencido). Decide el texto de la pantalla — ver `ofertaVencida`.
+  | { kind: 'error'; reason: OfferErrorReason; message: string; offerCase?: string | null };
 
 const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: string }> = {
   expired: { icon: 'clock', title: 'Esta oferta venció', body: 'El tiempo para elegir tu equipo ya terminó. Escríbenos y con gusto te ayudamos a reactivarla.' },
@@ -212,10 +215,11 @@ export function MiOfertaClient({ token }: { token: string }) {
         const reason = err instanceof OfferApiError ? err.reason : 'unknown';
         const message = err instanceof OfferApiError ? err.message : 'Error desconocido';
         // Funnel: el link cargó pero el backend indica que la oferta venció.
+        const offerCase = casoDelError(err);
         if (reason === 'expired') {
-          analytics.track('offer_expired_view', { offer_case: 'unknown' });
+          analytics.track('offer_expired_view', { offer_case: offerCase ?? 'unknown' });
         }
-        setState({ kind: 'error', reason, message });
+        setState({ kind: 'error', reason, message, offerCase });
       });
     return () => {
       active = false;
@@ -488,7 +492,9 @@ export function MiOfertaClient({ token }: { token: string }) {
   }
 
   if (state.kind === 'error') {
-    const copy = ERROR_COPY[state.reason] ?? ERROR_COPY.default;
+    const copy = copyDeLinkMuerto(
+      ERROR_COPY[state.reason] ?? ERROR_COPY.default, state.reason, state.offerCase,
+    );
     return (
       <OfertaEstadoMensaje
         icon={copy.icon}

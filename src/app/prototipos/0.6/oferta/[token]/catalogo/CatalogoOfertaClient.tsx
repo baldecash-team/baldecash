@@ -23,6 +23,7 @@ import { Navbar } from '../../../components/hero/Navbar';
 import { CatalogoOfertaTab } from '../components/CatalogoOfertaTab';
 import { OfertaEstadoMensaje, type OfertaEstadoIcon } from '../components/OfertaEstadoMensaje';
 import { saveOfferSelection } from '../offerStorage';
+import { casoDelError, copyDeLinkMuerto } from '../components/ofertaVencida';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 
 const BRAND_LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
@@ -31,7 +32,7 @@ const WHATSAPP_URL = 'https://wa.link/osgxjf';
 type PageState =
   | { kind: 'loading' }
   | { kind: 'ready'; offer: OfferView }
-  | { kind: 'error'; reason: OfferErrorReason; message: string };
+  | { kind: 'error'; reason: OfferErrorReason; message: string; offerCase?: string | null };
 
 const ERROR_COPY: Record<string, { icon: OfertaEstadoIcon; title: string; body: string }> = {
   expired: { icon: 'clock', title: 'Esta oferta venció', body: 'El tiempo para elegir tu equipo ya terminó. Escríbenos y con gusto te ayudamos a reactivarla.' },
@@ -92,7 +93,7 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
         if (!active) return;
         const reason = err instanceof OfferApiError ? err.reason : 'unknown';
         const message = err instanceof OfferApiError ? err.message : 'Error desconocido';
-        setState({ kind: 'error', reason, message });
+        setState({ kind: 'error', reason, message, offerCase: casoDelError(err) });
       });
     return () => {
       active = false;
@@ -145,7 +146,9 @@ export function CatalogoOfertaClient({ token }: { token: string }) {
   }
 
   if (state.kind === 'error') {
-    const copy = ERROR_COPY[state.reason] ?? ERROR_COPY.default;
+    const copy = copyDeLinkMuerto(
+      ERROR_COPY[state.reason] ?? ERROR_COPY.default, state.reason, state.offerCase,
+    );
     return (
       <OfertaEstadoMensaje
         icon={copy.icon}
