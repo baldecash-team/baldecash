@@ -29,7 +29,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { cardKey } from '../../../utils/cardKey';
-import { cardSelectorMode, tieneGradosAgrupados } from '../../../utils/cardSelectorMode';
+import { cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard } from '../../../utils/cardSelectorMode';
 // El nombre del grado ("Buen estado") sale de la misma fuente que el detalle:
 // una sola redacción para los dos sitios donde se lee.
 import { GRADE_COPY, isGradeKey } from '@/app/prototipos/0.6/[landing]/producto/family-farm/familyFarmGrades';
@@ -570,11 +570,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // que en la compacta.
   const gradosEnCardNormal = !compact && tieneGradosAgrupados(product);
 
+  // Los grados de la franja: los hermanos o, si el producto tiene grado pero no
+  // está agrupado, él mismo como único grado (ver `gradosDeLaCard`).
+  const gradosCard = gradosDeLaCard(product);
+  // Un solo grado en la card normal: se pinta su botón, ya elegido, y —a
+  // diferencia del agrupado— el color NO desaparece: va al lado. Con un grado
+  // solo no hay nada que elegir, así que quitar el color sería perder un dato
+  // sin ganar ninguno.
+  const gradoUnicoEnCardNormal = !compact && gradosCard.length === 1;
+  const muestraColores = !hideColors && !!product.colors && product.colors.length >= 1;
+
   // La franja de grados: una pill por grado, el agotado deshabilitado y el
   // nombre del elegido debajo. La usan la card compacta (reacondicionados) y
   // la normal cuando el producto está agrupado por grado.
-  const renderGrados = () => {
-    const grados = product.gradeSiblings ?? [];
+  //
+  // `junto` es lo que acompaña a las pills en la MISMA fila (el color, cuando
+  // hay un solo grado): así la franja mide lo mismo que la de un agrupado y la
+  // fila de cards no queda dispareja.
+  const renderGrados = (junto?: React.ReactNode) => {
+    const grados = gradosCard;
     const elegido = grados.find((g) => g.grade === selectedGrade);
     // Nombre del grado elegido ("Buen estado"), no solo su letra:
     // una "B" suelta no significa nada para quien no conoce la
@@ -585,7 +599,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     return (
       <div data-testid="card-grades" className="flex flex-col gap-1.5">
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
           {grados.map((g) => {
             const agotado = !g.isAvailable;
             const esElegido = g.grade === selectedGrade;
@@ -614,6 +628,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </button>
             );
           })}
+          {junto}
         </div>
         {/* Alto reservado aunque no haya nombre: sin él, una card
             con grado sin copy (el D) mediría menos que sus
@@ -625,7 +640,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     );
   };
   const gradoMostrado =
-    (compact || gradosEnCardNormal ? selectedGrade : undefined) ?? product.grade;
+    (compact || gradosEnCardNormal || gradoUnicoEnCardNormal ? selectedGrade : undefined) ?? product.grade;
   const showGrade = !hideStateBadges && !!gradoMostrado;
   const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
 
@@ -896,7 +911,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 className="mb-4 min-h-[44px] flex flex-col justify-center gap-1"
               >
                 {(() => {
-                  const modo = cardSelectorMode(product);
+                  // Con la lista ya resuelta: un grado sin hermanos también
+                  // cuenta como grado, no cae a colores ni deja el hueco.
+                  const modo = cardSelectorMode({ gradeSiblings: gradosCard, colors: product.colors });
 
                   if (modo === 'grades') return renderGrados();
 
@@ -925,9 +942,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {renderGrados()}
               </div>
             ) :
+            /* Un solo grado (reacondicionado sin hermanos): su botón, ya
+                elegido, y el color al lado en la misma fila. */
+            gradoUnicoEnCardNormal ? (
+              <div data-testid="card-selector-slot" className="mb-4 min-h-[44px] flex flex-col justify-center gap-1">
+                {renderGrados(
+                  muestraColores && product.colors ? (
+                    // Al lado de la pill el selector va sin su rótulo móvil
+                    // («Color: Negro») ni su relleno inferior: en fila lo
+                    // descuadraban y hacían la franja más alta que la de un
+                    // agrupado. El nombre del color sigue en el tooltip.
+                    <div data-testid="card-grade-color" className="shrink-0 [&_p]:hidden [&_.pb-1]:pb-0">
+                      <ColorSelector
+                        colors={product.colors}
+                        selectedColorId={selectedColorId}
+                        onColorSelect={setSelectedColorId}
+                        version={colorSelectorVersion}
+                      />
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            ) :
             /* Color Selector — visible desde un color: los de una familia
                 (color_siblings) y tambien el color propio de la variante. */
-            !hideColors && product.colors && product.colors.length >= 1 && (
+            muestraColores && product.colors && (
               <div className="flex justify-center mb-4 min-h-[32px]">
                 <ColorSelector
                   colors={product.colors}

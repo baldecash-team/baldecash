@@ -496,10 +496,14 @@ function ProductDetailContent() {
           // Selector de grado con el diseño de reacondicionados (BAL-3344).
           // Exclusivo de la landing 241: el resto sigue con el detalle de
           // siempre. Si el equipo no tiene grados, el componente no se dibuja.
-          // Fuera de reacondicionados, solo si el producto está agrupado por
-          // grado (2+ hermanos): si no, el grado B quedaba sin forma de elegirse.
+          // Fuera de reacondicionados, si el producto está agrupado por grado
+          // (2+ hermanos) —si no, el grado B quedaba sin forma de elegirse— o
+          // si tiene grado aunque sea uno solo: se muestra como única opción,
+          // ya elegida. Sin grado no se dibuja nada.
           gradeSelectorReacondicionados={
-            isReacondicionadosLanding(landing) || tieneGradosAgrupados(apiData.product)
+            isReacondicionadosLanding(landing)
+            || tieneGradosAgrupados(apiData.product)
+            || !!apiData.product.grade
           }
           isAvailable={isAvailable}
           defaultTerm={defaultTerm ?? apiData.defaultTerm}

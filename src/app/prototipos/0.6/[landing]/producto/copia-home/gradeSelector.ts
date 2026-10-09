@@ -48,3 +48,41 @@ export function currentGrade(
   const s = siblings.find((x) => x.productId === currentProductId);
   return s ? s.grade : null;
 }
+
+/**
+ * Los grados que pinta el selector del detalle estándar.
+ *
+ * Agrupado: los hermanos tal como llegan. Sin hermanos pero CON grado: una
+ * sola opción, el propio producto, para que el grado se vea también en el
+ * detalle («Grado B · Buen estado») aunque no haya nada que comparar. Sin
+ * grado: vacío, y el selector no se dibuja.
+ *
+ * La opción única lleva el id y el slug del producto, así `currentGrade` la
+ * marca como elegida y `irAlGrado` no navega (el slug es el de esta página).
+ */
+export function gradosDelDetalle(
+  product: {
+    id: string | number;
+    slug: string;
+    price: number;
+    lowestQuota?: number;
+    grade?: string;
+    gradeSiblings?: GradeSibling[];
+  },
+  isAvailable = true,
+): GradeSibling[] {
+  const hermanos = product.gradeSiblings ?? [];
+  if (hermanos.length > 0) return hermanos;
+  if (!product.grade) return [];
+  return [{
+    grade: product.grade,
+    productId: Number(product.id),
+    slug: product.slug,
+    price: product.price,
+    // El detalle no trae el stock del propio producto fuera de los hermanos:
+    // 1/0 solo refleja si la página está disponible.
+    stockAvailable: isAvailable ? 1 : 0,
+    isAvailable,
+    lowestQuota: product.lowestQuota,
+  }];
+}

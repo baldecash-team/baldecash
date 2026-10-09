@@ -373,15 +373,101 @@ describe('ProductCard — card normal con grados agrupados', () => {
     expect(screen.getAllByText('Advance grado B').length).toBeGreaterThan(0);
   });
 
-  it('con un solo grado sigue mostrando los colores', () => {
+  // Antes «con un solo grado sigue mostrando los colores» y NADA del grado:
+  // era la conducta que se corrige. Ahora el grado sale como botón y el color
+  // se queda.
+  it('con un solo hermano muestra su grado y TAMBIEN los colores', () => {
     render(<ProductCard product={buildProduct({ grade: 'A', gradeSiblings: [GRADOS_AB[0]], colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
+    expect(screen.getByTestId('card-grades')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grado A' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('color-selector')).toBeInTheDocument();
-    expect(screen.queryByTestId('card-grades')).toBeNull();
   });
 
   it('sin grados sigue mostrando los colores', () => {
     render(<ProductCard product={buildProduct({ colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
     expect(screen.getByTestId('color-selector')).toBeInTheDocument();
+    expect(screen.queryByTestId('card-grades')).toBeNull();
+  });
+});
+
+
+// Un reacondicionado con grado pero SIN hermanos (así llegan 21 de los 27 de
+// Home: `grade: "B"`, `grade_siblings: []`). Antes no mostraba ningún botón.
+describe('ProductCard — un solo grado, sin hermanos', () => {
+  const soloB = (extra: Partial<CatalogProduct> = {}) =>
+    buildProduct({ grade: 'B', gradeSiblings: [], colors: [color('1')], ...extra } as Partial<CatalogProduct>);
+
+  it('muestra UN boton con su grado, ya seleccionado y habilitado', () => {
+    render(<ProductCard product={soloB()} hideColors={false} />);
+    const pills = screen.getByTestId('card-grades').querySelectorAll('button[aria-label^="Grado"]');
+    expect(pills).toHaveLength(1);
+    const b = screen.getByRole('button', { name: 'Grado B' });
+    expect(b).toHaveAttribute('aria-pressed', 'true');
+    expect(b).toBeEnabled();
+    expect(b).toHaveTextContent('B');
+  });
+
+  it('nombra el grado con el mismo copy del detalle', () => {
+    render(<ProductCard product={soloB()} hideColors={false} />);
+    expect(screen.getByText('Buen estado')).toBeInTheDocument();
+  });
+
+  // La diferencia con el agrupado: el color NO desaparece, va en la misma fila.
+  it('el color convive con el grado', () => {
+    render(<ProductCard product={soloB()} hideColors={false} />);
+    expect(screen.getByTestId('color-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('card-grade-color')).toBeInTheDocument();
+  });
+
+  it('con los colores ocultos por la landing muestra solo el grado', () => {
+    render(<ProductCard product={soloB()} />);
+    expect(screen.getByRole('button', { name: 'Grado B' })).toBeInTheDocument();
+    expect(screen.queryByTestId('color-selector')).toBeNull();
+  });
+
+  // No hay a donde ir: pulsarlo no cambia el producto, el link ni el nombre.
+  it('pulsarlo no cambia nada: sigue siendo el producto de la card', async () => {
+    const user = userEvent.setup();
+    const onAddToCart = jest.fn();
+    const getDetailHref = jest.fn((slug?: string) => `/producto/${slug}`);
+    render(<ProductCard product={soloB()} hideColors={false} onAddToCart={onAddToCart} getDetailHref={getDetailHref} />);
+
+    await user.click(screen.getByRole('button', { name: 'Grado B' }));
+
+    expect(screen.getByRole('button', { name: 'Grado B' })).toHaveAttribute('aria-pressed', 'true');
+    expect(new Set(getDetailHref.mock.calls.map(([slug]) => slug))).toEqual(new Set(['advance-notebook-cn4058']));
+    await user.click(screen.getByRole('button', { name: /lo quiero/i }));
+    const item = onAddToCart.mock.calls[0][0];
+    expect(item.productId).toBe('1566');
+    expect(item.slug).toBe('advance-notebook-cn4058');
+    expect(item.price).toBe(402);
+  });
+
+  it.each(['A', 'B', 'C'])('pinta el grado %s', (g) => {
+    render(<ProductCard product={soloB({ grade: g } as Partial<CatalogProduct>)} hideColors={false} />);
+    expect(screen.getByRole('button', { name: `Grado ${g}` })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  // En la compacta (reacondicionados) rige su regla: grados O colores.
+  it('en compact muestra el grado y no los colores', () => {
+    render(<ProductCard product={soloB({ colors: [color('1'), color('2')] } as Partial<CatalogProduct>)} compact />);
+    expect(screen.getByRole('button', { name: 'Grado B' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByTestId('color-selector')).toBeNull();
+  });
+});
+
+describe('ProductCard — sin grado', () => {
+  it('sin grado y sin hermanos no dibuja ningun boton de grado', () => {
+    render(<ProductCard product={buildProduct({ grade: undefined, gradeSiblings: [], colors: [color('1')] } as Partial<CatalogProduct>)} hideColors={false} />);
+    expect(screen.queryByTestId('card-grades')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Grado / })).toBeNull();
+    expect(screen.queryByTestId('card-grade-color')).toBeNull();
+    // El color sigue donde estaba.
+    expect(screen.getByTestId('color-selector')).toBeInTheDocument();
+  });
+
+  it('con grade null (como llega del API) tampoco', () => {
+    render(<ProductCard product={buildProduct({ grade: null, colors: [color('1')] } as unknown as Partial<CatalogProduct>)} hideColors={false} />);
     expect(screen.queryByTestId('card-grades')).toBeNull();
   });
 });
