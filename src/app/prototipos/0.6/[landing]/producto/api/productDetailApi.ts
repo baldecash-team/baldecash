@@ -132,6 +132,8 @@ interface ApiProductData {
   images: ApiProductImage[];
   colors: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  /** Grado del propio producto. Puede no venir contra un backend viejo. */
+  grade?: string | null;
   grade_siblings?: ApiGradeSibling[];
   description: string;
   short_description: string;
@@ -555,6 +557,14 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
       colorHex: sib.color_hex,
       imageUrl: sib.image_url,
     })),
+    // `grade` es nuevo en el detalle: si no viene, se deriva del hermano que ES
+    // este producto. Sin ninguno de los dos, el equipo no tiene grado.
+    grade:
+      apiProduct.grade
+      ?? (apiProduct.grade_siblings || []).find(
+        (sib) => String(sib.product_id) === String(apiProduct.id),
+      )?.grade
+      ?? undefined,
     gradeSiblings: (apiProduct.grade_siblings || []).map((sib): GradeSibling => ({
       grade: sib.grade,
       productId: sib.product_id,

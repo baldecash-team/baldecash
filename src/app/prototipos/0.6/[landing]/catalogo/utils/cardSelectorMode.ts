@@ -50,7 +50,8 @@ export function cardSelectorMode(product: {
  * Por qué desde 2 y no desde 1 como en reacondicionados: allí la card es
  * austera y el grado es lo que el equipo ES. En la card normal un grado solo no
  * es una opción, y quitar el color por él sería perder información sin ganar
- * ninguna. Los productos sin grado, o con uno solo, siguen igual.
+ * ninguna. Por eso el grado único NO entra aquí: se pinta aparte, con su botón
+ * ya elegido y el color al lado (ver `gradosDeLaCard`). Sin grado, sigue igual.
  */
 const MIN_GRADOS_AGRUPADOS = 2;
 
@@ -58,4 +59,48 @@ export function tieneGradosAgrupados(product: {
   gradeSiblings?: { grade: string; isAvailable: boolean }[] | null;
 }): boolean {
   return (product.gradeSiblings?.length ?? 0) >= MIN_GRADOS_AGRUPADOS;
+}
+
+/** Lo mínimo de un grado que necesita la franja de la card. */
+interface GradoDeCard {
+  grade: string;
+  productId: number;
+  slug: string;
+  price: number | null;
+  minTermQuota: number | null;
+  isAvailable: boolean;
+}
+
+/**
+ * Los grados que pinta la card.
+ *
+ * Si el producto está agrupado, son sus hermanos tal como llegan. Si NO tiene
+ * hermanos pero SÍ tiene grado (`grade` del listado), es una lista de uno: el
+ * propio producto. Sin esto, 21 de los 27 reacondicionados de Home tenían
+ * grado y no lo mostraban en ningún botón, solo los 6 agrupados.
+ *
+ * El grado único se arma con los datos de la card —su id y su slug—, así que
+ * nunca cuenta como «otro hermano»: pulsarlo no cambia el producto ni navega.
+ * Va disponible porque es la card que el listado está ofreciendo.
+ *
+ * Sin grado (`grade` nulo) y sin hermanos devuelve vacío: esa card no cambia.
+ */
+export function gradosDeLaCard<T extends GradoDeCard>(product: {
+  id: string | number;
+  slug: string;
+  price: number;
+  grade?: string | null;
+  gradeSiblings?: T[] | null;
+}): (T | GradoDeCard)[] {
+  const hermanos = product.gradeSiblings ?? [];
+  if (hermanos.length > 0) return hermanos;
+  if (!product.grade) return [];
+  return [{
+    grade: product.grade,
+    productId: Number(product.id),
+    slug: product.slug,
+    price: product.price,
+    minTermQuota: null,
+    isAvailable: true,
+  }];
 }

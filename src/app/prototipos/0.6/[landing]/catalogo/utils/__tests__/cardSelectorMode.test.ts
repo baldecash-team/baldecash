@@ -1,4 +1,4 @@
-import { cardSelectorMode, tieneGradosAgrupados } from '../cardSelectorMode';
+import { cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard } from '../cardSelectorMode';
 
 const grado = (grade: string, isAvailable = true) => ({ grade, isAvailable });
 
@@ -86,5 +86,36 @@ describe('tieneGradosAgrupados', () => {
     expect(tieneGradosAgrupados({ gradeSiblings: [] })).toBe(false);
     expect(tieneGradosAgrupados({})).toBe(false);
     expect(tieneGradosAgrupados({ gradeSiblings: null })).toBe(false);
+  });
+});
+
+// Los grados que pinta la card: los hermanos, o el propio producto cuando tiene
+// grado y no está agrupado.
+describe('gradosDeLaCard', () => {
+  const hermano = (grade: string, productId: number, isAvailable = true) => ({
+    grade, productId, slug: `s-${productId}`, price: 100, minTermQuota: null, isAvailable,
+  });
+  const card = { id: '1917', slug: 'macbook-air-grado-b', price: 2500 };
+
+  it('agrupado: devuelve los hermanos tal cual, con sus agotados', () => {
+    const sibs = [hermano('A', 1, false), hermano('B', 1917)];
+    expect(gradosDeLaCard({ ...card, grade: 'B', gradeSiblings: sibs })).toBe(sibs);
+  });
+
+  it('con grado y sin hermanos: una sola opcion, el propio producto', () => {
+    expect(gradosDeLaCard({ ...card, grade: 'B', gradeSiblings: [] })).toEqual([
+      { grade: 'B', productId: 1917, slug: 'macbook-air-grado-b', price: 2500, minTermQuota: null, isAvailable: true },
+    ]);
+  });
+
+  it('sin grado y sin hermanos: vacio', () => {
+    expect(gradosDeLaCard({ ...card, gradeSiblings: [] })).toEqual([]);
+    expect(gradosDeLaCard({ ...card, grade: null, gradeSiblings: null })).toEqual([]);
+    expect(gradosDeLaCard({ ...card, grade: undefined })).toEqual([]);
+  });
+
+  it('un hermano unico se respeta (no se fabrica otro)', () => {
+    const sibs = [hermano('C', 1917, false)];
+    expect(gradosDeLaCard({ ...card, grade: 'C', gradeSiblings: sibs })).toBe(sibs);
   });
 });

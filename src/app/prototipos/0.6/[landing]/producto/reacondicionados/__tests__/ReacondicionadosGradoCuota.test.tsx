@@ -134,6 +134,37 @@ describe('ReacondicionadosGradoCuota', () => {
     });
   });
 
+  // Reacondicionado con grado pero sin hermanos: el selector sale igual, con
+  // su unica opcion ya elegida.
+  describe('un solo grado', () => {
+    const UNICOS: [string, string][] = [
+      ['A', 'Excelente estado'],
+      ['B', 'Buen estado'],
+      ['C', 'Funcional y ahorrador'],
+    ];
+
+    it.each(UNICOS)('grado %s: una sola opcion, elegida, con "%s"', (grade, copy) => {
+      const unico: GradeSibling = { grade, productId: 9, slug: 'solo', price: 900, stockAvailable: 1, isAvailable: true, lowestQuota: 77 };
+      renderCard({ gradeSiblings: [unico], selectedGrade: grade });
+
+      expect(screen.getByText('Elige el estado de tu equipo')).toBeInTheDocument();
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(1);
+      expect(radios[0]).toHaveAttribute('aria-checked', 'true');
+      expect(radios[0]).toBeEnabled();
+      expect(radios[0]).toHaveTextContent(`Grado ${grade}`);
+      expect(radios[0]).toHaveTextContent(copy);
+      expect(radios[0]).toHaveTextContent('S/77');
+    });
+
+    it('pulsarlo no avisa al padre: no hay a donde ir', () => {
+      const unico: GradeSibling = { grade: 'B', productId: 9, slug: 'solo', price: 900, stockAvailable: 1, isAvailable: true };
+      const { props } = renderCard({ gradeSiblings: [unico], selectedGrade: 'B' });
+      fireEvent.click(screen.getByRole('radio', { name: /Grado B/ }));
+      expect(props.onSelectGrade).not.toHaveBeenCalled();
+    });
+  });
+
   describe('sin grados', () => {
     // Un equipo nuevo, o un reacondicionado sin familia: no hay nada que
     // comparar, así que la sección no se dibuja en vez de salir vacía.

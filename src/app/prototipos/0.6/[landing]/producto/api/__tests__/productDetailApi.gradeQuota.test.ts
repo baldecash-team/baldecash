@@ -122,3 +122,41 @@ describe('gradeSiblings.minTermQuota (vía fetchProductDetail)', () => {
     expect(result!.product.gradeSiblings![0].price).toBe(2296);
   });
 });
+
+// `product.grade` es nuevo en el detalle. Mientras el backend no lo despliegue
+// se deriva del hermano que ES este producto; sin ninguno, no hay grado.
+describe('product.grade (vía fetchProductDetail)', () => {
+  const conGrade = (grade: unknown, siblings: unknown[]) => {
+    const r = baseApiResponse(siblings);
+    (r.product as Record<string, unknown>).grade = grade;
+    return r;
+  };
+
+  it('lee product.grade cuando viene, aunque no haya hermanos', async () => {
+    mockFetchOnce(conGrade('B', []));
+    const result = await fetchProductDetail('home', 'x');
+    expect(result!.product.grade).toBe('B');
+    expect(result!.product.gradeSiblings).toEqual([]);
+  });
+
+  it('si no viene, lo deriva del hermano con su mismo id', async () => {
+    mockFetchOnce(baseApiResponse([
+      apiSibling({ grade: 'A', product_id: 999 }),
+      apiSibling({ grade: 'C', product_id: 515 }),
+    ]));
+    const result = await fetchProductDetail('home', 'x');
+    expect(result!.product.grade).toBe('C');
+  });
+
+  it('sin el campo y sin hermanos: undefined, sin romper', async () => {
+    mockFetchOnce(baseApiResponse([]));
+    const result = await fetchProductDetail('home', 'x');
+    expect(result!.product.grade).toBeUndefined();
+  });
+
+  it('grade null: undefined', async () => {
+    mockFetchOnce(conGrade(null, []));
+    const result = await fetchProductDetail('home', 'x');
+    expect(result!.product.grade).toBeUndefined();
+  });
+});

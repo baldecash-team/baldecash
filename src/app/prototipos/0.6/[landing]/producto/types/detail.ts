@@ -163,6 +163,12 @@ export interface ProductDetail {
   images: ProductImage[];
   colors: ProductColor[];
   colorSiblings: ColorSibling[];
+  /**
+   * Grado del propio producto ("A"/"B"/"C"). Sale de `product.grade` del API
+   * y, si el backend aún no lo manda, del hermano cuyo id es el de este
+   * producto. `undefined` = el equipo no tiene grado.
+   */
+  grade?: string;
   gradeSiblings?: GradeSibling[];
   description: string;
   shortDescription: string;

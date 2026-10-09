@@ -28,7 +28,7 @@ import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/c
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { ReacondicionadosGradoCuota } from '../../reacondicionados/ReacondicionadosGradoCuota';
-import { targetSlugForGrade, currentGrade } from '../../copia-home/gradeSelector';
+import { targetSlugForGrade, currentGrade, gradosDelDetalle } from '../../copia-home/gradeSelector';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -183,15 +183,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // incompletos, o un hermano que apunta a otro producto-- cae al primero
   // DISPONIBLE en vez de dejar la card sin nada marcado: una lista de tres
   // opciones donde ninguna se ve elegida no dice qué está mirando la persona.
+  // Los grados del selector: los hermanos, o el propio producto como única
+  // opción cuando tiene grado pero no está agrupado (ver `gradosDelDetalle`).
+  const gradosSelector = useMemo(
+    () => gradosDelDetalle(product, isAvailable),
+    [product, isAvailable],
+  );
+
   const gradoActual = useMemo(() => {
-    const sibs = product.gradeSiblings ?? [];
+    const sibs = gradosSelector;
     return (
       currentGrade(sibs, Number(product.id))
       ?? [...sibs].sort((a, b) => a.grade.localeCompare(b.grade))
           .find((s) => s.isAvailable)?.grade
       ?? ''
     );
-  }, [product.gradeSiblings, product.id]);
+  }, [gradosSelector, product.id]);
 
   const irAlGrado = useCallback((grade: string) => {
     const slug = targetSlugForGrade(product.gradeSiblings ?? [], grade);
@@ -761,7 +768,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {gradeSelectorReacondicionados && (
               <div className="mb-4">
                 <ReacondicionadosGradoCuota
-                  gradeSiblings={product.gradeSiblings ?? []}
+                  gradeSiblings={gradosSelector}
                   selectedGrade={gradoActual}
                   onSelectGrade={irAlGrado}
                   // La frecuencia del MISMO payload que trajo las cuotas, no la

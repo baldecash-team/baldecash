@@ -1,4 +1,4 @@
-import { buildGradeOptions, targetSlugForGrade, currentGrade } from '../gradeSelector';
+import { buildGradeOptions, targetSlugForGrade, currentGrade, gradosDelDetalle } from '../gradeSelector';
 import type { GradeSibling } from '../../types/detail';
 
 const SIBS: GradeSibling[] = [
@@ -30,5 +30,39 @@ describe('gradeSelector', () => {
   it('resuelve el grado del producto actual', () => {
     expect(currentGrade(SIBS, 2)).toBe('B');
     expect(currentGrade(SIBS, 999)).toBeNull();
+  });
+});
+
+// Detalle estándar: un reacondicionado con grado pero sin hermanos muestra el
+// selector con una sola opción, la suya.
+describe('gradosDelDetalle', () => {
+  const producto = { id: '1917', slug: 'macbook-air-grado-b', price: 2500, lowestQuota: 139 };
+  const hermano = (grade: string, productId: number, isAvailable = true) => ({
+    grade, productId, slug: `s-${productId}`, price: 100, stockAvailable: isAvailable ? 2 : 0, isAvailable,
+  });
+
+  it('con grado y sin hermanos: una opcion, la del propio producto', () => {
+    const grados = gradosDelDetalle({ ...producto, grade: 'B', gradeSiblings: [] });
+    expect(grados).toEqual([
+      { grade: 'B', productId: 1917, slug: 'macbook-air-grado-b', price: 2500, stockAvailable: 1, isAvailable: true, lowestQuota: 139 },
+    ]);
+    // Queda marcada como la actual y su slug es el de esta pagina: no navega.
+    expect(currentGrade(grados, 1917)).toBe('B');
+    expect(targetSlugForGrade(grados, 'B')).toBe('macbook-air-grado-b');
+  });
+
+  it('si la pagina no esta disponible, la opcion sale no disponible', () => {
+    const [unico] = gradosDelDetalle({ ...producto, grade: 'C', gradeSiblings: [] }, false);
+    expect(unico.isAvailable).toBe(false);
+  });
+
+  it('sin grado: vacio, el selector no se dibuja', () => {
+    expect(gradosDelDetalle({ ...producto, gradeSiblings: [] })).toEqual([]);
+    expect(gradosDelDetalle({ ...producto })).toEqual([]);
+  });
+
+  it('agrupado: los hermanos tal cual, con su agotado', () => {
+    const sibs = [hermano('A', 1917), hermano('B', 2, false)];
+    expect(gradosDelDetalle({ ...producto, grade: 'A', gradeSiblings: sibs })).toBe(sibs);
   });
 });
