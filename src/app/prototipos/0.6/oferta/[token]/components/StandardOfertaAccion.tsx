@@ -39,6 +39,7 @@ import {
 import { createSpecsFromEav } from '../../../services/catalogApi';
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { AccesorioDetalleModal } from './AccesorioDetalleModal';
+import { EquipoAgotadoAviso, esEquipoAgotado } from './EquipoAgotadoAviso';
 import { OfertaHeader } from './redesign/OfertaHeader';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './redesign/EquipoRecomendadoCard';
@@ -110,6 +111,9 @@ export function StandardOfertaAccion({
   const [loading, setLoading] = useState<'accept' | 'reject' | null>(null);
   const [decision, setDecision] = useState<'accepted' | 'rejected' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // El backend rechazó la aceptación porque el equipo se agotó (409
+  // `unit_out_of_stock`): la oferta NO quedó aceptada y el link sigue vivo.
+  const [agotado, setAgotado] = useState(false);
   // Accesorio abierto en el modal de detalle y filtro del buscador (WEB-07).
   const [addonAbiertoId, setAddonAbiertoId] = useState<number | null>(null);
   const [busquedaAddon, setBusquedaAddon] = useState('');
@@ -345,7 +349,15 @@ export function StandardOfertaAccion({
     } catch (err) {
       const message =
         err instanceof OfferApiError ? err.message : 'No pudimos registrar tu decisión. Intenta nuevamente.';
-      analytics.track('offer_standard_decision_error', { offer_code: offer.offerCode, action: 'accept' });
+      analytics.track('offer_standard_decision_error', {
+        offer_code: offer.offerCode,
+        action: 'accept',
+        ...(esEquipoAgotado(err) ? { reason: 'unit_out_of_stock' } : {}),
+      });
+      // Equipo agotado: además del texto inline (que queda en pantalla al
+      // cerrar el aviso), se abre el aviso con la salida que sí tiene el
+      // cliente de una oferta manual — escribirle a su asesor.
+      if (esEquipoAgotado(err)) setAgotado(true);
       setError(message);
     } finally {
       setLoading(null);
@@ -966,6 +978,17 @@ export function StandardOfertaAccion({
           </div>
         </div>
       </div>
+
+      {/* Equipo agotado al aceptar. Mismo aviso que la oferta automática, con
+          otro texto: acá no hay catálogo donde elegir otro equipo. */}
+      <EquipoAgotadoAviso
+        isOpen={agotado}
+        onElegirOtro={() => setAgotado(false)}
+        titulo="Este equipo se agotó"
+        descripcion="Ya no quedan unidades del equipo de tu oferta, así que no pudimos aceptarla. Comunícate con tu asesor para que te prepare una nueva oferta."
+        accionTexto="Entendido"
+        whatsappUrl={WHATSAPP_URL}
+      />
 
       {/* Ficha del accesorio (WEB-07). */}
       {addonAbierto ? (

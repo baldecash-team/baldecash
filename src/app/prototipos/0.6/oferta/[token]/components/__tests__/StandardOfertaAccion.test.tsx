@@ -49,6 +49,18 @@ jest.mock('../../../../analytics/useAnalytics', () => ({
   useAnalytics: () => ({ track: jest.fn() }),
 }));
 
+// El Modal de NextUI (aviso de equipo agotado) necesita framer-motion y
+// portales que jsdom no trae: se reemplaza por un contenedor que respeta
+// `isOpen`. El resto de NextUI queda real.
+jest.mock('@nextui-org/react', () => ({
+  __esModule: true,
+  ...jest.requireActual('@nextui-org/react'),
+  Modal: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) =>
+    isOpen ? <div data-testid="modal">{children}</div> : null,
+  ModalContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  ModalBody: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 const baseOffer = {
   offerCode: 'APP-2026-99826442-OF03',
   maxMonthlyQuota: 0,
@@ -450,6 +462,70 @@ describe('StandardOfertaAccion', () => {
         /Esa es la combinación que ya tienes/,
       ),
     );
+  });
+
+  // ------------------------------------------------------- equipo agotado
+
+  describe('equipo agotado al aceptar (409 unit_out_of_stock)', () => {
+    const MENSAJE =
+      'El equipo de esta oferta se agotó. Comunícate con tu asesor para que te prepare una nueva oferta.';
+
+    beforeEach(() => {
+      acceptOffer.mockRejectedValue(new MockOfferApiError('unit_out_of_stock', MENSAJE));
+    });
+
+    it('avisa que el equipo se agotó y manda al asesor', async () => {
+      renderView();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+
+      fireEvent.click(barra().getByRole('button', { name: /^Aceptar$/i }));
+
+      const aviso = within(await screen.findByRole('alertdialog'));
+      expect(aviso.getByText('Este equipo se agotó')).toBeInTheDocument();
+      expect(aviso.getByText(/Comunícate con tu asesor/)).toBeInTheDocument();
+      expect(aviso.getByRole('link', { name: 'Escribir a mi asesor' })).toHaveAttribute(
+        'href',
+        expect.stringContaining('wa.link'),
+      );
+      // El cliente de una oferta manual no tiene catálogo al que volver.
+      expect(aviso.queryByRole('button', { name: 'Ver otros equipos' })).not.toBeInTheDocument();
+    });
+
+    it('no da la oferta por aceptada', async () => {
+      const onConverted = jest.fn();
+      render(<StandardOfertaAccion token="tok-123" offer={baseOffer} onConverted={onConverted} />);
+
+      fireEvent.click(barra().getByRole('button', { name: /^Aceptar$/i }));
+      await screen.findByRole('alertdialog');
+
+      expect(onConverted).not.toHaveBeenCalled();
+      expect(screen.queryByText(/Felicidades/i)).not.toBeInTheDocument();
+      // La oferta sigue en pantalla, con sus botones.
+      expect(barra().getByRole('button', { name: /^Aceptar$/i })).toBeEnabled();
+    });
+
+    it('al cerrar el aviso el motivo queda escrito en la página', async () => {
+      renderView();
+
+      fireEvent.click(barra().getByRole('button', { name: /^Aceptar$/i }));
+      const aviso = within(await screen.findByRole('alertdialog'));
+      fireEvent.click(aviso.getByRole('button', { name: 'Entendido' }));
+
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+      expect(screen.getByRole('alert')).toHaveTextContent(MENSAJE);
+    });
+
+    it('otro error del backend no abre el aviso de agotado', async () => {
+      acceptOffer.mockRejectedValue(
+        new MockOfferApiError('same_combination', 'Esa es la combinación que ya tienes.'),
+      );
+      renderView();
+
+      fireEvent.click(barra().getByRole('button', { name: /^Aceptar$/i }));
+
+      await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
   });
 
   // ------------------------------------------------------------------ varios
