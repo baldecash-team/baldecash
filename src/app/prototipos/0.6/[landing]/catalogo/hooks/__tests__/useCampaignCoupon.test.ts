@@ -91,6 +91,30 @@ describe('useCampaignCoupon — espera a la landing', () => {
     expect(mockValidate).toHaveBeenCalledWith({ code: 'CLASES', landingId: 1 });
   });
 
+  // Entrada por la landing (`/home/?cupon=CLASES`) y después el catálogo SIN
+  // el parámetro: el catálogo limpia el pendiente de localStorage en cuanto
+  // hidrata. Si eso pasa mientras el hook espera al layout, igual tiene que
+  // validar el cupón que ya había leído (visto en producción el 9-oct-2026).
+  it('si el pendiente se borra mientras espera al layout, igual valida el que ya leyó', async () => {
+    localStorage.setItem(PENDIENTE, 'CLASES');
+    mockUseLayout.mockReturnValue(layout(null, true));
+    mockValidate.mockResolvedValue(CUPON_OK);
+
+    const { rerender } = renderHook(() => useCampaignCoupon('home'));
+    await Promise.resolve();
+    expect(mockValidate).not.toHaveBeenCalled();
+
+    // Lo que hace CatalogoClient cuando la URL no trae cupón.
+    localStorage.removeItem(PENDIENTE);
+
+    mockUseLayout.mockReturnValue(layout(1, false));
+    rerender();
+
+    await waitFor(() => expect(mockSetAppliedCoupon).toHaveBeenCalledTimes(1));
+    expect(mockValidate).toHaveBeenCalledTimes(1);
+    expect(mockValidate).toHaveBeenCalledWith({ code: 'CLASES', landingId: 1 });
+  });
+
   it('si el layout terminó SIN landing (falló la carga) valida sin landing, como antes', async () => {
     localStorage.setItem(PENDIENTE, 'JACK3834');
     mockUseLayout.mockReturnValue(layout(null, false));
