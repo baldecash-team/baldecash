@@ -20,7 +20,7 @@ export interface UseCampaignCouponResult {
 
 export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult {
   const { appliedCoupon, setAppliedCoupon, isHydrated } = useProduct();
-  const { landingId } = useLayout();
+  const { landingId, isLoading: isLayoutLoading } = useLayout();
   const [isValidating, setIsValidating] = useState(false);
   const [validationFailed, setValidationFailed] = useState(false);
   const attemptedRef = useRef(false);
@@ -42,6 +42,14 @@ export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult 
       if (appliedCoupon?.lockedFromUrl) attemptedRef.current = true;
       return;
     }
+
+    // Esperar a que el layout termine de cargar: de ahí sale `landingId`. El
+    // ProductContext hidrata antes, y validar en ese momento mandaba el cupón
+    // SIN landing: el backend rechaza los cupones atados a una landing («solo
+    // es válido en ciertas landings») y el pendiente se borraba sin reintento.
+    // Así fallaban por la URL cupones válidos en Home como CLASES o REGALO.
+    // La captura de arriba ya guardó el cupón, así que esperar no lo pierde.
+    if (isLayoutLoading) return;
 
     // Hay pending (URL trajo ?coupon=) — siempre re-validar para refrescar
     // datos como referrerName aunque haya un appliedCoupon previo en cache.
@@ -68,7 +76,7 @@ export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult 
         clearPendingCoupon(landingSlug);
       }
     })();
-  }, [isHydrated, appliedCoupon, landingSlug, landingId, setAppliedCoupon]);
+  }, [isHydrated, appliedCoupon, landingSlug, landingId, isLayoutLoading, setAppliedCoupon]);
 
   const couponCode = appliedCoupon?.lockedFromUrl ? appliedCoupon.code : null;
 
