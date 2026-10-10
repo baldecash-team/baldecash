@@ -24,6 +24,12 @@ export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult 
   const [isValidating, setIsValidating] = useState(false);
   const [validationFailed, setValidationFailed] = useState(false);
   const attemptedRef = useRef(false);
+  // El cupón pendiente tal como se leyó la primera vez. Hace falta recordarlo
+  // porque mientras se espera al layout el catálogo limpia el pendiente de
+  // localStorage cuando la URL no trae cupón (quien entró por la landing con
+  // `?cupon=` y después abre el catálogo): sin esto, al terminar de cargar ya
+  // no habría nada que validar y el cupón se perdería en silencio.
+  const pendingCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isHydrated || attemptedRef.current) return;
@@ -35,13 +41,15 @@ export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult 
     // otro estado cambie después para reintentar. `capture` es idempotente.
     captureLandingParams(landingSlug);
 
-    const pendingCode = getPendingCoupon(landingSlug);
+    const pendingCode = pendingCodeRef.current ?? getPendingCoupon(landingSlug);
 
     // Sin pending y con cupón ya aplicado (recarga de página sin ?coupon=): reusar.
     if (!pendingCode) {
       if (appliedCoupon?.lockedFromUrl) attemptedRef.current = true;
       return;
     }
+
+    pendingCodeRef.current = pendingCode;
 
     // Esperar a que el layout termine de cargar: de ahí sale `landingId`. El
     // ProductContext hidrata antes, y validar en ese momento mandaba el cupón
