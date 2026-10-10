@@ -30,6 +30,30 @@ describe('EquipoAgotadoAviso', () => {
     expect(onElegirOtro).toHaveBeenCalledTimes(1);
   });
 
+  it('en la oferta manual manda al asesor: no hay otros equipos que ver', () => {
+    const onCerrar = jest.fn();
+    render(
+      <EquipoAgotadoAviso
+        isOpen
+        onElegirOtro={onCerrar}
+        titulo="Este equipo se agotó"
+        descripcion="Comunícate con tu asesor para que te prepare una nueva oferta."
+        accionTexto="Entendido"
+        whatsappUrl="https://wa.link/osgxjf"
+      />,
+    );
+    expect(screen.getByText('Este equipo se agotó')).toBeInTheDocument();
+    expect(screen.getByText(/Comunícate con tu asesor/)).toBeInTheDocument();
+    expect(screen.queryByText('Otro cliente acaba de llevarse este equipo')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver otros equipos' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Escribir a mi asesor' })).toHaveAttribute(
+      'href',
+      'https://wa.link/osgxjf',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Entendido' }));
+    expect(onCerrar).toHaveBeenCalledTimes(1);
+  });
+
   it('cerrado no pinta nada', () => {
     render(<EquipoAgotadoAviso isOpen={false} onElegirOtro={jest.fn()} />);
     expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
