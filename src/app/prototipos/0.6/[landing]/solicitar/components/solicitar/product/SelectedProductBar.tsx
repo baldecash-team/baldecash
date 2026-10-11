@@ -342,6 +342,17 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   return `${displayTerm} ${getTermUnit(displayTerm, mainProduct.paymentFrequency)}`;
                 })()}
               </p>
+              {/* Coupon Applied Badge - Mobile (barra plegada). En computadora
+                  el cupón se ve en cada paso; acá solo salía al desplegar la
+                  barra, así que en celular nadie lo veía. Mismo contenido que
+                  el de computadora. El alto extra lo recoge `barraRef`. */}
+              {hasCoupon && appliedCoupon && (
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-green-600 min-w-0">
+                  <Tag className="w-3 h-3 flex-shrink-0" />
+                  <span className="font-medium flex-shrink-0">{appliedCoupon.code}</span>
+                  <span className="text-green-500 truncate">{appliedCoupon.label}</span>
+                </p>
+              )}
             </div>
 
             {/* Price & Expand Icon */}

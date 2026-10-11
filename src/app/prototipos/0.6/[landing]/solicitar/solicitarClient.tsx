@@ -495,7 +495,6 @@ function WizardPreviewContent() {
       ) : (
       <Navbar
         landing={landing}
-        logoOnly={!!appliedCoupon?.lockedFromUrl}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
         logoClassName={navbarProps?.logoClassName}

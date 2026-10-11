@@ -44,6 +44,34 @@ export function saveCouponFromModal(landingSlug: string, coupon: ModalCoupon): v
   } catch {}
 }
 
+/**
+ * El cupón que quedó aplicado en esta landing, tal como está guardado, o
+ * `null`. Para quien necesita saber si hay cupón SIN montar `ProductContext`
+ * (la portada de la landing, que solo lo muestra).
+ */
+export function getAppliedCouponFromStorage(
+  landingSlug: string
+): (ModalCoupon & {
+  lockedFromUrl?: boolean;
+  referrerName?: string;
+  giftName?: string;
+  giftQuantity?: number;
+}) | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(couponKey(landingSlug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && typeof parsed.code === 'string' ? parsed : null;
+  } catch (error) {
+    // Sin almacenamiento o con un valor corrupto: se sigue sin cupón a la vista.
+    Sentry.captureException(error, {
+      tags: { modulo: 'cupon', accion: 'leer_cupon_aplicado', landing: landingSlug },
+    });
+    return null;
+  }
+}
+
 export function saveDocumentFromModal(landingSlug: string, documentNumber: string): void {
   if (typeof window === 'undefined') return;
   try {

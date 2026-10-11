@@ -38,6 +38,7 @@ import { Toast, useToast } from '@/app/prototipos/_shared';
 
 // Components
 import { Navbar } from './Navbar';
+import type { AppliedCoupon } from '../../[landing]/solicitar/context/ProductContext';
 import { HeroBanner } from './HeroBanner';
 import { SocialProof } from './SocialProof';
 import { HowItWorks } from './HowItWorks';
@@ -105,6 +106,11 @@ interface HeroSectionProps {
   previewKey?: string | null;
   /** Primary brand color hex for contrast calculations */
   primaryColor?: string;
+  /**
+   * Cupón que llegó por link: el navbar lo avisa en una franja del mismo tipo
+   * que el banner promocional (ver `couponStrip` en `Navbar`).
+   */
+  couponStrip?: AppliedCoupon | null;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -133,6 +139,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   showMinQuota = true,
   landing = 'home',
   previewBannerOffset = 0,
+  couponStrip = null,
   previewKey,
   primaryColor,
 }) => {
@@ -280,7 +287,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={institutionLogoResuelto} institutionName={institutionNameResuelto} showInstitutionLogo={showInstitutionLogo} primaryColor={primaryColor} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} couponStrip={couponStrip} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={institutionLogoResuelto} institutionName={institutionNameResuelto} showInstitutionLogo={showInstitutionLogo} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
