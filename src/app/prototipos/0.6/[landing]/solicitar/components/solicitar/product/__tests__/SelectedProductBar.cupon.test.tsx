@@ -101,4 +101,29 @@ describe('SelectedProductBar — cupón aplicado', () => {
 
     expect(screen.queryByText('CAMPA10')).not.toBeInTheDocument();
   });
+
+  it('cupón de lista cerrada sin confirmar: la barra avisa que es solo para invitados', () => {
+    mockEstado.cupon = { ...CUPON, restrictedToDocumentList: true, requiresDocument: true };
+    mockEstado.desplegada = false;
+
+    render(<SelectedProductBar />);
+
+    // Celular (una línea): el aviso corto en lugar del texto del cupón.
+    const botonDeLaBarra = screen.getByRole('button', { name: /Laptop HP 15/ });
+    expect(botonDeLaBarra).toHaveTextContent('Solo para documentos invitados');
+    // Computadora: el aviso completo debajo del cupón.
+    expect(
+      screen.getByText('Solo para documentos invitados. Lo confirmaremos cuando ingreses tu documento.')
+    ).toBeInTheDocument();
+  });
+
+  it('cupón de lista cerrada ya confirmado: la barra queda como con cualquier cupón', () => {
+    mockEstado.cupon = { ...CUPON, restrictedToDocumentList: true };
+    mockEstado.desplegada = false;
+
+    render(<SelectedProductBar />);
+
+    expect(screen.queryByText(/Solo para documentos invitados/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('10% de descuento en 1 cuotas')).toHaveLength(2);
+  });
 });

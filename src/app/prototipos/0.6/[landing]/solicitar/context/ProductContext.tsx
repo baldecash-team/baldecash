@@ -199,6 +199,24 @@ export interface AppliedCoupon {
   giftName?: string;
   /** Cantidad de unidades del regalo asociadas al cupón (por defecto 1). */
   giftQuantity?: number;
+  /** Cupón de lista cerrada: solo lo pueden usar los documentos invitados. */
+  restrictedToDocumentList?: boolean;
+  /**
+   * Lista cerrada validada SIN documento: está aplicado, pero falta confirmar
+   * que el cliente esté invitado. Se resuelve al escribir el documento en el
+   * formulario (`useCouponDocumentCheck`).
+   */
+  requiresDocument?: boolean;
+}
+
+/**
+ * Cupón que se retiró porque el documento del cliente no puede usarlo. Queda
+ * en el contexto (y no en el componente) porque el aviso tiene que seguir a la
+ * vista al volver al resumen, donde está la caja del cupón.
+ */
+export interface RemovedCouponNotice {
+  code: string;
+  rejection: 'not_invited' | 'user_limit';
 }
 
 interface ProductContextValue {
@@ -216,6 +234,10 @@ interface ProductContextValue {
   appliedCoupon: AppliedCoupon | null;
   setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
   clearCoupon: () => void;
+  /** Aviso del cupón retirado por el documento; se borra al aplicar otro. */
+  removedCouponNotice: RemovedCouponNotice | null;
+  /** Retira el cupón (también el de campaña) y deja el aviso con el motivo. */
+  removeCouponForDocument: (notice: RemovedCouponNotice) => void;
   // Insurance (multi-select)
   selectedInsurance: InsurancePlan | null; // Legacy: first selected insurance
   selectedInsurances: InsurancePlan[];
@@ -516,8 +538,12 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const selectedInsurance = selectedInsurances.length > 0 ? selectedInsurances[0] : null;
 
   // Coupon functions
+  const [removedCouponNotice, setRemovedCouponNotice] = useState<RemovedCouponNotice | null>(null);
+
   const setAppliedCoupon = useCallback((coupon: AppliedCoupon | null) => {
     setAppliedCouponState(coupon);
+    // Con un cupón nuevo aplicado, el aviso del que se retiró ya no dice nada.
+    if (coupon) setRemovedCouponNotice(null);
     try {
       if (coupon) {
         localStorage.setItem(couponKey, JSON.stringify(coupon));
@@ -539,6 +565,20 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       }
       return null;
     });
+  }, [couponKey]);
+
+  // El documento del cliente no puede usar el cupón. A diferencia de
+  // `clearCoupon`, también retira el de campaña (`lockedFromUrl`): ese candado
+  // es para que el cliente no lo quite a mano, no para dejarle puesto un cupón
+  // que el envío de la solicitud va a rechazar.
+  const removeCouponForDocument = useCallback((notice: RemovedCouponNotice) => {
+    setAppliedCouponState(null);
+    setRemovedCouponNotice(notice);
+    try {
+      localStorage.removeItem(couponKey);
+    } catch {
+      // localStorage not available
+    }
   }, [couponKey]);
 
   // Track previous product ID to detect changes
@@ -1184,6 +1224,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         appliedCoupon,
         setAppliedCoupon,
         clearCoupon,
+        removedCouponNotice,
+        removeCouponForDocument,
         selectedInsurance,
         selectedInsurances,
         setSelectedInsurance,

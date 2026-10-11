@@ -14,9 +14,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, Loader2, Check, X, Sparkles, Lock } from 'lucide-react';
+import { Tag, Loader2, Check, X, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 import { getCouponScopeText } from '@/app/prototipos/0.6/utils/couponPricing';
+import {
+  COUPON_CONFIRMED_DOCUMENT_NOTICE,
+  COUPON_PENDING_DOCUMENT_NOTICE,
+  couponConfirmedForDocument,
+  couponPendingDocument,
+  getCouponRemovedMessage,
+} from '@/app/prototipos/0.6/utils/couponDocument';
 import { useProduct } from '../../../context/ProductContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
@@ -78,6 +85,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     appliedCoupon,
     setAppliedCoupon,
     clearCoupon,
+    removedCouponNotice,
     selectedProduct,
     cartProducts,
     getDiscountAmount
@@ -215,6 +223,11 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     appliedCoupon && !isGiftCoupon && discountAmount > 0
       ? getCouponScopeText(appliedCoupon, termEnCuotas)
       : null;
+  // Cupón de lista cerrada: mientras no se conozca el documento, «aplicado» a
+  // secas promete de más. Se dice que falta confirmarlo y, una vez revisado el
+  // documento, que quedó confirmado.
+  const isPendingDocument = couponPendingDocument(appliedCoupon);
+  const isConfirmedForDocument = couponConfirmedForDocument(appliedCoupon);
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
@@ -241,9 +254,15 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full"
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    isPendingDocument ? 'bg-amber-100 text-amber-700' : 'bg-green-200 text-green-800'
+                  }`}
                 >
-                  {isLockedCampaign ? 'Aplicado automáticamente' : 'Aplicado'}
+                  {isPendingDocument
+                    ? 'Por confirmar'
+                    : isLockedCampaign
+                      ? 'Aplicado automáticamente'
+                      : 'Aplicado'}
                 </motion.span>
               </div>
               {isGiftCoupon ? (
@@ -295,6 +314,19 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
             )}
           </div>
         </div>
+
+        {isPendingDocument && (
+          <p role="status" className="mt-3 flex items-start gap-2 text-sm text-amber-700">
+            <AlertTriangle className="mt-0.5 w-4 h-4 flex-shrink-0" aria-hidden />
+            <span>{COUPON_PENDING_DOCUMENT_NOTICE}</span>
+          </p>
+        )}
+        {isConfirmedForDocument && (
+          <p role="status" className="mt-3 flex items-center gap-2 text-sm text-green-600">
+            <Check className="w-4 h-4 flex-shrink-0" aria-hidden />
+            <span>{COUPON_CONFIRMED_DOCUMENT_NOTICE}</span>
+          </p>
+        )}
 
         {/* Confetti Animation */}
         <motion.div
@@ -353,6 +385,23 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           </span>
         )}
       </div>
+
+      {/* El cupón anterior se retiró al revisar el documento del cliente. */}
+      {removedCouponNotice && (
+        <div
+          role="alert"
+          className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+        >
+          <AlertTriangle className="mt-0.5 w-4 h-4 flex-shrink-0" aria-hidden />
+          <p>
+            {getCouponRemovedMessage(
+              removedCouponNotice.code,
+              removedCouponNotice.rejection,
+              isRequired
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2">
         {/* Input con animación shake en error */}

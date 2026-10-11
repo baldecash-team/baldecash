@@ -37,6 +37,12 @@ export interface CouponValidateLegacyResponse {
   gift_name?: string | null;
   /** Cantidad de unidades del regalo (por defecto 1) */
   gift_quantity?: number | null;
+  /** Motivos del rechazo (`document_not_allowed`, `user_limit_reached`, …) */
+  error_codes?: string[] | null;
+  /** El cupón es solo para una lista de documentos invitados */
+  restricted_to_document_list?: boolean;
+  /** Lista cerrada validada sin documento: falta confirmar al cliente */
+  requires_document?: boolean;
 }
 
 type CouponValidateResponse =
@@ -47,12 +53,22 @@ export interface ValidateCouponOptions {
   code: string;
   landingId?: number | null;
   productId?: number;
+  /**
+   * Documento del cliente, cuando ya se conoce. Con él el backend evalúa la
+   * lista cerrada y el tope por persona; sin él, esas reglas quedan para el
+   * envío de la solicitud.
+   */
+  documentNumber?: string;
 }
+
+export type ValidateCouponResult =
+  | { ok: true; coupon: AppliedCoupon }
+  | { ok: false; error?: string; errorCodes?: string[] };
 
 export async function validateCoupon(
   options: ValidateCouponOptions
-): Promise<{ ok: true; coupon: AppliedCoupon } | { ok: false; error?: string }> {
-  const { code, landingId, productId } = options;
+): Promise<ValidateCouponResult> {
+  const { code, landingId, productId, documentNumber } = options;
 
   try {
     const response = await fetch(`${API_BASE_URL}/public/coupons/validate`, {
@@ -62,6 +78,7 @@ export async function validateCoupon(
         code: code.trim(),
         ...(productId != null ? { product_id: productId } : {}),
         ...(landingId != null ? { landing_id: landingId } : {}),
+        ...(documentNumber ? { document_number: documentNumber } : {}),
       }),
     });
 
@@ -110,6 +127,10 @@ export async function validateCoupon(
           referrerName,
           giftName,
           giftQuantity: giftName ? data.gift_quantity ?? 1 : undefined,
+          // Solo viajan cuando son ciertos: un cupón abierto queda igual que
+          // antes, sin claves nuevas.
+          ...(data.restricted_to_document_list ? { restrictedToDocumentList: true } : {}),
+          ...(data.requires_document ? { requiresDocument: true } : {}),
         },
       };
     }
@@ -118,7 +139,9 @@ export async function validateCoupon(
       ('error' in data && data.error) ||
       ('error_message' in data && data.error_message) ||
       undefined;
-    return { ok: false, error: errorMessage ?? undefined };
+    const errorCodes =
+      'error_codes' in data && Array.isArray(data.error_codes) ? data.error_codes : undefined;
+    return { ok: false, error: errorMessage ?? undefined, errorCodes };
   } catch {
     return { ok: false };
   }

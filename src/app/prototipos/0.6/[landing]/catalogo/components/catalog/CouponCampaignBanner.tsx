@@ -4,6 +4,7 @@ import React from 'react';
 import { Sparkles, Crown, Gift } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponScopeText, isGiftCoupon } from '@/app/prototipos/0.6/utils/couponPricing';
+import { COUPON_PENDING_DOCUMENT_NOTICE, couponPendingDocument } from '@/app/prototipos/0.6/utils/couponDocument';
 
 interface CouponCampaignBannerProps {
   coupon: AppliedCoupon;
@@ -111,6 +112,11 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
             {giftName && (
               <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
                 Tu solicitud incluye de regalo: <strong>{giftName}</strong>.
+              </p>
+            )}
+            {couponPendingDocument(coupon) && (
+              <p className="mt-2 text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
+                {COUPON_PENDING_DOCUMENT_NOTICE}
               </p>
             )}
           </>

@@ -13,6 +13,7 @@ const PreviewBanner = dynamic(() => import('../PreviewBanner').then(m => m.Previ
 import { usePreview } from '../../context/PreviewContext';
 import type { AppliedCoupon } from '../../[landing]/solicitar/context/ProductContext';
 import { getCouponStripText } from '../../utils/couponBanner';
+import { COUPON_PENDING_DOCUMENT_SHORT, couponPendingDocument } from '../../utils/couponDocument';
 import { GamerNavbar } from '../zona-gamer/GamerNavbar';
 import {
   Menu,
@@ -289,6 +290,7 @@ const NavbarCouponStrip: React.FC<NavbarCouponStripProps> = ({ coupon, top, deba
           <strong>¡Cupón aplicado!</strong>{' '}
           <span className="font-mono font-semibold uppercase">{coupon.code}</span>
           {texto && <> · {texto}</>}
+          {couponPendingDocument(coupon) && <> · {COUPON_PENDING_DOCUMENT_SHORT}</>}
         </span>
         <button
           className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
