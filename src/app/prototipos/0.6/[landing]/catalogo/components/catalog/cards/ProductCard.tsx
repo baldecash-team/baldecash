@@ -129,7 +129,7 @@ interface ProductCardProps {
   hideColors?: boolean;
   /** Agregar spacer arriba cuando otra card en la misma fila tiene banner promo */
   needsPromoSpacer?: boolean;
-  /** Cupón de campaña URL — muestra oferta de 1.ª cuota y precio de lista tachado */
+  /** Cupón que llegó por link — muestra la cuota con descuento y a cuántas cuotas alcanza */
   campaignCoupon?: AppliedCoupon | null;
   /** Catálogo de etiquetas del facet — texto y color de los tags del producto (BAL-3204) */
   labels?: LabelFilter[] | null;
@@ -482,14 +482,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       : displayOriginalQuota
   );
 
-  // La vitrina "solo 1.ª cuota" (cuota lista tachada + primera cuota con
-  // descuento) es narrativa de cupón de REFERIDO: solo se calcula/muestra
-  // cuando el cupón trae referidor. Cupones genéricos aplican su descuento
-  // en el checkout, sin este tratamiento especial en la card.
-  const couponQuotaDisplay = campaignCoupon?.referrerName
-    ? getCouponQuotaDisplay(displayQuotaForFreq, campaignCoupon, originalQuota)
+  // La vitrina de cupón (cuota con descuento + la cuota normal que sigue) sale
+  // con todo cupón que llegó por link, de referido o de campaña: qué cupones
+  // califican lo decide `CatalogoClient` al armar `campaignCoupon`. El alcance
+  // —primera cuota, primeras N, todas— sale del cupón; `nativeTermCount` es el
+  // plazo en cuotas, para que N cuotas sobre un plazo de N se lean como «todas».
+  const couponQuotaDisplay = campaignCoupon
+    ? getCouponQuotaDisplay(displayQuotaForFreq, campaignCoupon, originalQuota, nativeTermCount)
     : null;
   const showCampaignFirstQuota = couponQuotaDisplay?.hasFirstQuotaOffer ?? false;
+  // Cuántas cuotas llevan el descuento: 1 (lo de siempre), N, o `null` = todas.
+  const couponQuotas = couponQuotaDisplay?.discountedQuotas ?? null;
 
   // ============================================
   // Crear CartItem completo para onAddToCart
@@ -1050,13 +1053,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                         'linear-gradient(to right, var(--color-primary), color-mix(in srgb, var(--color-primary) 90%, white), var(--color-primary))',
                     }}
                   >
-                    {/* Badge "SOLO 1.ª CUOTA" sobresaliendo */}
+                    {/* Badge del alcance, sobresaliendo: "SOLO 1.ª CUOTA",
+                        "PRIMERAS N CUOTAS" o "TODAS TUS CUOTAS" */}
                     <span
                       className="absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 bg-amber-300 text-[var(--color-primary)] text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap"
-                      aria-label="Solo primera cuota"
+                      aria-label={
+                        couponQuotas === 1
+                          ? 'Solo primera cuota'
+                          : couponQuotas
+                            ? `Primeras ${couponQuotas} cuotas`
+                            : 'Todas tus cuotas'
+                      }
                     >
                       <span aria-hidden>⚡</span>
-                      Solo 1.ª cuota
+                      {couponQuotas === 1
+                        ? 'Solo 1.ª cuota'
+                        : couponQuotas
+                          ? `Primeras ${couponQuotas} cuotas`
+                          : 'Todas tus cuotas'}
                     </span>
 
                     <div className="flex items-baseline justify-center gap-0.5 min-w-0 mt-1">
@@ -1066,18 +1080,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       <span className="text-base sm:text-lg text-white/80">{freqShort}</span>
                     </div>
                     <p className="text-[11px] sm:text-xs font-semibold text-white/90 mt-1">
-                      Tu primera cuota con cupón
+                      {couponQuotas === 1
+                        ? 'Tu primera cuota con cupón'
+                        : couponQuotas
+                          ? `Tus primeras ${couponQuotas} cuotas con cupón`
+                          : 'Tu cuota con cupón'}
                     </p>
                   </div>
 
-                  {/* Cuotas siguientes — visualmente atenuadas */}
+                  {/* Cuotas siguientes — visualmente atenuadas. Con el descuento
+                      en todas las cuotas no hay «siguientes»: va la cuota sin
+                      cupón, tachada. */}
                   <div className="flex flex-col items-center gap-0.5 text-center mt-2">
                     <span className="text-[10px] sm:text-xs uppercase tracking-wide text-[var(--text-faint,#9ca3af)] font-semibold">
-                      Cuotas 2 en adelante
+                      {couponQuotas ? `Cuotas ${couponQuotas + 1} en adelante` : 'Cuota sin cupón'}
                     </span>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-sm sm:text-base font-bold text-[var(--text-muted,#6b7280)]">
-                        S/{formatCuotaDeLanding(couponQuotaDisplay.listQuota, landingSlug)}
+                      <span className={`text-sm sm:text-base font-bold text-[var(--text-muted,#6b7280)] ${couponQuotas ? '' : 'line-through'}`}>
+                        S/{formatCuotaDeLanding(couponQuotaDisplay.regularQuota, landingSlug)}
                       </span>
                       <span className="text-xs text-[var(--text-faint,#9ca3af)]">{freqShort}</span>
                     </div>

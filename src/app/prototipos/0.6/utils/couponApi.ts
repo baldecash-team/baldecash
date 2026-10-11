@@ -80,6 +80,9 @@ export async function validateCoupon(
             ? `Cupón de referido de ${referrerName}`
             : 'Cupón de referido',
           couponType: 'percent_quotas',
+          // Esta respuesta no trae ni monto ni alcance: solo dice de quién es
+          // el cupón. Se deja en 1 a propósito -- el referido descuenta la
+          // primera cuota -- porque acá «sin dato» NO significa «todas».
           quotasAffected: 1,
           referrerName,
         },
@@ -100,6 +103,9 @@ export async function validateCoupon(
           discount: data.value != null ? parseFloat(data.value) : 0,
           label: data.label ?? '',
           couponType: data.coupon_type || 'fixed',
+          // `quotas_affected` vacío = TODAS las cuotas (regla del backend,
+          // para monto fijo y para porcentaje). Se guarda sin la clave y así
+          // lo lee `getCouponQuotas`: no hay que convertirlo en 1.
           quotasAffected: data.quotas_affected ?? undefined,
           referrerName,
           giftName,

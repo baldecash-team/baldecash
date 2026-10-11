@@ -16,6 +16,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Loader2, Check, X, Sparkles, Lock } from 'lucide-react';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
+import { getCouponScopeText } from '@/app/prototipos/0.6/utils/couponPricing';
 import { useProduct } from '../../../context/ProductContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
@@ -186,7 +187,6 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   };
 
   const isLockedCampaign = appliedCoupon?.lockedFromUrl === true;
-  const firstQuotaOnly = (appliedCoupon?.quotasAffected ?? 1) <= 1;
   // Cupón de regalo: no aplica descuento monetario sino que entrega un producto.
   // Se muestra "Cantidad asociada" + el regalo en vez de "-S/x".
   const isReferralCoupon = !!appliedCoupon?.referrerName;
@@ -195,6 +195,26 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     (appliedCoupon?.couponType === 'free_accessory' || !!appliedCoupon?.giftName);
   const giftName = appliedCoupon?.giftName ?? 'Periférico de regalo';
   const giftQuantity = appliedCoupon?.giftQuantity ?? 1;
+  /**
+   * UN solo mensaje para el descuento, armado con el alcance real del cupón
+   * (vacío = todas las cuotas): «Descuento en tu primera cuota», «…en tus
+   * primeras 3 cuotas», «…en todas tus cuotas». El monto va a la derecha.
+   *
+   * Antes la caja decía lo mismo tres veces —el `label` del backend, «solo en
+   * 1.ª cuota» y «Descuento solo en tu primera cuota…»— y las dos frases fijas
+   * salían también para un cupón de monto fijo en todas las cuotas, donde eran
+   * falsas. El `label` queda para el cupón que no descuenta (valor 0), que no
+   * tiene otro texto que mostrar.
+   */
+  const discountAmount = appliedCoupon && !isGiftCoupon ? getDiscountAmount() : 0;
+  // Plazo en cuotas del equipo elegido: un cupón de N cuotas sobre un plazo de
+  // N o menos las cubre todas.
+  const productoDelPlazo = selectedProduct ?? cartProducts[0];
+  const termEnCuotas = productoDelPlazo?.term ?? productoDelPlazo?.months;
+  const scopeText =
+    appliedCoupon && !isGiftCoupon && discountAmount > 0
+      ? getCouponScopeText(appliedCoupon, termEnCuotas)
+      : null;
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
@@ -228,13 +248,10 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
               </div>
               {isGiftCoupon ? (
                 <p className="text-sm text-green-600">Cantidad asociada: {giftQuantity}</p>
+              ) : scopeText ? (
+                <p className="text-sm text-green-600">Descuento {scopeText}</p>
               ) : (
                 <p className="text-sm text-green-600">{appliedCoupon.label}</p>
-              )}
-              {!isGiftCoupon && isLockedCampaign && firstQuotaOnly && (
-                <p className="text-xs text-green-700/80 mt-1">
-                  Descuento solo en tu primera cuota. No se puede quitar en esta campaña.
-                </p>
               )}
             </div>
           </div>
@@ -253,20 +270,11 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   </p>
                   <p className="text-xs text-green-500">S/0</p>
                 </>
-              ) : (
-                <>
-                  <p className="text-lg font-bold text-green-600">
-                    -S/{getDiscountAmount().toFixed(0)}
-                  </p>
-                  <p className="text-xs text-green-500">
-                    {firstQuotaOnly
-                      ? 'solo en 1.ª cuota'
-                      : appliedCoupon.quotasAffected
-                        ? `en ${appliedCoupon.quotasAffected} cuotas`
-                        : 'por mes'}
-                  </p>
-                </>
-              )}
+              ) : scopeText ? (
+                <p className="text-lg font-bold text-green-600 whitespace-nowrap">
+                  -S/{discountAmount.toFixed(0)}
+                </p>
+              ) : null}
             </motion.div>
 
             {isLockedCampaign ? (
