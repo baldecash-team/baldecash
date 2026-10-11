@@ -3,6 +3,20 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LeadCouponModal from '../LeadCouponModal';
 import { getWizardFieldKey } from '../../../[landing]/solicitar/utils/wizardScopedStorage';
+import * as Sentry from '@sentry/nextjs';
+import { fetchOptionsFromSource } from '../../../services/wizardApi';
+
+// El modal pide el catálogo de tipos de documento al montar. Acá se simula
+// para que esa consulta no se mezcle con el `fetch` del envío, que es lo que
+// miden estos tests. Por defecto responde vacío: manda la tabla de respaldo.
+jest.mock('../../../services/wizardApi', () => ({
+  ...jest.requireActual('../../../services/wizardApi'),
+  fetchOptionsFromSource: jest.fn(),
+}));
+
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }));
+
+const catalogoMock = fetchOptionsFromSource as jest.MockedFunction<typeof fetchOptionsFromSource>;
 
 /**
  * Rediseño BAL-3125 Tarea 4/6: un solo campo "Nombre", checkbox de términos
@@ -56,6 +70,9 @@ async function llenarFormularioValido(user: ReturnType<typeof userEvent.setup>) 
 beforeEach(() => {
   localStorage.clear();
   jest.restoreAllMocks();
+  catalogoMock.mockReset();
+  catalogoMock.mockResolvedValue([]);
+  (Sentry.captureException as jest.Mock).mockReset();
   // @ts-expect-error - limpiar el mock de fetch entre tests; algunos tests
   // verifican explicitamente que NO se llamo a la red.
   delete global.fetch;
@@ -80,7 +97,7 @@ describe('LeadCouponModal — campos y validación', () => {
     await user.click(screen.getByRole('checkbox', { name: /términos/i }));
     await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
 
-    expect(await screen.findByText(/el dni tiene 8 dígitos|revisa tu tipo y número/i)).toBeInTheDocument();
+    expect(await screen.findByText('El DNI debe tener 8 dígitos')).toBeInTheDocument();
     expect(global.fetch).toBeUndefined();
   });
 
@@ -110,7 +127,10 @@ describe('LeadCouponModal — campos y validación', () => {
     await user.click(screen.getByRole('checkbox', { name: /términos/i }));
     await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
 
-    expect(await screen.findByText('Ingresa tu número de pasaporte.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El pasaporte debe tener entre 6 y 12 letras o números')
+    ).toBeInTheDocument();
+    expect(global.fetch).toBeUndefined();
   });
 
   it('rechaza un celular que no empieza con 9', async () => {
@@ -144,6 +164,251 @@ describe('LeadCouponModal — campos y validación', () => {
       await screen.findByText('Necesitamos tu aceptación para enviarte el cupón.')
     ).toBeInTheDocument();
     expect(global.fetch).toBeUndefined();
+  });
+});
+
+describe('LeadCouponModal — documento según el tipo', () => {
+  const MSJ_PAS = 'El pasaporte debe tener entre 6 y 12 letras o números';
+  const MSJ_CE = 'El carné de extranjería debe tener entre 9 y 12 letras o números';
+
+  function campoNumero() {
+    return screen.getByLabelText(/número de documento/i) as HTMLInputElement;
+  }
+
+  async function completarElResto(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByLabelText(/^nombre$/i), 'Ana');
+    await user.type(screen.getByLabelText(/celular/i), '987654321');
+    await user.click(screen.getByRole('checkbox', { name: /términos/i }));
+  }
+
+  function cuerpoEnviado() {
+    const [, opciones] = (global.fetch as jest.Mock).mock.calls[0];
+    return JSON.parse(opciones.body);
+  }
+
+  it('pasaporte de 6 con letras: lo envía en mayúsculas y sin espacios', async () => {
+    mockFetchOk(RESPUESTA_CUPON_OK);
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'PAS');
+    await user.type(campoNumero(), 'ab 12-cd');
+    expect(campoNumero().value).toBe('AB12CD');
+    await completarElResto(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    expect(cuerpoEnviado()).toEqual({
+      landing_slug: 'senati',
+      document_type: 'PAS',
+      document_number: 'AB12CD',
+      first_name: 'Ana',
+      phone: '987654321',
+      terms_accepted: true,
+    });
+    expect(localStorage.getItem('baldecash-dni-senati')).toBe('AB12CD');
+  });
+
+  it('carné de extranjería de 8: avisa con su rango y no llama al backend', async () => {
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'CE');
+    await user.type(campoNumero(), '00123456');
+    await completarElResto(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(await screen.findByText(MSJ_CE)).toBeInTheDocument();
+    expect(global.fetch).toBeUndefined();
+  });
+
+  it('carné de extranjería de 9 y de 12 se envían', async () => {
+    for (const numero of ['001234567', '001234567890']) {
+      mockFetchOk({ success: true, coupon: null });
+      const user = userEvent.setup();
+      const { unmount } = render(
+        <LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />
+      );
+      await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'CE');
+      await user.type(campoNumero(), numero);
+      await completarElResto(user);
+      await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+      expect(cuerpoEnviado().document_number).toBe(numero);
+      unmount();
+    }
+  });
+
+  it('no deja escribir más del máximo del tipo: 12 en pasaporte, 8 en DNI', async () => {
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'PAS');
+    await user.type(campoNumero(), 'AB12345678901234');
+    expect(campoNumero().value).toBe('AB1234567890');
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'DNI');
+    await user.type(campoNumero(), '12a3456789');
+    expect(campoNumero().value).toBe('12345678');
+  });
+
+  it('teclado y placeholder acordes al tipo', async () => {
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'DNI');
+    expect(campoNumero()).toHaveAttribute('inputmode', 'numeric');
+    expect(campoNumero()).toHaveAttribute('placeholder', '12345678');
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'PAS');
+    expect(campoNumero()).toHaveAttribute('inputmode', 'text');
+    expect(campoNumero()).toHaveAttribute('placeholder', 'AB123456');
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'CE');
+    expect(campoNumero()).toHaveAttribute('inputmode', 'text');
+    expect(campoNumero()).toHaveAttribute('placeholder', '001234567');
+  });
+
+  it('mientras se escribe: avisa al salir del campo y el aviso se va solo al completar', async () => {
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'PAS');
+    await user.type(campoNumero(), 'AB12C');
+    // Todavía escribiendo por primera vez: sin aviso.
+    expect(screen.queryByText(MSJ_PAS)).not.toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.getByText(MSJ_PAS)).toBeInTheDocument();
+    expect(campoNumero()).toHaveAttribute('aria-invalid', 'true');
+
+    // Vuelve y escribe el sexto: el aviso desaparece con esa tecla.
+    await user.type(campoNumero(), 'D');
+    expect(screen.queryByText(MSJ_PAS)).not.toBeInTheDocument();
+
+    // Borra uno: vuelve a avisar sin esperar a salir del campo.
+    await user.type(campoNumero(), '{backspace}');
+    expect(screen.getByText(MSJ_PAS)).toBeInTheDocument();
+    expect(global.fetch).toBeUndefined();
+  });
+
+  it('usa los largos del catálogo de tipos de documento cuando responde', async () => {
+    catalogoMock.mockResolvedValue([
+      {
+        value: 'pasaporte',
+        label: 'Pasaporte',
+        validation: { min_length: 7, max_length: 9, input_mode: 'text', placeholder: 'ZZ12345' },
+      },
+    ]);
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    expect(catalogoMock).toHaveBeenCalledWith('document-types');
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'PAS');
+    await waitFor(() => expect(campoNumero()).toHaveAttribute('placeholder', 'ZZ12345'));
+
+    await user.type(campoNumero(), 'AB12CD');
+    await completarElResto(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(
+      await screen.findByText('El pasaporte debe tener entre 7 y 9 letras o números')
+    ).toBeInTheDocument();
+    expect(global.fetch).toBeUndefined();
+  });
+});
+
+describe('LeadCouponModal — cuando el backend rechaza', () => {
+  function mockFetchRespuesta(status: number, body: unknown) {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+    }) as unknown as typeof fetch;
+  }
+
+  it('422 con mensaje: lo muestra tal cual bajo el documento, sin el genérico', async () => {
+    mockFetchRespuesta(422, { detail: 'El pasaporte debe tener entre 8 y 20 letras o números' });
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de documento/i), 'PAS');
+    await user.type(screen.getByLabelText(/número de documento/i), 'AB12CD');
+    await user.type(screen.getByLabelText(/^nombre$/i), 'Ana');
+    await user.type(screen.getByLabelText(/celular/i), '987654321');
+    await user.click(screen.getByRole('checkbox', { name: /términos/i }));
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(
+      await screen.findByText('El pasaporte debe tener entre 8 y 20 letras o números')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/no pudimos guardar tus datos/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/número de documento/i)).toHaveAttribute('aria-invalid', 'true');
+    // Un rechazo explicado no es una falla: no se guarda nada ni se reporta.
+    expect(localStorage.getItem('baldecash-dni-senati')).toBeNull();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    // El botón vuelve a quedar disponible para corregir y reenviar.
+    expect(screen.getByRole('button', { name: /obtener descuento/i })).toBeEnabled();
+  });
+
+  it('422 con la lista de FastAPI: el mensaje va al campo que señala', async () => {
+    mockFetchRespuesta(422, {
+      detail: [{ loc: ['body', 'phone'], msg: 'Value error, El celular no es válido' }],
+    });
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await llenarFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(await screen.findByText('El celular no es válido')).toBeInTheDocument();
+    expect(screen.queryByText(/no pudimos guardar tus datos/i)).not.toBeInTheDocument();
+  });
+
+  it('422 sin mensaje legible: cae al genérico y se reporta', async () => {
+    mockFetchRespuesta(422, { detail: [] });
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await llenarFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(
+      await screen.findByText('No pudimos guardar tus datos. Intenta de nuevo.')
+    ).toBeInTheDocument();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+  });
+
+  it('500: genérico y reporte a Sentry sin datos de la persona', async () => {
+    mockFetchRespuesta(500, { detail: 'Internal Server Error' });
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await llenarFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(
+      await screen.findByText('No pudimos guardar tus datos. Intenta de nuevo.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Internal Server Error')).not.toBeInTheDocument();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    const [, contexto] = (Sentry.captureException as jest.Mock).mock.calls[0];
+    expect(JSON.stringify(contexto)).not.toMatch(/12345678|987654321|Ana/);
+  });
+
+  it('falla de red: genérico y reporte a Sentry', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch')) as unknown as typeof fetch;
+    const user = userEvent.setup();
+    render(<LeadCouponModal landingSlug="senati" config={CONFIG_CUPON} onClose={jest.fn()} />);
+
+    await llenarFormularioValido(user);
+    await user.click(screen.getByRole('button', { name: /obtener descuento/i }));
+
+    expect(
+      await screen.findByText('No pudimos guardar tus datos. Intenta de nuevo.')
+    ).toBeInTheDocument();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
   });
 });
 

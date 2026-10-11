@@ -22,8 +22,18 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { saveLeadModalSubmission, type ModalCoupon } from '../../utils/leadModalStorage';
 import { routes } from '../../utils/routes';
+import { fetchOptionsFromSource, type CascadingOption } from '../../services/wizardApi';
+import {
+  TIPOS_DOCUMENTO,
+  errorDeDocumento,
+  errorDel422,
+  normalizarDocumento,
+  reglaDeDocumento,
+  type TipoDocumento,
+} from './documentoDelModal';
 
 export type PanelPosition = 'left' | 'right';
 export type PanelContent = 'coupon' | 'image' | 'none';
@@ -70,32 +80,8 @@ const LOGO_URL = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 /** Ancho de la franja azul en desktop — el troquelado se calcula sobre este valor. */
 const STUB_WIDTH_PX = 330;
 
-type TipoDocumento = 'DNI' | 'CE' | 'PAS';
-
-interface ReglaDocumento {
-  len: number;
-  numerico: boolean;
-  placeholder: string;
-  mensaje: string;
-}
-
-/**
- * Reglas por tipo de documento. Aplicar la del DNI (8 dígitos numéricos) a
- * todos rechazaría pasaportes válidos: CE y pasaporte son alfanuméricos y de
- * largo mínimo 6, no exactamente 8.
- */
-const REGLAS: Record<TipoDocumento, ReglaDocumento> = {
-  DNI: { len: 8, numerico: true, placeholder: '12345678', mensaje: 'El DNI tiene 8 dígitos.' },
-  CE: { len: 12, numerico: false, placeholder: '001234567', mensaje: 'Ingresa tu carné de extranjería.' },
-  PAS: { len: 12, numerico: false, placeholder: 'A1234567', mensaje: 'Ingresa tu número de pasaporte.' },
-};
-
-function documentoValido(tipo: TipoDocumento | '', numero: string): boolean {
-  if (!tipo) return false;
-  const regla = REGLAS[tipo];
-  if (regla.numerico) return new RegExp(`^\\d{${regla.len}}$`).test(numero);
-  return numero.length >= 6;
-}
+/** El aviso para cuando el servidor no contesta o falla sin explicar por qué. */
+const ERROR_GENERICO = 'No pudimos guardar tus datos. Intenta de nuevo.';
 
 const PHONE_RE = /^9\d{8}$/;
 
@@ -250,6 +236,27 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
   const [errores, setErrores] = useState<{ doc?: string; name?: string; phone?: string; terms?: string; general?: string }>({});
   const [cuponObtenido, setCuponObtenido] = useState<CuponRespuesta | null>(null);
   const [sinCupon, setSinCupon] = useState(false);
+  // El aviso del documento aparece mientras se escribe recién cuando la
+  // persona ya salió del campo o intentó enviar: marcar en rojo el primer
+  // dígito de un DNI que todavía se está tipeando es puro ruido.
+  const [docTocado, setDocTocado] = useState(false);
+  // Los largos por tipo salen del catálogo de tipos de documento, el mismo
+  // que usa el formulario de solicitud. Hasta que responda (o si falla) manda
+  // la tabla de respaldo de `wizardApi`, que dice lo mismo.
+  const [catalogoTipos, setCatalogoTipos] = useState<CascadingOption[] | undefined>(undefined);
+
+  useEffect(() => {
+    let vigente = true;
+    // `fetchOptionsFromSource` no lanza: ante cualquier falla devuelve [].
+    fetchOptionsFromSource('document-types').then((opciones) => {
+      if (vigente && opciones.length > 0) setCatalogoTipos(opciones);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  const regla = reglaDeDocumento(documentType, catalogoTipos);
 
   const panelPosition: PanelPosition = config.panel_position === 'right' ? 'right' : 'left';
   const panelContent: PanelContent = config.panel_content ?? 'coupon';
@@ -273,12 +280,16 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
     const nuevosErrores: typeof errores = {};
     let primerCampo: HTMLElement | null = null;
 
-    if (!documentoValido(documentType, documentNumber)) {
-      nuevosErrores.doc = documentType
-        ? REGLAS[documentType].mensaje
-        : 'Elige tu tipo de documento.';
+    const errorDoc = errorDeDocumento(
+      documentType,
+      normalizarDocumento(documentNumber, regla),
+      catalogoTipos
+    );
+    if (errorDoc) {
+      nuevosErrores.doc = errorDoc;
       primerCampo = primerCampo || (documentType ? docNumRef.current : docTypeRef.current);
     }
+    setDocTocado(true);
     if (firstName.trim().length < 2) {
       nuevosErrores.name = 'Escribe tu nombre.';
       primerCampo = primerCampo || nameRef.current;
@@ -301,6 +312,10 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
     e.preventDefault();
     if (!validar()) return;
 
+    // Lo que se envía y se guarda es el número ya normalizado: sin espacios
+    // ni símbolos y en mayúsculas, igual que en la lista del cupón.
+    const numero = normalizarDocumento(documentNumber, regla);
+
     setEnviando(true);
     setErrores({});
     try {
@@ -310,20 +325,33 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
         body: JSON.stringify({
           landing_slug: landingSlug,
           document_type: documentType,
-          document_number: documentNumber.trim(),
+          document_number: numero,
           first_name: firstName.trim(),
           phone: phone.trim(),
           terms_accepted: true,
         }),
       });
-      if (!r.ok) throw new Error(String(r.status));
+
+      // 422 = el servidor revisó los datos y no los aceptó. Si explica por
+      // qué, se muestra SU texto bajo el campo: decir «intenta de nuevo»
+      // cuando reintentar no arregla nada deja a la persona sin salida.
+      if (r.status === 422) {
+        const rechazo = errorDel422(await r.json());
+        if (rechazo) {
+          setErrores({ [rechazo.campo]: rechazo.mensaje });
+          const campos = { doc: docNumRef, name: nameRef, phone: phoneRef, terms: termsRef };
+          campos[rechazo.campo].current?.focus();
+          return;
+        }
+      }
+      if (!r.ok) throw new Error(`lead-modal respondió ${r.status}`);
       const data: { success: boolean; coupon: CuponRespuesta | null } = await r.json();
 
       // Guardar y mostrar pasan en el MISMO paso: no hay botón "Aplicar"
       // separado. Documento y celular se guardan siempre, tenga o no cupón
       // esta landing.
       saveLeadModalSubmission(landingSlug, {
-        documentNumber: documentNumber.trim(),
+        documentNumber: numero,
         phone: phone.trim(),
         coupon: data.coupon ? aAppliedCoupon(data.coupon) : null,
       });
@@ -333,8 +361,14 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
       } else {
         setSinCupon(true);
       }
-    } catch {
-      setErrores({ general: 'No pudimos guardar tus datos. Intenta de nuevo.' });
+    } catch (error) {
+      // Red caída, 5xx o una respuesta que no se pudo leer. Va sin datos de
+      // la persona: solo la landing y el tipo de documento.
+      Sentry.captureException(error, {
+        tags: { modulo: 'lead_modal', accion: 'enviar', landing: landingSlug },
+        extra: { document_type: documentType },
+      });
+      setErrores({ general: ERROR_GENERICO });
     } finally {
       setEnviando(false);
     }
@@ -349,16 +383,29 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
     const tipo = e.target.value as TipoDocumento | '';
     setDocumentType(tipo);
     setDocumentNumber('');
+    setDocTocado(false);
     setErrores((prev) => ({ ...prev, doc: undefined }));
   }
 
   function handleDocNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const regla = documentType ? REGLAS[documentType] : null;
-    let v = e.target.value;
-    v = regla?.numerico ? v.replace(/\D/g, '') : v.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    if (regla) v = v.slice(0, regla.len);
+    let v = normalizarDocumento(e.target.value, regla);
+    if (regla) v = v.slice(0, regla.max);
     setDocumentNumber(v);
-    setErrores((prev) => ({ ...prev, doc: undefined }));
+    // Ya tocado: el aviso sigue a lo que se escribe y se va solo apenas el
+    // número cumple. Sin tocar todavía, no se marca nada.
+    const aviso = docTocado && documentType
+      ? errorDeDocumento(documentType, v, catalogoTipos) ?? undefined
+      : undefined;
+    setErrores((prev) => ({ ...prev, doc: aviso }));
+  }
+
+  function handleDocNumberBlur() {
+    if (!documentType || !documentNumber) return;
+    setDocTocado(true);
+    setErrores((prev) => ({
+      ...prev,
+      doc: errorDeDocumento(documentType, documentNumber, catalogoTipos) ?? undefined,
+    }));
   }
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -544,9 +591,9 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                       className={`w-full rounded-[13px] border-[1.5px] bg-[#F4F5FB] px-[15px] py-[13px] text-[15px] ${errores.doc ? 'border-[#D64550]' : 'border-[#E4E6F2]'}`}
                     >
                       <option value="" disabled>Elige</option>
-                      <option value="DNI">DNI</option>
-                      <option value="PAS">Pasaporte</option>
-                      <option value="CE">Carné de extranjería</option>
+                      {TIPOS_DOCUMENTO.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -557,11 +604,14 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                       id="lead-modal-doc-number"
                       ref={docNumRef}
                       type="text"
-                      inputMode={documentType && REGLAS[documentType].numerico ? 'numeric' : 'text'}
+                      inputMode={regla?.numerico ? 'numeric' : 'text'}
                       value={documentNumber}
                       onChange={handleDocNumberChange}
-                      placeholder={documentType ? REGLAS[documentType].placeholder : '12345678'}
+                      onBlur={handleDocNumberBlur}
+                      placeholder={regla?.placeholder || '12345678'}
                       autoComplete="off"
+                      autoCapitalize="characters"
+                      aria-invalid={errores.doc ? true : undefined}
                       className={`w-full rounded-[13px] border-[1.5px] bg-[#F4F5FB] px-[15px] py-[13px] text-[15px] ${errores.doc ? 'border-[#D64550]' : 'border-[#E4E6F2]'}`}
                     />
                   </div>
