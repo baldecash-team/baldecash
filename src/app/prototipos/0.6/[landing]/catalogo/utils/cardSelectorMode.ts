@@ -104,3 +104,37 @@ export function gradosDeLaCard<T extends GradoDeCard>(product: {
     isAvailable: true,
   }];
 }
+
+/**
+ * Lo que alguien eligió en el Universo para esta tarjeta (BAL-4561). Llega
+ * en `card_selector_mode` del listado. Hoy hay un solo valor: «color». Sin
+ * elección no hay valor y la card se comporta como siempre (el grado gana).
+ */
+export type PreferenciaDeSelector = 'color';
+
+/**
+ * Solo el valor que esta web sabe pintar distinto. Un backend viejo (campo
+ * ausente), `null` o un valor que todavía no conocemos son «sin elección»:
+ * la card nunca falla por un dato que no entiende.
+ */
+export function preferenciaDeSelector(valor: unknown): PreferenciaDeSelector | undefined {
+  return valor === 'color' ? valor : undefined;
+}
+
+/**
+ * Qué pinta la franja cuando hay elección. `null` = no hay elección o no se
+ * puede pintar lo pedido: quien llama cae a la regla de siempre.
+ *
+ * «color» pinta los colores AUNQUE el equipo tenga grado, y desde un solo
+ * color: alguien lo pidió. El grado se sigue viendo en la etiqueta de la
+ * foto y en el detalle.
+ *
+ * Sigue valiendo la regla de negocio: grados O colores, nunca los dos.
+ */
+export function modoElegido(product: {
+  selectorPreference?: PreferenciaDeSelector | null;
+  colors?: unknown[] | null;
+}): 'colors' | null {
+  if (product.selectorPreference === 'color' && (product.colors?.length ?? 0) >= 1) return 'colors';
+  return null;
+}
