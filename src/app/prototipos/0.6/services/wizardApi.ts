@@ -4,6 +4,7 @@
  */
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
+import { personNameFieldError } from './nameValidation';
 import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
 import { isValidEmail } from './emailValidation';
 import { errorDeFecha } from './fechaLimites';
@@ -1069,6 +1070,12 @@ export function validateField(
     );
     if (errorFecha) return { isValid: false, error: errorFecha };
   }
+
+  // 3.e BAL-4465: nombres escritos a mano sin correo, números ni signos. El
+  // backend rechaza lo mismo con 422; acá el aviso sale debajo del campo
+  // antes de enviar.
+  const errorNombre = personNameFieldError(field.code, trimmedValue);
+  if (errorNombre) return { isValid: false, error: errorNombre };
 
   // 4. Validación de pattern (regex)
   if (field.pattern) {

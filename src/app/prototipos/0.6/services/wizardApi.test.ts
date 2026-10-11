@@ -835,3 +835,35 @@ describe('evaluatePrefillFieldVisibility (BAL-4026)', () => {
     )).toBe(false);
   });
 });
+
+// ============================================================================
+// BAL-4465: nombres escritos a mano
+// ============================================================================
+
+describe('validateField — nombres escritos a mano (BAL-4465)', () => {
+  it('rechaza un correo en el nombre con el mensaje del campo', () => {
+    const field = createField({ code: 'first_name', required: true });
+    const result = validateField(field, 'drufastovillalobos@gmail.com', {});
+    expect(result).toEqual({
+      isValid: false,
+      error: 'Escribe solo tu nombre, sin correo ni números',
+    });
+  });
+
+  it('rechaza un número en el nombre del familiar', () => {
+    const field = createField({ code: 'supporter_full_name' });
+    expect(validateField(field, '916848556', {}).error).toBe(
+      'Escribe solo el nombre de tu familiar, sin correo ni números'
+    );
+  });
+
+  it('acepta un nombre con tilde, ñ, apóstrofo y guion', () => {
+    const field = createField({ code: 'maternal_surname' });
+    expect(validateField(field, "Ñaña D'Angelo-Pérez", {}).isValid).toBe(true);
+  });
+
+  it('no toca un texto que no es nombre', () => {
+    const field = createField({ code: 'company_name' });
+    expect(validateField(field, 'Tienda 24 @lima', {}).isValid).toBe(true);
+  });
+});

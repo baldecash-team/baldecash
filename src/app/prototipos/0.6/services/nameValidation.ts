@@ -21,10 +21,8 @@
  *   SELECT code FROM form_field WHERE deleted_at IS NULL AND field_type='text'
  * quedándose solo con los que alimentan `person.first_name` / los apellidos.
  *
- * Deliberadamente NO incluye `supporter_full_name` ni `minor_full_name`: esos
- * son nombres completos y el backend los parte con `split_full_name`; filtrar
- * el input igual sería correcto, pero se deja fuera para no cambiar el
- * comportamiento de esos campos en el mismo pase.
+ * BAL-4465 suma `supporter_full_name` y `minor_full_name`: por el familiar y
+ * el menor también entraron correos y números cuando el buró no trajo el dato.
  */
 export const PERSON_NAME_FIELD_CODES = new Set([
   'first_name',
@@ -38,6 +36,8 @@ export const PERSON_NAME_FIELD_CODES = new Set([
   'apellidos',
   'guardian_first_name',
   'guardian_last_name',
+  'supporter_full_name',
+  'minor_full_name',
 ]);
 
 /** ¿Este campo del form builder es un nombre de persona? */
@@ -46,23 +46,62 @@ export function isPersonNameField(fieldCode: string): boolean {
 }
 
 /**
- * Caracteres que un nombre peruano puede llevar: letras (con tildes y ñ),
- * espacios, apóstrofo y guión ("D'Angelo", "Maria-Jose", "de la Cruz").
- * Todo lo demás — dígitos, `@`, puntos, símbolos — se cae.
+ * Lo único que un nombre escrito a mano puede llevar: letras (con tildes, ñ y
+ * ü), espacios, apóstrofo («D'Angelo»), guion («García-Pérez») y punto
+ * («Vda.»). Misma lista que `_SIGNOS_DE_NOMBRE` del backend (BAL-4465).
  */
-const NON_NAME_CHARS = /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]/g;
+const SOLO_CARACTERES_DE_NOMBRE = /^[\p{L}\p{M}\s'`´’‘.-]*$/u;
 
 /**
- * Limpieza suave para aplicar en cada tecla. Es el inverso del filtro del DNI:
- * allá se quita todo lo que no sea alfanumérico, acá todo lo que no sea letra.
+ * ¿El valor trae algo que no va en un nombre (`@`, dígitos, signos)?
  *
- * No hace `trim()` de los bordes ni colapsa espacios internos: eso pelearía
- * con el nombre a medio escribir ("Maria " camino a "Maria Jose"). La
- * normalización final la hace el submit.
+ * BAL-4465: antes el campo borraba esos caracteres en cada tecla sin avisar, y
+ * un correo pegado quedaba como «drufastovillalobosgmailcom», que pasaba como
+ * nombre. Ahora el texto se respeta y se avisa debajo del campo.
  */
-export function sanitizeNameInput(value: string): string {
-  if (!value) return '';
-  return value.replace(NON_NAME_CHARS, '');
+export function hasNonNameChars(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return !SOLO_CARACTERES_DE_NOMBRE.test(value);
+}
+
+/** Mensaje debajo de cada campo. Los mismos textos que el backend devuelve. */
+const MENSAJE_POR_CAMPO: Record<string, string> = {
+  first_name: 'Escribe solo tu nombre, sin correo ni números',
+  nombres: 'Escribe solo tu nombre, sin correo ni números',
+  primer_nombre: 'Escribe solo tu nombre, sin correo ni números',
+  paternal_surname: 'Escribe solo tu apellido paterno, sin correo ni números',
+  apellido_paterno: 'Escribe solo tu apellido paterno, sin correo ni números',
+  maternal_surname: 'Escribe solo tu apellido materno, sin correo ni números',
+  apellido_materno: 'Escribe solo tu apellido materno, sin correo ni números',
+  last_name: 'Escribe solo tus apellidos, sin correo ni números',
+  apellidos: 'Escribe solo tus apellidos, sin correo ni números',
+  supporter_full_name: 'Escribe solo el nombre de tu familiar, sin correo ni números',
+  guardian_first_name: 'Escribe solo el nombre del apoderado, sin correo ni números',
+  guardian_last_name: 'Escribe solo los apellidos del apoderado, sin correo ni números',
+  minor_full_name: 'Escribe solo el nombre del estudiante, sin correo ni números',
+};
+
+/** El mensaje de un campo de nombre (o el genérico si el código no está). */
+export function nameErrorMessage(fieldCode: string): string {
+  return MENSAJE_POR_CAMPO[fieldCode] ?? 'Escribe solo el nombre, sin correo ni números';
+}
+
+/**
+ * Error del campo de nombre escrito a mano, o `null` si está bien o vacío
+ * (la obligatoriedad la decide `required`). Regla estricta: la de
+ * `isValidPersonName` más solo caracteres de nombre.
+ */
+export function personNameFieldError(
+  fieldCode: string,
+  value: string | null | undefined
+): string | null {
+  if (!isPersonNameField(fieldCode)) return null;
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return null;
+  if (!isValidPersonName(trimmed) || hasNonNameChars(trimmed)) {
+    return nameErrorMessage(fieldCode);
+  }
+  return null;
 }
 
 /**
