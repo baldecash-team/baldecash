@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play, Truck } from 'lucide-react';
 import { ProductGalleryProps } from '../../../types/detail';
 import { ColorSelector } from '../color-selector/ColorSelector';
+import { DetailPromoBanner } from './DetailPromoBanner';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { formatDeferredFrom, type DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
 
@@ -42,6 +43,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   selectedColorId,
   onColorSelect,
   deferredDelivery,
+  promotion,
 }) => {
   const analytics = useAnalytics();
   const deferredRange = deferredDelivery?.isDeferred
@@ -232,6 +234,10 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
 
   return (
     <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#e5e7eb)] overflow-hidden">
+      {/* Sello de promoción (BAL-3922) — barra superior de la caja, el mismo
+          sitio que ocupa en la card del catálogo. Sin promoción no dibuja
+          nada, así que la ficha de un equipo sin promo no cambia. */}
+      <DetailPromoBanner promotion={promotion} />
       {/* Product Name + Brand - Above photos */}
       {(displayName || brand) && (
         <div id="section-info" className="p-5 pb-0 relative z-10">
