@@ -96,6 +96,53 @@ describe('LeadModalGate — mudanza al catálogo', () => {
   });
 });
 
+describe('LeadModalGate — una vez por visitante', () => {
+  it('si lo cierra sin dejar sus datos, no vuelve a salir al recargar', () => {
+    const primera = render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
+    act(() => { jest.advanceTimersByTime(3000); });
+    act(() => {
+      screen.getByRole('button', { name: 'cerrar-mock' }).click();
+    });
+    expect(screen.queryByTestId('modal')).toBeNull();
+    primera.unmount();
+
+    // Recargar la página = un montaje nuevo con el mismo almacenamiento.
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
+    act(() => { jest.advanceTimersByTime(5000); });
+
+    expect(screen.queryByTestId('modal')).toBeNull();
+  });
+
+  it('descartarlo no deja documento guardado: la solicitud no se autocompleta', () => {
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
+    act(() => { jest.advanceTimersByTime(3000); });
+    act(() => {
+      screen.getByRole('button', { name: 'cerrar-mock' }).click();
+    });
+
+    expect(localStorage.getItem('baldecash-dni-senati')).toBeNull();
+    expect(localStorage.getItem('baldecash-lead-modal-descartado-senati')).toBe('1');
+  });
+
+  it('descartarlo en una landing no lo apaga en otra', () => {
+    localStorage.setItem('baldecash-lead-modal-descartado-home', '1');
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
+    act(() => { jest.advanceTimersByTime(3000); });
+
+    expect(screen.getByTestId('modal')).toBeTruthy();
+  });
+
+  it('avisa onSettled de inmediato si ya lo habia descartado', () => {
+    localStorage.setItem('baldecash-lead-modal-descartado-senati', '1');
+    const onSettled = jest.fn();
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} onSettled={onSettled} />);
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('LeadModalGate — coordinación con el onboarding (onSettled)', () => {
   it('avisa onSettled de inmediato si el modal esta apagado (nada que esperar)', () => {
     const onSettled = jest.fn();

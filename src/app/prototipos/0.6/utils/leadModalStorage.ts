@@ -7,6 +7,7 @@
  * cambio de sus datos.
  */
 
+import * as Sentry from '@sentry/nextjs';
 import { getWizardFieldKey } from '../[landing]/solicitar/utils/wizardScopedStorage';
 
 const couponKey = (landing: string) => `baldecash-${landing}-solicitar-applied-coupon`;
@@ -58,6 +59,38 @@ export function getDocumentFromModal(landingSlug: string): string | null {
     return localStorage.getItem(documentKey(landingSlug));
   } catch {
     return null;
+  }
+}
+
+// El visitante cerró el modal sin dejar sus datos («No deseo canjear cupón» o
+// la «X»). Clave propia y por landing, igual que las demás: NO se reusa
+// `baldecash-dni-{landing}`, porque esa además autocompleta y bloquea el
+// documento en la solicitud, y acá no hay documento que guardar.
+const dismissedKey = (landing: string) => `baldecash-lead-modal-descartado-${landing}`;
+
+/** Deja anotado que el visitante ya vio el modal de esta landing y lo cerró. */
+export function markLeadModalDismissed(landingSlug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(dismissedKey(landingSlug), '1');
+  } catch (error) {
+    // Sin almacenamiento (modo privado, cuota llena) el modal vuelve a salir
+    // en la próxima carga. No rompe nada, pero conviene enterarse.
+    Sentry.captureException(error, {
+      tags: { modulo: 'lead_modal', accion: 'marcar_descartado', landing: landingSlug },
+    });
+  }
+}
+
+export function wasLeadModalDismissed(landingSlug: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(dismissedKey(landingSlug)) === '1';
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { modulo: 'lead_modal', accion: 'leer_descartado', landing: landingSlug },
+    });
+    return false;
   }
 }
 

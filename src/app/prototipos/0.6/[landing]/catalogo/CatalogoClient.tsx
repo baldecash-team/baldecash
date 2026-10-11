@@ -202,10 +202,66 @@ function LoadingFallback() {
   );
 }
 
+/**
+ * Lo que el despachador le pasa al catálogo estándar. La config y el turno
+ * del modal del cupón viven arriba, en `CatalogoClient`, porque son comunes a
+ * todas las variantes.
+ */
+interface CatalogoContentProps {
+  /** `undefined` = el fetch todavía no respondió. */
+  landingConfig: Record<string, unknown> | undefined;
+  /** El modal del cupón ya terminó su turno (o no tenía nada que mostrar). */
+  leadModalSettled: boolean;
+}
+
 export function CatalogoClient() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
+
+  // Config completa de la landing (namespaces extra incluidos). Se pide UNA
+  // vez acá, por encima de las variantes: la usan el modal del cupón y el
+  // catálogo estándar (vip_countdown, overlay, onboarding).
+  // `undefined` = todavía no respondió el fetch. Con `{}` el gate no podía
+  // distinguirlo de "llegó y el modal está apagado", avisaba de inmediato, y
+  // el welcome se abría antes de que el cupón tuviera su turno.
+  // `fetchLandingConfig` nunca lanza: ante cualquier falla devuelve el default.
+  const [configDeLanding, setConfigDeLanding] = useState<
+    { landing: string; config: Record<string, unknown> } | undefined
+  >(undefined);
+  useEffect(() => {
+    let vigente = true;
+    fetchLandingConfig(landing).then((cfg) => {
+      if (vigente) setConfigDeLanding({ landing, config: cfg as unknown as Record<string, unknown> });
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [landing]);
+  // Si se navega a otra landing sin desmontar, la config vieja no vale.
+  const landingConfig = configDeLanding?.landing === landing ? configDeLanding.config : undefined;
+
+  // El cupón va PRIMERO, el onboarding DESPUÉS: los dos apuntan al mismo
+  // visitante nuevo y sin coordinarlos se apilan encima. Guarda para qué
+  // landing avisó `LeadModalGate` que ya no tiene nada más que mostrar
+  // (apagado, ya contestado, ya descartado, o recién cerrado).
+  const [landingConTurnoCerrado, setLandingConTurnoCerrado] = useState<string | null>(null);
+  const handleLeadModalSettled = useCallback(() => setLandingConTurnoCerrado(landing), [landing]);
+  const leadModalSettled = landingConTurnoCerrado === landing;
+
+  // Modal de captura de leads con cupón (BAL-3125). Va acá y no dentro de
+  // cada catálogo: `copia-home` en celular y `zona-gamer` dibujan otro
+  // componente, y con el modal metido en el catálogo estándar se quedaban sin
+  // él. No se suma a OVERLAY_VARIANTS: eso es para muros de acceso, este
+  // modal es opcional y descartable.
+  const leadModal = (
+    <LeadModalGate
+      key={`lead-modal-${landing}`}
+      landingSlug={landing}
+      config={landingConfig}
+      onSettled={handleLeadModalSettled}
+    />
+  );
 
   // Los links de socio (A365) y algunos del hub aterrizan acá directo, sin
   // pasar por la portada de la landing, donde vive el otro reset. Tiene que
@@ -215,11 +271,14 @@ export function CatalogoClient() {
 
   if (isGamerLanding(landing)) {
     return (
-      <ProductProvider key={landing} landingSlug={landing}>
-        <Suspense fallback={<LoadingFallback />}>
-          <GamerCatalogoContent />
-        </Suspense>
-      </ProductProvider>
+      <>
+        <ProductProvider key={landing} landingSlug={landing}>
+          <Suspense fallback={<LoadingFallback />}>
+            <GamerCatalogoContent />
+          </Suspense>
+        </ProductProvider>
+        {leadModal}
+      </>
     );
   }
 
@@ -228,24 +287,30 @@ export function CatalogoClient() {
   // usa la variante seminuevos. En desktop el catálogo vuelve al estándar.
   if (isCopiaHomeLanding(landing) && isMobile) {
     return (
-      <ProductProvider landingSlug={landing}>
-        <Suspense fallback={<LoadingFallback />}>
-          <CopiaHomeMobileCatalog />
-        </Suspense>
-      </ProductProvider>
+      <>
+        <ProductProvider landingSlug={landing}>
+          <Suspense fallback={<LoadingFallback />}>
+            <CopiaHomeMobileCatalog />
+          </Suspense>
+        </ProductProvider>
+        {leadModal}
+      </>
     );
   }
 
   return (
-    <ProductProvider key={landing} landingSlug={landing}>
-      <Suspense fallback={<LoadingFallback />}>
-        <CatalogoContent />
-      </Suspense>
-    </ProductProvider>
+    <>
+      <ProductProvider key={landing} landingSlug={landing}>
+        <Suspense fallback={<LoadingFallback />}>
+          <CatalogoContent landingConfig={landingConfig} leadModalSettled={leadModalSettled} />
+        </Suspense>
+      </ProductProvider>
+      {leadModal}
+    </>
   );
 }
 
-function CatalogoContent() {
+function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
@@ -330,23 +395,15 @@ function CatalogoContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landing, isProductContextHydrated]);
 
-  // VIP countdown banner + overlay variant - fetch landing config
-  const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
-  const [overlayVariant, setOverlayVariant] = useState('');
-  // Config completa (namespaces extra incluidos) para el modal de captura de
-  // leads (BAL-3125 Tarea 5). Mismo fetch que ya trae vip_countdown/overlay —
-  // extenderlo evita una petición nueva.
-  // `undefined` = todavia no respondio el fetch. Con `{}` el gate no podia
-  // distinguirlo de "llego y el modal esta apagado", avisaba de inmediato, y
-  // el welcome se abria antes de que el cupon tuviera su turno.
-  const [landingConfig, setLandingConfig] = useState<Record<string, unknown> | undefined>(undefined);
-  useEffect(() => {
-    fetchLandingConfig(landing).then((cfg) => {
-      setVipCountdownDate(cfg.features.vip_countdown || '');
-      setOverlayVariant(cfg.features.overlay_variant || '');
-      setLandingConfig(cfg as unknown as Record<string, unknown>);
-    });
-  }, [landing]);
+  // VIP countdown banner + overlay variant. Salen de la config de la landing,
+  // que ahora pide `CatalogoClient` (una sola vez para todas las variantes).
+  // Mientras no llega: `null` y '' — los mismos valores con los que arrancaba
+  // el estado cuando el fetch vivía acá.
+  const featuresDeLanding = landingConfig?.['features'] as
+    | { vip_countdown?: string | null; overlay_variant?: string | null }
+    | undefined;
+  const vipCountdownDate: string | null = landingConfig ? featuresDeLanding?.vip_countdown || '' : null;
+  const overlayVariant: string = featuresDeLanding?.overlay_variant || '';
 
   /**
    * Modal de bienvenida del onboarding: encendido salvo que la landing lo
@@ -368,12 +425,8 @@ function CatalogoContent() {
     (landingConfig['onboarding'] as { enabled?: boolean } | undefined)
       ?.enabled !== false;
 
-  // El cupón va PRIMERO, el onboarding DESPUÉS: los dos apuntan al mismo
-  // visitante nuevo y sin coordinarlos se apilan encima. `leadModalSettled`
-  // arranca en false y LeadModalGate avisa cuando ya no tiene nada más que
-  // mostrar (apagado, ya contestado, o recién cerrado).
-  const [leadModalSettled, setLeadModalSettled] = useState(false);
-  const handleLeadModalSettled = useCallback(() => setLeadModalSettled(true), []);
+  // El cupón va PRIMERO, el onboarding DESPUÉS: `leadModalSettled` llega por
+  // props desde `CatalogoClient`, que es quien monta `LeadModalGate`.
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -2586,16 +2639,9 @@ function CatalogoContent() {
         />
       )}
 
-      {/* Modal de captura de leads con cupón (BAL-3125). Va ANTES que el
-          welcome del onboarding a propósito: los dos targetean el mismo
-          visitante nuevo, y el welcome espera a `leadModalSettled` para no
-          apilarse encima. No se suma a OVERLAY_VARIANTS: eso es para muros
-          de acceso, este modal es opcional y descartable. */}
-      <LeadModalGate
-        landingSlug={landing}
-        config={landingConfig}
-        onSettled={handleLeadModalSettled}
-      />
+      {/* El modal de captura del cupón NO se monta acá: lo monta
+          `CatalogoClient` una sola vez para todas las variantes. El welcome
+          espera a `leadModalSettled` para no apilarse encima. */}
 
       {/* Onboarding - Welcome Modal */}
       <OnboardingWelcomeModal
