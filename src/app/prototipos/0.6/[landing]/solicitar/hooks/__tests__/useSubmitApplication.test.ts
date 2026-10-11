@@ -64,6 +64,7 @@ const mockClearCartProducts = jest.fn();
 const mockClearAccessories = jest.fn();
 const mockClearInsurance = jest.fn();
 const mockClearCoupon = jest.fn();
+const mockClearCouponAfterSubmit = jest.fn();
 
 const mockSelectedInsurance = { id: '1', name: 'Protección', monthlyPrice: 45 };
 
@@ -84,6 +85,7 @@ jest.mock('../../context/ProductContext', () => ({
     clearAccessories: mockClearAccessories,
     clearInsurance: mockClearInsurance,
     clearCoupon: mockClearCoupon,
+    clearCouponAfterSubmit: mockClearCouponAfterSubmit,
   }),
 }));
 
@@ -435,7 +437,9 @@ describe('useSubmitApplication', () => {
       expect(mockClearCartProducts).toHaveBeenCalled();
       expect(mockClearAccessories).toHaveBeenCalled();
       expect(mockClearInsurance).toHaveBeenCalled();
-      expect(mockClearCoupon).toHaveBeenCalled();
+      // Tras enviar se borra SIEMPRE, tambien el cupon que llego por link.
+      expect(mockClearCouponAfterSubmit).toHaveBeenCalled();
+      expect(mockClearCoupon).not.toHaveBeenCalled();
 
       // Should show success toast
       expect(onToast).toHaveBeenCalledWith('Solicitud enviada correctamente', 'success');
@@ -1142,7 +1146,9 @@ describe('useSubmitApplication', () => {
       expect(mockClearProduct).toHaveBeenCalled();
       expect(mockClearAccessories).toHaveBeenCalled();
       expect(mockClearInsurance).toHaveBeenCalled();
-      expect(mockClearCoupon).toHaveBeenCalled();
+      // Tras enviar se borra SIEMPRE, tambien el cupon que llego por link.
+      expect(mockClearCouponAfterSubmit).toHaveBeenCalled();
+      expect(mockClearCoupon).not.toHaveBeenCalled();
     });
   });
 });
