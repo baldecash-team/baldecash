@@ -724,25 +724,47 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
   };
 
+  /**
+   * El bloque «¡Cupón aplicado!» (`CouponCampaignBanner`). Sale con todo cupón
+   * que llegó por link y da un beneficio, de referido o de campaña: qué cupones
+   * califican lo decide `CatalogoClient` al armar `campaignCoupon`.
+   *
+   * DÓNDE VA:
+   * - Cupón de campaña: DEBAJO del banner principal del catálogo, esté el
+   *   banner arriba o abajo del encabezado (`posicionDelBanner`).
+   * - Cupón de referido: arriba de todo, donde estuvo siempre. No se mueve.
+   * - Catálogo sin banner: no hay «debajo de» posible, así que queda arriba de
+   *   todo, en el lugar que ocuparía el banner.
+   */
+  const cuponArribaDeTodo = !!campaignCoupon?.referrerName || !bloqueDelBanner;
+  const bloqueDelCupon = campaignCoupon ? (
+    <div
+      className={[
+        'w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4',
+        // Abajo queda contra la grilla de productos: mismo margen que se le da
+        // al banner en esa posición.
+        !cuponArribaDeTodo && posicionDelBanner === 'abajo' ? 'mb-4 sm:mb-6' : '',
+      ].filter(Boolean).join(' ')}
+    >
+      <CouponCampaignBanner
+        coupon={campaignCoupon}
+        isValidating={isCampaignCouponValidating}
+      />
+    </div>
+  ) : null;
+
   return (
     <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
       <div className="min-h-screen">
-        {/* Campaign Coupon Banner — sobre el header del catálogo
-            (nada se muestra mientras se valida; aparece sólo cuando hay cupón válido) */}
-        {/* El banner de campaña es EXCLUSIVO de cupones de referido:
-            solo se muestra cuando el cupón trae referidor (referrerName). */}
-        {campaignCoupon?.referrerName && (
-          <div className="w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
-            <CouponCampaignBanner
-              coupon={campaignCoupon}
-              isValidating={isCampaignCouponValidating}
-            />
-          </div>
-        )}
+        {/* Cupón de referido, o catálogo sin banner: arriba de todo, donde
+            estuvo siempre. Ver `cuponArribaDeTodo`. */}
+        {cuponArribaDeTodo && bloqueDelCupon}
 
         {/* Banner arriba del encabezado: la posición por defecto, y donde
             estuvo siempre. Ver `posicionDelBanner`. */}
         {posicionDelBanner === 'arriba' && bloqueDelBanner}
+        {/* Cupón de campaña: debajo del banner principal. */}
+        {!cuponArribaDeTodo && posicionDelBanner === 'arriba' && bloqueDelCupon}
 
         {/* Full Width Header Section - Inside Card.
             Cada mitad la prende un preset propio (BAL-3883), ya no una regex
@@ -823,6 +845,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             "Encuentra tu equipo ideal" NO se oculta en móvil: sin él delante,
             "abajo de" no tendría referencia. Ver `ocultarTextoEncabezado`. */}
         {posicionDelBanner === 'abajo' && bloqueDelBanner}
+        {!cuponArribaDeTodo && posicionDelBanner === 'abajo' && bloqueDelCupon}
 
         {/* VIP Countdown Banner */}
         {vipCountdownDate && (

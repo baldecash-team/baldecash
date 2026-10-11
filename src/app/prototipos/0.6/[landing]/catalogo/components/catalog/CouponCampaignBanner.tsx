@@ -3,6 +3,8 @@
 import React from 'react';
 import { Sparkles, Crown, Gift } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { getCouponScopeText, isGiftCoupon } from '@/app/prototipos/0.6/utils/couponPricing';
+import { COUPON_PENDING_DOCUMENT_NOTICE, couponPendingDocument } from '@/app/prototipos/0.6/utils/couponDocument';
 
 interface CouponCampaignBannerProps {
   coupon: AppliedCoupon;
@@ -16,15 +18,21 @@ function formatFirstName(name: string): string {
 }
 
 /**
- * Banner de campaña de cupón referido: gradient azul primario con
- * elementos decorativos flotantes (estilo ReferralHero).
+ * Banner de cupón que llegó por link: gradient azul primario con elementos
+ * decorativos flotantes (estilo ReferralHero). Con referidor dice «Eres
+ * referido de <nombre>»; sin referidor (cupón de campaña), «¡Cupón aplicado!».
  */
 export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
   coupon,
   isValidating = false,
 }) => {
   const referrerDisplay = coupon.referrerName ? formatFirstName(coupon.referrerName) : null;
-  const firstQuotaOnly = (coupon.quotasAffected ?? 1) <= 1;
+  // El alcance sale del cupón (vacío = todas las cuotas), no se asume «primera».
+  // El referido lo dice siempre, como hasta ahora; el de campaña, si descuenta.
+  const scopeText =
+    referrerDisplay || coupon.discount > 0 ? getCouponScopeText(coupon) : null;
+  const firstQuotaOnly = scopeText === 'en tu primera cuota';
+  const giftName = isGiftCoupon(coupon) ? coupon.giftName : undefined;
 
   return (
     <section
@@ -89,11 +97,26 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
               </span>
             </div>
 
-            {/* La nota de "solo primera cuota" es narrativa de referido:
-                solo se muestra cuando el cupón tiene referidor. */}
-            {referrerDisplay && firstQuotaOnly && (
+            {/* A qué cuotas alcanza el descuento. El referido de 1 cuota conserva
+                su frase de siempre; el resto dice su alcance real. */}
+            {firstQuotaOnly && (
               <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
                 El descuento aplica solo en tu <strong>primera cuota</strong>.
+              </p>
+            )}
+            {scopeText && !firstQuotaOnly && (
+              <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
+                El descuento aplica <strong>{scopeText}</strong>.
+              </p>
+            )}
+            {giftName && (
+              <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
+                Tu solicitud incluye de regalo: <strong>{giftName}</strong>.
+              </p>
+            )}
+            {couponPendingDocument(coupon) && (
+              <p className="mt-2 text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
+                {COUPON_PENDING_DOCUMENT_NOTICE}
               </p>
             )}
           </>

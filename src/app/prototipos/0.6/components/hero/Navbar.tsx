@@ -11,6 +11,9 @@ import { Button, Chip } from '@nextui-org/react';
 import dynamic from 'next/dynamic';
 const PreviewBanner = dynamic(() => import('../PreviewBanner').then(m => m.PreviewBanner), { ssr: false });
 import { usePreview } from '../../context/PreviewContext';
+import type { AppliedCoupon } from '../../[landing]/solicitar/context/ProductContext';
+import { getCouponStripText } from '../../utils/couponBanner';
+import { COUPON_PENDING_DOCUMENT_SHORT, couponPendingDocument } from '../../utils/couponDocument';
 import { GamerNavbar } from '../zona-gamer/GamerNavbar';
 import {
   Menu,
@@ -122,6 +125,13 @@ interface NavbarProps {
   searchSlot?: React.ReactNode;
   activeSections?: string[];
   promoBannerData?: PromoBannerData | null;
+  /**
+   * Cupón que llegó por link, para avisarlo en una franja del mismo tipo que
+   * el banner promocional: va inmediatamente debajo de él, o en su lugar si la
+   * landing no tiene promoción. Lo pasa solo la portada de la landing; sin
+   * esta prop el navbar se renderiza igual que siempre.
+   */
+  couponStrip?: AppliedCoupon | null;
   logoUrl?: string;
   logoClassName?: string;
   /** Sobrescribe el contenedor del logo en modo logoOnly (para alinear el logo
@@ -215,7 +225,86 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
  * tienen que correrse mientras la franja está a la vista. El header ya no.
  */
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePortalButton = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', landingId, previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
+interface NavbarCouponStripProps {
+  coupon: AppliedCoupon;
+  /** Dónde se pega: el borde inferior del banner promocional (o el tope). */
+  top: number;
+  /** Hay banner promocional arriba: la franja lleva una línea que las separa. */
+  debajoDelPromo: boolean;
+  /** Alto real de la franja; 0 cuando se cierra o se desmonta. */
+  onHeightChange: (height: number) => void;
+}
+
+/**
+ * Franja «¡Cupón aplicado!» de la portada. Es del mismo tipo que el banner
+ * promocional del navbar y reutiliza su estructura y estilos: mismo alto y
+ * tipografía, el degradado con el color de la landing, fija arriba al hacer
+ * scroll y botón de cerrar.
+ *
+ * Cerrarla solo la oculta en esta vista: el cupón sigue aplicado.
+ */
+const NavbarCouponStrip: React.FC<NavbarCouponStripProps> = ({ coupon, top, debajoDelPromo, onHeightChange }) => {
+  const [visible, setVisible] = useState(true);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) {
+      onHeightChange(0);
+      return;
+    }
+    const medir = () => onHeightChange(el.offsetHeight);
+    medir();
+    // `ResizeObserver` y no solo el resize de la ventana: en celular el texto
+    // pasa a dos líneas y la franja cambia de alto sin que cambie la ventana.
+    const observador = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(medir);
+    observador?.observe(el);
+    window.addEventListener('resize', medir);
+    return () => {
+      observador?.disconnect();
+      window.removeEventListener('resize', medir);
+      onHeightChange(0);
+    };
+  }, [visible, onHeightChange]);
+
+  if (!visible) return null;
+
+  const texto = getCouponStripText(coupon);
+
+  return (
+    <div
+      ref={ref}
+      role="status"
+      className={`fixed left-0 right-0 z-[60] text-white text-center py-1.5 sm:py-2.5 px-4 text-xs sm:text-sm ${debajoDelPromo ? 'border-t border-white/25' : ''}`}
+      style={{
+        top,
+        // Mismo padding superior que el banner promocional, para que midan
+        // igual. El safe-area solo le toca a la franja que queda arriba de todo.
+        paddingTop: debajoDelPromo ? '0.375rem' : `calc(0.375rem + env(safe-area-inset-top))`,
+        background: `linear-gradient(to right, var(--color-primary, #4654CD), color-mix(in srgb, var(--color-primary, #4654CD) 85%, white))`,
+      }}
+    >
+      <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
+        <Tag className="w-4 h-4 shrink-0 hidden sm:block" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+        <span className="pr-8 sm:pr-0">
+          <strong>¡Cupón aplicado!</strong>{' '}
+          <span className="font-mono font-semibold uppercase">{coupon.code}</span>
+          {texto && <> · {texto}</>}
+          {couponPendingDocument(coupon) && <> · {COUPON_PENDING_DOCUMENT_SHORT}</>}
+        </span>
+        <button
+          className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+          onClick={() => setVisible(false)}
+          aria-label="Cerrar aviso de cupón"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePortalButton = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, searchSlot, activeSections = [], promoBannerData, couponStrip = null, logoUrl, logoClassName, logoContainerClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', landingId, previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, showInstitutionLogo = true, primaryColor, onCatalogClick, theme, catalogUrl, hideSecondaryBar, onMobileMenuChange, onToggleTheme, gamerTheme = 'dark' }) => {
   if (theme === 'gamer') {
     return (
       <GamerNavbar
@@ -323,6 +412,10 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const promoBannerRef = useRef<HTMLDivElement>(null);
   const [promoBannerHeight, setPromoBannerHeight] = useState(40);
+  // Alto de la franja de cupón (`NavbarCouponStrip`), 0 si no hay o se cerró.
+  // El navbar fijo y todo lo que cuelga de `--header-total-height` se corren
+  // ese alto, igual que con el banner promocional.
+  const [couponStripHeight, setCouponStripHeight] = useState(0);
 
   // Medir altura real del banner promocional y exponer como CSS variable
   useEffect(() => {
@@ -348,12 +441,12 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
   // Exponer altura total de elementos fixed (preview + promo + navbar)
   useEffect(() => {
     const navH = 64; // h-16 = 4rem = 64px
-    const total = previewBannerOffset + promoBannerHeight + navH;
+    const total = previewBannerOffset + promoBannerHeight + couponStripHeight + navH;
     document.documentElement.style.setProperty('--header-total-height', `${total}px`);
     return () => {
       document.documentElement.style.removeProperty('--header-total-height');
     };
-  }, [previewBannerOffset, promoBannerHeight]);
+  }, [previewBannerOffset, promoBannerHeight, couponStripHeight]);
 
   // Logo Only mode: navbar normal con logo no clickeable (usado en cupón de campaña)
   if (logoOnly) {
@@ -391,6 +484,10 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
 
   // Check if promo banner has actual content to display
   const hasPromoBannerContent = promoBannerData && (promoBannerData.text || promoBannerData.highlight);
+  const promoVisible = !!(showPromo && !hidePromoBanner && hasPromoBannerContent);
+  // Dónde termina el banner promocional: ahí arranca la franja de cupón, y
+  // debajo de las dos, el navbar.
+  const topTrasElPromo = previewBannerOffset + (promoVisible ? promoBannerHeight : 0);
 
   return (
     <>
@@ -437,6 +534,18 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
         </div>
       )}
 
+      {/* Franja de cupón: inmediatamente debajo del banner promocional, o en
+          su lugar si no hay. */}
+      {couponStrip && (
+        <NavbarCouponStrip
+          key={couponStrip.code}
+          coupon={couponStrip}
+          top={topTrasElPromo}
+          debajoDelPromo={promoVisible}
+          onHeightChange={setCouponStripHeight}
+        />
+      )}
+
       {/* Mobile menu backdrop — tap-outside-to-close */}
       <AnimatePresence>
         {!minimal && isMenuOpen && (
@@ -454,7 +563,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
 
       <nav
         className="fixed left-0 right-0 z-50 bg-[var(--surface,#fff)] shadow-sm transition-all duration-200"
-        style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (promoBannerHeight + previewBannerOffset) : previewBannerOffset }}
+        style={{ top: topTrasElPromo + (couponStrip ? couponStripHeight : 0) }}
       >
         <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">

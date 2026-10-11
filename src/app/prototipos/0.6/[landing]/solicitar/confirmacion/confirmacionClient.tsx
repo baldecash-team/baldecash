@@ -32,6 +32,7 @@ import { ReceivedScreen, ContactInfo } from './components/received';
 import { Illustration } from './components/received/illustration';
 import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
+import { accesorioEsRegalo } from './accesorioEsRegalo';
 
 /**
  * Reads the wizard session UUID from localStorage.
@@ -168,7 +169,9 @@ function buildReceivedData(
   const accessories = applicationData?.accessories?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
-    isGift: acc.is_gift ?? false,
+    // Regalo del combo (`is_gift`) o del cupón (cuota 0): los dos se muestran
+    // «Regalo · Incluido».
+    isGift: accesorioEsRegalo(acc),
   }));
 
   // Mapear seguro(s) desde API — soporta array (insurances) y singular (insurance)

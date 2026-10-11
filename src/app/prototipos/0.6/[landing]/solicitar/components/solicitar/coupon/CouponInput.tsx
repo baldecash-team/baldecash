@@ -14,8 +14,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, Loader2, Check, X, Sparkles, Lock } from 'lucide-react';
+import { Tag, Loader2, Check, X, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
+import { getCouponScopeText } from '@/app/prototipos/0.6/utils/couponPricing';
+import {
+  COUPON_CONFIRMED_DOCUMENT_NOTICE,
+  COUPON_PENDING_DOCUMENT_NOTICE,
+  couponConfirmedForDocument,
+  couponPendingDocument,
+  getCouponRemovedMessage,
+} from '@/app/prototipos/0.6/utils/couponDocument';
 import { useProduct } from '../../../context/ProductContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
@@ -77,6 +85,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     appliedCoupon,
     setAppliedCoupon,
     clearCoupon,
+    removedCouponNotice,
     selectedProduct,
     cartProducts,
     getDiscountAmount
@@ -186,7 +195,6 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   };
 
   const isLockedCampaign = appliedCoupon?.lockedFromUrl === true;
-  const firstQuotaOnly = (appliedCoupon?.quotasAffected ?? 1) <= 1;
   // Cupón de regalo: no aplica descuento monetario sino que entrega un producto.
   // Se muestra "Cantidad asociada" + el regalo en vez de "-S/x".
   const isReferralCoupon = !!appliedCoupon?.referrerName;
@@ -195,6 +203,31 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     (appliedCoupon?.couponType === 'free_accessory' || !!appliedCoupon?.giftName);
   const giftName = appliedCoupon?.giftName ?? 'Periférico de regalo';
   const giftQuantity = appliedCoupon?.giftQuantity ?? 1;
+  /**
+   * UN solo mensaje para el descuento, armado con el alcance real del cupón
+   * (vacío = todas las cuotas): «Descuento en tu primera cuota», «…en tus
+   * primeras 3 cuotas», «…en todas tus cuotas». El monto va a la derecha.
+   *
+   * Antes la caja decía lo mismo tres veces —el `label` del backend, «solo en
+   * 1.ª cuota» y «Descuento solo en tu primera cuota…»— y las dos frases fijas
+   * salían también para un cupón de monto fijo en todas las cuotas, donde eran
+   * falsas. El `label` queda para el cupón que no descuenta (valor 0), que no
+   * tiene otro texto que mostrar.
+   */
+  const discountAmount = appliedCoupon && !isGiftCoupon ? getDiscountAmount() : 0;
+  // Plazo en cuotas del equipo elegido: un cupón de N cuotas sobre un plazo de
+  // N o menos las cubre todas.
+  const productoDelPlazo = selectedProduct ?? cartProducts[0];
+  const termEnCuotas = productoDelPlazo?.term ?? productoDelPlazo?.months;
+  const scopeText =
+    appliedCoupon && !isGiftCoupon && discountAmount > 0
+      ? getCouponScopeText(appliedCoupon, termEnCuotas)
+      : null;
+  // Cupón de lista cerrada: mientras no se conozca el documento, «aplicado» a
+  // secas promete de más. Se dice que falta confirmarlo y, una vez revisado el
+  // documento, que quedó confirmado.
+  const isPendingDocument = couponPendingDocument(appliedCoupon);
+  const isConfirmedForDocument = couponConfirmedForDocument(appliedCoupon);
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
@@ -221,20 +254,23 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full"
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    isPendingDocument ? 'bg-amber-100 text-amber-700' : 'bg-green-200 text-green-800'
+                  }`}
                 >
-                  {isLockedCampaign ? 'Aplicado automáticamente' : 'Aplicado'}
+                  {isPendingDocument
+                    ? 'Por confirmar'
+                    : isLockedCampaign
+                      ? 'Aplicado automáticamente'
+                      : 'Aplicado'}
                 </motion.span>
               </div>
               {isGiftCoupon ? (
                 <p className="text-sm text-green-600">Cantidad asociada: {giftQuantity}</p>
+              ) : scopeText ? (
+                <p className="text-sm text-green-600">Descuento {scopeText}</p>
               ) : (
                 <p className="text-sm text-green-600">{appliedCoupon.label}</p>
-              )}
-              {!isGiftCoupon && isLockedCampaign && firstQuotaOnly && (
-                <p className="text-xs text-green-700/80 mt-1">
-                  Descuento solo en tu primera cuota. No se puede quitar en esta campaña.
-                </p>
               )}
             </div>
           </div>
@@ -253,20 +289,11 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   </p>
                   <p className="text-xs text-green-500">S/0</p>
                 </>
-              ) : (
-                <>
-                  <p className="text-lg font-bold text-green-600">
-                    -S/{getDiscountAmount().toFixed(0)}
-                  </p>
-                  <p className="text-xs text-green-500">
-                    {firstQuotaOnly
-                      ? 'solo en 1.ª cuota'
-                      : appliedCoupon.quotasAffected
-                        ? `en ${appliedCoupon.quotasAffected} cuotas`
-                        : 'por mes'}
-                  </p>
-                </>
-              )}
+              ) : scopeText ? (
+                <p className="text-lg font-bold text-green-600 whitespace-nowrap">
+                  -S/{discountAmount.toFixed(0)}
+                </p>
+              ) : null}
             </motion.div>
 
             {isLockedCampaign ? (
@@ -287,6 +314,19 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
             )}
           </div>
         </div>
+
+        {isPendingDocument && (
+          <p role="status" className="mt-3 flex items-start gap-2 text-sm text-amber-700">
+            <AlertTriangle className="mt-0.5 w-4 h-4 flex-shrink-0" aria-hidden />
+            <span>{COUPON_PENDING_DOCUMENT_NOTICE}</span>
+          </p>
+        )}
+        {isConfirmedForDocument && (
+          <p role="status" className="mt-3 flex items-center gap-2 text-sm text-green-600">
+            <Check className="w-4 h-4 flex-shrink-0" aria-hidden />
+            <span>{COUPON_CONFIRMED_DOCUMENT_NOTICE}</span>
+          </p>
+        )}
 
         {/* Confetti Animation */}
         <motion.div
@@ -345,6 +385,23 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           </span>
         )}
       </div>
+
+      {/* El cupón anterior se retiró al revisar el documento del cliente. */}
+      {removedCouponNotice && (
+        <div
+          role="alert"
+          className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+        >
+          <AlertTriangle className="mt-0.5 w-4 h-4 flex-shrink-0" aria-hidden />
+          <p>
+            {getCouponRemovedMessage(
+              removedCouponNotice.code,
+              removedCouponNotice.rejection,
+              isRequired
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2">
         {/* Input con animación shake en error */}

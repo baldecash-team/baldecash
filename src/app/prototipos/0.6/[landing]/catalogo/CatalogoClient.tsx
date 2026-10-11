@@ -140,6 +140,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { captureLandingParams, consumePendingCategoria, clearPendingCoupon, readCouponParam } from '@/app/prototipos/0.6/utils/landingParams';
 import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
+import { cuponConBanner, landingMuestraBannerDeCupon } from '@/app/prototipos/0.6/utils/couponBanner';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // URLs - now with landing context
@@ -186,13 +187,6 @@ const comparatorConfig: ComparatorConfig = {
   defaultTerm: 24,
   defaultInitial: 10,
 };
-
-// Landings (landing_id de prod) donde NO se muestra la UI de cupón de referido
-// (banner de campaña + navbar simplificado). El cupón se sigue validando y
-// aplicando con normalidad: los precios de la vitrina mantienen el descuento y
-// el checkout también. Hardcodeado por ahora; se evaluará una configuración
-// escalable más adelante.
-const LANDINGS_SIN_BANNER_CUPON: number[] = [138, 140, 167, 174];
 
 function LoadingFallback() {
   return (
@@ -337,14 +331,11 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
     captureLandingParams(landing);
   }, [landing]);
 
-  // El tratamiento de diseño de "cupón de campaña" (banner + vitrina de 1.ª
-  // cuota en las cards) es EXCLUSIVO de cupones de referido, sin importar el
-  // descuento. Para cupones genéricos/no-referidos el cupón sigue aplicado
-  // (appliedCoupon) y su descuento se cobra en el checkout, pero NO se muestra
-  // ningún diseño de campaña. Por eso `campaignCoupon` solo se setea cuando el
-  // cupón bloqueado por URL trae `referrerName`.
-  const campaignCoupon =
-    appliedCoupon?.lockedFromUrl && appliedCoupon.referrerName ? appliedCoupon : null;
+  // El tratamiento de diseño de cupón (banner + cuota con descuento en las
+  // cards) sale con todo cupón que llegó por link, de referido o de campaña.
+  // Qué cupones califican lo decide `cuponConBanner`, la misma regla que usa
+  // la portada de la landing.
+  const campaignCoupon = cuponConBanner(appliedCoupon);
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
 
@@ -353,13 +344,17 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, catalogBannerId, landingId, chipsDeUso, filtroPorUso, barraDeOrden } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
-  // UI de referido (banner de campaña + navbar simplificado): visible solo si el
-  // cupón vino del ?coupon= (lockedFromUrl) y la landing actual no está excluida.
+  // UI de cupón (banner de campaña): visible solo si el cupón vino del
+  // ?coupon= (lockedFromUrl) y la landing actual no está excluida.
   // En las landings excluidas el catálogo se ve normal (navbar completo, sin
   // banner) PERO el descuento del cupón se mantiene en la vitrina y el checkout,
   // porque `campaignCoupon` sigue llegando a las ProductCard.
   const showCouponUi =
-    !!campaignCoupon && !LANDINGS_SIN_BANNER_CUPON.includes(landingId ?? -1);
+    !!campaignCoupon && landingMuestraBannerDeCupon(landingId);
+  // El navbar simplificado (solo logo) del catálogo sigue siendo del cupón de
+  // referido, como hasta ahora: al cupón de campaña se le suma el banner, no se
+  // le quita el menú del catálogo.
+  const logoOnlyPorReferido = showCouponUi && !!campaignCoupon?.referrerName;
 
   // Preview mode support
   const preview = usePreview();
@@ -1853,7 +1848,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
-        logoOnly={showCouponUi}
+        logoOnly={logoOnlyPorReferido}
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
@@ -1869,8 +1864,12 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       />
       )}
 
-      {/* Secondary Navbar with Search, Wishlist, Cart — oculta para usuarios con cupón */}
-      {!showCouponUi && (
+      {/* Secondary Navbar with Search, Wishlist, Cart. Solo se oculta con el
+          cupón de REFERIDO, como hasta ahora (su catálogo va con la cabecera
+          simplificada). Con el cupón de campaña el buscador, los favoritos y el
+          carrito siguen en su lugar: colgaba de `showCouponUi`, y al sumar el
+          banner para campaña el buscador desaparecía. */}
+      {!logoOnlyPorReferido && (
       <CatalogSecondaryNavbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
@@ -1922,7 +1921,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
           + main navbar + secondary navbar). */}
       <main
         style={{
-          paddingTop: showCouponUi
+          paddingTop: logoOnlyPorReferido
             ? 'var(--header-total-height, 4rem)'
             : 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}

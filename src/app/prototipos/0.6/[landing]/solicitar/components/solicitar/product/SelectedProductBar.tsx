@@ -16,6 +16,11 @@ import { useProduct } from '../../../context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import {
+  COUPON_PENDING_DOCUMENT_NOTICE,
+  COUPON_PENDING_DOCUMENT_SHORT,
+  couponPendingDocument,
+} from '@/app/prototipos/0.6/utils/couponDocument';
 import { TermSelect, getTermUnit } from './TermSelect';
 import { useSolicitudCongelada } from '../../../hooks/useSolicitudCongelada';
 import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
@@ -342,6 +347,21 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   return `${displayTerm} ${getTermUnit(displayTerm, mainProduct.paymentFrequency)}`;
                 })()}
               </p>
+              {/* Coupon Applied Badge - Mobile (barra plegada). En computadora
+                  el cupón se ve en cada paso; acá solo salía al desplegar la
+                  barra, así que en celular nadie lo veía. Mismo contenido que
+                  el de computadora. El alto extra lo recoge `barraRef`. */}
+              {hasCoupon && appliedCoupon && (
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-green-600 min-w-0">
+                  <Tag className="w-3 h-3 flex-shrink-0" />
+                  <span className="font-medium flex-shrink-0">{appliedCoupon.code}</span>
+                  {couponPendingDocument(appliedCoupon) ? (
+                    <span className="text-amber-700 truncate">{COUPON_PENDING_DOCUMENT_SHORT}</span>
+                  ) : (
+                    <span className="text-green-500 truncate">{appliedCoupon.label}</span>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* Price & Expand Icon */}
@@ -484,10 +504,15 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
                   {/* Coupon Applied Badge */}
                   {hasCoupon && appliedCoupon && (
-                    <div className="mt-3 flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
-                      <Tag className="w-3 h-3" />
-                      <span className="font-medium">{appliedCoupon.code}</span>
-                      <span className="text-green-500">{appliedCoupon.label}</span>
+                    <div className="mt-3 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-3 h-3" />
+                        <span className="font-medium">{appliedCoupon.code}</span>
+                        <span className="text-green-500">{appliedCoupon.label}</span>
+                      </div>
+                      {couponPendingDocument(appliedCoupon) && (
+                        <p className="mt-1 text-amber-700">{COUPON_PENDING_DOCUMENT_NOTICE}</p>
+                      )}
                     </div>
                   )}
 
@@ -687,12 +712,15 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
           {/* Coupon Badge - Desktop */}
           {hasCoupon && appliedCoupon && (
-            <div className="mt-3 flex items-center px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
+            <div className="mt-3 px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-green-700">
                 <Tag className="w-4 h-4" />
                 <span className="font-medium">{appliedCoupon.code}</span>
                 <span className="text-green-600">{appliedCoupon.label}</span>
               </div>
+              {couponPendingDocument(appliedCoupon) && (
+                <p className="mt-1 text-xs text-amber-700">{COUPON_PENDING_DOCUMENT_NOTICE}</p>
+              )}
             </div>
           )}
         </div>

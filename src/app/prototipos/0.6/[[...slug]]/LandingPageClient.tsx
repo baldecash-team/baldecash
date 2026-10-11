@@ -29,6 +29,7 @@ import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial
 import { DEFAULT_LANDING_CONFIG, OVERLAY_VARIANT_LOGOS, type LandingConfig } from '../types/landingConfig';
 import { FloatingCtaButton } from '../components/FloatingCtaButton';
 import { ReferralBanner } from '../components/referral/ReferralBanner';
+import { useLandingCoupon } from '../hooks/useLandingCoupon';
 import type { ReferralBanner as ReferralBannerData } from '../services/referralBannerApi';
 
 // Product landing pages (imported directly for instant render)
@@ -105,6 +106,11 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     // dejarian atras. Sin esto se pierde la atribucion a mitad del embudo.
     persistUtmParams();
   }, [slug]);
+
+  // Cupón que llegó por link (`?cupon=` / `?coupon=`): se valida para avisarlo
+  // en la franja superior. `heroData` puede no haber llegado: sin `landingId`
+  // el hook no hace nada.
+  const landingCoupon = useLandingCoupon(slug, heroData?.landingId);
 
   // Preview mode listener - receives live updates from admin
   const { previewData, isPreviewMode } = usePreviewListener();
@@ -600,6 +606,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
             previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
             previewKey={previewKey}
             primaryColor={heroData.primaryColor}
+            couponStrip={landingCoupon}
           />}
 
           </div>

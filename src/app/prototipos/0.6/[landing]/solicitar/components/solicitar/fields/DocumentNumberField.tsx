@@ -13,11 +13,13 @@ import React, { useEffect, useCallback, useState, useRef, useMemo } from 'react'
 import { WizardField, getDocumentTypeRules, checkDocumentAgainstRules } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
+import { useCouponDocumentCheck } from '../../../hooks/useCouponDocumentCheck';
 import { useSessionOptional } from '../../../context/SessionContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
 import { DniNoInvitadoModal } from './DniNoInvitadoModal';
+import { CouponDocumentStatus } from '../coupon/CouponDocumentStatus';
 import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
 
@@ -87,7 +89,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Prellenado desde el lead de un socio: solo lectura, igual que el resto de
   // los campos que llegaron con el lead (ver `useLeadPrefill`).
   const isLockedFromLead = formData[leadLockKey(field.code)]?.value === 'true';
-  const { landing, overlayVariant } = useLayout();
+  const { landing, landingId, overlayVariant } = useLayout();
   const session = useSessionOptional();
   const prefilledRef = useRef(false);
   const [lockedByModal, setLockedByModal] = useState(false);
@@ -340,6 +342,23 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     check(documentType, cleanValue);
   }, [value, documentType, documentRules, check]);
 
+  // El cupón se validó antes de conocer el documento. Con el documento del
+  // TITULAR completo se revalida: la lista cerrada de invitados y el tope por
+  // persona dependen de él. Solo el campo del titular (el mismo que lee el
+  // envío): este componente también pinta el documento de un familiar.
+  const esDocumentoDelTitular = field.code === 'document_number' || field.code === 'numero_documento';
+  const documentoCompleto = useMemo(() => {
+    const cleanValue = value?.trim() || '';
+    const minLength = documentRules?.min_length;
+    if (!minLength || cleanValue.length < minLength) return null;
+    if (documentRules?.input_mode === 'numeric' && !/^\d+$/.test(cleanValue)) return null;
+    return cleanValue;
+  }, [value, documentRules]);
+  useCouponDocumentCheck({
+    documentNumber: esDocumentoDelTitular ? documentoCompleto : null,
+    landingId,
+  });
+
   // Handle value change — filter input based on document type
   const handleChange = useCallback((newValue: string) => {
     // BAL-4025: SOLO el DNI es numerico. El CE y el pasaporte son
@@ -432,6 +451,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         success={isSuccess}
         isLoading={isChecking}
       />
+
+      {esDocumentoDelTitular && (
+        <CouponDocumentStatus documentComplete={documentoCompleto !== null} />
+      )}
 
       {mostrarModal && (
         // El documento NO se limpia al cerrar: quien se equivoco en un digito
