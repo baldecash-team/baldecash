@@ -276,6 +276,18 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
   const phoneRef = useRef<HTMLInputElement>(null);
   const termsRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Lleva el foco al campo y lo deja a media altura de la zona que se
+   * desplaza. Con `focus()` a secas el navegador lo acerca lo justo, y en
+   * celular «lo justo» es debajo del pie pegado: el aviso de error quedaba
+   * tapado por el botón y la persona no veía qué le faltaba.
+   */
+  function enfocar(campo: HTMLElement | null) {
+    if (!campo) return;
+    campo.focus({ preventScroll: true });
+    campo.scrollIntoView?.({ block: 'center' });
+  }
+
   function validar(): boolean {
     const nuevosErrores: typeof errores = {};
     let primerCampo: HTMLElement | null = null;
@@ -304,7 +316,7 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
     }
 
     setErrores(nuevosErrores);
-    if (primerCampo) primerCampo.focus();
+    enfocar(primerCampo);
     return Object.keys(nuevosErrores).length === 0;
   }
 
@@ -340,7 +352,7 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
         if (rechazo) {
           setErrores({ [rechazo.campo]: rechazo.mensaje });
           const campos = { doc: docNumRef, name: nameRef, phone: phoneRef, terms: termsRef };
-          campos[rechazo.campo].current?.focus();
+          enfocar(campos[rechazo.campo].current);
           return;
         }
       }
@@ -427,7 +439,7 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
   // que ninguno de esos supera al chat; este si, a proposito.
   return (
     <div
-      className="lead-modal-overlay fixed inset-0 z-[1000001] flex items-center justify-center overflow-y-auto bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
+      className="lead-modal-overlay fixed inset-0 z-[1000001] flex items-center justify-center overflow-hidden bg-[rgba(21,23,68,0.55)] p-4 backdrop-blur-sm"
       role="presentation"
     >
       {/* Animaciones del diseño aprobado (`cupon15.html`): el overlay entra
@@ -456,9 +468,16 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
         // a los 880 completos y quedaban campos de una linea larguisimos,
         // con el texto perdido de punta a punta. 550 = 880 - 330: el
         // formulario conserva el ancho que ya tiene en los otros dos modos.
-        className={`lead-modal-dialog relative m-auto grid w-full overflow-hidden rounded-[26px] bg-white shadow-2xl ${
+        //
+        // El alto se topa con `dvh` (la pantalla que de verdad se ve, sin la
+        // barra del navegador del celular) menos el margen del overlay. Lo
+        // que no entra se desplaza DENTRO del formulario: el modal nunca se
+        // sale de la pantalla y la «X» y el botón de enviar quedan a la mano.
+        // En celular es una columna (franja arriba, formulario abajo); desde
+        // `md` vuelve a ser la grilla de dos columnas del diseño.
+        className={`lead-modal-dialog relative m-auto flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-[26px] bg-white shadow-2xl md:grid md:grid-rows-[minmax(0,1fr)] ${
           panelContent === 'none'
-            ? 'max-w-[550px] grid-cols-1'
+            ? 'max-w-[550px] md:grid-cols-1'
             : panelPosition === 'left'
               ? 'max-w-[880px] md:grid-cols-[minmax(0,330px)_minmax(0,1fr)]'
               : 'max-w-[880px] md:grid-cols-[minmax(0,1fr)_minmax(0,330px)]'
@@ -486,7 +505,9 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
             // En mobile, 'coupon' se muestra compacto arriba (franja delgada,
             // como el diseño); 'image' se omite del todo y queda solo el
             // formulario — mostrar una foto angosta sin espacio no aporta.
-            className={`relative flex-col justify-center overflow-hidden p-6 text-white md:flex md:p-8 ${
+            // `flex-none`: en celular la franja no se encoge ni se desplaza;
+            // el que cede el espacio es el formulario.
+            className={`relative flex-none flex-col justify-center overflow-hidden px-6 py-4 text-white md:flex md:p-8 ${
               panelContent === 'coupon' ? 'flex' : 'hidden'
             }`}
           >
@@ -504,7 +525,7 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
             <div className="relative z-[2]">
               {panelContent === 'coupon' && (
                 <>
-                  <p className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.17em] text-[#03DBD0]">
+                  <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.17em] text-[#03DBD0] md:mb-4">
                     Beneficio exclusivo
                   </p>
                   {/* El monto sale de la CONFIG: el panel promete el
@@ -512,10 +533,13 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                       `amount` de la respuesta llega recien despues de enviar.
                       Sin esto el panel pintaba un guion justo cuando tiene
                       que convencer. */}
-                  <p className="mb-3 font-['Baloo_2'] text-[76px] font-extrabold leading-[0.85] tracking-tight">
+                  {/* En celular el monto va más chico: a 76px la franja se
+                      comía un tercio de la pantalla y dejaba al formulario
+                      sin sitio. */}
+                  <p className="mb-1.5 font-['Baloo_2'] text-[44px] font-extrabold leading-[0.85] tracking-tight md:mb-3 md:text-[76px]">
                     {cuponObtenido?.amount ?? config.amount ?? ''}
                   </p>
-                  <p className="max-w-[20ch] text-base text-white/85">
+                  <p className="text-sm text-white/85 md:max-w-[20ch] md:text-base">
                     {cuponObtenido?.caption ?? config.caption ?? ''}
                   </p>
                 </>
@@ -544,7 +568,23 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
           </>
         )}
 
-        <div className="p-8" style={{ order: panelPosition === 'left' ? 1 : 0 }}>
+        {/* La única zona que se desplaza. `min-h-0` es lo que le permite
+            encogerse por debajo de su contenido; sin eso el formulario
+            empujaría al modal fuera de la pantalla.
+            `relative` no es adorno: la casilla de términos es `sr-only`
+            (posición absoluta) y sin un ancestro posicionado acá adentro se
+            ancla al modal, que tiene el desborde oculto. Al enfocarla el
+            navegador desplazaba el MODAL entero y se llevaba la franja y la
+            «X» fuera de la vista. */}
+        <div
+          data-testid="modal-cuerpo"
+          // Con el formulario a la vista NO lleva relleno abajo: ese borde
+          // lo ocupa el pie pegado, que trae el suyo.
+          className={`relative min-h-0 flex-1 scroll-pb-32 overflow-y-auto overscroll-contain ${
+            mostrandoExito ? 'p-6 md:p-8' : 'px-6 pt-6 md:px-8 md:pt-8'
+          }`}
+          style={{ order: panelPosition === 'left' ? 1 : 0 }}
+        >
           {!mostrandoExito ? (
             <form onSubmit={enviar} noValidate>
               <img src={LOGO_URL} alt="BaldeCash" className="mb-5 block h-[34px] w-auto" />
@@ -704,8 +744,20 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
                   </a>.
                 </span>
               </label>
-              {errores.terms && <p className="-mt-3 mb-3.5 text-[12.5px] font-medium text-[#D64550]">{errores.terms}</p>}
-
+              {/* Pie pegado al borde de abajo del modal: en un celular bajo
+                  el formulario no entra entero, y sin esto el botón quedaba
+                  escondido bajo el pliegue, sin pista de que había más. Los
+                  márgenes negativos a los lados lo llevan de borde a borde,
+                  tapando lo que pasa por debajo al desplazar. */}
+              <div
+                data-testid="modal-pie"
+                className="sticky bottom-0 z-[3] -mx-6 border-t border-[#EEF0F8] bg-white px-6 pb-5 pt-3 md:-mx-8 md:border-t-0 md:px-8 md:pb-8 md:pt-0"
+              >
+              {/* El aviso de los términos va en el pie y no bajo la casilla:
+                  la casilla es lo último del formulario y en celular queda
+                  contra el borde del pie, así que su aviso se cortaba. Acá
+                  se lee siempre, pegado al botón que lo provocó. */}
+              {errores.terms && <p className="mb-3 text-[12.5px] font-medium text-[#D64550] md:-mt-3 md:mb-3.5">{errores.terms}</p>}
               {errores.general && <p className="mb-3 text-xs font-medium text-[#D64550]">{errores.general}</p>}
 
               <button
@@ -719,10 +771,11 @@ export default function LeadCouponModal({ landingSlug, config, onClose }: Props)
               <button
                 type="button"
                 onClick={descartar}
-                className="mx-auto mt-4 block cursor-pointer border-0 bg-none text-[13px] text-[#6B7099] underline underline-offset-2 transition-colors hover:text-[#151744]"
+                className="mx-auto mt-3 block cursor-pointer border-0 bg-none text-[13px] text-[#6B7099] underline underline-offset-2 transition-colors hover:text-[#151744] md:mt-4"
               >
                 No deseo canjear cupón
               </button>
+              </div>
             </form>
           ) : (
             <div className="py-4 text-center">
