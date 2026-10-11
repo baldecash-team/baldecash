@@ -274,7 +274,7 @@ export function useSubmitApplication(
     clearCartProducts,
     clearAccessories,
     clearInsurance,
-    clearCoupon,
+    clearCouponAfterSubmit,
   } = useProduct();
 
   const { formData, resetForm } = useWizard();
@@ -470,7 +470,7 @@ export function useSubmitApplication(
             clearCartProducts();
             clearAccessories();
             clearInsurance();
-            clearCoupon();
+            clearCouponAfterSubmit();
             clearConsentStorage(landing);
             try { localStorage.removeItem(`baldecash-${landing}-cart`); } catch {}
           }
@@ -614,7 +614,7 @@ export function useSubmitApplication(
             clearCartProducts();
             clearAccessories();
             clearInsurance();
-            clearCoupon();
+            clearCouponAfterSubmit();
             // Consent checkboxes. Nothing used to clear these, so the next
             // person to use the device opened the form with the terms already
             // marked as accepted by someone else (BAL-2657).
@@ -864,7 +864,7 @@ export function useSubmitApplication(
       clearCartProducts,
       clearAccessories,
       clearInsurance,
-      clearCoupon,
+      clearCouponAfterSubmit,
       router,
       landing,
       onToast,

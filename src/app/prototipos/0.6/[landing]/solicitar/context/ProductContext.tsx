@@ -234,6 +234,8 @@ interface ProductContextValue {
   appliedCoupon: AppliedCoupon | null;
   setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
   clearCoupon: () => void;
+  /** Tras enviar la solicitud: borra el cupón aunque haya llegado por link. */
+  clearCouponAfterSubmit: () => void;
   /** Aviso del cupón retirado por el documento; se borra al aplicar otro. */
   removedCouponNotice: RemovedCouponNotice | null;
   /** Retira el cupón (también el de campaña) y deja el aviso con el motivo. */
@@ -566,6 +568,20 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       return null;
     });
   }, [couponKey]);
+
+  // La solicitud ya se envió: el cupón cumplió su función y se borra SIEMPRE,
+  // también el de campaña (`lockedFromUrl`). El candado es para que el cliente
+  // no lo quite a mano mientras llena el formulario; dejarlo guardado hacía que
+  // la siguiente solicitud desde el mismo navegador naciera con ese cupón.
+  const clearCouponAfterSubmit = useCallback(() => {
+    setAppliedCouponState(null);
+    try {
+      localStorage.removeItem(couponKey);
+    } catch {
+      // localStorage not available
+    }
+    clearPendingCoupon(landingSlug);
+  }, [couponKey, landingSlug]);
 
   // El documento del cliente no puede usar el cupón. A diferencia de
   // `clearCoupon`, también retira el de campaña (`lockedFromUrl`): ese candado
@@ -1224,6 +1240,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         appliedCoupon,
         setAppliedCoupon,
         clearCoupon,
+        clearCouponAfterSubmit,
         removedCouponNotice,
         removeCouponForDocument,
         selectedInsurance,
