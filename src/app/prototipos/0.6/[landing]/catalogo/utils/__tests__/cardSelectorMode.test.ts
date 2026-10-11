@@ -1,4 +1,7 @@
-import { cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard } from '../cardSelectorMode';
+import {
+  cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard,
+  preferenciaDeSelector, modoElegido,
+} from '../cardSelectorMode';
 
 const grado = (grade: string, isAvailable = true) => ({ grade, isAvailable });
 
@@ -117,5 +120,44 @@ describe('gradosDeLaCard', () => {
   it('un hermano unico se respeta (no se fabrica otro)', () => {
     const sibs = [hermano('C', 1917, false)];
     expect(gradosDeLaCard({ ...card, grade: 'C', gradeSiblings: sibs })).toBe(sibs);
+  });
+});
+
+// BAL-4561: lo que alguien eligió en el Universo para la tarjeta.
+describe('preferenciaDeSelector', () => {
+  it('acepta solo «color»', () => {
+    expect(preferenciaDeSelector('color')).toBe('color');
+  });
+
+  // Backend viejo (campo ausente), sin elección (null) o un valor que esta
+  // versión de la web no conoce: es como si nadie hubiera elegido. «grado»
+  // no es un valor: sin elección el grado ya gana.
+  it('cualquier otra cosa es «sin elección»', () => {
+    expect(preferenciaDeSelector(undefined)).toBeUndefined();
+    expect(preferenciaDeSelector(null)).toBeUndefined();
+    expect(preferenciaDeSelector('')).toBeUndefined();
+    expect(preferenciaDeSelector('grado')).toBeUndefined();
+    expect(preferenciaDeSelector('colors')).toBeUndefined();
+    expect(preferenciaDeSelector(1)).toBeUndefined();
+  });
+});
+
+describe('modoElegido', () => {
+  const UN_COLOR = [{ name: 'Negro' }];
+
+  it('sin elección no decide nada: vale la regla de siempre', () => {
+    expect(modoElegido({ colors: UN_COLOR })).toBeNull();
+    expect(modoElegido({ selectorPreference: null, colors: UN_COLOR })).toBeNull();
+  });
+
+  // El caso del ticket: reacondicionado con grado y un solo color.
+  it('«color» decide colores, y desde un solo color', () => {
+    expect(modoElegido({ selectorPreference: 'color', colors: UN_COLOR })).toBe('colors');
+  });
+
+  it('«color» sin ningún color que pintar no decide nada', () => {
+    expect(modoElegido({ selectorPreference: 'color', colors: [] })).toBeNull();
+    expect(modoElegido({ selectorPreference: 'color', colors: null })).toBeNull();
+    expect(modoElegido({ selectorPreference: 'color' })).toBeNull();
   });
 });

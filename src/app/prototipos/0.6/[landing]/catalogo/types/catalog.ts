@@ -742,6 +742,12 @@ export interface CatalogProduct {
   /** Grado de reacondicionamiento (A/B/C/D) si el producto es un grado; si no, undefined. */
   grade?: string;
   /**
+   * Lo que se eligió en el Universo para esta tarjeta (`card_selector_mode`
+   * del API, BAL-4561): mostrar el color aunque el equipo tenga grado.
+   * Vacío = sin elección, la card decide como siempre (el grado gana).
+   */
+  selectorPreference?: 'color';
+  /**
    * Grados hermanos del equipo (`grade_siblings` del API). Cada grado es un
    * producto distinto, con su propio precio y stock: el backend los agrupa por
    * familia. Solo lo traen los reacondicionados con hermanos cargados; el resto

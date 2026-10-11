@@ -29,7 +29,10 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { cardKey } from '../../../utils/cardKey';
-import { cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard } from '../../../utils/cardSelectorMode';
+import {
+  cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard, modoElegido,
+  type SelectorMode,
+} from '../../../utils/cardSelectorMode';
 // El nombre del grado ("Buen estado") sale de la misma fuente que el detalle:
 // una sola redacción para los dos sitios donde se lee.
 import { GRADE_COPY, isGradeKey } from '@/app/prototipos/0.6/[landing]/producto/family-farm/familyFarmGrades';
@@ -602,6 +605,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // reacondicionados se leen igual, tengan uno o varios grados.
   const gradoUnicoEnCardNormal = !compact && gradosCard.length === 1;
   const muestraColores = !hideColors && !!product.colors && product.colors.length >= 1;
+  // BAL-4561: lo que alguien eligió en el Universo para esta tarjeta. `null`
+  // = sin elección, o una que aquí no se puede pintar: vale la regla de
+  // siempre. En la card normal `hideColors` sigue mandando (la pestaña de la
+  // oferta apaga los colores a propósito): ahí «color» no los prende.
+  const elegidoEnElUniverso = modoElegido(product);
+  const elegido = elegidoEnElUniverso === 'colors' && !compact && hideColors ? null : elegidoEnElUniverso;
+  // La regla de siempre de cada variante de card: en la compacta decide
+  // `cardSelectorMode`; en la normal, el grado reemplaza a los colores.
+  const modoAutomatico: SelectorMode = compact
+    ? cardSelectorMode({ gradeSiblings: gradosCard, colors: product.colors })
+    : gradosEnCardNormal || gradoUnicoEnCardNormal
+      ? 'grades'
+      : muestraColores
+        ? 'colors'
+        : 'none';
+  const modoFranja: SelectorMode = elegido ?? modoAutomatico;
 
   // La franja de grados: una pill por grado, el agotado deshabilitado y el
   // nombre del elegido debajo. La usan la card compacta (reacondicionados) y
@@ -919,50 +938,38 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Variante compacta (reacondicionados): una sola franja que muestra
-                grados O colores, nunca los dos. El contenedor se dibuja SIEMPRE,
-                aunque quede vacío, para que todas las cards de la fila midan lo
-                mismo y la grilla no quede dispareja. */}
+            {/* La franja bajo el nombre: grados O colores, nunca los dos.
+                Qué va lo decide `modoFranja`: lo que se eligió en el Universo
+                (BAL-4561) o, sin elección, la regla de siempre.
+                En la variante compacta (reacondicionados) el contenedor se
+                dibuja SIEMPRE, aunque quede vacío, para que todas las cards
+                de la fila midan lo mismo y la grilla no quede dispareja. */}
             {compact ? (
               <div
                 data-testid="card-selector-slot"
                 className="mb-4 min-h-[44px] flex flex-col justify-center gap-1"
               >
-                {(() => {
-                  // Con la lista ya resuelta: un grado sin hermanos también
-                  // cuenta como grado, no cae a colores ni deja el hueco.
-                  const modo = cardSelectorMode({ gradeSiblings: gradosCard, colors: product.colors });
-
-                  if (modo === 'grades') return renderGrados();
-
-                  if (modo === 'colors' && product.colors) {
-                    return (
-                      <div className="flex justify-center">
-                        <ColorSelector
-                          colors={product.colors}
-                          selectedColorId={selectedColorId}
-                          onColorSelect={setSelectedColorId}
-                          version={colorSelectorVersion}
-                        />
-                      </div>
-                    );
-                  }
-
-                  return null;
-                })()}
+                {modoFranja === 'grades' && renderGrados()}
+                {modoFranja === 'colors' && product.colors && (
+                  <div className="flex justify-center">
+                    <ColorSelector
+                      colors={product.colors}
+                      selectedColorId={selectedColorId}
+                      onColorSelect={setSelectedColorId}
+                      version={colorSelectorVersion}
+                    />
+                  </div>
+                )}
               </div>
-            ) : (
-            /* Producto con grado (agrupado A, B… o uno solo): los grados
-                reemplazan a los colores, igual que en la card compacta. Sin
-                esto el grado B quedaba escondido detrás del A. */
-            gradosEnCardNormal || gradoUnicoEnCardNormal ? (
+            ) : modoFranja === 'grades' ? (
+              /* Producto con grado (agrupado A, B… o uno solo): los grados
+                 reemplazan a los colores, igual que en la card compacta. */
               <div data-testid="card-selector-slot" className="mb-4 min-h-[44px] flex flex-col justify-center gap-1">
                 {renderGrados()}
               </div>
-            ) :
-            /* Color Selector — visible desde un color: los de una familia
-                (color_siblings) y tambien el color propio de la variante. */
-            muestraColores && product.colors && (
+            ) : modoFranja === 'colors' && product.colors ? (
+              /* Colores: los de una familia (color_siblings) y también el
+                 color propio de la variante, desde uno solo. */
               <div className="flex justify-center mb-4 min-h-[32px]">
                 <ColorSelector
                   colors={product.colors}
@@ -971,8 +978,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   version={colorSelectorVersion}
                 />
               </div>
-            )
-            )}
+            ) : null}
 
             {/* Specs técnicas con iconos - solo muestra specs con dato real. */}
             <div className="space-y-2 min-h-[120px]">

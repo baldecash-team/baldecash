@@ -23,6 +23,7 @@ import type {
 
 import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/catalog';
 import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../utils/deferredDelivery';
+import { preferenciaDeSelector } from '../[landing]/catalogo/utils/cardSelectorMode';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -144,6 +145,11 @@ export interface ApiCatalogProduct {
   condition_label_text?: string | null;
   condition_label_color?: string | null;
   grade?: string | null;
+  /**
+   * Lo que se eligió en el Universo para esta tarjeta (BAL-4561): "color".
+   * `null` = sin elección. Contra un backend viejo no viene.
+   */
+  card_selector_mode?: string | null;
   /**
    * Grados hermanos del equipo. El endpoint de DETALLE ya lo devuelve desde
    * hace tiempo; en el LISTADO es nuevo (BAL-3288), así que puede no venir
@@ -767,6 +773,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     conditionLabelText: apiProduct.condition_label_text ?? undefined,
     conditionLabelColor: apiProduct.condition_label_color ?? undefined,
     grade: apiProduct.grade ?? undefined,
+    // Solo "color"; cualquier otra cosa queda vacío y la card decide como
+    // siempre.
+    selectorPreference: preferenciaDeSelector(apiProduct.card_selector_mode),
     // Siempre un array: si el backend no manda el campo, queda vacío y la card
     // cae al selector de colores sin necesitar guardas contra `null`.
     gradeSiblings: (apiProduct.grade_siblings ?? []).map((s) => ({
