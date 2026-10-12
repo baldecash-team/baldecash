@@ -4,7 +4,7 @@
  * QUÉ formulario se le mostró a la persona (`wizard_form_id`), para que la
  * solicitud se guarde con ese formulario aunque el reparto cambie mientras la
  * persona todavía lo está llenando. Viaja dentro del JSON del campo
- * `form_data` del multipart, igual que `session_uuid` y `juicyscore_session_id`.
+ * `form_data` del multipart, igual que `session_uuid`.
  */
 import { submitApplication } from '../applicationApi';
 

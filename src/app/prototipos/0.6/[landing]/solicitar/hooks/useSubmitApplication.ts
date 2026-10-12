@@ -31,11 +31,6 @@ import {
   DEMO_SUBMIT_DELAY_MS,
 } from '../utils/demoApplication';
 import { normalizeEmail } from '../../../services/emailValidation';
-import {
-  resolveJuicySessionIdForSubmit,
-  markJuicyComplete,
-  restartJuicySession,
-} from '../../../services/juicyScore';
 
 /**
  * Los codigos de campo que llevan un correo. Se mantiene alineado con
@@ -553,21 +548,12 @@ export function useSubmitApplication(
         // Cambiar a "processing" antes de enviar (si estábamos en uploading)
         setSubmitStage('processing');
 
-        // JuicyScore: marcar el formulario como completado (equivale al
-        // `completeButton` de su config) y adjuntar el session_id del pixel para
-        // que el backend pueda hacer el GetScore. Todo esto es no-op si la
-        // integración no está configurada. Si el id no se capturó al montar el
-        // wizard, se reintenta acá (hasta 3s) y se reporta a Sentry.
-        markJuicyComplete();
-        const juicySessionId = await resolveJuicySessionIdForSubmit(landing);
-
         // Submit application (with files if any)
         const result = await submitApplication({
           session_uuid: sessionUuid,
           form_data: mappedFormData,
           product_data: productData,
           coupon_code: appliedCoupon?.code,
-          juicyscore_session_id: juicySessionId ?? undefined,
           wizard_form_id: wizardConfig?.form_id ?? undefined,
           wizard_form_version_id: wizardConfig?.form_version_id ?? undefined,
           files: uploadFiles.length > 0 ? uploadFiles : undefined,
@@ -621,10 +607,6 @@ export function useSubmitApplication(
             clearConsentStorage(landing);
             // Clear catalog cart (lives in separate layer)
             try { localStorage.removeItem(`baldecash-${landing}-cart`); } catch {}
-            // El pixel de JuicyScore no se recarga con el reset del wizard (no hay
-            // navegación dura): sin esto, una segunda solicitud en la misma pestaña
-            // viajaría con el session_id de la primera.
-            void restartJuicySession(landing);
           }
 
           // Show success toast

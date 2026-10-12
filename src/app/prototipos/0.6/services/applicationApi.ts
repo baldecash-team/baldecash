@@ -82,13 +82,6 @@ export interface SubmitApplicationRequest {
   /** Optional coupon code for discount */
   coupon_code?: string;
   /**
-   * `session_id` del pixel JuicyScore, cuando la integración está activa.
-   * Es lo único que el backend necesita para lanzar el GetScore server-to-server
-   * (etapa 2 de JuicyScore). Se omite del payload si no hay pixel o si no
-   * alcanzó a emitir sesión — el submit nunca depende de esto.
-   */
-  juicyscore_session_id?: string;
-  /**
    * `form_id` del formulario que el wizard le mostró a esta sesión (varios
    * formularios por landing, repartidos por peso). Viaja para que la
    * solicitud se guarde con ESE formulario aunque el reparto cambie mientras
@@ -217,13 +210,7 @@ export async function submitApplication(
       form_data: data.form_data,
       product_data: data.product_data,
       coupon_code: data.coupon_code,
-      // Solo viaja cuando el pixel emitió sesión. La clave se omite por completo
-      // en caso contrario, para no cambiar el payload de las landings sin JuicyScore.
-      ...(data.juicyscore_session_id
-        ? { juicyscore_session_id: data.juicyscore_session_id }
-        : {}),
-      // Igual que juicyscore_session_id: se omite la clave por completo si no
-      // se conoce el formulario mostrado, para no cambiar el payload de las
+      // Se omite la clave por completo si no se conoce el formulario mostrado, para no cambiar el payload de las
       // landings que todavía no reparten varios formularios.
       ...(data.wizard_form_id !== undefined
         ? { wizard_form_id: data.wizard_form_id }
