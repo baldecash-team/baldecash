@@ -63,7 +63,9 @@ const PAGE_SIZE = 12;
 // El backend ordena por precio de LISTA, pero las cards muestran la CUOTA a
 // 24m/0% (que no es proporcional al precio por las distintas TEAs). Por eso el
 // orden final por cuota se hace en el cliente (ver `sortedItems`). El sort_by
-// del API solo da un orden base estable; el default es el del catálogo.
+// del API solo da un orden base estable. El default («Recomendados») no se
+// toca acá: ws2 lo devuelve ya ordenado del más al menos parecido al equipo
+// que pidió el cliente, con los primeros marcados como «Recomendado».
 const SORT_TO_API: Record<string, string> = {
   recommended: 'display_order',
   price_asc: 'price_asc',
@@ -289,7 +291,8 @@ export function CatalogoOfertaTab({
 
   // Orden final por CUOTA real (24m/0%) en el cliente, porque el orden por
   // precio de lista del API no coincide con la cuota mostrada. "Recomendados"
-  // respeta el orden del API (display_order); las demás ordenan por cuota.
+  // respeta el orden del API (por parecido al equipo pedido); las demás
+  // ordenan por cuota.
   const items = useMemo(() => {
     const base = products ?? [];
     if (sort === 'price_asc' || sort === 'quota_asc') {

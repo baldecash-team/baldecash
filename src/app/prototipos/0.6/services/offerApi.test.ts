@@ -128,6 +128,55 @@ describe('getCatalog', () => {
   });
 });
 
+describe('getCatalog — recomendados por parecido al equipo pedido', () => {
+  const catalogo = (items: unknown[]) =>
+    jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ max_monthly_quota: 245, items, count: items.length }),
+    });
+
+  it('la etiqueta «Recomendado» sale de is_recommended, no del destacado de la landing', async () => {
+    global.fetch = catalogo([
+      { ...apiProduct(1, 2000, 120), is_recommended: true, recommended_reason: 'Misma gama de procesador' },
+      { ...apiProduct(2, 1500, 90), is_featured: true, is_recommended: false, recommended_reason: null },
+      {
+        ...apiProduct(3, 1800, 110),
+        is_recommended: false,
+        labels: [{ code: 'recomendado', label_type: 'badge' }, { code: 'premium', label_type: 'badge' }],
+      },
+    ]);
+
+    const { items } = await getCatalog('tok', { sortBy: 'display_order' });
+
+    expect(items.map((p) => p.isRecommended)).toEqual([true, false, false]);
+    expect(items[0].tags).toEqual(['recomendado']);
+    expect(items[0].recommendedReason).toBe('Misma gama de procesador');
+    expect(items[1].tags).not.toContain('recomendado');
+    expect(items[2].tags).toEqual(['premium']);
+  });
+
+  it('respeta el orden en que ws2 devuelve los equipos', async () => {
+    global.fetch = catalogo([
+      { ...apiProduct(7, 900, 60), is_recommended: true },
+      { ...apiProduct(3, 2500, 200), is_recommended: true },
+      { ...apiProduct(5, 1200, 80), is_recommended: false },
+    ]);
+
+    const { items } = await getCatalog('tok', { sortBy: 'display_order' });
+
+    expect(items.map((p) => p.id)).toEqual(['7', '3', '5']);
+  });
+
+  it('un ws2 que no manda el campo deja las etiquetas como antes', async () => {
+    global.fetch = catalogo([{ ...apiProduct(1, 2000, 120), is_featured: true }]);
+
+    const { items } = await getCatalog('tok');
+
+    expect(items[0].tags).toContain('recomendado');
+    expect(items[0].isRecommended).toBeUndefined();
+  });
+});
+
 describe('selectEquipment', () => {
   it('envía variant_id y devuelve el resultado', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
