@@ -40,6 +40,7 @@ import { readOfferSelection, clearOfferSelection, accesoriosIniciales } from '..
 import { useAnalytics } from '../../../analytics/useAnalytics';
 import { OfertaHeader } from '../components/redesign/OfertaHeader';
 import { OFERTA_COLORS } from '../components/redesign/ofertaTheme';
+import { SaludoDowngrade, esSaludoDowngrade } from '../components/redesign/SaludoDowngrade';
 import { TuEquipoCard } from './redesign/TuEquipoCard';
 import { IncluidosGratisSection } from './redesign/IncluidosGratisSection';
 import { AccesorioFilaCard } from './redesign/AccesorioFilaCard';
@@ -887,16 +888,21 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
           <AvisoSeleccion message={avisoSeleccion} onCerrar={() => setAvisoSeleccion(null)} />
         ) : null}
 
-        {/* Encabezado */}
-        <div>
-          <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
-            {clientName ? `¡Felicitaciones, ${clientName}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
-            <span style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
-          </h1>
-          <p className="mt-1.5 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-            Solo mostramos lo que entra en tu cuota.
-          </p>
-        </div>
+        {/* Encabezado. En downgrade (BAL-4641) saluda como el WhatsApp de la
+            oferta, con la cuota aprobada; el resto, como siempre. */}
+        {esSaludoDowngrade(offerCase, maxQuota) ? (
+          <SaludoDowngrade nombre={clientName} tope={maxQuota as number} variante="complementos" />
+        ) : (
+          <div>
+            <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
+              {clientName ? `¡Felicitaciones, ${clientName}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
+              <span style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
+            </h1>
+            <p className="mt-1.5 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+              Solo mostramos lo que entra en tu cuota.
+            </p>
+          </div>
+        )}
 
         {/* Tu equipo (con desglose de extras si hay accesorios/seguros elegidos).
             BAL-2379: esta card resume el consumo MENSUAL de la cuota aprobada (todo

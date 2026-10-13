@@ -284,7 +284,8 @@ export interface OfferView {
   legacyId?: number | null;
   clientName?: string | null;
   /** Caso 5 (upsell): 'upsell' cuando el token es de esa oferta. 'standard'
-   *  (F-6B): oferta única armada por el analista, aceptar/rechazar. */
+   *  (F-6B): oferta única armada por el analista, aceptar/rechazar.
+   *  'downgrade' (Caso 4): solo si el backend lo declara; si no, undefined. */
   offerCase?: 'downgrade' | 'upsell' | 'standard';
   /** Perfil de la oferta exclusiva (A/B/C) — solo upsell. */
   profile?: string | null;
@@ -542,6 +543,9 @@ export async function getOffer(token: string): Promise<OfferView> {
     applicationCode: data.application_code ?? null,
     legacyId: data.legacy_id ?? null,
     clientName: data.client_name ?? null,
+    // Caso 4 (downgrade): el backend lo manda como `case` desde BAL-4641. Un
+    // backend anterior no lo trae y la oferta queda sin caso, como antes.
+    offerCase: data.case === 'downgrade' ? 'downgrade' : undefined,
     maxMonthlyQuota: data.max_monthly_quota,
     expiresAt: data.expires_at ?? null,
     landingSlug: data.landing_slug ?? null,
