@@ -760,6 +760,10 @@ export interface CatalogProduct {
   isFeatured: boolean;
   isNew: boolean;
   tags: ProductTagType[]; // New: 1-4 tags per product
+  /** Catálogo de una oferta: de los más parecidos al equipo que pidió el
+   *  cliente, según ws2. `undefined` fuera de la oferta. */
+  isRecommended?: boolean;
+  recommendedReason?: string | null;
   ribbonLabels?: { code: string; displayText: string; backgroundColor: string; textColor: string; imageUrl?: string | null; partnerName?: string | null }[];
   specs: ProductSpecs;
   rawSpecs?: Record<string, string | number | boolean>;

@@ -555,6 +555,23 @@ export async function getOffer(token: string): Promise<OfferView> {
 }
 
 /** GET /public/offer/{token}/catalog — catálogo filtrado por la cuota (en vivo). */
+/** Item del catálogo de la oferta: el mapeo del catálogo general, salvo la
+ *  etiqueta «Recomendado». En la oferta no sale del destacado de la landing
+ *  (`is_featured`) sino de `is_recommended`, que ws2 calcula por parecido al
+ *  equipo que pidió el cliente. El orden también lo decide ws2: acá no se
+ *  ordena nada. Un ws2 que todavía no manda el campo deja todo como estaba. */
+export function mapOfferCatalogItem(it: ApiCatalogProduct): CatalogProduct {
+  const product = mapApiProductToCatalogProduct(it);
+  if (typeof it.is_recommended !== 'boolean') return product;
+  const tags = product.tags.filter((t) => t !== 'recomendado');
+  return {
+    ...product,
+    tags: it.is_recommended ? ['recomendado', ...tags] : tags,
+    isRecommended: it.is_recommended,
+    recommendedReason: it.recommended_reason ?? null,
+  };
+}
+
 export async function getCatalog(
   token: string,
   filters: OfferCatalogFilters = {},
@@ -583,7 +600,7 @@ export async function getCatalog(
   const data = await res.json();
   return {
     maxMonthlyQuota: data.max_monthly_quota,
-    items: (data.items ?? []).map((it: ApiCatalogProduct) => mapApiProductToCatalogProduct(it)),
+    items: (data.items ?? []).map((it: ApiCatalogProduct) => mapOfferCatalogItem(it)),
     count: data.count ?? 0,
   };
 }

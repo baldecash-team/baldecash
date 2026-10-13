@@ -185,6 +185,10 @@ export interface ApiCatalogProduct {
   brand: ApiBrand;
   display_order: number;
   is_featured: boolean;
+  /** Solo en el catálogo de una oferta: ws2 marca los equipos más parecidos al
+   *  que pidió el cliente y manda el motivo corto («Misma gama de procesador»). */
+  is_recommended?: boolean;
+  recommended_reason?: string | null;
   promo_tag?: string;
   badge_text?: string;
   pricing: ApiProductPricing;
