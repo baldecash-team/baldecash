@@ -69,6 +69,29 @@ describe('getOffer', () => {
     expect(offer.landingSlug).toBe('home');
     expect(offer.requestedProduct?.name).toBe('ZBook');
     expect(offer.recommended?.id).toBe('11');
+    // Backend anterior a BAL-4641: sin `case`, la oferta queda sin caso.
+    expect(offer.offerCase).toBeUndefined();
+  });
+
+  it('toma el caso downgrade cuando el backend lo declara (BAL-4641)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        case: 'downgrade',
+        offer_code: 'OFF-1',
+        client_name: 'Rosa Quispe',
+        max_monthly_quota: 245,
+        expires_at: '2026-06-28T05:00:00',
+        landing_slug: 'home',
+        requested_product: null,
+        recommended: null,
+      }),
+    });
+
+    const offer = await getOffer('tok');
+    expect(offer.offerCase).toBe('downgrade');
+    expect(offer.maxMonthlyQuota).toBe(245);
+    expect(offer.clientName).toBe('Rosa Quispe');
   });
 
   it('lanza OfferApiError con el reason del backend (410 expired)', async () => {

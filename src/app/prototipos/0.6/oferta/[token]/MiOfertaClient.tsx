@@ -44,6 +44,7 @@ import { OpcionBarra } from './components/redesign/OpcionBarra';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
 import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
+import { SaludoDowngrade, esSaludoDowngrade } from './components/redesign/SaludoDowngrade';
 
 /** Collage de equipos (BAL-2215): ícono de las barras "Ver otros equipos"
  *  (Caso 4) y "Mejora tu equipo" (Caso 5) — comunica la variedad del catálogo. */
@@ -608,11 +609,16 @@ export function MiOfertaClient({ token }: { token: string }) {
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
         {/* Saludo (feedback Marco): "¡Felicitaciones, {nombre}, tu solicitud ha
             sido aprobada!" con nombre completo y "aprobada" en verde bold.
-            Idéntico al de la página de complementos. */}
-        <div className="text-[18px] font-semibold leading-[1.25]">
-          {offer.clientName ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
-          <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
-        </div>
+            Idéntico al de la página de complementos. En downgrade (BAL-4641)
+            saluda como el WhatsApp de la oferta, con la cuota aprobada. */}
+        {esSaludoDowngrade(offer.offerCase, offer.maxMonthlyQuota) ? (
+          <SaludoDowngrade nombre={offer.clientName} tope={offer.maxMonthlyQuota} variante="portada" />
+        ) : (
+          <div className="text-[18px] font-semibold leading-[1.25]">
+            {offer.clientName ? `¡Felicitaciones, ${offer.clientName.trim()}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
+            <span className="font-extrabold" style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
+          </div>
+        )}
 
         {/* Código de la solicitud (BAL-2250): chip discreto para que el cliente
             lo tenga a mano si contacta soporte. */}
