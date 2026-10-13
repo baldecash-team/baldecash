@@ -1,4 +1,8 @@
-import { normalizeShowPercent, resolveLeadModalVariant } from '../leadModalAb';
+import {
+  normalizeShowPercent,
+  peekLeadModalVariant,
+  resolveLeadModalVariant,
+} from '../leadModalAb';
 
 const CLAVE = 'baldecash-lead-modal-ab-senati';
 
@@ -99,5 +103,31 @@ describe('resolveLeadModalVariant', () => {
     const r = resolveLeadModalVariant('senati', 30, () => 0.1);
 
     expect(r).toEqual({ variant: 'modal', enTest: true, esNueva: true, percent: 30 });
+  });
+});
+
+describe('peekLeadModalVariant', () => {
+  it('sin sorteo guardado devuelve null y no escribe nada', () => {
+    expect(peekLeadModalVariant('senati', 30)).toBeNull();
+    expect(localStorage.getItem(CLAVE)).toBeNull();
+  });
+
+  it('devuelve el grupo guardado si se sorteó con el mismo porcentaje', () => {
+    resolveLeadModalVariant('senati', 30, () => 0.9);
+
+    expect(peekLeadModalVariant('senati', 30)).toBe('control');
+  });
+
+  it('un sorteo hecho con otro porcentaje no cuenta', () => {
+    resolveLeadModalVariant('senati', 30, () => 0.9);
+
+    expect(peekLeadModalVariant('senati', 80)).toBeNull();
+  });
+
+  it('con 100% no hay test: null aunque haya un sorteo viejo guardado', () => {
+    localStorage.setItem(CLAVE, JSON.stringify({ variant: 'modal', percent: 100 }));
+
+    expect(peekLeadModalVariant('senati', 100)).toBeNull();
+    expect(peekLeadModalVariant('senati', undefined)).toBeNull();
   });
 });

@@ -345,6 +345,35 @@ describe('LeadModalGate — porcentaje de visitantes (A/B modal vs control)', ()
     expect(mockPatch).not.toHaveBeenCalled();
   });
 
+  it('quien lo descartó antes de que existiera el test no entra al sorteo', () => {
+    localStorage.setItem('baldecash-lead-modal-descartado-senati', '1');
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    const onSettled = jest.fn();
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} onSettled={onSettled} />);
+    act(() => { jest.advanceTimersByTime(5000); });
+
+    expect(screen.queryByTestId('modal')).toBeNull();
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('baldecash-lead-modal-ab-senati')).toBeNull();
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('un sorteo guardado con otro porcentaje no salva a quien ya lo descartó', () => {
+    localStorage.setItem(
+      'baldecash-lead-modal-ab-senati',
+      JSON.stringify({ variant: 'modal', percent: 80 })
+    );
+    localStorage.setItem('baldecash-lead-modal-descartado-senati', '1');
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
   it('quien vio el modal y lo descartó sigue en su grupo: no le vuelve a salir, pero la visita se reporta', () => {
     localStorage.setItem(
       'baldecash-lead-modal-ab-senati',

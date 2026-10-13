@@ -55,6 +55,20 @@ function leerGuardado(landingSlug: string, percent: number): LeadModalVariant | 
   }
 }
 
+/**
+ * Solo lectura: el grupo que este navegador ya tiene para el test actual de
+ * la landing, o `null` si no hay test (100%) o nunca se sorteó con este
+ * porcentaje. No sortea ni escribe nada.
+ */
+export function peekLeadModalVariant(
+  landingSlug: string,
+  showPercent: unknown
+): LeadModalVariant | null {
+  const percent = normalizeShowPercent(showPercent);
+  if (percent >= 100 || typeof window === 'undefined') return null;
+  return leerGuardado(landingSlug, percent);
+}
+
 export function resolveLeadModalVariant(
   landingSlug: string,
   showPercent: unknown,

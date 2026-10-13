@@ -7,7 +7,11 @@ import {
   markLeadModalDismissed,
   wasLeadModalDismissed,
 } from '../../utils/leadModalStorage';
-import { resolveLeadModalVariant, type LeadModalAssignment } from '../../utils/leadModalAb';
+import {
+  peekLeadModalVariant,
+  resolveLeadModalVariant,
+  type LeadModalAssignment,
+} from '../../utils/leadModalAb';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
 import { patchTrackingSession } from '@/app/prototipos/0.6/services/sessionApi';
@@ -80,12 +84,18 @@ export default function LeadModalGate({ landingSlug, config, onSettled }: Props)
   // Una vez por visitante: si lo cerró sin dejar sus datos («No deseo canjear
   // cupón» o la «X»), no se le vuelve a ofrecer al recargar ni al volver.
   const yaDescartado = wasLeadModalDismissed(landingSlug);
-  // Solo el visitante elegible entra al sorteo: sortear a quien ya dejo sus
-  // datos ensucia los dos grupos por igual. Quien lo DESCARTO si sigue
-  // entrando: ya tiene grupo ("modal", por eso lo vio) y sus visitas
-  // siguientes se tienen que seguir contando en ese grupo, igual que las del
-  // "control"; si no, el grupo "modal" perderia justo a los que volvieron.
-  const elegible = configResuelta && activo && !yaContestado;
+  // Solo el visitante elegible entra al sorteo: sortear a quien de todos
+  // modos no iba a ver el modal ensucia los dos grupos por igual.
+  //
+  // Quien lo DESCARTO se parte en dos:
+  // - Sin sorteo guardado para este porcentaje: lo cerro antes de que
+  //   existiera el test y nunca lo va a volver a ver. No entra.
+  // - Con sorteo guardado: es gente del test que lo vio y lo cerro. Sigue en
+  //   su grupo y sus visitas siguientes se reportan, igual que las del
+  //   "control"; si no, el grupo "modal" perderia justo a los que volvieron.
+  const descartadoFueraDelTest =
+    yaDescartado && peekLeadModalVariant(landingSlug, showPercent) === null;
+  const elegible = configResuelta && activo && !yaContestado && !descartadoFueraDelTest;
 
   // El sorteo escribe en localStorage, asi que va en un efecto y no en el
   // render. El evento se emite ACA y no desde el estado: asi sale una sola
