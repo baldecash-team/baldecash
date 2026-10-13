@@ -16,6 +16,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.c
 
 export interface SessionPatchFields {
   ab_accessories_variant?: string | null;
+  /** Grupo del A/B del modal de leads: "modal" o "control". */
+  ab_lead_modal_variant?: string | null;
   dni?: string | null;
   fingerprint_hash?: string | null;
   user_agent?: string | null;

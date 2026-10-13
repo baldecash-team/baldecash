@@ -27,6 +27,23 @@ jest.mock('../LeadCouponModal', () => ({
   ),
 }));
 
+const mockTrack = jest.fn();
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext', () => ({
+  __esModule: true,
+  useEventTrackerOptional: () => ({ track: mockTrack, flush: jest.fn() }),
+}));
+
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext', () => ({
+  __esModule: true,
+  useSessionOptional: () => ({ sessionUuid: 'uuid-test', sessionId: 1, isNewSession: false }),
+}));
+
+const mockPatch = jest.fn();
+jest.mock('@/app/prototipos/0.6/services/sessionApi', () => ({
+  __esModule: true,
+  patchTrackingSession: (...args: unknown[]) => mockPatch(...args),
+}));
+
 const CONFIG_ACTIVA = {
   lead_modal: { enabled: true, title: 'Deja tus datos' },
 };
@@ -34,10 +51,13 @@ const CONFIG_ACTIVA = {
 beforeEach(() => {
   localStorage.clear();
   jest.useFakeTimers();
+  mockTrack.mockClear();
+  mockPatch.mockClear();
 });
 
 afterEach(() => {
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 describe('LeadModalGate — mudanza al catálogo', () => {
@@ -237,3 +257,137 @@ describe('la config todavia no llego (carrera con el fetch)', () => {
   });
 });
 
+describe('LeadModalGate — porcentaje de visitantes (A/B modal vs control)', () => {
+  const CONFIG_AB = {
+    lead_modal: { enabled: true, title: 'Deja tus datos', show_percent: 30 },
+  };
+
+  it('al grupo "modal" le sale el modal a los 3 segundos', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    act(() => { jest.advanceTimersByTime(3000); });
+
+    expect(screen.getByTestId('modal')).toBeTruthy();
+  });
+
+  it('al grupo "control" no le sale nunca', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.9);
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    act(() => { jest.advanceTimersByTime(10000); });
+
+    expect(screen.queryByTestId('modal')).toBeNull();
+  });
+
+  it('el grupo "control" avisa onSettled de inmediato: el welcome no se queda esperando', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.9);
+    const onSettled = jest.fn();
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} onSettled={onSettled} />);
+
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  it('el grupo se conserva al volver a entrar', () => {
+    localStorage.setItem(
+      'baldecash-lead-modal-ab-senati',
+      JSON.stringify({ variant: 'control', percent: 30 })
+    );
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+    act(() => { jest.advanceTimersByTime(5000); });
+
+    expect(screen.queryByTestId('modal')).toBeNull();
+  });
+
+  it('emite el evento del sorteo una sola vez, con el grupo y el porcentaje', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.9);
+
+    const { unmount } = render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+    unmount();
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    expect(mockTrack).toHaveBeenCalledTimes(1);
+    expect(mockTrack).toHaveBeenCalledWith('lead_modal_variant_assigned', {
+      variant: 'control',
+      show_percent: 30,
+    });
+  });
+
+  it('manda el grupo a la fila de la sesión en cada visita', () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    expect(mockPatch).toHaveBeenCalledWith('uuid-test', { ab_lead_modal_variant: 'modal' });
+  });
+
+  it('sin porcentaje no hay test: sale el modal y no se reporta ningún grupo', () => {
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_ACTIVA} />);
+
+    act(() => { jest.advanceTimersByTime(3000); });
+
+    expect(screen.getByTestId('modal')).toBeTruthy();
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('quien ya dejó sus datos no entra al sorteo', () => {
+    localStorage.setItem('baldecash-dni-senati', '72345678');
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    expect(localStorage.getItem('baldecash-lead-modal-ab-senati')).toBeNull();
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('quien lo descartó antes de que existiera el test no entra al sorteo', () => {
+    localStorage.setItem('baldecash-lead-modal-descartado-senati', '1');
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    const onSettled = jest.fn();
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} onSettled={onSettled} />);
+    act(() => { jest.advanceTimersByTime(5000); });
+
+    expect(screen.queryByTestId('modal')).toBeNull();
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('baldecash-lead-modal-ab-senati')).toBeNull();
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('un sorteo guardado con otro porcentaje no salva a quien ya lo descartó', () => {
+    localStorage.setItem(
+      'baldecash-lead-modal-ab-senati',
+      JSON.stringify({ variant: 'modal', percent: 80 })
+    );
+    localStorage.setItem('baldecash-lead-modal-descartado-senati', '1');
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} />);
+
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('quien vio el modal y lo descartó sigue en su grupo: no le vuelve a salir, pero la visita se reporta', () => {
+    localStorage.setItem(
+      'baldecash-lead-modal-ab-senati',
+      JSON.stringify({ variant: 'modal', percent: 30 })
+    );
+    localStorage.setItem('baldecash-lead-modal-descartado-senati', '1');
+    const onSettled = jest.fn();
+
+    render(<LeadModalGate landingSlug="senati" config={CONFIG_AB} onSettled={onSettled} />);
+    act(() => { jest.advanceTimersByTime(5000); });
+
+    expect(screen.queryByTestId('modal')).toBeNull();
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(mockTrack).not.toHaveBeenCalled();
+    expect(mockPatch).toHaveBeenCalledWith('uuid-test', { ab_lead_modal_variant: 'modal' });
+  });
+});
