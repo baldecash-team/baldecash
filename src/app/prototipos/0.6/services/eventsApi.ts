@@ -167,6 +167,7 @@ export type EventType =
   | 'lead_banner_slide_change'
   // Phase 13: A/B testing
   | 'accessory_variant_assigned'
+  | 'lead_modal_variant_assigned'
   // Phase 14: Admisión (OTP correo + autoservicio de video) — eventos por link/etapa
   | 'admission_link_open'
   | 'admission_stage_enter'

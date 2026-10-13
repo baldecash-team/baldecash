@@ -40,6 +40,11 @@ export type PanelContent = 'coupon' | 'image' | 'none';
 
 export interface LeadModalConfig {
   enabled?: boolean;
+  /**
+   * Porcentaje de visitantes a los que se les muestra el modal (0 a 100).
+   * Ausente o null vale 100. Lo lee `LeadModalGate`, no este componente.
+   */
+  show_percent?: number | null;
   title?: string;
   /** Segunda línea, bajo el título. */
   subtitle?: string;
