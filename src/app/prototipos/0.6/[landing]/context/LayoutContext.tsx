@@ -99,6 +99,14 @@ interface LayoutContextValue {
    */
   mostrarImagenProducto: boolean;
   /**
+   * Si el paso final del formulario muestra el resumen de los datos ya
+   * ingresados.
+   *
+   * Vive acá, junto a sus hermanos, para que la regla de «ausencia significa
+   * encendido» se decida en un solo lugar y no en cada pantalla que lo lea.
+   */
+  mostrarResumen: boolean;
+  /**
    * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
    * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
    *
@@ -177,6 +185,7 @@ export function LayoutProvider({
   const [showAgreementLogo, setShowAgreementLogo] = useState(true);
   const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
   const [mostrarImagenProducto, setMostrarImagenProducto] = useState(true);
+  const [mostrarResumen, setMostrarResumen] = useState(true);
   const [chipsDeUso, setChipsDeUso] = useState(false);
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
@@ -201,6 +210,9 @@ export function LayoutProvider({
       // nuevo, así que ninguna landing existente trae la clave; comparar contra
       // verdadero les borraría la imagen a todas de golpe.
       setMostrarImagenProducto(cfg.features?.show_product_image !== false);
+      // Mismo criterio: ausencia significa encendido. Ninguna landing existente
+      // trae la clave; comparar contra verdadero les quitaría el resumen a todas.
+      setMostrarResumen(cfg.features?.show_summary !== false);
       // Al reves que los flags de arriba: este preset es opt-in y ninguna
       // landing lo trae todavia, asi que ausencia significa APAGADO. Copiar
       // el `!== false` del vecino prenderia los chips en las 100+ landings
@@ -464,10 +476,11 @@ export function LayoutProvider({
     calculadora,
     puedeCambiarPlazo,
     mostrarImagenProducto,
+    mostrarResumen,
     chipsDeUso,
     filtroPorUso,
     barraDeOrden,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, chipsDeUso, filtroPorUso, barraDeOrden]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, chipsDeUso, filtroPorUso, barraDeOrden]);
 
   return (
     <LayoutContext.Provider value={value}>

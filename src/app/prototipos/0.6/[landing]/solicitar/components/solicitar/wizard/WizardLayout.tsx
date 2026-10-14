@@ -72,6 +72,13 @@ interface WizardLayoutProps {
    * y complementos.
    */
   ctaFijoEnMovil?: boolean;
+  /**
+   * Pinta el contenido sin la tarjeta blanca que lo envuelve. Para el paso
+   * final de una landing con el resumen apagado (`summary-off`) y sin campos
+   * propios: no queda nada que mostrar, y la tarjeta se vería como un recuadro
+   * vacío entre el título y el botón de enviar.
+   */
+  sinTarjeta?: boolean;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -95,6 +102,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   motivational,
   firstName,
   ctaFijoEnMovil = false,
+  sinTarjeta = false,
 }) => {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
@@ -139,9 +147,11 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6">
-              {children}
-            </div>
+            {sinTarjeta ? children : (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6">
+                {children}
+              </div>
+            )}
 
             {/* Navigation */}
             {!sinNavegacion && <WizardNavigation
