@@ -109,7 +109,7 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen } = useLayout();
 
   // Get wizard config from API
   const {
@@ -788,11 +788,22 @@ function StepContent() {
       ? (navigation.isLast ? handleSummarySubmit : handleSummaryNext)
       : undefined;
 
+    // Ingrediente `summary-off`: la landing no quiere el repaso de lo ya
+    // llenado. Se compara contra `false` porque ausencia significa encendido
+    // (ver `LayoutContext`). Solo se quitan los bloques de resumen: los campos
+    // propios del paso, el modal de reacondicionado y la navegación siguen
+    // igual — sin ellos la solicitud no se podría enviar. Aplica también al
+    // paso de resumen que no es el último: es este mismo render.
+    const sinResumen = mostrarResumen === false;
+
     const pageContent = (
       <WizardLayout
         currentStep={step.url_slug || step.code}
         title={step.title}
         description={step.description}
+        // Sin resumen y sin campos propios no queda contenido: se omite la
+        // tarjeta para no dejar un recuadro vacío sobre el botón.
+        sinTarjeta={sinResumen && step.fields.length === 0}
         onBack={handleSummaryBack}
         onNext={nextHandler}
         onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
@@ -810,7 +821,7 @@ function StepContent() {
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
-          {regularSteps.map((s) => {
+          {!sinResumen && regularSteps.map((s) => {
             const visibleFields = getVisibleFields(s);
             if (visibleFields.length === 0) return null;
 
@@ -898,7 +909,10 @@ function StepContent() {
           {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
               los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
           {step.fields.length > 0 && (
-            <div className="bg-white rounded-xl border border-neutral-200 p-4 sm:p-6">
+            // Sin los bloques de resumen arriba, el recuadro interior ya no
+            // separa nada: los campos van directo en la tarjeta del paso, como
+            // en un paso regular, en vez de una tarjeta dentro de otra.
+            <div className={sinResumen ? undefined : 'bg-white rounded-xl border border-neutral-200 p-4 sm:p-6'}>
               <DynamicWizardStep
                 step={step}
                 showErrors={submitted}

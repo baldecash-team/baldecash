@@ -95,6 +95,18 @@ export interface LandingConfigFeatures {
    */
   has_coupon: boolean;
   /**
+   * Si el paso final del formulario muestra el resumen de los datos ya
+   * ingresados (los bloques por paso con su botón «Editar»).
+   *
+   * El default es `true`: una landing sin el ingrediente `summary-off` se ve
+   * igual que antes de que este flag existiera.
+   *
+   * Solo apaga el repaso de lo ya llenado. Los campos propios del paso final,
+   * sus validaciones y el botón de enviar no dependen de este flag: sin ellos
+   * la solicitud no se podría enviar.
+   */
+  show_summary: boolean;
+  /**
    * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
    * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
    *
@@ -379,6 +391,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     show_hero_min_quota: true,
     show_product_image: true,
     has_coupon: true,
+    show_summary: true,
     // Opt-in, al reves que el resto de este bloque: default apagado.
     has_usage_chips: false,
     has_usage_filter: true,
