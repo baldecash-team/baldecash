@@ -33,6 +33,7 @@ import { Illustration } from './components/received/illustration';
 import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { ReceivedData } from './types/received';
 import { accesorioEsRegalo } from './accesorioEsRegalo';
+import { separarRegaloBaldecash } from './regaloBaldecash';
 
 /**
  * Reads the wizard session UUID from localStorage.
@@ -127,7 +128,7 @@ export function modoCierreDelKyc(
 /** UUID: el `code` de la URL es el token publico, no el numero (BAL-4188). */
 const ES_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function buildReceivedData(
+export function buildReceivedData(
   applicationCode: string,
   applicationData: ApplicationStatusData | null,
   searchParams: URLSearchParams
@@ -165,8 +166,12 @@ function buildReceivedData(
     initialPayment: p.initial_payment || 0,
   })) || [];
 
+  // El regalo de BaldeCash (regalo Dinet) sale del acordeón y va en su bloque.
+  const { accesorios: accesoriosDelStatus, regalo: regaloBaldecash } =
+    separarRegaloBaldecash(applicationData?.accessories);
+
   // Mapear accesorios desde API
-  const accessories = applicationData?.accessories?.map((acc) => ({
+  const accessories = accesoriosDelStatus?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
     // Regalo del combo (`is_gift`) o del cupón (cuota 0): los dos se muestran
@@ -218,6 +223,7 @@ function buildReceivedData(
     initialPaymentPercent: applicationData?.initial_payment_percent || 0,
     initialPayment: applicationData?.initial_payment || 0,
     accessories,
+    regaloBaldecash,
     insurance,
     insurances: allInsurances,
     coupon,

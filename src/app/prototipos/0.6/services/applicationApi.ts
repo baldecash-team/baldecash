@@ -380,6 +380,13 @@ export interface ApplicationStatusResponse {
     monthly_quota: number;
     /** BAL-4200: regalo del combo (viene incluido, no suma a la cuota). */
     is_gift?: boolean;
+    image?: string | null;
+    thumbnail_url?: string | null;
+    /**
+     * Origen del regalo: `regalo_dinet` (lo regala BaldeCash, se anuncia en un
+     * bloque aparte) o `combo`. Opcional: backend viejo no lo manda.
+     */
+    gift_source?: 'regalo_dinet' | 'combo' | null;
   }> | null;
 
   insurance?: {
