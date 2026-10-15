@@ -712,3 +712,49 @@ describe('StandardOfertaAccion', () => {
   });
 
 });
+
+// ------------------------------------------------- BAL-4688 catálogo completo
+
+describe('StandardOfertaAccion — «Mostrar catálogo completo»', () => {
+  beforeEach(() => {
+    quoteOffer.mockReset().mockResolvedValue({});
+  });
+
+  it('sin catálogo no hay barra: la pantalla es la de siempre', () => {
+    renderView();
+    expect(screen.queryByText('Ver más equipos')).not.toBeInTheDocument();
+    expect(screen.queryByText('¿prefieres otro?')).not.toBeInTheDocument();
+  });
+
+  it('con catálogo es la misma pantalla y al final la barra al catálogo', () => {
+    const onVerCatalogo = jest.fn();
+    render(
+      <StandardOfertaAccion
+        token="tok-std"
+        offer={baseOffer}
+        catalogo={{ cantidad: 42, imagen: 'https://cdn/collage.png', onVerCatalogo }}
+      />,
+    );
+
+    // Lo de siempre sigue ahí: la tarjeta de términos y las dos decisiones.
+    expect(screen.getByText(/Tu nueva cuota/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rechazar/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Aceptar/ })).toBeInTheDocument();
+    // Y lo único nuevo.
+    expect(screen.getByText('¿prefieres otro?')).toBeInTheDocument();
+    expect(screen.getByText('Explora 42 equipos del catálogo')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Ver más equipos'));
+    expect(onVerCatalogo).toHaveBeenCalled();
+  });
+
+  it('sin el conteo todavía, el texto no inventa un número', () => {
+    render(
+      <StandardOfertaAccion
+        token="tok-std"
+        offer={baseOffer}
+        catalogo={{ cantidad: null, imagen: 'x', onVerCatalogo: jest.fn() }}
+      />,
+    );
+    expect(screen.getByText('Explora los equipos del catálogo')).toBeInTheDocument();
+  });
+});

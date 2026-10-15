@@ -21,7 +21,6 @@ import {
   getOffer,
   getCatalog,
   selectEquipment,
-  acceptOffer,
   OfferApiError,
   type OfferView,
   type OfferErrorReason,
@@ -32,7 +31,7 @@ import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from './components/Avis
 import { EquipoAgotadoAviso, esEquipoAgotado } from './components/EquipoAgotadoAviso';
 import { casoDelError, copyDeLinkMuerto } from './components/ofertaVencida';
 import { SeleccionConfirmada, type ChosenSummary } from './components/SeleccionConfirmada';
-import { cuotaSuffix, monthlyFactor, plazoNativo } from './components/equipoCardFormat';
+import { monthlyFactor, plazoNativo } from './components/equipoCardFormat';
 import { StandardOfertaAccion } from './components/StandardOfertaAccion';
 import { saveOfferSelection, clearAllAddons, type StoredEquipo } from './offerStorage';
 import { useAnalytics } from '../../analytics/useAnalytics';
@@ -145,9 +144,6 @@ export function MiOfertaClient({ token }: { token: string }) {
     slug?: string | null;
     equipo: EquipoAConfirmar;
     summary: ChosenSummary;
-    /** Oferta estándar con catálogo (BAL-4688): aceptar el equipo DE LA OFERTA
-     *  es aceptarla tal como la armó el asesor (`/accept`), no elegir equipo. */
-    aceptarOfertaEstandar?: boolean;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
   // BAL-4196: el `/select` rechazó la opción elegida (no el link). Se muestra
@@ -420,7 +416,7 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   const confirmSelect = useCallback(async () => {
     if (!pending) return;
-    if (pending.variantId == null && !pending.aceptarOfertaEstandar) {
+    if (pending.variantId == null) {
       // Sin variante usable → caer al detalle para resolver allí (avanzó, no
       // abandonó — BAL-2236).
       convertedRef.current = true;
@@ -430,11 +426,7 @@ export function MiOfertaClient({ token }: { token: string }) {
     setConfirming(true);
     setAvisoSeleccion(null);
     try {
-      if (pending.aceptarOfertaEstandar) {
-        await acceptOffer(token);
-      } else {
-        await selectEquipment(token, pending.variantId as number, pending.comboId);
-      }
+      await selectEquipment(token, pending.variantId, pending.comboId);
       // Éxito: CONVIRTIÓ (eligió su equipo) → no es abandono si luego oculta la
       // pestaña (BAL-2236). Confirmación EN LA MISMA página (sin re-validar el
       // token consumido).
@@ -518,118 +510,6 @@ export function MiOfertaClient({ token }: { token: string }) {
 
   const { offer } = state;
 
-  // Oferta ESTÁNDAR con «Mostrar catálogo completo» (BAL-4688): el equipo que
-  // armó el asesor y, debajo, la puerta al catálogo de la landing. Mismas
-  // piezas que el downgrade, con un texto neutro.
-  if (offer.offerCase === 'standard' && offer.catalogEnabled) {
-    const info = offer.standardOffer ?? null;
-    const frecuencia = info?.paymentFrequency ?? 'mensual';
-    const cuota = info?.currentMonthlyPayment ?? info?.monthlyPayment ?? undefined;
-    const equipoOferta: EquipoRecomendadoInfo = {
-      name: info?.productName || 'Tu equipo',
-      brand: info?.productBrand ?? undefined,
-      imageUrl: info?.productImageUrl ?? undefined,
-      monthly: cuota ?? 0,
-      term: frecuencia === 'mensual' ? info?.termMonths ?? undefined : undefined,
-      periodLabel: cuotaSuffix(frecuencia),
-      initial:
-        info?.initialPayment != null && info.initialPayment > 0
-          ? `inicial S/${Math.round(info.initialPayment)}`
-          : undefined,
-      specs: info?.productSpecs
-        ? specsToChips(createSpecsFromEav(info.productSpecs, 'laptop'))
-        : undefined,
-    };
-    const aceptarEquipoDeLaOferta = () => {
-      trackFirstAction();
-      analytics.track('offer_equipment_chosen', {
-        offer_case: offer.offerCase, source: 'standard_offer', variant_id: null,
-      });
-      const resumen = {
-        name: equipoOferta.name,
-        brand: info?.productBrand ?? undefined,
-        imageUrl: info?.productImageUrl ?? undefined,
-        monthly: cuota,
-        term: info?.term ?? info?.termMonths ?? undefined,
-        initialAmount: info?.initialPayment ?? undefined,
-        paymentFrequency: frecuencia,
-      };
-      setPending({
-        variantId: null,
-        aceptarOfertaEstandar: true,
-        equipo: resumen,
-        summary: {
-          ...resumen,
-          termMonths: info?.termMonths ?? undefined,
-          offerCode: offer.applicationCode ?? offer.offerCode,
-          userName: offer.clientName ?? undefined,
-        },
-      });
-    };
-    return (
-      <div className="min-h-screen bg-white">
-        <OfertaHeader />
-        <main className="mx-auto flex w-full max-w-3xl flex-col gap-2.5 px-4 py-3.5 sm:gap-[18px] sm:py-6 sm:px-6 lg:px-8">
-          <div className="text-[18px] font-semibold leading-[1.25]">
-            {offer.clientName ? `¡Hola, ${offer.clientName.trim()}!` : '¡Hola!'} Tenemos una propuesta para ti
-          </div>
-          {offer.applicationCode ? (
-            <div
-              className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
-              style={{ backgroundColor: OFERTA_COLORS.lilac, color: OFERTA_COLORS.textSoft }}
-            >
-              Solicitud: {offer.applicationCode}
-            </div>
-          ) : null}
-          {avisoSeleccion ? (
-            <AvisoSeleccion message={avisoSeleccion} onCerrar={() => setAvisoSeleccion(null)} />
-          ) : null}
-          <EquipoRecomendadoCard
-            equipo={equipoOferta}
-            tone="verde"
-            badgeText="Elegido para ti"
-            ctaText="Aceptar equipo"
-            onElegir={aceptarEquipoDeLaOferta}
-            onVerDetalle={
-              info?.productSlug
-                ? () => {
-                    convertedRef.current = true;
-                    window.location.href = `${process.env.NEXT_PUBLIC_APP_BASE_PATH || ''}/oferta/${token}/producto/${info.productSlug}`;
-                  }
-                : undefined
-            }
-          />
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
-            <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
-              ¿prefieres otro?
-            </span>
-            <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
-          </div>
-          <OpcionBarra
-            imagen={COLLAGE_EQUIPOS_URL}
-            imagenAlt="Equipos disponibles"
-            icono={<ShoppingBag className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
-            titulo="Ver más equipos"
-            subtitulo={
-              catalogCount && catalogCount > 0
-                ? `Explora ${catalogCount} equipos del catálogo`
-                : 'Explora los equipos del catálogo'
-            }
-            onClick={goToCatalogo}
-          />
-        </main>
-        <ConfirmarEleccionModal
-          isOpen={pending !== null}
-          equipo={pending?.equipo ?? null}
-          loading={confirming}
-          onConfirm={confirmSelect}
-          onClose={() => (confirming ? undefined : setPending(null))}
-        />
-      </div>
-    );
-  }
-
   // Oferta ESTÁNDAR (F-6B): el analista ya armó UNA oferta y el cliente solo
   // decide aceptar/rechazar — vista simple con countdown, sin catálogo.
   if (offer.offerCase === 'standard') {
@@ -641,6 +521,17 @@ export function MiOfertaClient({ token }: { token: string }) {
           // Aceptó o rechazó → decidió, no abandonó (BAL-2236).
           convertedRef.current = true;
         }}
+        // «Mostrar catálogo completo» (BAL-4688): la misma pantalla de
+        // siempre y, al final, la barra al catálogo de la landing.
+        catalogo={
+          offer.catalogEnabled
+            ? {
+                cantidad: catalogCount,
+                imagen: COLLAGE_EQUIPOS_URL,
+                onVerCatalogo: goToCatalogo,
+              }
+            : undefined
+        }
       />
     );
   }
