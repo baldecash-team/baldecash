@@ -152,7 +152,9 @@ export function CatalogoOfertaTab({
   }, [offerApiFilters]);
 
   // Cuota máxima aprobada (tope del slider y de cualquier filtro de cuota).
-  const maxQuota = offer.maxMonthlyQuota;
+  // Sin tope (oferta estándar con catálogo completo, BAL-4688) el techo del
+  // slider es el equipo más caro del catálogo, como en el catálogo general.
+  const maxQuota = offer.maxMonthlyQuota || offerApiFilters?.quota_range?.max || 0;
 
   // Setter de filtros con tracking: diffea prev/applied y emite un evento por
   // cada filtro que cambió (mismo patrón que CatalogoClient del catálogo

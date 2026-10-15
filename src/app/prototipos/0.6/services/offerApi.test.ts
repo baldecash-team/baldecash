@@ -482,3 +482,46 @@ describe('selectEquipment · precio esperado (BAL-4198)', () => {
     expect(nuevaCuotaDePrecioCambiado(new Error('x'))).toBeNull();
   });
 });
+
+describe('getOffer — oferta estándar con «Mostrar catálogo completo» (BAL-4688)', () => {
+  it('apagado: sin catálogo, sin tope y sin celdas, como siempre', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ case: 'standard', offer_code: 'OFF-STD-9', monthly_payment: 149 }),
+    });
+
+    const offer = await getOffer('tok');
+    expect(offer.catalogEnabled).toBe(false);
+    expect(offer.maxMonthlyQuota).toBe(0);
+    expect(offer.terms).toEqual([]);
+    expect(offer.initials).toEqual([]);
+  });
+
+  it('prendido: catálogo con las celdas y el tope (solo en rescate)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        case: 'standard', offer_code: 'OFF-STD-10', monthly_payment: 149,
+        catalog_enabled: true, max_monthly_quota: 150, terms: [12, 24], initials: [0, 10],
+      }),
+    });
+
+    const offer = await getOffer('tok');
+    expect(offer.catalogEnabled).toBe(true);
+    expect(offer.maxMonthlyQuota).toBe(150);
+    expect(offer.terms).toEqual([12, 24]);
+    expect(offer.initials).toEqual([0, 10]);
+  });
+
+  it('prendido sin tope: max_monthly_quota null queda en 0 (sin tope)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        case: 'standard', offer_code: 'OFF-STD-11', catalog_enabled: true,
+        max_monthly_quota: null, terms: [24], initials: [0],
+      }),
+    });
+
+    expect((await getOffer('tok')).maxMonthlyQuota).toBe(0);
+  });
+});

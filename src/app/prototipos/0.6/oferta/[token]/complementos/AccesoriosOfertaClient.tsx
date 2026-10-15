@@ -898,9 +898,12 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
               {clientName ? `¡Felicitaciones, ${clientName}, tu solicitud ha sido` : '¡Felicitaciones! Tu solicitud ha sido'}{' '}
               <span style={{ color: OFERTA_COLORS.greenDark }}>aprobada</span>!
             </h1>
-            <p className="mt-1.5 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-              Solo mostramos lo que entra en tu cuota.
-            </p>
+            {/* Sin tope (oferta con catálogo completo) no hay cuota que topar. */}
+            {maxQuota != null ? (
+              <p className="mt-1.5 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
+                Solo mostramos lo que entra en tu cuota.
+              </p>
+            ) : null}
           </div>
         )}
 

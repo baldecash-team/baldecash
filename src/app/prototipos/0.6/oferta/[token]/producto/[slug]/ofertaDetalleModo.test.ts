@@ -59,4 +59,16 @@ describe('modoDetalle', () => {
       initial: null,
     });
   });
+
+  it('estándar con catálogo completo: los demás equipos se eligen en mensual', () => {
+    const conCatalogo = { ...estandar, catalogEnabled: true } as OfferView;
+    expect(modoDetalle(conCatalogo, 'otro-equipo')).toEqual({
+      readOnly: false, frequency: 'mensual', term: null, initial: null,
+    });
+  });
+
+  it('estándar con catálogo completo: el equipo de la oferta sigue de solo lectura', () => {
+    const conCatalogo = { ...estandar, catalogEnabled: true } as OfferView;
+    expect(modoDetalle(conCatalogo, 'acer-tmp214').readOnly).toBe(true);
+  });
 });
