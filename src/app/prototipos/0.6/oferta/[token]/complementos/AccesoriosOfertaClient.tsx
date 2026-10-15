@@ -31,7 +31,7 @@ import {
   nuevaCuotaDePrecioCambiado,
 } from '../../../services/offerApi';
 import type { Accessory, InsurancePlan } from '../../../[landing]/solicitar/types/upsell';
-import { ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
+import { AVISO_OFERTA_MANUAL, ConfirmarEleccionModal } from '../components/ConfirmarEleccionModal';
 import { PrecioCambiadoAviso } from '../components/PrecioCambiadoAviso';
 import { EquipoAgotadoAviso, esEquipoAgotado } from '../components/EquipoAgotadoAviso';
 import { AvisoSeleccion, errorDeSeleccionTumbaLaPagina } from '../components/AvisoSeleccion';
@@ -892,6 +892,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             oferta, con la cuota aprobada; el resto, como siempre. */}
         {esSaludoDowngrade(offerCase, maxQuota) ? (
           <SaludoDowngrade nombre={clientName} tope={maxQuota as number} variante="complementos" />
+        ) : offerCase === 'standard' ? (
+          // Oferta manual con catálogo (BAL-4688): sin «aprobada» ni cuota.
+          <div>
+            <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
+              {clientName ? `¡Hola, ${clientName}!` : '¡Hola!'} Revisa tu nuevo equipo
+            </h1>
+          </div>
         ) : (
           <div>
             <h1 className="font-['Baloo_2',_sans-serif] text-[20px] font-bold leading-[1.25]" style={{ color: OFERTA_COLORS.textStrong }}>
@@ -989,7 +996,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado. */}
         {maxQuota != null && overBudget ? (
           <p className="text-xs font-medium text-red-600">
-            Supera tu cuota aprobada. Quita algo para continuar.
+            {offerCase === 'standard'
+              ? 'Supera tu cuota máxima. Quita algo para continuar.'
+              : 'Supera tu cuota aprobada. Quita algo para continuar.'}
           </p>
         ) : null}
       </main>
@@ -1095,6 +1104,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         loading={confirming}
         onConfirm={() => setShowSeguro(true)}
         onClose={() => (confirming ? undefined : setModalOpen(false))}
+        aviso={offerCase === 'standard' ? AVISO_OFERTA_MANUAL : undefined}
         addonsSlot={addonsResumen}
         insuranceUpsellSlot={insuranceUpsellSlot}
       />
@@ -1130,8 +1140,10 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
                 ¿Confirmas tu equipo?
               </h2>
               <p className="mt-1.5 text-[13.5px] leading-[1.5]" style={{ color: OFERTA_COLORS.textMid }}>
-                Al confirmar, cambiaremos tu equipo y tu solicitud quedará aprobada.
-                Esta acción no se puede deshacer.
+                {offerCase === 'standard'
+                  ? 'Al confirmar, cambiaremos tu equipo por este.'
+                  : 'Al confirmar, cambiaremos tu equipo y tu solicitud quedará aprobada.'}
+                {' '}Esta acción no se puede deshacer.
               </p>
               <div className="mt-5 flex flex-col gap-2">
                 <button

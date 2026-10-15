@@ -400,7 +400,10 @@ export function CatalogoOfertaTab({
           ))
         ) : items.length === 0 ? (
           <p className="col-span-full py-10 text-center text-sm text-gray-500">
-            No hay equipos disponibles para tu cuota con estos filtros.
+            {/* La oferta manual (BAL-4688) no tiene cuota aprobada: texto neutro. */}
+            {offer.offerCase === 'standard'
+              ? 'No hay equipos con estos filtros.'
+              : 'No hay equipos disponibles para tu cuota con estos filtros.'}
           </p>
         ) : (
           <>
@@ -410,7 +413,9 @@ export function CatalogoOfertaTab({
                 product={product}
                 hideColors
                 hideFavorite
-                approvedTag
+                // «Aprobado para ti» es del downgrade/upsell; la oferta manual
+                // muestra el catálogo neutro (BAL-4688).
+                approvedTag={offer.offerCase !== 'standard'}
                 ctaLabel="Elegir"
                 onCtaClick={() => onSelect(product)}
                 getDetailHref={(slug) =>

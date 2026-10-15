@@ -63,6 +63,8 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
   const [offerInitials, setOfferInitials] = useState<number[]>([0]);
   // offer_case para analytics (BAL-2236). 'unknown' hasta que carga la oferta.
   const [offerCase, setOfferCase] = useState<string>('unknown');
+  // Oferta manual con «Mostrar catálogo completo» (BAL-4688).
+  const [catalogoManual, setCatalogoManual] = useState(false);
   // Plazo/inicial que el cliente eligió en el selector (BAL-2097) → se propagan a
   // la página de accesorios. Null hasta que el selector emita (se usa el default).
   const [pickedTerm, setPickedTerm] = useState<number | null>(null);
@@ -142,6 +144,7 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           setOfferTerms(offer.terms?.length ? offer.terms : [24]);
           setOfferInitials(offer.initials?.length ? offer.initials : [0]);
           setOfferCase(offer.offerCase ?? 'unknown');
+          setCatalogoManual(offer.offerCase === 'standard' && offer.catalogEnabled === true);
         }
 
         // Oferta ya consumida (el estudiante ya eligió su equipo): el detalle no
@@ -449,12 +452,18 @@ export function OfertaDetalleClient({ token, slug }: { token: string; slug: stri
           ctaText="Elegir este equipo"
           ctaDisabledReason={
             !readOnly && pickedWithinQuota === false
-              ? 'Esta combinación supera tu cuota aprobada. Elige otro plazo o inicial.'
+              ? (offerCase === 'standard'
+                ? 'Esta combinación supera tu cuota máxima. Elige otro plazo o inicial.'
+                : 'Esta combinación supera tu cuota aprobada. Elige otro plazo o inicial.')
               : undefined
           }
           readOnlyNotice={
             readOnly
-              ? 'Por ahora no tenemos disponible este equipo. Elige uno de los que preparamos para ti y tu solicitud quedará aprobada.'
+              ? (catalogoManual
+                // Manual con catálogo (BAL-4688): es el equipo de la oferta y
+                // se acepta desde la pantalla de la oferta. Sin «aprobada».
+                ? 'Este es el equipo de tu oferta: acéptalo desde la pantalla de tu oferta.'
+                : 'Por ahora no tenemos disponible este equipo. Elige uno de los que preparamos para ti y tu solicitud quedará aprobada.')
               : undefined
           }
           cronogramaVersion={defaultDetalleConfig.cronogramaVersion}
