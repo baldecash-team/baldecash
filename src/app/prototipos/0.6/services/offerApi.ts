@@ -302,6 +302,10 @@ export interface OfferView {
   initials: number[];
   /** Datos de la oferta estándar — solo cuando offerCase === 'standard'. */
   standardOffer?: StandardOfferInfo | null;
+  /** Oferta estándar con «Mostrar catálogo completo» (BAL-4688): además del
+   *  equipo ofrecido, el cliente puede elegir otro del catálogo de la landing.
+   *  Solo viene `true` cuando el backend lo manda; si no, la oferta de siempre. */
+  catalogEnabled?: boolean;
 }
 
 export interface OfferCatalog {
@@ -438,8 +442,9 @@ export async function getOffer(token: string): Promise<OfferView> {
   if (data.case === 'standard') {
     return {
       offerCode: data.offer_code,
-      // No aplica a la oferta estándar (no hay catálogo topado por cuota).
-      maxMonthlyQuota: 0,
+      // Solo hay tope con el catálogo prendido en una solicitud en rescate;
+      // en el resto 0 = sin tope (no hay catálogo topado por cuota).
+      maxMonthlyQuota: data.max_monthly_quota ?? 0,
       expiresAt: data.expires_at ?? null,
       // La landing de la solicitud (o la de la oferta si el analista la
       // cambió): con ella se arma el link "Ver detalle" del equipo.
@@ -454,8 +459,12 @@ export async function getOffer(token: string): Promise<OfferView> {
       legacyId: data.legacy_id ?? null,
       clientName: data.client_name ?? null,
       offerCase: 'standard',
-      terms: [],
-      initials: [],
+      // Con el catálogo prendido (BAL-4688) el backend manda los plazos e
+      // iniciales del catálogo y, solo en rescate, el tope. Apagado no viene
+      // nada y queda como siempre: sin tope y sin celdas.
+      catalogEnabled: data.catalog_enabled === true,
+      terms: data.terms ?? [],
+      initials: data.initials ?? [],
       standardOffer: {
         status: data.status ?? null,
         productName: data.product_name ?? null,

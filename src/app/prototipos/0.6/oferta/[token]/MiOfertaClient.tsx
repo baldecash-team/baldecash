@@ -233,7 +233,9 @@ export function MiOfertaClient({ token }: { token: string }) {
   // (BAL-2224), así que se carga en ambos. Best-effort: si falla, el copy
   // cae a la versión sin número. No aplica en oferta estándar.
   useEffect(() => {
-    if (state.kind !== 'ready' || state.offer.offerCase === 'standard') return;
+    if (state.kind !== 'ready') return;
+    // La estándar solo tiene catálogo con el interruptor prendido (BAL-4688).
+    if (state.offer.offerCase === 'standard' && !state.offer.catalogEnabled) return;
     let active = true;
     getCatalog(token, {})
       .then((cat) => { if (active) setCatalogCount(cat.count ?? null); })
@@ -519,6 +521,17 @@ export function MiOfertaClient({ token }: { token: string }) {
           // Aceptó o rechazó → decidió, no abandonó (BAL-2236).
           convertedRef.current = true;
         }}
+        // «Mostrar catálogo completo» (BAL-4688): la misma pantalla de
+        // siempre y, al final, la barra al catálogo de la landing.
+        catalogo={
+          offer.catalogEnabled
+            ? {
+                cantidad: catalogCount,
+                imagen: COLLAGE_EQUIPOS_URL,
+                onVerCatalogo: goToCatalogo,
+              }
+            : undefined
+        }
       />
     );
   }

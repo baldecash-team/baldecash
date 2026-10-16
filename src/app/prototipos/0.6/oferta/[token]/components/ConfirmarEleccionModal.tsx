@@ -45,6 +45,12 @@ export interface EquipoAConfirmar {
  *  (confirmación/éxito) para el `addonsSlot` que pasa el caller. El contenido
  *  ya distingue regalos del combo (gratis) de lo elegido (+S/) y trae su propia
  *  cuota total — aquí solo lo enmarcamos, sin duplicar montos ni etiquetas. */
+/** Aviso del pie del modal en el downgrade/upsell. */
+export const AVISO_POR_DEFECTO = 'Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada.';
+
+/** Oferta manual con catálogo (BAL-4688): sin «aprobada». */
+export const AVISO_OFERTA_MANUAL = 'Al aceptar, cambiaremos tu equipo por este.';
+
 function PedidoBox({ children }: { children: ReactNode }) {
   return (
     <div
@@ -69,6 +75,7 @@ function ConfirmarEleccionContenido({
   addonsSlot,
   insuranceUpsellSlot,
   scrollClassName,
+  aviso,
 }: {
   equipo: EquipoAConfirmar | null;
   loading?: boolean;
@@ -78,6 +85,7 @@ function ConfirmarEleccionContenido({
   insuranceUpsellSlot?: ReactNode;
   /** Clase del contenedor del body (el drawer necesita flex-1 + overflow). */
   scrollClassName: string;
+  aviso: string;
 }) {
   return (
     <>
@@ -160,7 +168,7 @@ function ConfirmarEleccionContenido({
             style={{ backgroundColor: OFERTA_COLORS.greenSoft, color: OFERTA_COLORS.greenDark }}
           >
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Al aceptar, cambiaremos tu equipo y tu solicitud quedará aprobada.</span>
+            <span>{aviso}</span>
           </div>
         </div>
       </div>
@@ -199,6 +207,7 @@ export function ConfirmarEleccionModal({
   onClose,
   addonsSlot,
   insuranceUpsellSlot,
+  aviso = AVISO_POR_DEFECTO,
 }: {
   isOpen: boolean;
   equipo: EquipoAConfirmar | null;
@@ -212,6 +221,8 @@ export function ConfirmarEleccionModal({
    *  disponibles NO seleccionados + botón "Añadir", antes del aviso final.
    *  Solo se pasa cuando el caller tiene seguros disponibles sin elegir. */
   insuranceUpsellSlot?: ReactNode;
+  /** Texto del aviso final. La oferta manual (BAL-4688) no habla de «aprobada». */
+  aviso?: string;
 }) {
   const isMobile = useIsMobile();
   const dragControls = useDragControls();
@@ -270,6 +281,7 @@ export function ConfirmarEleccionModal({
                 addonsSlot={addonsSlot}
                 insuranceUpsellSlot={insuranceUpsellSlot}
                 scrollClassName="flex-1 overflow-y-auto"
+                aviso={aviso}
               />
             </motion.div>
           </>
@@ -309,6 +321,7 @@ export function ConfirmarEleccionModal({
           addonsSlot={addonsSlot}
           insuranceUpsellSlot={insuranceUpsellSlot}
           scrollClassName="flex-1 overflow-y-auto"
+          aviso={aviso}
         />
       </ModalContent>
     </Modal>

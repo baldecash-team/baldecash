@@ -43,6 +43,7 @@ import { EquipoAgotadoAviso, esEquipoAgotado } from './EquipoAgotadoAviso';
 import { OfertaHeader } from './redesign/OfertaHeader';
 import { OFERTA_COLORS } from './redesign/ofertaTheme';
 import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './redesign/EquipoRecomendadoCard';
+import { OpcionBarra } from './redesign/OpcionBarra';
 import { specsToChips } from './redesign/specsChips';
 import { OfertaEstadoMensaje } from './OfertaEstadoMensaje';
 import { SeleccionConfirmada, type ChosenSummary } from './SeleccionConfirmada';
@@ -95,14 +96,25 @@ function OpcionesFila({
   );
 }
 
+/** Puerta al catálogo de la landing (BAL-4688, «Mostrar catálogo completo»). */
+export interface CatalogoDeLaOferta {
+  /** Nº de equipos del catálogo; null mientras carga o si falló. */
+  cantidad: number | null;
+  imagen: string;
+  onVerCatalogo: () => void;
+}
+
 export function StandardOfertaAccion({
   token,
   offer,
   onConverted,
+  catalogo,
 }: {
   token: string;
   offer: OfferView;
   onConverted?: () => void;
+  /** Sin esto la pantalla es exactamente la de siempre. */
+  catalogo?: CatalogoDeLaOferta;
 }) {
   const analytics = useAnalytics();
   const info = offer.standardOffer ?? null;
@@ -910,6 +922,33 @@ export function StandardOfertaAccion({
             <Ban className="h-3.5 w-3.5" />
             Esta oferta ya no puede aceptarse ni rechazarse. Escríbenos para reactivarla.
           </div>
+        ) : null}
+
+        {/* «Mostrar catálogo completo» (BAL-4688): lo único que se agrega a la
+            oferta de siempre. Lleva al catálogo de la landing para elegir
+            otro equipo. Texto neutro: nada de «mejora» ni de cuotas. */}
+        {catalogo ? (
+          <>
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+              <span className="whitespace-nowrap text-[11px]" style={{ color: OFERTA_COLORS.textSoft }}>
+                ¿prefieres otro?
+              </span>
+              <div className="h-px flex-1" style={{ backgroundColor: OFERTA_COLORS.border }} />
+            </div>
+            <OpcionBarra
+              imagen={catalogo.imagen}
+              imagenAlt="Equipos disponibles"
+              icono={<Package className="h-[28px] w-[28px]" strokeWidth={1.8} style={{ color: OFERTA_COLORS.primary }} />}
+              titulo="Ver más equipos"
+              subtitulo={
+                catalogo.cantidad && catalogo.cantidad > 0
+                  ? `Explora ${catalogo.cantidad} equipos del catálogo`
+                  : 'Explora los equipos del catálogo'
+              }
+              onClick={catalogo.onVerCatalogo}
+            />
+          </>
         ) : null}
       </main>
 

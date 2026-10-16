@@ -29,7 +29,12 @@ export interface ModoDetalle {
 }
 
 export function modoDetalle(offer: OfferView, slug: string): ModoDetalle {
-  if (offer.offerCase === 'standard') {
+  // Con el catálogo prendido (BAL-4688) los demás equipos sí se eligen: solo el
+  // de la oferta queda de solo lectura (se acepta en la pantalla de la oferta).
+  const otroDelCatalogo =
+    offer.offerCase === 'standard' && offer.catalogEnabled === true
+    && slug !== offer.standardOffer?.productSlug;
+  if (offer.offerCase === 'standard' && !otroDelCatalogo) {
     const info = offer.standardOffer ?? null;
     return {
       readOnly: true,
