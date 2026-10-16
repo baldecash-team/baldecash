@@ -405,6 +405,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         label: opt.label,
         description: opt.description || undefined,
       }));
+      // Toda lista del sistema va a CascadingSelectField (aquí `forma` sale
+      // «search»). Las chicas que dejan elegir forma (BAL-4701: tipo de
+      // documento, estado civil) la resuelven allá, con las opciones que trae
+      // el catálogo: aquí todavía no se sabe cuántas son.
       const delSistema = Boolean(field.options_source || field.cascade_from);
       const varias = Boolean(field.allow_multiple) && !delSistema;
       const forma = resolverForma({

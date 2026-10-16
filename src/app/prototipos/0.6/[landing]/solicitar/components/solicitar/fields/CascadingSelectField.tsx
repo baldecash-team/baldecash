@@ -31,6 +31,9 @@ import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { SelectInput } from './SelectInput';
+import { SegmentedControl } from './SegmentedControl';
+import { RadioGroup } from './RadioGroup';
+import { formaElegibleDelSistema, resolverForma } from './formaDeLista';
 
 /**
  * Landings sin convenio que igual ofrecen el selector de sedes, y de qué
@@ -415,11 +418,50 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // - field with options_source still loading initial options
   const isDisabled = disabled || field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
 
+  // BAL-4701: tipo de documento y estado civil dejan elegir la forma en el
+  // panel. Se decide AQUÍ y no en DynamicField porque recién aquí se sabe
+  // cuántas opciones trajo el catálogo (botones con más de 4 caen a la
+  // automática). La carga, el caché de opciones dinámicas (de donde
+  // DocumentNumberField lee el largo y el formato del número) y la reparación
+  // de etiquetas son las mismas de arriba: solo cambia cómo se dibuja.
+  const formaPropia = formaElegibleDelSistema(field.options_source, field.cascade_from)
+    ? resolverForma({
+        tipo: field.type,
+        displayMode: field.display_mode,
+        cantidad: options.length,
+        delSistema: true,
+        formaElegible: true,
+      })
+    : null;
+
   // El corte va DESPUÉS de todos los hooks (BAL-4384): antes estaba arriba de
   // los useState y, si la landing pasaba a tener convenio, React cambiaba la
   // cantidad de hooks entre renders.
   if (ocultoSinConvenio) {
     return null;
+  }
+
+  // Botones o tarjetas solo con las opciones ya cargadas: mientras tanto se
+  // ve el desplegable con «Cargando...», no una fila vacía.
+  if ((formaPropia === 'buttons' || formaPropia === 'cards') && options.length > 0) {
+    const Forma = formaPropia === 'buttons' ? SegmentedControl : RadioGroup;
+    return (
+      <Forma
+        id={field.code}
+        label={field.label}
+        value={value}
+        // Con el texto, como el desplegable: la etiqueta viaja al resumen y al submit.
+        onChange={(nuevo: string) => updateField(field.code, nuevo, options.find((o) => o.value === nuevo)?.label)}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        options={options}
+        error={error}
+        success={!error && !!value}
+        required={field.required}
+        disabled={isDisabled}
+        tooltip={tooltip}
+      />
+    );
   }
 
   return (
@@ -434,7 +476,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       success={!error && !!value}
       required={field.required}
       disabled={isDisabled}
-      searchable={searchable}
+      searchable={formaPropia ? formaPropia === 'search' : searchable}
       tooltip={tooltip}
       // Lazy search props
       onSearch={isLazySearch ? handleSearch : undefined}

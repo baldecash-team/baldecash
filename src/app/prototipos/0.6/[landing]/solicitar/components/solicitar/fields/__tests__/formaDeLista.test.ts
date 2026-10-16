@@ -1,4 +1,4 @@
-import { resolverForma } from '../formaDeLista';
+import { resolverForma, formaElegibleDelSistema } from '../formaDeLista';
 
 const casos: Array<[string, Parameters<typeof resolverForma>[0], string]> = [
   // Sin forma elegida = exactamente como hoy
@@ -34,10 +34,34 @@ const casos: Array<[string, Parameters<typeof resolverForma>[0], string]> = [
   ['varias casillas elegida', { tipo: 'select', displayMode: 'checkboxes', cantidad: 12, delSistema: false, varias: true }, 'checkboxes'],
   ['varias tarjetas elegida', { tipo: 'select', displayMode: 'cards', cantidad: 4, delSistema: false, varias: true }, 'cards'],
   ['varias botones con 5 caen a auto de varias', { tipo: 'select', displayMode: 'buttons', cantidad: 5, delSistema: false, varias: true }, 'checkboxes'],
+  // BAL-4701: listas chicas del sistema (tipo de documento, estado civil) que
+  // sí dejan elegir la forma. Sin forma elegida siguen con buscador, como hoy.
+  ['chica del sistema sin forma', { tipo: 'select', displayMode: null, cantidad: 3, delSistema: true, formaElegible: true }, 'search'],
+  ['chica del sistema con auto viejo', { tipo: 'select', displayMode: 'auto', cantidad: 3, delSistema: true, formaElegible: true }, 'search'],
+  ['chica del sistema con botones', { tipo: 'select', displayMode: 'buttons', cantidad: 3, delSistema: true, formaElegible: true }, 'buttons'],
+  ['chica del sistema con tarjetas', { tipo: 'select', displayMode: 'cards', cantidad: 5, delSistema: true, formaElegible: true }, 'cards'],
+  ['chica del sistema con desplegable', { tipo: 'select', displayMode: 'dropdown', cantidad: 3, delSistema: true, formaElegible: true }, 'dropdown'],
+  ['chica del sistema con buscador', { tipo: 'select', displayMode: 'search', cantidad: 3, delSistema: true, formaElegible: true }, 'search'],
+  ['chica del sistema botones con 5 caen a tarjetas', { tipo: 'select', displayMode: 'buttons', cantidad: 5, delSistema: true, formaElegible: true }, 'cards'],
 ];
 
 describe('resolverForma', () => {
   it.each(casos)('%s', (_n, entrada, esperado) => {
     expect(resolverForma(entrada)).toBe(esperado);
+  });
+});
+
+describe('formaElegibleDelSistema (BAL-4701)', () => {
+  it.each([
+    ['document-types', null, true],
+    ['marital-status', undefined, true],
+    ['geo-units/departments', null, false],
+    ['study-centers', null, false],
+    ['agreement-branches', null, false],
+    [null, null, false],
+    // Con cascada ya no es una lista fija: sus opciones dependen del padre.
+    ['document-types', 'country', false],
+  ])('%s con padre %s -> %s', (fuente, padre, esperado) => {
+    expect(formaElegibleDelSistema(fuente, padre)).toBe(esperado);
   });
 });
