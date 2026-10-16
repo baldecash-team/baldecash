@@ -27,6 +27,8 @@ import {
 } from '@/app/prototipos/0.6/analytics/clientHints';
 import { getLeadLinkCode, getPromotorRef, readPromotorRef } from '@/app/prototipos/0.6/utils/landingParams';
 import { persistUtmParams, readUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
+import { obtenerCodigoDeVisitante } from '@/app/prototipos/0.6/utils/visitorId';
+import { patchTrackingSession } from '@/app/prototipos/0.6/services/sessionApi';
 
 // Dynamic storage key based on landing slug
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
@@ -392,6 +394,8 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
       // Client Hints: la versión que declara el user agent está congelada.
       // Nunca lanza — ante cualquier problema devuelve el valor de respaldo.
       const realOsVersion = await resolveOsVersion(osVersion, getUserAgentData());
+      // Une esta visita con las anteriores del mismo navegador (ver visitorId.ts).
+      const visitorId = obtenerCodigoDeVisitante();
 
       const payload = {
         landing_slug: slug,
@@ -409,6 +413,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         // GA4— hace falta en la fila de la sesión.
         user_agent: navigator.userAgent,
         entry_url: window.location.href,
+        fingerprint_hash: visitorId ?? undefined,
         ...utmParams,
         ...referrer,
       };
@@ -439,6 +444,13 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
           }
 
           const data = await response.json();
+          // El POST sobre una sesión que ya existe no completa el código (solo
+          // rellena UTMs), así que una sesión nacida antes de que el navegador
+          // tuviera código quedaría sin él para siempre. El PATCH solo llena
+          // huecos: si ya tiene uno, no lo pisa.
+          if (data.recovered && visitorId) {
+            void patchTrackingSession(data.session_uuid, { fingerprint_hash: visitorId });
+          }
           return {
             uuid: data.session_uuid,
             id: data.session_id,
