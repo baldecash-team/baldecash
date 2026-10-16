@@ -52,6 +52,7 @@ import { formaElegibleDelSistema, resolverForma } from './formaDeLista';
 const SEDES_SIN_CONVENIO: Record<string, number> = {
   'lead-flujo-normal': 16, // SENATI
   'lead-flujo-ucv': 32, // UCV — clon de captación A365 para UCV (Ate/Callao)
+  'lead-flujo-upn': 19, // UPN — clon de captación A365 para UPN
 };
 
 interface CascadingSelectFieldProps {
