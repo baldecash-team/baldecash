@@ -15,6 +15,7 @@ import {
 } from '../[landing]/solicitar/utils/wizardScopedStorage';
 import { clearOtpHandoff } from '../[landing]/solicitar/utils/otpHandoff';
 import { clearCatalogBrowsingStorage } from '../[landing]/catalogo/hooks/useCatalogSharedState';
+import { reiniciarCodigoDeVisitante } from './visitorId';
 
 /**
  * Clears every trace of the current client on a landing: access, personal data,
@@ -61,6 +62,8 @@ export function clearLandingClientData(landing: string): void {
   clearCatalogBrowsingStorage(landing);
   clearPendingParams(landing);
   clearSessionStorage(landing);
+  // Solo la llama el cambio de identidad del `?vip_auto=`: es otra persona.
+  reiniciarCodigoDeVisitante();
 }
 
 /**
@@ -95,8 +98,14 @@ export function clearLandingSession(
   clearCatalogBrowsingStorage(landing);
   clearPendingParams(landing);
 
-  // Tracking session, last: the next client must not inherit it.
-  if (!keepTrackingSession) clearSessionStorage(landing);
+  // Tracking session, last: the next client must not inherit it. Neither the
+  // visitor code: on a stand tablet every student would otherwise count as one
+  // visitor. Both go together — kept in the same branch for the same reason
+  // (see `resetLandingSessionIfIdentityChanged`).
+  if (!keepTrackingSession) {
+    clearSessionStorage(landing);
+    reiniciarCodigoDeVisitante();
+  }
 }
 
 /**
