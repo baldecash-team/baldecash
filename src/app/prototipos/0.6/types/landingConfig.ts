@@ -107,6 +107,21 @@ export interface LandingConfigFeatures {
    */
   show_summary: boolean;
   /**
+   * Secciones de la portada de «Solicitar» que se ocultan por landing
+   * (BAL-4700), cada una con su ingrediente `-off` en «Características»:
+   *
+   * - `show_selected_product` — recuadro «Producto seleccionado».
+   * - `show_quick_facts`      — tarjetas «~5 minutos · 4 pasos · 100% Seguro».
+   * - `show_requirements`     — lista «Lo que necesitarás».
+   *
+   * Default `true`: sin el ingrediente la portada queda igual que antes. El
+   * backend las emite siempre; igual se leen con `!== false` por si un
+   * backend viejo no las trae.
+   */
+  show_selected_product: boolean;
+  show_quick_facts: boolean;
+  show_requirements: boolean;
+  /**
    * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
    * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
    *
@@ -392,6 +407,9 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     show_product_image: true,
     has_coupon: true,
     show_summary: true,
+    show_selected_product: true,
+    show_quick_facts: true,
+    show_requirements: true,
     // Opt-in, al reves que el resto de este bloque: default apagado.
     has_usage_chips: false,
     has_usage_filter: true,

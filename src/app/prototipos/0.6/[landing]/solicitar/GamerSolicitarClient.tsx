@@ -125,7 +125,13 @@ export function GamerSolicitarContent() {
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes, config: wizardConfigData } = useWizardConfig();
 
   // Layout context (navbar/footer data, preview banner, 404 state)
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
+  // Secciones de la portada que se ocultan por landing (BAL-4700), igual que
+  // en `solicitarClient`: el default `= true` deja la portada como siempre si
+  // el contexto no las trae.
+  const {
+    navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData,
+    mostrarProductoSeleccionado = true, mostrarDatosRapidos = true, mostrarRequisitos = true,
+  } = useLayout();
 
   // ── Preview mode for API calls ──
   const preview = usePreview();
@@ -575,6 +581,7 @@ export function GamerSolicitarContent() {
 
         {/* Info cards — mobile first (before product) */}
         <div className="flex flex-col sm:hidden gap-0 mb-0">
+          {mostrarDatosRapidos && (
           <div className="grid grid-cols-1 gap-3 mb-6">
             {[
               { key: 'time', icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
@@ -588,7 +595,9 @@ export function GamerSolicitarContent() {
               </div>
             ))}
           </div>
+          )}
 
+          {mostrarRequisitos && (
           <div style={{ background: T.bgCard, borderRadius: 12, padding: 16, border: `1px solid ${T.border}`, marginBottom: 24 }}>
             {(() => {
               const reqData = wizardConfigData?.form_extra_data?.requirements;
@@ -618,6 +627,7 @@ export function GamerSolicitarContent() {
               );
             })()}
           </div>
+          )}
         </div>
 
         {/* Product summary — desktop only (mobile uses fixed bottom bar).
@@ -626,6 +636,9 @@ export function GamerSolicitarContent() {
         {(() => {
           const productsToShow = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
           if (productsToShow.length === 0) return null;
+          // Apagado por landing (BAL-4700), salvo que haya algo que resolver
+          // acá: cuota excedida o plazos a unificar (ver `solicitarClient`).
+          if (!mostrarProductoSeleccionado && !isOverQuotaLimit && !needsTermUnification) return null;
           const primaryProduct = productsToShow[0];
           return (
           <div id="product-section" className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, border: `1px solid ${needsTermUnification ? '#f59e0b' : T.border}`, marginBottom: 32, overflow: 'hidden' }}>
@@ -831,6 +844,7 @@ export function GamerSolicitarContent() {
         })()}
 
         {/* Info cards — desktop only (mobile shown above product) */}
+        {mostrarDatosRapidos && (
         <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
           {[
             { key: 'time', icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
@@ -845,7 +859,10 @@ export function GamerSolicitarContent() {
           ))}
         </div>
 
+        )}
+
         {/* Lo que necesitarás — desktop only */}
+        {mostrarRequisitos && (
         <div className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${T.border}`, marginBottom: 32 }}>
           {(() => {
             const reqData = wizardConfigData?.form_extra_data?.requirements;
@@ -875,6 +892,7 @@ export function GamerSolicitarContent() {
             );
           })()}
         </div>
+        )}
 
         {/* Accesorios — solo si el backend habilita la sección en la landing */}
         {isSectionEnabled('accessories') && (

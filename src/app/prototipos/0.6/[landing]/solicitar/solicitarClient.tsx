@@ -188,7 +188,14 @@ function WizardPreviewContent() {
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
+  // Las tres secciones de la portada que se ocultan por landing (BAL-4700).
+  // El default `= true` repite el del contexto a propósito: si algo arma el
+  // layout sin ellas (un mock, un contexto viejo), la portada queda como
+  // siempre en vez de perder las tres secciones.
+  const {
+    navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, puedeCambiarPlazo, mostrarImagenProducto,
+    mostrarProductoSeleccionado = true, mostrarDatosRapidos = true, mostrarRequisitos = true,
+  } = useLayout();
 
   // Get wizard config for dynamic first step
   const { config, steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
@@ -545,6 +552,12 @@ function WizardPreviewContent() {
         {(() => {
           const productsToShow = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
           if (productsToShow.length === 0) return null;
+          // Apagado por landing (BAL-4700), salvo que el recuadro tenga algo
+          // que la persona TIENE que resolver: el aviso de cuota excedida y
+          // el selector para unificar plazos viven acá, y el botón de
+          // continuar la manda justo a este recuadro (en celular, por su id,
+          // abre la barra de abajo). Sin él quedaría trabada sin saber por qué.
+          if (!mostrarProductoSeleccionado && !isOverQuotaLimit && !needsTermUnification) return null;
 
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
 
@@ -817,7 +830,7 @@ function WizardPreviewContent() {
         {/* Info Cards.
             En renueva-* no van: la tarjeta del medio anuncia el número de
             pasos, y ese número es justo lo que este flujo dejó de tener. */}
-        {!esRenueva && (
+        {!esRenueva && mostrarDatosRapidos && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
             <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
               <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
@@ -842,7 +855,7 @@ function WizardPreviewContent() {
         )}
 
         {/* Requirements */}
-        {!esRenueva && (() => {
+        {!esRenueva && mostrarRequisitos && (() => {
           const reqData = config?.form_extra_data?.requirements;
           const reqTitle = reqData?.title ?? 'Lo que necesitarás';
           const reqItems = reqData?.items ?? [
