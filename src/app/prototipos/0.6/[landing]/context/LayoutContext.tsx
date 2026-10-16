@@ -107,6 +107,15 @@ interface LayoutContextValue {
    */
   mostrarResumen: boolean;
   /**
+   * Secciones de la portada de «Solicitar» que se pueden ocultar por landing
+   * (BAL-4700): «Producto seleccionado», las tarjetas de tiempo/pasos/
+   * seguridad y «Lo que necesitarás». Viven acá por lo mismo que sus
+   * hermanos: la regla de «ausencia significa encendido» en un solo lugar.
+   */
+  mostrarProductoSeleccionado: boolean;
+  mostrarDatosRapidos: boolean;
+  mostrarRequisitos: boolean;
+  /**
    * Si en mobile las 4 cards de uso del catálogo se muestran como chips en
    * una sola fila (BAL-3880), en vez de las cards 2x2 de siempre.
    *
@@ -186,6 +195,9 @@ export function LayoutProvider({
   const [puedeCambiarPlazo, setPuedeCambiarPlazo] = useState(true);
   const [mostrarImagenProducto, setMostrarImagenProducto] = useState(true);
   const [mostrarResumen, setMostrarResumen] = useState(true);
+  const [mostrarProductoSeleccionado, setMostrarProductoSeleccionado] = useState(true);
+  const [mostrarDatosRapidos, setMostrarDatosRapidos] = useState(true);
+  const [mostrarRequisitos, setMostrarRequisitos] = useState(true);
   const [chipsDeUso, setChipsDeUso] = useState(false);
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
@@ -213,6 +225,12 @@ export function LayoutProvider({
       // Mismo criterio: ausencia significa encendido. Ninguna landing existente
       // trae la clave; comparar contra verdadero les quitaría el resumen a todas.
       setMostrarResumen(cfg.features?.show_summary !== false);
+      // Las tres secciones de la portada de «Solicitar» (BAL-4700). Mismo
+      // criterio: solo un `false` explícito las oculta. Hoy ninguna landing
+      // trae el ingrediente, y un `=== true` les borraría las tres a todas.
+      setMostrarProductoSeleccionado(cfg.features?.show_selected_product !== false);
+      setMostrarDatosRapidos(cfg.features?.show_quick_facts !== false);
+      setMostrarRequisitos(cfg.features?.show_requirements !== false);
       // Al reves que los flags de arriba: este preset es opt-in y ninguna
       // landing lo trae todavia, asi que ausencia significa APAGADO. Copiar
       // el `!== false` del vecino prenderia los chips en las 100+ landings
@@ -477,10 +495,13 @@ export function LayoutProvider({
     puedeCambiarPlazo,
     mostrarImagenProducto,
     mostrarResumen,
+    mostrarProductoSeleccionado,
+    mostrarDatosRapidos,
+    mostrarRequisitos,
     chipsDeUso,
     filtroPorUso,
     barraDeOrden,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, chipsDeUso, filtroPorUso, barraDeOrden]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden]);
 
   return (
     <LayoutContext.Provider value={value}>
