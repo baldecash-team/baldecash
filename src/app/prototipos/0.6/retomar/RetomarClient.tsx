@@ -52,7 +52,8 @@ export function RetomarClient({ token, acepta }: { token: string; acepta: boolea
         setVista(r.reason === 'invalid' ? 'invalid' : 'error');
         return;
       }
-      // Manda lo que quedó registrado (un «Sí» ya aplicado no se deshace con un «No»).
+      // `declined` también llega con un «No» después de un «Sí»: la solicitud
+      // sigue reabierta (el backend lo anota), pero el cliente ve «Gracias por avisarnos».
       setVista(r.status === 'declined' ? 'no' : 'si');
     })();
   }, [token, acepta]);
