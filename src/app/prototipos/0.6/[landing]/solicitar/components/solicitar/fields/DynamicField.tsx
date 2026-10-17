@@ -494,6 +494,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           disabled={field.readonly}
           tooltip={tooltip}
           success={!error && (Array.isArray(checkboxValue) ? checkboxValue.length > 0 : !!checkboxValue)}
+          // Este campo vive en el grid de 12 columnas del paso (gap-y-1): sin
+          // esta línea reservada, un checkbox simple queda pegado a la
+          // siguiente pregunta (4px) mientras los demás campos dejan ~40px.
+          reserveBottomSpace
         />
       );
 
