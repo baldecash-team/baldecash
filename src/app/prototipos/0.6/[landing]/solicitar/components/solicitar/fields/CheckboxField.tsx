@@ -45,6 +45,19 @@ interface CheckboxFieldProps {
    * casilla flotando a mitad del párrafo, lejos de donde uno la busca.
    */
   alignTop?: boolean;
+  /**
+   * Reserva abajo la misma línea de ~20px que deja un TextInput para su
+   * contador/mensaje de error, para que el salto al siguiente campo del
+   * grid del wizard no quede más corto que el de los demás campos (medido
+   * en prod: 4px checkbox→siguiente vs ~40px input→siguiente).
+   *
+   * Solo aplica en modo simple: en modo múltiple cada opción ya es una caja
+   * con su propio padding y no necesita esta línea. Los usos de CheckboxField
+   * fuera del grid del wizard (p. ej. ContratoStep, donde varias casillas se
+   * apilan apretadas dentro de un mismo recuadro) no deben ganar espacio, así
+   * que el default es `false`.
+   */
+  reserveBottomSpace?: boolean;
 }
 
 export const CheckboxField: React.FC<CheckboxFieldProps> = ({
@@ -62,9 +75,11 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   disabled = false,
   required = true,
   alignTop = false,
+  reserveBottomSpace = false,
 }) => {
   // Determinar si es modo simple (sin opciones) o múltiple (con opciones)
   const isSimpleMode = !options || options.length === 0;
+  const useReservedBottomSlot = isSimpleMode && reserveBottomSpace;
 
   // Para modo simple, value es "true" o "false" como string
   const isCheckedSimple = value === 'true';
@@ -133,7 +148,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   );
 
   return (
-    <div id={id} className="space-y-3">
+    <div id={id} className={useReservedBottomSlot ? 'space-y-1.5' : 'space-y-3'}>
       {/* Label (solo para modo múltiple o como título) */}
       {!isSimpleMode && (
         <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
@@ -220,25 +235,54 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
         </div>
       )}
 
-      {/* Help text */}
-      {helpText && !error && (
-        <p className="text-xs text-neutral-500">{helpText}</p>
+      {/*
+        Línea reservada (patrón TextInput): mismo min-h-[20px] que el
+        contador/error del input, vacía cuando no hay nada que mostrar para
+        que el espacio de abajo sea constante en vez de aparecer solo con
+        error. Reemplaza los tres bloques sueltos de más abajo —no se
+        duplican— y nunca se usa en modo múltiple.
+      */}
+      {useReservedBottomSlot && (
+        <div className="min-h-[20px] flex items-center">
+          {error ? (
+            <p className="text-sm text-[#ef4444] flex items-center gap-1">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </p>
+          ) : showSuccess ? (
+            <p className="text-sm text-green-600 flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              Confirmado
+            </p>
+          ) : helpText ? (
+            <p className="text-xs text-neutral-500">{helpText}</p>
+          ) : null}
+        </div>
       )}
 
-      {/* Success message */}
-      {showSuccess && (
-        <p className="text-sm text-green-600 flex items-center gap-1">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          {isSimpleMode ? 'Confirmado' : `${selectedValues.length} seleccionado${selectedValues.length > 1 ? 's' : ''}`}
-        </p>
-      )}
+      {!useReservedBottomSlot && (
+        <>
+          {/* Help text */}
+          {helpText && !error && (
+            <p className="text-xs text-neutral-500">{helpText}</p>
+          )}
 
-      {/* Error message */}
-      {error && (
-        <p className="text-sm text-[#ef4444] flex items-center gap-1">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </p>
+          {/* Success message */}
+          {showSuccess && (
+            <p className="text-sm text-green-600 flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              {isSimpleMode ? 'Confirmado' : `${selectedValues.length} seleccionado${selectedValues.length > 1 ? 's' : ''}`}
+            </p>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <p className="text-sm text-[#ef4444] flex items-center gap-1">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
