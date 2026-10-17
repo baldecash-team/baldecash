@@ -55,3 +55,21 @@ describe('banda de vista previa del borrador', () => {
     );
   });
 });
+
+describe('banda de vista previa sin borrador (BAL-4735)', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it('dice qué versión publicada se está viendo, no «en tiempo real»', async () => {
+    const { PreviewBanner } = await import('../../components/PreviewBanner');
+    const { findByTestId } = render(
+      <PreviewProvider>
+        <Consumidor />
+        <PreviewBanner landingSlug="prueba-formulario" />
+      </PreviewProvider>,
+    );
+    act(() => contexto!.setPreviewMode(6, 'K', 'prueba-formulario', { formId: 19, borrador: false, version: 15 }));
+    const texto = (await findByTestId('preview-banner-texto')).textContent;
+    expect(texto).toContain('Estás viendo la versión publicada (v15)');
+    expect(texto).not.toContain('tiempo real');
+  });
+});
