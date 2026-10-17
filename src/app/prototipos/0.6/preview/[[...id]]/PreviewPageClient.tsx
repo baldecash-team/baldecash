@@ -98,6 +98,9 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   const formIdParam = parseInt(searchParams.get('form_id') || '', 10);
   const previewFormId = Number.isFinite(formIdParam) && formIdParam > 0 ? formIdParam : null;
   const previewBorrador = searchParams.get('draft') === '1';
+  // Sin borrador, el panel manda qué versión publicada se está mirando (BAL-4735).
+  const versionParam = parseInt(searchParams.get('version') || '', 10);
+  const previewVersion = Number.isFinite(versionParam) && versionParam > 0 ? versionParam : null;
   const irASolicitar = searchParams.get('ir') === 'solicitar';
   const router = useRouter();
 
@@ -150,7 +153,11 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         // Save preview state to context (persists in sessionStorage)
         // This allows navigation to catalog/product/solicitar to maintain preview mode
         if (previewKey) {
-          setPreviewMode(landingId, previewKey, slug, { formId: previewFormId, borrador: previewBorrador });
+          setPreviewMode(landingId, previewKey, slug, {
+            formId: previewFormId,
+            borrador: previewBorrador,
+            version: previewBorrador ? null : previewVersion,
+          });
           // Desde «Vista previa» del formulario: directo al formulario de la landing.
           if (irASolicitar) {
             router.replace(routes.solicitar(slug));

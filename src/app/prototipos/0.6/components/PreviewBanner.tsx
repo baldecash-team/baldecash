@@ -25,7 +25,7 @@ interface PreviewBannerProps {
 }
 
 export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName, stepName, showCloseButton = true }: PreviewBannerProps) {
-  const { isPreviewMode, isHydrated, slug: contextSlug, clearPreviewMode, isPreviewingLanding, borrador } = usePreview();
+  const { isPreviewMode, isHydrated, slug: contextSlug, clearPreviewMode, isPreviewingLanding, borrador, version } = usePreview();
   const pathname = usePathname();
 
   // Wait for sessionStorage to be read before deciding visibility (avoids hydration mismatch)
@@ -41,7 +41,10 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
 
   // Display landing name: use prop slug, context slug, or fallback to ID
   const displayLandingName = landingSlug || contextSlug;
-  const displayText = stepName || pageName || 'Los cambios se muestran en tiempo real';
+  // BAL-4735: sin borrador, lo que se ve es una versión publicada. «Los
+  // cambios se muestran en tiempo real» hacía creer que el taller se veía.
+  const textoPorDefecto = version ? `Estás viendo la versión publicada (v${version})` : 'Los cambios se muestran en tiempo real';
+  const displayText = stepName || pageName || textoPorDefecto;
   // Vista previa del borrador de un formulario (BAL-4484): lo dice claro.
   const textoBorrador = 'Estás viendo el borrador del formulario: los clientes todavía no lo ven.';
 

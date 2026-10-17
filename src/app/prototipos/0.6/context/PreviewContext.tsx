@@ -25,12 +25,15 @@ interface PreviewState {
   formId?: number | null;
   /** Ver lo guardado que todavía no se publica. */
   borrador?: boolean;
+  /** Sin borrador: el número de la versión publicada que se está mirando (BAL-4735). */
+  version?: number | null;
 }
 
 /** Opciones de la vista previa del borrador de un formulario. */
 export interface OpcionesDePreview {
   formId?: number | null;
   borrador?: boolean;
+  version?: number | null;
 }
 
 interface PreviewContextValue {
@@ -48,6 +51,8 @@ interface PreviewContextValue {
   formId: number | null;
   /** Si se está mirando el borrador del formulario (lo no publicado) */
   borrador: boolean;
+  /** La versión publicada que se mira cuando no hay borrador (o null) */
+  version: number | null;
   /** Activate preview mode with credentials */
   setPreviewMode: (landingId: number, previewKey: string, slug: string, opciones?: OpcionesDePreview) => void;
   /** Deactivate preview mode */
@@ -111,6 +116,7 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
         activatedAt: Date.now(),
         formId: opciones?.formId ?? null,
         borrador: !!opciones?.borrador,
+        version: opciones?.version ?? null,
       });
     },
     [],
@@ -133,6 +139,7 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
     slug: previewState?.slug ?? null,
     formId: previewState?.formId ?? null,
     borrador: !!previewState?.borrador,
+    version: previewState?.version ?? null,
     setPreviewMode,
     clearPreviewMode,
     isPreviewingLanding,
