@@ -46,10 +46,16 @@ interface CheckboxFieldProps {
    */
   alignTop?: boolean;
   /**
-   * Reserva abajo la misma línea de ~20px que deja un TextInput para su
-   * contador/mensaje de error, para que el salto al siguiente campo del
-   * grid del wizard no quede más corto que el de los demás campos (medido
-   * en prod: 4px checkbox→siguiente vs ~40px input→siguiente).
+   * Reserva abajo EXACTAMENTE los mismos 36px que deja un TextInput bajo su
+   * caja (10px de relleno vertical de su `h-11` + 6px de `space-y-1.5` + 20px
+   * de su línea de contador/error), para que el salto al siguiente campo del
+   * grid del wizard mida lo mismo en los dos casos: 40px con el gap del grid
+   * (medido en prod: 4px checkbox→siguiente vs ~40px input→siguiente).
+   *
+   * Por eso el bloque de abajo usa `min-h-[30px]` y no 20px: el checkbox no
+   * tiene el relleno vertical del `h-11` de TextInput (su botón abraza el
+   * contenido), así que esos 10px que le faltan se agregan a la línea
+   * reservada en vez de inventarle un padding al botón que movería la caja.
    *
    * Solo aplica en modo simple: en modo múltiple cada opción ya es una caja
    * con su propio padding y no necesita esta línea. Los usos de CheckboxField
@@ -236,14 +242,15 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       )}
 
       {/*
-        Línea reservada (patrón TextInput): mismo min-h-[20px] que el
-        contador/error del input, vacía cuando no hay nada que mostrar para
-        que el espacio de abajo sea constante en vez de aparecer solo con
-        error. Reemplaza los tres bloques sueltos de más abajo —no se
-        duplican— y nunca se usa en modo múltiple.
+        Línea reservada (patrón TextInput): min-h-[30px], no 20px, para que
+        sumada a los 6px de space-y-1.5 de arriba dé 36px en total —lo mismo
+        que TextInput reserva bajo su caja—. Vacía cuando no hay nada que
+        mostrar para que el espacio de abajo sea constante en vez de aparecer
+        solo con error. Reemplaza los tres bloques sueltos de más abajo —no
+        se duplican— y nunca se usa en modo múltiple.
       */}
       {useReservedBottomSlot && (
-        <div className="min-h-[20px] flex items-center">
+        <div className="min-h-[30px] flex items-center">
           {error ? (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
