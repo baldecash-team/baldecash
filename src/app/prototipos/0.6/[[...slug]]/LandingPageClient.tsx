@@ -25,6 +25,7 @@ import { persistUtmParams } from '@/app/prototipos/0.6/utils/utmParams';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
+import { TrackingKeysLinker } from '../[landing]/TrackingKeysLinker';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 import { DEFAULT_LANDING_CONFIG, OVERLAY_VARIANT_LOGOS, type LandingConfig } from '../types/landingConfig';
 import { FloatingCtaButton } from '../components/FloatingCtaButton';
@@ -664,6 +665,10 @@ export function LandingPageClient({ slug, initialData, landingConfig, referralBa
           evento huérfano, sin sesión a la cual atribuirlo.
         */}
         {referralBanner && <ReferralBanner data={referralBanner} landingSlug={slug} />}
+        {/* Llaves de identidad del URL (`rid`, `vip_auto`, `alk`): la portada no
+            pasa por el layout de `[landing]`, así que se leen acá también, antes
+            de que la redirección de `vip_auto` al catálogo las deje atrás. */}
+        <TrackingKeysLinker landing={slug} />
         <Suspense fallback={<HomeSkeleton />}>
           <LandingPageClientInner slug={slug} initialData={initialData} landingConfig={landingConfig} />
         </Suspense>
