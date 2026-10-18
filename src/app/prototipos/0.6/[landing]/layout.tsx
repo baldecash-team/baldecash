@@ -30,6 +30,7 @@ import { evaluateLandingAccess } from '../services/landingApi';
 import type { EvaluatePayload } from '../services/landingApi';
 import { FamilyFarmOverlayGate } from './overlays/FamilyFarmOverlayGate';
 import { ReferralBannerGate } from '../components/referral/ReferralBannerGate';
+import { TrackingKeysLinker } from './TrackingKeysLinker';
 import { usePreview } from '../context/PreviewContext';
 import { sendEventsBatch } from '../services/eventsApi';
 import { isDarkLanding } from '../utils/theme';
@@ -1762,6 +1763,9 @@ export default function LandingLayout({
           <Suspense>
             <KeepDataFlag />
           </Suspense>
+          {/* Llaves de identidad del URL (`rid`, `vip_auto`, `alk`): se leen en el
+              render, antes que el VipGate o la portada limpien o redirijan el URL. */}
+          <TrackingKeysLinker landing={landing} />
           {/*
             La franja de referido acompaña TODO el recorrido, no sólo la landing:
             las dudas que este canal existe para resolver aparecen en el catálogo
