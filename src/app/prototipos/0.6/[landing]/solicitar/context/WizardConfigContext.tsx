@@ -23,11 +23,11 @@ import { usePreview } from '../../../context/PreviewContext';
 import { leerUuidDeSesionGuardado, sesionYaConvertida, useSessionOptional } from './SessionContext';
 import { debeRenovarSesionAlEntrar } from '../utils/renovacionDeSesion';
 
-// Respaldo: si a los 5s no apareció ningún uuid (ni en el contexto ni en
-// storage), se pide el wizard igual para que la persona no se quede esperando
-// para siempre. Se vuelve a leer storage en ese momento; solo si de verdad no
-// hay uuid se pide sin sesión y el backend sirve el formulario principal.
-const TIMEOUT_ESPERA_SESION_MS = 5000;
+// Respaldo: si a los 3s la API de sesión no terminó (el uuid no llegó al
+// contexto), se pide el wizard igual para que la persona no se quede
+// esperando. Se usa el uuid de storage que `initSession` ya guardó; solo si
+// de verdad no hay uuid se pide sin sesión y el backend sirve el principal.
+const TIMEOUT_ESPERA_SESION_MS = 3000;
 
 interface WizardConfigContextValue {
   config: WizardConfig | null;
@@ -69,14 +69,18 @@ interface WizardConfigProviderProps {
 /**
  * Decide si ya se puede pedir el wizard y con qué uuid de sesión.
  *
- * El backend elige el formulario con un hash del uuid: no necesita que la
- * sesión exista todavía. Por eso no se espera a la API de sesión; alcanza con
- * conocer el uuid, que está en el contexto o —antes— en storage, porque
- * `initSession` lo guarda ahí antes de llamar a la API.
+ * Se espera a que la API de sesión termine: el uuid del contexto solo
+ * aparece cuando `initSession` ya creó (o recuperó) la fila de la sesión, o
+ * cuando la API falló y se sigue con el uuid local. Con la fila creada, el
+ * backend reparte el formulario (parejo por equipo, BAL-4850) y lo deja
+ * guardado en la sesión. Si se pidiera con el uuid de storage antes de que la
+ * fila exista, el backend sirve el sorteo por hash sin guardar nada y la
+ * sesión queda sin anotar o con un reparto que la persona no vio (BAL-4857).
  *
  * - Sin provider de sesión: se pide ya, sin sesión.
- * - Con uuid (contexto primero, storage después): se pide ya, con ese uuid.
- * - Sin uuid: se espera a que aparezca; agotada la espera se pide sin sesión.
+ * - Con uuid en el contexto: se pide ya, con ese uuid.
+ * - Sin uuid en el contexto: se espera; agotada la espera se pide con el uuid
+ *   de storage, o sin sesión si tampoco hay.
  * - `renovacionPendiente`: el uuid conocido es de una sesión que ya envió una
  *   solicitud y el layout de `/solicitar` la va a soltar al montar. Pedir con
  *   él mostraría el formulario de la sesión vieja y se guardaría con el de la
@@ -97,10 +101,9 @@ export function decidirPedidoDeWizard({
 }): { pedir: boolean; uuid: string | null } {
   if (!haySesionProvider) return { pedir: true, uuid: null };
 
-  const uuid = sessionUuid || uuidGuardado || null;
-  if (esperaAgotada) return { pedir: true, uuid };
-  if (!uuid || renovacionPendiente) return { pedir: false, uuid: null };
-  return { pedir: true, uuid };
+  if (esperaAgotada) return { pedir: true, uuid: sessionUuid || uuidGuardado || null };
+  if (!sessionUuid || renovacionPendiente) return { pedir: false, uuid: null };
+  return { pedir: true, uuid: sessionUuid };
 }
 
 /**
@@ -158,9 +161,6 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
   const sesion = useSessionOptional();
   const haySesionProvider = sesion != null;
   const sessionUuid = sesion?.sessionUuid ?? null;
-  // No se usa su valor: es la señal de que `initSession` arrancó y, por lo
-  // tanto, de que el uuid ya está en storage aunque la API no haya respondido.
-  const sesionCreandose = sesion?.isCreating ?? false;
   const pathname = usePathname();
 
   // Una sola carga por formulario mostrado: el wizard se vuelve a pedir solo
@@ -169,7 +169,7 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
   const [pedido, setPedido] = useState<PedidoDeWizard | null>(null);
   const yaPedido = pedido?.clave === clave;
 
-  // El respaldo de 5s corre fuera del render: lee el uuid del contexto de acá.
+  // El respaldo por tiempo corre fuera del render: lee el uuid del contexto de acá.
   const sessionUuidRef = useRef(sessionUuid);
   useEffect(() => {
     sessionUuidRef.current = sessionUuid;
@@ -201,7 +201,6 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     yaPedido,
     haySesionProvider,
     sessionUuid,
-    sesionCreandose,
     pathname,
   ]);
 
