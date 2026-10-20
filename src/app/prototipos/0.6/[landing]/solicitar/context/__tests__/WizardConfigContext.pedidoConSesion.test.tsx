@@ -1,10 +1,12 @@
 /**
  * Cuándo y con qué uuid se pide el wizard (varios formularios por landing).
  *
- * El backend elige el formulario con un hash del uuid de la sesión, exista o
- * no la fila todavía. Por eso el wizard:
+ * El backend reparte el formulario y lo deja guardado en la fila de la
+ * sesión; si la fila todavía no existe, sirve el sorteo por hash sin guardar
+ * nada (BAL-4857). Por eso el wizard:
  *
- *   - no espera a la API de sesión: usa el uuid del contexto o, antes, el que
+ *   - espera a la API de sesión: pide con el uuid del contexto, que aparece
+ *     cuando `initSession` terminó; si tarda más de 3s, pide con el uuid que
  *     `initSession` ya dejó en localStorage;
  *   - se pide UNA vez por formulario mostrado: que la sesión aparezca o cambie
  *     después no lo vuelve a pedir (cambiaría el formulario a mitad del
@@ -106,7 +108,7 @@ describe('WizardConfigProvider: equipo elegido para el reparto parejo del A/B', 
   it('con equipo elegido en localStorage, pide el wizard con su productId', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-guardado');
     localStorage.setItem('baldecash-ucv-solicitar-selected-product', JSON.stringify({ id: 518 }));
-    sesionMock.mockReturnValue(sesion(null));
+    sesionMock.mockReturnValue(sesion('uuid-guardado'));
 
     render(arbol());
     await asentar();
@@ -118,7 +120,7 @@ describe('WizardConfigProvider: equipo elegido para el reparto parejo del A/B', 
   it('con un equipo corrupto en localStorage, pide el wizard de siempre', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-guardado');
     localStorage.setItem('baldecash-ucv-solicitar-selected-product', '{no es json');
-    sesionMock.mockReturnValue(sesion(null));
+    sesionMock.mockReturnValue(sesion('uuid-guardado'));
 
     render(arbol());
     await asentar();
@@ -128,9 +130,20 @@ describe('WizardConfigProvider: equipo elegido para el reparto parejo del A/B', 
 });
 
 describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
-  it('con uuid en localStorage y sin uuid en el contexto, pide de inmediato con ese uuid', async () => {
+  it('con uuid en localStorage pero la API de sesión sin terminar, NO pide todavía', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-guardado');
-    sesionMock.mockReturnValue(sesion(null));
+    sesionMock.mockReturnValue(sesion(null, true));
+
+    render(arbol());
+    await avanzar(2999);
+
+    expect(pedirWizard).not.toHaveBeenCalled();
+    expect(wizard.isLoading).toBe(true);
+  });
+
+  it('con el uuid en el contexto (la API de sesión terminó), pide de inmediato con ese uuid', async () => {
+    localStorage.setItem(SESSION_KEY, 'uuid-guardado');
+    sesionMock.mockReturnValue(sesion('uuid-guardado'));
 
     render(arbol());
     await asentar();
@@ -140,18 +153,14 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     expect(wizard.config?.form_code).toBe('ucv:uuid-guardado');
   });
 
-  it('cuando después llega (o cambia) el uuid del contexto, NO vuelve a pedir y config no cambia', async () => {
+  it('cuando después cambia el uuid del contexto, NO vuelve a pedir y config no cambia', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-guardado');
-    sesionMock.mockReturnValue(sesion(null));
+    sesionMock.mockReturnValue(sesion('uuid-guardado'));
 
     const { rerender } = render(arbol());
     await asentar();
     const configInicial = wizard.config;
     expect(configInicial).not.toBeNull();
-
-    sesionMock.mockReturnValue(sesion('uuid-guardado'));
-    rerender(arbol());
-    await asentar();
 
     // Aunque el uuid cambie de valor: el formulario mostrado no se toca.
     sesionMock.mockReturnValue(sesion('otro-uuid'));
@@ -163,11 +172,11 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     expect(wizard.isLoading).toBe(false);
   });
 
-  it('el respaldo de 5s no reemplaza un wizard ya pedido sin sesión cuando el uuid llega tarde', async () => {
+  it('el respaldo de 3s no reemplaza un wizard ya pedido sin sesión cuando el uuid llega tarde', async () => {
     sesionMock.mockReturnValue(sesion(null));
 
     const { rerender } = render(arbol());
-    await avanzar(5000);
+    await avanzar(3000);
     expect(pedirWizard).toHaveBeenCalledTimes(1);
     const configInicial = wizard.config;
 
@@ -195,7 +204,7 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     expect(pedirWizard).toHaveBeenCalledWith('ucv', null, 'uuid-contexto');
   });
 
-  it('sin uuid: en cuanto initSession arranca y lo guarda, pide con él sin esperar a la API', async () => {
+  it('sin uuid: espera a que la API de sesión termine aunque initSession ya lo haya guardado', async () => {
     sesionMock.mockReturnValue(sesion(null));
 
     const { rerender } = render(arbol());
@@ -203,9 +212,15 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     expect(pedirWizard).not.toHaveBeenCalled();
 
     // Lo que hace `initSession` antes de llamar a la API: guarda el uuid y
-    // marca `isCreating`. El uuid todavía no está en el contexto.
+    // marca `isCreating`. La fila de la sesión todavía no existe.
     localStorage.setItem(SESSION_KEY, 'uuid-recien-nacido');
     sesionMock.mockReturnValue(sesion(null, true));
+    rerender(arbol());
+    await asentar();
+    expect(pedirWizard).not.toHaveBeenCalled();
+
+    // La API respondió: el uuid llega al contexto.
+    sesionMock.mockReturnValue(sesion('uuid-recien-nacido'));
     rerender(arbol());
     await asentar();
 
@@ -213,7 +228,7 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     expect(pedirWizard).toHaveBeenCalledWith('ucv', null, 'uuid-recien-nacido');
   });
 
-  it('respaldo de 5s: si el uuid nunca llega al contexto pero está en localStorage, lo usa', async () => {
+  it('respaldo de 3s: si el uuid nunca llega al contexto pero está en localStorage, lo usa', async () => {
     sesionMock.mockReturnValue(sesion(null));
 
     render(arbol());
@@ -221,7 +236,7 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     // Aparece en storage sin que nada vuelva a renderizar al wizard.
     localStorage.setItem(SESSION_KEY, 'uuid-en-storage');
 
-    await avanzar(3999);
+    await avanzar(1999);
     expect(pedirWizard).not.toHaveBeenCalled();
 
     await avanzar(1);
@@ -232,11 +247,11 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     expect(pedirWizard).toHaveBeenCalledTimes(1);
   });
 
-  it('respaldo de 5s: sin uuid en ningún lado, pide sin sesión una sola vez', async () => {
+  it('respaldo de 3s: sin uuid en ningún lado, pide sin sesión una sola vez', async () => {
     sesionMock.mockReturnValue(sesion(null));
 
     render(arbol());
-    await avanzar(4999);
+    await avanzar(2999);
     expect(pedirWizard).not.toHaveBeenCalled();
 
     await avanzar(1);
@@ -274,12 +289,13 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
   it('si cambia el slug, vuelve a pedir (con el uuid de esa landing)', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-ucv');
     localStorage.setItem('baldecash-upn-wizard-session-uuid', 'uuid-upn');
-    sesionMock.mockReturnValue(sesion(null));
+    sesionMock.mockReturnValue(sesion('uuid-ucv'));
 
     const { rerender } = render(arbol('ucv'));
     await asentar();
     expect(pedirWizard).toHaveBeenCalledTimes(1);
 
+    sesionMock.mockReturnValue(sesion('uuid-upn'));
     rerender(arbol('upn'));
     await asentar();
 
@@ -290,7 +306,7 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
 
   it('si cambia el estado de preview, vuelve a pedir', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-guardado');
-    sesionMock.mockReturnValue(sesion(null));
+    sesionMock.mockReturnValue(sesion('uuid-guardado'));
     pedirWizardPorId.mockResolvedValue({ steps: [], form_code: 'preview' });
 
     const { rerender } = render(arbol());
@@ -327,9 +343,15 @@ describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
     await asentar();
     expect(pedirWizard).not.toHaveBeenCalled();
 
-    // `initSession` arranca con el uuid nuevo.
+    // `initSession` arranca con el uuid nuevo: todavía no se pide.
     localStorage.setItem(SESSION_KEY, 'uuid-nuevo');
     sesionMock.mockReturnValue(sesion(null, true));
+    rerender(arbol());
+    await asentar();
+    expect(pedirWizard).not.toHaveBeenCalled();
+
+    // La API de sesión terminó.
+    sesionMock.mockReturnValue(sesion('uuid-nuevo'));
     rerender(arbol());
     await asentar();
 
@@ -359,13 +381,36 @@ describe('WizardConfigProvider con el SessionProvider real', () => {
 
   beforeEach(() => {
     sesionMock.mockImplementation(real.useSessionOptional);
-    // La API de sesión no responde nunca: el wizard no puede depender de ella.
+    // Por defecto la API de sesión no responde nunca: el wizard no puede
+    // quedarse esperándola para siempre.
     global.fetch = jest.fn(() => new Promise(() => {})) as unknown as typeof fetch;
   });
 
-  it('navegador limpio: pide el wizard con el uuid que initSession guardó, sin esperar a la API', async () => {
+  it('navegador limpio: espera a que la API de sesión responda y pide con su uuid', async () => {
+    global.fetch = jest.fn(async (_url: unknown, init?: { body?: string }) => {
+      const { uuid } = JSON.parse(init?.body ?? '{}');
+      return { ok: true, json: async () => ({ session_uuid: uuid, session_id: 7 }) };
+    }) as unknown as typeof fetch;
+
+    render(arbolReal());
+    for (let i = 0; i < 5; i++) await asentar();
+
+    const uuid = localStorage.getItem(SESSION_KEY);
+    expect(uuid).toBeTruthy();
+    expect(global.fetch).toHaveBeenCalled();
+    expect(pedirWizard).toHaveBeenCalledTimes(1);
+    expect(pedirWizard).toHaveBeenCalledWith('ucv', null, uuid);
+
+    await avanzar(10000);
+    expect(pedirWizard).toHaveBeenCalledTimes(1);
+  });
+
+  it('navegador limpio con la API de sesión colgada: a los 3s pide con el uuid que initSession guardó', async () => {
     render(arbolReal());
     await asentar();
+    expect(pedirWizard).not.toHaveBeenCalled();
+
+    await avanzar(3000);
 
     const uuid = localStorage.getItem(SESSION_KEY);
     expect(uuid).toBeTruthy();
@@ -381,7 +426,7 @@ describe('WizardConfigProvider con el SessionProvider real', () => {
     localStorage.setItem(CONVERTED_KEY, 'uuid-viejo');
 
     render(arbolReal());
-    await asentar();
+    await avanzar(3000);
 
     const uuid = localStorage.getItem(SESSION_KEY);
     expect(uuid).toBeTruthy();
@@ -404,10 +449,10 @@ describe('decidirPedidoDeWizard', () => {
     ).toEqual({ pedir: true, uuid: 'ctx' });
   });
 
-  it('sin uuid en el contexto, usa el guardado', () => {
+  it('sin uuid en el contexto, espera aunque haya uno guardado (la sesión puede no existir aún)', () => {
     expect(
       decidirPedidoDeWizard({ haySesionProvider: true, sessionUuid: null, uuidGuardado: 'guardado' }),
-    ).toEqual({ pedir: true, uuid: 'guardado' });
+    ).toEqual({ pedir: false, uuid: null });
   });
 
   it('sin ningún uuid, espera', () => {
