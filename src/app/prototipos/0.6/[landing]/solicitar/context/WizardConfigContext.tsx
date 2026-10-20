@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import {
   WizardConfig,
   WizardStep,
@@ -100,6 +101,25 @@ export function decidirPedidoDeWizard({
   if (esperaAgotada) return { pedir: true, uuid };
   if (!uuid || renovacionPendiente) return { pedir: false, uuid: null };
   return { pedir: true, uuid };
+}
+
+/**
+ * El equipo que la persona eligió en el catálogo o el detalle (misma clave de
+ * `localStorage`). El backend lo usa para el reparto parejo del A/B de
+ * formularios (BAL-4850). Sin equipo, `null`: el pedido es el de siempre.
+ */
+function productoElegido(slug: string): number | null {
+  try {
+    const crudo = localStorage.getItem(`baldecash-${slug}-solicitar-selected-product`);
+    const id = crudo ? Number(JSON.parse(crudo)?.id) : NaN;
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch (error) {
+    // Sin almacenamiento o con un valor corrupto: se pide el wizard sin equipo.
+    Sentry.captureException(error, {
+      tags: { modulo: 'wizard', accion: 'leer_producto_elegido', landing: slug },
+    });
+    return null;
+  }
 }
 
 /**
@@ -228,7 +248,11 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
             data = await getWizardConfig(pedido.slug, pedido.previewKey, pedido.uuid, ...extra);
           }
         } else {
-          data = await getWizardConfig(pedido.slug, null, pedido.uuid);
+          // Con equipo elegido viaja `product_id` (reparto parejo del A/B); sin él, el pedido de siempre.
+          const productId = productoElegido(pedido.slug);
+          data = productId
+            ? await getWizardConfig(pedido.slug, null, pedido.uuid, { productId })
+            : await getWizardConfig(pedido.slug, null, pedido.uuid);
         }
 
         if (!isMounted) return;

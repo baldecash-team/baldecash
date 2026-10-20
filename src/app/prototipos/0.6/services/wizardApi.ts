@@ -304,6 +304,8 @@ export interface WizardConfig {
 export interface OpcionesDeVistaPrevia {
   formId?: number | null;
   borrador?: boolean;
+  /** Equipo elegido: el backend lo usa para el reparto parejo del A/B. Nunca en vista previa. */
+  productId?: number | null;
 }
 
 function sumarVistaPrevia(params: URLSearchParams, previewKey?: string | null, opciones?: OpcionesDeVistaPrevia) {
@@ -328,6 +330,7 @@ export async function getWizardConfig(
     const params = new URLSearchParams();
     if (previewKey) params.set('preview_key', previewKey);
     if (sessionUuid) params.set('session_uuid', sessionUuid);
+    if (!previewKey && opciones?.productId) params.set('product_id', String(opciones.productId));
     sumarVistaPrevia(params, previewKey, opciones);
     const qs = params.toString();
     let url = `${API_BASE_URL}/public/landing/${slug}/wizard${qs ? `?${qs}` : ''}`;
