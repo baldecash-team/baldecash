@@ -121,6 +121,12 @@ export interface WizardField {
   input_mode?: string | null;
   options_source?: string | null;
   options_filter?: FiltroDeOpciones | null;
+  /**
+   * BAL-4841: tipos de institución que acepta «Institución Educativa» en este
+   * paso (`university`, `institute`, ...). Ausente = todos. La búsqueda los
+   * manda como `type=a,b`, cruzados con el `type` de `options_filter`.
+   */
+  allowed_institution_types?: string[] | null;
   options: WizardFieldOption[];
   validations: WizardFieldValidation[];
   dependency_groups: DependencyGroup[];

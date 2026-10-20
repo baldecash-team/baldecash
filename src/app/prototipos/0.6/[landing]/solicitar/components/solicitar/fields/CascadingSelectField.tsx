@@ -26,7 +26,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WizardField, fetchCascadingOptions, fetchOptionsFromSource, fetchOptionsWithSearch, fetchOptionById, CascadingOption } from '../../../../../services/wizardApi';
-import { parametrosDeFiltro } from '../../../../../services/filtroDeOpciones';
+import { conTiposPermitidos, parametrosDeFiltro } from '../../../../../services/filtroDeOpciones';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
@@ -313,12 +313,17 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   const filterValue = filterFieldCode ? (getFieldValue(filterFieldCode) as string) : undefined;
   // Pares del filtro (BAL-4384). Con `{depends_on}` solo, sale `type=<valor>`:
   // la misma URL de siempre.
-  const extraDeFiltro = parametrosDeFiltro(field.options_filter, {
-    valorDe: (code) => (code === filterFieldCode ? filterValue : (getFieldValue(code) as string)),
-    // Solo el convenio REAL de la landing: el de `SEDES_SIN_CONVENIO` es
-    // prestado para resolver sedes y esas landings traen su propia institución.
-    agreementId: agreementData?.id,
-  });
+  // BAL-4841: los tipos de institución que permite el paso se cruzan con ese
+  // filtro. `null` = el cruce quedó vacío y no hay nada que buscar.
+  const extraDeFiltro = conTiposPermitidos(
+    parametrosDeFiltro(field.options_filter, {
+      valorDe: (code) => (code === filterFieldCode ? filterValue : (getFieldValue(code) as string)),
+      // Solo el convenio REAL de la landing: el de `SEDES_SIN_CONVENIO` es
+      // prestado para resolver sedes y esas landings traen su propia institución.
+      agreementId: agreementData?.id,
+    }),
+    field.allowed_institution_types,
+  );
   const claveDeFiltro = JSON.stringify(extraDeFiltro);
 
   // Handle lazy search (debounced)
@@ -336,6 +341,14 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       return;
     }
 
+    // Ningún tipo de institución en común entre lo que permite el paso y lo
+    // que respondió el cliente: no sale ninguna institución (BAL-4841).
+    if (extraDeFiltro === null) {
+      setLocalDynamicOptions([]);
+      return;
+    }
+    const filtro = extraDeFiltro;
+
     // Debounce search by 300ms
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
@@ -343,7 +356,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         const options = await fetchOptionsWithSearch(
           field.options_source!,
           searchTerm,
-          extraDeFiltro
+          filtro
         );
         setLocalDynamicOptions(options);
       } catch (error) {
