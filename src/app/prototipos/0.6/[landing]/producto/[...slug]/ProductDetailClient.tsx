@@ -85,7 +85,7 @@ function ProductDetailContent() {
   const isMobile = useIsMobile();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, overlayVariant } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, overlayVariant, loQuieroModal } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
@@ -512,6 +512,9 @@ function ProductDetailContent() {
           paymentFrequencies={apiData.paymentFrequencies}
           showPlatformCommission={landingConfig.features.show_platform_commission}
           startDate={inicioCronograma}
+          // BAL-4852: con el ingrediente, "Lo quiero" abre el modal en vez de
+          // ir a /solicitar. Con multiproducto prendido el flujo queda igual.
+          loQuieroModal={!!loQuieroModal && !ALLOW_MULTI_PRODUCT}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
           onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
           onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}

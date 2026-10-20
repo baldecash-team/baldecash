@@ -1218,6 +1218,12 @@ export async function getLandingAccessories(
   refreshRecommendations?: boolean,
   productSlug?: string | null,
   initialAmount?: number | null,
+  /**
+   * Con `lanzarError` la falla de red o un 5xx se propaga en vez de volver `[]`.
+   * Lo usa el modal de "Lo quiero" (BAL-4852) para decirle a la persona que no
+   * se pudieron cargar los accesorios y reportarlo; sin el flag, igual que siempre.
+   */
+  opciones?: { lanzarError?: boolean },
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1270,6 +1276,7 @@ export async function getLandingAccessories(
     const data: ApiAccessoryResponse = await response.json();
     return data.accessories || [];
   } catch (error) {
+    if (opciones?.lanzarError) throw error;
     console.error('Error fetching landing accessories:', error);
     return [];
   }

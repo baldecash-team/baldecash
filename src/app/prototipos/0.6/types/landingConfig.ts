@@ -150,6 +150,16 @@ export interface LandingConfigFeatures {
    * falta ordenar.
    */
   has_catalog_sort_bar: boolean;
+  /**
+   * "Lo quiero" abre el modal de accesorios, términos y cupón encima del
+   * catálogo o la ficha, y de ahí pasa directo al primer paso del formulario
+   * sin la pantalla intermedia de /solicitar (BAL-4852).
+   *
+   * Opt-in: default APAGADO. Se prende con el ingrediente `lo-quiero-modal-on`
+   * (`features.lo_quiero_modal = true`). Ninguna landing lo trae hoy, así que
+   * se compara contra `=== true`.
+   */
+  lo_quiero_modal: boolean;
 }
 
 /**
@@ -414,6 +424,8 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     has_usage_chips: false,
     has_usage_filter: true,
     has_catalog_sort_bar: true,
+    // Opt-in (BAL-4852): sin el ingrediente, "Lo quiero" lleva a /solicitar.
+    lo_quiero_modal: false,
   },
 };
 

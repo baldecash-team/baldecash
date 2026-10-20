@@ -53,6 +53,7 @@ import { MobileStickyCta, MobileStickyCtaSpacer, PasoDelWizard, usePasoDelWizard
 
 // Utils
 import { formatMoneyNoDecimals } from './utils/formatMoney';
+import { primerPasoRegular } from './utils/primerPaso';
 
 // Analytics
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -226,10 +227,7 @@ function WizardPreviewContent() {
   }, [appliedCoupon, couponError]);
 
   // Get first regular step (not summary step) for dynamic navigation
-  const firstStep = useMemo(() => {
-    const regularSteps = steps.filter(s => !s.is_summary_step);
-    return regularSteps.length > 0 ? regularSteps[0] : null;
-  }, [steps]);
+  const firstStep = useMemo(() => primerPasoRegular(steps), [steps]);
 
   /**
    * El paso del formulario, embebido. Se monta siempre —el orden de hooks no

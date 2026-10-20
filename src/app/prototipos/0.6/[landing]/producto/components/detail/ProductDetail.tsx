@@ -24,7 +24,7 @@ import {
   ComboInfo,
   InitialPaymentPercentage,
 } from '../../types/detail';
-import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { useProductOptional, type SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { ReacondicionadosGradoCuota } from '../../reacondicionados/ReacondicionadosGradoCuota';
@@ -52,6 +52,7 @@ import { RefurbishedInfoBanner } from './RefurbishedInfoBanner';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition';
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
+import { LoQuieroModal } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -131,6 +132,13 @@ interface ProductDetailProps {
    * aprobada). Aditivo: sin el prop, el botón de siempre.
    */
   ctaDisabledReason?: string;
+  /**
+   * BAL-4852: "Lo quiero" abre el modal de accesorios, términos y cupón y de
+   * ahí pasa directo al primer paso, en vez de ir a /solicitar. Lo decide el
+   * cliente del detalle con el ingrediente de la landing; sin el prop, como
+   * siempre. El flujo de oferta no lo pasa (usa `onClickCTA`).
+   */
+  loQuieroModal?: boolean;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -168,6 +176,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   ctaDisabledReason,
   readOnlyNotice,
   onOfferSelectionChange,
+  loQuieroModal = false,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -274,6 +283,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Entrega diferida: aviso de fecha de entrega antes de pasar a solicitar.
   const isDeferred = product.deferredDelivery?.isDeferred ?? false;
   const [showDeferredModal, setShowDeferredModal] = useState(false);
+  const [isLoQuieroOpen, setIsLoQuieroOpen] = useState(false);
+  // El detalle vive dentro del `ProductProvider` de la página, que hidrató el
+  // producto al cargar. El modal lee de ese contexto, así que hay que pasarle
+  // el plazo/inicial recién elegidos además de guardarlos en storage.
+  const productoCtx = useProductOptional();
 
   // Navigate to sibling product when color is selected
   const handleColorSelect = useCallback((colorId: string) => {
@@ -646,6 +660,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       localStorage.removeItem(getCartProductsKey(landing));
     } catch {
       // localStorage not available
+    }
+
+    // Con el modal (BAL-4852) el producto ya quedó guardado con el plazo,
+    // la inicial, la frecuencia y el combo elegidos: el modal lo lee de ahí.
+    if (loQuieroModal) {
+      productoCtx?.setSelectedProduct(selectedProduct);
+      productoCtx?.clearCartProducts();
+      setIsLoQuieroOpen(true);
+      return;
     }
 
     // Navigate to solicitar flow in 0.6
@@ -1059,6 +1082,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         deferredDelivery={product.deferredDelivery}
         productName={product.displayName}
       />
+
+      {loQuieroModal && (
+        <LoQuieroModal
+          isOpen={isLoQuieroOpen}
+          onClose={() => setIsLoQuieroOpen(false)}
+          origen="ficha"
+        />
+      )}
     </div>
   );
 };

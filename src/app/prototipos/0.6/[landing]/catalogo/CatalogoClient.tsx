@@ -142,6 +142,7 @@ import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLink
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { cuponConBanner, landingMuestraBannerDeCupon } from '@/app/prototipos/0.6/utils/couponBanner';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { LoQuieroModal } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
@@ -341,7 +342,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
 
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, catalogBannerId, landingId, chipsDeUso, filtroPorUso, barraDeOrden } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, catalogBannerId, landingId, chipsDeUso, filtroPorUso, barraDeOrden, loQuieroModal } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // UI de cupón (banner de campaña): visible solo si el cupón vino del
@@ -1026,6 +1027,8 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   // (BAL-3270). Vale el riesgo de que el objeto quede viejo si `catalogProducts`
   // se remapea con el modal abierto — es preferible correcto a fresco.
   const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
+  // Modal de "Lo quiero" (BAL-4852): solo con el ingrediente de la landing.
+  const [isLoQuieroOpen, setIsLoQuieroOpen] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1655,6 +1658,12 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       // primera de la lista — la del combo (BAL-3270).
       const target = resolveWizardTarget(product, cartItem.productId);
       selectProductForWizard(target, cartItem);
+      // Con el ingrediente `lo-quiero-modal-on` el producto queda guardado igual
+      // y se abre el modal; desde ahí se pasa directo al primer paso.
+      if (loQuieroModal) {
+        setIsLoQuieroOpen(true);
+        return;
+      }
       router.push(getWizardUrl(landing));
       return;
     }
@@ -1662,7 +1671,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
     setSelectedVariantForCart(cartItem);
     const target = resolveWizardTarget(product, cartItem.productId);
     handleOpenCartModal(target);
-  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal, loQuieroModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
@@ -2624,6 +2633,13 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
           if (pendingRefurb) proceedAddToCart(pendingRefurb.cartItem, pendingRefurb.product);
         }}
         productName={pendingRefurb?.product.displayName}
+      />
+
+      {/* "Lo quiero" con accesorios, términos y cupón (BAL-4852) */}
+      <LoQuieroModal
+        isOpen={isLoQuieroOpen}
+        onClose={() => setIsLoQuieroOpen(false)}
+        origen="catalogo"
       />
 
       {/* Toast para alertas de comparación */}

@@ -142,6 +142,13 @@ interface LayoutContextValue {
    * slug de la landing.
    */
   barraDeOrden: boolean;
+  /**
+   * "Lo quiero" abre el modal de accesorios, términos y cupón y pasa directo
+   * al primer paso del formulario (BAL-4852). Opt-in como `chipsDeUso`:
+   * ausencia significa APAGADO. Opcional en el tipo para que los contextos
+   * armados a mano (tests, mocks) sigan valiendo; sin el campo es `false`.
+   */
+  loQuieroModal?: boolean;
 }
 
 /**
@@ -201,6 +208,7 @@ export function LayoutProvider({
   const [chipsDeUso, setChipsDeUso] = useState(false);
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
+  const [loQuieroModal, setLoQuieroModal] = useState(false);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -242,6 +250,8 @@ export function LayoutProvider({
       // segundo financiamiento no hereda el comportamiento por su nombre.
       setFiltroPorUso(cfg.features?.has_usage_filter !== false);
       setBarraDeOrden(cfg.features?.has_catalog_sort_bar !== false);
+      // Opt-in, igual que los chips: solo un `true` explícito lo prende.
+      setLoQuieroModal(cfg.features?.lo_quiero_modal === true);
     });
   }, [landing]);
 
@@ -501,7 +511,8 @@ export function LayoutProvider({
     chipsDeUso,
     filtroPorUso,
     barraDeOrden,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden]);
+    loQuieroModal,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, loQuieroModal]);
 
   return (
     <LayoutContext.Provider value={value}>
