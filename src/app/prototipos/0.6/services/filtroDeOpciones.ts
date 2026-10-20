@@ -40,3 +40,25 @@ export function parametrosDeFiltro(
   const orden = ['type', 'ids', 'study_center_id', 'agreement_id'];
   return orden.filter((k) => salida.has(k)).map((k) => [k, salida.get(k)!]);
 }
+
+/**
+ * Tipos de institución que el paso permite (BAL-4841,
+ * `allowed_institution_types`). Sin lista = los pares tal cual. Con lista:
+ * - si el filtro no manda `type`, se manda `type=<los permitidos>`;
+ * - si ya manda `type` (p. ej. la respuesta de «Tipo de institución»), se
+ *   cruzan: solo quedan los que están en los dos (no se pisan).
+ * `null` = el cruce quedó vacío: no hay nada que buscar. Mandar la búsqueda
+ * sin `type` traería TODOS los tipos, justo lo contrario.
+ */
+export function conTiposPermitidos(
+  pares: Array<[string, string]>,
+  permitidos: string[] | null | undefined,
+): Array<[string, string]> | null {
+  if (!permitidos?.length) return pares;
+  const delFiltro = pares.find(([k]) => k === 'type');
+  const tipos = delFiltro
+    ? delFiltro[1].split(',').map((t) => t.trim()).filter((t) => permitidos.includes(t))
+    : [...permitidos];
+  if (tipos.length === 0) return null;
+  return [['type', tipos.join(',')], ...pares.filter(([k]) => k !== 'type')];
+}

@@ -1,4 +1,4 @@
-import { parametrosDeFiltro } from '../filtroDeOpciones';
+import { conTiposPermitidos, parametrosDeFiltro } from '../filtroDeOpciones';
 
 const valores: Record<string, string> = { institution_type: 'university', institution: '123' };
 const ctx = { valorDe: (c: string) => valores[c] };
@@ -46,5 +46,33 @@ describe('parametrosDeFiltro (BAL-4384)', () => {
     const p = new URLSearchParams({ search: 'uni' });
     for (const [k, v] of parametrosDeFiltro({ type: ['university', 'institute'], ids: [3] })) p.set(k, v);
     expect(p.toString()).toBe('search=uni&type=university%2Cinstitute&ids=3');
+  });
+});
+
+describe('conTiposPermitidos (BAL-4841)', () => {
+  it('sin tipos permitidos deja los pares tal cual', () => {
+    const pares: Array<[string, string]> = [['type', 'university']];
+    expect(conTiposPermitidos(pares, null)).toBe(pares);
+    expect(conTiposPermitidos(pares, [])).toBe(pares);
+    expect(conTiposPermitidos([], undefined)).toEqual([]);
+  });
+
+  it('sin type en el filtro manda los permitidos', () => {
+    expect(conTiposPermitidos([], ['university', 'institute'])).toEqual([['type', 'university,institute']]);
+    expect(conTiposPermitidos([['agreement_id', '7']], ['university'])).toEqual([
+      ['type', 'university'],
+      ['agreement_id', '7'],
+    ]);
+  });
+
+  it('con la respuesta de «Tipo de institución» se cruzan, no se pisan', () => {
+    expect(conTiposPermitidos([['type', 'institute']], ['university', 'institute'])).toEqual([['type', 'institute']]);
+    expect(conTiposPermitidos([['type', 'university,school']], ['university', 'institute'])).toEqual([
+      ['type', 'university'],
+    ]);
+  });
+
+  it('cruce vacío = null (no hay nada que buscar)', () => {
+    expect(conTiposPermitidos([['type', 'school']], ['university', 'institute'])).toBeNull();
   });
 });

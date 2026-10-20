@@ -247,6 +247,59 @@ describe('CascadingSelectField — hooks y foco (BAL-4384)', () => {
     jest.useRealTimers();
   });
 
+  describe('tipos de institución permitidos por el paso (BAL-4841)', () => {
+    const institucion = (extra: Record<string, unknown>) => ({
+      ...sedeField, code: 'institution', type: 'autocomplete', options_source: 'study-centers',
+      min_search_length: 3, ...extra,
+    } as unknown as WizardField);
+
+    const buscar = (t: string) => {
+      (mockSelectProps.onSearch as (t: string) => void)(t);
+      jest.advanceTimersByTime(300);
+    };
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('sin «Tipo de institución» en el paso, busca solo en los tipos permitidos', () => {
+      render(<CascadingSelectField field={institucion({ allowed_institution_types: ['university'] })} staticOptions={[]} searchable />);
+      buscar('pon');
+      expect(mockFetchOptionsWithSearch).toHaveBeenCalledWith('study-centers', 'pon', [['type', 'university']]);
+    });
+
+    it('con «Tipo de institución» respondida, cruza los dos filtros', () => {
+      mockFieldValues['institution_type'] = 'institute';
+      render(
+        <CascadingSelectField
+          field={institucion({
+            options_filter: { depends_on: 'institution_type' },
+            allowed_institution_types: ['university', 'institute'],
+          })}
+          staticOptions={[]}
+          searchable
+        />
+      );
+      buscar('sen');
+      expect(mockFetchOptionsWithSearch).toHaveBeenCalledWith('study-centers', 'sen', [['type', 'institute']]);
+    });
+
+    it('si el cruce queda vacío no busca (no trae todos los tipos)', () => {
+      mockFieldValues['institution_type'] = 'school';
+      render(
+        <CascadingSelectField
+          field={institucion({
+            options_filter: { depends_on: 'institution_type' },
+            allowed_institution_types: ['university'],
+          })}
+          staticOptions={[]}
+          searchable
+        />
+      );
+      buscar('col');
+      expect(mockFetchOptionsWithSearch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('from_agreement en el buscador de centros', () => {
     const centro = {
       ...sedeField, code: 'institution', type: 'autocomplete', options_source: 'study-centers',
