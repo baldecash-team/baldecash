@@ -102,6 +102,31 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+describe('WizardConfigProvider: equipo elegido para el reparto parejo del A/B', () => {
+  it('con equipo elegido en localStorage, pide el wizard con su productId', async () => {
+    localStorage.setItem(SESSION_KEY, 'uuid-guardado');
+    localStorage.setItem('baldecash-ucv-solicitar-selected-product', JSON.stringify({ id: 518 }));
+    sesionMock.mockReturnValue(sesion(null));
+
+    render(arbol());
+    await asentar();
+
+    expect(pedirWizard).toHaveBeenCalledTimes(1);
+    expect(pedirWizard).toHaveBeenCalledWith('ucv', null, 'uuid-guardado', { productId: 518 });
+  });
+
+  it('con un equipo corrupto en localStorage, pide el wizard de siempre', async () => {
+    localStorage.setItem(SESSION_KEY, 'uuid-guardado');
+    localStorage.setItem('baldecash-ucv-solicitar-selected-product', '{no es json');
+    sesionMock.mockReturnValue(sesion(null));
+
+    render(arbol());
+    await asentar();
+
+    expect(pedirWizard).toHaveBeenCalledWith('ucv', null, 'uuid-guardado');
+  });
+});
+
 describe('WizardConfigProvider: pedido del wizard según la sesión', () => {
   it('con uuid en localStorage y sin uuid en el contexto, pide de inmediato con ese uuid', async () => {
     localStorage.setItem(SESSION_KEY, 'uuid-guardado');
