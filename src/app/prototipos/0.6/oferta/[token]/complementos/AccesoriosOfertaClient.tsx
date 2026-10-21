@@ -47,6 +47,7 @@ import { AccesorioFilaCard } from './redesign/AccesorioFilaCard';
 import { TusExtras, type TusExtrasItem } from './redesign/TusExtras';
 import { CuotaStickyBar } from './redesign/CuotaStickyBar';
 import { BuscadorBottomSheet } from './redesign/BuscadorBottomSheet';
+import { medirContraElTope } from './medirContraElTope';
 import { AccessoryDetailModal, InsuranceDetailModal } from '../../../[landing]/solicitar/components/upsell';
 
 /** localStorage: persiste la selección de add-ons por token + variante, para
@@ -117,6 +118,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
   const [equipoTerm, setEquipoTerm] = useState<number | null>(null);
   // Cuota máxima aprobada (tope). equipo + accesorios + seguros no puede superarla.
   const [maxQuota, setMaxQuota] = useState<number | null>(null);
+  // Tope de efectivo (BAL-4910): contra el tope va solo la cuota del equipo; los
+  // accesorios y seguros van aparte y se pueden marcar aunque el total lo pase.
+  const [topeSoloEquipo, setTopeSoloEquipo] = useState(false);
   const [selectedAcc, setSelectedAcc] = useState<string[]>([]);
   const [selectedIns, setSelectedIns] = useState<string[]>([]);
   // Regalos del combo elegido (BAL-2159): accesorios/seguros incluidos gratis,
@@ -265,6 +269,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         setEquipoFrequency(res.equipoFrequency);
         setEquipoTerm(res.equipoTerm);
         setComboFree(res.comboFreeAddons ?? { accessories: [], insurances: [] });
+        setTopeSoloEquipo(res.quotaCapEquipmentOnly);
         // Rehidratar los add-ons guardados (refresh / ida-vuelta), filtrando
         // contra lo que hoy está disponible (algo guardado podría ya no caber).
         const stored = readStoredAddons(token, vId);
@@ -366,14 +371,21 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
     return equipoMonthlyBilled + acc + ins;
   }, [accessories, insurances, selectedAcc, selectedIns, equipoMonthlyBilled, accMonthly]);
 
-  // Cuota restante MENSUAL = tope aprobado − total actual. El equipo + add-ons no
-  // puede superar la cuota máxima aprobada (premisa del Caso 4/5).
-  const remaining = maxQuota != null ? maxQuota - totalMonthly : Infinity;
-  const overBudget = maxQuota != null && totalMonthly > maxQuota + 0.5;
+  // Cuota restante MENSUAL = tope aprobado − lo que se mide. Con el tope de
+  // siempre se mide equipo + add-ons (premisa del Caso 4/5); con el de efectivo
+  // (BAL-4910) solo el equipo, y los add-ons no se recortan por el tope.
+  const medicion = medirContraElTope({
+    tope: maxQuota,
+    cuotaEquipo: equipoMonthlyBilled,
+    cuotaTotal: totalMonthly,
+    soloEquipo: topeSoloEquipo,
+  });
+  const remaining = medicion.restante;
+  const overBudget = medicion.seExcede;
   // Un add-on NO seleccionado se puede agregar solo si su cuota (mensual) cabe
   // en el restante. Los ya seleccionados siempre se pueden quitar.
-  const accFits = (a: Accessory) => selectedAcc.includes(a.id) || (a.monthlyQuota || 0) <= remaining + 0.5;
-  const insFits = (p: InsurancePlan) => selectedIns.includes(p.id) || (p.monthlyPrice || 0) <= remaining + 0.5;
+  const accFits = (a: Accessory) => selectedAcc.includes(a.id) || medicion.cabe(a.monthlyQuota || 0);
+  const insFits = (p: InsurancePlan) => selectedIns.includes(p.id) || medicion.cabe(p.monthlyPrice || 0);
 
   // Confirmación real (desde el modal). Tras el OK del backend, redirige DIRECTO
   // a la página de confirmación (/oferta/{token} → SeleccionConfirmada,
@@ -816,7 +828,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
       </div>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [insurances, selectedIns, remaining, equipoFrequency]);
+  }, [insurances, selectedIns, remaining, topeSoloEquipo, equipoFrequency]);
 
   if (loading) {
     return (
@@ -891,7 +903,7 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Encabezado. En downgrade (BAL-4641) saluda como el WhatsApp de la
             oferta, con la cuota aprobada; el resto, como siempre. */}
         {esSaludoDowngrade(offerCase, maxQuota) ? (
-          <SaludoDowngrade nombre={clientName} tope={maxQuota as number} variante="complementos" />
+          <SaludoDowngrade nombre={clientName} tope={maxQuota as number} variante="complementos" soloEquipo={topeSoloEquipo} />
         ) : offerCase === 'standard' ? (
           // Oferta manual con catálogo (BAL-4688): sin «aprobada» ni cuota.
           <div>
@@ -908,7 +920,9 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
             {/* Sin tope (oferta con catálogo completo) no hay cuota que topar. */}
             {maxQuota != null ? (
               <p className="mt-1.5 text-[13px]" style={{ color: OFERTA_COLORS.textMid }}>
-                Solo mostramos lo que entra en tu cuota.
+                {topeSoloEquipo
+                  ? 'Tu equipo entra en tu cuota. Los accesorios y seguros van aparte.'
+                  : 'Solo mostramos lo que entra en tu cuota.'}
               </p>
             ) : null}
           </div>
@@ -996,9 +1010,13 @@ export function AccesoriosOfertaClient({ token }: { token: string }) {
         {/* Alerta de sobrepaso, SIN revelar el monto del tope aprobado. */}
         {maxQuota != null && overBudget ? (
           <p className="text-xs font-medium text-red-600">
-            {offerCase === 'standard'
-              ? 'Supera tu cuota máxima. Quita algo para continuar.'
-              : 'Supera tu cuota aprobada. Quita algo para continuar.'}
+            {topeSoloEquipo
+              // BAL-4910: en efectivo solo cuenta el equipo; quitar accesorios o
+              // seguros no lo arregla, hay que cambiar de equipo, plazo o inicial.
+              ? 'La cuota de tu equipo supera tu cuota máxima. Cambia de equipo, plazo o inicial para continuar.'
+              : offerCase === 'standard'
+                ? 'Supera tu cuota máxima. Quita algo para continuar.'
+                : 'Supera tu cuota aprobada. Quita algo para continuar.'}
           </p>
         ) : null}
       </main>

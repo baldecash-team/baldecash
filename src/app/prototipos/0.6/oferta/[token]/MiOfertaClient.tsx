@@ -605,8 +605,11 @@ export function MiOfertaClient({ token }: { token: string }) {
   const reqExtrasMonthly =
     ((req?.accessories ?? []).reduce((s, a) => s + (a.monthly ?? 0), 0) +
      (req?.insurances ?? []).reduce((s, i) => s + (i.monthly ?? 0), 0)) * reqFreqFactor;
+  // Tope de efectivo (BAL-4910): contra el tope va solo el equipo, así que la
+  // barra compara la cuota del equipo pedido sin sus accesorios ni seguros.
+  const reqExtrasContraTope = offer.quotaCapEquipmentOnly ? 0 : reqExtrasMonthly;
   const reqTotalMonthly =
-    req?.monthly_price != null ? (req.monthly_price * reqFreqFactor) + reqExtrasMonthly : null;
+    req?.monthly_price != null ? (req.monthly_price * reqFreqFactor) + reqExtrasContraTope : null;
 
   // Chips de specs del equipo pedido (processor/RAM/almacenamiento/GPU/pantalla),
   // igual que la card del recomendado del Caso 4. El backend manda el dict plano
@@ -666,6 +669,7 @@ export function MiOfertaClient({ token }: { token: string }) {
             aprobado={offer.maxMonthlyQuota}
             mode="pedido"
             usado={reqTotalMonthly}
+            soloEquipo={offer.quotaCapEquipmentOnly === true}
             equipoNombre={req?.name ?? undefined}
           />
         )}

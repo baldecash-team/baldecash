@@ -36,9 +36,12 @@ interface SaludoDowngradeProps {
   tope: number;
   /** Pantalla donde se pinta: define tipografía y la frase de cierre. */
   variante: 'portada' | 'complementos';
+  /** Tope de efectivo (BAL-4910): solo el equipo cuenta contra la cuota; los
+   *  accesorios y seguros van aparte. Cambia la frase de cierre de complementos. */
+  soloEquipo?: boolean;
 }
 
-export function SaludoDowngrade({ nombre, tope, variante }: SaludoDowngradeProps) {
+export function SaludoDowngrade({ nombre, tope, variante, soloEquipo = false }: SaludoDowngradeProps) {
   const limpio = nombre?.trim();
   const titulo = (
     <>
@@ -55,7 +58,9 @@ export function SaludoDowngrade({ nombre, tope, variante }: SaludoDowngradeProps
       <span className="font-bold" style={{ color: OFERTA_COLORS.textStrong }}>S/ {textoDelTope(tope)}</span> al mes.{' '}
       {variante === 'portada'
         ? 'Elige el equipo que prefieras de tu catálogo.'
-        : 'Solo mostramos lo que entra en tu cuota.'}
+        : soloEquipo
+          ? 'Tu equipo entra en tu cuota. Los accesorios y seguros van aparte.'
+          : 'Solo mostramos lo que entra en tu cuota.'}
     </>
   );
 
