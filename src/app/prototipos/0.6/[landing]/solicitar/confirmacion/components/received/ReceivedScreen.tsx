@@ -8,6 +8,7 @@ import { ReceivedMessage } from './message';
 import { ProductSummary } from './summary';
 import { ContactInfo } from './contact';
 import { DescargarConstancia } from './DescargarConstancia';
+import { RegaloBaldecash } from './regalo';
 
 interface ReceivedScreenProps {
   data: ReceivedData;
@@ -41,6 +42,8 @@ export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome
             Respuesta"): el mensaje de arriba ya dice cómo terminó, y a quien
             llega desde el cierre del KYC —aprobado y firmado— le diría que
             su solicitud sigue evaluándose. */}
+        {/* Antes del resumen: es lo primero que tiene que ver quien ganó el regalo. */}
+        {data.regaloBaldecash && <RegaloBaldecash regalo={data.regaloBaldecash} />}
         <ProductSummary data={data} />
         {/* Va antes del contacto: es lo último accionable que le queda por
             hacer a la persona, no una nota al pie. */}

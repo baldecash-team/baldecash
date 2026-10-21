@@ -87,6 +87,12 @@ export interface ReceivedData {
   // Accesorios
   accessories?: AccessoryItem[];
 
+  /**
+   * Accesorio que regala BaldeCash (`gift_source = "regalo_dinet"`). Se muestra
+   * en un bloque propio y NO está en `accessories`.
+   */
+  regaloBaldecash?: { name: string; image: string } | null;
+
   // Seguro(s)
   insurance?: InsuranceData;
   insurances?: InsuranceData[];

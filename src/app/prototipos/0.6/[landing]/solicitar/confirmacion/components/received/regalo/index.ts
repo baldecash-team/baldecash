@@ -1,0 +1,1 @@
+export { RegaloBaldecash } from './RegaloBaldecash';
