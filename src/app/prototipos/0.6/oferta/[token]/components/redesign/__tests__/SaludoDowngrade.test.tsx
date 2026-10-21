@@ -56,6 +56,15 @@ describe('SaludoDowngrade', () => {
     );
   });
 
+  test('complementos con tope de efectivo (BAL-4910): los add-ons van aparte', () => {
+    const { container } = render(<SaludoDowngrade nombre="Rosa" tope={200} variante="complementos" soloEquipo />);
+
+    expect(container).toHaveTextContent(
+      'Tienes una cuota aprobada de hasta S/ 200 al mes. Tu equipo entra en tu cuota. Los accesorios y seguros van aparte.',
+    );
+    expect(container).not.toHaveTextContent('Solo mostramos lo que entra en tu cuota.');
+  });
+
   test('sin nombre no deja la coma suelta', () => {
     const { container } = render(<SaludoDowngrade nombre={null} tope={250} variante="portada" />);
 

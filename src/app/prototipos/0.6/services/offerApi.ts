@@ -306,10 +306,16 @@ export interface OfferView {
    *  equipo ofrecido, el cliente puede elegir otro del catálogo de la landing.
    *  Solo viene `true` cuando el backend lo manda; si no, la oferta de siempre. */
   catalogEnabled?: boolean;
+  /** Tope de efectivo (BAL-4910): `true` = contra el tope va SOLO la cuota del
+   *  equipo; los accesorios y seguros van aparte y no se suman. Un backend
+   *  anterior no lo manda y queda `false`: se mide la cuota total, como antes. */
+  quotaCapEquipmentOnly?: boolean;
 }
 
 export interface OfferCatalog {
   maxMonthlyQuota: number;
+  /** Ver `OfferView.quotaCapEquipmentOnly` (BAL-4910). */
+  quotaCapEquipmentOnly: boolean;
   items: CatalogProduct[];
   count: number;
 }
@@ -463,6 +469,8 @@ export async function getOffer(token: string): Promise<OfferView> {
       // iniciales del catálogo y, solo en rescate, el tope. Apagado no viene
       // nada y queda como siempre: sin tope y sin celdas.
       catalogEnabled: data.catalog_enabled === true,
+      // BAL-4910: con tope de efectivo los add-ons no cuentan contra el tope.
+      quotaCapEquipmentOnly: data.quota_cap_equipment_only === true,
       terms: data.terms ?? [],
       initials: data.initials ?? [],
       standardOffer: {
@@ -556,6 +564,8 @@ export async function getOffer(token: string): Promise<OfferView> {
     // backend anterior no lo trae y la oferta queda sin caso, como antes.
     offerCase: data.case === 'downgrade' ? 'downgrade' : undefined,
     maxMonthlyQuota: data.max_monthly_quota,
+    // BAL-4910: con tope de efectivo los add-ons no cuentan contra el tope.
+    quotaCapEquipmentOnly: data.quota_cap_equipment_only === true,
     expiresAt: data.expires_at ?? null,
     landingSlug: data.landing_slug ?? null,
     requestedProduct: data.requested_product ?? null,
@@ -613,6 +623,7 @@ export async function getCatalog(
   const data = await res.json();
   return {
     maxMonthlyQuota: data.max_monthly_quota,
+    quotaCapEquipmentOnly: data.quota_cap_equipment_only === true,
     items: (data.items ?? []).map((it: ApiCatalogProduct) => mapOfferCatalogItem(it)),
     count: data.count ?? 0,
   };
@@ -891,7 +902,7 @@ export async function getOfferAddonsRich(
   variantId: number,
   selected?: { accessoryIds?: number[]; insuranceIds?: number[]; term?: number; initial?: number },
   comboId?: number | null,
-): Promise<{ remaining: number; equipoMonthly: number; equipoMonthlyBilled: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] } }> {
+): Promise<{ remaining: number; quotaCapEquipmentOnly: boolean; equipoMonthly: number; equipoMonthlyBilled: number; equipoInitialAmount: number; equipoFrequency: string; equipoTerm: number | null; accessories: Accessory[]; insurances: InsurancePlan[]; comboFreeAddons: { accessories: { id: string; name: string; image?: string | null }[]; insurances: { id: string; name: string }[] } }> {
   const params = new URLSearchParams({ variant_id: String(variantId) });
   if (selected?.accessoryIds?.length) params.set('accessory_ids', selected.accessoryIds.join(','));
   if (selected?.insuranceIds?.length) params.set('insurance_ids', selected.insuranceIds.join(','));
@@ -954,6 +965,9 @@ export async function getOfferAddonsRich(
   };
   return {
     remaining: Number(d.remaining ?? 0),
+    // BAL-4910: tope de efectivo → solo el equipo se mide contra el tope; los
+    // accesorios y seguros se pueden marcar aunque el total lo pase.
+    quotaCapEquipmentOnly: d.quota_cap_equipment_only === true,
     equipoMonthly: Number(d.equipo_monthly ?? 0),
     // BAL-2379: cuota del equipo MENSUALIZADA (para el total/límite). Fallback a
     // equipo_monthly para equipos mensuales o respuestas viejas sin el campo.

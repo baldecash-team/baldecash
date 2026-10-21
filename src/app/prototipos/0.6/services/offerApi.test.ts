@@ -11,6 +11,7 @@
 import {
   getOffer,
   getCatalog,
+  getOfferAddonsRich,
   selectEquipment,
   acceptOffer,
   OfferApiError,
@@ -523,5 +524,38 @@ describe('getOffer — oferta estándar con «Mostrar catálogo completo» (BAL-
     });
 
     expect((await getOffer('tok')).maxMonthlyQuota).toBe(0);
+  });
+});
+
+describe('tope de efectivo: solo cuenta el equipo (BAL-4910)', () => {
+  function mockJson(body: unknown) {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => body });
+  }
+
+  it('getOffer (downgrade) lee quota_cap_equipment_only', async () => {
+    mockJson({ offer_code: 'OFF-1', case: 'downgrade', max_monthly_quota: 200, quota_cap_equipment_only: true });
+    expect((await getOffer('tok')).quotaCapEquipmentOnly).toBe(true);
+  });
+
+  it('getOffer (estándar con catálogo) lee quota_cap_equipment_only', async () => {
+    mockJson({ offer_code: 'OFF-2', case: 'standard', catalog_enabled: true, max_monthly_quota: 200, quota_cap_equipment_only: true });
+    expect((await getOffer('tok')).quotaCapEquipmentOnly).toBe(true);
+  });
+
+  it('un backend que no lo manda deja false (se mide el total, como antes)', async () => {
+    mockJson({ offer_code: 'OFF-3', case: 'downgrade', max_monthly_quota: 200 });
+    expect((await getOffer('tok')).quotaCapEquipmentOnly).toBe(false);
+  });
+
+  it('getCatalog lo lee', async () => {
+    mockJson({ max_monthly_quota: 200, quota_cap_equipment_only: true, items: [], count: 0 });
+    expect((await getCatalog('tok')).quotaCapEquipmentOnly).toBe(true);
+  });
+
+  it('getOfferAddonsRich lo lee y sin el campo queda false', async () => {
+    mockJson({ remaining: 0, equipo_monthly: 180, accessories: [], insurances: [], quota_cap_equipment_only: true });
+    expect((await getOfferAddonsRich('tok', 1)).quotaCapEquipmentOnly).toBe(true);
+    mockJson({ remaining: 20, equipo_monthly: 180, accessories: [], insurances: [] });
+    expect((await getOfferAddonsRich('tok', 1)).quotaCapEquipmentOnly).toBe(false);
   });
 });

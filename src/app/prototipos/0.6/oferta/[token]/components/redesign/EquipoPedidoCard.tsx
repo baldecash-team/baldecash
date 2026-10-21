@@ -58,6 +58,29 @@ export interface EquipoPedidoCardProps {
    *  disponible" y sin CTA, sin importar `variant`. Ausente/null = disponible
    *  (compatibilidad con backend viejo). */
   availableInCatalog?: boolean | null;
+  /** BAL-4910: si el badge "Excede tu cuota" aplica (solo variante 'excede').
+   *  Default `true` = como siempre. Con tope de efectivo lo decide
+   *  `pedidoExcedeElTope` mirando solo la cuota del equipo. */
+  excedeCuota?: boolean;
+}
+
+/**
+ * ¿El equipo pedido pasa el tope? (BAL-4910). Con el tope de siempre
+ * (`soloEquipo` false) se asume que sí, como hasta hoy: la oferta de downgrade
+ * existe porque el pedido no entra. Con el tope de efectivo se mide solo la
+ * cuota MENSUAL del equipo, con la misma regla que la barra de la cuota
+ * (`MontoAprobadoBar`): pasa si es mayor que el tope. Sin cifras, se deja el
+ * badge como siempre.
+ */
+export function pedidoExcedeElTope(params: {
+  soloEquipo: boolean;
+  cuotaEquipoMensual: number | null | undefined;
+  tope: number | null | undefined;
+}): boolean {
+  const { soloEquipo, cuotaEquipoMensual, tope } = params;
+  if (!soloEquipo) return true;
+  if (cuotaEquipoMensual == null || !(cuotaEquipoMensual > 0) || tope == null || !(tope > 0)) return true;
+  return cuotaEquipoMensual > tope;
 }
 
 export function EquipoPedidoCard({
@@ -75,6 +98,7 @@ export function EquipoPedidoCard({
   ctaText,
   onElegir,
   availableInCatalog,
+  excedeCuota = true,
 }: EquipoPedidoCardProps) {
   const disponible = variant === 'disponible';
   // BAL-4193: solo cuenta como "ya no disponible" cuando el backend lo marca
@@ -140,7 +164,7 @@ export function EquipoPedidoCard({
                 Ya no disponible
               </span>
             ) : null}
-            {!disponible ? (
+            {!disponible && excedeCuota ? (
               <span
                 className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
                 style={{ backgroundColor: OFERTA_COLORS.amberBg, color: '#B45309' }}

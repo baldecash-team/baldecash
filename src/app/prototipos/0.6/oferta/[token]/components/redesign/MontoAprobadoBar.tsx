@@ -27,9 +27,12 @@ interface MontoAprobadoBarProps {
   mode?: 'pedido' | 'recomendado';
   /** Nombre del equipo (para el aviso, modo recomendado). Opcional. */
   equipoNombre?: string | null;
+  /** Tope de efectivo (BAL-4910): `usado` es solo la cuota del equipo (sin
+   *  accesorios ni seguros) y los textos de mode="pedido" hablan del equipo. */
+  soloEquipo?: boolean;
 }
 
-export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipoNombre }: MontoAprobadoBarProps) {
+export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipoNombre, soloEquipo = false }: MontoAprobadoBarProps) {
   const fmt = (n: number) => Math.round(n).toLocaleString('es-PE');
   const tiene = usado != null && usado > 0 && aprobado > 0;
   const excede = mode === 'pedido' && tiene && usado! > aprobado;
@@ -47,7 +50,9 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
       >
         <div className="flex items-end justify-between gap-3">
           <div>
-            <div className="text-[11.5px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>Cuota seleccionada</div>
+            <div className="text-[11.5px] font-medium" style={{ color: OFERTA_COLORS.textSoft }}>
+              {soloEquipo ? 'Cuota de tu equipo' : 'Cuota seleccionada'}
+            </div>
             <div
               className="mt-0.5 font-['Baloo_2',_sans-serif] text-[30px] font-extrabold leading-none sm:text-[32px]"
               style={{ color: OFERTA_COLORS.textStrong }}
@@ -82,7 +87,9 @@ export function MontoAprobadoBar({ aprobado, usado, mode = 'recomendado', equipo
               <circle cx="12" cy="17.2" r="1.2" fill={RED} />
             </svg>
             <span className="text-[12px] font-semibold" style={{ color: RED }}>
-              Tu cuota excede en S/{fmt(exceso)} la cuota aprobada
+              {soloEquipo
+                ? `La cuota de tu equipo pasa en S/${fmt(exceso)} tu cuota máxima`
+                : `Tu cuota excede en S/${fmt(exceso)} la cuota aprobada`}
             </span>
           </div>
         ) : null}

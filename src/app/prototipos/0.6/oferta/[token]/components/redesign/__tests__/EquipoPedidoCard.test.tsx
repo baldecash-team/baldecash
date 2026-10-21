@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { EquipoPedidoCard } from '../EquipoPedidoCard';
+import { EquipoPedidoCard, pedidoExcedeElTope } from '../EquipoPedidoCard';
 
 /**
  * BAL-4193: el equipo que el cliente PIDIÓ puede haber salido del catálogo
@@ -91,5 +91,35 @@ describe('EquipoPedidoCard — variant "excede" (Caso 4 downgrade, informativa)'
     expect(screen.getByText('Excede tu cuota')).toBeInTheDocument();
     expect(screen.getByText('Ya no disponible')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /mantener/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('Tope de efectivo: el badge "Excede tu cuota" mira solo el equipo (BAL-4910)', () => {
+  test('excedeCuota=false: sin el badge "Excede tu cuota"', () => {
+    render(<EquipoPedidoCard {...BASE_PROPS} excedeCuota={false} />);
+    expect(screen.queryByText('Excede tu cuota')).not.toBeInTheDocument();
+  });
+
+  test('sin excedeCuota (default): el badge sale como siempre', () => {
+    render(<EquipoPedidoCard {...BASE_PROPS} />);
+    expect(screen.getByText('Excede tu cuota')).toBeInTheDocument();
+  });
+
+  test('efectivo: equipo dentro del tope → no excede, aunque los add-ons lo pasarían', () => {
+    expect(pedidoExcedeElTope({ soloEquipo: true, cuotaEquipoMensual: 108, tope: 200 })).toBe(false);
+    expect(pedidoExcedeElTope({ soloEquipo: true, cuotaEquipoMensual: 200, tope: 200 })).toBe(false);
+  });
+
+  test('efectivo: equipo sobre el tope → excede', () => {
+    expect(pedidoExcedeElTope({ soloEquipo: true, cuotaEquipoMensual: 210, tope: 200 })).toBe(true);
+  });
+
+  test('sin el campo (tope del motor): excede como hoy, sin mirar la cuota', () => {
+    expect(pedidoExcedeElTope({ soloEquipo: false, cuotaEquipoMensual: 108, tope: 200 })).toBe(true);
+  });
+
+  test('efectivo sin cifras: se deja el badge como siempre', () => {
+    expect(pedidoExcedeElTope({ soloEquipo: true, cuotaEquipoMensual: null, tope: 200 })).toBe(true);
+    expect(pedidoExcedeElTope({ soloEquipo: true, cuotaEquipoMensual: 108, tope: 0 })).toBe(true);
   });
 });
