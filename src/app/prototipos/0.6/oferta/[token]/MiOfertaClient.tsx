@@ -42,7 +42,7 @@ import { EquipoRecomendadoCard, type EquipoRecomendadoInfo } from './components/
 import { specsToChips } from './components/redesign/specsChips';
 import { OpcionBarra } from './components/redesign/OpcionBarra';
 import { IconoAccesorios } from './components/redesign/IconoAccesorios';
-import { EquipoPedidoCard } from './components/redesign/EquipoPedidoCard';
+import { EquipoPedidoCard, pedidoExcedeElTope } from './components/redesign/EquipoPedidoCard';
 import { OFERTA_COLORS } from './components/redesign/ofertaTheme';
 import { SaludoDowngrade, esSaludoDowngrade } from './components/redesign/SaludoDowngrade';
 
@@ -781,6 +781,13 @@ export function MiOfertaClient({ token }: { token: string }) {
                 accessories={req.accessories ?? []}
                 insurances={req.insurances ?? []}
                 availableInCatalog={req.available_in_catalog}
+                // BAL-4910: con tope de efectivo el badge "Excede tu cuota" sale
+                // solo si la cuota del EQUIPO pasa el tope (misma regla que la barra).
+                excedeCuota={pedidoExcedeElTope({
+                  soloEquipo: offer.quotaCapEquipmentOnly === true,
+                  cuotaEquipoMensual: reqTotalMonthly,
+                  tope: offer.maxMonthlyQuota,
+                })}
               />
             ) : null}
 
