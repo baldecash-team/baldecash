@@ -171,6 +171,12 @@ describe('resumenDeSeccion / textoDelCampo', () => {
     expect(etiquetaCorta('¿Qué beca tienes?')).toBe('Beca');
     expect(etiquetaCorta('Nombre de tu empresa')).toBe('Nombre de tu empresa');
     expect(etiquetaCorta('¿Cuál?')).toBe('Cuál');
+    expect(etiquetaCorta('¿?')).toBe('');
+  });
+
+  it('una etiqueta que es solo signos no deja ": valor"; va el valor solo', () => {
+    const raro = campo('raro', { type: 'text', label: '¿?' });
+    expect(parteDelResumen(raro, 'algo')).toBe('algo');
   });
 
   it('vacíos, casillas y archivos no salen', () => {

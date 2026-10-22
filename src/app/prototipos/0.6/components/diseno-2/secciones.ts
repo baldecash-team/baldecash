@@ -194,7 +194,12 @@ function esSiNo(f: WizardField): boolean {
 export function parteDelResumen(f: WizardField, valor: unknown, etiquetaGuardada?: string): string {
   const texto = textoDelCampo(f, valor, etiquetaGuardada);
   if (!texto) return '';
-  if (esSiNo(f) || TIPOS_DE_TEXTO.has(f.type)) return `${etiquetaCorta(f.label)}: ${texto}`;
+  if (esSiNo(f) || TIPOS_DE_TEXTO.has(f.type)) {
+    // Una etiqueta que es solo signos ("¿?") no deja nada: va el valor solo,
+    // nunca ": No".
+    const etiqueta = etiquetaCorta(f.label ?? '');
+    return etiqueta ? `${etiqueta}: ${texto}` : texto;
+  }
   return texto;
 }
 
