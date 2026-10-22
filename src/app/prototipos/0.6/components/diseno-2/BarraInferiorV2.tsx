@@ -28,6 +28,8 @@ export interface BarraInferiorV2Props {
   oculto?: boolean;
   /** Cuota total ya formateada, para el paso que envía. */
   total?: string;
+  /** Texto del botón en lugar de "Continuar" / "Enviar solicitud". */
+  texto?: string;
 }
 
 /** Alto reservado para que la barra no tape el final de la página. */
@@ -44,11 +46,12 @@ export function BarraInferiorV2({
   canProceed = true,
   oculto = false,
   total,
+  texto: textoPropio,
 }: BarraInferiorV2Props) {
   const teclado = useTecladoVirtualAbierto();
   if (oculto || teclado || !onPrimary) return null;
   const deshabilitado = isSubmitting || isBusy || !canProceed;
-  const texto = isSubmitting ? submitMessage || 'Enviando…' : isLastStep ? 'Enviar solicitud' : 'Continuar';
+  const texto = isSubmitting ? submitMessage || 'Enviando…' : textoPropio || (isLastStep ? 'Enviar solicitud' : 'Continuar');
 
   return (
     <div

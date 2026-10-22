@@ -67,6 +67,15 @@ import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
 // Diseño 2 de la solicitud (BAL-4959): solo el marco; la lógica es la de acá.
 import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer } from '@/app/prototipos/0.6/components/diseno-2';
 import { nombreDelSaludoDelPaso } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+// Paso 4 · Resumen de Diseño 2 (BAL-4966): los seguros entran al paso.
+import {
+  segurosVanEnElPaso4,
+  hayComplementosDespues,
+  nombreDelUltimoPaso,
+  encabezadoDelPaso4,
+} from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
+import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePaso4V2';
+import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
 
 
 // Helper function to get Lucide icon by name
@@ -164,9 +173,12 @@ function StepContent() {
   // por instancia y saldria a buscar `solicitar-config` una segunda vez.
   const flujo = useSolicitarFlow({ slug: landing, previewKey });
   const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = flujo;
+  // Algunos mocks viejos de `useSolicitarFlow` no traen estos dos.
+  const sectionsAfterWizard = flujo.sectionsAfterWizard;
+  const configLoadFailed = flujo.configLoadFailed === true;
 
   // Get applied coupon and term validation from product context
-  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
 
   // Toast notifications for submit
   const { showToast } = useToast(4000);
@@ -350,6 +362,29 @@ function StepContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redirigirAlContrato, landing]);
 
+  /**
+   * Paso 4 de Diseño 2 (BAL-4966). Los seguros van en este paso si la landing
+   * tiene la sección `insurance`, este es el resumen que envía y la solicitud
+   * no se creó antes (envío anticipado, D5: ver `segurosVanEnElPaso4`).
+   * `/complementos` ya no cuenta los seguros en Diseño 2.
+   */
+  const esElQueEnvia = enviaEnEstePaso || navigation.isLast;
+  const segurosEnPaso4 = segurosVanEnElPaso4({
+    diseno2: usarDiseno2,
+    esResumen: isSummaryStep,
+    esElQueEnvia,
+    sectionsAfterWizard,
+    envioAnticipadoStep,
+    indicePaso: navigation.currentIndex,
+    yaEnviada,
+  });
+  const hayComplementos = hayComplementosDespues(sectionsAfterWizard, usarDiseno2, shouldShowComplementos);
+  const paso4 = usePaso4V2({
+    activo: usarDiseno2 && isSummaryStep && !isFlowConfigLoading && !configLoadFailed,
+    conSeguros: segurosEnPaso4,
+    codigoPaso: step?.code ?? null,
+  });
+
   // Build form values for validation
   const formValues = useMemo(() => {
     const values: Record<string, string | string[]> = {};
@@ -371,6 +406,12 @@ function StepContent() {
   const saludoDiseno2 = useMemo(
     () => (usarDiseno2 ? nombreDelSaludoDelPaso(paso.step, formValues) : null),
     [usarDiseno2, paso.step, formValues],
+  );
+
+  // Diseño 2, Paso 4: "¡Último paso, {Nombre}!" con el mismo origen del saludo.
+  const nombrePaso4 = useMemo(
+    () => (usarDiseno2 && isSummaryStep ? nombreDelUltimoPaso(steps, formValues) : null),
+    [usarDiseno2, isSummaryStep, steps, formValues],
   );
 
   // Load summary field values from localStorage
@@ -571,7 +612,10 @@ function StepContent() {
     setSubmitted(true);
     const firstErrorField = validateStep();
     if (firstErrorField) {
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Diseño 2: en celular el campo puede estar en la vista 1; se vuelve
+      // ahí y se baja al campo con la guía. Diseño 1, como siempre.
+      if (usarDiseno2) paso4.volverAlCampo(firstErrorField);
+      else document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -601,7 +645,8 @@ function StepContent() {
     }
 
     // Check if there are sections after wizard (complementos page)
-    if (shouldShowComplementos) {
+    // (Diseño 2: los seguros ya no cuentan, van en este paso.)
+    if (hayComplementos) {
       // Navigate to complementos page for insurance/accessories sections
       setIsSubmitting(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -614,7 +659,15 @@ function StepContent() {
       ));
     } else {
       // No sections after wizard - submit application directly
-      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
+      // Diseño 2: con los seguros elegidos en este paso (el mismo
+      // `insurance_ids` que manda `/complementos`). Diseño 1: sin seguros.
+      const insuranceIds = paso4.insuranceIds;
+      await submitApplication({
+        insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
+        ...(insuranceIds.length > 0 ? { insuranceIds } : {}),
+        otpEnabled: isEnabled('otp_verification'),
+        kycEnabled,
+      });
       // The hook handles navigation to confirmation page on success
       // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
@@ -828,7 +881,7 @@ function StepContent() {
 
     // Determinar dinámicamente si es el último paso del wizard
     // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-    const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);
+    const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !hayComplementos);
 
     // Determinar el handler correcto para el botón:
     // - Si NO es el último paso real: onNext maneja "Continuar"
@@ -849,10 +902,9 @@ function StepContent() {
     // El cuerpo del resumen es el mismo en los dos diseños. Diseño 2 le pasa
     // los campos tocados para los errores al salir del campo; Diseño 1 no, y
     // el render queda como siempre.
-    const cuerpoResumen = (camposTocados?: ReadonlySet<string>) => (
-      <div className="space-y-4">
-        {/* Dynamic sections from regular API steps */}
-        {!sinResumen && regularSteps.map((s) => {
+    // El repaso de lo ya llenado: un bloque por paso con su "Editar". Diseño 1
+    // lo pinta en el cuerpo; Diseño 2, en "Ver detalle" del panel.
+    const repasoDeDatos = () => regularSteps.map((s) => {
           const visibleFields = getVisibleFields(s);
           if (visibleFields.length === 0) return null;
 
@@ -935,7 +987,12 @@ function StepContent() {
               })}
             </SummarySection>
           );
-        })}
+        });
+
+    const cuerpoResumen = (camposTocados?: ReadonlySet<string>) => (
+      <div className="space-y-4">
+        {/* Dynamic sections from regular API steps */}
+        {!sinResumen && repasoDeDatos()}
 
         {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
             los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
@@ -970,14 +1027,36 @@ function StepContent() {
     // `isBusy` (solo navega a complementos) e `isSubmitting` (crea la
     // solicitud) van separados por lo mismo que en `MobileStickyCta`.
     if (usarDiseno2) {
+      const encabezado = encabezadoDelPaso4(step, nombrePaso4);
+      // Celular en dos vistas (solo si hay protecciones que ofrecer): la 1
+      // con los campos del paso y "Continuar", la 2 con las protecciones y
+      // "Enviar…". En escritorio el CSS muestra las dos juntas.
+      const enVista2 = paso4.hayVista2 && paso4.vista === 2;
+      const continuarAVista2 = () => {
+        setSubmitted(true);
+        const firstErrorField = validateStep();
+        if (firstErrorField) {
+          paso4.volverAlCampo(firstErrorField);
+          return;
+        }
+        paso4.irAVista2();
+      };
+      const accionMovil = isActuallyLastStep && paso4.hayVista2 && paso4.vista === 1
+        ? { texto: 'Continuar', onPrimary: continuarAVista2 }
+        : null;
+      const atrasMovil = enVista2 ? { texto: 'Volver', onClick: () => paso4.setVista(1) } : null;
+      const frecuencia = getAllProducts()[0]?.paymentFrequency;
+
       return (
         <>
           <ShellV2
             currentStep={step.url_slug || step.code}
             step={step}
-            title={step.title}
-            description={step.description}
-            sinTarjeta={sinResumen && step.fields.length === 0}
+            title={encabezado.titulo}
+            antetitulo={encabezado.antetitulo}
+            description={encabezado.subtitulo}
+            // Cada bloque (campos, protecciones) lleva su propia tarjeta.
+            sinTarjeta
             onBack={handleSummaryBack}
             onNext={nextHandler}
             onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
@@ -989,8 +1068,40 @@ function StepContent() {
             submitMessage={submitMessage}
             canProceed={!bloqueadoPorWhitelist}
             navbarProps={navbarProps || undefined}
+            // `summary-off` (D3): el Paso 4 sale igual, sin "Ver detalle".
+            detalle={sinResumen ? undefined : <>{repasoDeDatos()}</>}
+            textoEnviar={paso4.textoEnviar}
+            accionMovil={accionMovil}
+            atrasMovil={atrasMovil}
           >
-            {(camposTocados) => cuerpoResumen(camposTocados)}
+            {(camposTocados) => (
+              <div className="space-y-4">
+                {step.fields.length > 0 && (
+                  <div
+                    data-vista-paso4="1"
+                    className={`rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7 ${enVista2 ? 'hidden lg:block' : ''}`}
+                    style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
+                  >
+                    <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
+                  </div>
+                )}
+                {segurosEnPaso4 && (
+                  <div data-vista-paso4="2" className={paso4.hayVista2 && paso4.vista === 1 ? 'hidden lg:block' : undefined}>
+                    <ProteccionesV2 {...paso4.seguros} landing={landing} frecuencia={frecuencia} />
+                  </div>
+                )}
+                <RefurbishedAcceptanceModal
+                  isOpen={showRefurbAcceptance}
+                  onClose={() => setShowRefurbAcceptance(false)}
+                  onAccept={() => {
+                    refurbAcceptedRef.current = true;
+                    setShowRefurbAcceptance(false);
+                    handleSummarySubmit();
+                  }}
+                  productName={selectedProduct?.name}
+                />
+              </div>
+            )}
           </ShellV2>
           <Footer data={footerData} landing={landing} agreementData={agreementData} />
           {/* La barra fija de celular no tapa el final del footer */}

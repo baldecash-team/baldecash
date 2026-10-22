@@ -1,0 +1,531 @@
+/**
+ * BAL-4966 · Paso 4 · Resumen de Diseño 2, montado en `StepClient`.
+ *
+ * `ShellV2` va mockeado a lo que importa (qué recibe: título, antetítulo,
+ * "Ver detalle", textos y acciones de escritorio y de celular). Lo que se
+ * prueba de verdad: los seguros dentro del paso (con la lógica compartida de
+ * `/complementos`), el submit con `insurance_ids`, que en Diseño 2 no se salte
+ * a `/complementos`, el envío anticipado (D5), las dos vistas de celular y que
+ * Diseño 1 siga igual.
+ */
+import React, { useSyncExternalStore } from 'react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
+
+const mockPush = jest.fn();
+const mockSubmit = jest.fn().mockResolvedValue(true);
+const mockLayout: { disenoSolicitud: 1 | 2; mostrarResumen: boolean | undefined } = { disenoSolicitud: 2, mostrarResumen: undefined };
+const mockFlujo: {
+  sectionsAfterWizard: { type: string; order: number; enabled: boolean }[];
+  shouldShowComplementos: boolean;
+  envioAnticipadoStep: number | null;
+} = { sectionsAfterWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null };
+const mockHandoff: { valor: unknown } = { valor: null };
+const mockPlanes: { lista: unknown[] } = { lista: [] };
+let mockFormData: Record<string, { value: string }> = {};
+
+const CAMPO_DIA = {
+  id: 1,
+  code: 'payment_day',
+  label: '¿Qué día del mes prefieres pagar?',
+  type: 'select',
+  required: true,
+  readonly: false,
+  hidden: false,
+  grid_columns: 12,
+  grid_columns_mobile: 12,
+  options: [{ value: '18', label: 'Día 18 de cada mes' }],
+  validations: [],
+  dependency_groups: [],
+  max_files: null,
+};
+const PASO_REGULAR = {
+  id: 10,
+  code: 'personal_data',
+  url_slug: 'datos-personales',
+  name: 'Datos personales',
+  title: 'Datos personales',
+  description: '',
+  icon: 'user',
+  order: 0,
+  is_summary_step: false,
+  fields: [
+    {
+      id: 2, code: 'first_name', label: 'Nombres', type: 'text', required: false, readonly: false, hidden: false,
+      grid_columns: 12, grid_columns_mobile: 12, options: [], validations: [], dependency_groups: [], max_files: null,
+    },
+  ],
+  motivational: null,
+};
+const PASO_RESUMEN = {
+  id: 11,
+  code: 'summary',
+  url_slug: 'resumen',
+  name: 'Resumen',
+  title: 'Resumen de tu solicitud',
+  description: '',
+  order: 1,
+  is_summary_step: true,
+  fields: [CAMPO_DIA],
+  motivational: null,
+};
+
+const GARANTIA = {
+  id: '14', code: 'INS-GE', name: 'Garantía Extendida Laptop 24M', description: 'Garantía', monthlyPrice: 20, totalPrice: 480,
+  paymentMonths: 24, insuranceType: 'garantia_extendida', tier: 'basic', isRecommended: false, coverage: [], exclusions: [],
+  durationMonths: 24, provider: { name: 'Insurama', code: 'INSURAMA' }, imageUrl: null,
+};
+const ROBO = { ...GARANTIA, id: '16', code: 'INS-SR', name: 'Seguro Contra Robo Laptop 24M', monthlyPrice: 16, insuranceType: 'seguro_robo' };
+
+// ProductContext con estado compartido entre todos los que lo usan.
+type Seguro = { id: string; monthlyPrice: number };
+let mockSeguros: Seguro[] = [];
+const oyentes = new Set<() => void>();
+const mockStore = {
+  get: () => mockSeguros,
+  set: (v: Seguro[]) => {
+    mockSeguros = v;
+    oyentes.forEach((o) => o());
+  },
+  sub: (o: () => void) => {
+    oyentes.add(o);
+    return () => oyentes.delete(o);
+  },
+};
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
+  useParams: () => ({ landing: 'pago-diferido', stepSlug: 'resumen' }),
+  usePathname: () => '/prototipos/0.6/pago-diferido/solicitar/resumen',
+  useSearchParams: () => new URLSearchParams(''),
+}));
+
+jest.mock('../../hooks/useSubmitApplication', () => ({
+  useSubmitApplication: () => ({
+    submit: mockSubmit,
+    isSubmitting: false,
+    submitMessage: '',
+    submitStage: 'idle',
+    submitSucceeded: false,
+  }),
+}));
+
+jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
+  useSolicitarFlow: () => ({
+    sectionsAfterWizard: mockFlujo.sectionsAfterWizard,
+    shouldShowComplementos: mockFlujo.shouldShowComplementos,
+    configLoadFailed: false,
+    isCouponRequired: false,
+    isEnabled: () => false,
+    kycEnabled: false,
+    isKycStepEnabled: () => false,
+    envioAnticipadoStep: mockFlujo.envioAnticipadoStep,
+    firmaPorAceptacion: false,
+    isLoading: false,
+  }),
+}));
+
+jest.mock('../../utils/envioAnticipadoHandoff', () => ({
+  readEnvioAnticipadoHandoff: () => mockHandoff.valor,
+}));
+
+jest.mock('../../context/WizardConfigContext', () => ({
+  useWizardConfig: () => ({
+    getStepByUrlSlug: (slug: string) => (slug === 'datos-personales' ? PASO_REGULAR : PASO_RESUMEN),
+    getNavigation: (code: string) =>
+      code === 'personal_data'
+        ? { currentIndex: 0, prevStep: null, nextStep: PASO_RESUMEN, isFirst: true, isLast: false }
+        : { currentIndex: 1, prevStep: PASO_REGULAR, nextStep: null, isFirst: false, isLast: true },
+    steps: [PASO_REGULAR, PASO_RESUMEN],
+    isLoading: false,
+    error: null,
+    badgeText: null,
+  }),
+}));
+
+jest.mock('../../context/WizardContext', () => ({
+  useWizard: () => ({
+    formData: mockFormData,
+    setFieldError: jest.fn(),
+    markStepCompleted: jest.fn(),
+    getFieldValue: (c: string) => mockFormData[c]?.value ?? '',
+    getFieldLabel: () => undefined,
+    getAllDynamicOptions: () => ({}),
+  }),
+  FILE_PENDING_REUPLOAD: '__pending__',
+}));
+
+jest.mock('@/app/prototipos/0.6/[landing]/context/LayoutContext', () => ({
+  useLayout: () => ({
+    navbarProps: {},
+    footerData: {},
+    agreementData: null,
+    landingId: 170,
+    isLoading: false,
+    hasError: false,
+    newsletterData: null,
+    disenoSolicitud: mockLayout.disenoSolicitud,
+    mostrarResumen: mockLayout.mostrarResumen,
+  }),
+}));
+
+// Funciones estables, como las del contexto real (`useCallback`): con
+// funciones nuevas en cada render, los efectos que dependen de ellas se
+// relanzan sin fin.
+const mockAcciones = {
+  toggleInsurance: (p: Seguro) =>
+    mockStore.set(mockStore.get().some((s) => s.id === p.id) ? mockStore.get().filter((s) => s.id !== p.id) : [...mockStore.get(), p]),
+  clearInsurance: () => mockStore.set([]),
+  setAvailableMultiasistencia: () => {},
+  hasUnifiedTerms: () => true,
+  getAllProducts: () => [{ id: '1', name: 'Laptop Test', paymentFrequency: 'mensual' }],
+  getInitialOptionsForProduct: () => [],
+  getAvailableTerms: () => [],
+  updateAllProductsToTerm: () => {},
+  updateProductInitial: () => {},
+  setIsProductBarExpanded: () => {},
+};
+const mockProducto = { id: '1', name: 'Laptop Test', price: 3000, months: 24, type: 'Laptop' };
+const mockSinCarrito: unknown[] = [];
+
+jest.mock('../../context/ProductContext', () => ({
+  useProduct: () => {
+    const seguros = useSyncExternalStore(mockStore.sub, mockStore.get, mockStore.get);
+    return {
+      ...mockAcciones,
+      selectedProduct: mockProducto,
+      isHydrated: true,
+      appliedCoupon: null,
+      cartProducts: mockSinCarrito,
+      isOverQuotaLimit: false,
+      unavailableProductIds: [],
+      isValidatingAvailability: false,
+      selectedAccessories: mockSinCarrito,
+      selectedInsurances: seguros,
+      isProductBarExpanded: false,
+      maxMonthlyQuota: 0,
+      getTotalMonthlyPayment: () => 159 + seguros.reduce((t, s) => t + s.monthlyPrice, 0),
+    };
+  },
+}));
+
+jest.mock('@/app/prototipos/0.6/services/landingApi', () => ({
+  ...jest.requireActual('@/app/prototipos/0.6/services/landingApi'),
+  getLandingInsurances: jest.fn(() => Promise.resolve(mockPlanes.lista)),
+}));
+
+jest.mock('@/app/prototipos/0.6/hooks/useLeadGuard', () => ({ useLeadGuard: () => true }));
+jest.mock('../../hooks/useLeadPrefill', () => ({ useLeadPrefill: jest.fn(), leadLockKey: (c: string) => `_lead_locked_${c}` }));
+jest.mock('../../context/EventTrackerContext', () => ({ useEventTrackerOptional: () => ({ track: jest.fn() }) }));
+jest.mock('../../context/SessionContext', () => ({ useSessionOptional: () => ({ sessionUuid: 'ses-1' }) }));
+jest.mock('@/app/prototipos/0.6/context/PreviewContext', () => ({
+  usePreview: () => ({ isPreviewingLanding: () => false, previewKey: null }),
+}));
+jest.mock('@/app/prototipos/0.6/services/landingConfigApi', () => ({
+  fetchLandingConfig: jest.fn().mockResolvedValue({ layout: { has_catalog: true }, features: {} }),
+}));
+jest.mock('../../components/solicitar/wizard/DynamicWizardStep', () => ({
+  DynamicWizardStep: () => <div data-testid="campos-del-paso" data-campo="payment_day" />,
+}));
+jest.mock('@/app/prototipos/0.6/components/zona-gamer/GamerNavbar', () => ({ GamerNavbar: () => null }));
+jest.mock('@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter', () => ({ GamerNewsletter: () => null }));
+jest.mock('@/app/prototipos/0.6/components/hero/Footer', () => ({ Footer: () => null }));
+jest.mock('@/app/prototipos/0.6/components/hero/Navbar', () => ({ Navbar: () => null }));
+// El detalle de Diseño 1 (NextUI) reducido a lo que importa: qué plan abre.
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal', () => ({
+  InsuranceDetailModal: ({ plan, isOpen }: { plan: { name: string } | null; isOpen: boolean }) =>
+    isOpen && plan ? <div role="dialog">Detalle de {plan.name}</div> : null,
+}));
+
+type PropsShell = {
+  title: string;
+  antetitulo?: string | null;
+  description?: string;
+  isLastStep?: boolean;
+  onNext?: () => void;
+  onSubmit?: () => void;
+  detalle?: React.ReactNode;
+  textoEnviar?: string;
+  accionMovil?: { texto: string; onPrimary: () => void } | null;
+  atrasMovil?: { texto: string; onClick: () => void } | null;
+  children: (t: ReadonlySet<string>) => React.ReactNode;
+};
+jest.mock('@/app/prototipos/0.6/components/diseno-2', () => ({
+  ShellV2: (p: PropsShell) => {
+    const principal = p.isLastStep ? p.onSubmit : p.onNext;
+    return (
+      <div data-testid="shell-v2">
+        {p.antetitulo && <p data-testid="antetitulo">{p.antetitulo}</p>}
+        <h1>{p.title}</h1>
+        <p data-testid="subtitulo">{p.description}</p>
+        {p.detalle && <div data-testid="ver-detalle">{p.detalle}</div>}
+        {p.children(new Set())}
+        <button type="button" data-testid="escritorio" onClick={principal}>
+          {p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar'}
+        </button>
+        <button type="button" data-testid="celular" onClick={p.accionMovil?.onPrimary ?? principal}>
+          {p.accionMovil?.texto ?? (p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar')}
+        </button>
+        {p.atrasMovil && (
+          <button type="button" data-testid="atras-celular" onClick={p.atrasMovil.onClick}>
+            {p.atrasMovil.texto}
+          </button>
+        )}
+      </div>
+    );
+  },
+  TransicionDelWizard: () => null,
+  BarraInferiorV2Spacer: () => null,
+}));
+
+import StepClient from '../StepClient';
+
+const SECCION_SEGURO = { type: 'insurance', order: 3, enabled: true };
+
+function vista(n: 1 | 2) {
+  return document.querySelector<HTMLElement>(`[data-vista-paso4="${n}"]`);
+}
+
+beforeEach(() => {
+  mockPush.mockClear();
+  mockSubmit.mockClear();
+  mockLayout.disenoSolicitud = 2;
+  mockLayout.mostrarResumen = undefined;
+  mockFlujo.sectionsAfterWizard = [SECCION_SEGURO];
+  mockFlujo.shouldShowComplementos = true;
+  mockFlujo.envioAnticipadoStep = null;
+  mockHandoff.valor = null;
+  mockPlanes.lista = [GARANTIA, ROBO];
+  mockSeguros = [];
+  mockFormData = { payment_day: { value: '18' } };
+  Element.prototype.scrollIntoView = jest.fn();
+  window.scrollTo = jest.fn();
+});
+
+describe('Paso 4 de Diseño 2 · encabezado y "Ver detalle"', () => {
+  it('sin nombre: el título de la BD, sin antetítulo, y el subtítulo de respaldo', async () => {
+    render(<StepClient />);
+    expect(await screen.findByRole('heading', { name: 'Resumen de tu solicitud' })).toBeInTheDocument();
+    expect(screen.queryByTestId('antetitulo')).not.toBeInTheDocument();
+    expect(screen.getByTestId('subtitulo')).toHaveTextContent('Elige tu día de pago, confirma tu dirección y envía tu solicitud.');
+  });
+
+  it('con el nombre del lookup: "¡Último paso, {Nombre}!"', async () => {
+    PASO_REGULAR.fields.push({
+      id: 3, code: 'document_number', label: 'DNI', type: 'document_number', required: false, readonly: false, hidden: false,
+      grid_columns: 12, grid_columns_mobile: 12, options: [], validations: [], dependency_groups: [], max_files: null,
+    });
+    mockFormData.document_number = { value: '70020010' };
+    mockFormData._prefill_status_document_number = { value: 'found' };
+    mockFormData.first_name = { value: 'BRENDA' };
+    try {
+      render(<StepClient />);
+      expect(await screen.findByTestId('antetitulo')).toHaveTextContent('¡Último paso, Brenda!');
+    } finally {
+      PASO_REGULAR.fields.pop();
+    }
+  });
+
+  it('el repaso de datos va en "Ver detalle", no en el cuerpo', async () => {
+    mockFormData.first_name = { value: 'Brenda' };
+    render(<StepClient />);
+    const detalle = await screen.findByTestId('ver-detalle');
+    expect(detalle).toHaveTextContent('Datos personales');
+    expect(detalle).toHaveTextContent('Editar');
+    // El cuerpo solo trae los campos del paso y las protecciones.
+    expect(vista(1)).not.toHaveTextContent('Editar');
+  });
+
+  it('con `summary-off` (D3) el Paso 4 sale igual, sin "Ver detalle"', async () => {
+    mockLayout.mostrarResumen = false;
+    render(<StepClient />);
+    expect(await screen.findByTestId('campos-del-paso')).toBeInTheDocument();
+    expect(screen.queryByTestId('ver-detalle')).not.toBeInTheDocument();
+    expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
+  });
+});
+
+describe('Paso 4 de Diseño 2 · protecciones', () => {
+  it('con la sección insurance aparecen dentro del paso, con su precio del backend', async () => {
+    render(<StepClient />);
+    expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
+    expect(screen.getByText('Seguro Contra Robo Laptop 24M')).toBeInTheDocument();
+    expect(screen.getByText('+S/20/mes')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Protege tu laptop/ })).toBeInTheDocument();
+  });
+
+  it('"Agregar" las suma y cambia el texto del botón; "¿Qué cubre?" abre el detalle', async () => {
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
+    expect(await screen.findByRole('button', { name: 'Quitar Garantía Extendida Laptop 24M' })).toHaveTextContent('Agregada ✓');
+    expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
+    await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 2 protecciones'));
+
+    fireEvent.click(screen.getAllByRole('button', { name: '¿Qué cubre?' })[1]);
+    expect(screen.getByRole('dialog')).toHaveTextContent('Detalle de Seguro Contra Robo Laptop 24M');
+  });
+
+  it('el submit lleva los insurance_ids elegidos y NO salta a /complementos', async () => {
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
+    await screen.findByText('Enviar con 1 protección');
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: '16', insuranceIds: ['16'] }));
+    expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/complementos'));
+  });
+
+  it('sin la sección insurance no aparecen y se envía sin seguros', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    expect(screen.queryByText(/Protege tu/)).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: null }));
+    expect(mockSubmit.mock.calls[0][0]).not.toHaveProperty('insuranceIds');
+  });
+
+  it('con otra sección después del wizard (accesorios) sí pasa por /complementos', async () => {
+    jest.useFakeTimers();
+    try {
+      mockFlujo.sectionsAfterWizard = [SECCION_SEGURO, { type: 'accessories', order: 4, enabled: true }];
+      render(<StepClient />);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('escritorio'));
+        await jest.advanceTimersByTimeAsync(600);
+      });
+      expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/complementos');
+      expect(mockSubmit).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('Paso 4 de Diseño 2 · envío anticipado (D5)', () => {
+  it('la solicitud ya se creó antes del paso: sin protecciones, va a la confirmación sin reenviar', async () => {
+    mockFlujo.envioAnticipadoStep = 1;
+    mockHandoff.valor = { applicationCode: 'BC-1', publicToken: 'tok', sessionUuid: 'ses-1' };
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }]; // quedó de antes
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    expect(screen.queryByText(/Protege tu/)).not.toBeInTheDocument();
+    // Los que no pueden viajar se sueltan (el total no los cobra).
+    await waitFor(() => expect(mockSeguros).toEqual([]));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/confirmacion'));
+  });
+
+  it('la solicitud se crea en ESTE paso: las protecciones salen y viajan en ese submit', async () => {
+    mockFlujo.envioAnticipadoStep = 2;
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
+    await screen.findByText('Enviar con 1 protección');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: ['14'] }));
+  });
+});
+
+describe('Paso 4 de Diseño 2 · celular en dos vistas', () => {
+  it('vista 1 → "Continuar" → vista 2 con las protecciones y "‹ Volver"', async () => {
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    // Vista 1: campos a la vista, protecciones solo en escritorio.
+    expect(vista(1)).not.toHaveClass('hidden');
+    expect(vista(2)).toHaveClass('hidden', 'lg:block');
+    expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
+    // Escritorio: todo junto y envía.
+    expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
+
+    fireEvent.click(screen.getByTestId('celular'));
+    expect(vista(1)).toHaveClass('hidden', 'lg:block');
+    expect(vista(2)).not.toHaveClass('hidden');
+    expect(screen.getByTestId('celular')).toHaveTextContent('Enviar solicitud');
+    expect(mockSubmit).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('atras-celular'));
+    expect(vista(1)).not.toHaveClass('hidden');
+  });
+
+  it('"Continuar" con el día de pago vacío no pasa a la vista 2', async () => {
+    delete mockFormData.payment_day;
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    fireEvent.click(screen.getByTestId('celular'));
+    expect(vista(1)).not.toHaveClass('hidden');
+    expect(screen.queryByTestId('atras-celular')).not.toBeInTheDocument();
+  });
+
+  it('enviar desde la vista 2 con algo pendiente vuelve a la vista 1 sin enviar', async () => {
+    const { rerender } = render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    fireEvent.click(screen.getByTestId('celular')); // a la vista 2
+    expect(vista(2)).not.toHaveClass('hidden');
+
+    // Ej. se borró el borrador: un `formData` nuevo, como el del contexto real.
+    const { payment_day: _borrado, ...resto } = mockFormData;
+    void _borrado;
+    mockFormData = resto;
+    rerender(<StepClient />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('celular'));
+    });
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(vista(1)).not.toHaveClass('hidden');
+    expect(vista(2)).toHaveClass('hidden', 'lg:block');
+  });
+
+  it('sin seguros hay una sola vista: el botón de celular envía', async () => {
+    mockPlanes.lista = [];
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }]; // quedó de otro equipo
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    await waitFor(() => expect(screen.getByTestId('celular')).toHaveTextContent('Enviar solicitud'));
+    // Sin planes para este equipo, la selección vieja se suelta (no se cobra).
+    await waitFor(() => expect(mockSeguros).toEqual([]));
+    expect(vista(1)).not.toHaveClass('hidden');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('celular'));
+    });
+    expect(mockSubmit).toHaveBeenCalled();
+  });
+});
+
+describe('Diseño 1 no cambia', () => {
+  it('el resumen de siempre: repaso en el cuerpo, sin protecciones y salta a /complementos', async () => {
+    jest.useFakeTimers();
+    try {
+      mockLayout.disenoSolicitud = 1;
+      mockFormData.first_name = { value: 'Brenda' };
+      render(<StepClient />);
+      expect(screen.queryByTestId('shell-v2')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Editar').length).toBeGreaterThan(0);
+      expect(screen.queryByText(/Protege tu/)).not.toBeInTheDocument();
+      const continuar = screen.getAllByRole('button', { name: /Continuar/ })[0];
+      await act(async () => {
+        fireEvent.click(continuar);
+        await jest.advanceTimersByTimeAsync(600);
+      });
+      expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/complementos');
+      expect(mockSubmit).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

@@ -87,6 +87,22 @@ export interface ShellV2Props {
   sinTarjeta?: boolean;
   /** Celebración entre pasos en curso: se esconde la barra fija. */
   ocultarBarraInferior?: boolean;
+  /** Línea corta sobre el título (Paso 4: "¡Último paso, {Nombre}!"). */
+  antetitulo?: string | null;
+  /**
+   * Repaso de los datos (Paso 4, BAL-4966): va en "Ver detalle" del panel
+   * "Tu solicitud" (escritorio) y de la cabecera desplegable (celular).
+   */
+  detalle?: React.ReactNode;
+  /** Texto del botón en el paso que envía ("Enviar con 2 protecciones"). */
+  textoEnviar?: string;
+  /**
+   * Solo celular: otra acción para la barra fija (Paso 4 en dos vistas: la
+   * vista 1 dice "Continuar" aunque el paso sea el que envía).
+   */
+  accionMovil?: { texto: string; onPrimary: () => void } | null;
+  /** Solo celular: el enlace de abajo hace otra cosa ("‹ Volver" a la vista 1). */
+  atrasMovil?: { texto: string; onClick: () => void } | null;
 }
 
 /**
@@ -139,6 +155,11 @@ export function ShellV2({
   navbarProps,
   sinTarjeta = false,
   ocultarBarraInferior = false,
+  antetitulo,
+  detalle,
+  textoEnviar,
+  accionMovil,
+  atrasMovil,
 }: ShellV2Props) {
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
@@ -189,7 +210,10 @@ export function ShellV2({
 
   const accionPrincipal = isLastStep ? onSubmit ?? onNext : onNext;
   const ocupado = isSubmitting || isBusy;
-  const textoPrincipal = isSubmitting ? submitMessage || 'Enviando…' : isLastStep ? 'Enviar solicitud' : 'Continuar';
+  const textoDelEnvio = textoEnviar || 'Enviar solicitud';
+  const textoPrincipal = isSubmitting ? submitMessage || 'Enviando…' : isLastStep ? textoDelEnvio : 'Continuar';
+  // Celular: el enlace de abajo. En la vista 2 del Paso 4 vuelve a la vista 1.
+  const atrasCelular = atrasMovil ?? (irAtras ? { texto: 'Atrás', onClick: irAtras } : null);
   const frecuencia = getAllProducts()[0]?.paymentFrequency;
   const totalTexto = `S/${formatCuotaDeLanding(getTotalMonthlyPayment(), landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
@@ -207,6 +231,7 @@ export function ShellV2({
         indiceActual={indiceActual}
         totalPasos={pasos.length}
         landing={landing}
+        detalle={detalle}
       />
       <div className="lg:hidden" style={{ height: ALTO_CABECERA_MOVIL }} aria-hidden />
 
@@ -217,6 +242,9 @@ export function ShellV2({
               <ProgresoV2 pasos={pasos} indiceActual={indiceActual} completados={completados} onIrAPaso={onStepClick} />
             </div>
 
+            {antetitulo && (
+              <p className="mb-1 font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-tight text-[#0B8A6B]">{antetitulo}</p>
+            )}
             <h1 className="font-['Baloo_2',_sans-serif] text-[28px] lg:text-[34px] font-bold leading-[1.1] text-[#1E2230]">
               {title}
             </h1>
@@ -279,16 +307,16 @@ export function ShellV2({
                 </p>
 
                 {/* Celular: Atrás como enlace; Continuar va en la barra fija */}
-                {irAtras && (
+                {atrasCelular && (
                   <div className="mt-3 flex justify-center lg:hidden">
                     <button
                       type="button"
-                      onClick={irAtras}
+                      onClick={atrasCelular.onClick}
                       disabled={ocupado}
                       className="inline-flex min-h-[44px] items-center gap-1 px-3 text-[15px] font-bold text-[var(--color-primary)] cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-lg"
                     >
                       <ChevronLeft className="h-4 w-4" aria-hidden />
-                      Atrás
+                      {atrasCelular.texto}
                     </button>
                   </div>
                 )}
@@ -298,7 +326,7 @@ export function ShellV2({
 
           <div className="hidden lg:block">
             <div className="sticky" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
-              <PanelSolicitudV2 datos={datosDelPanel} />
+              <PanelSolicitudV2 datos={datosDelPanel} detalle={detalle} />
             </div>
           </div>
         </div>
@@ -306,7 +334,8 @@ export function ShellV2({
 
       {!sinNavegacion && (
         <BarraInferiorV2
-          onPrimary={accionPrincipal}
+          onPrimary={accionMovil?.onPrimary ?? accionPrincipal}
+          texto={accionMovil?.texto ?? (isLastStep ? textoDelEnvio : undefined)}
           isLastStep={isLastStep}
           isSubmitting={isSubmitting}
           isBusy={isBusy}

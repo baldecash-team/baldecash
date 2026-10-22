@@ -252,9 +252,40 @@ function Confianza() {
   );
 }
 
+/**
+ * "Ver detalle" (Paso 4, BAL-4966): el repaso de los datos ya llenados, con
+ * su "Editar" que lleva a cada paso. Sin `detalle` (otro paso, o la landing
+ * con `summary-off`) no se pinta nada.
+ */
+function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; className?: string }) {
+  const [abierto, setAbierto] = useState(false);
+  const id = useId();
+  if (!detalle) return null;
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        aria-expanded={abierto}
+        aria-controls={abierto ? id : undefined}
+        onClick={() => setAbierto((v) => !v)}
+        data-ver-detalle-v2
+        className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+      >
+        Ver detalle
+        <ChevronDown className={`h-4 w-4 transition-transform duration-150 ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {abierto && (
+        <div id={id} role="region" aria-label="Detalle de tu solicitud" className="mt-2 space-y-3 text-left">
+          {detalle}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Escritorio ─────────────────────────────────────────────────────────────
 
-export function PanelSolicitudV2({ datos }: { datos: DatosDelPanel }) {
+export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; detalle?: React.ReactNode }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
   if (!datos.principal) return null;
@@ -263,7 +294,16 @@ export function PanelSolicitudV2({ datos }: { datos: DatosDelPanel }) {
     <aside aria-label="Tu solicitud">
       <div className="overflow-hidden rounded-2xl border border-[#AEB6EE] bg-white shadow-md" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary), 0 10px 28px rgba(30,34,48,0.06)' }}>
         <div className="bg-[#F3F5FD] px-5 pt-5 pb-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#3A4052]">Tu solicitud</p>
+          {detalle ? (
+            // Con "Ver detalle" el panel puede crecer más que la pantalla
+            // (va fijo): el repaso abierto se desplaza dentro de su caja.
+            <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:max-h-[45vh] [&_[role=region]]:overflow-y-auto [&_[role=region]]:basis-full">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#3A4052]">Tu solicitud</p>
+              <VerDetalle detalle={detalle} className="contents" />
+            </div>
+          ) : (
+            <p className="text-xs font-bold uppercase tracking-wide text-[#3A4052]">Tu solicitud</p>
+          )}
           {datos.mostrarImagen && (
             <div className="mx-auto mt-3 flex h-28 w-36 items-center justify-center">
               <ImagenEquipo datos={datos} tam={140} />
@@ -320,11 +360,14 @@ export function CabeceraSolicitudV2({
   indiceActual,
   totalPasos,
   landing,
+  detalle,
 }: {
   datos: DatosDelPanel;
   indiceActual: number;
   totalPasos: number;
   landing: string;
+  /** "Ver detalle" del Paso 4 dentro del desplegable. */
+  detalle?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
@@ -359,7 +402,7 @@ export function CabeceraSolicitudV2({
   }, [abierto]);
 
   const numero = totalPasos > 0 ? Math.min(Math.max(indiceActual, 0), totalPasos - 1) + 1 : 0;
-  const detalle = datos.principal?.specs
+  const detalleEquipo = datos.principal?.specs
     ? [datos.principal.specs.processor, datos.principal.specs.ram, datos.principal.specs.storage].filter(Boolean).join(' · ')
     : '';
 
@@ -378,7 +421,7 @@ export function CabeceraSolicitudV2({
               // una referencia rota (BAL-4959, hallazgo de la revisión).
               aria-controls={abierto ? idSelector : undefined}
               onClick={() => setAbierto((v) => !v)}
-              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !detalle}
+              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !detalleEquipo && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-white">
@@ -418,7 +461,7 @@ export function CabeceraSolicitudV2({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                {detalle && <p className="text-xs text-[#5B6275]">{detalle}</p>}
+                {detalleEquipo && <p className="text-xs text-[#5B6275]">{detalleEquipo}</p>}
                 {datos.regalos.map((r) => (
                   <p key={r.id} className="text-xs font-semibold text-[#0B6B5C]">+ {r.name} de regalo</p>
                 ))}
@@ -434,6 +477,7 @@ export function CabeceraSolicitudV2({
             <div className="mt-2">
               <SelectorPlazoInicial datos={datos} />
             </div>
+            <VerDetalle detalle={detalle} className="mt-2 border-t border-[#E3E6EE] pt-1" />
           </div>
         )}
       </div>

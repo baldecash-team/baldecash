@@ -37,6 +37,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
+import { seccionesDeComplementos } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -117,7 +118,7 @@ function ComplementosContent() {
   }, [isProductHydrated]); // fire once after hydration
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, disenoSolicitud } = useLayout();
 
   // Get wizard config for back navigation and cross-step validation
   const { steps } = useWizardConfig();
@@ -208,15 +209,27 @@ function ComplementosContent() {
     return regularSteps.length > 0 ? regularSteps[regularSteps.length - 1] : null;
   }, [steps]);
 
+  // Diseño 2 (BAL-4966): si el formulario tiene paso resumen, los seguros ya
+  // se ofrecieron en el Paso 4 y acá no se repiten. Diseño 1: todas, como
+  // siempre. La selección sigue en `ProductContext` y viaja igual en el submit.
+  const seccionesAMostrar = useMemo(
+    () => seccionesDeComplementos(
+      sectionsAfterWizard,
+      disenoSolicitud === 2 && !isGamer,
+      steps.some(s => s.is_summary_step),
+    ),
+    [sectionsAfterWizard, disenoSolicitud, isGamer, steps],
+  );
+
   // Check if insurance section is included
   const hasInsuranceSection = useMemo(() => {
-    return sectionsAfterWizard.some(s => s.type === 'insurance');
-  }, [sectionsAfterWizard]);
+    return seccionesAMostrar.some(s => s.type === 'insurance');
+  }, [seccionesAMostrar]);
 
   // Check if accessories section is included
   const hasAccessoriesSection = useMemo(() => {
-    return sectionsAfterWizard.some(s => s.type === 'accessories');
-  }, [sectionsAfterWizard]);
+    return seccionesAMostrar.some(s => s.type === 'accessories');
+  }, [seccionesAMostrar]);
 
   const handleBack = () => {
     tracker?.track('complementos_back', {
@@ -300,7 +313,7 @@ function ComplementosContent() {
 
         {/* Dynamic Sections */}
         <div className="space-y-6">
-          {sectionsAfterWizard.map((section, index) => (
+          {seccionesAMostrar.map((section, index) => (
             <motion.div
               key={section.type}
               initial={{ opacity: 0, y: 10 }}
@@ -316,7 +329,7 @@ function ComplementosContent() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 * (sectionsAfterWizard.length + 1) }}
+          transition={{ delay: 0.1 * (seccionesAMostrar.length + 1) }}
           className="mt-6 bg-white rounded-xl border border-neutral-200 overflow-hidden"
         >
           {/* Breakdown items */}
