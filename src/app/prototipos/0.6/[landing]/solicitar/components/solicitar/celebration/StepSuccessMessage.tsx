@@ -17,7 +17,7 @@ export interface StepSuccessMessageProps {
 const ROTATING_MESSAGES = ['¡Vas muy bien!', '¡Sigue así!', '¡Buen trabajo!'];
 const ROTATING_MESSAGES_GAMER = ['¡VAS MUY BIEN!', '¡SIGUE ASÍ!', '¡BUEN TRABAJO!'];
 
-const getMessage = (stepNumber: number, totalSteps: number, gamer?: boolean): string => {
+export const getMessage = (stepNumber: number, totalSteps: number, gamer?: boolean): string => {
   const progress = stepNumber / totalSteps;
   if (gamer) {
     if (stepNumber === totalSteps) return '¡INFORMACIÓN COMPLETA!';

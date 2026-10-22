@@ -17,13 +17,21 @@ import React from 'react';
 import { DynamicWizardStep } from './DynamicWizardStep';
 import type { PasoDelWizardControles } from './usePasoDelWizard';
 
-export function PasoDelWizard({ paso }: { paso: PasoDelWizardControles }) {
+export function PasoDelWizard({
+  paso,
+  camposTocados,
+}: {
+  paso: PasoDelWizardControles;
+  /** Solo Diseño 2: ver `DynamicWizardStep`. */
+  camposTocados?: ReadonlySet<string>;
+}) {
   if (!paso.step) return null;
   return (
     <DynamicWizardStep
       step={paso.step}
       showErrors={paso.showErrors}
       stepOrder={paso.step.order}
+      camposTocados={camposTocados}
     />
   );
 }

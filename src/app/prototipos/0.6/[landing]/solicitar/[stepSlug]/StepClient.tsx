@@ -64,6 +64,8 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
+// Diseño 2 de la solicitud (BAL-4959): solo el marco; la lógica es la de acá.
+import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer } from '@/app/prototipos/0.6/components/diseno-2';
 
 
 // Helper function to get Lucide icon by name
@@ -109,7 +111,15 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud } = useLayout();
+
+  /**
+   * Diseño 2 (`features.solicitud_design === 2`): el paso se pinta dentro de
+   * `ShellV2` en vez de `WizardLayout`. Es solo el marco: validación, borrador,
+   * envío anticipado, guards y navegación son los mismos de abajo. Zona gamer
+   * queda en Diseño 1 (decisión D6 del planning).
+   */
+  const usarDiseno2 = disenoSolicitud === 2 && !isGamerLanding(landing);
 
   // Get wizard config from API
   const {
@@ -180,7 +190,13 @@ function StepContent() {
    * Va acá, junto al resto de los hooks y ANTES de los early returns, o se
    * rompe el orden de hooks de React.
    */
-  const paso = usePasoDelWizard({ stepSlug, flujo, gamer: isGamerLanding(landing) });
+  // Diseño 2: la celebración entre pasos es "¡Un paso más!".
+  const paso = usePasoDelWizard({
+    stepSlug,
+    flujo,
+    gamer: isGamerLanding(landing),
+    Celebracion: usarDiseno2 ? TransicionDelWizard : undefined,
+  });
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
@@ -738,6 +754,42 @@ function StepContent() {
       sus casillas y acepta con sus propios botones.
     */
     if (handoff && condicionesFijas) {
+      const contrato = (
+        <ContratoEnWizard
+          landing={landing}
+          handoff={handoff}
+          onBack={handleSummaryBack}
+          stepSlug={step.url_slug || step.code}
+          // El estado `handoff` de ACÁ (leído una vez por montaje) no se
+          // re-deriva solo cuando `ContratoEnWizard` limpia la marca de
+          // "aceptado" en sessionStorage tras un 409 — sin este callback,
+          // las gates de más abajo (Atrás, indicador de pasos, redirect)
+          // seguirían bloqueando con el `true` viejo.
+          onContratoVencido={() => setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid))}
+        />
+      );
+
+      if (usarDiseno2) {
+        return (
+          <>
+            <ShellV2
+              currentStep={step.url_slug || step.code}
+              step={step}
+              title={step.title}
+              description={step.description}
+              onStepClick={bloqueaContrato ? undefined : handleStepClick}
+              isLastStep
+              sinNavegacion
+              condicionesFijas={condicionesFijas}
+              navbarProps={navbarProps || undefined}
+            >
+              {() => contrato}
+            </ShellV2>
+            <Footer data={footerData} landing={landing} agreementData={agreementData} />
+          </>
+        );
+      }
+
       const contenido = (
         <WizardLayout
           currentStep={step.url_slug || step.code}
@@ -751,18 +803,7 @@ function StepContent() {
           navbarProps={isGamer ? undefined : (navbarProps || undefined)}
           motivational={step.motivational}
         >
-          <ContratoEnWizard
-            landing={landing}
-            handoff={handoff}
-            onBack={handleSummaryBack}
-            stepSlug={step.url_slug || step.code}
-            // El estado `handoff` de ACÁ (leído una vez por montaje) no se
-            // re-deriva solo cuando `ContratoEnWizard` limpia la marca de
-            // "aceptado" en sessionStorage tras un 409 — sin este callback,
-            // las gates de más abajo (Atrás, indicador de pasos, redirect)
-            // seguirían bloqueando con el `true` viejo.
-            onContratoVencido={() => setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid))}
-          />
+          {contrato}
         </WizardLayout>
       );
 
@@ -796,6 +837,160 @@ function StepContent() {
     // paso de resumen que no es el último: es este mismo render.
     const sinResumen = mostrarResumen === false;
 
+    // El cuerpo del resumen es el mismo en los dos diseños. Diseño 2 le pasa
+    // los campos tocados para los errores al salir del campo; Diseño 1 no, y
+    // el render queda como siempre.
+    const cuerpoResumen = (camposTocados?: ReadonlySet<string>) => (
+      <div className="space-y-4">
+        {/* Dynamic sections from regular API steps */}
+        {!sinResumen && regularSteps.map((s) => {
+          const visibleFields = getVisibleFields(s);
+          if (visibleFields.length === 0) return null;
+
+          const IconComponent = getIconComponent(s.icon);
+          const sSlug = getStepSlug(s);
+
+          return (
+            <SummarySection
+              key={s.id}
+              icon={IconComponent}
+              title={s.title}
+              onEdit={() => {
+                tracker?.track('summary_edit_click', { section: s.code });
+                navigateToStep(sSlug);
+              }}
+            >
+              {visibleFields.map((field) => {
+                const value = getFieldValue(field.code);
+                const savedLabel = getFieldLabel(field.code);
+
+                // File fields: show filename with link to view
+                if (field.type === 'file') {
+                  const fileData = formData[field.code];
+                  const files = Array.isArray(value) ? value : [];
+                  const lostFileNames = fileData?.label;
+
+                  let fileContent: React.ReactNode;
+                  if (files.length > 0 && files[0] && typeof files[0] === 'object' && 'file' in files[0]) {
+                    // Files in memory — show clickable links
+                    fileContent = (
+                      <span className="flex flex-col items-end gap-1">
+                        {files.map((f: { id?: string; file?: File; name?: string }, i: number) => (
+                          <button
+                            key={f.id || i}
+                            type="button"
+                            onClick={() => {
+                              if (f.file) {
+                                const url = URL.createObjectURL(f.file);
+                                window.open(url, '_blank');
+                              }
+                            }}
+                            className="text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <LucideIcons.Paperclip className="w-3.5 h-3.5" />
+                            {f.name || 'Archivo adjunto'}
+                          </button>
+                        ))}
+                      </span>
+                    );
+                  } else if (lostFileNames) {
+                    // Files lost after refresh — show names without link
+                    fileContent = (
+                      <span className="flex items-center gap-1 text-neutral-500">
+                        <LucideIcons.Paperclip className="w-3.5 h-3.5" />
+                        {lostFileNames}
+                      </span>
+                    );
+                  } else {
+                    fileContent = 'No adjunto';
+                  }
+
+                  return (
+                    <SummaryItem
+                      key={field.id}
+                      label={field.label}
+                      value={fileContent}
+                    />
+                  );
+                }
+
+                const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined, savedLabel);
+
+                return (
+                  <SummaryItem
+                    key={field.id}
+                    label={field.label}
+                    value={displayValue}
+                  />
+                );
+              })}
+            </SummarySection>
+          );
+        })}
+
+        {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
+            los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
+        {step.fields.length > 0 && (
+          // Sin los bloques de resumen arriba, el recuadro interior ya no
+          // separa nada: los campos van directo en la tarjeta del paso, como
+          // en un paso regular, en vez de una tarjeta dentro de otra.
+          <div className={sinResumen ? undefined : 'bg-white rounded-xl border border-neutral-200 p-4 sm:p-6'}>
+            <DynamicWizardStep
+              step={step}
+              showErrors={submitted}
+              camposTocados={camposTocados}
+            />
+          </div>
+        )}
+
+        {/* Aceptación obligatoria de reacondicionado antes de enviar la solicitud */}
+        <RefurbishedAcceptanceModal
+          isOpen={showRefurbAcceptance}
+          onClose={() => setShowRefurbAcceptance(false)}
+          onAccept={() => {
+            refurbAcceptedRef.current = true;
+            setShowRefurbAcceptance(false);
+            handleSummarySubmit();
+          }}
+          productName={selectedProduct?.name}
+        />
+      </div>
+    );
+
+    // Diseño 2: el mismo cuerpo y los mismos handlers, dentro de `ShellV2`.
+    // `isBusy` (solo navega a complementos) e `isSubmitting` (crea la
+    // solicitud) van separados por lo mismo que en `MobileStickyCta`.
+    if (usarDiseno2) {
+      return (
+        <>
+          <ShellV2
+            currentStep={step.url_slug || step.code}
+            step={step}
+            title={step.title}
+            description={step.description}
+            sinTarjeta={sinResumen && step.fields.length === 0}
+            onBack={handleSummaryBack}
+            onNext={nextHandler}
+            onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
+            onStepClick={handleStepClick}
+            condicionesFijas={condicionesFijas}
+            isLastStep={isActuallyLastStep}
+            isSubmitting={isAppSubmitting}
+            isBusy={isSubmitting}
+            submitMessage={submitMessage}
+            canProceed={!bloqueadoPorWhitelist}
+            navbarProps={navbarProps || undefined}
+          >
+            {(camposTocados) => cuerpoResumen(camposTocados)}
+          </ShellV2>
+          <Footer data={footerData} landing={landing} agreementData={agreementData} />
+          {/* La barra fija de celular no tapa el final del footer */}
+          <BarraInferiorV2Spacer />
+          <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        </>
+      );
+    }
+
     const pageContent = (
       <WizardLayout
         currentStep={step.url_slug || step.code}
@@ -819,119 +1014,7 @@ function StepContent() {
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
         ctaFijoEnMovil
       >
-        <div className="space-y-4">
-          {/* Dynamic sections from regular API steps */}
-          {!sinResumen && regularSteps.map((s) => {
-            const visibleFields = getVisibleFields(s);
-            if (visibleFields.length === 0) return null;
-
-            const IconComponent = getIconComponent(s.icon);
-            const sSlug = getStepSlug(s);
-
-            return (
-              <SummarySection
-                key={s.id}
-                icon={IconComponent}
-                title={s.title}
-                onEdit={() => {
-                  tracker?.track('summary_edit_click', { section: s.code });
-                  navigateToStep(sSlug);
-                }}
-              >
-                {visibleFields.map((field) => {
-                  const value = getFieldValue(field.code);
-                  const savedLabel = getFieldLabel(field.code);
-
-                  // File fields: show filename with link to view
-                  if (field.type === 'file') {
-                    const fileData = formData[field.code];
-                    const files = Array.isArray(value) ? value : [];
-                    const lostFileNames = fileData?.label;
-
-                    let fileContent: React.ReactNode;
-                    if (files.length > 0 && files[0] && typeof files[0] === 'object' && 'file' in files[0]) {
-                      // Files in memory — show clickable links
-                      fileContent = (
-                        <span className="flex flex-col items-end gap-1">
-                          {files.map((f: { id?: string; file?: File; name?: string }, i: number) => (
-                            <button
-                              key={f.id || i}
-                              type="button"
-                              onClick={() => {
-                                if (f.file) {
-                                  const url = URL.createObjectURL(f.file);
-                                  window.open(url, '_blank');
-                                }
-                              }}
-                              className="text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
-                            >
-                              <LucideIcons.Paperclip className="w-3.5 h-3.5" />
-                              {f.name || 'Archivo adjunto'}
-                            </button>
-                          ))}
-                        </span>
-                      );
-                    } else if (lostFileNames) {
-                      // Files lost after refresh — show names without link
-                      fileContent = (
-                        <span className="flex items-center gap-1 text-neutral-500">
-                          <LucideIcons.Paperclip className="w-3.5 h-3.5" />
-                          {lostFileNames}
-                        </span>
-                      );
-                    } else {
-                      fileContent = 'No adjunto';
-                    }
-
-                    return (
-                      <SummaryItem
-                        key={field.id}
-                        label={field.label}
-                        value={fileContent}
-                      />
-                    );
-                  }
-
-                  const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined, savedLabel);
-
-                  return (
-                    <SummaryItem
-                      key={field.id}
-                      label={field.label}
-                      value={displayValue}
-                    />
-                  );
-                })}
-              </SummarySection>
-            );
-          })}
-
-          {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
-              los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
-          {step.fields.length > 0 && (
-            // Sin los bloques de resumen arriba, el recuadro interior ya no
-            // separa nada: los campos van directo en la tarjeta del paso, como
-            // en un paso regular, en vez de una tarjeta dentro de otra.
-            <div className={sinResumen ? undefined : 'bg-white rounded-xl border border-neutral-200 p-4 sm:p-6'}>
-              <DynamicWizardStep
-                step={step}
-                showErrors={submitted}
-              />
-            </div>
-          )}
-
-          {/* Aceptación obligatoria de reacondicionado antes de enviar la solicitud */}
-          <RefurbishedAcceptanceModal
-            isOpen={showRefurbAcceptance}
-            onClose={() => setShowRefurbAcceptance(false)}
-            onAccept={() => {
-              refurbAcceptedRef.current = true;
-              setShowRefurbAcceptance(false);
-              handleSummarySubmit();
-            }}
-            productName={selectedProduct?.name}
-          />
-        </div>
+        {cuerpoResumen()}
       </WizardLayout>
     );
 
@@ -973,6 +1056,40 @@ function StepContent() {
         {stickyCta}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+      </>
+    );
+  }
+
+  // Diseño 2: el mismo paso (`usePasoDelWizard` + `PasoDelWizard`) dentro de
+  // `ShellV2`. Los overlays —transición, envío, "unidad tomada"— son los del
+  // hook, igual que en Diseño 1.
+  if (usarDiseno2) {
+    return (
+      <>
+        {paso.overlays}
+        <ShellV2
+          currentStep={step.url_slug || step.code}
+          step={step}
+          title={step.title}
+          description={step.description}
+          onBack={paso.handleBack}
+          onNext={paso.handleNext}
+          onSubmit={paso.handleNext}
+          onStepClick={paso.handleStepClick}
+          condicionesFijas={condicionesFijas}
+          isFirstStep={navigation.isFirst}
+          isLastStep={paso.esElQueEnvia}
+          isSubmitting={paso.isSubmitting}
+          submitMessage={paso.submitMessage}
+          canProceed={paso.canProceed}
+          navbarProps={navbarProps || undefined}
+          ocultarBarraInferior={paso.celebrando}
+        >
+          {(camposTocados) => <PasoDelWizard paso={paso} camposTocados={camposTocados} />}
+        </ShellV2>
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
+        {/* La barra fija de celular no tapa el final del footer */}
+        <BarraInferiorV2Spacer />
       </>
     );
   }

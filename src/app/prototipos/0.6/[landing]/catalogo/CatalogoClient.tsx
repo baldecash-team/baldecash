@@ -1660,8 +1660,9 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       // primera de la lista — la del combo (BAL-3270).
       const target = resolveWizardTarget(product, cartItem.productId);
       selectProductForWizard(target, cartItem);
-      // Con el ingrediente `lo-quiero-modal-on` el producto queda guardado igual
-      // y se abre el modal; desde ahí se pasa directo al primer paso.
+      // Con la landing en Diseño 2 (`features.solicitud_design === 2`) el
+      // producto queda guardado igual y se abre el modal; desde ahí se pasa
+      // directo al primer paso.
       if (loQuieroModal) {
         setLoQuieroRegalos(
           (target.comboAccessories ?? []).map((a) => ({ id: String(a.productId), name: a.name, gratis: a.price === 0 })),

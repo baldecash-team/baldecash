@@ -3,8 +3,8 @@
 /**
  * Modal de "Lo quiero" (BAL-4852, rediseño de Brenda).
  *
- * Reemplaza la pantalla intermedia de /solicitar cuando la landing trae el
- * ingrediente `lo-quiero-modal-on`: encima del catálogo o de la ficha se
+ * Reemplaza la pantalla intermedia de /solicitar cuando la landing está en
+ * Diseño 2 (`features.solicitud_design === 2`): encima del catálogo o de la ficha se
  * ofrecen los accesorios sugeridos, la casilla de términos y el cupón, y de
  * ahí se pasa DIRECTO al primer paso del formulario.
  *
@@ -46,7 +46,7 @@ import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/u
 import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/solicitar/utils/formatMoney';
 import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage';
 import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
-import { obtenerPrimeraFechaPago } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primeraFechaPago';
+import { useMesPrimeraCuota } from './useMesPrimeraCuota';
 import { datosUtiles, marcaVisible, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
 
 export type LoQuieroOrigen = 'catalogo' | 'ficha';
@@ -77,11 +77,6 @@ const UMBRAL_ARRASTRE = 100;
 
 /** Cuántos accesorios se ven antes de "Ver todos". Pendiente de confirmar con Brenda. */
 const ACCESORIOS_VISIBLES = 8;
-
-const MESES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -186,6 +181,7 @@ function LoQuieroModalContent({
   const { deferredPayment } = useLayout();
   const {
     selectedProduct,
+    setSelectedProduct,
     selectedAccessories,
     toggleAccessory,
     clearAccessories,
@@ -430,21 +426,9 @@ function LoQuieroModalContent({
 
   // ── Cuota diferida: "1.ª cuota en <mes>" ─────────────────────────────────
   // El mes lo calcula ws2 (`first-payment-date`). Sin respuesta, no se muestra.
-  const [mesPrimeraCuota, setMesPrimeraCuota] = useState<string | null>(null);
+  // Misma fuente que el panel "Tu solicitud" de Diseño 2.
   const esDiferida = !!deferredPayment?.enabled;
-  useEffect(() => {
-    if (!esDiferida) return;
-    let cancelado = false;
-    obtenerPrimeraFechaPago(landing).then((iso) => {
-      if (cancelado || !iso) return;
-      const m = /^\d{4}-(\d{2})-\d{2}$/.exec(iso);
-      const mes = m ? MESES[Number(m[1]) - 1] : undefined;
-      if (mes) setMesPrimeraCuota(mes);
-    });
-    return () => {
-      cancelado = true;
-    };
-  }, [esDiferida, landing]);
+  const mesPrimeraCuota = useMesPrimeraCuota(landing, esDiferida);
 
   // ── Totales (cuotas del backend, sin descuentos calculados acá) ───────────
   const cuotaEquipo = selectedProduct?.monthlyPayment ?? 0;
@@ -568,6 +552,16 @@ function LoQuieroModalContent({
       monthly_total: Math.floor(total),
       first_step: slugPrimerPaso,
     });
+
+    // Los regalos del combo los conoce solo quien abrió el modal (la card o la
+    // ficha). Se guardan en el producto para que el panel "Tu solicitud" de
+    // los pasos los muestre sin volver a resolver el combo.
+    if (selectedProduct) {
+      setSelectedProduct({
+        ...selectedProduct,
+        regalos: regalos.map((r) => ({ id: r.id, name: r.name, gratis: r.gratis })),
+      });
+    }
 
     setNavegando(true);
     if (slugPrimerPaso) {

@@ -9,7 +9,6 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
@@ -22,10 +21,8 @@ import {
   couponPendingDocument,
 } from '@/app/prototipos/0.6/utils/couponDocument';
 import { TermSelect, getTermUnit } from './TermSelect';
-import { useSolicitudCongelada } from '../../../hooks/useSolicitudCongelada';
-import { etiquetasDePlazo, ordenarTerms } from './etiquetaDePlazo';
+import { useCondicionesDelPlan } from './useCondicionesDelPlan';
 import Image from 'next/image';
-import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 /**
  * Lo que mide la barra plegada con la imagen del producto puesta (48px de
@@ -112,46 +109,13 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false, condicionesFijas = false, offsetInferior = '0px' }) => {
-  const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+  const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, getInitialOptionsForProduct } = useProduct();
   const { landingId, puedeCambiarPlazo, mostrarImagenProducto } = useLayout();
-  const params = useParams();
-  const landingSlug = (params?.landing as string) || '';
-  const analytics = useAnalytics();
   /**
-   * O bien la landing tiene el módulo del contrato (y entonces nunca se
-   * eligieron acá), o bien la solicitud ya se creó y el contrato salió con
-   * estos números. En los dos casos, no se tocan.
+   * Plazo, inicial y el candado de condiciones fijas: la misma regla que usa
+   * el panel de Diseño 2 (`useCondicionesDelPlan`).
    */
-  const yaEnviada = useSolicitudCongelada(landingSlug);
-  const congelada = condicionesFijas || yaEnviada;
-
-  // Wrappers que disparan analytics antes de mutar el state global
-  const handleTermChange = (term: number) => {
-    const primary = getAllProducts()[0];
-    const from = primary?.term ?? primary?.months ?? 0;
-    if (primary && from !== term) {
-      analytics.trackPricingTermChange({
-        product_id: primary.id,
-        from,
-        to: term,
-        context: 'solicitar',
-        frequency: primary.paymentFrequency,
-      });
-    }
-    updateAllProductsToTerm(term);
-  };
-
-  const handleInitialChange = (productId: string, fromPercent: number, toPercent: number) => {
-    if (fromPercent !== toPercent) {
-      analytics.trackPricingInitialChange({
-        product_id: productId,
-        from: fromPercent,
-        to: toPercent,
-        context: 'solicitar',
-      });
-    }
-    updateProductInitial(productId, toPercent);
-  };
+  const { congelada, handleTermChange, handleInitialChange, termLabels, termOptions, landingSlug } = useCondicionesDelPlan(condicionesFijas);
 
   // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
   const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
@@ -253,14 +217,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const hasAccessories = selectedAccessories.length > 0;
   const hasInsurance = selectedInsurances.length > 0;
   const hasCoupon = !!appliedCoupon;
-  const availableTerms = getAvailableTerms();
-
-  // Con la inicial fraccionada el `term` son las cuotas, no el plazo que la
-  // persona vive: el rotulo lo traduce a «17 semanas · 4 armadas» y ordena por
-  // plazo total. Sin armadas el mapa viene vacio y el selector no cambia.
-  const planesDelPrincipal = mainProduct?.paymentPlans ?? [];
-  const termLabels = etiquetasDePlazo(planesDelPrincipal, mainProduct?.paymentFrequency);
-  const termOptions = ordenarTerms(planesDelPrincipal, availableTerms);
 
   // Calculate total initial payment from all products
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);

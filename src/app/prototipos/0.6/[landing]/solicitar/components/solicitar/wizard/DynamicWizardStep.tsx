@@ -77,6 +77,15 @@ interface DynamicWizardStepProps {
   showErrors?: boolean;
   /** Step order number for event tracking */
   stepOrder?: number;
+  /**
+   * Solo Diseño 2 (`diseno-2/ShellV2`): campos que la persona ya dejó (blur).
+   *
+   * Con este prop cada contenedor de campo lleva `data-campo` (lo usa la guía
+   * de campos para ubicarlo) y `data-estado` (`error`/`ok`, que pinta el borde
+   * rojo o verde), y el error de un campo tocado se muestra sin esperar a
+   * "Continuar". Sin el prop —Diseño 1— el render es el de siempre.
+   */
+  camposTocados?: ReadonlySet<string>;
 }
 
 // Tailwind requires static class names - dynamic classes like `col-span-${n}` get purged
@@ -144,6 +153,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   step,
   showErrors = false,
   stepOrder,
+  camposTocados,
 }) => {
   const { getFieldValue, updateField, formData } = useWizard();
   const { deferredPayment, landing } = useLayout();
@@ -291,12 +301,29 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         const colClass = GRID_COL_CLASSES[cols] || 'sm:col-span-12';
         const colMobileClass = GRID_COL_MOBILE_CLASSES[colsMobile] || 'col-span-12';
 
+        // Diseño 2: el estado del borde. Se pinta recién cuando el campo se
+        // tocó o se intentó continuar, igual que el mensaje de error.
+        const esV2 = camposTocados !== undefined;
+        const mostrarEstado = esV2 && (showErrors || camposTocados.has(field.code));
+        const valorCampo = formData[field.code]?.value;
+        const tieneValor = Array.isArray(valorCampo) ? valorCampo.length > 0 : !!valorCampo && valorCampo !== 'false';
+        const estadoV2 = !mostrarEstado
+          ? undefined
+          : formData[field.code]?.error
+            ? 'error'
+            : tieneValor ? 'ok' : undefined;
+
         return (
           <React.Fragment key={field.code}>
-            <div className={`${colMobileClass} ${colClass}`}>
+            <div
+              className={esV2
+                ? `${colMobileClass} ${colClass} campo-v2 rounded-xl border-2 border-transparent px-2 py-1 -mx-2 transition-[border-color,box-shadow] duration-200 data-[estado=error]:border-red-300 data-[estado=ok]:border-emerald-300`
+                : `${colMobileClass} ${colClass}`}
+              {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2 } : {})}
+            >
               <DynamicField
                 field={field}
-                showError={showErrors}
+                showError={showErrors || (esV2 && camposTocados.has(field.code))}
                 stepOrder={stepOrder}
               />
             </div>

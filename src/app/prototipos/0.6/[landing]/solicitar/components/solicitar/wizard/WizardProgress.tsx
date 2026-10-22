@@ -53,7 +53,7 @@ interface WizardProgressProps {
  * A step is completed if all required visible fields have values
  * This is 100% dynamic - changes in admin (add/remove fields) are reflected automatically
  */
-const isStepDynamicallyCompleted = (
+export const isStepDynamicallyCompleted = (
   step: WizardStep,
   formValues: Record<string, string | string[]>
 ): boolean => {

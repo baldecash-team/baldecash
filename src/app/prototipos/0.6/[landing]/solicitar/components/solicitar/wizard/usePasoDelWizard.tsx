@@ -107,8 +107,20 @@ export function usePasoDelWizard(opciones: {
   flujo: ReturnType<typeof useSolicitarFlow>;
   /** Tema gamer: cambia el theme de la celebración. */
   gamer?: boolean;
+  /**
+   * Otra pantalla para la celebración entre pasos. La usa Diseño 2
+   * (`TransicionDelWizard`, "¡Un paso más!"). Recibe lo mismo que
+   * `StepSuccessMessage` y debe llamar `onComplete` una sola vez: ahí sigue la
+   * navegación de siempre. Sin esto —Diseño 1— sale `StepSuccessMessage`.
+   */
+  Celebracion?: React.ComponentType<{
+    stepName: string;
+    stepNumber: number;
+    totalSteps: number;
+    onComplete: () => void;
+  }>;
 }): PasoDelWizardControles {
-  const { stepSlug, flujo, gamer } = opciones;
+  const { stepSlug, flujo, gamer, Celebracion } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -460,7 +472,7 @@ export function usePasoDelWizard(opciones: {
   const overlays = (
     <>
       <AnimatePresence>
-        {showCelebration && step && (
+        {showCelebration && step && !Celebracion && (
           <StepSuccessMessage
             stepName={step.title}
             stepNumber={step.order + 1}
@@ -470,6 +482,14 @@ export function usePasoDelWizard(opciones: {
           />
         )}
       </AnimatePresence>
+      {showCelebration && step && Celebracion && (
+        <Celebracion
+          stepName={step.title}
+          stepNumber={step.order + 1}
+          totalSteps={steps.length}
+          onComplete={handleCelebrationComplete}
+        />
+      )}
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       {modalUnidadTomada}
     </>
