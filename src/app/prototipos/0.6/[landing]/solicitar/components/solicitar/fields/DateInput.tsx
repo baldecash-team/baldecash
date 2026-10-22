@@ -6,7 +6,7 @@
  * Click en mes/año abre selector para navegación rápida
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -53,6 +53,13 @@ interface DateInputProps {
   maxDate?: string | null;
   /** Mensaje propio cuando el valor queda fuera; si no, uno automático. */
   limitMessage?: string | null;
+  /**
+   * Diseño 2 (BAL-4960, revisión F2): avisa cuando aparece/desaparece un
+   * error LOCAL (edad mínima o fuera de rango) que no vive en `formData`.
+   * `DynamicWizardStep` lo usa para ocultar la pista (`hint`) aunque ese
+   * error nunca haya pasado por el validador del campo.
+   */
+  onLocalErrorChange?: (hasError: boolean) => void;
 }
 
 const MONTHS = [
@@ -138,6 +145,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   minDate = null,
   maxDate = null,
   limitMessage = null,
+  onLocalErrorChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   // Diseño 2 (BAL-4960): mismo calendario, otro vestido.
@@ -193,6 +201,14 @@ export const DateInput: React.FC<DateInputProps> = ({
       ? (limitMessage ?? '').trim() || mensajeFueraDeRango(minDate, maxDate)
       : null;
   const effectiveError = error || minAgeError || limitError;
+
+  // Diseño 2: avisa al padre cuando hay un error LOCAL (no vive en
+  // `formData`), para que oculte la pista aunque el validador del campo no
+  // sepa de este error.
+  const hayErrorLocal = !!minAgeError || !!limitError;
+  useEffect(() => {
+    onLocalErrorChange?.(hayErrorLocal);
+  }, [hayErrorLocal, onLocalErrorChange]);
 
   const showError = !!effectiveError;
   const showSuccess = success && !effectiveError && value;
@@ -543,8 +559,11 @@ export const DateInput: React.FC<DateInputProps> = ({
       <Popover isOpen={isOpen} onOpenChange={handleOpenChange} placement="bottom-start">
         <PopoverTrigger>
           <div
+            id={v2 ? `${id}-trigger` : undefined}
+            aria-describedby={v2 && effectiveError ? `${id}-error` : undefined}
             className={v2 ? `
               flex items-center gap-2 px-3.5 cursor-pointer
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2
               ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
               ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
             ` : `
@@ -601,7 +620,7 @@ export const DateInput: React.FC<DateInputProps> = ({
 
       {/* Error message - always reserve space for alignment in multi-column grids */}
       {v2 ? (
-        effectiveError && <ErrorCampoV2>{effectiveError}</ErrorCampoV2>
+        effectiveError && <ErrorCampoV2 id={`${id}-error`}>{effectiveError}</ErrorCampoV2>
       ) : (
         <div className="min-h-[20px]">
           {effectiveError && (

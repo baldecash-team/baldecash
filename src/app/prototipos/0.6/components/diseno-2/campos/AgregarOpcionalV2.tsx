@@ -30,7 +30,6 @@ export function AgregarOpcionalV2({ label, onAbrir }: { label: string; onAbrir: 
     <button
       type="button"
       onClick={onAbrir}
-      aria-expanded={false}
       className="inline-flex min-h-[44px] items-center gap-2 self-start rounded-lg bg-transparent px-0 text-left text-[15px] font-semibold text-[#3341B8] cursor-pointer hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2"
     >
       <Plus className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2.2} aria-hidden />

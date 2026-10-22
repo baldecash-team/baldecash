@@ -5,7 +5,7 @@
  * Uses grid layout based on field.grid_columns
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
@@ -291,6 +291,15 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   // plegado con valor (borrador) sale abierto sin pasar por acá.
   const esV2 = camposTocados !== undefined;
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(() => new Set());
+
+  // Diseño 2: errores LOCALES que un campo (DateInput, AddressAutocompleteField)
+  // calcula por su cuenta y nunca llegan a `formData` — regla "si hay error
+  // visible, la pista no se muestra" (BAL-4960, revisión F2). No duplica la
+  // lógica de validación: el campo avisa, acá solo se guarda el booleano.
+  const [erroresLocales, setErroresLocales] = useState<Record<string, boolean>>({});
+  const reportarErrorLocal = useCallback((codigo: string, hayError: boolean) => {
+    setErroresLocales((prev) => (prev[codigo] === hayError ? prev : { ...prev, [codigo]: hayError }));
+  }, []);
   const [porEnfocar, setPorEnfocar] = useState<string | null>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -341,7 +350,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         const mostrarError = showErrors || (esV2 && camposTocados.has(field.code));
         const valorCampo = formData[field.code]?.value;
         const conValor = tieneValor(valorCampo);
-        const errorVisible = mostrarError && !!formData[field.code]?.error;
+        const errorVisible = mostrarError && (!!formData[field.code]?.error || !!erroresLocales[field.code]);
         const estadoV2 = !esV2 || !mostrarError
           ? undefined
           : errorVisible
@@ -370,6 +379,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                     field={field}
                     showError={mostrarError}
                     stepOrder={stepOrder}
+                    onLocalErrorChange={esV2 ? reportarErrorLocal : undefined}
                   />
                   {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
                   {esV2 && field.hint && !errorVisible && (

@@ -187,6 +187,7 @@ export const TextInput: React.FC<TextInputProps> = ({
             {...inputProps}
             id={`${id}-input`}
             aria-invalid={showError || undefined}
+            aria-describedby={error && !hideErrorText ? `${id}-error` : undefined}
             className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-base text-[#1E2230] outline-none ${PLACEHOLDER_V2} ${
               disabled ? 'cursor-not-allowed' : ''
             }`}
@@ -199,7 +200,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           {isLoading && <Loader2 className="mr-3.5 h-5 w-5 flex-shrink-0 animate-spin text-[#4654CD]" />}
           {!isLoading && showSuccess && <Check className="mr-3.5 h-5 w-5 flex-shrink-0 text-[#0E8C78]" strokeWidth={2.6} />}
         </div>
-        {error && !hideErrorText && <ErrorCampoV2>{error}</ErrorCampoV2>}
+        {error && !hideErrorText && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}
       </div>
     );
   }

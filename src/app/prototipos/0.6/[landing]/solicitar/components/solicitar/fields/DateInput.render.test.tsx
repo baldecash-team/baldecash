@@ -127,3 +127,46 @@ describe('DateInput — fecha mínima y máxima exactas (BAL-4396)', () => {
     expect(screen.getByText('Debes ser mayor de 18 años')).toBeInTheDocument();
   });
 });
+
+describe('DateInput — error local (BAL-4960, revisión F2)', () => {
+  /**
+   * "si hay error visible, la pista no se muestra": `minAgeError` y
+   * `limitError` son errores LOCALES (nunca llegan a `formData`).
+   * `onLocalErrorChange` es el aviso que usa `DynamicWizardStep` para
+   * ocultar la pista aunque ese error no haya pasado por el validador.
+   */
+  function montarConCallback(props: Record<string, unknown>) {
+    const onLocalErrorChange = jest.fn();
+    const utils = render(
+      <DateInput
+        {...({
+          id: 'f',
+          label: 'Fecha',
+          value: '',
+          onChange: jest.fn(),
+          dateRange: 'any',
+          onLocalErrorChange,
+          ...props,
+        } as unknown as React.ComponentProps<typeof DateInput>)}
+      />
+    );
+    return { ...utils, onLocalErrorChange };
+  }
+
+  it('avisa con `true` cuando el valor viola la edad mínima, sin error de formData', () => {
+    const hoy = new Date();
+    const hace10Anios = `${hoy.getFullYear() - 10}-01-01`;
+    const { onLocalErrorChange } = montarConCallback({ minAge: 18, value: hace10Anios });
+    expect(onLocalErrorChange).toHaveBeenCalledWith(true);
+  });
+
+  it('avisa con `false` cuando no hay ningún error local', () => {
+    const { onLocalErrorChange } = montarConCallback({ minAge: 0 });
+    expect(onLocalErrorChange).toHaveBeenCalledWith(false);
+  });
+
+  it('avisa con `true` cuando el valor queda fuera del rango mínimo/máximo', () => {
+    const { onLocalErrorChange } = montarConCallback({ maxDate: '2008-10-03', value: '2010-01-01' });
+    expect(onLocalErrorChange).toHaveBeenCalledWith(true);
+  });
+});

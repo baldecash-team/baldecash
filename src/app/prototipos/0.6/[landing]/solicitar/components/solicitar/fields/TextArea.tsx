@@ -121,6 +121,8 @@ export const TextArea: React.FC<TextAreaProps> = ({
           disabled={disabled}
           maxLength={maxLength}
           rows={rows}
+          aria-invalid={v2 && showError ? true : undefined}
+          aria-describedby={v2 && error ? `${id}-error` : undefined}
           className={`
             w-full pl-3 pr-10 py-3 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400 resize-none
@@ -142,7 +144,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
 
       {v2 && (error || maxLength) && (
         <div className="flex items-start justify-between gap-2">
-          {error ? <ErrorCampoV2>{error}</ErrorCampoV2> : <span />}
+          {error ? <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2> : <span />}
           {maxLength && <p className="flex-shrink-0 text-xs text-[#5B6275]">{value.length}/{maxLength}</p>}
         </div>
       )}

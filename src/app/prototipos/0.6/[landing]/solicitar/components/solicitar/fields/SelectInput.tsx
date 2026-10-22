@@ -146,7 +146,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
     <div id={id} className={v2 ? 'flex flex-col gap-1.5' : small ? 'space-y-1' : 'space-y-1.5'}>
       {/* Label */}
       {v2 ? (
-        <label className={ETIQUETA_V2}>
+        <label htmlFor={`${id}-trigger`} className={ETIQUETA_V2}>
           {label}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
@@ -167,11 +167,13 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       {/* Select trigger */}
       <div className="relative">
         <div
+          id={v2 ? `${id}-trigger` : undefined}
           role="button"
           tabIndex={disabled ? -1 : 0}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-controls={`${id}-listbox`}
+          aria-describedby={v2 && showError && error ? `${id}-error` : undefined}
           onClick={() => {
             if (disabled) return;
             const willOpen = !isOpen;
@@ -192,6 +194,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
           }}
           className={v2 ? `
             w-full px-3.5 flex items-center justify-between gap-2 cursor-pointer text-left text-base
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2
             ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
             ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
           ` : `
@@ -321,7 +324,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       )}
 
       {/* Diseño 2: el error solo cuando hay; sin alto reservado. */}
-      {v2 && !hideErrorText && error && <ErrorCampoV2>{error}</ErrorCampoV2>}
+      {v2 && !hideErrorText && error && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}
 
       {/* Error message - reserva alto para alinear en grids, salvo en modo compact */}
       {!v2 && !hideErrorText && (!compact || error) && (

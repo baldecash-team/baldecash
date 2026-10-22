@@ -46,6 +46,13 @@ jest.mock('../../../../../calculadora/utils/useDatosMatricula', () => ({
   useDatosMatricula: () => null,
 }));
 
+// El campo de dirección (Diseño 1 no cambia) depende de Google Maps, que no
+// carga en jsdom. Se mockea en "ya cargado, sin error" para que el campo
+// renderice su DOM estable y comparable.
+jest.mock('../../../../hooks/useGooglePlacesAutocomplete', () => ({
+  useGooglePlacesAutocomplete: () => ({ isLoaded: true, isLoading: false, error: null }),
+}));
+
 import { DynamicWizardStep } from '../DynamicWizardStep';
 
 function campo(overrides: Partial<WizardField>): WizardField {
@@ -127,6 +134,45 @@ const TIPO_DOC = campo({
     { value: 'pasaporte', label: 'Pasaporte' },
   ],
 } as Partial<WizardField>);
+
+const SITUACION = campo({
+  id: 5,
+  code: 'situacion',
+  label: 'Situación actual',
+  type: 'radio',
+  required: true,
+  options: [
+    { value: 'a', label: 'Trabajo dependiente' },
+    { value: 'b', label: 'Trabajo independiente' },
+    { value: 'c', label: 'Estudiante' },
+    { value: 'd', label: 'Sin ingresos' },
+  ],
+} as Partial<WizardField>);
+
+const LISTA_LARGA = campo({
+  id: 6,
+  code: 'departamento',
+  label: 'Departamento',
+  type: 'radio',
+  required: true,
+  options: Array.from({ length: 6 }, (_, i) => ({ value: String(i), label: `Opción ${i}` })),
+} as Partial<WizardField>);
+
+const DIRECCION = campo({
+  id: 7,
+  code: 'address',
+  label: 'Dirección',
+  type: 'address',
+  required: true,
+} as Partial<WizardField>);
+
+const CONSENTIMIENTO_SIMPLE = campo({
+  id: 8,
+  code: 'consent_simple',
+  label: 'Acepto los términos',
+  type: 'checkbox',
+  required: true,
+});
 
 const V2 = new Set<string>();
 const pintarV2 = (step: WizardStep, showErrors = false) =>
@@ -215,13 +261,13 @@ describe('Opcional plegado (collapsed_optional)', () => {
 });
 
 describe('Lista con display_mode de botones', () => {
-  it('se pinta como botones-chip y el elegido queda presionado', () => {
+  it('se pinta como botones-chip (role="radio") y el elegido queda marcado', () => {
     formData = { document_type: { value: 'dni' } };
     pintarV2(paso([TIPO_DOC]));
-    const dni = screen.getByRole('button', { name: 'DNI' });
-    const ce = screen.getByRole('button', { name: 'Carné de extranjería' });
-    expect(dni).toHaveAttribute('aria-pressed', 'true');
-    expect(ce).toHaveAttribute('aria-pressed', 'false');
+    const dni = screen.getByRole('radio', { name: 'DNI' });
+    const ce = screen.getByRole('radio', { name: 'Carné de extranjería' });
+    expect(dni).toHaveAttribute('aria-checked', 'true');
+    expect(ce).toHaveAttribute('aria-checked', 'false');
     expect(dni.className).toContain('bg-[#4654CD]');
     expect(dni.className).toContain('text-white');
     expect(ce.className).toContain('text-[#4654CD]');
@@ -229,6 +275,42 @@ describe('Lista con display_mode de botones', () => {
 
     fireEvent.click(ce);
     expect(updateField).toHaveBeenCalledWith('document_type', 'ce');
+  });
+
+  it('el grupo es role="radiogroup" y las flechas mueven y eligen la opción vecina', () => {
+    formData = { document_type: { value: 'dni' } };
+    const { container } = pintarV2(paso([TIPO_DOC]));
+    expect(container.querySelector('[role="radiogroup"]')).not.toBeNull();
+
+    const dni = screen.getByRole('radio', { name: 'DNI' });
+    fireEvent.keyDown(dni, { key: 'ArrowRight' });
+    expect(updateField).toHaveBeenCalledWith('document_type', 'ce');
+  });
+});
+
+describe('IMPORTANTE — foco visible en Diseño 2 (revisión F2)', () => {
+  it('las tarjetas de RadioGroup tienen la clase de foco visible', () => {
+    const { container } = pintarV2(paso([SITUACION]));
+    const tarjetas = container.querySelectorAll('button');
+    expect(tarjetas.length).toBeGreaterThan(0);
+    for (const t of Array.from(tarjetas)) {
+      expect(t.className).toContain('focus-visible:ring-2');
+      expect(t.className).toContain('ring-[#4654CD]');
+    }
+  });
+
+  it('el disparador de SelectInput tiene la clase de foco visible y no depende solo de isOpen', () => {
+    const { container } = pintarV2(paso([LISTA_LARGA]));
+    const disparador = container.querySelector('[role="button"]');
+    expect(disparador?.className).toContain('focus-visible:ring-2');
+    expect(disparador?.className).toContain('ring-[#4654CD]');
+  });
+
+  it('SelectInput: el label lleva htmlFor apuntando al disparador', () => {
+    const { container } = pintarV2(paso([LISTA_LARGA]));
+    const label = container.querySelector('label');
+    const disparador = container.querySelector('[role="button"]');
+    expect(label).toHaveAttribute('for', disparador?.id);
   });
 });
 
@@ -250,10 +332,16 @@ describe('Casilla obligatoria en Diseño 2', () => {
     required: true,
   });
 
-  it('neutra al inicio, roja con el mensaje al intentar continuar, verde con «¡Listo!» marcada', () => {
+  it('neutra al inicio (blanco, borde gris, sin ámbar ni «Obligatorio» resaltado) — decisión de Emilio', () => {
     const { container, unmount } = pintarV2(paso([CASILLA]));
-    expect(container.querySelector('[data-casilla-v2]')).toHaveAttribute('data-casilla-v2', 'neutra');
-    expect(screen.getByText('Obligatorio')).toBeInTheDocument();
+    const casilla = container.querySelector('[data-casilla-v2]');
+    expect(casilla).toHaveAttribute('data-casilla-v2', 'neutra');
+    const label = container.querySelector('label');
+    expect(label?.className).toContain('border-[#C9CEF0]');
+    expect(label?.className).toContain('bg-white');
+    expect(label?.className).not.toContain('#F2B632');
+    expect(label?.className).not.toContain('#FFF6D8');
+    expect(screen.queryByText('Obligatorio')).not.toBeInTheDocument();
     unmount();
 
     formData = { work_verification_consent: { value: 'false', error: 'Marca la casilla para continuar.' } };
@@ -274,6 +362,29 @@ describe('Casilla obligatoria en Diseño 2', () => {
     pintarV2(paso([CASILLA]));
     fireEvent.click(screen.getByRole('checkbox'));
     expect(updateField).toHaveBeenCalledWith('work_verification_consent', 'true');
+  });
+
+  it('IMPORTANTE: el label (la caja clickeable) tiene la clase de foco visible', () => {
+    const { container } = pintarV2(paso([CASILLA]));
+    const label = container.querySelector('label');
+    expect(label?.className).toContain('focus-within:ring-2');
+    expect(label?.className).toContain('ring-[#4654CD]');
+  });
+
+  it('el label y el subtítulo no se anuncian dos veces: el input no lleva aria-describedby a ellos', () => {
+    formData = { work_verification_consent: { value: 'false', error: 'Marca la casilla para continuar.' } };
+    const { container } = pintarV2(paso([CASILLA]), true);
+    const input = container.querySelector('input[type="checkbox"]');
+    expect(input).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('el <style> de las keyframes no se repite por casilla (una sola vez, global)', () => {
+    const CASILLA_2 = campo({ code: 'otra_casilla', label: 'Otra', type: 'checkbox', required: true });
+    const { container } = pintarV2(paso([CASILLA, CASILLA_2]));
+    const estilosEnLinea = Array.from(container.querySelectorAll('style')).filter((s) =>
+      s.textContent?.includes('casillaV2Sacudida')
+    );
+    expect(estilosEnLinea).toHaveLength(0);
   });
 });
 
@@ -306,6 +417,69 @@ describe('Diseño 1 no cambia', () => {
     pintarV1(paso([TIPO_DOC]));
     expect(screen.getByRole('button', { name: 'DNI' })).not.toHaveAttribute('aria-pressed');
     expect(screen.getByText('Seleccionado')).toBeInTheDocument();
+  });
+
+  /**
+   * IMPORTANTE (revisión F2): clases EXACTAS del markup de Diseño 1 tal como
+   * estaban en `42efc176` (antes de BAL-4960), obtenidas con
+   * `git show 42efc176:ruta`. No basta comparar "antes vs. después" dentro
+   * del propio commit — así se escapó el `min-w-0` que BAL-4960 agregó
+   * también a `AddressAutocompleteField` en Diseño 1 (no solo en Diseño 2).
+   */
+  it('TextInput: la caja y el input mantienen las clases de 42efc176 (sin CAJA_V2)', () => {
+    const { container } = pintarV1(paso([CORREO]));
+    const caja = container.querySelector('#email > div');
+    expect(caja?.className).toContain('h-11');
+    expect(caja?.className).toContain('border-2');
+    expect(caja?.className).toContain('border-neutral-300');
+    expect(caja?.className).not.toContain('rounded-[10px]');
+    const input = container.querySelector('#email input');
+    expect(input?.className).toContain('text-neutral-800');
+    expect(input?.className).not.toContain('min-w-0');
+  });
+
+  it('SelectInput: el disparador mantiene las clases de 42efc176 (sin CAJA_V2, sin role button disfrazado)', () => {
+    const { container } = pintarV1(paso([LISTA_LARGA]));
+    const disparador = container.querySelector('[role="button"]');
+    expect(disparador?.className).toContain('h-11');
+    expect(disparador?.className).toContain('border-2');
+    expect(disparador?.className).toContain('border-neutral-300');
+    expect(disparador?.className).not.toContain('rounded-[10px]');
+    // Diseño 1 nunca le pone id ni el label nunca lleva htmlFor (eso es de Diseño 2).
+    expect(container.querySelector('label')).not.toHaveAttribute('for');
+  });
+
+  it('RadioGroup: las tarjetas mantienen las clases de 42efc176 (sin !border-[1.5px])', () => {
+    const { container } = pintarV1(paso([SITUACION]));
+    const tarjetas = container.querySelectorAll('button');
+    for (const t of Array.from(tarjetas)) {
+      expect(t.className).toContain('border-2');
+      expect(t.className).toContain('border-neutral-200');
+      expect(t.className).not.toContain('!border-[1.5px]');
+      expect(t.className).not.toContain('focus-visible:ring-2');
+    }
+  });
+
+  it('CheckboxField (simple): la caja mantiene las clases de 42efc176 (sin CasillaV2)', () => {
+    const { container } = pintarV1(paso([CONSENTIMIENTO_SIMPLE]));
+    expect(container.querySelector('[data-casilla-v2]')).toBeNull();
+    const caja = container.querySelector('#consent_simple div');
+    expect(caja?.className).toContain('border-2');
+    expect(caja?.className).toContain('border-neutral-300');
+    expect(caja?.className).not.toContain('#C9CEF0');
+  });
+
+  it('Dirección (AddressAutocompleteField): el input NO lleva `min-w-0` en Diseño 1 (BAL-4960 lo agregó por error en los dos diseños)', () => {
+    const { container } = pintarV1(paso([DIRECCION]));
+    const caja = container.querySelector('#address > div');
+    expect(caja?.className).toContain('h-11');
+    expect(caja?.className).toContain('border-2');
+    expect(caja?.className).toContain('border-neutral-300');
+    const input = container.querySelector('#address input[type="text"]');
+    expect(input).not.toBeNull();
+    expect(input?.className).not.toContain('min-w-0');
+    expect(input?.className).toContain('text-neutral-800');
+    expect(input?.className).toContain('placeholder:text-neutral-400');
   });
 });
 

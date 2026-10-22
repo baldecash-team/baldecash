@@ -26,11 +26,19 @@ import { ParsedAddress } from '../../../../../types/googleMaps';
 interface AddressAutocompleteFieldProps {
   field: WizardField;
   showError?: boolean;
+  /**
+   * Diseño 2 (BAL-4960, revisión F2): avisa cuando aparece/desaparece un
+   * error LOCAL (geolocalización o carga de Google Maps) que no vive en
+   * `formData`. `DynamicWizardStep` lo usa para ocultar la pista (`hint`)
+   * aunque ese error nunca haya pasado por el validador del campo.
+   */
+  onLocalErrorChange?: (hasError: boolean) => void;
 }
 
 export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> = ({
   field,
   showError = false,
+  onLocalErrorChange,
 }) => {
   const { getFieldValue, getFieldError, updateField, updateFieldBatch } = useWizard();
   const [isFocused, setIsFocused] = useState(false);
@@ -134,6 +142,14 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     onPlaceSelected: handlePlaceSelected,
     onError: handleError,
   });
+
+  // Diseño 2: avisa al padre cuando hay un error local (no vive en
+  // `formData`), para que oculte la pista aunque el validador del campo no
+  // sepa de este error.
+  const hayErrorLocal = !!locationError || !!googleError;
+  useEffect(() => {
+    onLocalErrorChange?.(hayErrorLocal);
+  }, [hayErrorLocal, onLocalErrorChange]);
 
   // .pac-container base styles live in app/globals.css. Here we add ONLY
   // mobile-specific tweaks (wider container, taller tap targets).
@@ -395,9 +411,11 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           onBlur={() => setIsFocused(false)}
           placeholder={field.placeholder || 'Escribe tu dirección...'}
           disabled={field.readonly || !isLoaded}
+          aria-invalid={v2 && showDisplayError ? true : undefined}
+          aria-describedby={v2 && displayError ? `${field.code}-error` : undefined}
           style={{ fontSize: '16px' }}
           className={`
-            flex-1 min-w-0 bg-transparent outline-none ${v2 ? `text-[#1E2230] ${PLACEHOLDER_V2}` : 'text-neutral-800'}
+            flex-1 bg-transparent outline-none ${v2 ? `min-w-0 text-[#1E2230] ${PLACEHOLDER_V2}` : 'text-neutral-800'}
             ${v2 ? '' : 'placeholder:text-neutral-400'}
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
@@ -440,7 +458,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         </button>
       )}
 
-      {v2 && displayError && <ErrorCampoV2>{displayError}</ErrorCampoV2>}
+      {v2 && displayError && <ErrorCampoV2 id={`${field.code}-error`}>{displayError}</ErrorCampoV2>}
 
       {/* Error message - always reserve space for alignment in multi-column grids */}
       {!v2 && <div className="min-h-[20px]">

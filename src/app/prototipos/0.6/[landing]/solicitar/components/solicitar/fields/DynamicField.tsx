@@ -35,9 +35,17 @@ interface DynamicFieldProps {
   showError?: boolean;
   /** Step order number for event tracking */
   stepOrder?: number;
+  /**
+   * Diseño 2 (BAL-4960, revisión F2): avisa a `DynamicWizardStep` cuando este
+   * campo tiene un error LOCAL (no vive en `formData`: `DateInput` por edad
+   * mínima / fuera de rango, `AddressAutocompleteField` por geolocalización
+   * o Google Maps). Se usa para ocultar la pista (`hint`) — "si hay error
+   * visible, la pista no se muestra" — sin duplicar la lógica de validación.
+   */
+  onLocalErrorChange?: (code: string, hasError: boolean) => void;
 }
 
-export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder }) => {
+export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
   const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
@@ -211,6 +219,15 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onFieldBlur(field.code, hasValue);
   }, [field.code, getFieldValue, onFieldBlur]);
 
+  // Diseño 2: reenvía el error local del campo (DateInput, AddressAutocompleteField)
+  // con su código, para que `DynamicWizardStep` oculte la pista.
+  const handleLocalErrorChange = useCallback(
+    (hasError: boolean) => {
+      onLocalErrorChange?.(field.code, hasError);
+    },
+    [field.code, onLocalErrorChange]
+  );
+
 
   // Common props for all field types
   const commonProps = {
@@ -253,6 +270,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         <AddressAutocompleteField
           field={field}
           showError={showError}
+          onLocalErrorChange={onLocalErrorChange ? handleLocalErrorChange : undefined}
         />
       );
 
@@ -357,6 +375,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           minDate={limitesFecha.min}
           maxDate={limitesFecha.max}
           limitMessage={limitesFecha.mensaje}
+          onLocalErrorChange={onLocalErrorChange ? handleLocalErrorChange : undefined}
         />
       );
 

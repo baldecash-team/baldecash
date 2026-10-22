@@ -18,6 +18,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Search, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 import type { Forma } from './formaDeLista';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -102,6 +103,10 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
   const ayudaId = `${id}-ayuda-${uid}`;
   const marcadas = value;
   const hayError = !!error;
+  // Diseño 2 (BAL-4960, revisión F2): recupera el borde de estado rojo/verde
+  // con la paleta del kit — fuera de eso sigue con el vestido de Diseño 1
+  // (F5/F7 le dan el suyo completo).
+  const v2 = useCamposV2();
 
   const cambiar = (siguientes: string[]) => {
     // Se guarda en el orden de la lista, no en el del clic.
@@ -169,11 +174,17 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
               className={`
                 flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 flex items-center justify-center gap-2
                 px-3 py-2.5 min-h-[44px] rounded-xl border-2 text-sm font-medium cursor-pointer transition-colors
-                ${marcado
-                  ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.08)] text-[var(--color-primary)]'
-                  : hayError
-                    ? 'border-red-200 bg-white text-neutral-700'
-                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                ${v2
+                  ? marcado
+                    ? 'border-[#4654CD] bg-[#E9ECFB] text-[#3341B8]'
+                    : hayError
+                      ? 'border-[#C2410C] bg-white text-[#1E2230]'
+                      : 'border-[#C9CEF0] bg-white text-[#1E2230] hover:border-[#4654CD]'
+                  : marcado
+                    ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.08)] text-[var(--color-primary)]'
+                    : hayError
+                      ? 'border-red-200 bg-white text-neutral-700'
+                      : 'border-neutral-200 bg-white text-neutral-700 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                 }
               `}
             >
@@ -199,11 +210,17 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
               onClick={() => alternar(o.value)}
               className={`
                 w-full p-4 rounded-xl text-left border-2 flex items-start gap-3 cursor-pointer transition-all duration-200
-                ${marcado
-                  ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
-                  : hayError
-                    ? 'bg-white border-red-200'
-                    : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+                ${v2
+                  ? marcado
+                    ? 'bg-[#E9ECFB] border-[#4654CD]'
+                    : hayError
+                      ? 'bg-white border-[#C2410C]'
+                      : 'bg-white border-[#C9CEF0] hover:border-[#4654CD]'
+                  : marcado
+                    ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
+                    : hayError
+                      ? 'bg-white border-red-200'
+                      : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
                 }
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
@@ -238,6 +255,7 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
         hayError={hayError}
         onFocus={onFocus}
         onBlur={onBlur}
+        v2={v2}
       />
     );
   } else if (forma === 'search') {
@@ -253,6 +271,7 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
         hayError={hayError}
         onFocus={onFocus}
         onBlur={onBlur}
+        v2={v2}
       />
     );
   } else {
@@ -303,9 +322,18 @@ interface SubProps {
   hayError: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Diseño 2 (BAL-4960): el mismo cuadro, con la paleta de estado del kit. */
+  v2?: boolean;
 }
 
-function bordeDelCuadro(hayError: boolean, abierto: boolean, conValor: boolean): string {
+/** Solo color de borde + fondo: el ancho del borde lo da la clase estática del contenedor (2px en Diseño 1, 1.5px en Diseño 2). */
+function bordeDelCuadro(hayError: boolean, abierto: boolean, conValor: boolean, v2?: boolean): string {
+  if (v2) {
+    if (hayError) return 'border-[#C2410C] bg-[#FFF1EB]';
+    if (abierto) return 'border-[#4654CD] bg-white';
+    if (conValor) return 'border-[#0E8C78] bg-white';
+    return 'border-[#C9CEF0] hover:border-[#4654CD] bg-white';
+  }
   if (hayError) return 'border-[#ef4444] bg-[#ef4444]/5';
   if (abierto) return 'border-[var(--color-primary)] bg-white';
   if (conValor) return 'border-[#22c55e] bg-white';
@@ -314,7 +342,7 @@ function bordeDelCuadro(hayError: boolean, abierto: boolean, conValor: boolean):
 
 /** Desplegable con casillas: el cuadro muestra lo marcado separado por comas. */
 const Desplegable: React.FC<SubProps & { placeholder: string }> = ({
-  id, labelId, ayudaId, options, marcadas, alternar, placeholder, disabled, hayError, onFocus, onBlur,
+  id, labelId, ayudaId, options, marcadas, alternar, placeholder, disabled, hayError, onFocus, onBlur, v2,
 }) => {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
@@ -360,13 +388,14 @@ const Desplegable: React.FC<SubProps & { placeholder: string }> = ({
           else onBlur?.();
         }}
         className={`
-          w-full h-11 px-3 flex items-center justify-between gap-2 rounded-lg border-2 transition-all text-left cursor-pointer
-          ${bordeDelCuadro(hayError, abierto, marcadas.length > 0)}
+          w-full px-3 flex items-center justify-between gap-2 transition-all text-left cursor-pointer
+          ${v2 ? 'h-[50px] rounded-[10px] border-[1.5px]' : 'h-11 rounded-lg border-2'}
+          ${bordeDelCuadro(hayError, abierto, marcadas.length > 0, v2)}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
-        <span className={`truncate ${resumen ? 'text-neutral-800' : 'text-neutral-400'}`}>{resumen || placeholder}</span>
-        <ChevronDown className={`w-5 h-5 text-neutral-400 flex-shrink-0 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+        <span className={`truncate ${resumen ? (v2 ? 'text-[#1E2230]' : 'text-neutral-800') : (v2 ? 'text-[#8A90A2]' : 'text-neutral-400')}`}>{resumen || placeholder}</span>
+        <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'} ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {abierto && (
         <div
@@ -403,7 +432,7 @@ function sinTildes(texto: string): string {
 
 /** Buscador con chips: lo elegido arriba con «×»; escribir filtra; tocar agrega. */
 const Buscador: React.FC<SubProps> = ({
-  id, labelId, ayudaId, options, marcadas, alternar, disabled, hayError, onFocus, onBlur,
+  id, labelId, ayudaId, options, marcadas, alternar, disabled, hayError, onFocus, onBlur, v2,
 }) => {
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -464,12 +493,13 @@ const Buscador: React.FC<SubProps> = ({
       )}
       <div
         className={`
-          h-11 px-3 flex items-center gap-2 rounded-lg border-2 transition-all
-          ${bordeDelCuadro(hayError, abierto, marcadas.length > 0)}
+          px-3 flex items-center gap-2 transition-all
+          ${v2 ? 'h-[50px] rounded-[10px] border-[1.5px]' : 'h-11 rounded-lg border-2'}
+          ${bordeDelCuadro(hayError, abierto, marcadas.length > 0, v2)}
           ${disabled ? 'opacity-50' : ''}
         `}
       >
-        <Search className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+        <Search className={`w-4 h-4 flex-shrink-0 ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
         <input
           ref={entrada}
           type="text"
@@ -484,7 +514,9 @@ const Buscador: React.FC<SubProps> = ({
           placeholder="Escribe para buscar"
           value={texto}
           style={{ fontSize: '16px' }}
-          className="flex-1 min-w-0 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
+          className={v2
+            ? 'flex-1 min-w-0 bg-transparent outline-none text-[#1E2230] placeholder:text-[#8A90A2]'
+            : 'flex-1 min-w-0 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400'}
           onFocus={() => {
             setAbierto(true);
             onFocus?.();

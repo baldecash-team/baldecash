@@ -64,11 +64,13 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
   // Diseño 2 (BAL-4960): mismas tarjetas, otro vestido.
   const v2 = useCamposV2();
 
+  const errorId = `${id}-error`;
+
   return (
     <div id={id} className={v2 ? 'flex flex-col gap-2.5' : 'space-y-3'}>
       {/* Label */}
       {v2 ? (
-        <label className={ETIQUETA_V2}>
+        <label id={`${id}-label`} className={ETIQUETA_V2}>
           {label}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
@@ -82,7 +84,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
       )}
 
       {/* Cards grid */}
-      <div className="space-y-2">
+      <div className="space-y-2" aria-describedby={v2 && error ? errorId : undefined}>
         {options.map((option) => (
           <button
             key={option.value}
@@ -102,6 +104,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             className={`
               relative w-full p-4 rounded-xl text-left
               transition-all duration-200 cursor-pointer border-2
+              ${v2 ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2' : ''}
               ${v2
                 ? value === option.value
                   ? 'bg-[#E9ECFB] !border-[1.5px] border-[#4654CD]'
@@ -151,7 +154,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
         </p>
       )}
 
-      {v2 && error && <ErrorCampoV2>{error}</ErrorCampoV2>}
+      {v2 && error && <ErrorCampoV2 id={errorId}>{error}</ErrorCampoV2>}
 
       {/* Error message */}
       {error && !v2 && (
