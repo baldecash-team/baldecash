@@ -143,12 +143,33 @@ interface LayoutContextValue {
    */
   barraDeOrden: boolean;
   /**
+   * Diseño de la solicitud (BAL-4958): `1` es el actual, `2` es el modal "Lo
+   * quiero". Se resuelve con `resolveDisenoSolicitud` desde
+   * `features.solicitud_design`; cualquier valor que no sea `2` (ni el string
+   * `'2'`) cae en `1`. Preferí `useDisenoSolicitud()` en vez de leer este
+   * campo directo.
+   */
+  disenoSolicitud: 1 | 2;
+  /**
    * "Lo quiero" abre el modal de accesorios, términos y cupón y pasa directo
-   * al primer paso del formulario (BAL-4852). Opt-in como `chipsDeUso`:
-   * ausencia significa APAGADO. Opcional en el tipo para que los contextos
-   * armados a mano (tests, mocks) sigan valiendo; sin el campo es `false`.
+   * al primer paso del formulario (BAL-4852). Derivado de `disenoSolicitud
+   * === 2`; se conserva con este nombre porque así lo consumen catálogo y
+   * ficha. Opcional en el tipo para que los contextos armados a mano (tests,
+   * mocks) sigan valiendo; sin el campo es `false`.
    */
   loQuieroModal?: boolean;
+}
+
+/**
+ * Resuelve `features.solicitud_design` a `1` o `2` (BAL-4958).
+ *
+ * El preset `solicitud-design-v2` es `value_type` int, pero por las dudas de
+ * cómo lo entregue el backend se acepta tanto el número `2` como el string
+ * `'2'`. Cualquier otro valor -incluida la ausencia de la clave- cae en `1`,
+ * que es el diseño actual: una landing sin el preset no cambia.
+ */
+export function resolveDisenoSolicitud(value: unknown): 1 | 2 {
+  return value === 2 || value === '2' ? 2 : 1;
 }
 
 /**
@@ -208,7 +229,7 @@ export function LayoutProvider({
   const [chipsDeUso, setChipsDeUso] = useState(false);
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
-  const [loQuieroModal, setLoQuieroModal] = useState(false);
+  const [disenoSolicitud, setDisenoSolicitud] = useState<1 | 2>(1);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -250,8 +271,9 @@ export function LayoutProvider({
       // segundo financiamiento no hereda el comportamiento por su nombre.
       setFiltroPorUso(cfg.features?.has_usage_filter !== false);
       setBarraDeOrden(cfg.features?.has_catalog_sort_bar !== false);
-      // Opt-in, igual que los chips: solo un `true` explícito lo prende.
-      setLoQuieroModal(cfg.features?.lo_quiero_modal === true);
+      // BAL-4958: reemplaza al ingrediente `lo-quiero-modal-on`. Cualquier
+      // valor que no sea 2 (número o string) cae en el diseño actual.
+      setDisenoSolicitud(resolveDisenoSolicitud(cfg.features?.solicitud_design));
     });
   }, [landing]);
 
@@ -511,8 +533,9 @@ export function LayoutProvider({
     chipsDeUso,
     filtroPorUso,
     barraDeOrden,
-    loQuieroModal,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, loQuieroModal]);
+    disenoSolicitud,
+    loQuieroModal: disenoSolicitud === 2,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud]);
 
   return (
     <LayoutContext.Provider value={value}>
@@ -527,6 +550,16 @@ export function useLayout() {
     throw new Error('useLayout must be used within a LayoutProvider');
   }
   return context;
+}
+
+/**
+ * Selector para el diseño de la solicitud (BAL-4958): `1` (actual) o `2`
+ * (modal "Lo quiero"). Vive junto a `useLayout` porque es el mismo contexto;
+ * existe como selector propio para que los consumidores que solo necesitan
+ * esto no repitan `useLayout().disenoSolicitud` en cada archivo.
+ */
+export function useDisenoSolicitud(): 1 | 2 {
+  return useLayout().disenoSolicitud;
 }
 
 export default LayoutContext;
