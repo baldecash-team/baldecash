@@ -1,0 +1,170 @@
+/**
+ * Secciones del paso en Diseño 2 (BAL-4964, F5): reglas puras.
+ *
+ * Nada acá conoce códigos de campo: todo sale del snapshot del paso
+ * (`step.groups`, `dependency_groups`, `options`). `DynamicWizardStep` arma los
+ * bloques y `SeccionPlegable` los pinta. F6 reutiliza lo mismo.
+ */
+
+import { formatearMonto } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/fields/montoFormato';
+import type { WizardField, WizardStep, WizardStepGroup } from '@/app/prototipos/0.6/services/wizardApi';
+import { campoPendiente, valorVacio } from './useGuiaDeCampos';
+
+type Valores = Record<string, string | string[] | undefined>;
+
+/** Tipos que pueden destapar un "Otra (escríbela)". */
+const TIPOS_DE_LISTA = new Set<WizardField['type']>(['select', 'autocomplete', 'radio']);
+/** Tipos de texto que se pegan bajo su lista. */
+const TIPOS_DE_TEXTO = new Set<WizardField['type']>(['text', 'textarea', 'number']);
+
+/**
+ * "Otra (escríbela)": el campo de texto que aparece por condición de una
+ * lista del MISMO paso (requisito 4). Devuelve `hijo → lista que lo destapa`.
+ *
+ * Solo cuenta si TODAS las condiciones de sus grupos `show` miran a la misma
+ * lista. Un campo que depende de dos cosas no es "parte" de ninguna.
+ */
+export function camposPegados(step: Pick<WizardStep, 'fields'>): Map<string, string> {
+  const porCodigo = new Map(step.fields.map((f) => [f.code, f]));
+  const pegados = new Map<string, string>();
+  for (const f of step.fields) {
+    if (!TIPOS_DE_TEXTO.has(f.type)) continue;
+    const muestran = (f.dependency_groups ?? []).filter((g) => g.action === 'show');
+    if (muestran.length === 0) continue;
+    if ((f.dependency_groups ?? []).some((g) => g.action === 'hide')) continue;
+    const padres = new Set(muestran.flatMap((g) => g.conditions.map((c) => c.depends_on_field)));
+    if (padres.size !== 1) continue;
+    const [padre] = Array.from(padres);
+    const lista = porCodigo.get(padre);
+    if (!lista || lista.code === f.code || !TIPOS_DE_LISTA.has(lista.type)) continue;
+    pegados.set(f.code, padre);
+  }
+  return pegados;
+}
+
+/**
+ * Orden del paso con cada "Otra" justo después de su lista. Si la lista
+ * también tiene su propia "Otra" pegada, se respeta el orden del paso entre
+ * hermanos.
+ */
+export function ordenConPegados(fields: WizardField[], pegados: Map<string, string>): WizardField[] {
+  const hijosDe = new Map<string, WizardField[]>();
+  for (const f of fields) {
+    const padre = pegados.get(f.code);
+    if (padre) hijosDe.set(padre, [...(hijosDe.get(padre) ?? []), f]);
+  }
+  const orden: WizardField[] = [];
+  const agregar = (f: WizardField) => {
+    orden.push(f);
+    for (const h of hijosDe.get(f.code) ?? []) agregar(h);
+  };
+  for (const f of fields) if (!pegados.has(f.code)) agregar(f);
+  return orden;
+}
+
+export type BloqueDelPaso =
+  | { tipo: 'seccion'; grupo: WizardStepGroup; campos: WizardField[] }
+  | { tipo: 'sueltos'; campos: WizardField[] };
+
+/**
+ * Los campos del paso agrupados por sección (requisito 1):
+ * - secciones en el orden de `groups` (`order`, y a igualdad el del arreglo);
+ * - dentro de cada una, el orden del paso;
+ * - los campos sin sección, al final y sin título;
+ * - una "Otra" va siempre con su lista, aunque su sección diga otra cosa.
+ *
+ * Sin `groups` sale un solo bloque `sueltos` con todo: el paso se pinta como
+ * antes (requisito 2).
+ */
+export function armarBloques(step: Pick<WizardStep, 'fields' | 'groups'>): BloqueDelPaso[] {
+  const pegados = camposPegados(step);
+  const orden = ordenConPegados(step.fields, pegados);
+  const grupos = [...(step.groups ?? [])]
+    .map((g, i) => ({ g, i }))
+    .sort((a, b) => a.g.order - b.g.order || a.i - b.i)
+    .map(({ g }) => g);
+  if (grupos.length === 0) return orden.length ? [{ tipo: 'sueltos', campos: orden }] : [];
+
+  const grupoDe = new Map<string, string>();
+  for (const g of grupos) for (const c of g.field_codes) if (!grupoDe.has(c)) grupoDe.set(c, g.code);
+  const raizDe = (codigo: string): string => {
+    let actual = codigo;
+    const vistos = new Set<string>();
+    while (pegados.has(actual) && !vistos.has(actual)) {
+      vistos.add(actual);
+      actual = pegados.get(actual)!;
+    }
+    return actual;
+  };
+  const seccionDe = (f: WizardField) => grupoDe.get(raizDe(f.code)) ?? null;
+
+  const bloques: BloqueDelPaso[] = [];
+  for (const g of grupos) {
+    const campos = orden.filter((f) => seccionDe(f) === g.code);
+    if (campos.length) bloques.push({ tipo: 'seccion', grupo: g, campos });
+  }
+  const sueltos = orden.filter((f) => seccionDe(f) === null);
+  if (sueltos.length) bloques.push({ tipo: 'sueltos', campos: sueltos });
+  return bloques;
+}
+
+/**
+ * ¿La sección se puede cerrar? Todos sus campos VISIBLES obligatorios llenos
+ * y todo lo que tiene valor, válido (la misma regla que la guía de campos).
+ */
+export function seccionCompleta(
+  visibles: WizardField[],
+  esValido: (f: WizardField) => boolean,
+  valores: Valores,
+): boolean {
+  if (visibles.length === 0) return false;
+  return visibles.every(
+    (f) => !campoPendiente({ codigo: f.code, obligatorio: !!f.required, vacio: valorVacio(valores[f.code]), valido: esValido(f) }),
+  );
+}
+
+/** Lo que se ve de un campo en el resumen. Vacío = no sale. */
+export function textoDelCampo(f: WizardField, valor: unknown, etiquetaGuardada?: string): string {
+  if (valorVacio(valor)) return '';
+  if (f.type === 'checkbox' || f.type === 'hidden' || f.type === 'file') return '';
+  const unValor = (v: string) => {
+    const opcion = (f.options ?? []).find((o) => String(o.value) === v);
+    if (opcion) return opcion.label;
+    return v;
+  };
+  if (Array.isArray(valor)) {
+    if (etiquetaGuardada) return etiquetaGuardada;
+    return valor.map((v) => unValor(String(v))).join(', ');
+  }
+  const v = String(valor).trim();
+  if (f.type === 'currency') {
+    const monto = formatearMonto(v);
+    return `${f.prefix?.trim() || 'S/'} ${monto}`;
+  }
+  // La etiqueta guardada (listas del sistema, buscadores) gana sobre el id.
+  if (TIPOS_DE_LISTA.has(f.type)) return (f.options ?? []).length ? unValor(v) : etiquetaGuardada || v;
+  return v;
+}
+
+/**
+ * El resumen de una línea de la sección cerrada: los valores mostrados, no
+ * los ids, separados por " · ". Una "Otra" con texto reemplaza a la opción
+ * que la destapó ("Otro" → lo que escribió la persona).
+ */
+export function resumenDeSeccion(
+  visibles: WizardField[],
+  valores: Valores,
+  etiquetaDe: (codigo: string) => string | undefined,
+  pegados: Map<string, string>,
+): string {
+  const textos = new Map<string, string>();
+  for (const f of visibles) textos.set(f.code, textoDelCampo(f, valores[f.code], etiquetaDe(f.code)));
+  const partes: string[] = [];
+  for (const f of visibles) {
+    if (pegados.has(f.code)) continue;
+    const hijos = visibles.filter((h) => pegados.get(h.code) === f.code && textos.get(h.code));
+    const texto = hijos.length ? hijos.map((h) => textos.get(h.code)!).join(' · ') : textos.get(f.code);
+    if (texto) partes.push(texto);
+  }
+  return partes.join(' · ');
+}

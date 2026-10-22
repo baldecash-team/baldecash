@@ -15,11 +15,17 @@
  * en Diseño 2) en su orden, y de la config del paso solo toma si son
  * obligatorios y su tipo. La visibilidad (dependencias, prellenado) ya la
  * resolvió el render: repetirla acá sería una segunda copia de esa regla.
+ *
+ * Secciones (F5, BAL-4964): los campos de una sección cerrada siguen en el
+ * DOM (ocultos) y en su orden. Están completos —por eso se cerró—, así que la
+ * guía los salta y va a la siguiente sección abierta. Si el destino quedara
+ * dentro de una cerrada, primero la abre y después lo resalta.
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useWizard, FILE_PENDING_REUPLOAD } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardContext';
 import { validateField, type WizardField, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
+import { abrirSeccionDe } from './SeccionPlegable';
 
 // ─── Parte pura (testeable sin DOM) ─────────────────────────────────────────
 
@@ -79,6 +85,8 @@ const DURACION_BRILLO_MS = 1800;
 /** El render tarda un poco en destapar campos (prellenado, dependencias). */
 const ESPERA_AL_LLEGAR_MS = 450;
 const ESPERA_TRAS_CAMBIO_MS = 200;
+/** Un render para que la sección recién abierta pinte sus campos. */
+const ESPERA_AL_ABRIR_SECCION_MS = 60;
 
 const ENFOCABLE =
   'input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -191,8 +199,13 @@ export function useGuiaDeCampos({ contenedorRef, step, activa = true }: Opciones
 
   const irA = useCallback(
     (destino: DestinoDeLaGuia) => {
-      if (destino.tipo === 'continuar') resaltar(botonContinuarVisible());
-      else resaltar(contenedorDe(destino.codigo));
+      if (destino.tipo === 'continuar') {
+        resaltar(botonContinuarVisible());
+        return;
+      }
+      const el = contenedorDe(destino.codigo);
+      if (abrirSeccionDe(el)) window.setTimeout(() => resaltar(el), ESPERA_AL_ABRIR_SECCION_MS);
+      else resaltar(el);
     },
     [contenedorDe],
   );
@@ -276,9 +289,12 @@ export function useGuiaDeCampos({ contenedorRef, step, activa = true }: Opciones
       }
       // Enter sí mueve el foco: la persona ya está escribiendo.
       const el = contenedorDe(destino.codigo);
-      const enfocable = el?.querySelector<HTMLElement>(ENFOCABLE);
-      enfocable?.focus({ preventScroll: true });
-      resaltar(el);
+      const enfocar = () => {
+        el?.querySelector<HTMLElement>(ENFOCABLE)?.focus({ preventScroll: true });
+        resaltar(el);
+      };
+      if (abrirSeccionDe(el)) window.setTimeout(enfocar, ESPERA_AL_ABRIR_SECCION_MS);
+      else enfocar();
     },
     [activa, leerCampos, contenedorDe],
   );

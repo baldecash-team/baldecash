@@ -5,7 +5,7 @@
  * Dropdown con bordes redondeados y búsqueda
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Check, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 import {
@@ -16,6 +16,12 @@ import {
   MarcaOpcionalV2,
   ErrorCampoV2,
 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import {
+  coincide,
+  eleccionAutomatica,
+  minimoDeLetras,
+  MAX_SUGERENCIAS_V2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/busquedaV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -109,13 +115,67 @@ export const SelectInput: React.FC<SelectInputProps> = ({
     }
     // Local search: filter options by search term
     if (!searchTerm) return options;
+    // Diseño 2 (BAL-4964): sin tildes ni mayúsculas ("pacifico" encuentra
+    // "Pacífico"). Diseño 1, como siempre.
+    if (v2) return options.filter((option) => coincide(option.label, searchTerm));
     return options.filter((option) =>
       option.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [options, searchTerm, isRemoteSearch]);
+  }, [options, searchTerm, isRemoteSearch, v2]);
+
+  // Diseño 2: como máximo 5 sugerencias mientras se busca.
+  const visibleOptions = v2 && (isRemoteSearch || searchTerm)
+    ? filteredOptions.slice(0, MAX_SUGERENCIAS_V2)
+    : filteredOptions;
 
   // Check if user needs to type more characters for remote search
   const needsMoreChars = isRemoteSearch && minSearchLength > 0 && searchTerm.length < minSearchLength;
+
+  // ── Diseño 2: al salir del buscador, una sola coincidencia se elige sola ──
+  // El dedo (o el mouse) dentro del desplegable no cuenta como salir: en
+  // Safari un botón no toma el foco al tocarlo y el blur llega sin destino.
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  const punteroDentroRef = useRef(false);
+  // Búsqueda remota: los resultados del término actual todavía no llegan
+  // (debounce de 300 ms + la red). Si la persona sale en ese rato, se decide
+  // cuando lleguen.
+  const esperandoResultadosRef = useRef(false);
+  const vioBuscandoRef = useRef(false);
+  const elegirAlLlegarRef = useRef<string | null>(null);
+
+  const elegirSolaSiHayUna = (termino: string, candidatas: SelectOption[]) => {
+    const unica = eleccionAutomatica(candidatas, termino, minimoDeLetras(minSearchLength));
+    if (unica && unica.value !== value) onChange(unica.value, unica.label);
+  };
+
+  const salirDelBuscador = () => {
+    const termino = searchTerm;
+    setIsOpen(false);
+    setSearchTerm('');
+    onBlur?.();
+    if (!v2 || !termino) return;
+    if (isRemoteSearch && (esperandoResultadosRef.current || isSearching)) {
+      elegirAlLlegarRef.current = termino;
+      return;
+    }
+    elegirSolaSiHayUna(termino, filteredOptions);
+  };
+
+  useEffect(() => {
+    if (!v2 || !isRemoteSearch) return;
+    if (isSearching) {
+      vioBuscandoRef.current = true;
+      return;
+    }
+    if (!vioBuscandoRef.current || !esperandoResultadosRef.current) return;
+    esperandoResultadosRef.current = false;
+    vioBuscandoRef.current = false;
+    const pendiente = elegirAlLlegarRef.current;
+    elegirAlLlegarRef.current = null;
+    if (pendiente) elegirSolaSiHayUna(pendiente, options);
+    // Solo cuando termina una búsqueda; `options` llega en el mismo render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearching, v2, isRemoteSearch]);
 
   const selectedOption = options.find((opt) => opt.value === value);
   // Use savedLabel as fallback when options aren't loaded (lazy search after refresh)
@@ -143,7 +203,30 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   };
 
   return (
-    <div id={id} className={v2 ? 'flex flex-col gap-1.5' : small ? 'space-y-1' : 'space-y-1.5'}>
+    <div
+      id={id}
+      className={v2 ? 'flex flex-col gap-1.5' : small ? 'space-y-1' : 'space-y-1.5'}
+      {...(v2
+        ? {
+            ref: contenedorRef,
+            onPointerDownCapture: () => {
+              punteroDentroRef.current = true;
+              window.setTimeout(() => {
+                punteroDentroRef.current = false;
+              }, 400);
+            },
+            // Diseño 2: el foco sale del campo entero (Tab desde el buscador
+            // o desde una opción) con la lista abierta: se cierra y, con una
+            // sola coincidencia, la elige.
+            onBlur: (e: React.FocusEvent<HTMLDivElement>) => {
+              if (!isOpen || punteroDentroRef.current) return;
+              const destino = e.relatedTarget as Node | null;
+              if (destino && contenedorRef.current?.contains(destino)) return;
+              salirDelBuscador();
+            },
+          }
+        : {})}
+    >
       {/* Label */}
       {v2 ? (
         <label htmlFor={`${id}-trigger`} className={ETIQUETA_V2}>
@@ -250,9 +333,14 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                       setSearchTerm(newValue);
                       // For remote search, call onSearch when user types enough characters
                       if (onSearch && newValue.length >= minSearchLength) {
+                        if (v2) {
+                          esperandoResultadosRef.current = true;
+                          vioBuscandoRef.current = false;
+                        }
                         onSearch(newValue);
                       }
                     }}
+
                     style={{ fontSize: '16px' }}
                     className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />
@@ -275,12 +363,12 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
                   Buscando...
                 </div>
-              ) : filteredOptions.length === 0 ? (
+              ) : visibleOptions.length === 0 ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron resultados
                 </div>
               ) : (
-                filteredOptions.map((option) => (
+                visibleOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -316,6 +404,10 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         <div
           className="fixed inset-0 z-30"
           onClick={() => {
+            if (v2) {
+              salirDelBuscador();
+              return;
+            }
             setIsOpen(false);
             onBlur?.();
           }}

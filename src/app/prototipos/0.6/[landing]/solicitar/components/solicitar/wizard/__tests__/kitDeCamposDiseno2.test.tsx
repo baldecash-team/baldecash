@@ -484,13 +484,17 @@ describe('Diseño 1 no cambia', () => {
 });
 
 describe('Secciones (groups) en Diseño 2', () => {
-  it('su presencia no rompe nada: los campos salen en el orden normal', () => {
+  // F5 (BAL-4964): las secciones ya se pintan. Lo de cada sección va primero,
+  // en el orden del paso, y lo que no tiene sección va al final. Ver
+  // `paso2DatosAcademicosDiseno2.test.tsx`.
+  it('los campos de la sección van primero y los sin sección al final', () => {
     const { container } = pintarV2(
       paso([TIPO_DOC, CORREO, CELULAR_2], {
         groups: [{ code: 'contacto', name: 'Contacto', order: 0, is_collapsible: true, field_codes: ['email', 'phone_secondary'] }],
       }),
     );
     const orden = Array.from(container.querySelectorAll<HTMLElement>('[data-campo]')).map((el) => el.dataset.campo);
-    expect(orden).toEqual(['document_type', 'email', 'phone_secondary']);
+    expect(orden).toEqual(['email', 'phone_secondary', 'document_type']);
+    expect(container.querySelector('[data-seccion="contacto"]')).not.toBeNull();
   });
 });
