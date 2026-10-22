@@ -159,3 +159,27 @@ test('Family Farms: el descuento se muestra con céntimos, no «-S/22»', () => 
   expect(screen.getByText('-S/21.50')).toBeInTheDocument();
   expect(screen.queryByText('-S/22')).not.toBeInTheDocument();
 });
+
+/**
+ * En una landing SIN céntimos, `formatCuotaDeLanding` trunca con
+ * `Math.floor` — el mismo corte que ya se arregló en la tarjeta y en
+ * `descuentoPorCuota`. Un descuento real de S/49.90 (189.90 con cupón fijo de
+ * S/50: `descuentoPorCuota` da 49.9 exacto, ver couponPricing.test.ts) no se
+ * puede mostrar como «-S/49»: promete menos de lo que el cliente recibe. Se
+ * redondea al sol más cercano (mitad hacia arriba, el mismo criterio que la
+ * cuota con cupón) antes de formatear.
+ */
+test('landing sin céntimos: el descuento real (49.90) se redondea a 50, nunca se trunca a 49', () => {
+  cuponActual = {
+    code: 'FIJO50',
+    discount: 50,
+    couponType: 'fixed',
+    label: 'Descuento de S/50',
+    lockedFromUrl: true,
+  };
+  descuento = 49.9;
+  render(<CouponInput />);
+
+  expect(screen.getByText('-S/50')).toBeInTheDocument();
+  expect(screen.queryByText('-S/49')).not.toBeInTheDocument();
+});

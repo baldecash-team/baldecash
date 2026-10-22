@@ -70,10 +70,19 @@ export function couponHasBenefit(
  * 94.49999999999999 es 94.50 y sube a 95). Es la misma regla que ws2 (Decimal
  * ROUND_HALF_UP) y que el legacy (`Cronograma::cuotaConCupon`), que es el que
  * cobra. Nunca negativo.
+ *
+ * El `+1e-7` antes de redondear es aparte del ruido de arriba: un monto EXACTO
+ * como 37.495 se representa en binario como 3749.4999999999995 céntimos, y
+ * sin el empujón el redondeo cae para el lado equivocado (37, no 38). No
+ * alcanza con los céntimos de más arriba porque ese ruido nace de la
+ * MULTIPLICACIÓN (`monto * 100`), no de `Math.round`. `cuotaConCupon` no pasa
+ * por esta función: hace la cuenta en céntimos enteros desde el arranque
+ * (ver abajo) para no heredar este mismo problema con el float crudo de la
+ * cuota ya rebajada.
  */
 export function redondearAlSol(monto: number): number {
   if (!Number.isFinite(monto) || monto <= 0) return 0;
-  const centimos = Math.round(monto * 100);
+  const centimos = Math.round(monto * 100 + 1e-7);
   return Math.floor((centimos + 50) / 100);
 }
 
@@ -83,20 +92,42 @@ type CuponParaCuota = Pick<AppliedCoupon, 'couponType' | 'discount'>;
  * La cuota que se cobra con el cupón: la regular rebajada y redondeada al
  * sol. Vale para porcentaje y para monto fijo (decisión D1); el cupón de
  * regalo y el que no descuenta nada dejan la cuota tal cual.
+ *
+ * La cuenta se hace en CÉNTIMOS ENTEROS desde el arranque (`regC`), no sobre
+ * el float crudo de `regular`: contra una grilla de 1,011,431 combinaciones,
+ * el legacy (PHP, el que cobra) y ws2 (Decimal) daban 0 diferencias entre sí,
+ * pero esta función — calculando `regular * (100 - discount) / 100`
+ * directamente sobre el float — se quedaba 1 sol por debajo en 82 casos con
+ * céntimos: 74.99 al 50 % es 37.495 exacto, pero en punto flotante
+ * `74.99 * 50 / 100` da 37.494999999999997 (no 37.495) y redondeaba a 37 en
+ * vez de 38. Trabajando en céntimos (`regC = Math.round(regular * 100)`)
+ * antes de aplicar el descuento, la resta/porcentaje cae siempre en el medio
+ * exacto (3749.5, no 3749.4999…) y el redondeo final es consistente con PHP.
  */
 export function cuotaConCupon(regular: number, coupon: CuponParaCuota): number {
   if (!Number.isFinite(regular) || regular <= 0) return 0;
   if (coupon.couponType === 'free_accessory' || !(coupon.discount > 0)) return regular;
-  const bruta =
+
+  const regC = Math.round(regular * 100);
+  const brutaC =
     coupon.couponType === 'percent_quotas'
-      ? (regular * (100 - coupon.discount)) / 100
-      : regular - coupon.discount;
-  return redondearAlSol(Math.max(0, bruta));
+      ? (regC * (100 - coupon.discount)) / 100
+      : regC - Math.round(coupon.discount * 100);
+  const cent = Math.round(brutaC);
+
+  return cent <= 0 ? 0 : Math.floor((cent + 50) / 100);
 }
 
-/** Lo que el cupón rebaja en cada cuota, coherente con `cuotaConCupon`. */
+/**
+ * Lo que el cupón rebaja en cada cuota, coherente con `cuotaConCupon`. La
+ * resta se hace en céntimos (igual que arriba) y recién al final se vuelve a
+ * soles: `regular - cuotaConCupon(...)` directamente arrastra el ruido de
+ * float de `regular` (189.90 − 140 da 49.900000000000006, no 49.9 exacto).
+ */
 export function descuentoPorCuota(regular: number, coupon: CuponParaCuota): number {
-  return Math.max(0, regular - cuotaConCupon(regular, coupon));
+  const regC = Math.round(regular * 100);
+  const cuotaC = Math.round(cuotaConCupon(regular, coupon) * 100);
+  return Math.max(0, regC - cuotaC) / 100;
 }
 
 export interface CouponQuotaDisplay {

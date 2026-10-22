@@ -76,8 +76,10 @@ test('producto 179 + cupón 30 %: el descuento es 54 (179 - 125), no 53.70', asy
 
   montar();
 
-  await waitFor(() => expect(screen.getByTestId('descuento')).toHaveTextContent('54'));
-  expect(screen.getByTestId('cuota-con-cupon')).toHaveTextContent('125');
+  // Regex exacta: '54' también matchea un eventual '54.x', y '125' un '125.3'
+  // sin redondear — hay que distinguir el valor entero de uno con céntimos.
+  await waitFor(() => expect(screen.getByTestId('descuento')).toHaveTextContent(/^54$/));
+  expect(screen.getByTestId('cuota-con-cupon')).toHaveTextContent(/^125$/);
 });
 
 test('producto 105 + cupón 10 %: el descuento es 10 (105 - 95), no 10.50', async () => {
@@ -89,6 +91,6 @@ test('producto 105 + cupón 10 %: el descuento es 10 (105 - 95), no 10.50', asyn
 
   montar();
 
-  await waitFor(() => expect(screen.getByTestId('descuento')).toHaveTextContent('10'));
-  expect(screen.getByTestId('cuota-con-cupon')).toHaveTextContent('95');
+  await waitFor(() => expect(screen.getByTestId('descuento')).toHaveTextContent(/^10$/));
+  expect(screen.getByTestId('cuota-con-cupon')).toHaveTextContent(/^95$/);
 });

@@ -1,6 +1,7 @@
 import {
   couponHasBenefit,
   cuotaConCupon,
+  descuentoPorCuota,
   getCouponQuotaDisplay,
   getCouponQuotas,
   getCouponScopeText,
@@ -198,8 +199,48 @@ describe('cuotaConCupon — la cuota que se cobra con el cupón', () => {
     expect(cuotaConCupon(179, pct(100))).toBe(0);
   });
 
+  it('150 % de descuento (sobrepasa el 100%) → 0, nunca negativo', () => {
+    expect(cuotaConCupon(179, pct(150))).toBe(0);
+  });
+
+  it('fijo mayor que la cuota → 0, nunca negativo', () => {
+    expect(cuotaConCupon(179, { couponType: 'fixed', discount: 999 })).toBe(0);
+  });
+
   it('el cupón de regalo no toca la cuota', () => {
     expect(cuotaConCupon(179, { couponType: 'free_accessory', discount: 0 })).toBe(179);
+  });
+
+  /**
+   * Paridad con el legacy (PHP, el que cobra) y ws2 (Decimal): en una grilla
+   * de 1,011,431 combinaciones los dos daban 0 diferencias entre sí, pero TS
+   * se quedaba 1 sol por debajo en cuotas con céntimos — p. ej. 74.99 al 50 %
+   * es 37.495 exacto, pero `74.99 * 50 / 100` en punto flotante da
+   * 37.494999999999997, no 37.495, y redondeaba hacia abajo (37 en vez de
+   * 38). La cuenta tiene que hacerse en céntimos ENTEROS desde el arranque
+   * (`Math.round(regular * 100)` primero, la resta/porcentaje después),
+   * nunca sobre el float crudo de la cuota.
+   */
+  it('74.99 al 50 % → 38 (37.495 exacto; el float crudo da 37.49499…999 y redondeaba a 37)', () => {
+    expect(cuotaConCupon(74.99, pct(50))).toBe(38);
+  });
+
+  it('16.99 al 50 % → 9 (8.495 exacto)', () => {
+    expect(cuotaConCupon(16.99, pct(50))).toBe(9);
+  });
+
+  it('40.55 al 10 % → 37 (36.495 exacto)', () => {
+    expect(cuotaConCupon(40.55, pct(10))).toBe(37);
+  });
+
+  it('47.85 al 30 % → 34 (33.495 exacto)', () => {
+    expect(cuotaConCupon(47.85, pct(30))).toBe(34);
+  });
+});
+
+describe('descuentoPorCuota — la resta en céntimos, sin ruido de float', () => {
+  it('189.90 con fijo 50 → 49.9 exacto (no 49.900000000000006)', () => {
+    expect(descuentoPorCuota(189.9, { couponType: 'fixed', discount: 50 })).toBe(49.9);
   });
 });
 
