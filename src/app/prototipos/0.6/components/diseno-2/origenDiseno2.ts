@@ -38,10 +38,17 @@ export function guardarOrigenDiseno2(landing: string): void {
  * La ruta guardada, o `null` si no hay (URL directa al paso, otra pestaña, o
  * `sessionStorage` no disponible). Sin ella, "Atrás" cae al catálogo de la
  * landing.
+ *
+ * Solo rutas internas (re-revisión de BAL-4959): tiene que empezar con `/` y
+ * NO con `//` (eso es protocol-relative, o sea una URL externa disfrazada de
+ * ruta — `//evil.com` navega fuera de BaldeCash). Cualquier otra cosa
+ * guardada —una URL absoluta, o lo que sea— se descarta y cae al catálogo.
  */
 export function leerOrigenDiseno2(landing: string): string | null {
   try {
-    return sessionStorage.getItem(clave(landing));
+    const guardado = sessionStorage.getItem(clave(landing));
+    if (!guardado || !guardado.startsWith('/') || guardado.startsWith('//')) return null;
+    return guardado;
   } catch {
     return null;
   }

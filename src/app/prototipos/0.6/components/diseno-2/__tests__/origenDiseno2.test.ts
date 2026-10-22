@@ -45,4 +45,21 @@ describe('guardarOrigenDiseno2 / leerOrigenDiseno2', () => {
     expect(leerOrigenDiseno2('pago-diferido')).toBeNull();
     Object.defineProperty(window, 'sessionStorage', { value: real, configurable: true });
   });
+
+  describe('solo rutas internas (re-revisión BAL-4959)', () => {
+    it('una URL absoluta externa se descarta: null, para que caiga al catálogo', () => {
+      sessionStorage.setItem('baldecash-pago-diferido-diseno2-origen', 'https://x.com');
+      expect(leerOrigenDiseno2('pago-diferido')).toBeNull();
+    });
+
+    it('protocol-relative (// ) se descarta: null', () => {
+      sessionStorage.setItem('baldecash-pago-diferido-diseno2-origen', '//x.com');
+      expect(leerOrigenDiseno2('pago-diferido')).toBeNull();
+    });
+
+    it('una ruta interna normal se devuelve tal cual', () => {
+      sessionStorage.setItem('baldecash-pago-diferido-diseno2-origen', '/home/catalogo');
+      expect(leerOrigenDiseno2('pago-diferido')).toBe('/home/catalogo');
+    });
+  });
 });
