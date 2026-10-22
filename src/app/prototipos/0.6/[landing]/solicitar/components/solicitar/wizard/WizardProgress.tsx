@@ -4,7 +4,9 @@
  * WizardProgress - Step progress indicator (Dynamic from API)
  * Shows current position in the wizard flow
  *
- * Steps come from the API + "Resumen" is always added at the end
+ * Steps come from the API + the summary step is added at the end.
+ * El texto de cada paso en la barra sale de `progress_label` (editable en el
+ * admin); si viene vacío, cae al título del paso o a "Resumen" en el último.
  * Completed steps are calculated DYNAMICALLY based on form data (100% from BD)
  *
  * Mobile: Compact design with Baldi illustration + progress dots (clickeable)
@@ -112,16 +114,17 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
       .filter(step => !step.is_summary_step)
       .map(step => ({
         slug: getStepSlug(step) as WizardStepId,
-        title: step.title,
+        title: step.progress_label?.trim() || step.title,
         code: step.code,
       }));
 
-    // Get first summary step from API (is_summary_step=true) for the "Resumen" progress item
-    // This makes the slug 100% dynamic from BD (matches actual URL)
+    // Get first summary step from API (is_summary_step=true) for the last progress item
+    // This makes the slug 100% dynamic from BD (matches actual URL).
+    // Su etiqueta es la `progress_label` del paso de resumen; sin ella, "Resumen".
     const summaryStep = apiSteps.find(step => step.is_summary_step);
     const resumenStep: ProgressStep = {
       slug: summaryStep ? (getStepSlug(summaryStep) as WizardStepId) : 'resumen',
-      title: 'Resumen', // UI convention: last step is always called "Resumen"
+      title: summaryStep?.progress_label?.trim() || 'Resumen',
       code: summaryStep?.code || 'resumen',
     };
 
