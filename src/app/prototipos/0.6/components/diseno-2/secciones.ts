@@ -9,6 +9,7 @@
 import { formatearMonto } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/fields/montoFormato';
 import type { WizardField, WizardStep, WizardStepGroup } from '@/app/prototipos/0.6/services/wizardApi';
 import { campoPendiente, valorVacio } from './useGuiaDeCampos';
+import { normalizarBusqueda } from './campos/busquedaV2';
 
 type Valores = Record<string, string | string[] | undefined>;
 
@@ -76,8 +77,10 @@ export type BloqueDelPaso =
  * Sin `groups` sale un solo bloque `sueltos` con todo: el paso se pinta como
  * antes (requisito 2).
  */
-export function armarBloques(step: Pick<WizardStep, 'fields' | 'groups'>): BloqueDelPaso[] {
-  const pegados = camposPegados(step);
+export function armarBloques(
+  step: Pick<WizardStep, 'fields' | 'groups'>,
+  pegados: Map<string, string> = camposPegados(step),
+): BloqueDelPaso[] {
   const orden = ordenConPegados(step.fields, pegados);
   const grupos = [...(step.groups ?? [])]
     .map((g, i) => ({ g, i }))
@@ -147,9 +150,58 @@ export function textoDelCampo(f: WizardField, valor: unknown, etiquetaGuardada?:
 }
 
 /**
+ * Palabras de relleno que se quitan de los extremos de una etiqueta para
+ * armar su versión corta ("¿Tiene beca?" → "Beca", "¿Cuál ciclo?" → "Ciclo").
+ * Son palabras genéricas del idioma, no etiquetas: la etiqueta sale de la BD.
+ */
+const RELLENO = new Set([
+  'cual', 'cuales', 'que', 'como', 'cuanto', 'cuanta', 'cuantos', 'cuantas', 'donde', 'cuando', 'quien',
+  'tiene', 'tienes', 'tienen', 'es', 'eres', 'esta', 'estas', 'son',
+  'tu', 'tus', 'su', 'sus', 'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'en', 'con', 'por', 'para',
+]);
+
+/**
+ * La etiqueta del campo sin signos de pregunta ni palabras de relleno en
+ * los extremos, con mayúscula inicial. Si no queda nada, la etiqueta sin
+ * signos.
+ */
+export function etiquetaCorta(etiqueta: string): string {
+  const limpia = etiqueta.replace(/[¿?¡!:*]/g, '').replace(/\s+/g, ' ').trim();
+  const palabras = limpia.split(' ');
+  const relleno = (p: string) => RELLENO.has(normalizarBusqueda(p));
+  let i = 0;
+  let j = palabras.length;
+  while (i < j && relleno(palabras[i])) i++;
+  while (j > i && relleno(palabras[j - 1])) j--;
+  const corta = palabras.slice(i, j).join(' ') || limpia;
+  return corta.charAt(0).toLocaleUpperCase('es') + corta.slice(1);
+}
+
+/** Lista de dos opciones "Sí" / "No". */
+function esSiNo(f: WizardField): boolean {
+  const opciones = f.options ?? [];
+  if (opciones.length !== 2) return false;
+  const etiquetas = new Set(opciones.map((o) => normalizarBusqueda(o.label)));
+  return etiquetas.has('si') && etiquetas.has('no');
+}
+
+/**
+ * Lo que el campo aporta al resumen. Las respuestas Sí/No y lo escrito a
+ * mano (una "Otra" o un texto libre) llevan su etiqueta corta adelante
+ * ("Beca: No", "Ciclo: 11"); un "No" o un "11" sueltos no se entienden.
+ * Las opciones de listas y buscadores van solas.
+ */
+export function parteDelResumen(f: WizardField, valor: unknown, etiquetaGuardada?: string): string {
+  const texto = textoDelCampo(f, valor, etiquetaGuardada);
+  if (!texto) return '';
+  if (esSiNo(f) || TIPOS_DE_TEXTO.has(f.type)) return `${etiquetaCorta(f.label)}: ${texto}`;
+  return texto;
+}
+
+/**
  * El resumen de una línea de la sección cerrada: los valores mostrados, no
  * los ids, separados por " · ". Una "Otra" con texto reemplaza a la opción
- * que la destapó ("Otro" → lo que escribió la persona).
+ * que la destapó ("Otro" → "Ciclo: 11").
  */
 export function resumenDeSeccion(
   visibles: WizardField[],
@@ -158,7 +210,7 @@ export function resumenDeSeccion(
   pegados: Map<string, string>,
 ): string {
   const textos = new Map<string, string>();
-  for (const f of visibles) textos.set(f.code, textoDelCampo(f, valores[f.code], etiquetaDe(f.code)));
+  for (const f of visibles) textos.set(f.code, parteDelResumen(f, valores[f.code], etiquetaDe(f.code)));
   const partes: string[] = [];
   for (const f of visibles) {
     if (pegados.has(f.code)) continue;

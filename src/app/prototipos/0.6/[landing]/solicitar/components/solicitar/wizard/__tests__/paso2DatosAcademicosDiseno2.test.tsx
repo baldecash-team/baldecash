@@ -178,6 +178,12 @@ const ordenDeCampos = (c: HTMLElement) =>
   Array.from(c.querySelectorAll<HTMLElement>('[data-campo]')).map((el) => el.dataset.campo);
 const seccion = (c: HTMLElement, codigo: string) => c.querySelector(`[data-seccion="${codigo}"]`) as HTMLElement;
 
+/** El foco pasa al correo (fuera de las secciones) y se espera el chequeo de salida. */
+async function salirAlCorreo(c: HTMLElement) {
+  act(() => (c.querySelector('[data-campo="email"] input') as HTMLInputElement).focus());
+  await act(() => new Promise((r) => setTimeout(r, 0)));
+}
+
 beforeEach(() => {
   updateField.mockClear();
   formData = {};
@@ -213,7 +219,7 @@ describe('Secciones del paso (groups)', () => {
     expect(ordenDeCampos(container)).toEqual(['email', 'situacion_actual', 'semester']);
   });
 
-  it('completa y con el foco afuera, se cierra con el resumen en etiquetas; "Editar" la reabre', () => {
+  it('completa y con el foco afuera, se cierra con el resumen en etiquetas; "Editar" la reabre', async () => {
     formData = {
       situacion_actual: { value: 'estoy_estudiando' },
       semester: { value: '8' },
@@ -221,7 +227,7 @@ describe('Secciones del paso (groups)', () => {
     const { container } = pintarV2(PASO2);
     const tus = seccion(container, 'tus_estudios');
     act(() => tus.querySelector<HTMLElement>('[role="radio"]')!.focus());
-    act(() => (container.querySelector('[data-campo="email"] input') as HTMLInputElement).focus());
+    await salirAlCorreo(container);
     expect(tus).toHaveAttribute('data-cerrada', 'true');
     expect(screen.getByText('Estoy estudiando · 8° Ciclo')).toBeInTheDocument();
     // La de mensualidad está incompleta y sigue abierta.
@@ -231,7 +237,7 @@ describe('Secciones del paso (groups)', () => {
     expect(tus).toHaveAttribute('data-cerrada', 'false');
   });
 
-  it('con error al continuar, la sección con error se abre', () => {
+  it('con error al continuar, la sección con error se abre', async () => {
     formData = {
       situacion_actual: { value: 'estoy_estudiando' },
       semester: { value: '8' },
@@ -239,7 +245,7 @@ describe('Secciones del paso (groups)', () => {
     const { container, rerender } = pintarV2(PASO2);
     const tus = seccion(container, 'tus_estudios');
     act(() => tus.querySelector<HTMLElement>('[role="radio"]')!.focus());
-    act(() => (container.querySelector('[data-campo="email"] input') as HTMLInputElement).focus());
+    await salirAlCorreo(container);
     expect(tus).toHaveAttribute('data-cerrada', 'true');
 
     // Un error en un campo de la sección (p. ej. lo devolvió el validador al continuar).
@@ -248,15 +254,56 @@ describe('Secciones del paso (groups)', () => {
     expect(tus).toHaveAttribute('data-cerrada', 'false');
   });
 
-  it('una sección no plegable solo agrupa: nunca se cierra', () => {
+  it('una sección no plegable solo agrupa: nunca se cierra', async () => {
     formData = { situacion_actual: { value: 'estoy_estudiando' }, semester: { value: '8' } };
     const fijo = paso(PASO2.fields, { groups: [{ ...GRUPOS[1], is_collapsible: false }] });
     const { container } = pintarV2(fijo);
     const tus = seccion(container, 'tus_estudios');
     act(() => tus.querySelector<HTMLElement>('[role="radio"]')!.focus());
-    act(() => (container.querySelector('[data-campo="email"] input') as HTMLInputElement).focus());
+    await salirAlCorreo(container);
     expect(tus).toHaveAttribute('data-cerrada', 'false');
     expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument();
+  });
+
+  it('se cierra aunque tenga un obligatorio oculto por condición y un opcional plegado; Sí/No y lo escrito llevan su etiqueta corta', async () => {
+    const ESTADO = campo({
+      id: 16,
+      code: 'estado',
+      label: 'Estado',
+      type: 'select',
+      hidden: true,
+      options: [{ value: 'egreso', label: 'Ya egresé' }],
+      dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'situacion_actual', operator: 'equals', value: 'no_estoy_estudiando_ahora' }] }],
+    } as Partial<WizardField>);
+    const BECA = campo({
+      id: 17,
+      code: 'has_scholarship',
+      label: '¿Tiene beca?',
+      type: 'select',
+      options: [
+        { value: 'si', label: 'Sí' },
+        { value: 'no', label: 'No' },
+      ],
+    } as Partial<WizardField>);
+    const NOTA = campo({ id: 18, code: 'nota', label: 'Comentario', required: false, collapsed_optional: true } as Partial<WizardField>);
+    formData = {
+      situacion_actual: { value: 'estoy_estudiando' },
+      semester: { value: 'otro' },
+      other_semester: { value: '11' },
+      has_scholarship: { value: 'no' },
+    };
+    const grupos = [{ code: 'tus_estudios', name: 'Tus estudios', order: 1, is_collapsible: true, field_codes: ['situacion_actual', 'estado', 'semester', 'has_scholarship', 'nota'] }];
+    const { container } = pintarV2(paso([SITUACION, ESTADO, CICLO, OTRO_CICLO, BECA, NOTA, CORREO], { groups: grupos }));
+    const tus = seccion(container, 'tus_estudios');
+    // "Estado" no está en pantalla y "Comentario" está plegado.
+    expect(container.querySelector('[data-campo="estado"]')).toBeNull();
+    expect(tus.querySelector('[data-campo="nota"]')).not.toBeNull();
+    expect(tus.querySelector('[data-campo="nota"] input')).toBeNull();
+    act(() => tus.querySelector<HTMLElement>('[role="radio"]')!.focus());
+    await salirAlCorreo(container);
+    expect(tus).toHaveAttribute('data-cerrada', 'true');
+    // Opciones solas; Sí/No y la "Otra" escrita con su etiqueta corta (de la BD).
+    expect(screen.getByText('Estoy estudiando · Ciclo: 11 · Beca: No')).toBeInTheDocument();
   });
 });
 
@@ -320,6 +367,28 @@ describe('Tarjetas de opción (RadioGroup) en Diseño 2', () => {
     fireEvent.keyDown(radios[0], { key: 'ArrowUp' });
     expect(onChange).toHaveBeenLastCalledWith('otra');
     expect(radios[3]).toHaveFocus();
+  });
+
+  it('Home y End van a la primera y a la última tarjeta habilitada', () => {
+    const onChange = jest.fn();
+    const opciones = [
+      { value: 'a', label: 'A', disabled: true },
+      { value: 'b', label: 'B' },
+      { value: 'c', label: 'C' },
+      { value: 'd', label: 'D', disabled: true },
+    ];
+    render(
+      <CamposV2Provider>
+        <RadioGroup id="x" label="X" value="" onChange={onChange} options={opciones} />
+      </CamposV2Provider>,
+    );
+    const radios = screen.getAllByRole('radio');
+    fireEvent.keyDown(radios[2], { key: 'Home' });
+    expect(onChange).toHaveBeenLastCalledWith('b');
+    expect(radios[1]).toHaveFocus();
+    fireEvent.keyDown(radios[1], { key: 'End' });
+    expect(onChange).toHaveBeenLastCalledWith('c');
+    expect(radios[2]).toHaveFocus();
   });
 
   it('Diseño 1: el mismo DOM de antes (botones con el input radio sr-only, sin roles)', () => {
@@ -447,6 +516,59 @@ describe('Buscador en Diseño 2', () => {
     rerender(<Buscador options={INSTITUCIONES} isSearching />);
     rerender(<Buscador options={[INSTITUCIONES[0]]} isSearching={false} />);
     expect(onChange).toHaveBeenCalledWith('1', 'Universidad del Pacífico');
+  });
+
+  describe('búsqueda remota: la decisión pendiente no queda colgada', () => {
+    const pintarRemoto = (onSearch: jest.Mock, onChange: jest.Mock) => {
+      const Buscador = ({ options, isSearching }: { options: typeof INSTITUCIONES; isSearching: boolean }) => (
+        <CamposV2Provider>
+          <SelectInput
+            id="institution"
+            label="Institución"
+            value=""
+            onChange={onChange}
+            options={options}
+            placeholder="Busca tu institución"
+            onSearch={onSearch}
+            isSearching={isSearching}
+            minSearchLength={3}
+          />
+        </CamposV2Provider>
+      );
+      const r = render(<Buscador options={[]} isSearching={false} />);
+      return (options: typeof INSTITUCIONES, isSearching: boolean) =>
+        r.rerender(<Buscador options={options} isSearching={isSearching} />);
+    };
+
+    it('abrir y escribir otra vez descarta la elección pendiente del término viejo', () => {
+      const onChange = jest.fn();
+      const rerender = pintarRemoto(jest.fn(() => true), onChange);
+      abrir();
+      fireEvent.change(buscador(), { target: { value: 'pacifico' } });
+      // Sale antes de que lleguen los resultados: queda pendiente "pacifico".
+      fireEvent.blur(buscador(), { relatedTarget: document.body });
+      // Vuelve a abrir y escribe otra cosa: lo pendiente ya no vale.
+      abrir();
+      fireEvent.change(buscador(), { target: { value: 'univ' } });
+      rerender(INSTITUCIONES, true);
+      rerender([INSTITUCIONES[0]], false);
+      // Llegó una sola coincidencia, pero la persona sigue en el buscador.
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    it('si no va a buscar (filtro vacío: onSearch devuelve false), no deja nada esperando', () => {
+      const onChange = jest.fn();
+      const rerender = pintarRemoto(jest.fn(() => false), onChange);
+      abrir();
+      fireEvent.change(buscador(), { target: { value: 'pacifico' } });
+      fireEvent.blur(buscador(), { relatedTarget: document.body });
+      expect(onChange).not.toHaveBeenCalled();
+      // Una búsqueda que termina después no elige nada con ese término.
+      rerender(INSTITUCIONES, true);
+      rerender([INSTITUCIONES[0]], false);
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 
   it('Diseño 1: sin el límite de 5 ni la elección sola', () => {

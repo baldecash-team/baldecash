@@ -15,7 +15,14 @@
  * - La guía de campos le pide abrirse con el evento `EVENTO_ABRIR_SECCION`.
  *
  * Al cerrarse, la pantalla se corrige para que el campo que la persona acaba
- * de tocar —ya fuera de la sección— no se mueva.
+ * de tocar —ya fuera de la sección— no se mueva. En el celular el cierre se
+ * anima (la altura se encoge en ~220 ms) y el scroll se corrige en cada
+ * cuadro; en escritorio o con `prefers-reduced-motion`, se corrige de una.
+ *
+ * "Adentro" se decide con los eventos de React (foco y puntero), que también
+ * llegan desde los portales: el calendario de `DateInput` y el tooltip "?" de
+ * `FieldTooltip` se pintan fuera de la sección en el DOM, pero son parte de
+ * ella.
  *
  * Los campos de una sección cerrada siguen montados (con `hidden`): conservan
  * su estado y la guía y la validación los siguen viendo.
@@ -24,12 +31,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Check } from 'lucide-react';
+import { esPantallaDeCelular, prefiereMenosMovimiento } from './movimiento';
 
 /** Evento DOM que abre una sección cerrada (lo dispara la guía de campos). */
 export const EVENTO_ABRIR_SECCION = 'diseno2:abrir-seccion';
 
 /** Selector de una sección cerrada (para la guía). */
 export const SELECTOR_SECCION_CERRADA = '[data-seccion][data-cerrada="true"]';
+
+/** Duración del cierre animado en el celular. */
+export const DURACION_CIERRE_MS = 220;
 
 /**
  * Si `el` está dentro de una sección cerrada, la abre y devuelve `true`.
@@ -40,6 +51,16 @@ export function abrirSeccionDe(el: Element | null | undefined): boolean {
   if (!seccion) return false;
   seccion.dispatchEvent(new CustomEvent(EVENTO_ABRIR_SECCION));
   return true;
+}
+
+/**
+ * Deja `el` donde estaba (`topOriginal`, px desde arriba de la ventana)
+ * moviendo el scroll lo que se haya corrido.
+ */
+export function compensarAncla(el: Element, topOriginal: number): void {
+  if (!el.isConnected) return;
+  const delta = el.getBoundingClientRect().top - topOriginal;
+  if (delta !== 0) window.scrollBy?.(0, delta);
 }
 
 const ENFOCABLE =
@@ -60,6 +81,14 @@ export interface SeccionPlegableProps {
   children: React.ReactNode;
 }
 
+interface Cierre {
+  /** Lo que la persona tocó afuera: no se debe mover. */
+  ancla: Element | null;
+  top: number;
+  /** Alto de la sección abierta, para animar desde ahí. */
+  altoAntes: number;
+}
+
 export function SeccionPlegable({
   codigo,
   titulo,
@@ -78,6 +107,13 @@ export function SeccionPlegable({
 
   const raizRef = useRef<HTMLElement>(null);
   const estuvoDentroRef = useRef(false);
+  // El foco está en algo de la sección (incluidos sus portales).
+  const focoDentroRef = useRef(false);
+  // Puntero abajo en cualquier lado (lo ve el documento) y puntero abajo en
+  // la sección o sus portales (lo marca React, que ve el árbol de componentes).
+  const punteroAbajoRef = useRef(false);
+  const punteroDentroRef = useRef(false);
+  const anclaDelPunteroRef = useRef<Element | null>(null);
   // Lo último para los oyentes del documento (se leen fuera del render).
   const completaRef = useRef(completa);
   const plegableRef = useRef(plegable);
@@ -85,8 +121,7 @@ export function SeccionPlegable({
     completaRef.current = completa;
     plegableRef.current = plegable;
   }, [completa, plegable]);
-  // Elemento que no se debe mover al cerrar, y dónde estaba.
-  const anclaRef = useRef<{ el: Element; top: number } | null>(null);
+  const cierreRef = useRef<Cierre | null>(null);
 
   const idContenido = `seccion-${codigo}-contenido`;
   const idTitulo = `seccion-${codigo}-titulo`;
@@ -97,60 +132,106 @@ export function SeccionPlegable({
     const raiz = raizRef.current;
     if (!raiz || !plegableRef.current || !completaRef.current) return;
     // La que tiene el foco no se cierra.
-    if (document.activeElement && raiz.contains(document.activeElement)) return;
-    if (ancla && !raiz.contains(ancla) && ancla.isConnected) {
-      anclaRef.current = { el: ancla, top: ancla.getBoundingClientRect().top };
-    } else {
-      anclaRef.current = null;
-    }
+    if (focoDentroRef.current) return;
+    // Si lo tocado está en otra sección, se ancla esa sección: lo tocado
+    // puede desaparecer (su "Editar" se va al abrirse).
+    const anclaValida =
+      ancla && !raiz.contains(ancla) && ancla.isConnected ? ancla.closest('[data-seccion]') ?? ancla : null;
+    cierreRef.current = {
+      ancla: anclaValida,
+      top: anclaValida ? anclaValida.getBoundingClientRect().top : 0,
+      altoAntes: raiz.getBoundingClientRect().height,
+    };
     setCerradaPorSalir(true);
   }, []);
 
-  // Salir de la sección: el foco va a otro lado (Tab) o la persona toca
-  // afuera. Con el puntero se espera a que termine el clic, para que el
-  // botón tocado no se mueva entre el pointerdown y el click.
+  // Salir con el puntero: se espera a que termine el clic, para que el botón
+  // tocado no se mueva entre el pointerdown y el click. "Adentro" lo marca
+  // `onPointerDownCapture` de la sección (React), que también recibe lo que
+  // pasa en sus portales.
   useEffect(() => {
     if (!plegable) return;
-    let punteroAbajo = false;
-    let anclaDelPuntero: Element | null = null;
-    const fuera = (t: EventTarget | null) =>
-      t instanceof Node && !!raizRef.current && !raizRef.current.contains(t);
-
     const alBajarPuntero = (e: PointerEvent) => {
-      punteroAbajo = true;
-      anclaDelPuntero = fuera(e.target) ? (e.target as Element) : null;
+      punteroAbajoRef.current = true;
+      anclaDelPunteroRef.current = e.target instanceof Element ? e.target : null;
     };
     const alSubirPuntero = () => {
-      if (!punteroAbajo) return;
-      punteroAbajo = false;
-      const ancla = anclaDelPuntero;
-      anclaDelPuntero = null;
-      if (!ancla) return;
+      if (!punteroAbajoRef.current) return;
+      punteroAbajoRef.current = false;
+      const dentro = punteroDentroRef.current;
+      punteroDentroRef.current = false;
+      const ancla = anclaDelPunteroRef.current;
+      anclaDelPunteroRef.current = null;
+      if (dentro || !ancla) return;
       window.setTimeout(() => cerrarSiCorresponde(ancla), 0);
-    };
-    const alEnfocar = (e: FocusEvent) => {
-      if (punteroAbajo || !fuera(e.target)) return;
-      cerrarSiCorresponde(e.target as Element);
     };
     document.addEventListener('pointerdown', alBajarPuntero, true);
     document.addEventListener('pointerup', alSubirPuntero, true);
     document.addEventListener('pointercancel', alSubirPuntero, true);
-    document.addEventListener('focusin', alEnfocar, true);
     return () => {
       document.removeEventListener('pointerdown', alBajarPuntero, true);
       document.removeEventListener('pointerup', alSubirPuntero, true);
       document.removeEventListener('pointercancel', alSubirPuntero, true);
-      document.removeEventListener('focusin', alEnfocar, true);
     };
   }, [plegable, cerrarSiCorresponde]);
 
+  // Salir con el teclado (Tab): el foco dejó la sección y no volvió a entrar.
+  // Un foco que pasa a un portal de la sección vuelve a marcar `focoDentroRef`
+  // antes de este chequeo.
+  const alSalirElFoco = () => {
+    focoDentroRef.current = false;
+    if (!plegable) return;
+    window.setTimeout(() => {
+      if (focoDentroRef.current || punteroAbajoRef.current) return;
+      const destino = document.activeElement;
+      // Foco perdido (al body): no es salir hacia otro campo.
+      if (!destino || destino === document.body) return;
+      cerrarSiCorresponde(destino);
+    }, 0);
+  };
+
   // El campo que la persona acaba de tocar no se mueve de la pantalla.
+  // Celular: la sección se encoge animada y el scroll se corrige en cada
+  // cuadro. Escritorio o menos movimiento: se corrige de una.
   useLayoutEffect(() => {
-    const ancla = anclaRef.current;
-    anclaRef.current = null;
-    if (!cerrada || !ancla || !ancla.el.isConnected) return;
-    const delta = ancla.el.getBoundingClientRect().top - ancla.top;
-    if (delta !== 0) window.scrollBy?.(0, delta);
+    const cierre = cierreRef.current;
+    cierreRef.current = null;
+    const raiz = raizRef.current;
+    if (!cerrada || !cierre || !raiz) return;
+    const compensar = () => {
+      if (cierre.ancla) compensarAncla(cierre.ancla, cierre.top);
+    };
+    const altoDespues = raiz.getBoundingClientRect().height;
+    if (!esPantallaDeCelular() || prefiereMenosMovimiento() || !(cierre.altoAntes > altoDespues)) {
+      compensar();
+      return;
+    }
+    const limpiar = () => {
+      raiz.style.height = '';
+      raiz.style.overflow = '';
+    };
+    raiz.style.overflow = 'hidden';
+    raiz.style.height = `${cierre.altoAntes}px`;
+    const inicio = performance.now();
+    let cuadro = 0;
+    const paso = () => {
+      const t = Math.min(1, (performance.now() - inicio) / DURACION_CIERRE_MS);
+      const suave = 1 - Math.pow(1 - t, 3);
+      raiz.style.height = `${cierre.altoAntes + (altoDespues - cierre.altoAntes) * suave}px`;
+      compensar();
+      if (t < 1) {
+        cuadro = requestAnimationFrame(paso);
+      } else {
+        limpiar();
+        compensar();
+      }
+    };
+    cuadro = requestAnimationFrame(paso);
+    // Se reabrió (o se desmontó) a mitad de la animación.
+    return () => {
+      cancelAnimationFrame(cuadro);
+      limpiar();
+    };
   }, [cerrada]);
 
   // Pedido de la guía de campos: abrir.
@@ -168,7 +249,7 @@ export function SeccionPlegable({
     if (estabaCerradaRef.current && !cerrada && conError) {
       raizRef.current
         ?.querySelector<HTMLElement>('[data-estado="error"]')
-        ?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        ?.scrollIntoView?.({ block: 'center', behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
     }
     estabaCerradaRef.current = cerrada;
   }, [cerrada, conError]);
@@ -186,29 +267,46 @@ export function SeccionPlegable({
       data-cerrada={cerrada ? 'true' : 'false'}
       aria-labelledby={idTitulo}
       className="col-span-12 flex flex-col gap-4"
-      onFocusCapture={() => {
+      onFocus={() => {
+        focoDentroRef.current = true;
         estuvoDentroRef.current = true;
       }}
+      onBlur={alSalirElFoco}
       onPointerDownCapture={() => {
+        punteroDentroRef.current = true;
         estuvoDentroRef.current = true;
       }}
     >
-      {cerrada ? (
-        <div className="flex items-center gap-3 py-1" data-resumen-seccion={codigo}>
+      {/* El título es el mismo `h2` abierta o cerrada; cerrada suma el check,
+          el resumen y "Editar" alrededor. */}
+      <div
+        className={cerrada ? 'flex items-center gap-3 py-1' : undefined}
+        data-resumen-seccion={cerrada ? codigo : undefined}
+      >
+        {cerrada && (
           <span
             aria-hidden="true"
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#E3F5F1] text-[#0E8C78]"
           >
             <Check className="h-[15px] w-[15px]" strokeWidth={3} />
           </span>
-          <span className="flex min-w-0 flex-grow flex-col gap-0.5">
-            <span id={idTitulo} className="text-[17px] font-bold leading-snug text-[#1E2230]">
-              {titulo}
-            </span>
-            <span className="break-words text-sm text-[#5B6275] sm:truncate" title={resumen}>
+        )}
+        <div className={cerrada ? 'flex min-w-0 flex-grow flex-col gap-0.5' : undefined}>
+          <h2
+            id={idTitulo}
+            className={cerrada
+              ? 'text-[17px] font-bold leading-snug text-[#1E2230]'
+              : 'text-lg font-bold leading-snug text-[#1E2230]'}
+          >
+            {titulo}
+          </h2>
+          {cerrada && (
+            <p className="break-words text-sm text-[#5B6275] sm:truncate" title={resumen}>
               {resumen}
-            </span>
-          </span>
+            </p>
+          )}
+        </div>
+        {cerrada && (
           <button
             type="button"
             onClick={editar}
@@ -219,12 +317,8 @@ export function SeccionPlegable({
           >
             Editar
           </button>
-        </div>
-      ) : (
-        <h2 id={idTitulo} className="text-lg font-bold leading-snug text-[#1E2230]">
-          {titulo}
-        </h2>
-      )}
+        )}
+      </div>
       <div id={idContenido} hidden={cerrada} className={cerrada ? 'hidden' : 'grid grid-cols-12 gap-y-4'}>
         {children}
       </div>

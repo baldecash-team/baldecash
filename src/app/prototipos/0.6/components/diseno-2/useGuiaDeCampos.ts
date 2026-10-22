@@ -26,6 +26,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useWizard, FILE_PENDING_REUPLOAD } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardContext';
 import { validateField, type WizardField, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
 import { abrirSeccionDe } from './SeccionPlegable';
+import { prefiereMenosMovimiento } from './movimiento';
 
 // ─── Parte pura (testeable sin DOM) ─────────────────────────────────────────
 
@@ -90,14 +91,6 @@ const ESPERA_AL_ABRIR_SECCION_MS = 60;
 
 const ENFOCABLE =
   'input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-function prefiereMenosMovimiento(): boolean {
-  try {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch {
-    return false;
-  }
-}
 
 /** Resalta un elemento y lo trae a la vista. No le da foco. */
 export function resaltar(el: HTMLElement | null | undefined) {

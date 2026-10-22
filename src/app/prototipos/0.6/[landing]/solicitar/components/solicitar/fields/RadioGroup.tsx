@@ -85,14 +85,21 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
   const moverConFlechas = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     const avanza = e.key === 'ArrowRight' || e.key === 'ArrowDown';
     const retrocede = e.key === 'ArrowLeft' || e.key === 'ArrowUp';
-    if (!avanza && !retrocede) return;
+    // Home/End: primera y última tarjeta habilitada.
+    const alInicio = e.key === 'Home';
+    const alFinal = e.key === 'End';
+    if (!avanza && !retrocede && !alInicio && !alFinal) return;
     e.preventDefault();
     const habilitadas = options
       .map((o, i) => ({ o, i }))
       .filter(({ o }) => !o.disabled && !disabled);
     if (habilitadas.length === 0) return;
     const posActual = habilitadas.findIndex(({ i }) => i === index);
-    const siguientePos = (posActual + (avanza ? 1 : -1) + habilitadas.length) % habilitadas.length;
+    const siguientePos = alInicio
+      ? 0
+      : alFinal
+        ? habilitadas.length - 1
+        : (posActual + (avanza ? 1 : -1) + habilitadas.length) % habilitadas.length;
     const siguiente = habilitadas[siguientePos];
     if (options[siguiente.i].value !== value) elegir(options[siguiente.i]);
     tarjetasRef.current[siguiente.i]?.focus();

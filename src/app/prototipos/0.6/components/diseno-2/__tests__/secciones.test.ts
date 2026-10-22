@@ -7,6 +7,8 @@ import {
   armarBloques,
   camposPegados,
   ordenConPegados,
+  etiquetaCorta,
+  parteDelResumen,
   resumenDeSeccion,
   seccionCompleta,
   textoDelCampo,
@@ -41,6 +43,7 @@ const CICLO = campo('semester', {
   ],
 } as Partial<WizardField>);
 const OTRO_CICLO = campo('other_semester', {
+  label: '¿Cuál ciclo?',
   hidden: true,
   dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'semester', operator: 'equals', value: 'otro' }] }],
 });
@@ -137,8 +140,37 @@ describe('resumenDeSeccion / textoDelCampo', () => {
 
   it('una "Otra" con texto reemplaza a la opción que la destapó', () => {
     const pegados = new Map([['other_semester', 'semester']]);
-    expect(resumenDeSeccion([CICLO, OTRO_CICLO], { semester: 'otro', other_semester: '11' }, () => undefined, pegados)).toBe('11');
+    expect(resumenDeSeccion([CICLO, OTRO_CICLO], { semester: 'otro', other_semester: '11' }, () => undefined, pegados)).toBe('Ciclo: 11');
     expect(resumenDeSeccion([CICLO, OTRO_CICLO], { semester: 'otro' }, () => undefined, pegados)).toBe('Otro');
+  });
+
+  it('Sí/No y lo escrito a mano llevan su etiqueta corta; las opciones de listas, no', () => {
+    const beca = campo('has_scholarship', {
+      label: '¿Tiene beca?',
+      type: 'select',
+      options: [
+        { value: 'si', label: 'Sí' },
+        { value: 'no', label: 'No' },
+      ],
+    } as Partial<WizardField>);
+    const empresa = campo('employer_name', { label: 'Empleador' });
+    expect(parteDelResumen(beca, 'no')).toBe('Beca: No');
+    expect(parteDelResumen(empresa, 'Tottus')).toBe('Empleador: Tottus');
+    expect(parteDelResumen(CICLO, '8')).toBe('8vo Ciclo');
+    expect(parteDelResumen(INSTITUCION, '123', 'Universidad del Pacífico')).toBe('Universidad del Pacífico');
+    expect(parteDelResumen(MONTO, '1250')).toBe('S/ 1,250');
+    expect(
+      resumenDeSeccion([SITUACION, CICLO, beca], { situacion_actual: 'si', semester: '8', has_scholarship: 'no' }, () => undefined, new Map()),
+    ).toBe('Estoy estudiando · 8vo Ciclo · Beca: No');
+  });
+
+  it('etiqueta corta: sin signos ni relleno en los extremos; si no queda nada, la etiqueta', () => {
+    expect(etiquetaCorta('¿Tiene beca?')).toBe('Beca');
+    expect(etiquetaCorta('¿Cuál ciclo?')).toBe('Ciclo');
+    expect(etiquetaCorta('¿Tienes RUC?')).toBe('RUC');
+    expect(etiquetaCorta('¿Qué beca tienes?')).toBe('Beca');
+    expect(etiquetaCorta('Nombre de tu empresa')).toBe('Nombre de tu empresa');
+    expect(etiquetaCorta('¿Cuál?')).toBe('Cuál');
   });
 
   it('vacíos, casillas y archivos no salen', () => {

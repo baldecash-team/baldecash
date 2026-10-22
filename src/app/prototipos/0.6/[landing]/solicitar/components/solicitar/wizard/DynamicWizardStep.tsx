@@ -351,6 +351,15 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
   // Diseño 2 (F5): "Otra (escríbela)" pegado bajo la lista que lo destapa.
   const pegados = useMemo(() => (esV2 ? camposPegados(step) : new Map<string, string>()), [esV2, step]);
+  // Bloques (con secciones) u orden (sin secciones): solo cambian con el paso.
+  const bloques = useMemo(
+    () => (esV2 && step.groups?.length ? armarBloques(step, pegados) : []),
+    [esV2, step, pegados],
+  );
+  const ordenV2 = useMemo(
+    () => (esV2 && !step.groups?.length ? ordenConPegados(step.fields, pegados) : []),
+    [esV2, step, pegados],
+  );
 
   const pintarCampo = (field: WizardField) => {
     // Hide wrapper for invisible fields so grid gap doesn't create empty space
@@ -463,7 +472,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     // Diseño 2 sin secciones: una columna, en el orden del paso.
     campos = (
       <div ref={contenedorRef} className="grid grid-cols-12 gap-y-4">
-        {ordenConPegados(step.fields, pegados).map((field) => pintarCampo(field))}
+        {ordenV2.map((field) => pintarCampo(field))}
       </div>
     );
   } else {
@@ -471,7 +480,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     const opciones = getAllDynamicOptions?.();
     campos = (
       <div ref={contenedorRef} className="grid grid-cols-12 gap-y-8">
-        {armarBloques(step).map((bloque) => {
+        {bloques.map((bloque) => {
           if (bloque.tipo === 'sueltos') {
             return (
               <div key="__sin-seccion" className="col-span-12 grid grid-cols-12 gap-y-4">

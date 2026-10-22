@@ -52,8 +52,11 @@ interface SelectInputProps {
   disabled?: boolean;
   required?: boolean;
   searchable?: boolean;
-  /** Callback for remote search (lazy loading). If provided, disables local filtering. */
-  onSearch?: (searchTerm: string) => void;
+  /**
+   * Callback for remote search (lazy loading). If provided, disables local filtering.
+   * Devuelve `false` si no va a buscar (no hay resultados que esperar).
+   */
+  onSearch?: (searchTerm: string) => boolean | void;
   /** Whether remote search is in progress */
   isSearching?: boolean;
   /** Minimum characters required before searching (for lazy loading) */
@@ -142,6 +145,14 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   const esperandoResultadosRef = useRef(false);
   const vioBuscandoRef = useRef(false);
   const elegirAlLlegarRef = useRef<string | null>(null);
+
+  // Una búsqueda nueva (o abrir otra vez) deja sin efecto la decisión
+  // pendiente de antes: no se elige con un término viejo.
+  const olvidarPendiente = () => {
+    elegirAlLlegarRef.current = null;
+    esperandoResultadosRef.current = false;
+    vioBuscandoRef.current = false;
+  };
 
   const elegirSolaSiHayUna = (termino: string, candidatas: SelectOption[]) => {
     const unica = eleccionAutomatica(candidatas, termino, minimoDeLetras(minSearchLength));
@@ -260,6 +271,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
           onClick={() => {
             if (disabled) return;
             const willOpen = !isOpen;
+            if (willOpen && v2) olvidarPendiente();
             setIsOpen(willOpen);
             if (willOpen) onFocus?.();
             else onBlur?.();
@@ -268,6 +280,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             if (disabled) return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
+              if (!isOpen && v2) olvidarPendiente();
               setIsOpen(!isOpen);
             } else if (e.key === 'Escape' && isOpen) {
               e.preventDefault();
@@ -331,16 +344,15 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                     onChange={(e) => {
                       const newValue = e.target.value;
                       setSearchTerm(newValue);
+                      if (v2) olvidarPendiente();
                       // For remote search, call onSearch when user types enough characters
                       if (onSearch && newValue.length >= minSearchLength) {
-                        if (v2) {
-                          esperandoResultadosRef.current = true;
-                          vioBuscandoRef.current = false;
-                        }
-                        onSearch(newValue);
+                        const buscara = onSearch(newValue) !== false;
+                        // Diseño 2: hay resultados que esperar solo si de verdad
+                        // se lanzó una búsqueda.
+                        if (v2) esperandoResultadosRef.current = buscara;
                       }
                     }}
-
                     style={{ fontSize: '16px' }}
                     className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />

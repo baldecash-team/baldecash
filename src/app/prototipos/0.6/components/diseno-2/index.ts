@@ -16,7 +16,7 @@ export {
 } from './useGuiaDeCampos';
 export type { CampoDeLaGuia, DestinoDeLaGuia } from './useGuiaDeCampos';
 export { useErroresAlSalir } from './useErroresAlSalir';
-export { SeccionPlegable, abrirSeccionDe, EVENTO_ABRIR_SECCION, SELECTOR_SECCION_CERRADA } from './SeccionPlegable';
+export { SeccionPlegable, abrirSeccionDe, compensarAncla, EVENTO_ABRIR_SECCION, SELECTOR_SECCION_CERRADA, DURACION_CIERRE_MS } from './SeccionPlegable';
 export type { SeccionPlegableProps } from './SeccionPlegable';
-export { armarBloques, camposPegados, ordenConPegados, seccionCompleta, resumenDeSeccion, textoDelCampo } from './secciones';
+export { armarBloques, camposPegados, ordenConPegados, seccionCompleta, resumenDeSeccion, textoDelCampo, parteDelResumen, etiquetaCorta } from './secciones';
 export type { BloqueDelPaso } from './secciones';
