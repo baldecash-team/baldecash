@@ -66,6 +66,7 @@ import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
 // Diseño 2 de la solicitud (BAL-4959): solo el marco; la lógica es la de acá.
 import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer } from '@/app/prototipos/0.6/components/diseno-2';
+import { nombreDelSaludoDelPaso } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 
 // Helper function to get Lucide icon by name
@@ -196,6 +197,7 @@ function StepContent() {
     flujo,
     gamer: isGamerLanding(landing),
     Celebracion: usarDiseno2 ? TransicionDelWizard : undefined,
+    diseno2: usarDiseno2,
   });
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
@@ -363,6 +365,13 @@ function StepContent() {
     }
     return values;
   }, [formData]);
+
+  // Diseño 2 (BAL-4963): el título pasa a "¡Hola, {Nombre}!" apenas el lookup
+  // del documento responde `found`. Es el mismo estado del prefill, sin esperas.
+  const saludoDiseno2 = useMemo(
+    () => (usarDiseno2 ? nombreDelSaludoDelPaso(paso.step, formValues) : null),
+    [usarDiseno2, paso.step, formValues],
+  );
 
   // Load summary field values from localStorage
   useEffect(() => {
@@ -1069,8 +1078,8 @@ function StepContent() {
         {paso.overlays}
         <ShellV2
           currentStep={step.url_slug || step.code}
-          step={step}
-          title={step.title}
+          step={paso.step ?? step}
+          title={saludoDiseno2 ? `¡Hola, ${saludoDiseno2}!` : step.title}
           description={step.description}
           onBack={paso.handleBack}
           onNext={paso.handleNext}

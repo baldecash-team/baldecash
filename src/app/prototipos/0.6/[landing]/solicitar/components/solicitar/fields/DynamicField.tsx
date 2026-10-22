@@ -29,6 +29,8 @@ import { CheckboxField } from './CheckboxField';
 import { ListaDeVarias, comoLista } from './ListaDeVarias';
 import { DocumentNumberField } from './DocumentNumberField';
 import { AddressAutocompleteField } from './AddressAutocompleteField';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { mensajeCelularV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 interface DynamicFieldProps {
   field: WizardField;
@@ -53,6 +55,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   // Get current value and error
   const value = getFieldValue(field.code) as string;
   const error = showError ? getFieldError(field.code) : undefined;
+  // Diseño 2 (BAL-4963): los textos de Brenda para el celular.
+  const v2 = useCamposV2();
 
   // Build form values object for visibility evaluation
   const formValues = useMemo(() => {
@@ -314,6 +318,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         <TextInput
           {...commonProps}
           onChange={(newValue: string) => updateField(field.code, newValue.replace(/\D/g, ''))}
+          // Diseño 2: el texto del error de Brenda (vacío, corto, no empieza
+          // con 9); cuándo hay error lo decide el validador.
+          error={v2 ? mensajeCelularV2({ error, valor: value, field }) : error}
           type="tel"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}

@@ -47,6 +47,7 @@ import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { adaptarPasoDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 export interface PasoDelWizardControles {
   /** El paso que se está mostrando. `null` mientras la config no resolvió. */
@@ -119,8 +120,15 @@ export function usePasoDelWizard(opciones: {
     totalSteps: number;
     onComplete: () => void;
   }>;
+  /**
+   * Diseño 2 (BAL-4963): el paso se valida con `adaptarPasoDiseno2` (celular
+   * peruano que empieza con 9; mensaje de respaldo para `not_equals_field`).
+   * `paso.step` sale ya adaptado, así que el cuerpo, la guía y los errores al
+   * salir validan lo mismo. Sin esto —Diseño 1— el paso es el de la API.
+   */
+  diseno2?: boolean;
 }): PasoDelWizardControles {
-  const { stepSlug, flujo, gamer, Celebracion } = opciones;
+  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -196,7 +204,11 @@ export function usePasoDelWizard(opciones: {
   ) : null;
 
   // Get step config from API using URL slug
-  const step = getStepByUrlSlug(stepSlug);
+  const stepDeLaApi = getStepByUrlSlug(stepSlug);
+  const step = useMemo(
+    () => (diseno2 && stepDeLaApi ? adaptarPasoDiseno2(stepDeLaApi) : stepDeLaApi),
+    [diseno2, stepDeLaApi],
+  );
   const navigation = step ? getNavigation(step.code) : {
     currentIndex: -1,
     prevStep: null,

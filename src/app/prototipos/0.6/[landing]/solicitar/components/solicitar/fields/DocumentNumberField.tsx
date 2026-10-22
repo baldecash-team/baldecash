@@ -22,6 +22,9 @@ import { DniNoInvitadoModal } from './DniNoInvitadoModal';
 import { CouponDocumentStatus } from '../coupon/CouponDocumentStatus';
 import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { SaludoPrellenadoV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/SaludoPrellenadoV2';
+import { mensajeDocumentoV2, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 // BAL-3634: antes esto era `trimmed !== "-" && trimmed.length >= 3`, que dejaba
 // pasar al prefill cualquier celular o email guardado en `person.first_name`.
@@ -85,6 +88,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   showError = false,
 }) => {
   const { getFieldValue, getFieldError, updateField, setFieldError, formData, getAllDynamicOptions } = useWizard();
+  // Diseño 2 (BAL-4963): saludo, mensajes por tipo y modal con el estilo del kit.
+  const v2 = useCamposV2();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Prellenado desde el lead de un socio: solo lectura, igual que el resto de
   // los campos que llegaron con el lead (ver `useLeadPrefill`).
@@ -247,14 +253,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     prefilledRef.current = true;
   }, [prefillConfig, formData, updateField]);
 
-  // Handle clearing fields when no prefill data is available
-  // Only clear if fields were previously auto-filled (not manually entered)
-  const handleNoPrefillData = useCallback(() => {
-    // Mark as not found — this triggers visibility of personal fields
-    updateField(`_prefill_status_${field.code}`, 'not_found');
-
-    if (!prefilledRef.current) return; // Don't clear manually entered data
-
+  // Borra los campos que llenó el prefill y sus marcas. Lo usan el
+  // `not_found` de abajo y, en Diseño 2, "Corrige tu DNI".
+  const limpiarCamposDelPrellenado = useCallback(() => {
     const targets = prefillConfig?.prefill_fields
       ? Object.keys(prefillConfig.prefill_fields)
       : prefillConfig?.fields_to_fill ?? null;
@@ -284,6 +285,17 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
     prefilledRef.current = false;
   }, [prefillConfig, formData, updateField]);
+
+  // Handle clearing fields when no prefill data is available
+  // Only clear if fields were previously auto-filled (not manually entered)
+  const handleNoPrefillData = useCallback(() => {
+    // Mark as not found — this triggers visibility of personal fields
+    updateField(`_prefill_status_${field.code}`, 'not_found');
+
+    if (!prefilledRef.current) return; // Don't clear manually entered data
+
+    limpiarCamposDelPrellenado();
+  }, [field.code, updateField, limpiarCamposDelPrellenado]);
 
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
@@ -425,7 +437,29 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // El bloqueo de whitelist lo comunica el modal, no un texto al pie: son dos
   // cosas distintas y mostrarlas juntas es ruido. El campo solo pinta los
   // errores de formato.
-  const displayError = error;
+  //
+  // Diseño 2: el texto del error sale de la tabla de Brenda por tipo (y
+  // `required_message` de la BD gana cuando está vacío). Cuándo hay error lo
+  // sigue decidiendo el validador de siempre.
+  const displayError = v2
+    ? mensajeDocumentoV2({ error, valor: value, tipo: documentType, requiredMessage: field.required_message })
+    : error;
+
+  // Diseño 2: "¡Hola, {Nombre}!" con el estado del prefill que ya existe.
+  const nombreSaludo = v2 ? nombreDelSaludo(field, Object.fromEntries(
+    Object.entries(formData).map(([k, st]) => [k, st?.value as string | string[] | undefined]),
+  )) : null;
+
+  // "Corrige tu DNI": lo mismo que pasa hoy al cambiar el documento (número,
+  // prefill y campos que llenó, en blanco) y el foco vuelve al campo.
+  const corregirDocumento = useCallback(() => {
+    updateField(field.code, '');
+    setFieldError?.(field.code, null);
+    updateField(`_prefill_status_${field.code}`, '');
+    limpiarCamposDelPrellenado();
+    resetCheck();
+    inputRef.current?.focus();
+  }, [field.code, updateField, setFieldError, limpiarCamposDelPrellenado, resetCheck]);
 
   // Determine success state
   const hasValue = !!value;
@@ -450,7 +484,16 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         maxLength={documentRules?.max_length || field.max_length || undefined}
         success={isSuccess}
         isLoading={isChecking}
+        {...(v2 ? { inputRef } : {})}
       />
+
+      {nombreSaludo && (
+        <SaludoPrellenadoV2
+          nombre={nombreSaludo}
+          esDni={documentType === 'dni'}
+          onCorregir={corregirDocumento}
+        />
+      )}
 
       {esDocumentoDelTitular && (
         <CouponDocumentStatus documentComplete={documentoCompleto !== null} />
@@ -471,6 +514,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
           }
           firstName={whitelist?.first_name ?? null}
           onCerrar={() => setModalCerrado(true)}
+          {...(v2 ? { v2: true } : {})}
         />
       )}
     </>

@@ -15,6 +15,8 @@ import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
 import { CamposV2Provider, PISTA_V2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
+import { ResumenPrellenadoV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/ResumenPrellenadoV2';
+import { camposDelResumen, nombreDelSaludo, textoDelResumen } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -308,6 +310,14 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     campo?.querySelector<HTMLElement>(ENFOCABLE_DEL_CAMPO)?.focus();
     setPorEnfocar(null);
   }, [porEnfocar]);
+  // Diseño 2 (BAL-4963): "Corregir" en el resumen de lo que llenó el
+  // prefill. Marca esos campos como `_prefill_empty_`, la misma marca de un
+  // prefill que vino vacío: la regla de visibilidad de siempre los destapa
+  // como inputs, y la validación y el resumen final los tratan igual.
+  const corregirPrellenado = (codigos: string[]) => {
+    for (const codigo of codigos) updateField(`_prefill_empty_${codigo}`, 'true');
+    if (codigos[0]) setPorEnfocar(codigos[0]);
+  };
   const abrirPlegado = (codigo: string) => {
     setAbiertos((prev) => new Set(prev).add(codigo));
     setPorEnfocar(codigo);
@@ -357,6 +367,12 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
             ? 'error'
             : conValor ? 'ok' : undefined;
 
+        // Diseño 2: los campos que llenó el prefill de ESTE documento, en una
+        // línea bajo el campo (punto 2 del brief). Vacío en Diseño 1.
+        const resumen = esV2 && field.prefill_config ? camposDelResumen(step, field, formValues) : [];
+        // Con el saludo bajo el documento, la pista sobra.
+        const conSaludo = esV2 && field.type === 'document_number' && !!nombreDelSaludo(field, formValues);
+
         // Diseño 2: opcional plegado. Con valor (borrador) sale abierto.
         const plegado = esV2 && field.collapsed_optional === true && !field.required
           && !conValor && !abiertos.has(field.code);
@@ -382,12 +398,20 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                     onLocalErrorChange={esV2 ? reportarErrorLocal : undefined}
                   />
                   {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
-                  {esV2 && field.hint && !errorVisible && (
+                  {esV2 && field.hint && !errorVisible && !conSaludo && (
                     <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{field.hint}</p>
                   )}
                 </>
               )}
             </div>
+            {resumen.length > 0 && (
+              <div className="col-span-12">
+                <ResumenPrellenadoV2
+                  texto={textoDelResumen(resumen, formValues)}
+                  onCorregir={() => corregirPrellenado(resumen.map((f) => f.code))}
+                />
+              </div>
+            )}
             {field.code === 'payment_day' && paymentDayValue && (
               <div className="col-span-12 -mt-1 mb-2">
                 <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
