@@ -67,7 +67,7 @@ export function ProteccionesV2({ planes, cargando, elegidos, alternar, tipoDeEqu
       {cargando ? (
         <div className="mt-4 space-y-2" aria-busy="true" aria-label="Cargando protecciones">
           {[0, 1].map((i) => (
-            <div key={i} className="h-[76px] animate-pulse rounded-xl bg-[#F3F5FD]" />
+            <div key={i} className="h-[76px] animate-pulse motion-reduce:animate-none rounded-xl bg-[#F3F5FD]" />
           ))}
         </div>
       ) : (
@@ -95,7 +95,7 @@ export function ProteccionesV2({ planes, cargando, elegidos, alternar, tipoDeEqu
                       analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
                       setDetalle(plan);
                     }}
-                    className="mt-0.5 inline-flex min-h-[32px] items-center self-start text-[13px] font-semibold text-[var(--color-primary)] underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    className="inline-flex min-h-[44px] items-center self-start text-[13px] font-semibold text-[var(--color-primary)] underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
                     ¿Qué cubre?
                   </button>
@@ -104,10 +104,12 @@ export function ProteccionesV2({ planes, cargando, elegidos, alternar, tipoDeEqu
                   <span className="whitespace-nowrap text-sm font-bold text-[#1E2230]">{precio(plan)}</span>
                   <button
                     type="button"
+                    // Etiqueta fija: el estado lo dice `aria-pressed`, no un
+                    // nombre que cambia ("Agregar" ↔ "Quitar").
                     aria-pressed={elegido}
-                    aria-label={elegido ? `Quitar ${plan.name}` : `Agregar ${plan.name}`}
+                    aria-label={`Agregar ${plan.name}`}
                     onClick={() => alternar(plan.id)}
-                    className={`min-h-[40px] rounded-full border-[1.5px] px-4 text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
+                    className={`min-h-[44px] rounded-full border-[1.5px] px-4 text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                         : 'border-[var(--color-primary)] bg-white text-[var(--color-primary)] hover:bg-[#F3F5FD]'

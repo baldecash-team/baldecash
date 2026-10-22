@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { useParams } from 'next/navigation';
 import { useProduct } from '../../../context/ProductContext';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
@@ -24,6 +25,13 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 export interface PlanesDeSeguro {
   planes: InsurancePlan[];
   cargando: boolean;
+  /**
+   * El pedido de planes para el equipo de ahora TERMINÓ (con planes, sin
+   * planes o con error). Es lo único que autoriza a decir "no hay planes":
+   * en el primer render con `activo`, `planes` está vacío porque todavía no se
+   * pidió nada, no porque no haya.
+   */
+  cargado: boolean;
   /** Ids de los planes elegidos (los de `ProductContext`). */
   elegidos: string[];
   /** Agrega o quita un plan, con su evento de analítica. */
@@ -66,12 +74,20 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
   }, [activo, isRefurbished, clearInsurance]);
 
   const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
-  const [isLoading, setIsLoading] = useState(activo);
+  // De qué pedido son los planes que hay: `cargado` y `cargando` se calculan
+  // contra el pedido de AHORA en el mismo render, sin esperar a un efecto
+  // (BAL-4966, revisión I-2: con un flag que se prende en el efecto, el primer
+  // render veía "no cargando y sin planes" y soltaba una selección válida).
+  const clave = JSON.stringify([landing, deviceType, productPrice, termMonths ?? null, previewKey, sessionUuid]);
+  const [cargadoPara, setCargadoPara] = useState<string | null>(null);
+  const seVaAPedir = activo && !isRefurbished && !!productPrice;
+  const cargado = seVaAPedir && cargadoPara === clave;
+  const isLoading = seVaAPedir && !cargado;
 
   useEffect(() => {
     if (!activo) {
       setInsurancePlans([]);
-      setIsLoading(false);
+      setCargadoPara(null);
       return;
     }
 
@@ -79,18 +95,14 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
     if (isRefurbished) {
       setInsurancePlans([]);
       setAvailableMultiasistencia(null);
-      setIsLoading(false);
+      setCargadoPara(null);
       return;
     }
 
-    if (!productPrice) {
-      setIsLoading(false);
-      return;
-    }
+    if (!productPrice) return;
 
     let cancelado = false;
     async function fetchInsurancePlans() {
-      setIsLoading(true);
       try {
         const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
         const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
@@ -127,10 +139,14 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
       } catch (error) {
         if (cancelado) return;
         console.error('Error fetching insurance plans:', error);
+        Sentry.captureException(error, {
+          tags: { modulo: 'seguros', accion: 'cargar_planes', landing },
+          extra: { device_type: deviceType, product_price: productPrice, term_months: termMonths ?? null },
+        });
         setInsurancePlans([]);
         setAvailableMultiasistencia(null);
       } finally {
-        if (!cancelado) setIsLoading(false);
+        if (!cancelado) setCargadoPara(clave);
       }
     }
 
@@ -138,7 +154,7 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
     return () => {
       cancelado = true;
     };
-  }, [activo, isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia]);
+  }, [activo, isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia, clave]);
 
   const alternar = useCallback(
     (planId: string) => {
@@ -159,6 +175,7 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
   return {
     planes: insurancePlans,
     cargando: isLoading,
+    cargado,
     elegidos: selectedInsurances.map(i => i.id),
     alternar,
     tipoDeEquipo: deviceType,

@@ -215,6 +215,16 @@ describe('Saludo por prefill (Diseño 2)', () => {
     expect(capitalizarPrimerNombre('  ÑAKI  pedro')).toBe('Ñaki');
   });
 
+  it('al recargar (el estado del prefill no se guarda en el borrador) el nombre sale del valor del campo', () => {
+    // Sin `_prefill_status_*`: el borrador sí trae `first_name`.
+    expect(nombreDelSaludoDelPaso(PASO, { document_number: '12345678', first_name: 'BRENDA LUZ' })).toBe('Brenda');
+    // Con estado del prefill, manda el estado: not_found o corrigiendo ('') no saludan.
+    expect(nombreDelSaludoDelPaso(PASO, { _prefill_status_document_number: '', first_name: 'Ana' })).toBeNull();
+    // Sin valor no hay nombre, y la whitelist sigue mandando.
+    expect(nombreDelSaludoDelPaso(PASO, { first_name: '' })).toBeNull();
+    expect(nombreDelSaludoDelPaso(PASO, { _whitelist_blocked: 'true', first_name: 'Ana' })).toBeNull();
+  });
+
   it('"Corrige tu DNI" borra número, prefill y los campos que llenó, y enfoca el campo', () => {
     poner('document_number', '12345678');
     montar(true);

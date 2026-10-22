@@ -59,17 +59,25 @@ function texto(valor: string | string[] | undefined): string {
 }
 
 /**
- * El nombre para "¡Hola, {Nombre}!", o `null` si no hay saludo.
+ * El nombre para "¡Hola, {Nombre}!" (y "¡Último paso, {Nombre}!"), o `null`
+ * si no hay saludo. Sale, en este orden:
  *
- * Hay saludo solo cuando el lookup del documento DEL TITULAR respondió
- * `found` y dejó un nombre (el prefill ya descarta los nombres sucios). Es el
- * mismo estado que ya existe (`_prefill_status_*`): no agrega esperas.
+ * 1. Del estado del prefill (`_prefill_status_*`), si existe: con `found`, el
+ *    nombre que dejó el lookup del documento DEL TITULAR (el prefill ya
+ *    descarta los nombres sucios); con otro estado (`not_found`, o `''` porque
+ *    se está corrigiendo el documento), no hay saludo.
+ * 2. Si no existe —ese estado no se guarda en el borrador, así que al recargar
+ *    desaparece—, del VALOR del campo de primer nombre, que sí se guarda. Es
+ *    el mismo campo que llena el prefill (`campoDelNombre`).
+ *
+ * Siempre la primera palabra, con mayúscula inicial.
  */
 export function nombreDelSaludo(field: WizardField, valores: Valores): string | null {
   if (!CODIGOS_DOCUMENTO_TITULAR.includes(field.code)) return null;
   // Documento fuera de la whitelist: manda el modal de no invitado, no se saluda.
   if (valores._whitelist_blocked === 'true') return null;
-  if (valores[`_prefill_status_${field.code}`] !== 'found') return null;
+  const estado = valores[`_prefill_status_${field.code}`];
+  if (estado !== undefined && estado !== 'found') return null;
   const codigoNombre = campoDelNombre(field.prefill_config);
   if (!codigoNombre) return null;
   return capitalizarPrimerNombre(texto(valores[codigoNombre])) || null;

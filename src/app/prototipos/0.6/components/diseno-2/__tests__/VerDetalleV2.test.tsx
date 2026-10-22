@@ -87,6 +87,32 @@ describe('Ver detalle — celular', () => {
   });
 });
 
+describe('Revisión de F7 · M-6 y M-1', () => {
+  it('escritorio sin producto principal: igual se muestra el repaso', () => {
+    const { rerender } = render(<PanelSolicitudV2 datos={datos({ principal: null, productos: [] })} detalle={REPASO} />);
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }));
+    expect(screen.getByRole('region', { name: 'Detalle de tu solicitud' })).toHaveTextContent('Datos personales · Editar');
+    // Sin principal y sin detalle, nada (como antes).
+    rerender(<PanelSolicitudV2 datos={datos({ principal: null, productos: [] })} />);
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+  });
+
+  it('celular sin producto principal: la cabecera abre y muestra el repaso', () => {
+    render(<CabeceraSolicitudV2 datos={datos({ principal: null, productos: [] })} indiceActual={3} totalPasos={4} landing="pago-diferido" detalle={REPASO} />);
+    const cabecera = screen.getAllByRole('button')[0];
+    expect(cabecera).toHaveTextContent('Tu solicitud');
+    fireEvent.click(cabecera);
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }));
+    expect(screen.getByText('Datos personales · Editar')).toBeInTheDocument();
+  });
+
+  it('el chevron de "Ver detalle" no gira con movimiento reducido', () => {
+    render(<PanelSolicitudV2 datos={datos()} detalle={REPASO} />);
+    const chevron = screen.getByRole('button', { name: /Ver detalle/ }).querySelector('svg');
+    expect(chevron).toHaveClass('motion-reduce:transition-none');
+  });
+});
+
 describe('BarraInferiorV2 — texto del Paso 4', () => {
   it('usa el texto que le pasan y muestra el total', () => {
     render(<BarraInferiorV2 onPrimary={jest.fn()} isLastStep total="S/179/mes" texto="Enviar con 1 protección" />);

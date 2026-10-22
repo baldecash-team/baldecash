@@ -70,6 +70,7 @@ import { nombreDelSaludoDelPaso } from '@/app/prototipos/0.6/components/diseno-2
 // Paso 4 · Resumen de Diseño 2 (BAL-4966): los seguros entran al paso.
 import {
   segurosVanEnElPaso4,
+  solicitudCreadaAntesDelPaso,
   hayComplementosDespues,
   nombreDelUltimoPaso,
   encabezadoDelPaso4,
@@ -382,6 +383,7 @@ function StepContent() {
   const paso4 = usePaso4V2({
     activo: usarDiseno2 && isSummaryStep && !isFlowConfigLoading && !configLoadFailed,
     conSeguros: segurosEnPaso4,
+    creadaAntes: esElQueEnvia && solicitudCreadaAntesDelPaso(envioAnticipadoStep, navigation.currentIndex, yaEnviada),
     codigoPaso: step?.code ?? null,
   });
 
@@ -1041,7 +1043,10 @@ function StepContent() {
         }
         paso4.irAVista2();
       };
-      const accionMovil = isActuallyLastStep && paso4.hayVista2 && paso4.vista === 1
+      // Si hay vista 2, la vista 1 siempre lleva "Continuar" (aunque después
+      // venga `/complementos`: si no, las protecciones nunca se verían). En la
+      // vista 2 manda la acción de siempre: enviar, o ir a complementos.
+      const accionMovil = paso4.hayVista2 && paso4.vista === 1
         ? { texto: 'Continuar', onPrimary: continuarAVista2 }
         : null;
       const atrasMovil = enVista2 ? { texto: 'Volver', onClick: () => paso4.setVista(1) } : null;

@@ -46,11 +46,16 @@ export interface OpcionesPaso4V2 {
   activo: boolean;
   /** `segurosVanEnElPaso4`: la sección de seguros va en este paso. */
   conSeguros: boolean;
+  /**
+   * Este es el resumen que envía y la solicitud ya se creó antes (envío
+   * anticipado, D5): los seguros elegidos no tienen cómo llegar al backend.
+   */
+  creadaAntes?: boolean;
   /** Código del paso: al cambiar, se vuelve a la vista 1. */
   codigoPaso: string | null;
 }
 
-export function usePaso4V2({ activo, conSeguros, codigoPaso }: OpcionesPaso4V2) {
+export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso }: OpcionesPaso4V2) {
   const seguros = usePlanesDeSeguro(activo && conSeguros);
   const { selectedInsurances, clearInsurance } = useProduct();
   // La vista va atada al paso: al cambiar de paso se vuelve a la 1 sin un
@@ -59,12 +64,16 @@ export function usePaso4V2({ activo, conSeguros, codigoPaso }: OpcionesPaso4V2) 
   const vista: VistaPaso4 = estadoVista.paso === codigoPaso ? estadoVista.vista : 1;
   const setVista = useCallback((v: VistaPaso4) => setEstadoVista({ paso: codigoPaso, vista: v }), [codigoPaso]);
 
-  // Seguros elegidos que este paso no puede mandar (la landing no los tiene,
-  // la solicitud ya se creó con el envío anticipado, o el backend no devolvió
-  // planes para este equipo): se sueltan para que el total del panel no cobre
-  // algo que nunca llega al backend.
-  const sinPlanes = conSeguros && !seguros.cargando && seguros.planes.length === 0;
-  const haySueltos = activo && (!conSeguros || sinPlanes) && selectedInsurances.length > 0;
+  // Seguros elegidos que este paso no puede mandar: se sueltan para que el
+  // total del panel no cobre algo que nunca llega al backend. SOLO en dos
+  // casos (revisión de F7, I-2/M-3/M-4):
+  // - la solicitud ya se creó antes (envío anticipado, D5);
+  // - el pedido de planes TERMINÓ y no trajo ninguno (`cargado`, no
+  //   "no está cargando": en el primer render todavía no se pidió nada).
+  // No se sueltan en un resumen que no envía, ni cuando la sección de seguros
+  // está en otra pantalla (antes del wizard o en `/complementos`).
+  const sinPlanes = conSeguros && seguros.cargado && seguros.planes.length === 0;
+  const haySueltos = activo && (creadaAntes || sinPlanes) && selectedInsurances.length > 0;
   useEffect(() => {
     if (haySueltos) clearInsurance();
   }, [haySueltos, clearInsurance]);

@@ -9,16 +9,19 @@
  * Diseño 1 siga igual.
  */
 import React, { useSyncExternalStore } from 'react';
-import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent, within } from '@testing-library/react';
 
 const mockPush = jest.fn();
+const mockSentry = jest.fn();
+jest.mock('@sentry/nextjs', () => ({ captureException: (...a: unknown[]) => mockSentry(...a) }));
 const mockSubmit = jest.fn().mockResolvedValue(true);
 const mockLayout: { disenoSolicitud: 1 | 2; mostrarResumen: boolean | undefined } = { disenoSolicitud: 2, mostrarResumen: undefined };
 const mockFlujo: {
   sectionsAfterWizard: { type: string; order: number; enabled: boolean }[];
   shouldShowComplementos: boolean;
   envioAnticipadoStep: number | null;
-} = { sectionsAfterWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null };
+  cargando: boolean;
+} = { sectionsAfterWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null, cargando: false };
 const mockHandoff: { valor: unknown } = { valor: null };
 const mockPlanes: { lista: unknown[] } = { lista: [] };
 let mockFormData: Record<string, { value: string }> = {};
@@ -120,7 +123,7 @@ jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
     isKycStepEnabled: () => false,
     envioAnticipadoStep: mockFlujo.envioAnticipadoStep,
     firmaPorAceptacion: false,
-    isLoading: false,
+    isLoading: mockFlujo.cargando,
   }),
 }));
 
@@ -293,6 +296,7 @@ beforeEach(() => {
   mockFlujo.sectionsAfterWizard = [SECCION_SEGURO];
   mockFlujo.shouldShowComplementos = true;
   mockFlujo.envioAnticipadoStep = null;
+  mockFlujo.cargando = false;
   mockHandoff.valor = null;
   mockPlanes.lista = [GARANTIA, ROBO];
   mockSeguros = [];
@@ -359,7 +363,10 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
 
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
-    expect(await screen.findByRole('button', { name: 'Quitar Garantía Extendida Laptop 24M' })).toHaveTextContent('Agregada ✓');
+    // Etiqueta fija; el estado va en aria-pressed (revisión M-2).
+    const garantia = screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' });
+    await waitFor(() => expect(garantia).toHaveAttribute('aria-pressed', 'true'));
+    expect(garantia).toHaveTextContent('Agregada ✓');
     expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección');
 
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
@@ -504,6 +511,145 @@ describe('Paso 4 de Diseño 2 · celular en dos vistas', () => {
       fireEvent.click(screen.getByTestId('celular'));
     });
     expect(mockSubmit).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Monta el Paso 4 como en la app: primero `solicitar-config` cargando (el
+ * hook de planes arranca inactivo) y después lista. Así el primer render con
+ * `activo` es el de verdad: sin planes todavía y sin haber pedido nada.
+ */
+function montarComoEnLaApp() {
+  mockFlujo.cargando = true;
+  const utils = render(<StepClient />);
+  mockFlujo.cargando = false;
+  utils.rerender(<StepClient />);
+  return utils;
+}
+
+describe('Revisión de F7 · I-2: no se borran selecciones válidas al llegar al Paso 4', () => {
+  it('elegir 2 seguros, ir a otro paso con "Editar" y volver: siguen elegidos', async () => {
+    const primero = montarComoEnLaApp();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
+    await waitFor(() => expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']));
+
+    // "Editar" lleva a otro paso: el Paso 4 se desmonta.
+    fireEvent.click(within(screen.getByTestId('ver-detalle')).getAllByText('Editar')[0]);
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/datos-personales'));
+    primero.unmount();
+
+    // Vuelve al Paso 4: se monta de nuevo, con la config cargando.
+    montarComoEnLaApp();
+    expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 2 protecciones'));
+    expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
+  });
+
+  it('recargar con seguros válidos: siguen elegidos y viajan en el submit', async () => {
+    // El borrador del ProductContext los trae de vuelta.
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }, { id: '16', monthlyPrice: 16 }];
+    montarComoEnLaApp();
+    // El primer render activo, sin planes todavía, no los suelta.
+    expect(mockSeguros).toHaveLength(2);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 2 protecciones'));
+    expect(mockSeguros).toHaveLength(2);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: ['14', '16'] }));
+  });
+
+  it('M-3/M-4: con la sección de seguros en otra pantalla, la selección no se suelta', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }];
+    montarComoEnLaApp();
+    await screen.findByTestId('campos-del-paso');
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mockSeguros).toEqual([{ id: '14', monthlyPrice: 20 }]);
+  });
+
+  it('M-5: si el pedido de planes falla, va a Sentry y la sección no sale', async () => {
+    const { getLandingInsurances } = jest.requireMock('@/app/prototipos/0.6/services/landingApi');
+    const error = new Error('caído');
+    (getLandingInsurances as jest.Mock).mockImplementationOnce(() => Promise.reject(error));
+    const consola = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      montarComoEnLaApp();
+      await waitFor(() => expect(mockSentry).toHaveBeenCalledWith(error, expect.objectContaining({
+        tags: expect.objectContaining({ modulo: 'seguros', accion: 'cargar_planes' }),
+      })));
+      expect(screen.queryByText(/Protege tu/)).not.toBeInTheDocument();
+    } finally {
+      consola.mockRestore();
+    }
+  });
+});
+
+describe('Revisión de F7 · I-3 y M-1: área táctil y movimiento', () => {
+  it('"¿Qué cubre?" y "Agregar" miden 44px; el esqueleto no pulsa con movimiento reducido', async () => {
+    montarComoEnLaApp();
+    // Mientras cargan los planes: esqueleto.
+    const esqueleto = document.querySelector('[aria-label="Cargando protecciones"] > div');
+    expect(esqueleto).toHaveClass('animate-pulse', 'motion-reduce:animate-none');
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    for (const b of screen.getAllByRole('button', { name: '¿Qué cubre?' })) expect(b).toHaveClass('min-h-[44px]');
+    expect(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' })).toHaveClass('min-h-[44px]');
+  });
+});
+
+describe('Revisión de F7 · I-1: celular con seguros y otra sección después', () => {
+  it('vista 1 "Continuar" → vista 2 con las protecciones → "Continuar" va a /complementos', async () => {
+    mockFlujo.sectionsAfterWizard = [SECCION_SEGURO, { type: 'accessories', order: 4, enabled: true }];
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(vista(2)).toHaveClass('hidden', 'lg:block');
+    expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
+
+    fireEvent.click(screen.getByTestId('celular'));
+    expect(vista(2)).not.toHaveClass('hidden');
+    expect(vista(1)).toHaveClass('hidden', 'lg:block');
+    expect(screen.getByTestId('atras-celular')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
+
+    // En la vista 2 manda la acción de siempre: ir a complementos.
+    expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
+    jest.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('celular'));
+        await jest.advanceTimersByTimeAsync(600);
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+    expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/complementos');
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(mockSeguros.map((s) => s.id)).toEqual(['16']);
+  });
+});
+
+describe('Decisión del controlador · el nombre no se pierde al recargar', () => {
+  it('recarga con el borrador (sin estado del prefill): "¡Último paso, {Nombre}!" sigue', async () => {
+    PASO_REGULAR.fields.push({
+      id: 3, code: 'document_number', label: 'DNI', type: 'document_number', required: false, readonly: false, hidden: false,
+      grid_columns: 12, grid_columns_mobile: 12, options: [], validations: [], dependency_groups: [], max_files: null,
+    });
+    // Lo que deja el borrador al recargar: `_prefill_status_*` no se guarda.
+    mockFormData.document_number = { value: '70020010' };
+    mockFormData.first_name = { value: 'BRENDA LUZ' };
+    try {
+      montarComoEnLaApp();
+      expect(await screen.findByTestId('antetitulo')).toHaveTextContent('¡Último paso, Brenda!');
+    } finally {
+      PASO_REGULAR.fields.pop();
+    }
   });
 });
 
