@@ -5,6 +5,11 @@
  * vacío = TODAS las cuotas, 1 = solo la primera, N = las primeras N. Vale igual
  * para monto fijo y para porcentaje. El cupón de regalo (`free_accessory`) no
  * descuenta nada.
+ *
+ * Desde el 22-oct-2026 la cuota que queda después del cupón se cobra en soles
+ * enteros (`redondearAlSol`/`cuotaConCupon`): es la misma regla que el legacy
+ * (`Cronograma::cuotaConCupon`) y ws2 (`cuota_rebajada`), que son los que
+ * cobran — la vitrina no puede prometer un número distinto al de la boleta.
  */
 
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -57,6 +62,41 @@ export function couponHasBenefit(
   coupon: Pick<AppliedCoupon, 'couponType' | 'giftName' | 'discount'>
 ): boolean {
   return isGiftCoupon(coupon) || coupon.discount > 0;
+}
+
+/**
+ * Redondeo al sol entero, mitad hacia arriba: 125.30→125, 125.50→126, 125.70→126.
+ * Primero se lleva a céntimos para quitar el ruido binario (105 × 0.9 =
+ * 94.49999999999999 es 94.50 y sube a 95). Es la misma regla que ws2 (Decimal
+ * ROUND_HALF_UP) y que el legacy (`Cronograma::cuotaConCupon`), que es el que
+ * cobra. Nunca negativo.
+ */
+export function redondearAlSol(monto: number): number {
+  if (!Number.isFinite(monto) || monto <= 0) return 0;
+  const centimos = Math.round(monto * 100);
+  return Math.floor((centimos + 50) / 100);
+}
+
+type CuponParaCuota = Pick<AppliedCoupon, 'couponType' | 'discount'>;
+
+/**
+ * La cuota que se cobra con el cupón: la regular rebajada y redondeada al
+ * sol. Vale para porcentaje y para monto fijo (decisión D1); el cupón de
+ * regalo y el que no descuenta nada dejan la cuota tal cual.
+ */
+export function cuotaConCupon(regular: number, coupon: CuponParaCuota): number {
+  if (!Number.isFinite(regular) || regular <= 0) return 0;
+  if (coupon.couponType === 'free_accessory' || !(coupon.discount > 0)) return regular;
+  const bruta =
+    coupon.couponType === 'percent_quotas'
+      ? (regular * (100 - coupon.discount)) / 100
+      : regular - coupon.discount;
+  return redondearAlSol(Math.max(0, bruta));
+}
+
+/** Lo que el cupón rebaja en cada cuota, coherente con `cuotaConCupon`. */
+export function descuentoPorCuota(regular: number, coupon: CuponParaCuota): number {
+  return Math.max(0, regular - cuotaConCupon(regular, coupon));
 }
 
 export interface CouponQuotaDisplay {
@@ -122,15 +162,8 @@ export function getCouponQuotaDisplay(
   // El cupón de regalo entrega un accesorio: la cuota no cambia.
   if (coupon.couponType === 'free_accessory') return sinDescuento;
 
-  let firstQuota = regularQuota;
-
-  if (coupon.couponType === 'fixed') {
-    firstQuota = Math.max(0, regularQuota - coupon.discount);
-  } else if (coupon.couponType === 'percent_quotas') {
-    firstQuota = Math.max(0, regularQuota * (1 - coupon.discount / 100));
-  } else {
-    firstQuota = Math.max(0, regularQuota - coupon.discount);
-  }
+  // La cuota con cupón, redondeada al sol entero: es lo que se cobra.
+  const firstQuota = cuotaConCupon(regularQuota, coupon);
 
   const hasFirstQuotaOffer = firstQuota < regularQuota - 0.5;
   if (!hasFirstQuotaOffer) return sinDescuento;
