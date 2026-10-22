@@ -92,7 +92,7 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
                 hito.estado === 'completado'
                   ? 'border-[#12A877] bg-[#12A877] text-white'
                   : hito.estado === 'actual'
-                    ? 'border-[#4654CD] bg-white text-[#4654CD]'
+                    ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary)]'
                     : 'border-[#D5D9E6] bg-white text-[#8A90A2]'
               }`}
             >
@@ -104,7 +104,7 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
                   <span className="text-[15px] font-bold text-[#1E2230]">{hito.titulo}</span>
                   <span className="sr-only">{TEXTO_ESTADO[hito.estado]}</span>
                   {hito.estado === 'actual' && (
-                    <span className="rounded-full bg-[#4654CD]/10 px-2 py-0.5 text-[11px] font-bold text-[#4654CD]">
+                    <span className="rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary)]">
                       En curso
                     </span>
                   )}
@@ -120,7 +120,7 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
                 >
                   <div
                     data-barra-en-curso
-                    className="h-full w-1/2 rounded-full bg-[#4654CD]"
+                    className="h-full w-1/2 rounded-full bg-[var(--color-primary)]"
                     style={
                       reducido
                         ? undefined

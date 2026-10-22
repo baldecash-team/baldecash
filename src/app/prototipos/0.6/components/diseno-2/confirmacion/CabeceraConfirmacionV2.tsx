@@ -31,7 +31,7 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
   return (
     <div
       data-cabecera-confirmacion-v2
-      className="relative overflow-hidden rounded-b-[28px] bg-gradient-to-b from-[#4654CD] to-[#3341B8] px-6 pb-10 pt-12 text-center sm:pb-12 sm:pt-14"
+      className="relative overflow-hidden rounded-b-[28px] bg-[var(--color-primary)] bg-[linear-gradient(to_bottom,transparent,rgba(0,0,0,0.18))] px-6 pb-10 pt-12 text-center sm:pb-12 sm:pt-14"
     >
       <style>{`
         @keyframes confettiV2Caer {
