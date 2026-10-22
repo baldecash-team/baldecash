@@ -72,6 +72,22 @@ export const isStepDynamicallyCompleted = (
   return true;
 };
 
+/**
+ * La regla de "se puede volver": completo, o anterior al paso actual — y
+ * solo cuando hay `onStepClick` (sin él, el contrato firmado no deja volver
+ * a ningún paso). Exportada para que `ProgresoV2` (Diseño 2, BAL-4959) la
+ * reuse en vez de repetir la misma regla aparte.
+ */
+export function isStepClickable(
+  stepSlug: WizardStepId,
+  index: number,
+  currentIndex: number,
+  completedSteps: WizardStepId[],
+  onStepClick?: (stepId: WizardStepId) => void,
+): boolean {
+  return !!onStepClick && (completedSteps.includes(stepSlug) || index < currentIndex);
+}
+
 export const WizardProgress: React.FC<WizardProgressProps> = ({
   currentStep,
   onStepClick,
@@ -135,13 +151,11 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
   const currentStepData = progressSteps[currentIndex];
   const totalSteps = progressSteps.length;
 
-  const isStepClickable = (stepSlug: WizardStepId, index: number) => {
-    // Can click on completed steps or any previous step
-    return onStepClick && (completedSteps.includes(stepSlug) || index < currentIndex);
-  };
+  const stepIsClickable = (stepSlug: WizardStepId, index: number) =>
+    isStepClickable(stepSlug, index, currentIndex, completedSteps, onStepClick);
 
   const handleStepClick = (stepSlug: WizardStepId, index: number) => {
-    if (isStepClickable(stepSlug, index) && onStepClick) {
+    if (stepIsClickable(stepSlug, index) && onStepClick) {
       onStepClick(stepSlug);
     }
   };
@@ -268,7 +282,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                 // Paso anterior al actual pero con datos faltantes de verdad
                 // (no basta con haberlo "pasado": ver BAL-4357).
                 const isPastIncomplete = index < currentIndex && !isCompleted;
-                const clickable = isStepClickable(step.slug, index);
+                const clickable = stepIsClickable(step.slug, index);
 
                 return (
                   <React.Fragment key={step.slug}>
@@ -321,7 +335,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
           // (no basta con haberlo "pasado": ver BAL-4357).
           const isPastIncomplete = index < currentIndex && !isCompleted;
           const isReached = isCurrent || isCompleted;
-          const clickable = isStepClickable(step.slug, index);
+          const clickable = stepIsClickable(step.slug, index);
 
           return (
             <React.Fragment key={step.slug}>

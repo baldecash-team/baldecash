@@ -47,6 +47,7 @@ import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/solicitar/
 import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage';
 import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
 import { useMesPrimeraCuota } from './useMesPrimeraCuota';
+import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { datosUtiles, marcaVisible, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
 
 export type LoQuieroOrigen = 'catalogo' | 'ficha';
@@ -562,6 +563,11 @@ function LoQuieroModalContent({
         regalos: regalos.map((r) => ({ id: r.id, name: r.name, gratis: r.gratis })),
       });
     }
+
+    // Paso 1 de Diseño 2: "Atrás" vuelve acá (catálogo o ficha), no a
+    // `/solicitar` (BAL-4959, decisión del controlador). Se guarda ANTES de
+    // navegar: "la URL actual" todavía es esta página.
+    guardarOrigenDiseno2(landing);
 
     setNavegando(true);
     if (slugPrimerPaso) {

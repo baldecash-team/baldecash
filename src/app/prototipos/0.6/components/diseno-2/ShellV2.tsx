@@ -24,26 +24,28 @@
  * pase esos campos a `DynamicWizardStep`.
  */
 
-import React, { useMemo, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { ArrowRight, ChevronLeft, Lock } from 'lucide-react';
 
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
 import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
-import { useWizardConfig } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
+import { useWizardConfig, pasosConPrimerResumen } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { useWizard } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardContext';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { isStepDynamicallyCompleted } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/wizard/WizardProgress';
 import { getStepSlug, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
-import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/utils/formatCuota';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
 import { ProgresoV2, type PasoDelProgreso } from './ProgresoV2';
-import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL } from './PanelSolicitudV2';
+import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL, useDatosDelPanel } from './PanelSolicitudV2';
 import { BarraInferiorV2 } from './BarraInferiorV2';
 import { useGuiaDeCampos } from './useGuiaDeCampos';
 import { useErroresAlSalir } from './useErroresAlSalir';
+import { leerOrigenDiseno2 } from './origenDiseno2';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -87,11 +89,13 @@ export interface ShellV2Props {
   ocultarBarraInferior?: boolean;
 }
 
-/** Los pasos del formulario en el orden de la navegación: regulares y después resumen. */
+/**
+ * Los pasos del formulario en el orden de la navegación: regulares y después
+ * SOLO el primer resumen — la misma cuenta de Diseño 1 (`pasosConPrimerResumen`),
+ * para que N ("paso X de N") no crezca con cada resumen extra que tenga la landing.
+ */
 export function pasosDelProgreso(steps: WizardStep[]): PasoDelProgreso[] {
-  const regulares = steps.filter((s) => !s.is_summary_step);
-  const resumen = steps.filter((s) => s.is_summary_step);
-  return [...regulares, ...resumen].map((s) => ({ slug: getStepSlug(s), nombre: s.name || s.title }));
+  return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: s.name || s.title }));
 }
 
 const ESTILOS_V2 = `
@@ -124,6 +128,7 @@ export function ShellV2({
   onNext,
   onSubmit,
   onStepClick,
+  isFirstStep = false,
   isLastStep = false,
   sinNavegacion = false,
   condicionesFijas = false,
@@ -137,9 +142,23 @@ export function ShellV2({
 }: ShellV2Props) {
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
+  const router = useRouter();
   const { steps } = useWizardConfig();
   const { formData } = useWizard();
   const { getTotalMonthlyPayment, getAllProducts } = useProduct();
+
+  /**
+   * Paso 1 de Diseño 2 — decisión del controlador (BAL-4959): "Atrás" no va
+   * a `/solicitar` (la pantalla intermedia de Diseño 1, que acá no existe):
+   * vuelve a la página de origen del modal "Lo quiero" —catálogo o ficha—,
+   * guardada por el modal al continuar, o al catálogo si no hay ninguna
+   * guardada (URL directa al paso, u otra pestaña). Solo pisa `onBack` en el
+   * primer paso; el resto navega como siempre (`paso.handleBack`).
+   */
+  const handleBackPrimerPaso = useCallback(() => {
+    router.push(leerOrigenDiseno2(landing) || routes.catalogo(landing));
+  }, [router, landing]);
+  const irAtras = isFirstStep ? handleBackPrimerPaso : onBack;
 
   const pasos = useMemo(() => pasosDelProgreso(steps), [steps]);
   const indiceActual = pasos.findIndex((p) => p.slug === currentStep);
@@ -159,6 +178,11 @@ export function ShellV2({
     return hechos;
   }, [steps, formData]);
 
+  // Una sola vez para escritorio y celular: los dos están montados a la vez
+  // (uno escondido con CSS), y pedirlo dos veces mandaba "1.ª cuota en {mes}"
+  // al backend por duplicado en cada paso (BAL-4959, hallazgo de la revisión).
+  const datosDelPanel = useDatosDelPanel(condicionesFijas);
+
   const tarjetaRef = useRef<HTMLDivElement>(null);
   const { camposTocados, onBlur } = useErroresAlSalir(step);
   const { onKeyDown } = useGuiaDeCampos({ contenedorRef: tarjetaRef, step, activa: !sinNavegacion });
@@ -167,7 +191,7 @@ export function ShellV2({
   const ocupado = isSubmitting || isBusy;
   const textoPrincipal = isSubmitting ? submitMessage || 'Enviando…' : isLastStep ? 'Enviar solicitud' : 'Continuar';
   const frecuencia = getAllProducts()[0]?.paymentFrequency;
-  const totalTexto = `S/${formatCuotaDeLanding(getTotalMonthlyPayment(), landing)}${frecuencia === 'semanal' ? '/sem' : frecuencia === 'quincenal' ? '/qcn' : '/mes'}`;
+  const totalTexto = `S/${formatCuotaDeLanding(getTotalMonthlyPayment(), landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] relative">
@@ -179,7 +203,7 @@ export function ShellV2({
         <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
       </div>
       <CabeceraSolicitudV2
-        condicionesFijas={condicionesFijas}
+        datos={datosDelPanel}
         indiceActual={indiceActual}
         totalPasos={pasos.length}
         landing={landing}
@@ -209,13 +233,16 @@ export function ShellV2({
             </div>
 
             {!sinNavegacion && (
-              <>
+              // `data-zona-acciones-v2`: a dónde cae `goFin` cuando ningún
+              // Continuar está visible (celular con el teclado abierto, que
+              // esconde la barra fija) en vez del botón de escritorio oculto.
+              <div data-zona-acciones-v2>
                 {/* Escritorio */}
                 <div className="mt-5 hidden lg:flex items-center justify-between">
-                  {onBack ? (
+                  {irAtras ? (
                     <button
                       type="button"
-                      onClick={onBack}
+                      onClick={irAtras}
                       disabled={ocupado}
                       className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-2 text-[15px] font-bold text-[var(--color-primary)] cursor-pointer hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                     >
@@ -233,7 +260,11 @@ export function ShellV2({
                         ocupado || !canProceed ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] hover:brightness-90 cursor-pointer'
                       }`}
                     >
-                      {isSubmitting && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+                      {/* La misma regla que la barra fija de celular (`BarraInferiorV2`):
+                          la ruedita también con `isBusy` (solo navega, ej. a
+                          complementos), no solo mientras se crea la solicitud
+                          de verdad (BAL-4959, hallazgo de la revisión). */}
+                      {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
                       {textoPrincipal}
                       {!isSubmitting && <ArrowRight className="h-5 w-5" aria-hidden />}
                     </button>
@@ -248,11 +279,11 @@ export function ShellV2({
                 </p>
 
                 {/* Celular: Atrás como enlace; Continuar va en la barra fija */}
-                {onBack && (
+                {irAtras && (
                   <div className="mt-3 flex justify-center lg:hidden">
                     <button
                       type="button"
-                      onClick={onBack}
+                      onClick={irAtras}
                       disabled={ocupado}
                       className="inline-flex min-h-[44px] items-center gap-1 px-3 text-[15px] font-bold text-[var(--color-primary)] cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-lg"
                     >
@@ -261,13 +292,13 @@ export function ShellV2({
                     </button>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 
           <div className="hidden lg:block">
             <div className="sticky" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
-              <PanelSolicitudV2 condicionesFijas={condicionesFijas} />
+              <PanelSolicitudV2 datos={datosDelPanel} />
             </div>
           </div>
         </div>

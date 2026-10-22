@@ -18,7 +18,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { useWizardConfig } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
+import { useWizardConfig, pasosConPrimerResumen } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { getStepSlug } from '@/app/prototipos/0.6/services/wizardApi';
 import { useReducedMotion } from 'framer-motion';
 import { Check, ArrowRight } from 'lucide-react';
@@ -28,6 +28,9 @@ export const DURACION_TRANSICION_MS = 2700;
 export const DURACION_TRANSICION_REDUCIDA_MS = 1200;
 
 const BALDECITO = 'https://baldecash.s3.amazonaws.com/illustrations/baldi/BALDI_ALEGRE.png';
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export interface TransicionPasoProps {
   /** Nombres de todos los pasos (N = largo de la lista). */
@@ -62,17 +65,50 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
   }, [duracion, terminar]);
 
   const botonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    botonRef.current?.focus({ preventScroll: true });
-  }, []);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
+  // Foco atrapado mientras la transición está visible (role=dialog
+  // aria-modal), y de vuelta a donde estaba al terminar — mismo patrón que
+  // `LoQuieroModal` (BAL-4959, hallazgo de la revisión de accesibilidad).
   useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    botonRef.current?.focus({ preventScroll: true });
+
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') terminar();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        terminar();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const nodo = dialogRef.current;
+      if (!nodo) return;
+      const nodos = Array.from(nodo.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (n) => n.offsetParent !== null,
+      );
+      if (nodos.length === 0) return;
+      const primero = nodos[0];
+      const ultimo = nodos[nodos.length - 1];
+      const activo = document.activeElement;
+      if (e.shiftKey && (activo === primero || activo === nodo)) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && activo === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      } else if (!nodo.contains(activo)) {
+        e.preventDefault();
+        primero.focus();
+      }
     };
-    window.addEventListener('keydown', alTeclear);
-    return () => window.removeEventListener('keydown', alTeclear);
-  }, [terminar]);
+    document.addEventListener('keydown', alTeclear);
+    return () => {
+      document.removeEventListener('keydown', alTeclear);
+      anterior?.focus?.();
+    };
+    // Solo al montar: `terminar` ya tiene su propio pestillo de "una vez".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Posición de cada nodo en el camino, en % del ancho.
   const pos = (i: number) => (total <= 1 ? 50 : (i / (total - 1)) * 100);
@@ -80,6 +116,7 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="transicion-paso-titulo"
@@ -195,9 +232,10 @@ export function TransicionDelWizard({
   const { steps } = useWizardConfig();
   const params = useParams();
   const slugActual = (params?.stepSlug as string) || '';
+  // Misma cuenta que `pasosDelProgreso` (ShellV2): regulares + SOLO el primer
+  // resumen, para que el total coincida con "paso X de N" del progreso.
   const pasos = useMemo(() => {
-    const ordenados = [...steps.filter((s) => !s.is_summary_step), ...steps.filter((s) => s.is_summary_step)];
-    return ordenados.map((s) => ({ slug: getStepSlug(s), nombre: s.name || s.title }));
+    return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: s.name || s.title }));
   }, [steps]);
   const posicion = pasos.findIndex((p) => p.slug === slugActual);
   return (

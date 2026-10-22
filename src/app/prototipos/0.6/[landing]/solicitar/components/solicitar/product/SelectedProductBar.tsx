@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/utils/formatCuota';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import {
   COUPON_PENDING_DOCUMENT_NOTICE,
@@ -209,9 +209,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   // la armada), y truncarlos acá prometía S/15 sobre un contrato de S/15,20.
   // El resto del catálogo sigue truncando, que es lo que hacía siempre.
   const formatPrice = (price: number) => `S/${formatCuotaDeLanding(price, landingSlug)}`;
-
-  const freqSuffix = (freq?: string) =>
-    freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
 
   const totalMonthlyPayment = getTotalMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
@@ -420,7 +417,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           })()}
 
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
+                            {formatPrice(product.monthlyPayment)}{sufijoDeFrecuencia(product.paymentFrequency)}
                           </p>
                           {product.initialAmount > 0 && (
                             <p className="text-xs text-neutral-400">
@@ -439,7 +436,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         <div key={acc.id} className="flex items-center gap-2 text-xs text-neutral-600">
                           <Plus className="w-3 h-3 text-[var(--color-primary)]" />
                           <span className="flex-1 truncate">{acc.name}</span>
-                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}</span>
+                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}{sufijoDeFrecuencia(mainProduct.paymentFrequency)}</span>
                         </div>
                       ))}
                     </div>
@@ -634,7 +631,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 {/* Pricing - Monthly + Initial */}
                 <div className="text-right flex-shrink-0">
                   <p className="text-lg font-bold text-[var(--color-primary)]">
-                    {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
+                    {formatPrice(product.monthlyPayment)}{sufijoDeFrecuencia(product.paymentFrequency)}
                   </p>
                   {(() => {
                     const displayTerm = product.term ?? product.months;
@@ -760,7 +757,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               <div className="flex items-center gap-3">
                 {!isAccessoriesExpanded && (
                   <span className="text-sm font-medium text-[var(--color-primary)]">
-                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}{freqSuffix(mainProduct.paymentFrequency)}
+                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}{sufijoDeFrecuencia(mainProduct.paymentFrequency)}
                   </span>
                 )}
                 {isAccessoriesExpanded ? (
@@ -789,7 +786,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             <span className="text-neutral-700 truncate">{acc.name}</span>
                           </div>
                           <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                            +{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}
+                            +{formatPrice(acc.monthlyQuota)}{sufijoDeFrecuencia(mainProduct.paymentFrequency)}
                           </span>
                         </div>
                       ))}

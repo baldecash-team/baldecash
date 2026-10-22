@@ -19,9 +19,14 @@
  * El regalo del combo y "1.ª cuota en {mes}" salen de las mismas fuentes que
  * el modal "Lo quiero": los regalos que el modal guardó en el producto y
  * `useMesPrimeraCuota`.
+ *
+ * `useDatosDelPanel` la llama `ShellV2` UNA sola vez y pasa `datos` a los dos
+ * (escritorio y celular): los dos lo montan a la vez —uno escondido con CSS,
+ * no desmontado— y llamar el hook en cada uno pedía "1.ª cuota en {mes}" al
+ * backend por duplicado en cada paso (BAL-4959, hallazgo de la revisión).
  */
 
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronDown, Gift, Laptop, Package, ShieldCheck, Tag, AlertTriangle } from 'lucide-react';
@@ -31,7 +36,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { useCondicionesDelPlan } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/useCondicionesDelPlan';
 import { TermSelect } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/TermSelect';
 import { getTermUnit } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/etiquetaDePlazo';
-import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/utils/formatCuota';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import {
   COUPON_PENDING_DOCUMENT_SHORT,
@@ -43,21 +48,24 @@ import { ProgresoMovilV2 } from './ProgresoV2';
 /** Con más plazos que esto, o con armadas, el selector es una lista. */
 const MAX_BOTONES_DE_PLAZO = 6;
 
-function sufijo(freq?: string): string {
-  if (freq === 'semanal') return '/sem';
-  if (freq === 'quincenal') return '/qcn';
-  return '/mes';
-}
-
-/** La cuota de un plazo con la inicial que ya tiene elegida: del plan del backend. */
+/**
+ * La cuota de un plazo con la inicial que ya tiene elegida: del plan del
+ * backend. Si ese plazo no tiene una opción para esa inicial, no hay cuota
+ * que mostrar: `null`, nunca la del primer plan disponible —mostrar la
+ * cuota de OTRA inicial sería mentir el número (BAL-4959, hallazgo de la
+ * revisión)—.
+ */
 export function cuotaDelPlazo(producto: SelectedProduct, term: number): number | null {
   const plan = producto.paymentPlans?.find((p) => p.term === term);
-  const opcion = plan?.options?.find((o) => o.initialPercent === producto.initialPercent) ?? plan?.options?.[0];
+  const opcion = plan?.options?.find((o) => o.initialPercent === producto.initialPercent);
   return typeof opcion?.monthlyQuota === 'number' ? opcion.monthlyQuota : null;
 }
 
-/** Todo lo que necesitan el panel y la cabecera, leído una sola vez. */
-function useDatosDelPanel(condicionesFijas: boolean) {
+/**
+ * Todo lo que necesitan el panel y la cabecera. `ShellV2` la llama una sola
+ * vez (no cada uno de los dos) y pasa el resultado por prop.
+ */
+export function useDatosDelPanel(condicionesFijas: boolean) {
   const product = useProduct();
   const layout = useLayout();
   const condiciones = useCondicionesDelPlan(condicionesFijas);
@@ -246,8 +254,7 @@ function Confianza() {
 
 // ─── Escritorio ─────────────────────────────────────────────────────────────
 
-export function PanelSolicitudV2({ condicionesFijas = false }: { condicionesFijas?: boolean }) {
-  const datos = useDatosDelPanel(condicionesFijas);
+export function PanelSolicitudV2({ datos }: { datos: DatosDelPanel }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
   if (!datos.principal) return null;
@@ -271,7 +278,7 @@ export function PanelSolicitudV2({ condicionesFijas = false }: { condicionesFija
             <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}</span>
             <span className={`font-['Baloo_2',_sans-serif] text-2xl font-bold ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
               {datos.precio(datos.total)}
-              <span className="text-sm font-semibold">{sufijo(datos.frecuencia)}</span>
+              <span className="text-sm font-semibold">{sufijoDeFrecuencia(datos.frecuencia)}</span>
             </span>
           </div>
           {datos.cuotaAccesorios > 0 && (
@@ -309,19 +316,19 @@ export function PanelSolicitudV2({ condicionesFijas = false }: { condicionesFija
 // ─── Celular ────────────────────────────────────────────────────────────────
 
 export function CabeceraSolicitudV2({
-  condicionesFijas = false,
+  datos,
   indiceActual,
   totalPasos,
   landing,
 }: {
-  condicionesFijas?: boolean;
+  datos: DatosDelPanel;
   indiceActual: number;
   totalPasos: number;
   landing: string;
 }) {
-  const datos = useDatosDelPanel(condicionesFijas);
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Escape cierra el desplegable.
   useEffect(() => {
@@ -331,6 +338,24 @@ export function CabeceraSolicitudV2({
     };
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
+  }, [abierto]);
+
+  // Al abrir: el foco entra al panel (el primer elemento enfocable, o el
+  // panel mismo si no hay ninguno) y el scroll de fondo se bloquea — el
+  // desplegable queda encima de la página, no adentro de un contenedor con
+  // su propio scroll (BAL-4959, hallazgo de la revisión de accesibilidad).
+  useEffect(() => {
+    if (!abierto) return;
+    const previo = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const nodo = panelRef.current;
+    const primero = nodo?.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    (primero ?? nodo)?.focus({ preventScroll: true });
+    return () => {
+      document.body.style.overflow = previo;
+    };
   }, [abierto]);
 
   const numero = totalPasos > 0 ? Math.min(Math.max(indiceActual, 0), totalPasos - 1) + 1 : 0;
@@ -349,7 +374,9 @@ export function CabeceraSolicitudV2({
             <button
               type="button"
               aria-expanded={abierto}
-              aria-controls={idSelector}
+              // Cerrado, el panel no está en el DOM: apuntar a su id sería
+              // una referencia rota (BAL-4959, hallazgo de la revisión).
+              aria-controls={abierto ? idSelector : undefined}
               onClick={() => setAbierto((v) => !v)}
               disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
@@ -367,7 +394,7 @@ export function CabeceraSolicitudV2({
                 <span className="block truncate text-[15px] font-bold text-[#1E2230]">{datos.nombre}</span>
                 <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary)]">
                   <span className="truncate">
-                    {datos.precio(datos.total)}{sufijo(datos.frecuencia)} · {datos.leyenda}
+                    {datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)} · {datos.leyenda}
                   </span>
                   <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${abierto ? 'rotate-180' : ''}`} aria-hidden />
                 </span>
@@ -383,7 +410,12 @@ export function CabeceraSolicitudV2({
         <ProgresoMovilV2 indiceActual={indiceActual} total={totalPasos} />
 
         {abierto && datos.principal && (
-          <div id={idSelector} className="max-h-[70vh] overflow-y-auto border-t border-[#E3E6EE] bg-white px-4 pt-3 pb-4">
+          <div
+            ref={panelRef}
+            id={idSelector}
+            tabIndex={-1}
+            className="max-h-[70vh] overflow-y-auto border-t border-[#E3E6EE] bg-white px-4 pt-3 pb-4"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 {detalle && <p className="text-xs text-[#5B6275]">{detalle}</p>}

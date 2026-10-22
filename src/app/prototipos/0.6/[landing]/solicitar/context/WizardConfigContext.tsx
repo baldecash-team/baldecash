@@ -61,6 +61,19 @@ export const useWizardConfig = () => {
  */
 export const useWizardConfigOptional = () => useContext(WizardConfigContext);
 
+/**
+ * Los pasos tal como los cuenta Diseño 1 (`WizardProgress.progressSteps`):
+ * los regulares + SOLO el primer `is_summary_step` (nunca todos). Única
+ * fuente de la lista para el progreso de Diseño 2 (`ProgresoV2`) y para
+ * `TransicionDelWizard` — los dos reusan esto en vez de repetir el orden a
+ * mano, que es como se coló el bug de contar cada resumen de más (BAL-4959).
+ */
+export function pasosConPrimerResumen(steps: WizardStep[]): WizardStep[] {
+  const regulares = steps.filter((s) => !s.is_summary_step);
+  const primerResumen = steps.find((s) => s.is_summary_step);
+  return primerResumen ? [...regulares, primerResumen] : regulares;
+}
+
 interface WizardConfigProviderProps {
   children: ReactNode;
   slug: string;

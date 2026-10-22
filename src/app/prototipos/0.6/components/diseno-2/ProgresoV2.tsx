@@ -15,6 +15,7 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
+import { isStepClickable } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/wizard/WizardProgress';
 
 export interface PasoDelProgreso {
   /** Slug de la URL del paso: es lo que recibe `onIrAPaso`. */
@@ -33,7 +34,11 @@ export interface ProgresoV2Props {
   onIrAPaso?: (slug: string) => void;
 }
 
-/** La misma regla que `WizardProgress.isStepClickable`. */
+/**
+ * El paso actual nunca es clicable (acá no hay nada que lo distinga de un
+ * botón normal si lo fuera): el resto es exactamente `WizardProgress.isStepClickable`,
+ * reusada en vez de repetida.
+ */
 export function pasoEsClicable(
   indice: number,
   slug: string,
@@ -41,8 +46,8 @@ export function pasoEsClicable(
   completados: ReadonlySet<string>,
   hayNavegacion: boolean,
 ): boolean {
-  if (!hayNavegacion || indice === indiceActual) return false;
-  return completados.has(slug) || indice < indiceActual;
+  if (indice === indiceActual) return false;
+  return isStepClickable(slug, indice, indiceActual, Array.from(completados), hayNavegacion ? () => {} : undefined);
 }
 
 export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: ProgresoV2Props) {

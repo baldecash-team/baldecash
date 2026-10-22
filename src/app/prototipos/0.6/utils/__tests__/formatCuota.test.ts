@@ -11,6 +11,7 @@ import {
   formatCuota,
   formatCuotaDeLanding,
   landingMuestraCentavos,
+  sufijoDeFrecuencia,
 } from '../formatCuota';
 
 describe('qué landings muestran centavos', () => {
@@ -84,5 +85,22 @@ describe('formatear según la landing', () => {
 describe('valores que no son número', () => {
   it.each([NaN, Infinity, -Infinity])('%p devuelve 0', (valor) => {
     expect(formatCuota(valor, { conCentavos: true })).toBe('0');
+  });
+});
+
+/**
+ * BAL-4959: el sufijo estaba copiado en `ShellV2`, `PanelSolicitudV2` y
+ * `SelectedProductBar`; ahora los tres llaman a esta misma función.
+ */
+describe('sufijoDeFrecuencia', () => {
+  it('semanal, quincenal y mensual', () => {
+    expect(sufijoDeFrecuencia('semanal')).toBe('/sem');
+    expect(sufijoDeFrecuencia('quincenal')).toBe('/qcn');
+    expect(sufijoDeFrecuencia('mensual')).toBe('/mes');
+  });
+
+  it('sin frecuencia (undefined o null) cae a mensual', () => {
+    expect(sufijoDeFrecuencia(undefined)).toBe('/mes');
+    expect(sufijoDeFrecuencia(null)).toBe('/mes');
   });
 });

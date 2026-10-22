@@ -104,10 +104,32 @@ export function resaltar(el: HTMLElement | null | undefined) {
   }, DURACION_BRILLO_MS);
 }
 
-/** El botón Continuar que se ve (escritorio o la barra fija de celular). */
+function esVisible(el: HTMLElement): boolean {
+  return el.offsetParent !== null || el.getClientRects().length > 0;
+}
+
+/**
+ * A qué elemento resaltar para "Continuar": el primero VISIBLE de la lista de
+ * botones, o si ninguno lo está, `zonaAcciones`. Nunca cae al primero "porque
+ * sí" — con el teclado del celular abierto la barra fija se esconde
+ * (`BarraInferiorV2`) y sin este guard caía en el botón de escritorio, oculto
+ * por CSS en esa pantalla (BAL-4959, hallazgo de la revisión).
+ */
+export function elegirDestinoContinuar(
+  botones: HTMLElement[],
+  visible: (el: HTMLElement) => boolean,
+  zonaAcciones: HTMLElement | null,
+): HTMLElement | null {
+  return botones.find(visible) ?? zonaAcciones;
+}
+
+/** El botón Continuar que se ve (escritorio o la barra fija de celular), o si
+ * ninguno se ve, la zona de Atrás/Continuar (siempre pintada cuando hay
+ * navegación). */
 function botonContinuarVisible(): HTMLElement | null {
   const botones = Array.from(document.querySelectorAll<HTMLElement>('[data-continuar-v2]'));
-  return botones.find((b) => b.offsetParent !== null || b.getClientRects().length > 0) ?? botones[0] ?? null;
+  const zonaAcciones = document.querySelector<HTMLElement>('[data-zona-acciones-v2]');
+  return elegirDestinoContinuar(botones, esVisible, zonaAcciones);
 }
 
 export interface OpcionesGuiaDeCampos {

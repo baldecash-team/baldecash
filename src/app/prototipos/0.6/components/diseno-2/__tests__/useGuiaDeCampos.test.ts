@@ -2,7 +2,14 @@
  * BAL-4959 · la parte pura de la guía de campos: a qué campo llevar y cuándo
  * señalar "Continuar". No depende de códigos de campo.
  */
-import { siguientePendiente, campoPendiente, valorVacio, esDeLargoFijo, type CampoDeLaGuia } from '../useGuiaDeCampos';
+import {
+  siguientePendiente,
+  campoPendiente,
+  valorVacio,
+  esDeLargoFijo,
+  elegirDestinoContinuar,
+  type CampoDeLaGuia,
+} from '../useGuiaDeCampos';
 
 const campo = (codigo: string, extra: Partial<CampoDeLaGuia> = {}): CampoDeLaGuia => ({
   codigo,
@@ -60,6 +67,28 @@ describe('valorVacio y campoPendiente', () => {
 
   it('opcional vacío no está pendiente', () => {
     expect(campoPendiente(campo('x', { obligatorio: false, vacio: true }))).toBe(false);
+  });
+});
+
+describe('elegirDestinoContinuar (goFin: a dónde resaltar "Continuar")', () => {
+  const elMock = (nombre: string) => ({ __nombre: nombre } as unknown as HTMLElement);
+
+  it('el botón visible, si hay uno', () => {
+    const escritorio = elMock('escritorio');
+    const movil = elMock('movil');
+    const visible = (el: HTMLElement) => el === movil;
+    expect(elegirDestinoContinuar([escritorio, movil], visible, elMock('zona'))).toBe(movil);
+  });
+
+  it('con la barra de celular sin pintar, NO cae al botón de escritorio oculto: va a la zona de acciones', () => {
+    const escritorioOculto = elMock('escritorio-oculto');
+    const zona = elMock('zona-acciones');
+    const ningunoVisible = () => false;
+    expect(elegirDestinoContinuar([escritorioOculto], ningunoVisible, zona)).toBe(zona);
+  });
+
+  it('sin ningún botón y sin zona de acciones, no revienta: devuelve null', () => {
+    expect(elegirDestinoContinuar([], () => false, null)).toBeNull();
   });
 });
 
