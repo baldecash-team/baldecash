@@ -156,7 +156,10 @@ jest.mock('../../context/ProductContext', () => ({
 jest.mock('@/app/prototipos/0.6/hooks/useLeadGuard', () => ({
   useLeadGuard: () => true,
 }));
-jest.mock('../../hooks/useLeadPrefill', () => ({ useLeadPrefill: jest.fn() }));
+jest.mock('../../hooks/useLeadPrefill', () => ({
+  useLeadPrefill: jest.fn(),
+  leadLockKey: (code: string) => `_lead_locked_${code}`,
+}));
 jest.mock('../../context/EventTrackerContext', () => ({
   useEventTrackerOptional: () => ({ track: jest.fn() }),
 }));

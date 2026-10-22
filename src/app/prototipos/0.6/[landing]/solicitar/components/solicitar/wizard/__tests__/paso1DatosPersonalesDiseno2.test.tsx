@@ -459,15 +459,20 @@ describe('Revisión 1 · "Corrige tu DNI" con documento bloqueado', () => {
     expect(screen.queryByRole('button', { name: /Corrige tu/ })).not.toBeInTheDocument();
   });
 
-  it('limpiar no vacía los campos bloqueados por el lead', () => {
+  it('limpiar no vacía los campos bloqueados por el lead (y el prefill tampoco los pisa)', () => {
     poner('document_number', '12345678');
     poner('_lead_locked_first_name', 'true');
+    poner('first_name', 'NombreDelLead'); // lo dejó el lead del socio, antes del lookup
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
+    // BAL-4963 (ronda 2): el lookup de ESTE documento no pisa el campo
+    // bloqueado — el lead es la fuente de verdad, no el lookup.
+    expect(valores().first_name).toBe('NombreDelLead');
+
     fireEvent.click(screen.getByRole('button', { name: 'Corrige tu DNI' }));
     const v = valores();
     expect(v.document_number).toBe('');
-    expect(v.first_name).toBe('MARÍA JOSÉ'); // bloqueado: no se toca
+    expect(v.first_name).toBe('NombreDelLead'); // bloqueado: no se toca
     expect(v.paternal_surname).toBe(''); // el resto sí se limpia
   });
 
@@ -668,5 +673,74 @@ describe('Revisión 6 · etiqueta, ayuda y borrado por tipo de documento', () =>
     expect(screen.queryByText('8 números')).not.toBeInTheDocument();
     act(() => poner('document_type', 'pasaporte'));
     expect(valores().document_number).toBe('12345678');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Correcciones de la re-revisión de F4 (ronda 2, BAL-4963)
+// ---------------------------------------------------------------------------
+
+describe('Re-revisión 1 · el prefill no pisa un campo bloqueado por el lead', () => {
+  it('first_name bloqueado por el lead: DNI A encontrado no lo pisa; "Corrige" + DNI B no encontrado lo deja intacto', () => {
+    poner('document_number', '12345678');
+    poner('_lead_locked_first_name', 'true');
+    poner('first_name', 'NombreDelLead');
+    montar(true);
+
+    // DNI A: se encuentra a alguien más. El nombre del lead no se pisa.
+    act(() => lookup.onPrefillReady!(RENIEC));
+    expect(valores().first_name).toBe('NombreDelLead');
+
+    // "Corrige tu DNI": limpia lo que llenó el prefill (first_name, bloqueado, no se toca).
+    fireEvent.click(screen.getByRole('button', { name: 'Corrige tu DNI' }));
+    expect(valores().first_name).toBe('NombreDelLead');
+
+    // DNI B: no se encuentra a nadie. first_name sigue siendo el del lead.
+    act(() => poner('document_number', '87654321'));
+    act(() => lookup.onNoPrefillData!());
+    expect(valores().first_name).toBe('NombreDelLead');
+  });
+});
+
+describe('Re-revisión 2 · "Número de {tipo}" solo en el documento del titular', () => {
+  const DOCUMENTO_FAMILIAR = campo({
+    id: 30, code: 'documento_familiar', label: 'Documento del familiar', type: 'document_number', required: true,
+    validations: [{ type: 'dni', value: null, message: 'El formato del documento no es válido' }],
+  } as Partial<WizardField>);
+
+  it('el documento de un familiar conserva la etiqueta de la BD, no "Número de {tipo}"', () => {
+    opcionesDinamicas = { document_type: [{ value: 'dni', label: 'DNI' }] };
+    montar(true, paso([TIPO_DOC, DOCUMENTO_FAMILIAR]));
+    expect(screen.getByText('Documento del familiar')).toBeInTheDocument();
+    expect(screen.queryByText(/^Número de /)).not.toBeInTheDocument();
+  });
+
+  it('el documento del titular sí recibe "Número de {tipo}" en el mismo paso', () => {
+    opcionesDinamicas = { document_type: [{ value: 'dni', label: 'DNI' }] };
+    montar(true, paso([TIPO_DOC, DOCUMENTO, DOCUMENTO_FAMILIAR]));
+    expect(screen.getByText('Número de DNI')).toBeInTheDocument(); // titular: etiqueta por tipo
+    expect(screen.getByText('Documento del familiar')).toBeInTheDocument(); // familiar: etiqueta de la BD
+  });
+});
+
+describe('Re-revisión 3a · "no encontrado" borra las marcas del prefill aunque no venga de esta sesión', () => {
+  it('borrador cargado con marcas de OTRO documento: not_found las limpia sin tocar lo escrito a mano', () => {
+    // Nadie disparó el prefill en esta sesión (prefilledRef sigue en false):
+    // son marcas que persistieron con el borrador, de un documento anterior.
+    store.data = {
+      document_type: { value: 'dni' },
+      document_number: { value: '12345678' },
+      _prefill_doc_document_number: { value: '99999999' },
+      _prefill_valor_first_name: { value: 'ALGUIEN' },
+      first_name: { value: 'Mariana' }, // lo que la persona escribió a mano
+    };
+    montar(true);
+
+    act(() => lookup.onNoPrefillData!());
+
+    const v = valores();
+    expect(v._prefill_doc_document_number).toBe('');
+    expect(v._prefill_valor_first_name).toBe('');
+    expect(v.first_name).toBe('Mariana'); // no se toca: no vino de prefill en esta sesión
   });
 });

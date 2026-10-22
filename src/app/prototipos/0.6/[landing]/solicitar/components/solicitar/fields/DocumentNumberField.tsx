@@ -195,6 +195,15 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // valor gana y el campo queda abierto como input. Diseño 1 no cambia.
     const mismoDocumento = !!value && formData[prefillDocKey(field.code)]?.value === value;
     const escribir = (code: string, valor: string) => {
+      // BAL-4963 (ronda 2): un campo bloqueado por el lead de un socio nunca
+      // se pisa con lo que traiga ESTE lookup. El lead es la fuente de
+      // verdad (ver `useLeadPrefill`); sin esta guarda, el DNI del titular
+      // podía dejar el nombre de OTRA persona (el que trajo el lookup)
+      // encima del nombre que llegó bloqueado. Y como "limpiar" tampoco toca
+      // los campos bloqueados, ese nombre ajeno quedaba pegado: "Corrige" +
+      // un segundo documento que no encuentra a nadie no lo hacía volver al
+      // del lead.
+      if (formData[leadLockKey(code)]?.value === 'true') return;
       if (v2) {
         const anterior = formData[prefillValorKey(code)]?.value;
         const actual = formData[code]?.value;
@@ -302,6 +311,24 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     return codigos;
   }, [prefillConfig, formData]);
 
+  // Borra solo las marcas de contabilidad del prefill (`_prefill_valor_*` y
+  // `_prefill_doc_*`), SIN tocar el valor de los campos. Las usa
+  // `limpiarCamposDelPrellenado` (que además vacía los campos) y, directo,
+  // el "no encontrado" de abajo cuando el prefill no corrió en esta sesión:
+  // aunque no haya nada que limpiar en pantalla, las marcas pueden venir de
+  // un documento ANTERIOR que ya no es el que está puesto (borrador
+  // recargado), y dejarlas ahí confundiría la próxima comparación de
+  // "la persona corrigió este campo" si alguien vuelve a escribir ese
+  // documento viejo.
+  const limpiarMarcasDelPrellenado = useCallback(() => {
+    for (const formFieldCode of codigosDelPrellenado()) {
+      if (formData[prefillValorKey(formFieldCode)] !== undefined) {
+        updateField(prefillValorKey(formFieldCode), '');
+      }
+    }
+    if (formData[prefillDocKey(field.code)]?.value) updateField(prefillDocKey(field.code), '');
+  }, [codigosDelPrellenado, formData, updateField, field.code]);
+
   // Borra los campos que llenó el prefill y sus marcas. Lo usan el
   // `not_found` de abajo y, en Diseño 2, "Corrige tu DNI".
   //
@@ -312,14 +339,11 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       if (formData[leadLockKey(formFieldCode)]?.value === 'true') continue;
       updateField(formFieldCode, '');
       updateField(`_prefill_empty_${formFieldCode}`, '');
-      if (formData[prefillValorKey(formFieldCode)] !== undefined) {
-        updateField(prefillValorKey(formFieldCode), '');
-      }
     }
-    if (formData[prefillDocKey(field.code)]?.value) updateField(prefillDocKey(field.code), '');
+    limpiarMarcasDelPrellenado();
 
     prefilledRef.current = false;
-  }, [codigosDelPrellenado, formData, updateField, field.code]);
+  }, [codigosDelPrellenado, formData, updateField, limpiarMarcasDelPrellenado]);
 
   // Handle clearing fields when no prefill data is available
   // Only clear if fields were previously auto-filled (not manually entered)
@@ -327,10 +351,19 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Mark as not found — this triggers visibility of personal fields
     updateField(`_prefill_status_${field.code}`, 'not_found');
 
-    if (!prefilledRef.current) return; // Don't clear manually entered data
+    if (!prefilledRef.current) {
+      // BAL-4963 (ronda 2): el prefill no corrió en ESTA sesión (borrador
+      // recién cargado, o el lookup nunca llegó a "found" para este
+      // documento), así que no se tocan los campos — pueden ser datos que la
+      // persona escribió a mano. Pero las marcas sí se limpian: si no, un
+      // "no encontrado" con un documento NUEVO deja las marcas del documento
+      // VIEJO en el borrador.
+      limpiarMarcasDelPrellenado();
+      return; // Don't clear manually entered data
+    }
 
     limpiarCamposDelPrellenado();
-  }, [field.code, updateField, limpiarCamposDelPrellenado]);
+  }, [field.code, updateField, limpiarCamposDelPrellenado, limpiarMarcasDelPrellenado]);
 
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
@@ -437,6 +470,19 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   useEffect(() => {
     if (tipoAnterior.current === documentType) return;
     tipoAnterior.current = documentType;
+    // BAL-4963 (ronda 2, documentando lo que ya hacía este código): si el
+    // campo tipo estaba en '' (nadie lo había elegido todavía) y pasa a tener
+    // un valor, ESE cambio no cuenta como "la persona cambió de tipo" — es la
+    // resolución del default (o el tipo que trajo el borrador) al montar, no
+    // un gesto de la persona. `loEligioLaPersona` queda en `false` ahí, así
+    // que el bloque de abajo no borra nada.
+    //
+    // Importa porque el número puede llegar ANTES de que exista un tipo: la
+    // persona puede tipear el documento mientras el combo de tipo sigue en
+    // blanco (o el combo tarda un render en resolver su default). Sin esta
+    // guarda, el primer `documentType` que aparece —aunque sea el default y
+    // no una elección— borraría lo que la persona ya escribió, antes de que
+    // ella haya tocado el selector de tipo siquiera una vez.
     const loEligioLaPersona = tipoCrudoAnterior.current !== '';
 
     const actual = (getFieldValue(field.code) as string) || '';
@@ -513,12 +559,18 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
   // Diseño 2: "Número de {tipo}" con la etiqueta de la opción elegida (la del
   // catálogo de tipos, o la que guardó el select). Sin opción, la de la BD.
-  const etiquetaDelTipo = v2
+  //
+  // BAL-4963 (ronda 2): SOLO el documento del titular recibe este tratamiento.
+  // El documento de un familiar (este mismo componente también lo pinta, ver
+  // `esDocumentoDelTitular` arriba) conserva la etiqueta que trae la BD —
+  // "Documento del familiar", "DNI del aval", etc. — tal cual la escribió
+  // Brenda, en vez de que todos los documentos de la ficha digan lo mismo.
+  const etiquetaDelTipo = v2 && esDocumentoDelTitular
     ? (getAllDynamicOptions?.()?.[documentTypeField] || []).find(
         (o) => String(o.value).toLowerCase() === documentType.toLowerCase(),
       )?.label ?? getFieldLabel?.(documentTypeField)
     : undefined;
-  const etiqueta = v2 ? etiquetaDelNumero(etiquetaDelTipo, field.label) : field.label;
+  const etiqueta = v2 && esDocumentoDelTitular ? etiquetaDelNumero(etiquetaDelTipo, field.label) : field.label;
 
   // "Corrige tu DNI": lo mismo que pasa hoy al cambiar el documento (número,
   // prefill y campos que llenó, en blanco) y el foco vuelve al campo.
