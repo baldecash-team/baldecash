@@ -1088,6 +1088,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           isOpen={isLoQuieroOpen}
           onClose={() => setIsLoQuieroOpen(false)}
           origen="ficha"
+          regalos={(combo?.accessories ?? []).map((a) => ({
+            id: String(a.productId),
+            name: a.productName,
+            image: a.imageUrl,
+            gratis: a.isIncludedFree || a.unitPrice === 0,
+          }))}
         />
       )}
     </div>

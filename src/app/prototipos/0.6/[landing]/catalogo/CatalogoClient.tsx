@@ -142,7 +142,7 @@ import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLink
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { cuponConBanner, landingMuestraBannerDeCupon } from '@/app/prototipos/0.6/utils/couponBanner';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
-import { LoQuieroModal } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
+import { LoQuieroModal, type RegaloDelCombo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
@@ -1029,6 +1029,8 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   // Modal de "Lo quiero" (BAL-4852): solo con el ingrediente de la landing.
   const [isLoQuieroOpen, setIsLoQuieroOpen] = useState(false);
+  // Regalos del combo de la card elegida: el modal no los ofrece para agregar.
+  const [loQuieroRegalos, setLoQuieroRegalos] = useState<RegaloDelCombo[]>([]);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1661,6 +1663,9 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       // Con el ingrediente `lo-quiero-modal-on` el producto queda guardado igual
       // y se abre el modal; desde ahí se pasa directo al primer paso.
       if (loQuieroModal) {
+        setLoQuieroRegalos(
+          (target.comboAccessories ?? []).map((a) => ({ id: String(a.productId), name: a.name, gratis: a.price === 0 })),
+        );
         setIsLoQuieroOpen(true);
         return;
       }
@@ -2415,7 +2420,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       )}
 
       {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !isWelcomeModalCovering && (
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !isWelcomeModalCovering && !isLoQuieroOpen && (
       // && !isWebchatOpen // COMENTADO: Blip Chat maneja su propio botón
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
@@ -2589,7 +2594,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
           quiz/modales/drawers/onboarding abiertos (misma condición de antes). */}
       <ScrollToTopButton
         threshold={400}
-        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || isWelcomeModalCovering}
+        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || isWelcomeModalCovering || isLoQuieroOpen}
         className="fixed bottom-6 right-6 z-[100] flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-primary)] text-white shadow-lg cursor-pointer transition-all hover:brightness-90 hover:scale-110"
       />
 
@@ -2640,6 +2645,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
         isOpen={isLoQuieroOpen}
         onClose={() => setIsLoQuieroOpen(false)}
         origen="catalogo"
+        regalos={loQuieroRegalos}
       />
 
       {/* Toast para alertas de comparación */}

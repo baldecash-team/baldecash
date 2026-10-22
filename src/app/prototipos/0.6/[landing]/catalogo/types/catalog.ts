@@ -705,6 +705,10 @@ export interface CatalogProduct {
     accessories: { id: number | null; name: string }[];
     insurances: { id: number | null; name: string }[];
   };
+  /** Accesorios que ya vienen dentro del combo (regalo), por id de producto.
+   *  El modal de "Lo quiero" los muestra como incluidos y no los ofrece para
+   *  agregar (BAL-4957). Solo presente cuando el ítem es un combo. */
+  comboAccessories?: { productId: number; name: string; price: number }[];
   colors?: ProductColor[]; // NUEVO v0.6: colores disponibles
   deviceType?: CatalogDeviceType; // NUEVO v0.6: tipo de dispositivo para link al detalle
   price: number;
