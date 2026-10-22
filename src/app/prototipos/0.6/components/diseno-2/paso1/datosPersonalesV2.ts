@@ -9,7 +9,12 @@
  * Solo se usa en Diseño 2. Diseño 1 no importa este archivo.
  */
 
-import type { WizardField, WizardFieldValidation, WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
+import type {
+  OptionValidation,
+  WizardField,
+  WizardFieldValidation,
+  WizardStep,
+} from '@/app/prototipos/0.6/services/wizardApi';
 import { getPrefillTargetFieldCodes } from '@/app/prototipos/0.6/services/wizardApi';
 
 type Valores = Record<string, string | string[] | undefined>;
@@ -62,6 +67,8 @@ function texto(valor: string | string[] | undefined): string {
  */
 export function nombreDelSaludo(field: WizardField, valores: Valores): string | null {
   if (!CODIGOS_DOCUMENTO_TITULAR.includes(field.code)) return null;
+  // Documento fuera de la whitelist: manda el modal de no invitado, no se saluda.
+  if (valores._whitelist_blocked === 'true') return null;
   if (valores[`_prefill_status_${field.code}`] !== 'found') return null;
   const codigoNombre = campoDelNombre(field.prefill_config);
   if (!codigoNombre) return null;
@@ -152,6 +159,12 @@ export const MENSAJES_CELULAR_V2 = {
   repetido: 'Es tu mismo número de WhatsApp. Si contestas llamadas ahí, no necesitas agregarlo.',
 } as const;
 
+/** Los de cualquier otro celular (familiar, alterno, `supporter_phone`…). */
+export const MENSAJES_OTRO_CELULAR_V2 = {
+  vacio: 'Ingresa el celular.',
+  corto: 'El celular tiene 9 números.',
+} as const;
+
 function tipoNormalizado(tipo: string | null | undefined): string {
   const t = String(tipo || '').trim().toLowerCase();
   return t === 'passport' ? 'pasaporte' : t;
@@ -185,27 +198,73 @@ export function esCelularPeruano(field: Pick<WizardField, 'type' | 'validations'
 }
 
 /**
+ * El celular del titular: el campo `phone`, el mismo código que llena y
+ * bloquea el lead de un socio (`useLeadPrefill`). Los demás celulares
+ * (familiar, alterno, `supporter_phone`) no son "tu celular".
+ */
+export const CODIGO_CELULAR_TITULAR = 'phone';
+
+export function esCelularDelTitular(field: Pick<WizardField, 'type' | 'code'>): boolean {
+  return field.type === 'phone' && field.code === CODIGO_CELULAR_TITULAR;
+}
+
+/**
  * El mensaje que se ve bajo un celular en Diseño 2.
  *
+ * Celular del titular (`phone`):
  * - Vacío → `required_message` de la BD si existe; si no, el de Brenda.
- * - Celular peruano con menos de 9 números → "Tu celular tiene 9 números."
- * - Celular peruano que no empieza con 9 → "Los celulares en Perú empiezan con 9."
- * - Cualquier otro error (p. ej. número repetido) → el de la regla, tal cual.
+ * - Peruano con menos de 9 números → "Tu celular tiene 9 números."
+ * - Peruano que no empieza con 9 → "Los celulares en Perú empiezan con 9."
+ *   (no aplica si está bloqueado por el lead: ahí la regla no se exige).
+ *
+ * Cualquier otro celular: "Ingresa el celular." / "El celular tiene 9
+ * números.", con `required_message` ganando si existe.
+ *
+ * Cualquier otro error (p. ej. número repetido) → el de la regla, tal cual.
  */
 export function mensajeCelularV2(opciones: {
   error: string | null | undefined;
   valor: string | null | undefined;
-  field: Pick<WizardField, 'type' | 'validations' | 'required_message'>;
+  field: Pick<WizardField, 'type' | 'code' | 'validations' | 'required_message'>;
+  bloqueado?: boolean;
 }): string | undefined {
-  const { error, field } = opciones;
+  const { error, field, bloqueado = false } = opciones;
   if (!error) return undefined;
   const valor = String(opciones.valor ?? '').trim();
-  if (!valor) return field.required_message || MENSAJES_CELULAR_V2.vacio;
+  const titular = esCelularDelTitular(field);
+  if (!valor) {
+    return field.required_message || (titular ? MENSAJES_CELULAR_V2.vacio : MENSAJES_OTRO_CELULAR_V2.vacio);
+  }
   if (esCelularPeruano(field)) {
-    if (!/^\d{9}$/.test(valor)) return MENSAJES_CELULAR_V2.corto;
-    if (!valor.startsWith('9')) return MENSAJES_CELULAR_V2.empiezaCon9;
+    if (!/^\d{9}$/.test(valor)) return titular ? MENSAJES_CELULAR_V2.corto : MENSAJES_OTRO_CELULAR_V2.corto;
+    if (titular && !bloqueado && !valor.startsWith('9')) return MENSAJES_CELULAR_V2.empiezaCon9;
   }
   return error;
+}
+
+// ---------------------------------------------------------------------------
+// Etiqueta y ayuda del número por tipo de documento
+// ---------------------------------------------------------------------------
+
+/** "Número de DNI", "Número de Carné de extranjería"… con la etiqueta de la opción. */
+export function etiquetaDelNumero(etiquetaDeLaOpcion: string | null | undefined, etiquetaDelCampo: string): string {
+  const opcion = String(etiquetaDeLaOpcion ?? '').trim();
+  return opcion ? `Número de ${opcion}` : etiquetaDelCampo;
+}
+
+/**
+ * La ayuda bajo el número, sacada de las reglas del tipo (las mismas que
+ * validan): "8 números", "Entre 9 y 12 caracteres"… Sin reglas, sin ayuda.
+ */
+export function ayudaDelNumero(reglas: OptionValidation | null | undefined): string | null {
+  if (!reglas) return null;
+  const { min_length: min, max_length: max, input_mode: modo } = reglas;
+  const unidad = modo === 'numeric' ? 'números' : 'caracteres';
+  if (min && max && min === max) return `${min} ${unidad}`;
+  if (min && max) return `Entre ${min} y ${max} ${unidad}`;
+  if (max) return `Hasta ${max} ${unidad}`;
+  if (min) return `Al menos ${min} ${unidad}`;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -231,22 +290,34 @@ function yaExigeEmpezarCon9(field: WizardField): boolean {
  * El paso tal como lo valida Diseño 2. Dos ajustes, y solo en los campos que
  * ya los piden por su configuración:
  *
- * 1. Un celular peruano (regla `phone`) que no exige empezar con 9 recibe la
- *    regla `pattern ^9` (la validación de Diseño 1 no la tiene; Brenda sí).
- * 2. Una regla `not_equals_field` sin mensaje recibe el texto de Brenda.
+ * 1. El celular del titular (`phone`, con la regla `phone`) que no exige
+ *    empezar con 9 recibe la regla `pattern ^9` (la validación de Diseño 1 no
+ *    la tiene; Brenda sí). No la recibe si está bloqueado por el lead de un
+ *    socio: la persona no podría corregirlo y quedaría trabada.
+ * 2. Una regla `not_equals_field` sin mensaje en un celular recibe el texto
+ *    de Brenda ("Es tu mismo número de WhatsApp…").
  *
  * Devuelve el MISMO objeto si no hay nada que cambiar.
  */
-export function adaptarPasoDiseno2(step: WizardStep): WizardStep {
+export function adaptarPasoDiseno2(
+  step: WizardStep,
+  opciones: { bloqueado?: (codigo: string) => boolean } = {},
+): WizardStep {
+  const bloqueado = opciones.bloqueado ?? (() => false);
   let cambio = false;
   const fields = step.fields.map((field) => {
     let validations = field.validations || [];
     let tocado = false;
-    if (esCelularPeruano(field) && !yaExigeEmpezarCon9(field)) {
+    if (
+      esCelularDelTitular(field) &&
+      esCelularPeruano(field) &&
+      !bloqueado(field.code) &&
+      !yaExigeEmpezarCon9(field)
+    ) {
       validations = [...validations, { ...REGLA_EMPIEZA_CON_9 }];
       tocado = true;
     }
-    if (validations.some((v) => v.type === 'not_equals_field' && !v.message)) {
+    if (field.type === 'phone' && validations.some((v) => v.type === 'not_equals_field' && !v.message)) {
       validations = validations.map((v) =>
         v.type === 'not_equals_field' && !v.message ? { ...v, message: MENSAJES_CELULAR_V2.repetido } : v,
       );

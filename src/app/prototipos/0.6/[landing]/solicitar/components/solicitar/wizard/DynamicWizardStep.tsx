@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
+import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes, getDocumentTypeRules } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -16,7 +16,7 @@ import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/prime
 import { CamposV2Provider, PISTA_V2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
 import { ResumenPrellenadoV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/ResumenPrellenadoV2';
-import { camposDelResumen, nombreDelSaludo, textoDelResumen } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { ayudaDelNumero, camposDelResumen, nombreDelSaludo, textoDelResumen } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -174,7 +174,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   stepOrder,
   camposTocados,
 }) => {
-  const { getFieldValue, updateField, formData } = useWizard();
+  const { getFieldValue, updateField, formData, getAllDynamicOptions } = useWizard();
   const { deferredPayment, landing } = useLayout();
 
   // El legacy corre un mes el primer pago cuando la landing es diferida.
@@ -372,6 +372,19 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         const resumen = esV2 && field.prefill_config ? camposDelResumen(step, field, formValues) : [];
         // Con el saludo bajo el documento, la pista sobra.
         const conSaludo = esV2 && field.type === 'document_number' && !!nombreDelSaludo(field, formValues);
+        // Pista: el `hint` de la BD gana. Sin él, el número de documento dice
+        // lo que pide su tipo ("8 números", "Entre 9 y 12 caracteres"…), con
+        // las mismas reglas que lo validan.
+        const codigoTipo = field.prefill_config?.document_type_field || 'document_type';
+        const pista = !esV2
+          ? null
+          : field.hint || (field.type === 'document_number'
+            ? ayudaDelNumero(getDocumentTypeRules(
+              codigoTipo,
+              { [codigoTipo]: formValues[codigoTipo] || 'dni' },
+              getAllDynamicOptions?.(),
+            ))
+            : null);
 
         // Diseño 2: opcional plegado. Con valor (borrador) sale abierto.
         const plegado = esV2 && field.collapsed_optional === true && !field.required
@@ -398,8 +411,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                     onLocalErrorChange={esV2 ? reportarErrorLocal : undefined}
                   />
                   {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
-                  {esV2 && field.hint && !errorVisible && !conSaludo && (
-                    <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{field.hint}</p>
+                  {pista && !errorVisible && !conSaludo && (
+                    <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{pista}</p>
                   )}
                 </>
               )}

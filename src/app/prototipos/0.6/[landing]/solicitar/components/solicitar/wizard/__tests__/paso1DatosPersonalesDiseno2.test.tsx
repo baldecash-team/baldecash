@@ -22,8 +22,10 @@ import {
   mensajeCelularV2,
   mensajeDocumentoV2,
   nombreDelSaludoDelPaso,
+  ayudaDelNumero,
   MENSAJES_CELULAR_V2,
   MENSAJES_DOCUMENTO_V2,
+  MENSAJES_OTRO_CELULAR_V2,
 } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 // --- WizardContext de mentira, con re-render real al cambiar un campo -------
@@ -37,6 +39,8 @@ function poner(code: string, value: Valor, error?: string | null) {
   store.data = { ...store.data, [code]: { ...store.data[code], value, ...(error !== undefined ? { error } : {}) } };
   emitir();
 }
+// Catálogo de tipos de documento (lo que deja `CascadingSelectField` en el cache).
+let opcionesDinamicas: Record<string, Array<{ value: string; label: string }>> = {};
 const updateField = jest.fn((code: string, value: Valor) => poner(code, value));
 const setFieldError = jest.fn((code: string, error: string | null) => {
   store.data = { ...store.data, [code]: { ...store.data[code], value: store.data[code]?.value ?? '', error } };
@@ -64,7 +68,7 @@ jest.mock('../../../../context/WizardContext', () => {
         isFieldTouched: () => false,
         setDynamicOptions: jest.fn(),
         getDynamicOptions: () => [],
-        getAllDynamicOptions: () => ({}),
+        getAllDynamicOptions: () => opcionesDinamicas,
       };
     },
     FILE_PENDING_REUPLOAD: '__FILE_PENDING_REUPLOAD__',
@@ -185,6 +189,7 @@ beforeEach(() => {
   store.oyentes.clear();
   lookup = {};
   respuestaLookup = null;
+  opcionesDinamicas = {};
   jest.clearAllMocks();
   localStorage.clear();
 });
@@ -422,5 +427,246 @@ describe('Diseño 1 no cambia', () => {
     expect(screen.getByRole('heading').className).toContain("font-['Baloo_2',_sans-serif]");
     expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass('min-h-[48px]', 'rounded-[10px]', 'border-[#4654CD]');
     expect(screen.getByRole('link', { name: 'Ver el catálogo principal' })).toHaveClass('min-h-[48px]', 'bg-[#4654CD]');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Correcciones de la revisión de F4
+// ---------------------------------------------------------------------------
+
+const SIN_PREFILL_STATUS = (data: Estado): Estado =>
+  Object.fromEntries(
+    Object.entries(data).filter(([k]) => !k.startsWith('_prefill_status_') && !k.startsWith('_prefill_empty_')),
+  );
+
+describe('Revisión 1 · "Corrige tu DNI" con documento bloqueado', () => {
+  it('bloqueado por la puerta VIP: saludo sin enlace', () => {
+    localStorage.setItem('baldecash-dni-pago-diferido', '12345678');
+    localStorage.setItem('baldecash-vip-token-pago-diferido', 'tok');
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, María!');
+    expect(screen.queryByRole('button', { name: /Corrige tu/ })).not.toBeInTheDocument();
+    expect(document.getElementById('document_number-input')).toBeDisabled();
+  });
+
+  it('bloqueado por el lead de un socio: saludo sin enlace', () => {
+    poner('document_number', '12345678');
+    poner('_lead_locked_document_number', 'true');
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, María!');
+    expect(screen.queryByRole('button', { name: /Corrige tu/ })).not.toBeInTheDocument();
+  });
+
+  it('limpiar no vacía los campos bloqueados por el lead', () => {
+    poner('document_number', '12345678');
+    poner('_lead_locked_first_name', 'true');
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    fireEvent.click(screen.getByRole('button', { name: 'Corrige tu DNI' }));
+    const v = valores();
+    expect(v.document_number).toBe('');
+    expect(v.first_name).toBe('MARÍA JOSÉ'); // bloqueado: no se toca
+    expect(v.paternal_surname).toBe(''); // el resto sí se limpia
+  });
+
+  it('role="status" solo envuelve el texto del saludo, no el botón', () => {
+    poner('document_number', '12345678');
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    const estado = screen.getByRole('status');
+    expect(estado).toHaveTextContent('¡Hola, María!');
+    expect(estado.querySelector('button')).toBeNull();
+  });
+
+  it('con la whitelist bloqueando no hay saludo ni título "¡Hola, …!"', () => {
+    respuestaLookup = { whitelist: { allowed: false, message: 'No invitado' } };
+    poner('document_number', '55556666');
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    expect(document.querySelector('[data-saludo-v2]')).toBeNull();
+    expect(nombreDelSaludoDelPaso(PASO, valores())).toBeNull();
+  });
+});
+
+describe('Revisión 2 y 3 · celular del titular vs otros celulares', () => {
+  const FAMILIAR = campo({
+    id: 20, code: 'supporter_phone', label: 'Celular del familiar', type: 'phone', required: true, max_length: 9,
+    validations: [{ type: 'phone', value: null, message: 'El celular debe tener 9 dígitos' }],
+  } as Partial<WizardField>);
+
+  it('el celular de un familiar usa textos genéricos (o su required_message)', () => {
+    expect(mensajeCelularV2({ error: 'x', valor: '', field: FAMILIAR })).toBe('Ingresa el celular.');
+    expect(mensajeCelularV2({ error: 'x', valor: '98765', field: FAMILIAR })).toBe('El celular tiene 9 números.');
+    expect(mensajeCelularV2({ error: 'x', valor: '', field: { ...FAMILIAR, required_message: 'De la BD' } })).toBe('De la BD');
+    // No se le dice "Los celulares en Perú empiezan con 9.": esa regla es del titular.
+    expect(mensajeCelularV2({ error: 'Del validador', valor: '812345678', field: FAMILIAR })).toBe('Del validador');
+    expect(MENSAJES_OTRO_CELULAR_V2.vacio).toBe('Ingresa el celular.');
+  });
+
+  it('pintado: el familiar no ve "Ingresa tu celular para avisarte…"', () => {
+    const p = adaptarPasoDiseno2(paso([CELULAR, FAMILIAR]));
+    poner('supporter_phone', '', 'requerido');
+    poner('phone', '', 'requerido');
+    montar(true, p, true);
+    const alertas = screen.getAllByRole('alert').map((a) => a.textContent);
+    expect(alertas).toContain('Ingresa el celular.');
+    expect(alertas).toContain('Ingresa tu celular para avisarte cómo va tu solicitud.');
+  });
+
+  it('la regla del 9 solo va al celular del titular', () => {
+    const p = adaptarPasoDiseno2(paso([CELULAR, FAMILIAR]));
+    expect(validateField(p.fields[0], '812345678', {}).error).toBe('Los celulares en Perú empiezan con 9.');
+    expect(p.fields[1]).toBe(FAMILIAR);
+    expect(validateField(p.fields[1], '812345678', {}).isValid).toBe(true);
+  });
+
+  it('con el celular bloqueado por el lead no se exige la regla del 9', () => {
+    const p = adaptarPasoDiseno2(paso([CELULAR]), { bloqueado: (c) => c === 'phone' });
+    expect(p.fields[0]).toBe(CELULAR);
+    expect(validateField(p.fields[0], '812345678', {}).isValid).toBe(true);
+    expect(mensajeCelularV2({ error: 'Otro', valor: '812345678', field: CELULAR, bloqueado: true })).toBe('Otro');
+  });
+
+  it('el respaldo "Es tu mismo número…" solo va a not_equals_field de celulares', () => {
+    const correo = campo({
+      id: 21, code: 'email_2', type: 'email',
+      validations: [{ type: 'not_equals_field', value: 'email', message: '' }],
+    } as Partial<WizardField>);
+    const p = adaptarPasoDiseno2(paso([correo]));
+    expect(p.fields[0]).toBe(correo);
+  });
+});
+
+describe('Revisión 4 · área de toque de 44px', () => {
+  it('"Corrige tu DNI" y "Corregir" tienen min-h de 44px', () => {
+    poner('document_number', '12345678');
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    expect(screen.getByRole('button', { name: 'Corrige tu DNI' })).toHaveClass('min-h-[44px]');
+    expect(screen.getByRole('button', { name: 'Corregir' })).toHaveClass('min-h-[44px]');
+  });
+});
+
+describe('Revisión 5 · lo corregido no se pierde al volver al Paso 1', () => {
+  it('corregir el nombre, volver al Paso 1: el lookup no lo pisa', () => {
+    poner('document_number', '12345678');
+    const primera = montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    fireEvent.click(screen.getByRole('button', { name: 'Corregir' }));
+    fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
+    expect(valores().first_name).toBe('Mariana');
+    primera.unmount();
+
+    // Volver (o recargar): el borrador no guarda status ni empty.
+    store.data = SIN_PREFILL_STATUS(store.data);
+    montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+
+    const v = valores();
+    expect(v.first_name).toBe('Mariana');
+    expect(v.paternal_surname).toBe('PÉREZ');
+    // Sigue abierto como input, con lo corregido.
+    expect((document.getElementById('first_name-input') as HTMLInputElement).value).toBe('Mariana');
+    expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, Mariana!');
+  });
+
+  it('con otro documento (otra persona) el prefill escribe como siempre', () => {
+    poner('document_number', '12345678');
+    const primera = montar(true);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    fireEvent.click(screen.getByRole('button', { name: 'Corregir' }));
+    fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
+    primera.unmount();
+
+    store.data = SIN_PREFILL_STATUS(store.data);
+    poner('document_number', '87654321');
+    montar(true);
+    act(() => lookup.onPrefillReady!({ ...RENIEC, first_name: 'ROSA' } as PrefillData));
+    expect(valores().first_name).toBe('ROSA');
+  });
+
+  it('Diseño 1 no escribe marcas nuevas', () => {
+    poner('document_number', '12345678');
+    montar(false);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    expect(Object.keys(store.data).filter((k) => k.startsWith('_prefill_valor_') || k.startsWith('_prefill_doc_'))).toEqual([]);
+  });
+});
+
+describe('Revisión 6 · etiqueta, ayuda y borrado por tipo de documento', () => {
+  const SIN_HINT = { ...DOCUMENTO, hint: undefined } as WizardField;
+  const PASO_SIN_HINT = paso([TIPO_DOC, SIN_HINT, NOMBRES, PATERNO, MATERNO, NACIMIENTO, SEXO]);
+  const catalogo = () => {
+    opcionesDinamicas = {
+      document_type: [
+        { value: 'dni', label: 'DNI' },
+        { value: 'ce', label: 'Carné de extranjería' },
+        { value: 'pasaporte', label: 'Pasaporte' },
+      ],
+    };
+  };
+
+  it('la etiqueta sale de la opción elegida y la ayuda de las reglas del tipo', () => {
+    catalogo();
+    montar(true, PASO_SIN_HINT);
+    expect(screen.getByText('Número de DNI')).toBeInTheDocument();
+    expect(screen.getByText('8 números')).toBeInTheDocument();
+
+    act(() => poner('document_type', 'ce'));
+    expect(screen.getByText('Número de Carné de extranjería')).toBeInTheDocument();
+    expect(screen.getByText('Entre 9 y 12 caracteres')).toBeInTheDocument();
+
+    act(() => poner('document_type', 'pasaporte'));
+    expect(screen.getByText('Número de Pasaporte')).toBeInTheDocument();
+    expect(screen.getByText('Entre 6 y 12 caracteres')).toBeInTheDocument();
+  });
+
+  it('el hint de la BD gana sobre la ayuda por tipo', () => {
+    catalogo();
+    montar(true);
+    expect(screen.getByText('Lo usamos para validar tu identidad.')).toBeInTheDocument();
+    expect(screen.queryByText('8 números')).not.toBeInTheDocument();
+  });
+
+  it('ayudaDelNumero con las reglas de respaldo', () => {
+    expect(ayudaDelNumero({ min_length: 8, max_length: 8, input_mode: 'numeric' })).toBe('8 números');
+    expect(ayudaDelNumero({ min_length: 9, max_length: 12, input_mode: 'text' })).toBe('Entre 9 y 12 caracteres');
+    expect(ayudaDelNumero(null)).toBeNull();
+  });
+
+  it('cambiar de tipo borra el número y lo que llenó el prefill', () => {
+    poner('document_number', '12345678');
+    montar(true, PASO_SIN_HINT);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    resetLookup.mockClear();
+
+    act(() => poner('document_type', 'ce'));
+
+    const v = valores();
+    expect(v.document_number).toBe('');
+    expect(v._prefill_status_document_number).toBe('');
+    expect(v.first_name).toBe('');
+    expect(resetLookup).toHaveBeenCalled();
+    expect(document.querySelector('[data-saludo-v2]')).toBeNull();
+  });
+
+  it('un documento bloqueado no se borra al cambiar de tipo', () => {
+    poner('document_number', '12345678');
+    poner('_lead_locked_document_number', 'true');
+    montar(true, PASO_SIN_HINT);
+    act(() => poner('document_type', 'ce'));
+    expect(valores().document_number).not.toBe('');
+  });
+
+  it('Diseño 1: la etiqueta es la de la BD, sin ayuda, y el número no se borra al cambiar de tipo', () => {
+    catalogo();
+    poner('document_number', '12345678');
+    montar(false, PASO_SIN_HINT);
+    expect(screen.getByText('Número de Documento')).toBeInTheDocument();
+    expect(screen.queryByText('8 números')).not.toBeInTheDocument();
+    act(() => poner('document_type', 'pasaporte'));
+    expect(valores().document_number).toBe('12345678');
   });
 });

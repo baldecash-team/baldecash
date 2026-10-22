@@ -319,8 +319,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           {...commonProps}
           onChange={(newValue: string) => updateField(field.code, newValue.replace(/\D/g, ''))}
           // Diseño 2: el texto del error de Brenda (vacío, corto, no empieza
-          // con 9); cuándo hay error lo decide el validador.
-          error={v2 ? mensajeCelularV2({ error, valor: value, field }) : error}
+          // con 9); cuándo hay error lo decide el validador. Solo el celular
+          // del titular habla de "tu celular".
+          error={v2 ? mensajeCelularV2({ error, valor: value, field, bloqueado: isLockedFromLead }) : error}
           type="tel"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}

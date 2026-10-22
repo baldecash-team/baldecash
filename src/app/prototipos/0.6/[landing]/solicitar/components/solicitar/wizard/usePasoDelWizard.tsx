@@ -47,7 +47,7 @@ import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
-import { adaptarPasoDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 export interface PasoDelWizardControles {
   /** El paso que se está mostrando. `null` mientras la config no resolvió. */
@@ -205,9 +205,15 @@ export function usePasoDelWizard(opciones: {
 
   // Get step config from API using URL slug
   const stepDeLaApi = getStepByUrlSlug(stepSlug);
+  // El celular que trajo el lead de un socio queda bloqueado: no se le exige
+  // la regla del 9, porque la persona no podría corregirlo.
+  // (Es la marca `leadLockKey('phone')` de `useLeadPrefill`.)
+  const celularBloqueado = formData[`_lead_locked_${CODIGO_CELULAR_TITULAR}`]?.value === 'true';
   const step = useMemo(
-    () => (diseno2 && stepDeLaApi ? adaptarPasoDiseno2(stepDeLaApi) : stepDeLaApi),
-    [diseno2, stepDeLaApi],
+    () => (diseno2 && stepDeLaApi
+      ? adaptarPasoDiseno2(stepDeLaApi, { bloqueado: (codigo) => celularBloqueado && codigo === CODIGO_CELULAR_TITULAR })
+      : stepDeLaApi),
+    [diseno2, stepDeLaApi, celularBloqueado],
   );
   const navigation = step ? getNavigation(step.code) : {
     currentIndex: -1,
