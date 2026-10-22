@@ -14,9 +14,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useParams } from 'next/navigation';
 import { Tag, Loader2, Check, X, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
-import { getCouponScopeText } from '@/app/prototipos/0.6/utils/couponPricing';
+import { getCouponScopeText, redondearAlSol } from '@/app/prototipos/0.6/utils/couponPricing';
+import { formatCuotaDeLanding, landingMuestraCentavos } from '@/app/prototipos/0.6/utils/formatCuota';
 import {
   COUPON_CONFIRMED_DOCUMENT_NOTICE,
   COUPON_PENDING_DOCUMENT_NOTICE,
@@ -78,6 +80,11 @@ interface CouponInputProps {
 
 export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) => {
   const tracker = useEventTrackerOptional();
+  // Slug de la landing: igual que lo lee `SelectedProductBar`, un vecino de
+  // este mismo flujo de /solicitar. Se usa para el formato del monto (Family
+  // Farms muestra céntimos; el resto, no — ver `formatCuotaDeLanding`).
+  const params = useParams();
+  const landingSlug = (params?.landing as string) || '';
   const [couponCode, setCouponCode] = useState('');
   const [state, setState] = useState<CouponState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -215,6 +222,19 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
    * tiene otro texto que mostrar.
    */
   const discountAmount = appliedCoupon && !isGiftCoupon ? getDiscountAmount() : 0;
+  /**
+   * El monto que se pinta al lado del descuento: en la landing con céntimos
+   * (Family Farms) se muestra exacto. En las demás, `formatCuotaDeLanding`
+   * trunca con `Math.floor` — el mismo corte que ya se arregló en la tarjeta
+   * y en `descuentoPorCuota` — y un descuento real de S/49.90 no se puede
+   * mostrar como «-S/49»: promete menos de lo que el cliente recibe. Se
+   * redondea al sol más cercano (mitad hacia arriba, el mismo criterio que
+   * la cuota con cupón) antes de formatear, para no truncar nunca el monto
+   * hacia abajo.
+   */
+  const discountAmountToShow = landingMuestraCentavos(landingSlug)
+    ? discountAmount
+    : redondearAlSol(discountAmount);
   // Plazo en cuotas del equipo elegido: un cupón de N cuotas sobre un plazo de
   // N o menos las cubre todas.
   const productoDelPlazo = selectedProduct ?? cartProducts[0];
@@ -291,7 +311,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                 </>
               ) : scopeText ? (
                 <p className="text-lg font-bold text-green-600 whitespace-nowrap">
-                  -S/{discountAmount.toFixed(0)}
+                  -S/{formatCuotaDeLanding(discountAmountToShow, landingSlug)}
                 </p>
               ) : null}
             </motion.div>

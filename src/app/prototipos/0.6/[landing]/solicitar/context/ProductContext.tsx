@@ -24,6 +24,7 @@ import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
+import { descuentoPorCuota } from '@/app/prototipos/0.6/utils/couponPricing';
 
 // Dynamic storage keys based on landing slug
 //
@@ -682,25 +683,17 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   }, [getAllProducts, selectedAccessories, selectedInsurances]);
 
   /**
-   * Calculate the discount amount based on coupon type
-   * - fixed: discount is a fixed amount (e.g., S/50)
-   * - percent_quotas: discount is a percentage (e.g., 10 = 10%)
+   * Cuánto rebaja el cupón: la misma cuenta que decide lo que se cobra
+   * (`cuotaConCupon`/`descuentoPorCuota`), no un porcentaje crudo sobre el
+   * total. Desde el 22-oct-2026 la cuota con cupón se redondea al sol entero
+   * (mitad hacia arriba), así que el descuento tiene que salir de esa cuenta
+   * ya redondeada: `cuota normal − cuota con cupón`. Antes se calculaba sin
+   * redondear (179 al 30 % daba 53.70 en vez de 54), y el wizard anunciaba un
+   * descuento distinto al que después se cobra.
    */
   const getDiscountAmount = useCallback(() => {
-    const total = getTotalMonthlyPayment();
-
     if (!appliedCoupon) return 0;
-
-    if (appliedCoupon.couponType === 'fixed') {
-      // Fixed amount: return as-is
-      return appliedCoupon.discount;
-    } else if (appliedCoupon.couponType === 'percent_quotas') {
-      // Percentage: calculate amount based on total
-      return total * (appliedCoupon.discount / 100);
-    }
-
-    // Fallback: treat as fixed amount (backwards compatibility)
-    return appliedCoupon.discount;
+    return descuentoPorCuota(getTotalMonthlyPayment(), appliedCoupon);
   }, [getTotalMonthlyPayment, appliedCoupon]);
 
   const getDiscountedMonthlyPayment = useCallback(() => {

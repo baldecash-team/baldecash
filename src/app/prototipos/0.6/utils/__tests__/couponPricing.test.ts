@@ -1,8 +1,11 @@
 import {
   couponHasBenefit,
+  cuotaConCupon,
+  descuentoPorCuota,
   getCouponQuotaDisplay,
   getCouponQuotas,
   getCouponScopeText,
+  redondearAlSol,
 } from '../couponPricing';
 import { cuponConBanner, getCouponStripText } from '../couponBanner';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -134,11 +137,12 @@ describe('getCouponQuotaDisplay — la cuota de la card', () => {
   });
 
   it('un equipo en promoción no anuncia el precio tachado como cuota siguiente', () => {
-    // S/239 al mes, antes S/478. Con 10% en la primera cuota se paga S/215.10 y
-    // después S/239 — no los S/478 del tachado de la promoción.
+    // S/239 al mes, antes S/478. Con 10% en la primera cuota se paga S/215.10,
+    // redondeado al sol entero (S/215), y después S/239 — no los S/478 del
+    // tachado de la promoción.
     const r = getCouponQuotaDisplay(239, cupon({ quotasAffected: 1 }), 478);
 
-    expect(r.firstQuota).toBeCloseTo(215.1);
+    expect(r.firstQuota).toBe(215);
     expect(r.quotaAfter).toBe(239);
     expect(r.regularQuota).toBe(239);
     expect(r.listQuota).toBe(478);
@@ -148,6 +152,95 @@ describe('getCouponQuotaDisplay — la cuota de la card', () => {
     const r = getCouponQuotaDisplay(239, cupon({ discount: 0, quotasAffected: 1 }), 478);
 
     expect(r.hasFirstQuotaOffer).toBe(false);
+  });
+});
+
+/**
+ * Desde el 22-oct-2026 la cuota rebajada por un cupón se cobra en soles
+ * enteros, redondeando al más cercano (mitad hacia arriba): 125.30 → 125,
+ * 125.50 → 126, 125.70 → 126. Es la misma regla que el legacy
+ * (`Cronograma::cuotaConCupon`) y ws2 (`cuota_rebajada`), que son los que
+ * cobran — la tarjeta no puede mostrar un número distinto al que se factura.
+ */
+describe('redondearAlSol — mitad hacia arriba al sol entero', () => {
+  it.each([
+    [125.3, 125],
+    [125.5, 126],
+    [125.7, 126],
+    [94.49999999999999, 95],
+    [0, 0],
+    [-1, 0],
+    [NaN, 0],
+  ])('%p → %p', (monto, esperado) => {
+    expect(redondearAlSol(monto)).toBe(esperado);
+  });
+});
+
+describe('cuotaConCupon — la cuota que se cobra con el cupón', () => {
+  const pct = (d: number) => ({ couponType: 'percent_quotas' as const, discount: d });
+
+  it('179 al 30 % → 125 (125.30 redondea hacia abajo)', () => {
+    expect(cuotaConCupon(179, pct(30))).toBe(125);
+  });
+
+  it('181 al 30 % → 127 (126.70 redondea hacia arriba)', () => {
+    expect(cuotaConCupon(181, pct(30))).toBe(127);
+  });
+
+  it('105 al 10 % → 95 (94.50 sube, aunque el float dé 94.49999…)', () => {
+    expect(cuotaConCupon(105, pct(10))).toBe(95);
+  });
+
+  it('fijo 10.5 sobre 100 → 90 (89.50 sube)', () => {
+    expect(cuotaConCupon(100, { couponType: 'fixed', discount: 10.5 })).toBe(90);
+  });
+
+  it('100 % de descuento → 0, nunca negativo', () => {
+    expect(cuotaConCupon(179, pct(100))).toBe(0);
+  });
+
+  it('150 % de descuento (sobrepasa el 100%) → 0, nunca negativo', () => {
+    expect(cuotaConCupon(179, pct(150))).toBe(0);
+  });
+
+  it('fijo mayor que la cuota → 0, nunca negativo', () => {
+    expect(cuotaConCupon(179, { couponType: 'fixed', discount: 999 })).toBe(0);
+  });
+
+  it('el cupón de regalo no toca la cuota', () => {
+    expect(cuotaConCupon(179, { couponType: 'free_accessory', discount: 0 })).toBe(179);
+  });
+
+  /**
+   * Paridad con el legacy (PHP, el que cobra) y ws2 (Decimal): en una grilla
+   * de 1,011,431 combinaciones los dos daban 0 diferencias entre sí, pero TS
+   * se quedaba 1 sol por debajo en cuotas con céntimos — p. ej. 74.99 al 50 %
+   * es 37.495 exacto, pero `74.99 * 50 / 100` en punto flotante da
+   * 37.494999999999997, no 37.495, y redondeaba hacia abajo (37 en vez de
+   * 38). La cuenta tiene que hacerse en céntimos ENTEROS desde el arranque
+   * (`Math.round(regular * 100)` primero, la resta/porcentaje después),
+   * nunca sobre el float crudo de la cuota.
+   */
+  it('74.99 al 50 % → 38 (37.495 exacto; el float crudo da 37.49499…999 y redondeaba a 37)', () => {
+    expect(cuotaConCupon(74.99, pct(50))).toBe(38);
+  });
+
+  it('16.99 al 50 % → 9 (8.495 exacto)', () => {
+    expect(cuotaConCupon(16.99, pct(50))).toBe(9);
+  });
+
+  it('40.55 al 10 % → 37 (36.495 exacto)', () => {
+    expect(cuotaConCupon(40.55, pct(10))).toBe(37);
+  });
+
+  it('47.85 al 30 % → 34 (33.495 exacto)', () => {
+    expect(cuotaConCupon(47.85, pct(30))).toBe(34);
+  });
+});
+
+describe('descuentoPorCuota — la resta en céntimos, sin ruido de float', () => {
+  it('189.90 con fijo 50 → 49.9 exacto (no 49.900000000000006)', () => {
+    expect(descuentoPorCuota(189.9, { couponType: 'fixed', discount: 50 })).toBe(49.9);
   });
 });
 
