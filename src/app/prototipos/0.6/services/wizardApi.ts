@@ -185,6 +185,31 @@ export interface WizardField {
   // Solo aplica a campos type === 'email'. Lista vacía/null = acepta cualquiera.
   allowed_email_domains?: string[] | null;
   allowed_email_domains_message?: string | null;
+  /**
+   * Diseño 2 (BAL-4961/4960): pista corta bajo el campo. Solo viene si tiene
+   * valor (paso > banco). Diseño 1 no la pinta.
+   */
+  hint?: string;
+  /**
+   * Texto propio cuando el campo obligatorio queda vacío; reemplaza al
+   * genérico «Este campo es requerido». Solo viene si tiene valor.
+   */
+  required_message?: string;
+  /**
+   * Diseño 2: campo opcional que se muestra plegado como «+ Agregar …» hasta
+   * que la persona lo abre. Solo viene (en `true`) si está prendido y el campo
+   * no es obligatorio. Diseño 1 lo muestra normal.
+   */
+  collapsed_optional?: true;
+}
+
+/** Sección de un paso (Diseño 2). Se pinta en F5/F6; en F2 solo se tolera. */
+export interface WizardStepGroup {
+  code: string;
+  name: string;
+  order: number;
+  is_collapsible: boolean;
+  field_codes: string[];
 }
 
 /**
@@ -219,6 +244,8 @@ export interface WizardStep {
   is_summary_step: boolean; // If true, step appears in summary page, not in progress bar
   motivational: WizardMotivational | null; // Motivational content for sidebar card
   fields: WizardField[];
+  /** Secciones del paso (Diseño 2). Solo viene si el paso tiene alguna. */
+  groups?: WizardStepGroup[];
 }
 
 export interface WizardConfigLanding {
@@ -953,10 +980,12 @@ export function validateField(
   // 1. Validación de requerido
   // Para checkbox simple, "false" cuenta como no marcado → requerido debe fallar
   if (field.required && field.type === 'checkbox' && !Array.isArray(value) && trimmedValue === 'false') {
-    return { isValid: false, error: 'Debes marcar esta casilla para continuar' };
+    return { isValid: false, error: field.required_message || 'Debes marcar esta casilla para continuar' };
   }
+  // `required_message` (BAL-4960) vale en los dos diseños: es el mismo
+  // validador, y un campo sin mensaje propio sigue con el genérico de siempre.
   if (field.required && isEmpty) {
-    return { isValid: false, error: 'Este campo es requerido' };
+    return { isValid: false, error: field.required_message || 'Este campo es requerido' };
   }
 
   // Si está vacío y no es requerido, es válido

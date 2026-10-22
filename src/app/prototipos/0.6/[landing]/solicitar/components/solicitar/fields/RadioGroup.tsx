@@ -8,6 +8,12 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -55,15 +61,25 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
 }) => {
   const showError = !!error;
   const showSuccess = success && !error && !!value;
+  // Diseño 2 (BAL-4960): mismas tarjetas, otro vestido.
+  const v2 = useCamposV2();
 
   return (
-    <div id={id} className="space-y-3">
+    <div id={id} className={v2 ? 'flex flex-col gap-2.5' : 'space-y-3'}>
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-        {tooltip && <FieldTooltip tooltip={tooltip} />}
-      </label>
+      {v2 ? (
+        <label className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      ) : (
+        <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+          {label}
+          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
 
       {/* Cards grid */}
       <div className="space-y-2">
@@ -86,9 +102,13 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             className={`
               relative w-full p-4 rounded-xl text-left
               transition-all duration-200 cursor-pointer border-2
-              ${value === option.value
-                ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
-                : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+              ${v2
+                ? value === option.value
+                  ? 'bg-[#E9ECFB] !border-[1.5px] border-[#4654CD]'
+                  : `bg-white !border-[1.5px] ${showError ? 'border-[#C2410C]' : 'border-[#C9CEF0]'} hover:border-[#4654CD]`
+                : value === option.value
+                  ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
+                  : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
               }
               ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
             `}
@@ -124,15 +144,17 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
       </div>
 
       {/* Success message */}
-      {showSuccess && (
+      {showSuccess && !v2 && (
         <p className="text-sm text-green-600 flex items-center gap-1">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           Seleccionado
         </p>
       )}
 
+      {v2 && error && <ErrorCampoV2>{error}</ErrorCampoV2>}
+
       {/* Error message */}
-      {error && (
+      {error && !v2 && (
         <p className="text-sm text-[#ef4444] flex items-center gap-1">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}

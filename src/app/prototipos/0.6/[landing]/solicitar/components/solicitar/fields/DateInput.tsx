@@ -10,6 +10,14 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  CAJA_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import type { FieldTooltipInfo } from './TextInput';
 import { mensajeFueraDeRango } from '../../../../../services/fechaLimites';
 
@@ -132,6 +140,8 @@ export const DateInput: React.FC<DateInputProps> = ({
   limitMessage = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  // Diseño 2 (BAL-4960): mismo calendario, otro vestido.
+  const v2 = useCamposV2();
   const [calendarView, setCalendarView] = useState<CalendarView>('days');
 
   // Parse date string (YYYY-MM-DD) safely to avoid timezone issues
@@ -508,13 +518,21 @@ export const DateInput: React.FC<DateInputProps> = ({
   };
 
   return (
-    <div id={id} className="space-y-1.5">
+    <div id={id} className={v2 ? 'flex flex-col gap-1.5' : 'space-y-1.5'}>
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-        {tooltip && <FieldTooltip tooltip={tooltip} />}
-      </label>
+      {v2 ? (
+        <label className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      ) : (
+        <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+          {label}
+          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
 
       {/* Help text */}
       {helpText && (
@@ -525,7 +543,11 @@ export const DateInput: React.FC<DateInputProps> = ({
       <Popover isOpen={isOpen} onOpenChange={handleOpenChange} placement="bottom-start">
         <PopoverTrigger>
           <div
-            className={`
+            className={v2 ? `
+              flex items-center gap-2 px-3.5 cursor-pointer
+              ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
+              ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
+            ` : `
               flex items-center gap-2 h-11 px-3
               rounded-lg border-2 transition-all duration-200 bg-white cursor-pointer
               ${getBorderColor()}
@@ -533,8 +555,8 @@ export const DateInput: React.FC<DateInputProps> = ({
             `}
             onClick={() => !disabled && setIsOpen(true)}
           >
-            <Calendar className="w-4 h-4 text-neutral-400" />
-            <span className={`flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
+            <Calendar className={v2 ? 'w-4 h-4 text-[#4654CD]' : 'w-4 h-4 text-neutral-400'} />
+            <span className={v2 ? `flex-1 text-base ${value ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
               {value ? formatDisplayDate(value) : placeholder}
             </span>
 
@@ -555,8 +577,8 @@ export const DateInput: React.FC<DateInputProps> = ({
             )}
 
             {/* Status icons */}
-            {showSuccess && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
-            {showError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+            {showSuccess && <Check className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[#0E8C78]' : 'text-[#22c55e]'}`} />}
+            {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
           </div>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[280px] bg-white border border-neutral-200 shadow-xl rounded-xl">
@@ -578,14 +600,18 @@ export const DateInput: React.FC<DateInputProps> = ({
       </Popover>
 
       {/* Error message - always reserve space for alignment in multi-column grids */}
-      <div className="min-h-[20px]">
-        {effectiveError && (
-          <p className="text-sm text-[#ef4444] flex items-center gap-1">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {effectiveError}
-          </p>
-        )}
-      </div>
+      {v2 ? (
+        effectiveError && <ErrorCampoV2>{effectiveError}</ErrorCampoV2>
+      ) : (
+        <div className="min-h-[20px]">
+          {effectiveError && (
+            <p className="text-sm text-[#ef4444] flex items-center gap-1">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {effectiveError}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

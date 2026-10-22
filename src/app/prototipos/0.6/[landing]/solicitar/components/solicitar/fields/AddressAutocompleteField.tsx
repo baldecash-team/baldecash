@@ -9,6 +9,15 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Check, AlertCircle, Loader2, MapPin, Navigation } from 'lucide-react';
 import { LocationModal } from './LocationModal';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  CAJA_V2,
+  PLACEHOLDER_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { WizardField, resolveGeoUnits } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useGooglePlacesAutocomplete } from '../../../hooks/useGooglePlacesAutocomplete';
@@ -327,6 +336,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const displayError = error || locationError || googleError;
   const showDisplayError = !!displayError;
   const showSuccess = !showDisplayError && !!value;
+  // Diseño 2 (BAL-4960): mismo autocompletado, otro vestido.
+  const v2 = useCamposV2();
 
   const getBorderColor = () => {
     if (showDisplayError) return 'border-[#ef4444]';
@@ -336,17 +347,29 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   };
 
   return (
-    <div id={field.code} className="space-y-1.5">
+    <div id={field.code} className={v2 ? 'flex flex-col gap-1.5' : 'space-y-1.5'}>
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {field.label}
-        {!field.required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-        {tooltip && <FieldTooltip tooltip={tooltip} />}
-      </label>
+      {v2 ? (
+        <label htmlFor={`input_${field.code}`} className={ETIQUETA_V2}>
+          {field.label}
+          {!field.required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      ) : (
+        <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+          {field.label}
+          {!field.required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
 
       {/* Input container */}
       <div
-        className={`
+        className={v2 ? `
+          flex items-center gap-2 px-3.5 ${CAJA_V2}
+          ${bordeV2({ error: showDisplayError, foco: isFocused, correcto: showSuccess })}
+          ${field.readonly ? 'opacity-70 bg-[#F7F8FA]' : ''}
+        ` : `
           flex items-center gap-2 h-11 px-3
           rounded-lg border-2 transition-all duration-200 bg-white
           ${getBorderColor()}
@@ -354,7 +377,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         `}
       >
         {/* Map pin icon */}
-        <MapPin className="w-5 h-5 text-neutral-400 flex-shrink-0" />
+        <MapPin className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
 
         {/* Input for Google Places Autocomplete */}
         <input
@@ -374,8 +397,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           disabled={field.readonly || !isLoaded}
           style={{ fontSize: '16px' }}
           className={`
-            flex-1 bg-transparent outline-none text-neutral-800
-            placeholder:text-neutral-400
+            flex-1 min-w-0 bg-transparent outline-none ${v2 ? `text-[#1E2230] ${PLACEHOLDER_V2}` : 'text-neutral-800'}
+            ${v2 ? '' : 'placeholder:text-neutral-400'}
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
           /* "new-password" (instead of "off") is the documented workaround to
@@ -390,9 +413,9 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           <Loader2 className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 animate-spin" />
         )}
         {!isLoading && showSuccess && (
-          <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />
+          <Check className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[#0E8C78]' : 'text-[#22c55e]'}`} />
         )}
-        {!isLoading && showDisplayError && (
+        {!isLoading && showDisplayError && !v2 && (
           <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />
         )}
       </div>
@@ -417,15 +440,17 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         </button>
       )}
 
+      {v2 && displayError && <ErrorCampoV2>{displayError}</ErrorCampoV2>}
+
       {/* Error message - always reserve space for alignment in multi-column grids */}
-      <div className="min-h-[20px]">
+      {!v2 && <div className="min-h-[20px]">
         {displayError && (
           <p className="text-sm text-[#ef4444] flex items-center gap-1">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {displayError}
           </p>
         )}
-      </div>
+      </div>}
 
       {/* Loading state for Google Maps */}
       {isLoading && (

@@ -10,6 +10,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  chipV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -55,6 +62,59 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   required = true,
 }) => {
   const showSuccess = success && !error && !!value;
+  const v2 = useCamposV2();
+
+  // Toggle: si ya está seleccionado, limpiar. Igual en los dos diseños.
+  const elegir = (option: SegmentedOption) => {
+    if (option.disabled || disabled) return;
+    onFocus?.();
+    if (value === option.value) {
+      onChange('');
+    } else {
+      onChange(option.value);
+    }
+    onBlur?.();
+  };
+
+  // Diseño 2 (BAL-4960): botones-chip («Tipo de documento», «Situación
+  // actual» del prototipo). Elegido: fondo de marca y texto blanco; los demás,
+  // borde y texto de marca. Una fila con tantas columnas como opciones.
+  if (v2) {
+    return (
+      <div id={id} role="group" aria-labelledby={`${id}-label`} className="flex flex-col gap-2.5">
+        <span id={`${id}-label`} className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </span>
+        <div
+          className={`grid gap-2 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}
+          style={{ gridTemplateColumns: `repeat(${Math.max(options.length, 1)}, minmax(0, 1fr))` }}
+        >
+          {options.map((option) => {
+            const isSelected = value === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => elegir(option)}
+                disabled={option.disabled || disabled}
+                className={`${chipV2(isSelected)} ${error && !isSelected ? '!border-[#C2410C]' : ''} ${
+                  option.disabled ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        {helpText && !error && <p className="text-[13px] text-[#5B6275]">{helpText}</p>}
+        {error && <ErrorCampoV2>{error}</ErrorCampoV2>}
+      </div>
+    );
+  }
+
   return (
     <div id={id} className="space-y-3">
       {/* Label */}
@@ -78,17 +138,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             <button
               key={option.value}
               type="button"
-              onClick={() => {
-                if (option.disabled || disabled) return;
-                onFocus?.();
-                // Toggle: si ya está seleccionado, limpiar
-                if (value === option.value) {
-                  onChange('');
-                } else {
-                  onChange(option.value);
-                }
-                onBlur?.();
-              }}
+              onClick={() => elegir(option)}
               disabled={option.disabled || disabled}
               className={`
                 relative flex-1 py-2.5 min-h-[44px] text-sm font-medium rounded-lg cursor-pointer

@@ -8,6 +8,16 @@
 import React, { useState } from 'react';
 import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  CAJA_V2,
+  PREFIJO_V2,
+  PLACEHOLDER_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -93,6 +103,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   onPaste,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const v2 = useCamposV2();
   const showError = !!error;
   const showSuccess = success && !error && value;
 
@@ -118,6 +129,80 @@ export const TextInput: React.FC<TextInputProps> = ({
     if (isFocused) return 'border-[var(--color-primary)]';
     return 'border-neutral-300';
   };
+
+  const inputProps = {
+    ref: inputRef,
+    name: id,
+    type,
+    inputMode: getInputMode(),
+    value,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    onKeyDown,
+    onPaste,
+    onFocus: () => {
+      setIsFocused(true);
+      onFocus?.();
+    },
+    onBlur: () => {
+      setIsFocused(false);
+      onBlur?.();
+    },
+    placeholder,
+    disabled,
+    maxLength,
+    min,
+    max,
+    step,
+    onWheel: (e: React.WheelEvent<HTMLInputElement>) => {
+      onWheel?.(e);
+      // Un input type="number" enfocado cambia su valor con la rueda del
+      // mouse (medido en prod: 500 -> rueda abajo -> 499). React expone
+      // onWheel como passive, así que preventDefault() acá no sirve: la
+      // única forma de frenarlo es sacarle el foco. Sin foco, el navegador
+      // ya no toca el valor y la página sigue scrolleando normal.
+      if (type === 'number') {
+        e.currentTarget.blur();
+      }
+    },
+  };
+
+  // Diseño 2 (BAL-4960): mismo input y mismos eventos, otro vestido. La pista
+  // (`hint`) la pinta `DynamicWizardStep` debajo, y el error la reemplaza.
+  if (v2) {
+    return (
+      <div id={id} className="flex flex-col gap-1.5">
+        <label htmlFor={`${id}-input`} className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+        {helpText && <p className="text-[13px] text-[#5B6275]">{helpText}</p>}
+        <div
+          className={`flex items-center overflow-hidden ${CAJA_V2} ${bordeV2({ error: showError, foco: isFocused, correcto: !!showSuccess })} ${
+            disabled ? 'bg-[#F7F8FA] opacity-70' : ''
+          }`}
+        >
+          {startContent && <span className={PREFIJO_V2}>{startContent}</span>}
+          <input
+            {...inputProps}
+            id={`${id}-input`}
+            aria-invalid={showError || undefined}
+            className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-base text-[#1E2230] outline-none ${PLACEHOLDER_V2} ${
+              disabled ? 'cursor-not-allowed' : ''
+            }`}
+            style={{
+              WebkitBoxShadow: '0 0 0 1000px white inset',
+              ...(value ? { WebkitTextFillColor: '#1E2230' } : {}),
+            }}
+          />
+          {endContent && <span className="flex-shrink-0 select-none pr-3 text-base text-[#5B6275]">{endContent}</span>}
+          {isLoading && <Loader2 className="mr-3.5 h-5 w-5 flex-shrink-0 animate-spin text-[#4654CD]" />}
+          {!isLoading && showSuccess && <Check className="mr-3.5 h-5 w-5 flex-shrink-0 text-[#0E8C78]" strokeWidth={2.6} />}
+        </div>
+        {error && !hideErrorText && <ErrorCampoV2>{error}</ErrorCampoV2>}
+      </div>
+    );
+  }
 
   return (
     <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
@@ -147,39 +232,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           <span className="text-neutral-500 text-base flex-shrink-0 select-none">{startContent}</span>
         )}
         <input
-          ref={inputRef}
-          name={id}
-          type={type}
-          inputMode={getInputMode()}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          onFocus={() => {
-            setIsFocused(true);
-            onFocus?.();
-          }}
-          onBlur={() => {
-            setIsFocused(false);
-            onBlur?.();
-          }}
-          placeholder={placeholder}
-          disabled={disabled}
-          maxLength={maxLength}
-          min={min}
-          max={max}
-          step={step}
-          onWheel={(e) => {
-            onWheel?.(e);
-            // Un input type="number" enfocado cambia su valor con la rueda del
-            // mouse (medido en prod: 500 -> rueda abajo -> 499). React expone
-            // onWheel como passive, así que preventDefault() acá no sirve: la
-            // única forma de frenarlo es sacarle el foco. Sin foco, el navegador
-            // ya no toca el valor y la página sigue scrolleando normal.
-            if (type === 'number') {
-              e.currentTarget.blur();
-            }
-          }}
+          {...inputProps}
           className={`
             flex-1 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400

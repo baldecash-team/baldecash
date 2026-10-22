@@ -13,6 +13,17 @@ import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
+import { CamposV2Provider, PISTA_V2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
+
+/** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
+const ENFOCABLE_DEL_CAMPO =
+  'input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [role="button"][tabindex="0"]';
+
+function tieneValor(valor: unknown): boolean {
+  if (Array.isArray(valor)) return valor.length > 0;
+  return typeof valor === 'string' ? valor.trim() !== '' && valor !== 'false' : !!valor;
+}
 
 const MONTH_NAMES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -84,6 +95,12 @@ interface DynamicWizardStepProps {
    * de campos para ubicarlo) y `data-estado` (`error`/`ok`, que pinta el borde
    * rojo o verde), y el error de un campo tocado se muestra sin esperar a
    * "Continuar". Sin el prop —Diseño 1— el render es el de siempre.
+   *
+   * También prende el kit de campos de Diseño 2 (BAL-4960): una sola columna,
+   * la variante visual de cada campo (`CamposV2Provider`), la pista (`hint`)
+   * bajo el campo y los opcionales plegados (`collapsed_optional`) como
+   * "+ Agregar …". Las secciones (`step.groups`) todavía no se pintan (F5/F6):
+   * los campos salen en su orden de siempre.
    */
   camposTocados?: ReadonlySet<string>;
 }
@@ -270,6 +287,23 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     prevValuesRef.current = vals;
   }, [fieldVisibility, step.fields, formData, updateField]);
 
+  // Diseño 2: opcionales plegados que la persona abrió con "+ Agregar …". Un
+  // plegado con valor (borrador) sale abierto sin pasar por acá.
+  const esV2 = camposTocados !== undefined;
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(() => new Set());
+  const [porEnfocar, setPorEnfocar] = useState<string | null>(null);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!porEnfocar) return;
+    const campo = contenedorRef.current?.querySelector<HTMLElement>(`[data-campo="${CSS.escape(porEnfocar)}"]`);
+    campo?.querySelector<HTMLElement>(ENFOCABLE_DEL_CAMPO)?.focus();
+    setPorEnfocar(null);
+  }, [porEnfocar]);
+  const abrirPlegado = (codigo: string) => {
+    setAbiertos((prev) => new Set(prev).add(codigo));
+    setPorEnfocar(codigo);
+  };
+
   const paymentDayValue = getFieldValue('payment_day') as string;
 
   // La fecha la calcula ws2 con la regla del legacy (BAL-4305). Mientras
@@ -287,8 +321,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   }, [landing, paymentDayValue]);
 
   // Fields come already ordered by display_order from the API
-  return (
-    <div className="grid grid-cols-12 gap-x-4 gap-y-1">
+  const campos = (
+    <div ref={contenedorRef} className={esV2 ? 'grid grid-cols-12 gap-y-4' : 'grid grid-cols-12 gap-x-4 gap-y-1'}>
       {step.fields.map((field) => {
         // Hide wrapper for invisible fields so grid gap doesn't create empty space
         if (!fieldVisibility[field.code]) return null;
@@ -301,31 +335,48 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         const colClass = GRID_COL_CLASSES[cols] || 'sm:col-span-12';
         const colMobileClass = GRID_COL_MOBILE_CLASSES[colsMobile] || 'col-span-12';
 
-        // Diseño 2: el estado del borde. Se pinta recién cuando el campo se
-        // tocó o se intentó continuar, igual que el mensaje de error.
-        const esV2 = camposTocados !== undefined;
-        const mostrarEstado = esV2 && (showErrors || camposTocados.has(field.code));
+        // Diseño 2: el estado del campo (`data-estado`). Se calcula recién
+        // cuando el campo se tocó o se intentó continuar, igual que el mensaje
+        // de error. El borde rojo o verde lo pinta ahora el propio campo.
+        const mostrarError = showErrors || (esV2 && camposTocados.has(field.code));
         const valorCampo = formData[field.code]?.value;
-        const tieneValor = Array.isArray(valorCampo) ? valorCampo.length > 0 : !!valorCampo && valorCampo !== 'false';
-        const estadoV2 = !mostrarEstado
+        const conValor = tieneValor(valorCampo);
+        const errorVisible = mostrarError && !!formData[field.code]?.error;
+        const estadoV2 = !esV2 || !mostrarError
           ? undefined
-          : formData[field.code]?.error
+          : errorVisible
             ? 'error'
-            : tieneValor ? 'ok' : undefined;
+            : conValor ? 'ok' : undefined;
+
+        // Diseño 2: opcional plegado. Con valor (borrador) sale abierto.
+        const plegado = esV2 && field.collapsed_optional === true && !field.required
+          && !conValor && !abiertos.has(field.code);
 
         return (
           <React.Fragment key={field.code}>
             <div
+              // Diseño 2: una sola columna (decisión D7), se ignoran
+              // `grid_columns` / `grid_columns_mobile`.
               className={esV2
-                ? `${colMobileClass} ${colClass} campo-v2 rounded-xl border-2 border-transparent px-2 py-1 -mx-2 transition-[border-color,box-shadow] duration-200 data-[estado=error]:border-red-300 data-[estado=ok]:border-emerald-300`
+                ? 'col-span-12 campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200'
                 : `${colMobileClass} ${colClass}`}
               {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2 } : {})}
             >
-              <DynamicField
-                field={field}
-                showError={showErrors || (esV2 && camposTocados.has(field.code))}
-                stepOrder={stepOrder}
-              />
+              {plegado ? (
+                <AgregarOpcionalV2 label={field.label} onAbrir={() => abrirPlegado(field.code)} />
+              ) : (
+                <>
+                  <DynamicField
+                    field={field}
+                    showError={mostrarError}
+                    stepOrder={stepOrder}
+                  />
+                  {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
+                  {esV2 && field.hint && !errorVisible && (
+                    <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{field.hint}</p>
+                  )}
+                </>
+              )}
             </div>
             {field.code === 'payment_day' && paymentDayValue && (
               <div className="col-span-12 -mt-1 mb-2">
@@ -342,6 +393,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       })}
     </div>
   );
+
+  return esV2 ? <CamposV2Provider>{campos}</CamposV2Provider> : campos;
 };
 
 export default DynamicWizardStep;

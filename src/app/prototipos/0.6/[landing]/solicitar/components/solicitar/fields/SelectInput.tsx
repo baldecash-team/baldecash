@@ -8,6 +8,14 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Check, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  CAJA_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -83,6 +91,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  // Diseño 2 (BAL-4960): mismo desplegable, otro vestido.
+  const v2 = useCamposV2();
 
   const showError = !!error;
   const showSuccess = success && !error && value;
@@ -133,13 +143,21 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   };
 
   return (
-    <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
+    <div id={id} className={v2 ? 'flex flex-col gap-1.5' : small ? 'space-y-1' : 'space-y-1.5'}>
       {/* Label */}
-      <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
-        {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-        {tooltip && <FieldTooltip tooltip={tooltip} />}
-      </label>
+      {v2 ? (
+        <label className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      ) : (
+        <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
+          {label}
+          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
 
       {/* Help text */}
       {helpText && (
@@ -172,7 +190,11 @@ export const SelectInput: React.FC<SelectInputProps> = ({
               onBlur?.();
             }
           }}
-          className={`
+          className={v2 ? `
+            w-full px-3.5 flex items-center justify-between gap-2 cursor-pointer text-left text-base
+            ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
+            ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
+          ` : `
             w-full px-3 flex items-center justify-between gap-2
             rounded-lg border-2 transition-all cursor-pointer text-left
             ${small ? 'h-9' : 'h-11'}
@@ -180,7 +202,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          <span className={`truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
+          <span className={v2 ? `truncate ${displayLabel ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
             {displayLabel || placeholder}
           </span>
 
@@ -197,9 +219,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                 <X className="w-3 h-3 text-neutral-500" />
               </button>
             )}
-            {showSuccess && <Check className="w-5 h-5 text-[#22c55e]" />}
-            {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
-            <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
+            {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+            <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
 
@@ -298,8 +320,11 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         />
       )}
 
+      {/* Diseño 2: el error solo cuando hay; sin alto reservado. */}
+      {v2 && !hideErrorText && error && <ErrorCampoV2>{error}</ErrorCampoV2>}
+
       {/* Error message - reserva alto para alinear en grids, salvo en modo compact */}
-      {!hideErrorText && (!compact || error) && (
+      {!v2 && !hideErrorText && (!compact || error) && (
         <div className={compact ? '' : 'min-h-[20px]'}>
           {error && (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">

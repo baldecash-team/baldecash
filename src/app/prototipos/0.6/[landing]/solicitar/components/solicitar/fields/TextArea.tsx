@@ -8,6 +8,13 @@
 import React, { useState } from 'react';
 import { Check, AlertCircle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -51,6 +58,8 @@ export const TextArea: React.FC<TextAreaProps> = ({
   maxLength,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  // Diseño 2 (BAL-4960): mismo texto largo, otro vestido.
+  const v2 = useCamposV2();
   const showError = !!error;
   const showSuccess = success && !error && value;
 
@@ -62,13 +71,21 @@ export const TextArea: React.FC<TextAreaProps> = ({
   };
 
   return (
-    <div id={id} className="space-y-1.5">
+    <div id={id} className={v2 ? 'flex flex-col gap-1.5' : 'space-y-1.5'}>
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-        {tooltip && <FieldTooltip tooltip={tooltip} />}
-      </label>
+      {v2 ? (
+        <label className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      ) : (
+        <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+          {label}
+          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
 
       {/* Help text */}
       {helpText && (
@@ -77,7 +94,11 @@ export const TextArea: React.FC<TextAreaProps> = ({
 
       {/* Textarea */}
       <div
-        className={`
+        className={v2 ? `
+          relative rounded-[10px] border-[1.5px] transition-colors duration-150 bg-white overflow-hidden
+          ${bordeV2({ error: showError, foco: isFocused, correcto: !!showSuccess })}
+          ${disabled ? 'opacity-70 bg-[#F7F8FA]' : ''}
+        ` : `
           relative rounded-lg border-2 transition-all duration-200 bg-white overflow-hidden
           ${getBorderColor()}
           ${disabled ? 'opacity-50 bg-neutral-50' : ''}
@@ -114,13 +135,20 @@ export const TextArea: React.FC<TextAreaProps> = ({
 
         {/* Status icons */}
         <div className="absolute top-3 right-3">
-          {showSuccess && <Check className="w-5 h-5 text-[#22c55e]" />}
-          {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+          {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
+          {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
         </div>
       </div>
 
+      {v2 && (error || maxLength) && (
+        <div className="flex items-start justify-between gap-2">
+          {error ? <ErrorCampoV2>{error}</ErrorCampoV2> : <span />}
+          {maxLength && <p className="flex-shrink-0 text-xs text-[#5B6275]">{value.length}/{maxLength}</p>}
+        </div>
+      )}
+
       {/* Character counter & Error message - always reserve space for alignment */}
-      <div className="flex items-center justify-between gap-2 min-h-[20px]">
+      {!v2 && <div className="flex items-center justify-between gap-2 min-h-[20px]">
         {error ? (
           <p className="text-sm text-[#ef4444] flex items-center gap-1">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -134,7 +162,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
             {value.length}/{maxLength}
           </p>
         )}
-      </div>
+      </div>}
     </div>
   );
 };
