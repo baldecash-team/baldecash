@@ -14,9 +14,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useParams } from 'next/navigation';
 import { Tag, Loader2, Check, X, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 import { getCouponScopeText } from '@/app/prototipos/0.6/utils/couponPricing';
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import {
   COUPON_CONFIRMED_DOCUMENT_NOTICE,
   COUPON_PENDING_DOCUMENT_NOTICE,
@@ -78,6 +80,11 @@ interface CouponInputProps {
 
 export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) => {
   const tracker = useEventTrackerOptional();
+  // Slug de la landing: igual que lo lee `SelectedProductBar`, un vecino de
+  // este mismo flujo de /solicitar. Se usa para el formato del monto (Family
+  // Farms muestra céntimos; el resto, no — ver `formatCuotaDeLanding`).
+  const params = useParams();
+  const landingSlug = (params?.landing as string) || '';
   const [couponCode, setCouponCode] = useState('');
   const [state, setState] = useState<CouponState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -291,7 +298,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                 </>
               ) : scopeText ? (
                 <p className="text-lg font-bold text-green-600 whitespace-nowrap">
-                  -S/{discountAmount.toFixed(0)}
+                  -S/{formatCuotaDeLanding(discountAmount, landingSlug)}
                 </p>
               ) : null}
             </motion.div>

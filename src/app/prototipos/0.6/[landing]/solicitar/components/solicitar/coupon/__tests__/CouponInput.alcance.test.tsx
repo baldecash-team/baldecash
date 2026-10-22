@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { useParams } from 'next/navigation';
 import { CouponInput } from '../CouponInput';
 
 /**
@@ -33,10 +34,17 @@ jest.mock('../../../../context/EventTrackerContext', () => ({
   useEventTrackerOptional: () => ({ track: jest.fn() }),
 }));
 
+// Sobrescribe el mock global (jest.setup.js) para poder cambiar el slug de la
+// landing por test: Family Farms es la única que muestra céntimos.
+jest.mock('next/navigation', () => ({
+  useParams: jest.fn(() => ({ landing: 'test-landing' })),
+}));
+
 beforeEach(() => {
   cuponActual = null;
   descuento = 0;
   sessionStorage.clear();
+  (useParams as jest.Mock).mockReturnValue({ landing: 'test-landing' });
 });
 
 const FRASES_VIEJAS = [/solo en 1\.ª cuota/i, /Descuento solo en tu primera cuota/i, /No se puede quitar en esta campaña/i];
@@ -126,4 +134,28 @@ test('cupón escrito a mano (no llegó por link): mismo mensaje único', () => {
   expect(screen.getByText('Aplicado')).toBeInTheDocument();
   expect(screen.getByText('Descuento en tu primera cuota')).toBeInTheDocument();
   expect(screen.getAllByText(/cuota/i)).toHaveLength(1);
+});
+
+/**
+ * El monto se mostraba con `.toFixed(0)`, que corta los céntimos como hacía
+ * la tarjeta: en Family Farms (la única landing con céntimos reales) el
+ * descuento de S/21.50 se veía «-S/22». Ahora usa `formatCuotaDeLanding`,
+ * que respeta la regla de la landing — igual que el resto de montos del
+ * wizard.
+ */
+test('Family Farms: el descuento se muestra con céntimos, no «-S/22»', () => {
+  (useParams as jest.Mock).mockReturnValue({ landing: 'family-farms-baldecash-a' });
+  cuponActual = {
+    code: 'CAMPA10',
+    discount: 10,
+    couponType: 'percent_quotas',
+    quotasAffected: 1,
+    label: '10% de descuento en 1 cuotas',
+    lockedFromUrl: true,
+  };
+  descuento = 21.5;
+  render(<CouponInput />);
+
+  expect(screen.getByText('-S/21.50')).toBeInTheDocument();
+  expect(screen.queryByText('-S/22')).not.toBeInTheDocument();
 });
