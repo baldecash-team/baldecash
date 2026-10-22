@@ -16,7 +16,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useParams } from 'next/navigation';
 import { useProduct } from '../../../context/ProductContext';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
-import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
+import { obtenerPlanesDeSeguro } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSessionOptional } from '../../../context/SessionContext';
 import type { InsurancePlan } from '../../../types/upsell';
@@ -26,12 +26,21 @@ export interface PlanesDeSeguro {
   planes: InsurancePlan[];
   cargando: boolean;
   /**
-   * El pedido de planes para el equipo de ahora TERMINÓ (con planes, sin
-   * planes o con error). Es lo único que autoriza a decir "no hay planes":
-   * en el primer render con `activo`, `planes` está vacío porque todavía no se
-   * pidió nada, no porque no haya.
+   * El pedido de planes para el equipo de ahora TERMINÓ BIEN (con planes o
+   * sin planes). Es lo único que autoriza a decir "no hay planes": en el
+   * primer render con `activo`, `planes` está vacío porque todavía no se pidió
+   * nada, no porque no haya. Un error NO cuenta como cargado (ver `error`).
    */
   cargado: boolean;
+  /**
+   * El pedido de planes para el equipo de ahora FALLÓ (tras un reintento
+   * automático). No dice nada de si hay planes: la selección se conserva
+   * (`ProductContext` persiste, y soltarla por un corte de red pasajero la
+   * borraría para siempre).
+   */
+  error: boolean;
+  /** Vuelve a pedir los planes (el botón "Reintentar"). */
+  reintentar: () => void;
   /** Ids de los planes elegidos (los de `ProductContext`). */
   elegidos: string[];
   /** Agrega o quita un plan, con su evento de analítica. */
@@ -39,6 +48,9 @@ export interface PlanesDeSeguro {
   /** Tipo de equipo del producto activo ("Laptop", "Celular"…). */
   tipoDeEquipo: string;
 }
+
+/** Espera antes del reintento automático, cuando el primer pedido falla. */
+export const ESPERA_REINTENTO_PLANES_MS = 500;
 
 /**
  * @param activo Sin esto no se pide nada (la landing no ofrece seguros en esta
@@ -80,22 +92,29 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
   // render veía "no cargando y sin planes" y soltaba una selección válida).
   const clave = JSON.stringify([landing, deviceType, productPrice, termMonths ?? null, previewKey, sessionUuid]);
   const [cargadoPara, setCargadoPara] = useState<string | null>(null);
+  // Mismo truco para el error: es del pedido de AHORA. Si cambia el equipo o
+  // el plazo, el error viejo deja de valer y se vuelve a pedir.
+  const [errorPara, setErrorPara] = useState<string | null>(null);
+  // "Reintentar" sube este número para relanzar el pedido con la misma clave.
+  const [intento, setIntento] = useState(0);
   const seVaAPedir = activo && !isRefurbished && !!productPrice;
   const cargado = seVaAPedir && cargadoPara === clave;
-  const isLoading = seVaAPedir && !cargado;
+  const error = seVaAPedir && !cargado && errorPara === clave;
+  const isLoading = seVaAPedir && !cargado && !error;
 
+  const reintentar = useCallback(() => {
+    setErrorPara(null);
+    setIntento((n) => n + 1);
+  }, []);
+
+  // Apagado o seminuevo: no se pide nada. Los planes que se muestran salen
+  // de `seVaAPedir` (abajo), sin resetear estado dentro del efecto.
   useEffect(() => {
-    if (!activo) {
-      setInsurancePlans([]);
-      setCargadoPara(null);
-      return;
-    }
+    if (!activo) return;
 
     // Seminuevos: no se ofrecen seguros en ninguna landing.
     if (isRefurbished) {
-      setInsurancePlans([]);
       setAvailableMultiasistencia(null);
-      setCargadoPara(null);
       return;
     }
 
@@ -103,9 +122,19 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
 
     let cancelado = false;
     async function fetchInsurancePlans() {
+      const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
+      const pedir = () => obtenerPlanesDeSeguro(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
       try {
-        const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
-        const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
+        let plans: Awaited<ReturnType<typeof obtenerPlanesDeSeguro>>;
+        try {
+          plans = await pedir();
+        } catch {
+          // Un reintento automático antes de mostrar el error: la mayoría de
+          // los cortes son de un instante.
+          await new Promise((r) => setTimeout(r, ESPERA_REINTENTO_PLANES_MS));
+          if (cancelado) return;
+          plans = await pedir();
+        }
         if (cancelado) return;
         // El rollout de la Multiasistencia (A365) lo decide el BACKEND, por landing
         // (`MULTIASISTENCIA_LANDING_SLUGS` en insurance_listing_service.py y
@@ -136,6 +165,8 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
         }));
         setInsurancePlans(mappedPlans);
         setAvailableMultiasistencia(mappedPlans.find(p => p.insuranceType === 'multiasistencia') ?? null);
+        setErrorPara(null);
+        setCargadoPara(clave);
       } catch (error) {
         if (cancelado) return;
         console.error('Error fetching insurance plans:', error);
@@ -143,10 +174,12 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
           tags: { modulo: 'seguros', accion: 'cargar_planes', landing },
           extra: { device_type: deviceType, product_price: productPrice, term_months: termMonths ?? null },
         });
+        // NO se marca `cargado`: un error no prueba que no haya planes, y
+        // marcarlo soltaría la selección (BAL-4966). Queda `error` para que
+        // la pantalla avise y ofrezca "Reintentar".
         setInsurancePlans([]);
         setAvailableMultiasistencia(null);
-      } finally {
-        if (!cancelado) setCargadoPara(clave);
+        setErrorPara(clave);
       }
     }
 
@@ -154,7 +187,7 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
     return () => {
       cancelado = true;
     };
-  }, [activo, isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia, clave]);
+  }, [activo, isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia, clave, intento]);
 
   const alternar = useCallback(
     (planId: string) => {
@@ -173,9 +206,11 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
   );
 
   return {
-    planes: insurancePlans,
+    planes: seVaAPedir ? insurancePlans : [],
     cargando: isLoading,
     cargado,
+    error,
+    reintentar,
     elegidos: selectedInsurances.map(i => i.id),
     alternar,
     tipoDeEquipo: deviceType,

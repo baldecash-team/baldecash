@@ -23,7 +23,7 @@ const mockFlujo: {
   cargando: boolean;
 } = { sectionsAfterWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null, cargando: false };
 const mockHandoff: { valor: unknown } = { valor: null };
-const mockPlanes: { lista: unknown[] } = { lista: [] };
+const mockPlanes: { lista: unknown[]; falla: Error | null } = { lista: [], falla: null };
 let mockFormData: Record<string, { value: string }> = {};
 
 const CAMPO_DIA = {
@@ -213,7 +213,7 @@ jest.mock('../../context/ProductContext', () => ({
 
 jest.mock('@/app/prototipos/0.6/services/landingApi', () => ({
   ...jest.requireActual('@/app/prototipos/0.6/services/landingApi'),
-  getLandingInsurances: jest.fn(() => Promise.resolve(mockPlanes.lista)),
+  obtenerPlanesDeSeguro: jest.fn(() => (mockPlanes.falla ? Promise.reject(mockPlanes.falla) : Promise.resolve(mockPlanes.lista))),
 }));
 
 jest.mock('@/app/prototipos/0.6/hooks/useLeadGuard', () => ({ useLeadGuard: () => true }));
@@ -237,6 +237,16 @@ jest.mock('@/app/prototipos/0.6/components/hero/Navbar', () => ({ Navbar: () => 
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal', () => ({
   InsuranceDetailModal: ({ plan, isOpen }: { plan: { name: string } | null; isOpen: boolean }) =>
     isOpen && plan ? <div role="dialog">Detalle de {plan.name}</div> : null,
+}));
+
+// El Modal de NextUI necesita framer-motion de verdad (jest.setup lo mockea):
+// se reduce a un diálogo que se ve cuando está abierto.
+jest.mock('@nextui-org/react', () => ({
+  ...jest.requireActual('@nextui-org/react'),
+  Modal: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) =>
+    isOpen ? <div role="dialog">{children}</div> : null,
+  ModalContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  ModalBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 type PropsShell = {
@@ -299,6 +309,9 @@ beforeEach(() => {
   mockFlujo.cargando = false;
   mockHandoff.valor = null;
   mockPlanes.lista = [GARANTIA, ROBO];
+  mockPlanes.falla = null;
+  mockSentry.mockClear();
+  (jest.requireMock('@/app/prototipos/0.6/services/landingApi').obtenerPlanesDeSeguro as jest.Mock).mockClear();
   mockSeguros = [];
   mockFormData = { payment_day: { value: '18' } };
   Element.prototype.scrollIntoView = jest.fn();
@@ -366,7 +379,10 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     // Etiqueta fija; el estado va en aria-pressed (revisión M-2).
     const garantia = screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' });
     await waitFor(() => expect(garantia).toHaveAttribute('aria-pressed', 'true'));
-    expect(garantia).toHaveTextContent('Agregada ✓');
+    // WCAG 2.5.3: el texto visible no cambia y está dentro del nombre accesible.
+    expect(garantia).toHaveTextContent(/^Agregar/);
+    expect(garantia).not.toHaveTextContent('Agregada');
+    expect(garantia.querySelector('[data-check-v2]')).toBeInTheDocument();
     expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección');
 
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
@@ -575,20 +591,126 @@ describe('Revisión de F7 · I-2: no se borran selecciones válidas al llegar al
     expect(mockSeguros).toEqual([{ id: '14', monthlyPrice: 20 }]);
   });
 
-  it('M-5: si el pedido de planes falla, va a Sentry y la sección no sale', async () => {
-    const { getLandingInsurances } = jest.requireMock('@/app/prototipos/0.6/services/landingApi');
+  it('M-5: si el pedido de planes falla, va a Sentry y la selección se CONSERVA', async () => {
     const error = new Error('caído');
-    (getLandingInsurances as jest.Mock).mockImplementationOnce(() => Promise.reject(error));
+    mockPlanes.falla = error;
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }, { id: '16', monthlyPrice: 16 }];
     const consola = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
       montarComoEnLaApp();
       await waitFor(() => expect(mockSentry).toHaveBeenCalledWith(error, expect.objectContaining({
         tags: expect.objectContaining({ modulo: 'seguros', accion: 'cargar_planes' }),
-      })));
-      expect(screen.queryByText(/Protege tu/)).not.toBeInTheDocument();
+      })), { timeout: 3000 });
+      // Un solo aviso a Sentry, tras el reintento automático.
+      expect(mockSentry).toHaveBeenCalledTimes(1);
+      await screen.findByText('No pudimos cargar las protecciones.');
+      expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
     } finally {
       consola.mockRestore();
     }
+  });
+});
+
+describe('Corrección · error de carga de planes (BAL-4966)', () => {
+  const pedidosDePlanes = () =>
+    jest.requireMock('@/app/prototipos/0.6/services/landingApi').obtenerPlanesDeSeguro as jest.Mock;
+  let consola: jest.SpyInstance;
+  beforeEach(() => {
+    consola = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => consola.mockRestore());
+
+  /** Monta con `/insurances` caído y espera el aviso (tras el reintento automático). */
+  async function montarConError() {
+    mockPlanes.falla = new Error('500');
+    montarComoEnLaApp();
+    await screen.findByText('No pudimos cargar las protecciones.', undefined, { timeout: 3000 });
+  }
+
+  it('con error: aviso en vez del esqueleto, la selección sigue, y "Reintentar" (44px) vuelve a pedir', async () => {
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }, { id: '16', monthlyPrice: 16 }];
+    await montarConError();
+    expect(screen.queryByLabelText('Cargando protecciones')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Guardamos tu selección (2 protecciones elegidas)');
+    expect(pedidosDePlanes()).toHaveBeenCalledTimes(2); // el pedido + el reintento automático
+    expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
+
+    // El reintento sale bien: los planes, con la selección intacta.
+    mockPlanes.falla = null;
+    const reintentar = screen.getByRole('button', { name: 'Reintentar' });
+    expect(reintentar).toHaveClass('min-h-[44px]');
+    fireEvent.click(reintentar);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(pedidosDePlanes()).toHaveBeenCalledTimes(3);
+    expect(screen.queryByText('No pudimos cargar las protecciones.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' })).toHaveAttribute('aria-pressed', 'true');
+    expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
+    expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 2 protecciones');
+    // Celular: se pasa a la vista 2, donde están las protecciones.
+    await waitFor(() => expect(vista(2)).not.toHaveClass('hidden'));
+  });
+
+  it('enviar con error y seguros pide confirmación: sin ella NO manda [], y al confirmar suelta y envía', async () => {
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }];
+    await montarConError();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    const dialogo = await screen.findByRole('dialog');
+    expect(dialogo).toHaveTextContent('¿Enviar sin tus protecciones?');
+    expect(dialogo).toHaveTextContent('1 protección elegida');
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(mockSeguros.map((s) => s.id)).toEqual(['14']);
+
+    await act(async () => {
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar sin protecciones' }));
+    });
+    expect(mockSeguros).toEqual([]);
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: null }));
+    expect(mockSubmit.mock.calls[0][0]).not.toHaveProperty('insuranceIds');
+  });
+
+  it('el celular también pide confirmación (una sola vista con el aviso)', async () => {
+    mockSeguros = [{ id: '16', monthlyPrice: 16 }];
+    await montarConError();
+    expect(vista(2)).not.toHaveClass('hidden');
+    expect(screen.getByTestId('celular')).toHaveTextContent('Enviar solicitud');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('celular'));
+    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it('"Reintentar" desde la confirmación vuelve a pedir y, si carga, envía con los seguros', async () => {
+    mockSeguros = [{ id: '14', monthlyPrice: 20 }];
+    await montarConError();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    const dialogo = await screen.findByRole('dialog');
+    mockPlanes.falla = null;
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Reintentar' }));
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(mockSubmit).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: ['14'] }));
+  });
+
+  it('con error y SIN seguros elegidos: aviso + reintentar, y el envío es normal', async () => {
+    await montarConError();
+    expect(screen.getByRole('alert')).toHaveTextContent('Puedes reintentar o enviar tu solicitud sin protecciones.');
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: null }));
   });
 });
 

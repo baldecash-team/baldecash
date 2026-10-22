@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import { HeartPulse, Lock, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Check, HeartPulse, Lock, RotateCw, ShieldCheck } from 'lucide-react';
 import { InsuranceDetailModal } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal';
 import { getDescription } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceCards';
 import type { InsurancePlan } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
@@ -35,17 +35,25 @@ export function nombreDelEquipo(tipo: string | null | undefined): string {
   return t || 'equipo';
 }
 
-export interface ProteccionesV2Props extends Pick<PlanesDeSeguro, 'planes' | 'cargando' | 'elegidos' | 'alternar' | 'tipoDeEquipo'> {
+/** "1 protección elegida" / "2 protecciones elegidas". */
+export function textoDeElegidas(n: number): string {
+  return n === 1 ? '1 protección elegida' : `${n} protecciones elegidas`;
+}
+
+export interface ProteccionesV2Props
+  extends Pick<PlanesDeSeguro, 'planes' | 'cargando' | 'elegidos' | 'alternar' | 'tipoDeEquipo'>,
+    Partial<Pick<PlanesDeSeguro, 'error' | 'reintentar'>> {
   landing: string;
   frecuencia?: string | null;
 }
 
-export function ProteccionesV2({ planes, cargando, elegidos, alternar, tipoDeEquipo, landing, frecuencia }: ProteccionesV2Props) {
+export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia }: ProteccionesV2Props) {
   const [detalle, setDetalle] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
   // Sin planes (la landing no tiene, o es seminuevo) la sección no existe.
-  if (!cargando && planes.length === 0) return null;
+  // Con error sí: hay que avisar y dejar reintentar (sin esqueleto infinito).
+  if (!cargando && !error && planes.length === 0) return null;
 
   const precio = (p: InsurancePlan) => `+S/${formatCuotaDeLanding(p.monthlyPrice, landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
@@ -64,7 +72,31 @@ export function ProteccionesV2({ planes, cargando, elegidos, alternar, tipoDeEqu
       </div>
       <p className="mt-1 text-[13px] text-[#5B6275]">Se suman a tu cuota mensual. Toca «¿Qué cubre?» para ver el detalle.</p>
 
-      {cargando ? (
+      {error ? (
+        <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 sm:p-4">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="mt-0.5 h-[18px] w-[18px] shrink-0 text-amber-700" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold text-[#1E2230]">No pudimos cargar las protecciones.</p>
+              <p className="mt-0.5 text-[13px] leading-snug text-[#5B6275]">
+                {elegidos.length > 0
+                  ? `Guardamos tu selección (${textoDeElegidas(elegidos.length)}). Reintenta para verla antes de enviar.`
+                  : 'Puedes reintentar o enviar tu solicitud sin protecciones.'}
+              </p>
+            </div>
+          </div>
+          {reintentar && (
+            <button
+              type="button"
+              onClick={reintentar}
+              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-[var(--color-primary)] bg-white px-4 text-sm font-bold text-[var(--color-primary)] cursor-pointer hover:bg-[#F3F5FD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1"
+            >
+              <RotateCw className="h-4 w-4" aria-hidden />
+              Reintentar
+            </button>
+          )}
+        </div>
+      ) : cargando ? (
         <div className="mt-4 space-y-2" aria-busy="true" aria-label="Cargando protecciones">
           {[0, 1].map((i) => (
             <div key={i} className="h-[76px] animate-pulse motion-reduce:animate-none rounded-xl bg-[#F3F5FD]" />
@@ -104,18 +136,21 @@ export function ProteccionesV2({ planes, cargando, elegidos, alternar, tipoDeEqu
                   <span className="whitespace-nowrap text-sm font-bold text-[#1E2230]">{precio(plan)}</span>
                   <button
                     type="button"
-                    // Etiqueta fija: el estado lo dice `aria-pressed`, no un
-                    // nombre que cambia ("Agregar" ↔ "Quitar").
+                    // Texto visible FIJO ("Agregar") y el estado en
+                    // `aria-pressed`: el nombre accesible (`aria-label`, "Agregar {plan}")
+                    // empieza con lo que se ve (WCAG 2.5.3). El ✓ y el relleno
+                    // son solo visuales.
                     aria-pressed={elegido}
                     aria-label={`Agregar ${plan.name}`}
                     onClick={() => alternar(plan.id)}
-                    className={`min-h-[44px] rounded-full border-[1.5px] px-4 text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
+                    className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full border-[1.5px] px-4 text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                         : 'border-[var(--color-primary)] bg-white text-[var(--color-primary)] hover:bg-[#F3F5FD]'
                     }`}
                   >
-                    {elegido ? 'Agregada ✓' : 'Agregar'}
+                    {elegido && <Check className="h-4 w-4" strokeWidth={3} aria-hidden data-check-v2 />}
+                    Agregar
                   </button>
                 </div>
               </li>

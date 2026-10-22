@@ -77,6 +77,7 @@ import {
 } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
 import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePaso4V2';
 import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
+import { ConfirmarSinProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ConfirmarSinProteccionesV2';
 
 
 // Helper function to get Lucide icon by name
@@ -118,6 +119,10 @@ function StepContent() {
   // Reacondicionado: aceptación obligatoria antes de enviar la solicitud
   const [showRefurbAcceptance, setShowRefurbAcceptance] = useState(false);
   const refurbAcceptedRef = useRef(false);
+  // Diseño 2 · Paso 4 (BAL-4966): los planes no cargaron y hay seguros
+  // elegidos. Enviar pide confirmar "Enviar sin protecciones".
+  const [confirmarSinProtecciones, setConfirmarSinProtecciones] = useState(false);
+  const sinProteccionesConfirmadoRef = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
@@ -660,6 +665,15 @@ function StepContent() {
         landing, handoff.applicationCode, false, handoff.publicToken
       ));
     } else {
+      // Diseño 2: los planes no cargaron y hay seguros elegidos. Este envío
+      // los perdería (`insuranceIds` sale vacío), así que NO se manda `[]` en
+      // silencio: se pide confirmación ("Reintentar" o "Enviar sin
+      // protecciones"). Recién al confirmar se suelta la selección.
+      if (paso4.pideConfirmarEnvio && !sinProteccionesConfirmadoRef.current) {
+        setConfirmarSinProtecciones(true);
+        return;
+      }
+      sinProteccionesConfirmadoRef.current = false;
       // No sections after wizard - submit application directly
       // Diseño 2: con los seguros elegidos en este paso (el mismo
       // `insurance_ids` que manda `/complementos`). Diseño 1: sin seguros.
@@ -1095,6 +1109,21 @@ function StepContent() {
                     <ProteccionesV2 {...paso4.seguros} landing={landing} frecuencia={frecuencia} />
                   </div>
                 )}
+                <ConfirmarSinProteccionesV2
+                  isOpen={confirmarSinProtecciones && paso4.pideConfirmarEnvio}
+                  elegidas={paso4.seguros.elegidos.length}
+                  onClose={() => setConfirmarSinProtecciones(false)}
+                  onReintentar={() => {
+                    setConfirmarSinProtecciones(false);
+                    paso4.seguros.reintentar();
+                  }}
+                  onEnviarSinProtecciones={() => {
+                    sinProteccionesConfirmadoRef.current = true;
+                    setConfirmarSinProtecciones(false);
+                    paso4.soltarParaEnviarSinProtecciones();
+                    void handleSummarySubmit();
+                  }}
+                />
                 <RefurbishedAcceptanceModal
                   isOpen={showRefurbAcceptance}
                   onClose={() => setShowRefurbAcceptance(false)}

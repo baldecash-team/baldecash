@@ -71,7 +71,11 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso
   // - el pedido de planes TERMINÓ y no trajo ninguno (`cargado`, no
   //   "no está cargando": en el primer render todavía no se pidió nada).
   // No se sueltan en un resumen que no envía, ni cuando la sección de seguros
-  // está en otra pantalla (antes del wizard o en `/complementos`).
+  // está en otra pantalla (antes del wizard o en `/complementos`). Tampoco si
+  // el pedido FALLÓ: un error no es "no hay planes" (`cargado` queda en
+  // false) y `ProductContext` persiste, así que soltarlos sería borrarlos para
+  // siempre por un corte pasajero. Con error se avisa y se pide confirmación
+  // antes de enviar sin ellos (`pideConfirmarEnvio`).
   const sinPlanes = conSeguros && seguros.cargado && seguros.planes.length === 0;
   const haySueltos = activo && (creadaAntes || sinPlanes) && selectedInsurances.length > 0;
   useEffect(() => {
@@ -80,6 +84,27 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso
 
   const conPlanes = activo && conSeguros && seguros.planes.length > 0;
   const protecciones = conPlanes ? selectedInsurances.length : 0;
+  /** Los planes no cargaron y hay seguros elegidos que este envío no llevaría. */
+  const errorDeCarga = activo && conSeguros && seguros.error;
+  const pideConfirmarEnvio = errorDeCarga && selectedInsurances.length > 0;
+
+  // Celular: si "Reintentar" trae los planes, aparece la vista 2. Se va a
+  // ella para que la persona vea sus protecciones donde las dejó, en vez de
+  // que la sección desaparezca detrás de un "Continuar".
+  // (Ajuste de estado durante el render, no en un efecto.)
+  const [irAVista2AlCargar, setIrAVista2AlCargar] = useState(false);
+  const { reintentar: reintentarPedido } = seguros;
+  const reintentar = useCallback(() => {
+    setIrAVista2AlCargar(true);
+    reintentarPedido();
+  }, [reintentarPedido]);
+  if (irAVista2AlCargar && (conPlanes || seguros.cargado || seguros.error || !activo)) {
+    setIrAVista2AlCargar(false);
+    if (conPlanes) setEstadoVista({ paso: codigoPaso, vista: 2 });
+  }
+
+  /** Seguros que no se pudieron cargar: la persona confirmó enviar sin ellos. */
+  const soltarParaEnviarSinProtecciones = useCallback(() => clearInsurance(), [clearInsurance]);
 
   /** Pasa de la vista 1 a la 2 y sube al principio. */
   const irAVista2 = useCallback(() => {
@@ -94,7 +119,15 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso
   }, [setVista]);
 
   return {
-    seguros,
+    seguros: { ...seguros, reintentar },
+    /** El pedido de planes falló (se avisa y se ofrece "Reintentar"). */
+    errorDeCarga,
+    /**
+     * Enviar ahora mandaría la solicitud sin los seguros elegidos: el botón de
+     * enviar pide confirmación explícita en vez de mandar `[]` en silencio.
+     */
+    pideConfirmarEnvio,
+    soltarParaEnviarSinProtecciones,
     /** Hay protecciones que mostrar: en celular existe la vista 2. */
     hayVista2: conPlanes,
     vista,
