@@ -207,6 +207,9 @@ export interface WizardStep {
   url_slug: string | null; // URL-friendly slug for routing (e.g., "datos-personales")
   name: string;
   title: string;
+  // Texto corto que se ve en la barra de pasos. Null o ausente (backend viejo)
+  // => la barra usa `title` (o "Resumen" en el paso de resumen).
+  progress_label?: string | null;
   description: string;
   icon: string;
   order: number;
