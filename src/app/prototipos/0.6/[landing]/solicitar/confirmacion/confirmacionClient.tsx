@@ -34,6 +34,10 @@ import { esFamilyFarms, esFamilyFarmsCosechador } from '@/app/prototipos/0.6/uti
 import type { ReceivedData } from './types/received';
 import { accesorioEsRegalo } from './accesorioEsRegalo';
 import { separarRegaloBaldecash } from './regaloBaldecash';
+// F8 · Confirmación de Diseño 2 (BAL-4967): el marco es otro, la data es la misma de arriba.
+import { ConfirmacionV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/ConfirmacionV2';
+import { ConfirmacionLimitadaV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/ConfirmacionLimitadaV2';
+import { LoadingFallbackV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/LoadingFallbackV2';
 
 /**
  * Reads the wizard session UUID from localStorage.
@@ -358,6 +362,7 @@ function RealConfirmationContent({
   overlayVariant,
   otpCta,
   landing,
+  diseno2 = false,
 }: {
   applicationCode: string;
   applicationData: ApplicationStatusData | null;
@@ -367,16 +372,20 @@ function RealConfirmationContent({
   overlayVariant?: string | null;
   otpCta?: React.ReactNode;
   landing: string;
+  /** F8 (BAL-4967): `disenoSolicitud === 2` y no es zona gamer (esa queda en Diseño 1). */
+  diseno2?: boolean;
 }) {
   if (isLoading) {
-    return <LoadingFallback />;
+    return diseno2 ? <LoadingFallbackV2 /> : <LoadingFallback />;
   }
 
   // Respuesta limitada (BAL-4188, D2): ws2 la recorta cuando el link no trae
   // token — no hay nombre, equipo ni cuota que pintar, así que ni se intenta
   // armar `receivedData` con eso ausente.
   if (applicationData?.limited) {
-    return (
+    return diseno2 ? (
+      <ConfirmacionLimitadaV2 applicationData={applicationData} onGoHome={onGoHome} />
+    ) : (
       <LimitedConfirmationContent
         applicationData={applicationData}
         onGoHome={onGoHome}
@@ -387,6 +396,34 @@ function RealConfirmationContent({
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
   const modoCierreKyc = modoCierreDelKyc(searchParams, landing);
+
+  if (diseno2) {
+    return (
+      <ConfirmacionV2
+        data={receivedData}
+        submittedAt={applicationData?.submitted_at ?? null}
+        onGoToHome={onGoHome}
+        otpCta={otpCta}
+        modoCierreKyc={modoCierreKyc}
+        cierre={applicationData?.cierre ?? null}
+        overlayVariant={overlayVariant}
+        landing={landing}
+        applicationCode={applicationCode}
+        onDescargarConstancia={() => {
+          const sessionId = getStoredSessionUuid(landing);
+          if (!sessionId || !applicationCode) return;
+          sendEventsBatch(sessionId, [
+            {
+              event_type: 'kyc_contract_copy_downloaded',
+              client_ts: Date.now(),
+              page_url: window.location.pathname,
+              properties: { application_code: applicationCode },
+            },
+          ]);
+        }}
+      />
+    );
+  }
 
   return (
     <ReceivedScreen
@@ -510,7 +547,11 @@ function ConfirmacionContent() {
   // dentro de la vista de confirmación (ver <OtpValidationCta/>), no se fuerza.
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData, disenoSolicitud } = useLayout();
+
+  // F8 (BAL-4967): mismo criterio que `StepClient` — Diseño 2 solo fuera de
+  // zona gamer, que se queda en Diseño 1 (decisión D6 del planning de Diseño 2).
+  const usarDiseno2 = disenoSolicitud === 2 && !isGamerLanding(landing);
 
   // Fetch application status when code is present
   useEffect(() => {
@@ -714,6 +755,7 @@ function ConfirmacionContent() {
             overlayVariant={overlayVariant}
             otpCta={otpCta}
             landing={landing}
+            diseno2={usarDiseno2}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />

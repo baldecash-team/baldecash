@@ -5,7 +5,7 @@ export { ProgresoV2, ProgresoMovilV2, pasoEsClicable } from './ProgresoV2';
 export type { PasoDelProgreso, ProgresoV2Props } from './ProgresoV2';
 export { PanelSolicitudV2, CabeceraSolicitudV2, cuotaDelPlazo, useDatosDelPanel } from './PanelSolicitudV2';
 export { BarraInferiorV2, BarraInferiorV2Spacer } from './BarraInferiorV2';
-export { TransicionPaso, TransicionDelWizard, DURACION_TRANSICION_MS } from './TransicionPaso';
+export { TransicionPaso, TransicionDelWizard, DURACION_TRANSICION_MS, BALDECITO } from './TransicionPaso';
 export {
   useGuiaDeCampos,
   siguientePendiente,

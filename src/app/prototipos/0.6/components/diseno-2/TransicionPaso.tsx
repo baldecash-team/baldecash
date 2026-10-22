@@ -27,7 +27,8 @@ import { getMessage } from '@/app/prototipos/0.6/[landing]/solicitar/components/
 export const DURACION_TRANSICION_MS = 2700;
 export const DURACION_TRANSICION_REDUCIDA_MS = 1200;
 
-const BALDECITO = 'https://baldecash.s3.amazonaws.com/illustrations/baldi/BALDI_ALEGRE.png';
+/** Baldecito alegre: lo reutiliza también la cabecera de `ConfirmacionV2` (F8, BAL-4967). */
+export const BALDECITO = 'https://baldecash.s3.amazonaws.com/illustrations/baldi/BALDI_ALEGRE.png';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
