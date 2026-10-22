@@ -7,7 +7,7 @@
  */
 
 import { formatearMonto } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/fields/montoFormato';
-import type { WizardField, WizardStep, WizardStepGroup } from '@/app/prototipos/0.6/services/wizardApi';
+import type { DependencyGroup, WizardField, WizardStep, WizardStepGroup } from '@/app/prototipos/0.6/services/wizardApi';
 import { campoPendiente, valorVacio } from './useGuiaDeCampos';
 import { normalizarBusqueda } from './campos/busquedaV2';
 
@@ -19,11 +19,47 @@ const TIPOS_DE_LISTA = new Set<WizardField['type']>(['select', 'autocomplete', '
 const TIPOS_DE_TEXTO = new Set<WizardField['type']>(['text', 'textarea', 'number']);
 
 /**
+ * El único valor que destapa el campo, si todas sus condiciones `show`
+ * apuntan a exactamente un valor de la lista padre. `null` si hay más de
+ * un valor (una condición `in`/`equals` con varias opciones, o varios
+ * grupos con valores distintos) o si el operador no compara contra un
+ * valor fijo (`is_empty`, `greater_than`, etc.) — en esos casos el campo
+ * nunca puede ser una "Otra" (BAL-4965): depende de más de una opción.
+ */
+function valorUnicoQueMuestra(muestran: DependencyGroup[]): string | null {
+  const valores = new Set<string>();
+  for (const g of muestran) {
+    for (const c of g.conditions) {
+      if (c.operator !== 'equals' && c.operator !== 'in') return null;
+      if (c.value == null) return null;
+      for (const v of Array.isArray(c.value) ? c.value : [c.value]) valores.add(v);
+    }
+  }
+  return valores.size === 1 ? Array.from(valores)[0] : null;
+}
+
+/**
+ * ¿La etiqueta de la opción (sin tildes ni mayúsculas) es una "Otra"?
+ * "Otra", "Otro", "Otros", "Otra (escríbela)"... todas empiezan con "otr".
+ * Nunca se mira el código/value de la opción, solo su etiqueta (BAL-4965).
+ */
+function etiquetaEsOtra(etiqueta: string): boolean {
+  return normalizarBusqueda(etiqueta).startsWith('otr');
+}
+
+/**
  * "Otra (escríbela)": el campo de texto que aparece por condición de una
- * lista del MISMO paso (requisito 4). Devuelve `hijo → lista que lo destapa`.
+ * lista del MISMO paso (requisito 4) Y cuyo único valor que lo destapa
+ * corresponde a una opción "Otra" de esa lista (BAL-4965). Devuelve
+ * `hijo → lista que lo destapa`.
  *
- * Solo cuenta si TODAS las condiciones de sus grupos `show` miran a la misma
- * lista. Un campo que depende de dos cosas no es "parte" de ninguna.
+ * Un campo de texto condicionado a una lista que NO es su "Otra" (Rubro bajo
+ * "Negocio", Empleador bajo "Sueldo", Número de RUC bajo "¿Tienes RUC?"...)
+ * no es una "Otra" pegada: es una pregunta de seguimiento normal, y se pinta
+ * y resume como cualquier otro campo. Solo cuenta si TODAS las condiciones
+ * de sus grupos `show` miran a la misma lista y al mismo valor único; un
+ * campo que depende de dos campos, o de dos valores de la misma lista
+ * (`in` con varias opciones), no es "Otra" de ninguna.
  */
 export function camposPegados(step: Pick<WizardStep, 'fields'>): Map<string, string> {
   const porCodigo = new Map(step.fields.map((f) => [f.code, f]));
@@ -38,6 +74,10 @@ export function camposPegados(step: Pick<WizardStep, 'fields'>): Map<string, str
     const [padre] = Array.from(padres);
     const lista = porCodigo.get(padre);
     if (!lista || lista.code === f.code || !TIPOS_DE_LISTA.has(lista.type)) continue;
+    const valor = valorUnicoQueMuestra(muestran);
+    if (valor === null) continue;
+    const opcion = (lista.options ?? []).find((o) => String(o.value) === valor);
+    if (!opcion || !etiquetaEsOtra(opcion.label)) continue;
     pegados.set(f.code, padre);
   }
   return pegados;

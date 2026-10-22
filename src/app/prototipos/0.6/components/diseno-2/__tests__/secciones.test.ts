@@ -77,6 +77,53 @@ describe('camposPegados / ordenConPegados', () => {
     });
     expect(camposPegados({ fields: [CICLO, SITUACION, CORREO, dosPadres, deUnTexto, ocultar] }).size).toBe(0);
   });
+
+  // BAL-4965: F6 encontró que la regla de arriba pegaba a CUALQUIER texto
+  // condicionado a una sola lista, no solo a una "Otra" real. "Rubro",
+  // "Empleador", "Cargo" y "Número de RUC" (todos preguntas de seguimiento
+  // normales) caían en la misma regla que "¿Cuál ciclo?" (una "Otra" real).
+  const INCOME_SOURCE = campo('income_source', {
+    type: 'select',
+    options: [
+      { value: 'negocio_personal', label: 'Negocio Personal' },
+      { value: 'sueldo_trabajo', label: 'Sueldo de Trabajo' },
+      { value: 'otro', label: 'Otro' },
+    ],
+  } as Partial<WizardField>);
+  const RUBRO = campo('business_sector', {
+    label: 'Rubro',
+    dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'income_source', operator: 'equals', value: 'negocio_personal' }] }],
+  });
+  const OTRA_FUENTE = campo('other_income_description', {
+    label: '¿Cuál es tu otra fuente de ingreso?',
+    dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'income_source', operator: 'equals', value: 'otro' }] }],
+  });
+
+  it('BAL-4965: "Rubro" bajo "Negocio Personal" NO se pega — es una pregunta normal, no una "Otra"', () => {
+    const pegados = camposPegados({ fields: [INCOME_SOURCE, RUBRO] });
+    expect(pegados.size).toBe(0);
+    expect(pegados.has('business_sector')).toBe(false);
+    // En el resumen se suma después de la opción, no la reemplaza.
+    expect(
+      resumenDeSeccion([INCOME_SOURCE, RUBRO], { income_source: 'negocio_personal', business_sector: 'Venta de ropa' }, () => undefined, pegados),
+    ).toBe('Negocio Personal · Rubro: Venta de ropa');
+  });
+
+  it('BAL-4965: una "Otra" real (etiqueta "Otro"/"Otra...") sigue pegada y reemplazando', () => {
+    const pegados = camposPegados({ fields: [INCOME_SOURCE, OTRA_FUENTE] });
+    expect(pegados).toEqual(new Map([['other_income_description', 'income_source']]));
+  });
+
+  it('BAL-4965: una condición con varias opciones no pega, aunque una de ellas sea "Otro"', () => {
+    const variasOpciones = campo('x', {
+      dependency_groups: [{
+        action: 'show',
+        logic: 'and',
+        conditions: [{ depends_on_field: 'income_source', operator: 'in', value: ['negocio_personal', 'otro'] }],
+      }],
+    });
+    expect(camposPegados({ fields: [INCOME_SOURCE, variasOpciones] }).size).toBe(0);
+  });
 });
 
 describe('armarBloques', () => {

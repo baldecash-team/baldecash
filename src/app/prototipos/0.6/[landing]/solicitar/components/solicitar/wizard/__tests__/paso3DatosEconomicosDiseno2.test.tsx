@@ -240,6 +240,10 @@ const RENT_AMOUNT = campo({
   hidden: true, dependency_groups: muestraSi('housing_type', ['alquilado_propio', 'alquilado_familiar']),
 });
 
+// Orden real de la BD local (verificado en vivo, BAL-4965: "¿Tienes RUC?"
+// sale ANTES de "Rubro"). BAL-4965 trata "Rubro" como pregunta normal, no
+// como una "Otra", así que el orden del paso (no el de la lista) decide
+// dónde cae en el resumen.
 const CAMPOS_INGRESOS = [
   INCOME_SOURCE, EMPLOYER_NAME, HAS_RUC, BUSINESS_SECTOR, RUC_NUMBER,
   INCOME_RECEIVE_METHOD, INCOME_RECEIVE_METHOD_OTHER, MONTHLY_INCOME, WORK_VERIFICATION_CONSENT,
@@ -351,7 +355,7 @@ describe('Casilla de autorización obligatoria: bloquea el cierre de la sección
 });
 
 describe('Resumen de "Tus ingresos" y "Tu vivienda"', () => {
-  it('ingresos: monto como "S/ X", Sí/No con etiqueta corta; "Rubro" (texto condicional) reemplaza a "Negocio Personal", igual que una "Otra" (F5, decisión 5)', async () => {
+  it('ingresos: monto como "S/ X", Sí/No con etiqueta corta; "Rubro" (pregunta normal, no una "Otra") se SUMA después de "Negocio Personal" (BAL-4965)', async () => {
     formData = {
       income_source: { value: 'negocio_personal' },
       has_ruc: { value: 'no' },
@@ -365,11 +369,16 @@ describe('Resumen de "Tus ingresos" y "Tu vivienda"', () => {
     act(() => campoEn(container, 'housing_type')!.querySelector<HTMLElement>('button, input')!.focus());
     await act(() => new Promise((r) => setTimeout(r, 0)));
     expect(seccion(container, 'tus_ingresos')).toHaveAttribute('data-cerrada', 'true');
-    // "Rubro" es un campo de texto condicional a UNA sola lista (income_source):
-    // `camposPegados` (F5) lo trata igual que una "Otra (escríbela)" --queda
-    // pegado a "Fuente de ingreso" y su texto reemplaza al de la opción elegida
-    // ("Negocio Personal" no aparece). Ver la duda en el reporte.
-    expect(screen.getByText('Rubro: Venta de ropa · RUC: No · Efectivo · S/ 1,500')).toBeInTheDocument();
+    // BAL-4965: "Rubro" depende de UNA sola lista (income_source), pero el
+    // valor que lo destapa ("negocio_personal") es la opción "Negocio
+    // Personal" — su etiqueta NO empieza con "otr", así que no es una "Otra".
+    // Se pinta y resume como cualquier campo normal: no va pegado a
+    // "Fuente de ingreso" y su texto se SUMA después de la opción elegida,
+    // nunca la reemplaza. Verificado también en vivo (captura
+    // `bal4965-fix-desktop-resumen-negocio-rubro.png`): el resumen real es
+    // "Negocio Personal · RUC: No · Rubro: Venta de ropa · Efectivo · S/ 1,500".
+    expect(campoEn(container, 'business_sector')).not.toHaveAttribute('data-pegado-a');
+    expect(screen.getByText('Negocio Personal · RUC: No · Rubro: Venta de ropa · Efectivo · S/ 1,500')).toBeInTheDocument();
   });
 
   it('vivienda alquilada: el monto se ve y entra en el resumen', async () => {
