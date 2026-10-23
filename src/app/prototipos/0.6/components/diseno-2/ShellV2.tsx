@@ -327,7 +327,7 @@ export function ShellV2({
                     >
                       {/* La ruedita también con `isBusy` (solo navega, ej. a
                           complementos), no solo mientras se crea la solicitud. */}
-                      {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+                      {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin motion-reduce:animate-none rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
                       <span className="truncate">{accionDeLaFila.texto}</span>
                       {!isSubmitting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
                     </button>

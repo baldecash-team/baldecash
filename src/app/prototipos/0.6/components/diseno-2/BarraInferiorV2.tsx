@@ -93,7 +93,7 @@ export function BarraInferiorV2({
             deshabilitado ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
           }`}
         >
-          {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+          {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin motion-reduce:animate-none rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
           <span className="truncate">{texto}</span>
           {!isSubmitting && <ArrowRight className="h-5 w-5" aria-hidden />}
         </button>

@@ -393,7 +393,7 @@ export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPan
                     : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
                 }`}
               >
-                {envio.ocupado && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+                {envio.ocupado && <span className="h-5 w-5 animate-spin motion-reduce:animate-none rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
                 {envio.texto}
               </button>
             </>

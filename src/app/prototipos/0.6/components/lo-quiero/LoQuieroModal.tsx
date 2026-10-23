@@ -778,7 +778,7 @@ function LoQuieroModalContent({
               {estadoAcc === 'cargando' ? (
                 <ul className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3" aria-busy="true" aria-label="Cargando accesorios">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <li key={i} className="h-[76px] md:h-[188px] rounded-xl border border-neutral-100 bg-neutral-50 animate-pulse" />
+                    <li key={i} className="h-[76px] md:h-[188px] rounded-xl border border-neutral-100 bg-neutral-50 animate-pulse motion-reduce:animate-none" />
                   ))}
                 </ul>
               ) : (
@@ -1092,7 +1092,7 @@ function LoQuieroModalContent({
                 }`}
               >
                 {preparando || navegando ? (
-                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-label="Cargando" />
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin motion-reduce:animate-none" aria-label="Cargando" />
                 ) : (
                   <>
                     {textoBoton}
