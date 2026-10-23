@@ -6,15 +6,14 @@
  *
  * El texto lo decide `textoCabeceraV2` (quien llama arma `titulo`/`subtitulo`
  * ya resueltos); esta pieza solo pinta. El confeti y el anillo respetan
- * `prefers-reduced-motion` con el mismo hook que ya usa el resto del
- * catálogo para esto (`product-landing/shared/hooks/useReducedMotion`), no
- * el de `framer-motion` que usa `TransicionPaso` — ese queda fijo en `false`
- * en los tests (`jest.setup.js`) y este SÍ necesita poder probarse apagado.
+ * `prefers-reduced-motion` con `useMenosMovimiento` (`../movimiento`), la
+ * única fuente del kit de Diseño 2: lee `matchMedia`, así que los tests lo
+ * pueden probar apagado.
  */
 
 import React from 'react';
 import { BALDECITO } from '@/app/prototipos/0.6/components/diseno-2/TransicionPaso';
-import { useReducedMotion } from '@/app/prototipos/0.6/components/product-landing/shared/hooks/useReducedMotion';
+import { useMenosMovimiento } from '../movimiento';
 import { piezasDeConfeti } from './confeti';
 
 export interface CabeceraConfirmacionV2Props {
@@ -25,7 +24,7 @@ export interface CabeceraConfirmacionV2Props {
 }
 
 export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }: CabeceraConfirmacionV2Props) {
-  const reducido = useReducedMotion();
+  const reducido = useMenosMovimiento();
   const piezas = piezasDeConfeti(reducido);
 
   return (

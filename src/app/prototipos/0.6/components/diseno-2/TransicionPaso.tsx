@@ -21,7 +21,7 @@ import { useParams } from 'next/navigation';
 import { useWizardConfig, pasosConPrimerResumen } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { getStepSlug } from '@/app/prototipos/0.6/services/wizardApi';
 import { etiquetaDelPaso } from './ProgresoV2';
-import { useReducedMotion } from 'framer-motion';
+import { useMenosMovimiento } from './movimiento';
 import { Check, ArrowRight } from 'lucide-react';
 import { getMessage } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/celebration/StepSuccessMessage';
 
@@ -43,7 +43,7 @@ export interface TransicionPasoProps {
 }
 
 export function TransicionPaso({ pasos, pasoCompletado, onComplete }: TransicionPasoProps) {
-  const reducido = useReducedMotion();
+  const reducido = useMenosMovimiento();
   const total = pasos.length;
   const desde = Math.min(Math.max(pasoCompletado, 1), Math.max(total, 1)) - 1; // índice
   const hasta = Math.min(desde + 1, Math.max(total - 1, 0));

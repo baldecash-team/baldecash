@@ -13,7 +13,7 @@
 
 import React from 'react';
 import { Check, Clock, MessageCircle, Truck } from 'lucide-react';
-import { useReducedMotion } from '@/app/prototipos/0.6/components/product-landing/shared/hooks/useReducedMotion';
+import { useMenosMovimiento } from '../movimiento';
 
 export interface LineaDeTiempoV2Props {
   /** "Hoy, 08:38 a. m." o "Hoy" — ver `horaDeEnvio`. */
@@ -37,7 +37,7 @@ const TEXTO_ESTADO: Record<Hito['estado'], string> = {
 };
 
 export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2Props) {
-  const reducido = useReducedMotion();
+  const reducido = useMenosMovimiento();
 
   const hitos: Hito[] = [
     {
