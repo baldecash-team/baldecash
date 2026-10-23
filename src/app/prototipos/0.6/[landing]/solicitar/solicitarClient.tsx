@@ -241,6 +241,9 @@ function WizardPreviewContent() {
   const pasoEmbebido = usePasoDelWizard({
     stepSlug: esRenueva ? (firstStep?.url_slug || firstStep?.code || '') : '',
     flujo,
+    // En renueva-* la solicitud se crea desde esta misma pantalla: lo marcado
+    // acá respalda al storage en el bloque `consents` del submit (BAL-5007).
+    consentimientoEnPantalla: { terms: acceptTerms, privacy: acceptPrivacy, promos: acceptPromos },
   });
 
   // Cargar valores desde localStorage al montar

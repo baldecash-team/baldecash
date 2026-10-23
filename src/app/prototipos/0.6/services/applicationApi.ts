@@ -94,6 +94,13 @@ export interface SubmitApplicationRequest {
    * si no se conoce la versión.
    */
   wizard_form_version_id?: number;
+  /**
+   * Casillas de consentimiento que marcó la persona (BAL-5007). Viajan en la
+   * RAÍZ del JSON, al lado de `form_data`: ws2 escribe una fila en
+   * `application_consent` por cada una en `true`. Se omite si no hay ningún
+   * dato — nunca se rellena con `true` — y ws2 lo avisa a Sentry.
+   */
+  consents?: { terms: boolean; privacy: boolean; promos: boolean };
   /** Optional files to upload (e.g., DNI, payslips) */
   files?: UploadedFileData[];
 }
@@ -218,6 +225,9 @@ export async function submitApplication(
       ...(typeof data.wizard_form_version_id === 'number'
         ? { wizard_form_version_id: data.wizard_form_version_id }
         : {}),
+      // Sin dato no se manda la clave: un `consents: null` o vacío se leería
+      // igual que "no aceptó nada", y lo que ws2 tiene que ver es que falta.
+      ...(data.consents ? { consents: data.consents } : {}),
     };
     formData.append('form_data', JSON.stringify(jsonData));
 

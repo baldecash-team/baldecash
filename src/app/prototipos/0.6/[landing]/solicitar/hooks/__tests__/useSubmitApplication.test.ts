@@ -1229,3 +1229,136 @@ describe('lead de socio (A365): institucion y sede llegan al submit', () => {
     expect(Object.keys(enviado).some(k => k.startsWith('_'))).toBe(false);
   });
 });
+
+/**
+ * BAL-5007: el submit lleva las casillas de consentimiento en la raíz del
+ * payload (`consents`), leídas de `consentStorage` ANTES de limpiarlo. ws2
+ * guarda una fila en `application_consent` por cada una en `true`.
+ *
+ * Diseño 1 (intro de /solicitar) y Diseño 2 (modal "Lo quiero") escriben las
+ * MISMAS claves; el envío no distingue el diseño, lee las claves. Por eso cada
+ * caso se prueba con las claves tal como las deja cada diseño.
+ */
+describe('consentimiento en el payload (BAL-5007)', () => {
+  const L = mockParams.landing;
+  const KEY_TERMS = `baldecash-${L}-wizard-acceptTerms`;
+  const KEY_PRIVACY = `baldecash-${L}-wizard-acceptPrivacy`;
+  const KEY_PROMOS = `baldecash-${L}-wizard-acceptPromos`;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    mockSubmitApplication.mockResolvedValue({ success: true, application_code: 'APP-1' });
+  });
+
+  async function enviar(opciones?: Parameters<typeof useSubmitApplication>[0]) {
+    const { result } = renderHook(() => useSubmitApplication(opciones));
+    await act(async () => {
+      await result.current.submit();
+    });
+    return mockSubmitApplication.mock.calls[0][0] as { consents?: unknown };
+  }
+
+  it('Diseño 1: las tres casillas marcadas en la intro viajan en true', async () => {
+    // La intro de /solicitar guarda cada casilla por su lado al marcarla.
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'true');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+  });
+
+  it('Diseño 2: el modal "Lo quiero" deja términos y privacidad, sin promos', async () => {
+    // Su casilla única acepta términos Y privacidad; promos va aparte.
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'false');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: false });
+  });
+
+  it('promos en false se manda false, no se omite ni se vuelve true', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'false');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toHaveProperty('promos', false);
+  });
+
+  it('con el storage vacío no inventa un true: el bloque no viaja', async () => {
+    const payload = await enviar();
+
+    expect(payload.consents).toBeUndefined();
+  });
+
+  it('una casilla sin dato, con otras que sí lo tienen, va en false', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: false, promos: false });
+  });
+
+  it('se lee ANTES de limpiar el storage', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'true');
+    // Lo que había en el storage en el instante exacto del POST.
+    let enElPost: (string | null)[] = [];
+    mockSubmitApplication.mockImplementationOnce(async () => {
+      enElPost = [KEY_TERMS, KEY_PRIVACY, KEY_PROMOS].map((k) => localStorage.getItem(k));
+      return { success: true, application_code: 'APP-1' };
+    });
+
+    const payload = await enviar();
+
+    expect(enElPost).toEqual(['true', 'true', 'true']);
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+    // Y el envío exitoso sí lo limpió después (BAL-2657).
+    expect(localStorage.getItem(KEY_TERMS)).toBeNull();
+    expect(localStorage.getItem(KEY_PRIVACY)).toBeNull();
+    expect(localStorage.getItem(KEY_PROMOS)).toBeNull();
+  });
+
+  it('storage vacío y casillas marcadas en pantalla (renueva-*): manda lo de la pantalla', async () => {
+    const payload = await enviar({
+      consentimientoEnPantalla: { terms: true, privacy: true, promos: false },
+    });
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: false });
+  });
+
+  it('si hay storage, manda el storage y la pantalla solo cubre lo que falta', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+
+    const payload = await enviar({
+      consentimientoEnPantalla: { terms: false, privacy: false, promos: true },
+    });
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+  });
+
+  it('envío anticipado (stayInWizard) también lleva el bloque', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'false');
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit({ stayInWizard: true });
+    });
+
+    expect(mockSubmitApplication.mock.calls[0][0].consents).toEqual({
+      terms: true, privacy: true, promos: false,
+    });
+    // Sigue en el wizard: no limpia, las pantallas que faltan lo necesitan.
+    expect(localStorage.getItem(KEY_TERMS)).toBe('true');
+  });
+});

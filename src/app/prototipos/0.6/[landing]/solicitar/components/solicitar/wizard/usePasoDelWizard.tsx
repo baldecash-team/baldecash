@@ -30,6 +30,7 @@ import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useSessionOptional } from '../../../context/SessionContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 import { useSubmitApplication, type SubmitStage } from '../../../hooks/useSubmitApplication';
+import type { PartialSubmitConsents } from '../../../utils/consentStorage';
 import {
   readEnvioAnticipadoHandoff,
   type EnvioAnticipadoHandoff,
@@ -128,8 +129,14 @@ export function usePasoDelWizard(opciones: {
    * salir validan lo mismo. Sin esto —Diseño 1— el paso es el de la API.
    */
   diseno2?: boolean;
+  /**
+   * Las casillas de consentimiento que muestra la página que monta el paso.
+   * Solo la intro de renueva-* las tiene en la misma pantalla que el envío.
+   * Respaldo del submit para la casilla sin nada en `consentStorage` (BAL-5007).
+   */
+  consentimientoEnPantalla?: PartialSubmitConsents;
 }): PasoDelWizardControles {
-  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false } = opciones;
+  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false, consentimientoEnPantalla } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -178,6 +185,7 @@ export function usePasoDelWizard(opciones: {
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
+    consentimientoEnPantalla,
   });
 
   // El z-index del wrapper va explicito y NO se puede sacar. `ModalAviso` es

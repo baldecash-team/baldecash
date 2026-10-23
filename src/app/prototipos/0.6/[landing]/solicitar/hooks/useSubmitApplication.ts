@@ -18,7 +18,11 @@ import {
   type UploadedFileData,
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
-import { clearConsentStorage } from '../utils/consentStorage';
+import {
+  clearConsentStorage,
+  readSubmitConsents,
+  type PartialSubmitConsents,
+} from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
 import { saveEnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
@@ -75,6 +79,16 @@ interface UseSubmitApplicationOptions {
    * siempre.
    */
   onUnidadTomada?: (mensaje: string) => void;
+  /**
+   * Las casillas de consentimiento que la pantalla que monta el hook tiene
+   * marcadas AHORA, si es que las muestra (la intro de renueva-*, que crea la
+   * solicitud desde el paso embebido, BAL-5007).
+   *
+   * Es respaldo, no fuente: manda lo guardado en `consentStorage`, que es lo
+   * que escriben las dos intros y el modal de Diseño 2. Solo cubre la casilla
+   * que no tenga nada guardado (storage bloqueado, modo privado).
+   */
+  consentimientoEnPantalla?: PartialSubmitConsents;
 }
 
 interface SubmitOptions {
@@ -216,7 +230,11 @@ interface UseSubmitApplicationResult {
 export function useSubmitApplication(
   options: UseSubmitApplicationOptions = {}
 ): UseSubmitApplicationResult {
-  const { onToast, onUnidadTomada } = options;
+  const { onToast, onUnidadTomada, consentimientoEnPantalla } = options;
+  // En un ref para que `submit` lea lo marcado al momento de enviar, no lo del
+  // render en que se armó el callback.
+  const consentimientoEnPantallaRef = useRef(consentimientoEnPantalla);
+  consentimientoEnPantallaRef.current = consentimientoEnPantalla;
 
   const router = useRouter();
   const params = useParams();
@@ -373,6 +391,11 @@ export function useSubmitApplication(
         onToast?.(msg, 'error');
         return false;
       }
+
+      // El consentimiento se lee ACÁ, antes de cualquier `await`: al terminar,
+      // el envío exitoso limpia el storage (`clearConsentStorage`) y después
+      // ya no queda qué mandar (BAL-5007).
+      const consents = readSubmitConsents(landing, consentimientoEnPantallaRef.current);
 
       let succeeded = false;
       setIsSubmitting(true);
@@ -556,6 +579,9 @@ export function useSubmitApplication(
           coupon_code: appliedCoupon?.code,
           wizard_form_id: wizardConfig?.form_id ?? undefined,
           wizard_form_version_id: wizardConfig?.form_version_id ?? undefined,
+          // Sin ningún dato va `undefined` y la clave no viaja: ws2 lo avisa
+          // a Sentry. Nunca se rellena con `true`.
+          consents,
           files: uploadFiles.length > 0 ? uploadFiles : undefined,
         });
 
