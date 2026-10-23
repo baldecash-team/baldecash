@@ -124,6 +124,7 @@ jest.mock('../useMesPrimeraCuota', () => ({ useMesPrimeraCuota: () => null }));
 jest.mock('@/app/prototipos/0.6/components/diseno-2/origenDiseno2', () => ({ guardarOrigenDiseno2: jest.fn() }));
 
 import { LoQuieroModal } from '../LoQuieroModal';
+import { DURACION_SALIDA_MS } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
 
 function producto(over: Record<string, unknown> = {}) {
   return {
@@ -316,8 +317,12 @@ describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
     expect(screen.getByRole('dialog', { name: /complementar|Un paso más/ })).toBeInTheDocument();
     await waitFor(() => expect(fila).toHaveFocus());
 
-    // Un segundo Escape sí cierra "Lo quiero".
+    // Un segundo Escape sí cierra "Lo quiero" (después de su animación de
+    // salida, BAL-4969), y una sola vez aunque se insista.
     fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, DURACION_SALIDA_MS + 50));
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 

@@ -50,6 +50,7 @@ import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[la
 import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
 import { useMesPrimeraCuota } from './useMesPrimeraCuota';
 import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
+import { prefiereMenosMovimiento, useSalidaAnimada } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
 import { datosUtiles, marcaVisible, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
 
 export type LoQuieroOrigen = 'catalogo' | 'ficha';
@@ -232,11 +233,19 @@ function LoQuieroModalContent({
   cuponAbiertoRef.current = cuponAbierto;
   const cerrarCuponRef = useRef<() => void>(() => {});
 
+  // Salidas animadas (BAL-4969): cada capa se va con su animación y recién
+  // después se desmonta. Con menos movimiento, de una.
+  const [saliendo, salirModal] = useSalidaAnimada();
+  const [detalleSaliendo, salirDetalle] = useSalidaAnimada();
+  const [cuponSaliendo, salirCupon] = useSalidaAnimada();
+
   const cerrarDetalle = useCallback(() => {
-    setDetalle(null);
-    const origenFoco = origenDetalleRef.current;
-    requestAnimationFrame(() => origenFoco?.focus());
-  }, []);
+    salirDetalle(() => {
+      setDetalle(null);
+      const origenFoco = origenDetalleRef.current;
+      requestAnimationFrame(() => origenFoco?.focus());
+    });
+  }, [salirDetalle]);
   cerrarDetalleRef.current = cerrarDetalle;
 
   useEffect(() => {
@@ -418,10 +427,12 @@ function LoQuieroModalContent({
   // validación y la aplicación son las de `CouponInput`, que vive adentro.
   const abrirCupon = useCallback(() => setCuponAbierto(true), []);
   const cerrarCupon = useCallback(() => {
-    setCuponAbierto(false);
-    // La fila se vuelve a pintar (con o sin cupón): se busca después del render.
-    requestAnimationFrame(() => filaCuponRef.current?.focus());
-  }, []);
+    salirCupon(() => {
+      setCuponAbierto(false);
+      // La fila se vuelve a pintar (con o sin cupón): se busca después del render.
+      requestAnimationFrame(() => filaCuponRef.current?.focus());
+    });
+  }, [salirCupon]);
   cerrarCuponRef.current = cerrarCupon;
 
   useEffect(() => {
@@ -497,10 +508,11 @@ function LoQuieroModalContent({
     }
     const el = totalRef.current;
     if (!el || typeof el.animate !== 'function') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (prefiereMenosMovimiento()) return;
+    // `bcPulseA/B` del prototipo: crece 10 % al 40 % y vuelve, 0,45 s ease-out.
     el.animate(
-      [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }],
-      { duration: 400, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.4 }, { transform: 'scale(1)' }],
+      { duration: 450, easing: 'ease-out' },
     );
   }, [totalVisible, codigoCupon]);
 
@@ -554,15 +566,16 @@ function LoQuieroModalContent({
 
   const cerrar = useCallback(
     (motivo: string) => {
-      analytics.track('lo_quiero_modal_close', {
-        motivo,
-        product_id: productoId,
-        accessories_count: selectedAccessories.length,
-        terms_checked: aceptaTerminos,
-      });
-      onClose();
+      // Una sola salida: un segundo cierre mientras se va no cuenta dos veces.
+      salirModal(() => onClose()) &&
+        analytics.track('lo_quiero_modal_close', {
+          motivo,
+          product_id: productoId,
+          accessories_count: selectedAccessories.length,
+          terms_checked: aceptaTerminos,
+        });
     },
-    [analytics, productoId, selectedAccessories.length, aceptaTerminos, onClose],
+    [analytics, productoId, selectedAccessories.length, aceptaTerminos, onClose, salirModal],
   );
   cerrarRef.current = cerrar;
 
@@ -651,7 +664,7 @@ function LoQuieroModalContent({
       className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center font-['Asap',_sans-serif]"
       style={teclado ? { paddingBottom: teclado.alto } : undefined}
     >
-      <div className="absolute inset-0 bg-black/50 animate-in fade-in duration-150" aria-hidden="true" onClick={() => cerrar('fondo')} />
+      <div className={`absolute inset-0 bg-black/50 ${saliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={() => cerrar('fondo')} />
       <div
         ref={panelRef}
         role="dialog"
@@ -663,7 +676,7 @@ function LoQuieroModalContent({
           ...(teclado ? { maxHeight: teclado.visible - 8 } : null),
           ...(arrastre > 0 ? { transform: `translateY(${arrastre}px)`, transition: 'none' } : null),
         }}
-        className="relative w-full md:mx-4 md:max-w-[880px] bg-white rounded-t-2xl md:rounded-2xl shadow-md flex flex-col max-h-[94dvh] md:max-h-[92vh] outline-none transition-transform duration-200 animate-in slide-in-from-bottom-6 md:slide-in-from-bottom-2 md:fade-in"
+        className={`relative w-full md:mx-4 md:max-w-[880px] bg-white rounded-t-2xl md:rounded-2xl shadow-md flex flex-col max-h-[94dvh] md:max-h-[92vh] outline-none transition-transform duration-200 ${saliendo ? 'd2-sale-hoja' : 'd2-pop-modal'}`}
       >
         {/* Cabecera: en celular es también la zona de arrastre */}
         <div
@@ -826,7 +839,7 @@ function LoQuieroModalContent({
                             >
                               {elegido ? (
                                 <>
-                                  Agregado <Check className="w-4 h-4" strokeWidth={3} aria-hidden />
+                                  Agregado <Check className="w-4 h-4 d2-check-in" strokeWidth={3} aria-hidden />
                                 </>
                               ) : (
                                 'Agregar'
@@ -890,7 +903,7 @@ function LoQuieroModalContent({
                       : 'bg-white border-neutral-400'
                 }`}
               >
-                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} aria-hidden />}
+                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)] d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
               <span className="flex-1 min-w-0 text-sm leading-[22px] text-neutral-800">
                 <span id="lo-quiero-terminos-texto">
@@ -916,7 +929,7 @@ function LoQuieroModalContent({
                   </a>
                 </span>
                 {errorTerminos && !aceptaTerminos && (
-                  <span id="lo-quiero-terminos-error" role="alert" className="block text-xs font-semibold text-red-600">
+                  <span id="lo-quiero-terminos-error" role="alert" className="d2-aparece block text-xs font-semibold text-red-600">
                     Marca la casilla para continuar.
                   </span>
                 )}
@@ -936,7 +949,7 @@ function LoQuieroModalContent({
                   aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-white border-neutral-400'
                 }`}
               >
-                {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} aria-hidden />}
+                {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)] d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
               <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-sm leading-[22px] text-neutral-800">
                 Quiero recibir promociones
@@ -987,12 +1000,12 @@ function LoQuieroModalContent({
               )
             )}
             {errorCupon && !appliedCoupon && !cuponAbierto && (
-              <p role="alert" className="pl-[30px] text-xs font-semibold text-red-600">{errorCupon}</p>
+              <p role="alert" className="d2-aparece pl-[30px] text-xs font-semibold text-red-600">{errorCupon}</p>
             )}
           </div>
 
           {isOverQuotaLimit && (
-            <div role="alert" className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div role="alert" className="d2-aparece mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
               <span>La cuota supera el límite de S/{maxMonthlyQuota}/mes. Quita algún accesorio para continuar.</span>
             </div>
@@ -1058,14 +1071,15 @@ function LoQuieroModalContent({
       {/* Detalle del accesorio: capa propia encima del modal */}
       {detalle && (
         <div className="absolute inset-0 z-10 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-150" aria-hidden="true" onClick={cerrarDetalle} />
+          <div className={`absolute inset-0 bg-black/40 ${detalleSaliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={cerrarDetalle} />
           <div
             ref={detalleRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="lo-quiero-detalle-titulo"
             tabIndex={-1}
-            className="relative w-full md:mx-4 md:max-w-[440px] bg-white rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none animate-in fade-in slide-in-from-bottom-8 md:slide-in-from-bottom-0 md:zoom-in-95 duration-200"
+            // Hoja de detalle: `bcPop` 0,2 s en escritorio y 0,25 s desde abajo en celular.
+            className={`relative w-full md:mx-4 md:max-w-[440px] bg-white rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none ${detalleSaliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'}`}
           >
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
               <div className="relative">
@@ -1137,13 +1151,13 @@ function LoQuieroModalContent({
           className="absolute inset-0 z-20 flex items-center justify-center px-4"
           style={teclado ? { bottom: teclado.alto } : undefined}
         >
-          <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-150" aria-hidden="true" onClick={cerrarCupon} />
+          <div className={`absolute inset-0 bg-black/40 ${cuponSaliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={cerrarCupon} />
           <div
             ref={cuponCapaRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="lo-quiero-cupon-titulo"
-            className="relative w-full max-w-[400px] bg-white rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none animate-in fade-in zoom-in-95 duration-200"
+            className={`relative w-full max-w-[400px] bg-white rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none ${cuponSaliendo ? 'd2-sale' : 'd2-pop-modal-chico'}`}
           >
             <div className="flex items-center justify-between gap-3 mb-3">
               <h3 id="lo-quiero-cupon-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-neutral-800 leading-tight">
@@ -1160,7 +1174,7 @@ function LoQuieroModalContent({
             </div>
             <CouponInput compacto isRequired={isCouponRequired} />
             {errorCupon && !appliedCoupon && (
-              <p role="alert" className="text-xs font-semibold text-red-600 mt-1.5">{errorCupon}</p>
+              <p role="alert" className="d2-aparece text-xs font-semibold text-red-600 mt-1.5">{errorCupon}</p>
             )}
           </div>
         </div>
