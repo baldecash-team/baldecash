@@ -8,7 +8,8 @@
  * titularidad que da el token. Solo el N.° de solicitud y el contacto.
  */
 import React from 'react';
-import { BALDECITO } from '@/app/prototipos/0.6/components/diseno-2/TransicionPaso';
+import { BaldecitoV2 } from '../BaldecitoV2';
+import { useMenosMovimiento } from '../movimiento';
 import { ContactInfo } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/components/received';
 import type { ApplicationStatusData } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/types/applicationStatus';
 
@@ -19,11 +20,13 @@ export interface ConfirmacionLimitadaV2Props {
 
 export function ConfirmacionLimitadaV2({ applicationData, onGoHome }: ConfirmacionLimitadaV2Props) {
   const numero = applicationData.reference || applicationData.code;
+  const reducido = useMenosMovimiento();
   return (
     <div data-confirmacion-v2-limitada className="bg-[#F7F8FC]">
       <div className="mx-auto max-w-2xl px-4 py-10 text-center sm:px-6 sm:py-14">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={BALDECITO} alt="" className="mx-auto h-20 w-20 object-contain" />
+        <span className="mx-auto block w-fit">
+          <BaldecitoV2 ancho={74} animado={!reducido} flotar={{ duracion: 3, demora: 0 }} saludar={{ duracion: 1.6, demora: 0 }} />
+        </span>
         <h1 className="mt-4 font-['Baloo_2',_sans-serif] text-2xl font-bold text-[#1E2230]">
           ¡Recibimos tu solicitud!
         </h1>

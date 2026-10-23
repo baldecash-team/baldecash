@@ -344,22 +344,37 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   0% { transform: scaleX(var(--d2-desde, 0)); }
   100% { transform: scaleX(1); }
 }
-/* Transición entre pasos ("¡Un paso más!"): todo por transform. */
-@keyframes d2Viaje {
-  0% { transform: translateX(var(--tp-desde)); }
-  100% { transform: translateX(var(--tp-hasta)); }
-}
+/* Transición entre pasos (puente del prototipo): salto de Baldecito
+   (`bcHop`, la distancia sale de --d2-salto), anillo del paso que sigue
+   (`bcRing`) y Baldecito vivo (`bcBob`, `bcWave`, `bcBlink`). */
 @keyframes d2Salto {
-  0% { transform: translateY(0) scale(1, 1); }
-  14% { transform: translateY(3px) scale(1.06, 0.94); }
-  50% { transform: translateY(-34px) scale(0.97, 1.04); }
-  82% { transform: translateY(0) scale(1.06, 0.94); }
-  91% { transform: translateY(-3px) scale(0.99, 1.02); }
-  100% { transform: translateY(0) scale(1, 1); }
+  0% { transform: translate(0, 0) scale(1, 1); }
+  14% { transform: translate(0, 3px) scale(1.1, 0.88); }
+  50% { transform: translate(calc(var(--d2-salto, 88px) / 2), -48px) scale(0.95, 1.07) rotate(6deg); }
+  82% { transform: translate(var(--d2-salto, 88px), 0) scale(1.12, 0.86); }
+  91% { transform: translate(var(--d2-salto, 88px), -5px) scale(0.97, 1.04); }
+  100% { transform: translate(var(--d2-salto, 88px), 0) scale(1, 1); }
 }
-@keyframes d2Llenar {
-  0% { transform: scaleX(var(--tp-llenado-desde)); }
-  100% { transform: scaleX(var(--tp-llenado-hasta)); }
+@keyframes d2Llenado {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes d2Anillo {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.45); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); box-shadow: 0 0 0 12px rgba(var(--color-primary-rgb), 0); }
+}
+@keyframes d2Flota {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes d2Saluda {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-30deg); }
+}
+@keyframes d2Parpadea {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
 }
 @keyframes d2Chispa {
   0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
@@ -426,7 +441,7 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   .d2-sale, .d2-sale-hoja, .d2-fundido, .d2-fundido-sale, .d2-aparece,
   .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-check-hecho, .d2-check-actual,
   .d2-crece, .d2-crece-movil, .d2-saludo,
-  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b {
+  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b, .d2-baldecito-parte {
     animation: none !important;
   }
 }

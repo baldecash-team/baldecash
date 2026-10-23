@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { BALDECITO } from '@/app/prototipos/0.6/components/diseno-2/TransicionPaso';
+import { BaldecitoV2 } from '../BaldecitoV2';
 import { useMenosMovimiento } from '../movimiento';
 import { piezasDeConfeti } from './confeti';
 
@@ -67,7 +67,9 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
         ))}
       </div>
 
-      <div className="relative mx-auto flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
+      {/* Baldecito del prototipo (SVG, BAL-4959): flota y saluda dentro del
+          círculo blanco, con el anillo que se expande detrás. */}
+      <div className="relative mx-auto flex h-[136px] w-[136px] items-center justify-center">
         {!reducido && (
           <span
             aria-hidden
@@ -76,10 +78,16 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
             style={{ animation: 'anilloConfirmacionV2 2.4s ease-out 0.4s infinite' }}
           />
         )}
-        <div className="relative flex h-full w-full items-center justify-center rounded-full bg-white p-3 shadow-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={BALDECITO} alt="" className="h-full w-full object-contain" />
-        </div>
+        <span aria-hidden className="absolute inset-0 rounded-full bg-white shadow-[0_14px_34px_rgba(15,20,60,0.3)]" />
+        <span className="relative mt-1.5 block">
+          <BaldecitoV2
+            ancho={86}
+            animado={!reducido}
+            flotar={{ duracion: 3, demora: 0 }}
+            saludar={{ duracion: 1.6, demora: 0 }}
+            etiqueta="Baldecito celebrando"
+          />
+        </span>
       </div>
 
       <div className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold text-[var(--color-on-primary)]">
