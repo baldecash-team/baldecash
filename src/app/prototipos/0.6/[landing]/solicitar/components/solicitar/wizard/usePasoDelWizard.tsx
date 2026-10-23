@@ -135,8 +135,15 @@ export function usePasoDelWizard(opciones: {
    * Respaldo del submit para la casilla sin nada en `consentStorage` (BAL-5007).
    */
   consentimientoEnPantalla?: PartialSubmitConsents;
+  /**
+   * El diseño de la landing ya salió de `/config` (BAL-4969, casuísticas).
+   * Mientras es `false`, `diseno2` vale el `false` por defecto y no dice nada:
+   * `form_step_view` espera para no registrar `diseno: 1` en una landing de
+   * Diseño 2. Sin la opción (intro, tests) cuenta como resuelto.
+   */
+  disenoResuelto?: boolean;
 }): PasoDelWizardControles {
-  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false, consentimientoEnPantalla } = opciones;
+  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false, consentimientoEnPantalla, disenoResuelto = true } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -381,7 +388,7 @@ export function usePasoDelWizard(opciones: {
    */
   const pasosVistosRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (!step || !tracker) return;
+    if (!step || !tracker || !disenoResuelto) return;
     const slug = step.url_slug || step.code;
     if (pasosVistosRef.current.has(slug)) return;
     pasosVistosRef.current.add(slug);
@@ -391,7 +398,7 @@ export function usePasoDelWizard(opciones: {
       total_steps: steps.length,
       diseno: diseno2 ? 2 : 1,
     });
-  }, [step, tracker, navigation.currentIndex, steps.length, diseno2]);
+  }, [step, tracker, navigation.currentIndex, steps.length, diseno2, disenoResuelto]);
 
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {

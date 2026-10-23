@@ -239,7 +239,9 @@ export function LayoutProvider({
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
   const [disenoSolicitud, setDisenoSolicitud] = useState<1 | 2>(1);
-  const [disenoResuelto, setDisenoResuelto] = useState(false);
+  // De qué landing es el diseño que hay: si cambia la landing, el viejo no vale.
+  const [disenoPara, setDisenoPara] = useState<string | null>(null);
+  const disenoResuelto = disenoPara === landing;
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -284,7 +286,7 @@ export function LayoutProvider({
       // BAL-4958: reemplaza al ingrediente `lo-quiero-modal-on`. Cualquier
       // valor que no sea 2 (número o string) cae en el diseño actual.
       setDisenoSolicitud(resolveDisenoSolicitud(cfg.features?.solicitud_design));
-      setDisenoResuelto(true);
+      setDisenoPara(landing);
     });
   }, [landing]);
 
@@ -528,7 +530,11 @@ export function LayoutProvider({
     navbarProps,
     footerData,
     agreementData,
-    isLoading,
+    // El layout Y el diseño de la solicitud (BAL-4969, casuísticas): sin
+    // esperar a `/config`, la página se pintaba en Diseño 1 y saltaba a
+    // Diseño 2 (parpadeo), y un "Lo quiero" temprano iba a la intro de
+    // Diseño 1. `/config` ya trae el diseño efectivo (preset o modo global).
+    isLoading: isLoading || !disenoResuelto,
     hasError,
     landing,
     landingId,

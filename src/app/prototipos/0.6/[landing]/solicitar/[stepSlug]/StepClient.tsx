@@ -234,6 +234,8 @@ function StepContent() {
     gamer: isGamerLanding(landing),
     Celebracion: usarDiseno2 ? TransicionDelWizard : undefined,
     diseno2: usarDiseno2,
+    // `form_step_view` con el diseño de verdad, no el 1 por defecto (BAL-4969).
+    disenoResuelto,
   });
 
   /*

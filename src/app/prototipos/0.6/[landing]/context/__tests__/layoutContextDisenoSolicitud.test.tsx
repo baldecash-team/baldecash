@@ -149,3 +149,24 @@ describe('LayoutContext — landings sin Diseño 2 y colores de texto (BAL-4969)
     expect(raiz.getPropertyValue('--color-primary-text')).toBe('#0079A7');
   });
 });
+
+describe('LayoutContext — el diseño se resuelve antes de pintar (BAL-4969, casuísticas)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('isLoading sigue en true hasta que llega /config, aunque el layout ya llegó: sin parpadeo D1→D2', async () => {
+    let resolver: (v: unknown) => void = () => {};
+    fetchLandingConfigMock.mockReturnValue(new Promise((r) => { resolver = r; }));
+    render(
+      <LayoutProvider>
+        <Probe />
+      </LayoutProvider>,
+    );
+    // El layout responde solo; el diseño todavía no.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.getByTestId('loading')).toHaveTextContent('true');
+    resolver(baseConfig(2));
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
+    // Cuando deja de cargar, ya es Diseño 2 (nunca se vio un 1 "listo").
+    expect(screen.getByTestId('diseno')).toHaveTextContent('2');
+  });
+});

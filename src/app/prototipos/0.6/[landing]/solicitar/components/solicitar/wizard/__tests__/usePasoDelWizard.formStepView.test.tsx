@@ -138,3 +138,18 @@ describe('usePasoDelWizard: form_step_view', () => {
     expect(track).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('usePasoDelWizard: form_step_view espera al diseño (BAL-4969, casuísticas)', () => {
+  it('con el diseño sin resolver no emite; al resolverse emite una vez con el diseño real', () => {
+    const { rerender } = renderHook(
+      ({ resuelto, d2 }: { resuelto: boolean; d2: boolean }) =>
+        usePasoDelWizard({ stepSlug: 'datos-personales', flujo, diseno2: d2, disenoResuelto: resuelto }),
+      { initialProps: { resuelto: false, d2: false } },
+    );
+    expect(track).not.toHaveBeenCalledWith('form_step_view', expect.anything());
+
+    rerender({ resuelto: true, d2: true });
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('form_step_view', expect.objectContaining({ diseno: 2 }));
+  });
+});
