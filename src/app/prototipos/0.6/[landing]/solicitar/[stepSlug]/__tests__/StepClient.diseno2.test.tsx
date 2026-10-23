@@ -12,6 +12,7 @@ import { render, screen, act } from '@testing-library/react';
 const mockPush = jest.fn();
 const mockLayout: { disenoSolicitud: 1 | 2 | undefined; landing: string } = { disenoSolicitud: 2, landing: 'pago-diferido' };
 const mockStep = { slug: 'datos-personales' };
+const mockFormData: Record<string, { value: string }> = {};
 
 const PASO_REGULAR = {
   code: 'personal_data',
@@ -81,7 +82,7 @@ jest.mock('../../context/WizardConfigContext', () => ({
 
 jest.mock('../../context/WizardContext', () => ({
   useWizard: () => ({
-    formData: {},
+    formData: mockFormData,
     setFieldError: jest.fn(),
     markStepCompleted: jest.fn(),
     getFieldValue: () => '',
@@ -218,6 +219,21 @@ describe('StepClient elige el marco según el diseño de la landing', () => {
       expect(mockPush).not.toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/preferencias');
     } finally {
       jest.useRealTimers();
+    }
+  });
+
+  it('Diseño 2: con la persona detectada el título sigue siendo el del paso (el saludo va solo en la tarjeta)', async () => {
+    mockLayout.disenoSolicitud = 2;
+    mockFormData._prefill_status_document_number = { value: 'found' };
+    mockFormData.first_name = { value: 'MARIA' };
+    try {
+      render(<StepClient />);
+      expect(await screen.findByTestId('shell-v2')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Datos Personales');
+      expect(screen.queryByText(/¡Hola, Maria!/)).not.toBeInTheDocument();
+    } finally {
+      delete mockFormData._prefill_status_document_number;
+      delete mockFormData.first_name;
     }
   });
 

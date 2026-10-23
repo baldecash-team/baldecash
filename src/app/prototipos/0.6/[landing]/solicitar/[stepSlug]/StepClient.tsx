@@ -67,7 +67,6 @@ import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
 // Diseño 2 de la solicitud (BAL-4959): solo el marco; la lógica es la de acá.
 import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer, AvisoV2 } from '@/app/prototipos/0.6/components/diseno-2';
 import { etiquetaDelPaso } from '@/app/prototipos/0.6/components/diseno-2/ProgresoV2';
-import { nombreDelSaludoDelPaso } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 // Paso 4 · Resumen de Diseño 2 (BAL-4966): los seguros entran al paso.
 import {
   segurosVanEnElPaso4,
@@ -536,12 +535,9 @@ function StepContent() {
     return values;
   }, [formData]);
 
-  // Diseño 2 (BAL-4963): el título pasa a "¡Hola, {Nombre}!" apenas el lookup
-  // del documento responde `found`. Es el mismo estado del prefill, sin esperas.
-  const saludoDiseno2 = useMemo(
-    () => (usarDiseno2 ? nombreDelSaludoDelPaso(paso.step, formValues) : null),
-    [usarDiseno2, paso.step, formValues],
-  );
+  // Diseño 2: el título del Paso 1 sigue siendo el del paso. El saludo
+  // "¡Hola, {Nombre}!" sale una sola vez, en la tarjeta bajo el documento
+  // (`SaludoPrellenadoV2`), como en el prototipo de Brenda (verificación final).
 
   // Diseño 2, Paso 4: "¡Último paso, {Nombre}!" con el mismo origen del saludo.
   const nombrePaso4 = useMemo(
@@ -1398,7 +1394,7 @@ function StepContent() {
         <ShellV2
           currentStep={step.url_slug || step.code}
           step={paso.step ?? step}
-          title={saludoDiseno2 ? `¡Hola, ${saludoDiseno2}!` : step.title}
+          title={step.title}
           description={step.description}
           onBack={paso.handleBack}
           onNext={paso.handleNext}
