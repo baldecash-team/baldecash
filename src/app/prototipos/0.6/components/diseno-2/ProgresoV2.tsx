@@ -16,11 +16,21 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import { isStepClickable } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/wizard/WizardProgress';
+import type { WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
+
+/**
+ * Texto del paso en la barra: la misma regla de `WizardProgress` (Diseño 1,
+ * `main` ffaf8652) — `progress_label` editable en admin2 y, si falta o viene
+ * vacío, el título del paso.
+ */
+export function etiquetaDelPaso(step: Pick<WizardStep, 'title' | 'progress_label'>): string {
+  return step.progress_label?.trim() || step.title;
+}
 
 export interface PasoDelProgreso {
   /** Slug de la URL del paso: es lo que recibe `onIrAPaso`. */
   slug: string;
-  /** Etiqueta visible: `steps[].name` de la BD. */
+  /** Etiqueta visible: `etiquetaDelPaso` (progress_label o el título). */
   nombre: string;
 }
 

@@ -40,7 +40,7 @@ import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/u
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
-import { ProgresoV2, type PasoDelProgreso } from './ProgresoV2';
+import { ProgresoV2, etiquetaDelPaso, type PasoDelProgreso } from './ProgresoV2';
 import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL, useDatosDelPanel } from './PanelSolicitudV2';
 import { BarraInferiorV2 } from './BarraInferiorV2';
 import { useGuiaDeCampos } from './useGuiaDeCampos';
@@ -111,7 +111,7 @@ export interface ShellV2Props {
  * para que N ("paso X de N") no crezca con cada resumen extra que tenga la landing.
  */
 export function pasosDelProgreso(steps: WizardStep[]): PasoDelProgreso[] {
-  return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: s.name || s.title }));
+  return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: etiquetaDelPaso(s) }));
 }
 
 const ESTILOS_V2 = `

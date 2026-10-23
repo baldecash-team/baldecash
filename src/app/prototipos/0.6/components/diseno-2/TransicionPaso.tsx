@@ -20,6 +20,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 
 import { useParams } from 'next/navigation';
 import { useWizardConfig, pasosConPrimerResumen } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { getStepSlug } from '@/app/prototipos/0.6/services/wizardApi';
+import { etiquetaDelPaso } from './ProgresoV2';
 import { useReducedMotion } from 'framer-motion';
 import { Check, ArrowRight } from 'lucide-react';
 import { getMessage } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/celebration/StepSuccessMessage';
@@ -236,7 +237,7 @@ export function TransicionDelWizard({
   // Misma cuenta que `pasosDelProgreso` (ShellV2): regulares + SOLO el primer
   // resumen, para que el total coincida con "paso X de N" del progreso.
   const pasos = useMemo(() => {
-    return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: s.name || s.title }));
+    return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: etiquetaDelPaso(s) }));
   }, [steps]);
   const posicion = pasos.findIndex((p) => p.slug === slugActual);
   return (
