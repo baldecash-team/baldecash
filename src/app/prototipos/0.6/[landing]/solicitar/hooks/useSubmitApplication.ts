@@ -820,7 +820,8 @@ export function useSubmitApplication(
           };
           const msg =
             (result.error_code ? MENSAJES[result.error_code] : undefined) ||
-            result.error ||
+            // Solo texto: un `error` lista u objeto tumbaba el aviso (BAL-4969).
+            (typeof result.error === 'string' ? result.error : undefined) ||
             'Error al enviar la solicitud. Por favor intenta nuevamente.';
           setError(msg);
           // La unidad tomada va al modal si el caller lo maneja; si no, cae al

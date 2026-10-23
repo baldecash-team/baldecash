@@ -46,7 +46,12 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
   }, [isVisible, duration, onClose]);
 
   const tono = tonoDelAviso(type);
-  const visible = isVisible && !!message;
+  // Defensa (BAL-4969): si algún día llega algo que no es texto (un `detail`
+  // de 422 como lista u objeto), se muestra un texto genérico en vez de
+  // tumbar la pantalla: React no pinta objetos.
+  const texto: string | null =
+    typeof message === 'string' ? message : message == null ? null : 'No pudimos completar la acción. Por favor intenta nuevamente.';
+  const visible = isVisible && !!texto;
 
   return (
     <div
@@ -59,7 +64,7 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
       <AnimatePresence>
         {visible && (
           <motion.div
-            key={message}
+            key={texto ?? ''}
             initial={menosMovimiento ? { opacity: 0 } : { opacity: 0, y: -16 }}
             animate={menosMovimiento ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={menosMovimiento ? { opacity: 0 } : { opacity: 0, y: -8 }}
@@ -67,7 +72,7 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
             className={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border py-1.5 pl-4 pr-1.5 shadow-lg font-['Asap',_sans-serif] ${tono.caja}`}
           >
             <tono.Icono className={`h-5 w-5 flex-shrink-0 ${tono.icono}`} aria-hidden />
-            <p className="flex-1 py-2 text-sm font-medium text-[#1E2230]">{message}</p>
+            <p className="flex-1 py-2 text-sm font-medium text-[#1E2230]">{texto}</p>
             <button
               type="button"
               onClick={onClose}
