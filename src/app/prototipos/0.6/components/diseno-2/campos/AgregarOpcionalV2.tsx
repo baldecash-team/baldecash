@@ -25,7 +25,18 @@ export function textoAgregar(label: string): string {
   return `Agregar ${enMinuscula}`;
 }
 
+/**
+ * Separa la aclaración final entre paréntesis: «Agregar celular para llamadas
+ * (si es otro número)» → ["Agregar celular para llamadas", "(si es otro número)"].
+ * En el prototipo la aclaración va en gris y sin negrita.
+ */
+export function partirAclaracion(texto: string): [string, string | null] {
+  const m = texto.match(/^(.*\S)\s*(\([^()]*\))$/);
+  return m ? [m[1], m[2]] : [texto, null];
+}
+
 export function AgregarOpcionalV2({ label, onAbrir }: { label: string; onAbrir: () => void }) {
+  const [texto, aclaracion] = partirAclaracion(textoAgregar(label));
   return (
     <button
       type="button"
@@ -33,7 +44,15 @@ export function AgregarOpcionalV2({ label, onAbrir }: { label: string; onAbrir: 
       className="inline-flex min-h-[44px] items-center gap-2 self-start rounded-lg bg-transparent px-0 text-left text-[15px] font-semibold text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)] cursor-pointer hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
     >
       <Plus className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2.2} aria-hidden />
-      {textoAgregar(label)}
+      <span>
+        {texto}
+        {aclaracion && (
+          <>
+            {' '}
+            <span data-aclaracion className="font-normal text-[#5B6275]">{aclaracion}</span>
+          </>
+        )}
+      </span>
     </button>
   );
 }
