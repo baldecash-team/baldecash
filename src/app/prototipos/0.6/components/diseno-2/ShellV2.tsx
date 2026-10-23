@@ -40,6 +40,7 @@ import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/u
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
+import { TARJETA_V2, TARJETA_V2_ESTILO } from './campos/estilosV2';
 import { ProgresoV2, etiquetaDelPaso, type PasoDelProgreso } from './ProgresoV2';
 import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL, useDatosDelPanel } from './PanelSolicitudV2';
 import { BarraInferiorV2 } from './BarraInferiorV2';
@@ -183,6 +184,12 @@ export function ShellV2({
 
   const pasos = useMemo(() => pasosDelProgreso(steps), [steps]);
   const indiceActual = pasos.findIndex((p) => p.slug === currentStep);
+  // Con secciones, cada una lleva su tarjeta (prototipo de Brenda): el marco
+  // no pone la suya alrededor de todas.
+  const sinMarco = sinTarjeta || !!step?.groups?.length;
+  // "¡Ya casi terminas!" sobre el título del penúltimo paso (prototipo).
+  const antetituloDelPaso =
+    antetitulo ?? (pasos.length >= 3 && indiceActual === pasos.length - 2 ? '¡Ya casi terminas!' : null);
 
   // Hechos: todos sus obligatorios visibles llenos. La misma cuenta dinámica
   // de `WizardProgress`; el resumen no se marca nunca como hecho.
@@ -245,8 +252,8 @@ export function ShellV2({
               <ProgresoV2 pasos={pasos} indiceActual={indiceActual} completados={completados} onIrAPaso={onStepClick} />
             </div>
 
-            {antetitulo && (
-              <p className="mb-1 font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-tight text-[#0B8A6B]">{antetitulo}</p>
+            {antetituloDelPaso && (
+              <p className="mb-1 font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-tight text-[#0B8A6B]">{antetituloDelPaso}</p>
             )}
             <h1 className="font-['Baloo_2',_sans-serif] text-[28px] lg:text-[34px] font-bold leading-[1.1] text-[#1E2230]">
               {title}
@@ -258,8 +265,8 @@ export function ShellV2({
               onBlur={onBlur}
               onKeyDown={onKeyDown}
               // Entrada del paso (adelante o atrás): `bcPop` 0,3 s del prototipo.
-              className={sinTarjeta ? 'mt-4 d2-pop-lento' : 'mt-4 d2-pop-lento rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
-              style={sinTarjeta ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
+              className={sinMarco ? 'mt-4 d2-pop-lento' : `mt-4 d2-pop-lento ${TARJETA_V2}`}
+              style={sinMarco ? undefined : TARJETA_V2_ESTILO}
             >
               {children(camposTocados)}
             </div>

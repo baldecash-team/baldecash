@@ -290,10 +290,13 @@ describe('Lista con display_mode de botones', () => {
     const ce = screen.getByRole('radio', { name: 'Carné de extranjería' });
     expect(dni).toHaveAttribute('aria-checked', 'true');
     expect(ce).toHaveAttribute('aria-checked', 'false');
-    expect(dni.className).toContain('bg-[var(--color-primary)]');
-    expect(dni.className).toContain('text-[var(--color-on-primary)]');
-    expect(ce.className).toContain('text-[var(--color-primary-text)]');
-    expect(dni.className).toContain('min-h-[48px]');
+    // Prototipo de Brenda (BTN / BTN_ON): elegido con fondo de marca suave y
+    // texto de marca; el otro neutro con borde #C9CEF0 y texto oscuro.
+    expect(dni.className).toContain('bg-[rgba(var(--color-primary-rgb),0.1)]');
+    expect(dni.className).toContain('text-[var(--color-primary-text)]');
+    expect(ce.className).toContain('border-[#C9CEF0]');
+    expect(ce.className).toContain('text-[#1E2230]');
+    expect(dni.className).toContain('min-h-[52px]');
 
     fireEvent.click(ce);
     expect(updateField).toHaveBeenCalledWith('document_type', 'ce');

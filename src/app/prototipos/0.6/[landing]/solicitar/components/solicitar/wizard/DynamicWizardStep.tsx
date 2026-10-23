@@ -13,7 +13,7 @@ import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
-import { CamposV2Provider, PISTA_V2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { CamposV2Provider, PISTA_V2, TARJETA_V2, TARJETA_V2_ESTILO } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
 import { ayudaDelNumero, camposPrellenadosEscondidos, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
@@ -492,13 +492,15 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     );
   } else {
     // Diseño 2 con secciones (`step.groups`); los campos sin sección, al final.
+    // Cada sección va en su propia tarjeta, como en el prototipo de Brenda.
     const opciones = getAllDynamicOptions?.();
     campos = (
-      <div ref={contenedorRef} className="grid grid-cols-12 gap-y-8">
+      <div ref={contenedorRef} className="flex flex-col gap-5">
         {bloques.map((bloque) => {
           if (bloque.tipo === 'sueltos') {
+            if (!bloque.campos.some((f) => fieldVisibility[f.code])) return null;
             return (
-              <div key="__sin-seccion" className="col-span-12 grid grid-cols-12 gap-y-4">
+              <div key="__sin-seccion" data-tarjeta-v2 className={`grid grid-cols-12 gap-y-4 ${TARJETA_V2}`} style={TARJETA_V2_ESTILO}>
                 {bloque.campos.map((field) => pintarCampo(field))}
               </div>
             );
@@ -515,8 +517,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
               formValues,
             );
           return (
+            <div key={bloque.grupo.code} data-tarjeta-v2 className={`grid grid-cols-12 ${TARJETA_V2}`} style={TARJETA_V2_ESTILO}>
             <SeccionPlegable
-              key={bloque.grupo.code}
               codigo={bloque.grupo.code}
               titulo={bloque.grupo.name}
               plegable={bloque.grupo.is_collapsible}
@@ -526,6 +528,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
             >
               {bloque.campos.map((field) => pintarCampo(field))}
             </SeccionPlegable>
+            </div>
           );
         })}
       </div>

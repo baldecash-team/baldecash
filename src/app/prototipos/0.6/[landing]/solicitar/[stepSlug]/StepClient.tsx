@@ -1110,8 +1110,9 @@ function StepContent() {
                 {step.fields.length > 0 && (
                   <div
                     data-vista-paso4="1"
-                    className={`rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7 ${enVista2 ? 'hidden lg:block' : ''}`}
-                    style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
+                    // Con secciones, cada una trae su tarjeta (prototipo).
+                    className={`${step.groups?.length ? '' : 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'} ${enVista2 ? 'hidden lg:block' : ''}`}
+                    style={step.groups?.length ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
                   >
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
                   </div>

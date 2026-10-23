@@ -39,6 +39,14 @@ export const COLOR_V2 = {
   gris: '#5B6275',
 } as const;
 
+/**
+ * Tarjeta de un bloque del paso (la del marco de `ShellV2`): borde #AEB6EE,
+ * radio 2xl y la franja de marca arriba. En el prototipo cada sección del
+ * paso va en su propia tarjeta (BAL-4969).
+ */
+export const TARJETA_V2 = 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7';
+export const TARJETA_V2_ESTILO = { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' } as const;
+
 /** Etiqueta arriba del campo (15px, negrita). */
 export const ETIQUETA_V2 = 'flex items-center gap-1.5 text-[15px] font-bold leading-snug text-[#262C66]';
 /** "(opcional)" al lado de la etiqueta. */
@@ -78,11 +86,13 @@ export const PRESION_V2 = 'active:scale-[0.97] motion-reduce:active:scale-100';
 /** Botón-chip de una opción (tipo de documento, situación…): alto ≥44px. */
 export function chipV2(seleccionado: boolean): string {
   return [
-    `min-h-[48px] rounded-[10px] border-[1.5px] px-2 text-sm leading-tight transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer`,
+    `min-h-[52px] rounded-[10px] border-[1.5px] px-3 py-1.5 text-[15px] leading-tight transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer`,
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
+    // Prototipo de Brenda (BTN / BTN_ON): neutro con borde #C9CEF0 y texto
+    // oscuro; elegido con borde de marca, fondo de marca suave y texto de marca.
     seleccionado
-      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-[var(--color-on-primary)]'
-      : 'border-[var(--color-primary)] bg-white font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.07)]',
+      ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] font-bold text-[var(--color-primary-text)]'
+      : 'border-[#C9CEF0] bg-white font-semibold text-[#1E2230] hover:border-[var(--color-primary)]',
   ].join(' ');
 }
 

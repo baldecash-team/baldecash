@@ -283,6 +283,20 @@ describe('Secciones del Paso 3 (groups)', () => {
   });
 });
 
+describe('Cada sección en su propia tarjeta (prototipo de Brenda, BAL-4969)', () => {
+  it('"Tus ingresos" y "Tu vivienda" van cada una en una tarjeta con la franja de marca', () => {
+    const { container } = pintarV2(PASO3);
+    const tarjetas = Array.from(container.querySelectorAll<HTMLElement>('[data-tarjeta-v2]'));
+    const conSeccion = tarjetas.filter((t) => t.querySelector('[data-seccion]'));
+    expect(conSeccion.length).toBeGreaterThanOrEqual(2);
+    for (const t of conSeccion) {
+      expect(t).toHaveClass('rounded-2xl', 'border-[#AEB6EE]');
+      expect(t.style.boxShadow).toContain('inset 0 4px 0 0');
+      expect(t.querySelectorAll('[data-seccion]')).toHaveLength(1);
+    }
+  });
+});
+
 describe('Cada tipo de ingreso muestra sus campos y limpia los del anterior', () => {
   const CASOS: Array<{ tipo: string; visibles: string[] }> = [
     { tipo: 'sueldo_trabajo', visibles: ['employer_name', 'income_receive_method_no_proof', 'monthly_income'] },
