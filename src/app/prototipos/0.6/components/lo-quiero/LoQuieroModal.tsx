@@ -43,7 +43,9 @@ import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/con
 import { CouponInput } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
 import { getTermUnit } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/etiquetaDePlazo';
 import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
-import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/solicitar/utils/formatMoney';
+// I6 (BAL-4969): la cuota se escribe como en el panel, el Shell y la confirmación
+// (`formatCuotaDeLanding`: centavos en Family Farms, entera en el resto).
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage';
 import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
 import { useMesPrimeraCuota } from './useMesPrimeraCuota';
@@ -440,11 +442,11 @@ function LoQuieroModalContent({
   const leyenda = [
     `${plazoVisible} ${getTermUnit(plazoVisible, frecuencia)}`,
     selectedProduct && selectedProduct.initialAmount > 0
-      ? `inicial S/${formatMoneyNoDecimals(Math.floor(selectedProduct.initialAmount))}`
+      ? `inicial S/${formatCuotaDeLanding(selectedProduct.initialAmount, landing)}`
       : 'sin inicial',
     appliedCoupon ? 'con cupón' : null,
   ].filter(Boolean).join(' · ');
-  const totalEntero = Math.floor(total);
+  const totalVisible = formatCuotaDeLanding(total, landing);
 
   // ── Pulso del total al agregar/quitar o con el cupón ──────────────────────
   const totalRef = useRef<HTMLSpanElement>(null);
@@ -462,7 +464,7 @@ function LoQuieroModalContent({
       [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }],
       { duration: 400, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
     );
-  }, [totalEntero, codigoCupon]);
+  }, [totalVisible, codigoCupon]);
 
   // ── Celular: teclado abierto (el cupón no puede quedar tapado) ────────────
   // `dvh` no se encoge con el teclado en todos los navegadores: se mide el
@@ -550,7 +552,7 @@ function LoQuieroModalContent({
       has_coupon: !!appliedCoupon,
       coupon_code: appliedCoupon?.code ?? null,
       accept_promos: aceptaPromos,
-      monthly_total: Math.floor(total),
+      monthly_total: Math.round(total * 100) / 100,
       first_step: slugPrimerPaso,
     });
 
@@ -663,7 +665,7 @@ function LoQuieroModalContent({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-neutral-800 truncate" title={nombreEquipo}>{nombreEquipo}</p>
                 <p className="text-xs text-neutral-500">
-                  <span className="font-semibold text-neutral-700">S/{formatMoneyNoDecimals(Math.floor(cuotaEquipo))}{sufijo}</span>
+                  <span className="font-semibold text-neutral-700">S/{formatCuotaDeLanding(cuotaEquipo, landing)}{sufijo}</span>
                   {' · '}
                   {plazoEquipo}
                 </p>
@@ -757,7 +759,7 @@ function LoQuieroModalContent({
                             <p className="text-sm font-semibold text-neutral-800 line-clamp-2 md:min-h-[2.5rem] leading-snug">{nombre}</p>
                             <p className="mt-0.5 flex items-center gap-1.5 min-w-0 md:hidden">
                               <span className="text-sm font-bold text-[var(--color-primary)] whitespace-nowrap">
-                                +S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}{sufijo}
+                                +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
                               </span>
                               <span className="text-xs text-neutral-400 inline-flex items-center min-w-0 whitespace-nowrap overflow-hidden">
                                 Ver detalle <ChevronRight className="w-3 h-3" aria-hidden />
@@ -766,7 +768,7 @@ function LoQuieroModalContent({
                           </div>
                           <div className="flex items-center justify-between gap-2 md:mt-auto">
                             <span className="hidden md:inline text-sm font-bold text-neutral-800 pointer-events-none">
-                              +S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}{sufijo}
+                              +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
                             </span>
                             <button
                               type="button"
@@ -811,22 +813,15 @@ function LoQuieroModalContent({
         {/* Pie fijo */}
         <div className="shrink-0 border-t border-neutral-100 px-4 md:px-6 pt-2 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-white rounded-b-2xl">
           <div className="flex flex-col md:flex-row md:items-center md:gap-3">
-            {/* Casilla única de Términos + Privacidad: neutra hasta que falte */}
+            {/* Casilla única de Términos + Privacidad: neutra hasta que falte.
+                QA F10 · Falla 1 (BAL-4969): los enlaces ya no van DENTRO de la
+                casilla. Antes el centro del texto caía sobre «Política de
+                privacidad» y tocar la frase abría la página en vez de marcar.
+                Ahora toda la frase marca y los enlaces van en su propia línea,
+                fuera del `role="checkbox"` (tampoco se anida un enlace dentro
+                de un control). */}
             <div
-              ref={terminosRef}
-              role="checkbox"
-              aria-checked={aceptaTerminos}
-              aria-invalid={errorTerminos && !aceptaTerminos}
-              aria-describedby={errorTerminos && !aceptaTerminos ? 'lo-quiero-terminos-error' : undefined}
-              tabIndex={0}
-              onClick={alternarTerminos}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  alternarTerminos();
-                }
-              }}
-              className={`flex items-center gap-2.5 min-h-[44px] rounded-lg border px-2.5 py-1.5 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] md:flex-1 ${
+              className={`rounded-lg border transition-colors duration-150 md:flex-1 ${
                 aceptaTerminos
                   ? 'border-[#BFE6DA] bg-[#F2FBF8]'
                   : errorTerminos
@@ -834,48 +829,66 @@ function LoQuieroModalContent({
                     : 'border-neutral-200 bg-white hover:border-neutral-300'
               }`}
             >
-              <span
-                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${
-                  aceptaTerminos
-                    ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                    : errorTerminos
-                      ? 'bg-white border-red-500'
-                      : 'bg-white border-neutral-400'
-                }`}
-                aria-hidden
+              <div
+                ref={terminosRef}
+                role="checkbox"
+                aria-checked={aceptaTerminos}
+                aria-invalid={errorTerminos && !aceptaTerminos}
+                aria-describedby={errorTerminos && !aceptaTerminos ? 'lo-quiero-terminos-error' : undefined}
+                tabIndex={0}
+                onClick={alternarTerminos}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    alternarTerminos();
+                  }
+                }}
+                className="flex items-center gap-2.5 min-h-[44px] rounded-lg px-2.5 pt-1.5 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
-                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-sm text-neutral-800">
-                  Acepto{' '}
-                  <a
-                    href={routes.legal(landing, 'terminos-y-condiciones')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="underline text-[var(--color-primary)] hover:opacity-80"
-                  >
-                    Términos
-                  </a>{' '}
-                  y{' '}
-                  <a
-                    href={routes.legal(landing, 'politica-de-privacidad')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="underline text-[var(--color-primary)] hover:opacity-80"
-                  >
-                    Política de privacidad
-                  </a>
+                <span
+                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${
+                    aceptaTerminos
+                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                      : errorTerminos
+                        ? 'bg-white border-red-500'
+                        : 'bg-white border-neutral-400'
+                  }`}
+                  aria-hidden
+                >
+                  {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                 </span>
-                {errorTerminos && !aceptaTerminos && (
-                  <span id="lo-quiero-terminos-error" role="alert" className="block text-xs font-semibold text-red-600">
-                    Marca la casilla para continuar.
-                  </span>
-                )}
-              </span>
-              {aceptaTerminos && <span className="text-xs font-semibold text-[#0B6B5C] shrink-0">¡Listo!</span>}
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm text-neutral-800">Acepto Términos y Política de privacidad</span>
+                  {errorTerminos && !aceptaTerminos && (
+                    <span id="lo-quiero-terminos-error" role="alert" className="block text-xs font-semibold text-red-600">
+                      Marca la casilla para continuar.
+                    </span>
+                  )}
+                </span>
+                {aceptaTerminos && <span className="text-xs font-semibold text-[#0B6B5C] shrink-0">¡Listo!</span>}
+              </div>
+              <p className="pl-[40px] pr-2.5 pb-1.5 text-xs text-neutral-500">
+                Leer{' '}
+                <a
+                  href={routes.legal(landing, 'terminos-y-condiciones')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="underline text-[var(--color-primary)] hover:opacity-80"
+                >
+                  Términos
+                </a>{' '}
+                ·{' '}
+                <a
+                  href={routes.legal(landing, 'politica-de-privacidad')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="underline text-[var(--color-primary)] hover:opacity-80"
+                >
+                  Política de privacidad
+                </a>
+              </p>
             </div>
 
             {/* Promociones (opcional) + cupón plegable en la misma fila */}
@@ -951,13 +964,13 @@ function LoQuieroModalContent({
                   ref={totalRef}
                   className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[28px] md:text-3xl font-bold text-[var(--color-primary)]"
                 >
-                  S/{formatMoneyNoDecimals(totalEntero)}
+                  S/{totalVisible}
                 </span>
                 <span className="text-sm font-semibold text-[var(--color-primary)] ml-1">{sufijo}</span>
               </p>
               {n > 0 && (
                 <p className="text-xs text-neutral-600 mt-0.5 truncate">
-                  Equipo S/{formatMoneyNoDecimals(Math.floor(cuotaEquipo))} + accesorios S/{formatMoneyNoDecimals(Math.floor(cuotaAccesorios))}
+                  Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}
                 </p>
               )}
               <p className="text-xs text-neutral-500 mt-0.5">
@@ -1035,13 +1048,13 @@ function LoQuieroModalContent({
                 <div className="mt-4 rounded-xl bg-[rgba(var(--color-primary-rgb),0.06)] px-4 py-3">
                   <p className="leading-none">
                     <span className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--color-primary)]">
-                      +S/{formatMoneyNoDecimals(Math.floor(detalle.monthlyQuota))}
+                      +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
                     </span>
                     <span className="text-sm font-semibold text-[var(--color-primary)] ml-1">{sufijo}</span>
                   </p>
                   {detalle.price > 0 && (
                     <p className="text-xs text-neutral-600 mt-1">
-                      S/{formatMoneyNoDecimals(Math.floor(detalle.price))} en {detalle.term ?? plazo} cuotas
+                      S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
                     </p>
                   )}
                 </div>
