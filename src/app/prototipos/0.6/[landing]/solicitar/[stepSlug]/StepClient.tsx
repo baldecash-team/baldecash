@@ -42,7 +42,7 @@ import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
-import { useToast } from '@/app/prototipos/_shared';
+import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -210,11 +210,11 @@ function StepContent() {
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  // El mensaje de "unidad tomada" solo tuvo modal en el paso regular, que ahora
-  // vive en `usePasoDelWizard` y monta el suyo. Esta instancia —la del resumen—
-  // nunca lo renderizo, asi que el valor no se lee: se conserva el callback para
-  // no cambiarle el contrato al hook de envio.
-  const [, setUnidadTomada] = useState<string | null>(null);
+  // "Unidad tomada" al enviar desde el resumen (BAL-4969, casuísticas): antes
+  // el valor no se leía y el envío fallaba en silencio (el hook no muestra el
+  // aviso si hay `onUnidadTomada`). Ahora el resumen monta el mismo modal que
+  // el paso regular (`usePasoDelWizard`), en los dos diseños.
+  const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
@@ -862,6 +862,19 @@ function StepContent() {
     router.push(routes.solicitarStep(landing, stepPath));
   };
 
+  // El mismo modal de "unidad tomada" del paso regular (z-60 por la navbar).
+  const modalUnidadTomadaResumen = unidadTomada ? (
+    <div className="relative z-[60]">
+      <ModalAviso
+        titulo="Ese equipo ya no está disponible"
+        mensaje={unidadTomada}
+        textoBoton="Elegir otro equipo"
+        onCerrar={() => router.push(routes.catalogo(landing))}
+        tono="error"
+      />
+    </div>
+  ) : null;
+
   // Lead guard
   if (!hasLeadAccess) return <LoadingFallback />;
 
@@ -1278,6 +1291,7 @@ function StepContent() {
           {/* La barra fija de celular no tapa el final del footer */}
           <BarraInferiorV2Spacer />
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          {modalUnidadTomadaResumen}
           {/* M-2 (BAL-4969): el aviso del kit (status + aria-live, cerrar de
               44px, reduced-motion). El `Toast` compartido de Diseño 1 no cambia. */}
           <AvisoV2
@@ -1346,6 +1360,7 @@ function StepContent() {
           {pageContent}
           {stickyCta}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          {modalUnidadTomadaResumen}
         </GamerWizardWrapper>
       );
     }
@@ -1356,6 +1371,7 @@ function StepContent() {
         {stickyCta}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        {modalUnidadTomadaResumen}
       </>
     );
   }

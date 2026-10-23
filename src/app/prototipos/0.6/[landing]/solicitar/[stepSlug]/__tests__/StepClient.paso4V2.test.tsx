@@ -103,14 +103,21 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
+// Lo que el resumen le pasa al hook de envío (para disparar "unidad tomada").
+const mockOpcionesEnvio: { onUnidadTomada?: (m: string) => void } = {};
 jest.mock('../../hooks/useSubmitApplication', () => ({
-  useSubmitApplication: () => ({
+  useSubmitApplication: (opts: { onUnidadTomada?: (m: string) => void }) => {
+    // Solo la instancia del resumen (`usePasoDelWizard` también llama al hook
+    // y se distingue porque pasa `consentimientoEnPantalla`).
+    if (opts && !('consentimientoEnPantalla' in opts)) mockOpcionesEnvio.onUnidadTomada = opts.onUnidadTomada;
+    return {
     submit: mockSubmit,
     isSubmitting: false,
     submitMessage: '',
     submitStage: 'idle',
     submitSucceeded: false,
-  }),
+    };
+  },
 }));
 
 jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
@@ -451,6 +458,18 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     } finally {
       mockFlujo.sectionsBeforeWizard = [];
     }
+  });
+
+  it('BAL-4969: "unidad tomada" al enviar desde el resumen muestra el modal (no falla en silencio)', async () => {
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    act(() => {
+      mockOpcionesEnvio.onUnidadTomada?.('Era la última unidad de ese modelo.');
+    });
+    expect(await screen.findByText('Ese equipo ya no está disponible')).toBeInTheDocument();
+    expect(screen.getByText('Era la última unidad de ese modelo.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Elegir otro equipo' }));
+    expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/catalogo');
   });
 
   it('sin la sección insurance no aparecen y se envía sin seguros', async () => {
