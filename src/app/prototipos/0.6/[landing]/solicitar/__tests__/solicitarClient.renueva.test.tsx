@@ -155,11 +155,17 @@ const pasoBase: PasoDelWizardControles = {
 };
 
 let mockPaso: PasoDelWizardControles = pasoBase;
+// Con qué se llamó al paso embebido en cada render (BAL-5007: lo marcado en la
+// intro tiene que llegarle al submit).
+const mockArgsDelPaso: Array<{ consentimientoEnPantalla?: unknown }> = [];
 
 jest.mock('../components/solicitar/wizard', () => ({
   ...jest.requireActual('../components/solicitar/wizard'),
   PasoDelWizard: () => <div data-testid="formulario-embebido" />,
-  usePasoDelWizard: () => mockPaso,
+  usePasoDelWizard: (args: { consentimientoEnPantalla?: unknown }) => {
+    mockArgsDelPaso.push(args);
+    return mockPaso;
+  },
 }));
 
 // `window.scrollTo` no está implementado en jsdom: sin el mock lanza y además
@@ -178,6 +184,7 @@ beforeEach(() => {
   scrollToMock.mockClear();
   mockHandleNext.mockClear();
   mockPaso = pasoBase;
+  mockArgsDelPaso.length = 0;
   flujoCargando = false;
   // Los consentimientos se guardan por landing en localStorage y arrastran
   // entre tests: se limpian para que cada uno arranque sin aceptar nada.
@@ -279,6 +286,19 @@ describe('intro de renueva-*', () => {
     await userEvent.click(screen.getAllByText('Enviar Solicitud')[0]);
 
     expect(mockHandleNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('lo marcado en la intro le llega al paso que envía (BAL-5007)', async () => {
+    render(<SolicitarClientPage />);
+    await screen.findByTestId('formulario-embebido');
+
+    await userEvent.click(screen.getByText(/Acepto los/));
+    await userEvent.click(screen.getByText(/Acepto la/));
+
+    // Promos no se tocó: va en false, no se inventa.
+    expect(mockArgsDelPaso.at(-1)?.consentimientoEnPantalla).toEqual({
+      terms: true, privacy: true, promos: false,
+    });
   });
 
   it('ya no ofrece "Comenzar Solicitud": el formulario está en la página', async () => {

@@ -8,6 +8,28 @@
 import React, { useState } from 'react';
 import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  CAJA_V2,
+  PREFIJO_V2,
+  PLACEHOLDER_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+  PISTA_V2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+
+/**
+ * «Mostrar contador de caracteres» (BAL-4960). `showCounter` es el
+ * `show_counter` de la foto (paso > banco, resuelto en ws2): `true` lo
+ * muestra y `false` lo oculta en los dos diseños. Sin valor, cada diseño hace
+ * lo de siempre: Diseño 1 lo muestra, Diseño 2 no. Solo decide si se ve el
+ * número: el límite (`maxLength`) se respeta igual.
+ */
+export function contadorVisible(showCounter: boolean | null | undefined, v2: boolean): boolean {
+  return showCounter ?? !v2;
+}
 
 export interface FieldTooltipInfo {
   title: string;
@@ -31,7 +53,14 @@ export interface TextInputProps {
   disabled?: boolean;
   required?: boolean;
   maxLength?: number;
-  showCounter?: boolean;
+  /** BAL-4960: true/false = mostrar/ocultar; sin valor = lo de cada diseño. */
+  showCounter?: boolean | null;
+  /**
+   * Diseño 2 (BAL-4960): la pista bajo el campo, cuando el campo también lleva
+   * contador: van en la misma fila (pista a la izquierda, número a la
+   * derecha). Sin contador la pinta `DynamicWizardStep`, como siempre.
+   */
+  pista?: string | null;
   compact?: boolean;
   /** Smaller height variant for tight layouts (h-9 instead of h-11) */
   small?: boolean;
@@ -76,7 +105,8 @@ export const TextInput: React.FC<TextInputProps> = ({
   disabled = false,
   required = true,
   maxLength,
-  showCounter = true,
+  showCounter,
+  pista,
   compact = false,
   small = false,
   hideErrorText = false,
@@ -93,6 +123,8 @@ export const TextInput: React.FC<TextInputProps> = ({
   onPaste,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const v2 = useCamposV2();
+  const verContador = contadorVisible(showCounter, v2) && !!maxLength;
   const showError = !!error;
   const showSuccess = success && !error && value;
 
@@ -118,6 +150,92 @@ export const TextInput: React.FC<TextInputProps> = ({
     if (isFocused) return 'border-[var(--color-primary)]';
     return 'border-neutral-300';
   };
+
+  const inputProps = {
+    ref: inputRef,
+    name: id,
+    type,
+    inputMode: getInputMode(),
+    value,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    onKeyDown,
+    onPaste,
+    onFocus: () => {
+      setIsFocused(true);
+      onFocus?.();
+    },
+    onBlur: () => {
+      setIsFocused(false);
+      onBlur?.();
+    },
+    placeholder,
+    disabled,
+    maxLength,
+    min,
+    max,
+    step,
+    onWheel: (e: React.WheelEvent<HTMLInputElement>) => {
+      onWheel?.(e);
+      // Un input type="number" enfocado cambia su valor con la rueda del
+      // mouse (medido en prod: 500 -> rueda abajo -> 499). React expone
+      // onWheel como passive, así que preventDefault() acá no sirve: la
+      // única forma de frenarlo es sacarle el foco. Sin foco, el navegador
+      // ya no toca el valor y la página sigue scrolleando normal.
+      if (type === 'number') {
+        e.currentTarget.blur();
+      }
+    },
+  };
+
+  // Diseño 2 (BAL-4960): mismo input y mismos eventos, otro vestido. La pista
+  // (`hint`) la pinta `DynamicWizardStep` debajo, y el error la reemplaza.
+  if (v2) {
+    return (
+      <div id={id} className="flex flex-col gap-1.5">
+        <label htmlFor={`${id}-input`} className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+        {helpText && <p className="text-[13px] text-[#5B6275]">{helpText}</p>}
+        <div
+          className={`flex items-center overflow-hidden ${CAJA_V2} ${bordeV2({ error: showError, foco: isFocused, correcto: !!showSuccess })} ${
+            disabled ? 'bg-[#F7F8FA] opacity-70' : ''
+          }`}
+        >
+          {startContent && <span className={PREFIJO_V2}>{startContent}</span>}
+          <input
+            {...inputProps}
+            id={`${id}-input`}
+            aria-invalid={showError || undefined}
+            aria-describedby={error && !hideErrorText ? `${id}-error` : undefined}
+            className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-base text-[#1E2230] outline-none ${PLACEHOLDER_V2} ${
+              disabled ? 'cursor-not-allowed' : ''
+            }`}
+            style={{
+              WebkitBoxShadow: '0 0 0 1000px white inset',
+              ...(value ? { WebkitTextFillColor: '#1E2230' } : {}),
+            }}
+          />
+          {endContent && <span className="flex-shrink-0 select-none pr-3 text-base text-[#5B6275]">{endContent}</span>}
+          {isLoading && <Loader2 className="mr-3.5 h-5 w-5 flex-shrink-0 animate-spin text-[var(--color-primary-text)]" />}
+          {!isLoading && showSuccess && <Check className="mr-3.5 h-5 w-5 flex-shrink-0 text-[#0E8C78]" strokeWidth={2.6} />}
+        </div>
+        {error && !hideErrorText && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}
+        {/* BAL-4960: pista a la izquierda y contador a la derecha, misma fila y estilo. */}
+        {(verContador || pista) && (
+          <div className="flex items-start justify-between gap-3">
+            {pista ? <p className={PISTA_V2} data-pista={id}>{pista}</p> : <span />}
+            {verContador && (
+              <p className={`${PISTA_V2} flex-shrink-0 tabular-nums`} data-contador={id}>
+                {value.length}/{maxLength}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
@@ -147,39 +265,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           <span className="text-neutral-500 text-base flex-shrink-0 select-none">{startContent}</span>
         )}
         <input
-          ref={inputRef}
-          name={id}
-          type={type}
-          inputMode={getInputMode()}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          onFocus={() => {
-            setIsFocused(true);
-            onFocus?.();
-          }}
-          onBlur={() => {
-            setIsFocused(false);
-            onBlur?.();
-          }}
-          placeholder={placeholder}
-          disabled={disabled}
-          maxLength={maxLength}
-          min={min}
-          max={max}
-          step={step}
-          onWheel={(e) => {
-            onWheel?.(e);
-            // Un input type="number" enfocado cambia su valor con la rueda del
-            // mouse (medido en prod: 500 -> rueda abajo -> 499). React expone
-            // onWheel como passive, así que preventDefault() acá no sirve: la
-            // única forma de frenarlo es sacarle el foco. Sin foco, el navegador
-            // ya no toca el valor y la página sigue scrolleando normal.
-            if (type === 'number') {
-              e.currentTarget.blur();
-            }
-          }}
+          {...inputProps}
           className={`
             flex-1 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400
@@ -202,7 +288,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       </div>
 
       {/* Error message & Character counter */}
-      {(!compact || error || (showCounter && maxLength)) && !hideErrorText && (
+      {(!compact || error || verContador) && !hideErrorText && (
         <div className={`flex items-center justify-between gap-2 ${compact ? '' : 'min-h-[20px]'}`}>
           {error ? (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">
@@ -212,7 +298,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           ) : (
             <span />
           )}
-          {showCounter && maxLength && (
+          {verContador && (
             <p className="text-xs text-neutral-400 flex-shrink-0">
               {value.length}/{maxLength}
             </p>

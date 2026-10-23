@@ -55,7 +55,8 @@ function getInsuranceLabel(type: string): string {
   }
 }
 
-function getDescription(type: string): string {
+/** También la usa el Paso 4 de Diseño 2 (BAL-4966) como descripción corta. */
+export function getDescription(type: string): string {
   switch (type) {
     case 'garantia_extendida': return 'Protección completa contra fallas técnicas o defectos de fábrica.';
     case 'seguro_robo': return 'Protección mundial contra robo. Reposición inmediata sin deducible.';

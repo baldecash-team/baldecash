@@ -20,6 +20,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import { AnimatePresence } from 'framer-motion';
 
 import { StepSuccessMessage } from '../celebration/StepSuccessMessage';
@@ -30,6 +31,7 @@ import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useSessionOptional } from '../../../context/SessionContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 import { useSubmitApplication, type SubmitStage } from '../../../hooks/useSubmitApplication';
+import type { PartialSubmitConsents } from '../../../utils/consentStorage';
 import {
   readEnvioAnticipadoHandoff,
   type EnvioAnticipadoHandoff,
@@ -47,6 +49,9 @@ import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { irAlPrimerErrorV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
+import { leadLockKey } from '../../../hooks/useLeadPrefill';
 
 export interface PasoDelWizardControles {
   /** El paso que se está mostrando. `null` mientras la config no resolvió. */
@@ -107,8 +112,40 @@ export function usePasoDelWizard(opciones: {
   flujo: ReturnType<typeof useSolicitarFlow>;
   /** Tema gamer: cambia el theme de la celebración. */
   gamer?: boolean;
+  /**
+   * Otra pantalla para la celebración entre pasos. La usa Diseño 2
+   * (`TransicionDelWizard`, "¡Un paso más!"). Recibe lo mismo que
+   * `StepSuccessMessage` y debe llamar `onComplete` una sola vez: ahí sigue la
+   * navegación de siempre. Sin esto —Diseño 1— sale `StepSuccessMessage`.
+   */
+  Celebracion?: React.ComponentType<{
+    stepName: string;
+    stepNumber: number;
+    totalSteps: number;
+    onComplete: () => void;
+  }>;
+  /**
+   * Diseño 2 (BAL-4963): el paso se valida con `adaptarPasoDiseno2` (celular
+   * peruano que empieza con 9; mensaje de respaldo para `not_equals_field`).
+   * `paso.step` sale ya adaptado, así que el cuerpo, la guía y los errores al
+   * salir validan lo mismo. Sin esto —Diseño 1— el paso es el de la API.
+   */
+  diseno2?: boolean;
+  /**
+   * Las casillas de consentimiento que muestra la página que monta el paso.
+   * Solo la intro de renueva-* las tiene en la misma pantalla que el envío.
+   * Respaldo del submit para la casilla sin nada en `consentStorage` (BAL-5007).
+   */
+  consentimientoEnPantalla?: PartialSubmitConsents;
+  /**
+   * El diseño de la landing ya salió de `/config` (BAL-4969, casuísticas).
+   * Mientras es `false`, `diseno2` vale el `false` por defecto y no dice nada:
+   * `form_step_view` espera para no registrar `diseno: 1` en una landing de
+   * Diseño 2. Sin la opción (intro, tests) cuenta como resuelto.
+   */
+  disenoResuelto?: boolean;
 }): PasoDelWizardControles {
-  const { stepSlug, flujo, gamer } = opciones;
+  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false, consentimientoEnPantalla, disenoResuelto = true } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -157,6 +194,7 @@ export function usePasoDelWizard(opciones: {
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
+    consentimientoEnPantalla,
   });
 
   // El z-index del wrapper va explicito y NO se puede sacar. `ModalAviso` es
@@ -184,7 +222,17 @@ export function usePasoDelWizard(opciones: {
   ) : null;
 
   // Get step config from API using URL slug
-  const step = getStepByUrlSlug(stepSlug);
+  const stepDeLaApi = getStepByUrlSlug(stepSlug);
+  // El celular que trajo el lead de un socio queda bloqueado: no se le exige
+  // la regla del 9, porque la persona no podría corregirlo.
+  // (Es la marca `leadLockKey('phone')` de `useLeadPrefill`.)
+  const celularBloqueado = formData[leadLockKey(CODIGO_CELULAR_TITULAR)]?.value === 'true';
+  const step = useMemo(
+    () => (diseno2 && stepDeLaApi
+      ? adaptarPasoDiseno2(stepDeLaApi, { bloqueado: (codigo) => celularBloqueado && codigo === CODIGO_CELULAR_TITULAR })
+      : stepDeLaApi),
+    [diseno2, stepDeLaApi, celularBloqueado],
+  );
   const navigation = step ? getNavigation(step.code) : {
     currentIndex: -1,
     prevStep: null,
@@ -328,11 +376,40 @@ export function usePasoDelWizard(opciones: {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step, tracker, formValues, formData]);
 
+  /**
+   * Emite `form_step_view` UNA vez al montar este paso (BAL-4969, medición
+   * Diseño 1 vs Diseño 2). Corre en los dos diseños por igual: `ShellV2`
+   * (Diseño 2) y `PasoDelWizard`/`StepClient` (Diseño 1) montan los dos este
+   * mismo hook, así que un solo punto cubre ambos — el paso "resumen" incluido,
+   * porque también es un `step` normal de este wizard.
+   *
+   * `pasosVistosRef` (no un solo valor) porque `step` es un objeto NUEVO en
+   * cada `useMemo` que depende de `celularBloqueado`/`diseno2`: sin la guarda
+   * por slug, cada re-render de ESE tipo reemitiría el evento aunque el paso
+   * mostrado en pantalla no cambió.
+   */
+  const pasosVistosRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!step || !tracker || !disenoResuelto) return;
+    const slug = step.url_slug || step.code;
+    if (pasosVistosRef.current.has(slug)) return;
+    pasosVistosRef.current.add(slug);
+    tracker.track('form_step_view', {
+      step_slug: slug,
+      step_index: navigation.currentIndex,
+      total_steps: steps.length,
+      diseno: diseno2 ? 2 : 1,
+    });
+  }, [step, tracker, navigation.currentIndex, steps.length, diseno2, disenoResuelto]);
+
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
-    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions());
-  }, [step, formValues, setFieldError, getAllDynamicOptions]);
+    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2 });
+  }, [step, formValues, setFieldError, getAllDynamicOptions, diseno2]);
+
+  // Doble clic en "Continuar"/"Enviar": avanza una sola vez (E2E BAL-4969).
+  const tomarCandado = useCandadoDeAvance();
 
   // Navigation handlers
   const handleNext = () => {
@@ -355,9 +432,13 @@ export function usePasoDelWizard(opciones: {
         step_title: step?.title,
         error_field: firstErrorField,
       });
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Diseño 2: además del scroll, el foco va al campo (teclado y lector
+      // de pantalla, BAL-4969). Diseño 1, como siempre.
+      if (diseno2) irAlPrimerErrorV2(firstErrorField);
+      else document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    if (!tomarCandado()) return;
     tracker?.track('form_step_complete', {
       step_code: step?.code,
       step_title: step?.title,
@@ -460,7 +541,7 @@ export function usePasoDelWizard(opciones: {
   const overlays = (
     <>
       <AnimatePresence>
-        {showCelebration && step && (
+        {showCelebration && step && !Celebracion && (
           <StepSuccessMessage
             stepName={step.title}
             stepNumber={step.order + 1}
@@ -470,6 +551,14 @@ export function usePasoDelWizard(opciones: {
           />
         )}
       </AnimatePresence>
+      {showCelebration && step && Celebracion && (
+        <Celebracion
+          stepName={step.title}
+          stepNumber={step.order + 1}
+          totalSteps={steps.length}
+          onComplete={handleCelebrationComplete}
+        />
+      )}
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       {modalUnidadTomada}
     </>

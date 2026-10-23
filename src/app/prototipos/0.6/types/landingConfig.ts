@@ -150,6 +150,17 @@ export interface LandingConfigFeatures {
    * falta ordenar.
    */
   has_catalog_sort_bar: boolean;
+  /**
+   * Diseño de la solicitud (BAL-4958): 1 es el actual (catálogo/ficha ->
+   * /solicitar), 2 es el modal "Lo quiero" con accesorios, términos y cupón
+   * encima del catálogo o la ficha, que pasa directo al primer paso del
+   * formulario sin la pantalla intermedia de /solicitar (BAL-4852).
+   *
+   * Reemplaza al ingrediente `lo-quiero-modal-on`. Viene del preset
+   * `solicitud-design-v2` (value_type int): cuando la landing lo tiene, el
+   * valor es `2`; si no, la clave no viene y el default de abajo manda.
+   */
+  solicitud_design?: 1 | 2;
 }
 
 /**
@@ -414,6 +425,9 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     has_usage_chips: false,
     has_usage_filter: true,
     has_catalog_sort_bar: true,
+    // Default el diseño actual (BAL-4958): sin el preset, "Lo quiero" lleva a
+    // /solicitar.
+    solicitud_design: 1,
   },
 };
 

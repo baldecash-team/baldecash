@@ -5,14 +5,28 @@
  * Uses grid layout based on field.grid_columns
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { WizardStep, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
-import { DynamicField } from '../fields/DynamicField';
+import { WizardStep, WizardField, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes, getDocumentTypeRules, validateField } from '../../../../../services/wizardApi';
+import { DynamicField, pistaVaEnElCampo } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
+import { CamposV2Provider, PISTA_V2, TARJETA_V2, TARJETA_V2_ESTILO } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
+import { ayudaDelNumero, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
+import { armarBloques, camposPegados, cascadasEnFila, columnasDeCascada, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
+
+/** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
+const ENFOCABLE_DEL_CAMPO =
+  'input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [role="button"][tabindex="0"]';
+
+function tieneValor(valor: unknown): boolean {
+  if (Array.isArray(valor)) return valor.length > 0;
+  return typeof valor === 'string' ? valor.trim() !== '' && valor !== 'false' : !!valor;
+}
 
 const MONTH_NAMES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -77,6 +91,24 @@ interface DynamicWizardStepProps {
   showErrors?: boolean;
   /** Step order number for event tracking */
   stepOrder?: number;
+  /**
+   * Solo Diseño 2 (`diseno-2/ShellV2`): campos que la persona ya dejó (blur).
+   *
+   * Con este prop cada contenedor de campo lleva `data-campo` (lo usa la guía
+   * de campos para ubicarlo) y `data-estado` (`error`/`ok`, que pinta el borde
+   * rojo o verde), y el error de un campo tocado se muestra sin esperar a
+   * "Continuar". Sin el prop —Diseño 1— el render es el de siempre.
+   *
+   * También prende el kit de campos de Diseño 2 (BAL-4960): una sola columna,
+   * la variante visual de cada campo (`CamposV2Provider`), la pista (`hint`)
+   * bajo el campo y los opcionales plegados (`collapsed_optional`) como
+   * "+ Agregar …".
+   *
+   * F5 (BAL-4964): si el paso trae `groups`, los campos se agrupan en
+   * secciones (`SeccionPlegable`) y los que no tienen sección van al final.
+   * Un "Otra (escríbela)" se pinta pegado bajo la lista que lo destapa.
+   */
+  camposTocados?: ReadonlySet<string>;
 }
 
 // Tailwind requires static class names - dynamic classes like `col-span-${n}` get purged
@@ -144,8 +176,9 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   step,
   showErrors = false,
   stepOrder,
+  camposTocados,
 }) => {
-  const { getFieldValue, updateField, formData } = useWizard();
+  const { getFieldValue, getFieldLabel, updateField, formData, getAllDynamicOptions } = useWizard();
   const { deferredPayment, landing } = useLayout();
 
   // El legacy corre un mes el primer pago cuando la landing es diferida.
@@ -245,7 +278,11 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         // Skip cleanup if the value was just set programmatically (prefill):
         // if the value changed in the same render that visibility changed,
         // it was likely set by prefill — don't clear it.
-        if (currentValue && currentValue === prevValue) {
+        // Un campo bloqueado por el lead de un socio nunca se vacía: el lead
+        // es la fuente de verdad (BAL-4963). En Diseño 2 los prellenados se
+        // ven (BAL-4961), así que "Corrige tu DNI" los esconde y pasarían por acá.
+        const bloqueadoPorLead = formData[leadLockKey(field.code)]?.value === 'true';
+        if (currentValue && currentValue === prevValue && !bloqueadoPorLead) {
           updateField(field.code, '');
         }
       }
@@ -259,6 +296,38 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     }
     prevValuesRef.current = vals;
   }, [fieldVisibility, step.fields, formData, updateField]);
+
+  // Diseño 2: opcionales plegados que la persona abrió con "+ Agregar …". Un
+  // plegado con valor (borrador) sale abierto sin pasar por acá.
+  const esV2 = camposTocados !== undefined;
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(() => new Set());
+
+  // Diseño 2: errores LOCALES que un campo (DateInput, AddressAutocompleteField)
+  // calcula por su cuenta y nunca llegan a `formData` — regla "si hay error
+  // visible, la pista no se muestra" (BAL-4960, revisión F2). No duplica la
+  // lógica de validación: el campo avisa, acá solo se guarda el booleano.
+  const [erroresLocales, setErroresLocales] = useState<Record<string, boolean>>({});
+  const reportarErrorLocal = useCallback((codigo: string, hayError: boolean) => {
+    setErroresLocales((prev) => (prev[codigo] === hayError ? prev : { ...prev, [codigo]: hayError }));
+  }, []);
+  const [porEnfocar, setPorEnfocar] = useState<string | null>(null);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!porEnfocar) return;
+    const campo = contenedorRef.current?.querySelector<HTMLElement>(`[data-campo="${CSS.escape(porEnfocar)}"]`);
+    campo?.querySelector<HTMLElement>(ENFOCABLE_DEL_CAMPO)?.focus();
+    setPorEnfocar(null);
+  }, [porEnfocar]);
+  // Diseño 2 (BAL-4961, corrección de Emilio): con la persona encontrada por
+  // su documento, nombres, apellidos, fecha de nacimiento y sexo NO se
+  // muestran, con la MISMA regla de Diseño 1 (`hidden` + prefill `found` con
+  // valor; un prefill vacío o inválido trae `_prefill_empty_` y se muestra
+  // para llenarlo). Lo único visible es el saludo; "¿No eres tú?" limpia el
+  // documento y el prefill y los campos vuelven vacíos. Sin tarjeta "Tus datos".
+  const abrirPlegado = (codigo: string) => {
+    setAbiertos((prev) => new Set(prev).add(codigo));
+    setPorEnfocar(codigo);
+  };
 
   const paymentDayValue = getFieldValue('payment_day') as string;
 
@@ -276,45 +345,214 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return () => { cancelado = true; };
   }, [landing, paymentDayValue]);
 
-  // Fields come already ordered by display_order from the API
-  return (
-    <div className="grid grid-cols-12 gap-x-4 gap-y-1">
-      {step.fields.map((field) => {
-        // Hide wrapper for invisible fields so grid gap doesn't create empty space
-        if (!fieldVisibility[field.code]) return null;
+  // Diseño 2: el error se ve cuando el campo se tocó o se intentó continuar.
+  const mostrarErrorDe = (codigo: string) => showErrors || (esV2 && camposTocados.has(codigo));
+  const errorVisibleDe = (codigo: string) =>
+    mostrarErrorDe(codigo) && (!!formData[codigo]?.error || !!erroresLocales[codigo]);
 
-        // Use grid_columns from API (default to 12 = full width)
-        const cols = field.grid_columns || 12;
-        const colsMobile = field.grid_columns_mobile || 12;
+  // Diseño 2 (F5): "Otra (escríbela)" pegado bajo la lista que lo destapa.
+  const pegados = useMemo(() => (esV2 ? camposPegados(step) : new Map<string, string>()), [esV2, step]);
+  // Bloques (con secciones) u orden (sin secciones): solo cambian con el paso.
+  const bloques = useMemo(
+    () => (esV2 && step.groups?.length ? armarBloques(step, pegados) : []),
+    [esV2, step, pegados],
+  );
+  const ordenV2 = useMemo(
+    () => (esV2 && !step.groups?.length ? ordenConPegados(step.fields, pegados) : []),
+    [esV2, step, pegados],
+  );
+  // Diseño 2: Departamento / Provincia / Distrito en una fila (prototipo).
+  const cascadas = useMemo(() => (esV2 ? cascadasEnFila(step.fields) : new Map<string, { largo: number; indice: number }>()), [esV2, step]);
 
-        // Get static Tailwind classes
-        const colClass = GRID_COL_CLASSES[cols] || 'sm:col-span-12';
-        const colMobileClass = GRID_COL_MOBILE_CLASSES[colsMobile] || 'col-span-12';
+  // Diseño 2 (BAL-4969): los campos visibles al montar el paso entran con la
+  // tarjeta; los que aparecen DESPUÉS (una dependencia los destapa, o
+  // "+ Agregar …") entran con `bcPop` 0,25 s del prototipo. Se anota la
+  // primera foto de visibilidad que tenga datos.
+  const [visiblesAlMontar, setVisiblesAlMontar] = useState<ReadonlySet<string> | null>(null);
+  if (esV2 && visiblesAlMontar === null && Object.keys(fieldVisibility).length > 0) {
+    setVisiblesAlMontar(new Set(Object.keys(fieldVisibility).filter((c) => fieldVisibility[c])));
+  }
 
-        return (
-          <React.Fragment key={field.code}>
-            <div className={`${colMobileClass} ${colClass}`}>
+  const pintarCampo = (field: WizardField) => {
+    // Hide wrapper for invisible fields so grid gap doesn't create empty space
+    if (!fieldVisibility[field.code]) return null;
+    const pegadoA = esV2 ? pegados.get(field.code) : undefined;
+
+    // Use grid_columns from API (default to 12 = full width)
+    const cols = field.grid_columns || 12;
+    const colsMobile = field.grid_columns_mobile || 12;
+
+    // Get static Tailwind classes
+    const colClass = GRID_COL_CLASSES[cols] || 'sm:col-span-12';
+    const colMobileClass = GRID_COL_MOBILE_CLASSES[colsMobile] || 'col-span-12';
+
+    // Diseño 2: el estado del campo (`data-estado`). Se calcula recién
+    // cuando el campo se tocó o se intentó continuar, igual que el mensaje
+    // de error. El borde rojo o verde lo pinta ahora el propio campo.
+    const mostrarError = mostrarErrorDe(field.code);
+    const valorCampo = formData[field.code]?.value;
+    const conValor = tieneValor(valorCampo);
+    const errorVisible = errorVisibleDe(field.code);
+    const estadoV2 = !esV2 || !mostrarError
+      ? undefined
+      : errorVisible
+        ? 'error'
+        : conValor ? 'ok' : undefined;
+
+    // Con el saludo bajo el documento, la pista sobra.
+    const conSaludo = esV2 && field.type === 'document_number' && !!nombreDelSaludo(field, formValues);
+    // Pista: el `hint` de la BD gana. Sin él, el número de documento dice
+    // lo que pide su tipo ("8 números", "Entre 9 y 12 caracteres"…), con
+    // las mismas reglas que lo validan.
+    const codigoTipo = field.prefill_config?.document_type_field || 'document_type';
+    const pista = !esV2
+      ? null
+      : field.hint || (field.type === 'document_number'
+        ? ayudaDelNumero(getDocumentTypeRules(
+          codigoTipo,
+          { [codigoTipo]: formValues[codigoTipo] || 'dni' },
+          getAllDynamicOptions?.(),
+        ))
+        : null);
+
+    // BAL-4960: un campo de texto con contador pinta él mismo la pista, en
+    // la fila del contador (pista a la izquierda, número a la derecha).
+    const pistaEnElCampo = pistaVaEnElCampo(field, esV2);
+
+    // Diseño 2: opcional plegado. Con valor (borrador) sale abierto.
+    const plegado = esV2 && field.collapsed_optional === true && !field.required
+      && !conValor && !abiertos.has(field.code);
+
+    return (
+      <React.Fragment key={field.code}>
+        <div
+          // Diseño 2: una sola columna (decisión D7), se ignoran
+          // `grid_columns` / `grid_columns_mobile`; salvo una cascada
+          // (departamento > provincia > distrito), que va en una fila como
+          // en el prototipo. Un "Otra" pegado a su lista va más junto.
+          className={esV2
+            ? `${cascadas.has(field.code) ? columnasDeCascada(cascadas.get(field.code)!.largo, cascadas.get(field.code)!.indice) : 'col-span-12'} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
+            : `${colMobileClass} ${colClass}`}
+          {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2, ...(pegadoA ? { 'data-pegado-a': pegadoA } : {}) } : {})}
+        >
+          {plegado ? (
+            <AgregarOpcionalV2 label={field.label} onAbrir={() => abrirPlegado(field.code)} />
+          ) : (
+            <EntradaDelCampo
+              anima={esV2 && (abiertos.has(field.code) || (visiblesAlMontar !== null && !visiblesAlMontar.has(field.code)))}
+            >
               <DynamicField
                 field={field}
-                showError={showErrors}
+                showError={mostrarError}
                 stepOrder={stepOrder}
+                onLocalErrorChange={esV2 ? reportarErrorLocal : undefined}
+                // BAL-4960: con contador, la pista va en su misma fila (la pinta el campo).
+                pista={pistaEnElCampo && !errorVisible && !conSaludo ? pista : null}
               />
+              {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
+              {pista && !pistaEnElCampo && !errorVisible && !conSaludo && (
+                <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{pista}</p>
+              )}
+            </EntradaDelCampo>
+          )}
+        </div>
+        {field.code === 'payment_day' && paymentDayValue && (
+          <div className="col-span-12 -mt-1 mb-2">
+            {/* Diseño 2 (I5, BAL-4969): el color de la landing; Diseño 1 igual que siempre. */}
+            <div className={esV2
+              ? 'd2-pop-lento flex items-center gap-3 bg-[rgba(var(--color-primary-rgb),0.05)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl px-4 py-3'
+              : 'flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3'}>
+              <CalendarDays className={esV2 ? 'w-5 h-5 text-[var(--color-primary-text)] flex-shrink-0' : 'w-5 h-5 text-[#4654CD] flex-shrink-0'} />
+              <p className="text-sm text-neutral-700">
+                Tu primera fecha de pago será el <span className={esV2 ? 'font-semibold text-[var(--color-primary-text)]' : 'font-semibold text-[#4654CD]'}>{fechaBackend ?? getFirstPaymentDate(Number(paymentDayValue), isDeferred)}</span>
+              </p>
             </div>
-            {field.code === 'payment_day' && paymentDayValue && (
-              <div className="col-span-12 -mt-1 mb-2">
-                <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
-                  <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
-                  <p className="text-sm text-neutral-700">
-                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{fechaBackend ?? getFirstPaymentDate(Number(paymentDayValue), isDeferred)}</span>
-                  </p>
-                </div>
+          </div>
+        )}
+      </React.Fragment>
+    );
+  };
+
+  let campos: React.ReactNode;
+  if (!esV2) {
+    // Diseño 1, como siempre. Fields come already ordered by display_order from the API
+    campos = (
+      <div ref={contenedorRef} className="grid grid-cols-12 gap-x-4 gap-y-1">
+        {step.fields.map((field) => pintarCampo(field))}
+      </div>
+    );
+  } else if (!step.groups?.length) {
+    // Diseño 2 sin secciones: una columna, en el orden del paso.
+    campos = (
+      <div ref={contenedorRef} className="grid grid-cols-12 gap-x-3 gap-y-4">
+        {ordenV2.map((field) => pintarCampo(field))}
+      </div>
+    );
+  } else {
+    // Diseño 2 con secciones (`step.groups`); los campos sin sección, al final.
+    // Cada sección va en su propia tarjeta, como en el prototipo de Brenda.
+    const opciones = getAllDynamicOptions?.();
+    campos = (
+      <div ref={contenedorRef} className="flex flex-col gap-5">
+        {bloques.map((bloque) => {
+          if (bloque.tipo === 'sueltos') {
+            if (!bloque.campos.some((f) => fieldVisibility[f.code])) return null;
+            return (
+              <div key="__sin-seccion" data-tarjeta-v2 className={`grid grid-cols-12 gap-x-3 gap-y-4 ${TARJETA_V2}`} style={TARJETA_V2_ESTILO}>
+                {bloque.campos.map((field) => pintarCampo(field))}
               </div>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
+            );
+          }
+          const visibles = bloque.campos.filter((f) => fieldVisibility[f.code]);
+          // Sin ningún campo en pantalla (una dependencia los escondió todos),
+          // la sección no se pinta: un título sin nada abajo confunde.
+          if (visibles.length === 0) return null;
+          const completa =
+            !visibles.some((f) => erroresLocales[f.code]) &&
+            seccionCompleta(
+              visibles,
+              (f) => validateField(f, formValues[f.code], formValues, opciones, true).isValid,
+              formValues,
+            );
+          return (
+            <div key={bloque.grupo.code} data-tarjeta-v2 className={`grid grid-cols-12 ${TARJETA_V2}`} style={TARJETA_V2_ESTILO}>
+            <SeccionPlegable
+              codigo={bloque.grupo.code}
+              titulo={bloque.grupo.name}
+              icono={bloque.grupo.icon}
+              descripcion={bloque.grupo.description}
+              tituloEnElCampo={
+                bloque.campos.length === 1 &&
+                !bloque.grupo.icon &&
+                !bloque.grupo.description &&
+                bloque.campos[0].label.trim().toLowerCase() === bloque.grupo.name.trim().toLowerCase()
+              }
+              plegable={bloque.grupo.is_collapsible}
+              completa={completa}
+              resumen={resumenDeSeccion(visibles, formValues, getFieldLabel, pegados)}
+              conError={showErrors && visibles.some((f) => errorVisibleDe(f.code))}
+            >
+              {bloque.campos.map((field) => pintarCampo(field))}
+            </SeccionPlegable>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return esV2 ? <CamposV2Provider>{campos}</CamposV2Provider> : campos;
 };
+
+/**
+ * Diseño 2: envoltorio de un campo que aparece después de montado el paso.
+ * La animación va en un hijo y no en `.campo-v2`, porque ahí vive el
+ * `brilloCampoV2` de la guía: compartir la propiedad `animation` haría que
+ * el pop se repitiera al apagarse el brillo. Sin `anima`, no envuelve nada.
+ */
+function EntradaDelCampo({ anima, children }: { anima: boolean; children: React.ReactNode }) {
+  if (!anima) return <>{children}</>;
+  return <div className="d2-pop">{children}</div>;
+}
 
 export default DynamicWizardStep;

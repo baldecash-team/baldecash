@@ -1174,7 +1174,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4',
           body: 'bg-[var(--surface,#fff)] p-0',
           footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)]',
-          closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
+          // 44×44 de zona táctil (QA en celular, BAL-4969): el ícono queda en
+          // el mismo lugar (p-2 → p-3.5 y top/right 16 → 10 px). Aquí no sirve
+          // el pseudo-elemento: el `usePress` de NextUI descarta el toque que
+          // cae fuera de la caja del botón.
+          closeButton: 'top-[10px] right-[10px] p-3.5 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
         }}
       >
         <ModalContent>

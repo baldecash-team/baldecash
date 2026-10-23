@@ -3,6 +3,21 @@
  * Service for submitting loan applications
  */
 
+import * as Sentry from '@sentry/nextjs';
+import {
+  mensajeDelError,
+  detalleNoEsTexto,
+  MENSAJE_ERROR_GENERICO,
+  MENSAJE_ERROR_TIEMPO,
+} from './mensajeDelError';
+
+/**
+ * Tope del envío. Sin él, una conexión colgada deja a la persona mirando
+ * "Esto está tardando…" para siempre. Es largo a propósito: el envío puede
+ * llevar archivos, y ws2 es idempotente por sesión si la persona reintenta.
+ */
+export const TIEMPO_MAXIMO_ENVIO_MS = 120_000;
+
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
@@ -94,6 +109,13 @@ export interface SubmitApplicationRequest {
    * si no se conoce la versión.
    */
   wizard_form_version_id?: number;
+  /**
+   * Casillas de consentimiento que marcó la persona (BAL-5007). Viajan en la
+   * RAÍZ del JSON, al lado de `form_data`: ws2 escribe una fila en
+   * `application_consent` por cada una en `true`. Se omite si no hay ningún
+   * dato — nunca se rellena con `true` — y ws2 lo avisa a Sentry.
+   */
+  consents?: { terms: boolean; privacy: boolean; promos: boolean };
   /** Optional files to upload (e.g., DNI, payslips) */
   files?: UploadedFileData[];
 }
@@ -218,6 +240,9 @@ export async function submitApplication(
       ...(typeof data.wizard_form_version_id === 'number'
         ? { wizard_form_version_id: data.wizard_form_version_id }
         : {}),
+      // Sin dato no se manda la clave: un `consents: null` o vacío se leería
+      // igual que "no aceptó nada", y lo que ws2 tiene que ver es que falta.
+      ...(data.consents ? { consents: data.consents } : {}),
     };
     formData.append('form_data', JSON.stringify(jsonData));
 
@@ -232,28 +257,62 @@ export async function submitApplication(
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/public/form/submit`, {
-      method: 'POST',
-      // Don't set Content-Type header - browser will set it with boundary
-      body: formData,
-    });
+    const controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const temporizador = controlador ? setTimeout(() => controlador.abort(), TIEMPO_MAXIMO_ENVIO_MS) : null;
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}/public/form/submit`, {
+        method: 'POST',
+        // Don't set Content-Type header - browser will set it with boundary
+        body: formData,
+        ...(controlador ? { signal: controlador.signal } : {}),
+      });
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'AbortError') {
+        Sentry.captureMessage('submit: el envío superó el tiempo máximo', {
+          level: 'warning',
+          tags: { modulo: 'solicitud', accion: 'submit' },
+        });
+        return { success: false, error: MENSAJE_ERROR_TIEMPO };
+      }
+      throw error;
+    } finally {
+      if (temporizador) clearTimeout(temporizador);
+    }
 
-    const result = await response.json();
+    // Un 500/502 con cuerpo HTML no es JSON: no es "error de conexión", es
+    // del servidor. Se lee aparte para no confundirlos (BAL-4969).
+    let result: Record<string, unknown> | null = null;
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
 
     if (!response.ok) {
+      const detail = result?.detail ?? result?.message;
+      // `detail` como lista (422) u objeto: se convierte a texto y se avisa.
+      if (detalleNoEsTexto(result?.detail)) {
+        Sentry.captureMessage('submit: detail del error no es texto', {
+          level: 'warning',
+          tags: { modulo: 'solicitud', accion: 'submit', status: String(response.status) },
+          extra: { detail: result?.detail, error_code: result?.error_code ?? null },
+        });
+      }
       return {
         success: false,
-        error: result.detail || 'Error al enviar la solicitud',
+        error: mensajeDelError(response.status, detail),
         // El 400 del submit trae el motivo en `error_code` junto a `detail`
         // (OUT_OF_STOCK, COUPON_USER_LIMIT_REACHED, ...). Sin pasarlo acá,
         // useSubmitApplication no puede elegir el mensaje y la analítica
         // registra `unknown`: así se perdió el caso del DNI 60477990
         // (21/22-09-2026, 27 envíos fallidos, todos `unknown`).
-        error_code: result.error_code ?? undefined,
+        error_code: typeof result?.error_code === 'string' ? result.error_code : undefined,
       };
     }
 
-    return result;
+    if (!result) return { success: false, error: MENSAJE_ERROR_GENERICO };
+    return result as unknown as SubmitApplicationResponse;
   } catch (error) {
     console.error('Error submitting application:', error);
     return {
@@ -344,6 +403,8 @@ export interface ApplicationStatusResponse {
   evaluated_at?: string | null;
   approved_at?: string | null;
   applicant_name?: string | null;
+  /** Celular del titular enmascarado ("9XX XXX 321"), para "al +51 …" (BAL-4969). */
+  applicant_phone_masked?: string | null;
 
   // Products array (multiple products support)
   products?: Array<{

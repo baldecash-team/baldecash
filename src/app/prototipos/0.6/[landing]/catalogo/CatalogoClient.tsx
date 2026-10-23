@@ -137,11 +137,14 @@ import { mapQuizAnswersToFilters } from './utils/quizFilters';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { captureLandingParams, consumePendingCategoria, clearPendingCoupon, readCouponParam } from '@/app/prototipos/0.6/utils/landingParams';
 import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { cuponConBanner, landingMuestraBannerDeCupon } from '@/app/prototipos/0.6/utils/couponBanner';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { LoQuieroModal, type RegaloDelCombo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
+import { avisosDelEquipo, type AvisoDelEquipo } from '@/app/prototipos/0.6/components/lo-quiero/avisoDelEquipo';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
@@ -341,7 +344,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
 
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, catalogBannerId, landingId, chipsDeUso, filtroPorUso, barraDeOrden } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, catalogBannerId, landingId, chipsDeUso, filtroPorUso, barraDeOrden, loQuieroModal } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // UI de cupón (banner de campaña): visible solo si el cupón vino del
@@ -1026,6 +1029,11 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   // (BAL-3270). Vale el riesgo de que el objeto quede viejo si `catalogProducts`
   // se remapea con el modal abierto — es preferible correcto a fresco.
   const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
+  // Modal de "Lo quiero" (BAL-4852): solo con el ingrediente de la landing.
+  const [isLoQuieroOpen, setIsLoQuieroOpen] = useState(false);
+  // Regalos del combo de la card elegida: el modal no los ofrece para agregar.
+  const [loQuieroRegalos, setLoQuieroRegalos] = useState<RegaloDelCombo[]>([]);
+  const [loQuieroAvisos, setLoQuieroAvisos] = useState<AvisoDelEquipo[]>([]);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1655,6 +1663,19 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       // primera de la lista — la del combo (BAL-3270).
       const target = resolveWizardTarget(product, cartItem.productId);
       selectProductForWizard(target, cartItem);
+      // Con la landing en Diseño 2 (`features.solicitud_design === 2`) el
+      // producto queda guardado igual y se abre el modal; desde ahí se pasa
+      // directo al primer paso.
+      if (loQuieroModal) {
+        setLoQuieroRegalos(
+          (target.comboAccessories ?? []).map((a) => ({ id: String(a.productId), name: a.name, gratis: a.price === 0 })),
+        );
+        // Reacondicionado / entrega programada: el aviso va dentro del modal
+        // (prototipo de Brenda), con el grado y la fecha reales.
+        setLoQuieroAvisos(avisosDelEquipo(target));
+        setIsLoQuieroOpen(true);
+        return;
+      }
       router.push(getWizardUrl(landing));
       return;
     }
@@ -1662,7 +1683,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
     setSelectedVariantForCart(cartItem);
     const target = resolveWizardTarget(product, cartItem.productId);
     handleOpenCartModal(target);
-  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal]);
+  }, [ALLOW_MULTI_PRODUCT, filters, totalProducts, analytics, selectProductForWizard, router, landing, handleOpenCartModal, loQuieroModal]);
 
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
@@ -1994,6 +2015,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
                 compact={isReacondicionadosLanding(landing)}
                 addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
+                avisoDeEntregaEnElModal={!!loQuieroModal}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar.
                   // El aviso nombra el equipo, asi que tiene que nombrar el GRADO
@@ -2002,7 +2024,8 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
                   // ya trae el id resuelto, asi que resolver aca da el mismo target
                   // que usara `proceedAddToCart` despues de confirmar.
                   const elegido = resolveWizardTarget(product, cartItem.productId);
-                  if (pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
+                  // Diseño 2 (modal "Lo quiero"): sin el aviso aparte; va dentro del modal.
+                  if (!loQuieroModal && pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
                     setPendingRefurb({ cartItem, product: elegido });
                     return;
                   }
@@ -2406,7 +2429,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       )}
 
       {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !isWelcomeModalCovering && (
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !isWelcomeModalCovering && !isLoQuieroOpen && (
       // && !isWebchatOpen // COMENTADO: Blip Chat maneja su propio botón
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
@@ -2580,7 +2603,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
           quiz/modales/drawers/onboarding abiertos (misma condición de antes). */}
       <ScrollToTopButton
         threshold={400}
-        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || isWelcomeModalCovering}
+        hidden={isQuizOpen || isCartModalOpen || isFilterDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen || isComparatorOpen || isSearchDrawerOpen || isBlipChatOpen || isWelcomeModalCovering || isLoQuieroOpen}
         className="fixed bottom-6 right-6 z-[100] flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-primary)] text-white shadow-lg cursor-pointer transition-all hover:brightness-90 hover:scale-110"
       />
 
@@ -2598,7 +2621,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       <ResumeFinancingModal
         isOpen={isResumeModalOpen}
         onClose={closeResumeModal}
-        onContinue={() => router.push(getWizardUrl(landing))}
+        onContinue={() => irALaSolicitud(router, landing)}
       />
 
       {/* Cart Limit Modal — only in multi-product mode */}
@@ -2624,6 +2647,15 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
           if (pendingRefurb) proceedAddToCart(pendingRefurb.cartItem, pendingRefurb.product);
         }}
         productName={pendingRefurb?.product.displayName}
+      />
+
+      {/* "Lo quiero" con accesorios, términos y cupón (BAL-4852) */}
+      <LoQuieroModal
+        isOpen={isLoQuieroOpen}
+        onClose={() => setIsLoQuieroOpen(false)}
+        origen="catalogo"
+        regalos={loQuieroRegalos}
+        avisos={loQuieroAvisos}
       />
 
       {/* Toast para alertas de comparación */}

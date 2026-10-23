@@ -17,6 +17,7 @@
 import React, { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -51,6 +52,9 @@ const TOOLTIP_OFFSET = 8; // Distance from trigger
 
 export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, icon }) => {
   const [isOpen, setIsOpen] = useState(false);
+  // Diseño 2 (BAL-4960, decisión D2): el globo (i) se queda, con el color de
+  // marca y el borde del kit.
+  const v2 = useCamposV2();
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0, arrowLeft: 0 });
   const [alignment, setAlignment] = useState<HorizontalAlign>('center');
@@ -216,7 +220,9 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
   const tooltipElement = isOpen && isMounted ? createPortal(
     <div
       ref={tooltipRef}
-      className="fixed z-[9999] w-64 p-3 bg-white rounded-lg shadow-lg border border-neutral-200"
+      className={v2
+        ? 'fixed z-[9999] w-64 p-3 bg-white rounded-xl shadow-[0_8px_24px_rgba(30,34,48,0.12)] border border-[rgba(var(--color-primary-rgb),0.18)]'
+        : 'fixed z-[9999] w-64 p-3 bg-white rounded-lg shadow-lg border border-neutral-200'}
       style={{
         top: position.top,
         left: position.left,
@@ -231,7 +237,7 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
         style={{ left: position.arrowLeft - 8 }}
       />
       <div
-        className="absolute top-full mt-[-1px] w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-neutral-200 -z-10"
+        className={`absolute top-full mt-[-1px] w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent ${v2 ? 'border-t-[rgba(var(--color-primary-rgb),0.18)]' : 'border-t-neutral-200'} -z-10`}
         style={{ left: position.arrowLeft - 8 }}
       />
 
@@ -248,7 +254,9 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {icon ?? <Info className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />}
+        {icon ?? (v2
+          ? <Info aria-label="Más información" className="w-[18px] h-[18px] text-[var(--color-primary-text)] hover:text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)] transition-colors" />
+          : <Info className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />)}
       </span>
 
       {tooltipElement}

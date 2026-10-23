@@ -9,6 +9,7 @@ import React, { useCallback, useState, useRef } from 'react';
 import { Upload, X, FileText, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -60,6 +61,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   required = false,
 }) => {
   const tracker = useEventTrackerOptional();
+  // Diseño 2 (BAL-4960, revisión F2): recupera el borde de estado rojo/verde
+  // con la paleta del kit — fuera de eso sigue con el vestido de Diseño 1
+  // (F5/F7 le dan el suyo completo).
+  const v2 = useCamposV2();
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -208,14 +213,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         className={`
           relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
           ${isDragging
-            ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+            ? v2 ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)]' : 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
             : showError
-            ? 'border-red-300 bg-red-50 hover:border-red-400'
+            ? v2 ? 'border-[#C2410C] bg-[#FFF1EB]' : 'border-red-300 bg-red-50 hover:border-red-400'
             : showWarning
             ? 'border-amber-300 bg-amber-50 hover:border-amber-400'
             : hasFiles
-            ? 'border-green-300 bg-green-50 hover:border-green-400'
-            : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'}
+            ? v2 ? 'border-[#0E8C78] bg-[#E8F7F2]' : 'border-green-300 bg-green-50 hover:border-green-400'
+            : v2 ? 'border-[#C9CEF0] bg-white hover:border-[var(--color-primary)]' : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >

@@ -185,6 +185,42 @@ export interface WizardField {
   // Solo aplica a campos type === 'email'. Lista vacía/null = acepta cualquiera.
   allowed_email_domains?: string[] | null;
   allowed_email_domains_message?: string | null;
+  /**
+   * Diseño 2 (BAL-4961/4960): pista corta bajo el campo. Solo viene si tiene
+   * valor (paso > banco). Diseño 1 no la pinta.
+   */
+  hint?: string;
+  /**
+   * Diseño 2: texto propio cuando el campo obligatorio queda vacío; reemplaza
+   * al genérico «Este campo es requerido». Solo viene si tiene valor. Diseño 1
+   * lo ignora (decisión de Emilio, BAL-4969): ver `OpcionesDeValidacion`.
+   */
+  required_message?: string;
+  /**
+   * Diseño 2: campo opcional que se muestra plegado como «+ Agregar …» hasta
+   * que la persona lo abre. Solo viene (en `true`) si está prendido y el campo
+   * no es obligatorio. Diseño 1 lo muestra normal.
+   */
+  collapsed_optional?: true;
+  /**
+   * BAL-4960: mostrar el contador de caracteres («12/50»), ya resuelto paso >
+   * banco. Solo viene si alguno lo define. Sin la llave, cada diseño hace lo
+   * de siempre (Diseño 1 lo muestra, Diseño 2 no). El máximo se respeta igual.
+   */
+  show_counter?: boolean;
+}
+
+/** Sección de un paso (Diseño 2). Se pinta en F5/F6; en F2 solo se tolera. */
+export interface WizardStepGroup {
+  code: string;
+  name: string;
+  order: number;
+  is_collapsible: boolean;
+  field_codes: string[];
+  /** Ícono lucide (kebab-case) del círculo junto al título. Solo si tiene valor. */
+  icon?: string;
+  /** Línea gris bajo el título de la sección. Solo si tiene valor. */
+  description?: string;
 }
 
 /**
@@ -219,6 +255,8 @@ export interface WizardStep {
   is_summary_step: boolean; // If true, step appears in summary page, not in progress bar
   motivational: WizardMotivational | null; // Motivational content for sidebar card
   fields: WizardField[];
+  /** Secciones del paso (Diseño 2). Solo viene si el paso tiene alguna. */
+  groups?: WizardStepGroup[];
 }
 
 export interface WizardConfigLanding {
@@ -925,19 +963,31 @@ export interface FieldValidationResult {
   error: string | null;
 }
 
+/** Cómo valida quien llama, según el diseño de la solicitud. */
+export interface OpcionesDeValidacion {
+  /**
+   * Diseño 2: el campo vacío dice su `required_message` (si la BD lo trae).
+   * Sin esto —Diseño 1— sale siempre el texto genérico de siempre, aunque el
+   * campo tenga mensaje configurado (decisión de Emilio, BAL-4969 · I1).
+   */
+  diseno2?: boolean;
+}
+
 /**
  * Valida un campo individual usando la configuración del API
  * @param field - Configuración del campo
  * @param value - Valor actual del campo
  * @param formValues - Valores de todos los campos del formulario
  * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación por opción
+ * @param opciones - `diseno2` prende `required_message`; ver `OpcionesDeValidacion`
  */
 export function validateField(
   field: WizardField,
   value: string | string[] | undefined,
   formValues: Record<string, string | string[]>,
   dynamicOptionsCache?: Record<string, CascadingOption[]>,
-  skipVisibilityCheck?: boolean
+  skipVisibilityCheck?: boolean,
+  opciones: OpcionesDeValidacion = {}
 ): FieldValidationResult {
   // Si el campo no es visible, es válido (no validar campos ocultos)
   // Skip when caller already handled visibility (e.g., validateStep with prefill logic)
@@ -951,12 +1001,16 @@ export function validateField(
   const isEmpty = !trimmedValue || (Array.isArray(value) && value.length === 0);
 
   // 1. Validación de requerido
+  // `required_message` (BAL-4960) aplica SOLO en Diseño 2 (decisión de Emilio,
+  // BAL-4969): el mensaje vive en el banco y se hereda a todos los formularios,
+  // así que en Diseño 1 se ignora y sale el genérico de siempre.
+  const mensajeRequerido = opciones.diseno2 ? field.required_message : undefined;
   // Para checkbox simple, "false" cuenta como no marcado → requerido debe fallar
   if (field.required && field.type === 'checkbox' && !Array.isArray(value) && trimmedValue === 'false') {
-    return { isValid: false, error: 'Debes marcar esta casilla para continuar' };
+    return { isValid: false, error: mensajeRequerido || 'Debes marcar esta casilla para continuar' };
   }
   if (field.required && isEmpty) {
-    return { isValid: false, error: 'Este campo es requerido' };
+    return { isValid: false, error: mensajeRequerido || 'Este campo es requerido' };
   }
 
   // Si está vacío y no es requerido, es válido
@@ -1237,12 +1291,14 @@ export function validateField(
  * @param formValues - Valores de todos los campos
  * @param setFieldError - Función para setear error en un campo
  * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación
+ * @param opciones - se pasan tal cual a `validateField` (Diseño 2: `required_message`)
  */
 export function validateStep(
   step: WizardStep,
   formValues: Record<string, string | string[]>,
   setFieldError: (fieldCode: string, error: string | null) => void,
-  dynamicOptionsCache?: Record<string, CascadingOption[]>
+  dynamicOptionsCache?: Record<string, CascadingOption[]>,
+  opciones: OpcionesDeValidacion = {}
 ): string | null {
   let firstErrorField: string | null = null;
 
@@ -1275,7 +1331,7 @@ export function validateStep(
     }
 
     const value = formValues[field.code];
-    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache, true);
+    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache, true, opciones);
 
     // Siempre actualizar el error (limpiar si es válido, setear si hay error)
     setFieldError(field.code, result.error);

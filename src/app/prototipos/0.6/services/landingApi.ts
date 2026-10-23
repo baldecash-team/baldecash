@@ -1218,6 +1218,12 @@ export async function getLandingAccessories(
   refreshRecommendations?: boolean,
   productSlug?: string | null,
   initialAmount?: number | null,
+  /**
+   * Con `lanzarError` la falla de red o un 5xx se propaga en vez de volver `[]`.
+   * Lo usa el modal de "Lo quiero" (BAL-4852) para decirle a la persona que no
+   * se pudieron cargar los accesorios y reportarlo; sin el flag, igual que siempre.
+   */
+  opciones?: { lanzarError?: boolean },
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1270,6 +1276,7 @@ export async function getLandingAccessories(
     const data: ApiAccessoryResponse = await response.json();
     return data.accessories || [];
   } catch (error) {
+    if (opciones?.lanzarError) throw error;
     console.error('Error fetching landing accessories:', error);
     return [];
   }
@@ -1330,6 +1337,48 @@ interface ApiInsurancePlan {
  * @param productPrice - Precio del producto
  * @param sessionUuid - UUID de la tracking_session (mismo que se manda en submit). El backend lo usa para backfill de yield/risk; sin él cae al fallback de yield 200.
  */
+/**
+ * Los planes de seguro de la landing, SIN tragarse los errores: un 5xx o un
+ * corte de red lanzan. Lo usa `usePlanesDeSeguro` (BAL-4966), que necesita
+ * distinguir "no hay planes" (`[]`, que suelta la selección) de "no pudimos
+ * preguntar" (error: se conserva la selección y se ofrece reintentar).
+ * 403 (VIP) y 404 (landing sin seguros) siguen siendo "no hay planes".
+ */
+export async function obtenerPlanesDeSeguro(
+  slug: string,
+  deviceType: string,
+  productPrice: number,
+  termMonths?: number,
+  previewKey?: string | null,
+  sessionUuid?: string | null,
+): Promise<ApiInsurancePlan[]> {
+  const params = new URLSearchParams({
+    device_type: deviceType,
+    product_price: String(productPrice),
+  });
+  if (termMonths) {
+    params.set('term_months', String(termMonths));
+  }
+  if (previewKey) {
+    params.set('preview_key', previewKey);
+  }
+  const insurancesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, slug);
+  const response = await fetch(insurancesUrl, {
+    headers: sessionUuid ? { 'X-Session-Id': sessionUuid } : undefined,
+    ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) { handleVip403(slug); return []; }
+    if (response.status === 404) return [];
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data: ApiInsuranceResponse = await response.json();
+  return data.plans || [];
+}
+
+/** Igual que `obtenerPlanesDeSeguro`, pero un error devuelve `[]`. */
 export async function getLandingInsurances(
   slug: string,
   deviceType: string,
@@ -1339,30 +1388,7 @@ export async function getLandingInsurances(
   sessionUuid?: string | null,
 ): Promise<ApiInsurancePlan[]> {
   try {
-    const params = new URLSearchParams({
-      device_type: deviceType,
-      product_price: String(productPrice),
-    });
-    if (termMonths) {
-      params.set('term_months', String(termMonths));
-    }
-    if (previewKey) {
-      params.set('preview_key', previewKey);
-    }
-    const insurancesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, slug);
-    const response = await fetch(insurancesUrl, {
-      headers: sessionUuid ? { 'X-Session-Id': sessionUuid } : undefined,
-      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 403) { handleVip403(slug); return []; }
-      if (response.status === 404) return [];
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data: ApiInsuranceResponse = await response.json();
-    return data.plans || [];
+    return await obtenerPlanesDeSeguro(slug, deviceType, productPrice, termMonths, previewKey, sessionUuid);
   } catch (error) {
     console.error('Error fetching landing insurances:', error);
     return [];

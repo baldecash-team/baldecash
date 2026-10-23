@@ -66,3 +66,16 @@ export function formatCuotaDeLanding(
 ): string {
   return formatCuota(monto, { conCentavos: landingMuestraCentavos(landingSlug) });
 }
+
+/**
+ * El sufijo de la cuota según la frecuencia de pago ("/sem", "/qcn", "/mes").
+ * Estaba copiado en varios lugares del marco de Diseño 2
+ * (`ShellV2`, `PanelSolicitudV2`) y en `SelectedProductBar` de Diseño 1
+ * (BAL-4959, hallazgo de la revisión); ahora los tres llaman a esta misma
+ * función. La salida no cambió: es la misma regla que ya tenían los tres.
+ */
+export function sufijoDeFrecuencia(freq?: string | null): string {
+  if (freq === 'semanal') return '/sem';
+  if (freq === 'quincenal') return '/qcn';
+  return '/mes';
+}

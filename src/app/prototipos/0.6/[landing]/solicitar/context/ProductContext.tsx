@@ -174,6 +174,12 @@ export interface SelectedProduct {
   paymentFrequency?: string;
   // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
   comboId?: number;
+  /**
+   * Regalos del combo elegido, tal como los resolvió el modal "Lo quiero"
+   * (Diseño 2). Solo para mostrarlos en el panel "Tu solicitud": no viajan al
+   * submit (el backend resuelve el combo por `comboId`). Sin modal no existe.
+   */
+  regalos?: { id: string; name: string; gratis: boolean }[];
   // El producto NO viene del catálogo: lo armó una calculadora, con su cuota ya
   // resuelta contra el simulador. No se le piden planes, no se valida su
   // disponibilidad y su cuota no se recalcula. Ver `productoFueraDeCatalogo`.

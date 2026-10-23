@@ -5,6 +5,7 @@
  * Landing page before starting the wizard flow
  */
 
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -53,9 +54,13 @@ import { MobileStickyCta, MobileStickyCtaSpacer, PasoDelWizard, usePasoDelWizard
 
 // Utils
 import { formatMoneyNoDecimals } from './utils/formatMoney';
+import { primerPasoRegular } from './utils/primerPaso';
 
 // Analytics
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+
+// Diseño 2: `/solicitar` es el modal "Lo quiero", no la intro (BAL-4969).
+import { EntradaSolicitudV2 } from './EntradaSolicitudV2';
 
 // Checkbox definido fuera del componente padre para evitar remount en cada
 // render cuando cambia el estado del padre (antes se redefinía dentro del
@@ -226,10 +231,7 @@ function WizardPreviewContent() {
   }, [appliedCoupon, couponError]);
 
   // Get first regular step (not summary step) for dynamic navigation
-  const firstStep = useMemo(() => {
-    const regularSteps = steps.filter(s => !s.is_summary_step);
-    return regularSteps.length > 0 ? regularSteps[0] : null;
-  }, [steps]);
+  const firstStep = useMemo(() => primerPasoRegular(steps), [steps]);
 
   /**
    * El paso del formulario, embebido. Se monta siempre —el orden de hooks no
@@ -243,6 +245,9 @@ function WizardPreviewContent() {
   const pasoEmbebido = usePasoDelWizard({
     stepSlug: esRenueva ? (firstStep?.url_slug || firstStep?.code || '') : '',
     flujo,
+    // En renueva-* la solicitud se crea desde esta misma pantalla: lo marcado
+    // acá respalda al storage en el bloque `consents` del submit (BAL-5007).
+    consentimientoEnPantalla: { terms: acceptTerms, privacy: acceptPrivacy, promos: acceptPromos },
   });
 
   // Cargar valores desde localStorage al montar
@@ -448,6 +453,10 @@ function WizardPreviewContent() {
     return true;
   };
 
+  // Doble clic en "Comenzar": avanza una sola vez (E2E BAL-4969). En
+  // renueva-* el paso embebido trae su propio candado.
+  const tomarCandado = useCandadoDeAvance();
+
   const handleStart = () => {
     if (!validacionesDeLaIntro()) return;
 
@@ -463,6 +472,7 @@ function WizardPreviewContent() {
       return;
     }
 
+    if (!tomarCandado()) return;
     router.push(routes.solicitarStep(landing, firstStepSlug));
   };
 
@@ -1137,7 +1147,20 @@ export default function WizardPreviewPage() {
 
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <WizardPreviewContent />
+      <SolicitarSegunDiseno landing={landing} />
     </Suspense>
   );
+}
+
+/**
+ * Diseño 2 no tiene intro (BAL-4969, casuísticas): `/solicitar` abre el modal
+ * "Lo quiero" (`EntradaSolicitudV2`). Se espera a que el diseño esté resuelto
+ * para no pintar la intro de Diseño 1 un instante. `renueva-*` queda en su
+ * intro, que embebe el formulario.
+ */
+function SolicitarSegunDiseno({ landing }: { landing: string }) {
+  const { loQuieroModal, disenoResuelto = true } = useLayout();
+  if (!disenoResuelto) return <LoadingFallback />;
+  if (loQuieroModal && !isSecondFinancingLanding(landing)) return <EntradaSolicitudV2 />;
+  return <WizardPreviewContent />;
 }

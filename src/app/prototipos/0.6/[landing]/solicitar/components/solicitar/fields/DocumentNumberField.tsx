@@ -22,6 +22,14 @@ import { DniNoInvitadoModal } from './DniNoInvitadoModal';
 import { CouponDocumentStatus } from '../coupon/CouponDocumentStatus';
 import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { SaludoPrellenadoV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/SaludoPrellenadoV2';
+import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/useErroresAlSalir';
+import {
+  etiquetaDelNumero,
+  mensajeDocumentoV2,
+  nombreDelSaludo,
+} from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 // BAL-3634: antes esto era `trimmed !== "-" && trimmed.length >= 3`, que dejaba
 // pasar al prefill cualquier celular o email guardado en `person.first_name`.
@@ -80,11 +88,25 @@ const DEFAULT_PREFILL_MAP: Record<keyof PrefillData, string[]> = {
   source: [], // Internal, don't prefill
 };
 
+/**
+ * Diseño 2 (BAL-4963): lo que el prefill escribió en cada campo, y para qué
+ * documento. Persisten con el borrador (no empiezan con `_prefill_status_` ni
+ * `_prefill_empty_`), así que al volver al Paso 1 el lookup que se repite
+ * sabe si la persona corrigió el campo después: mismo documento y un valor
+ * que no es el que escribió el prefill → gana el de la persona. Con otro
+ * documento (otra persona) el prefill escribe como siempre.
+ */
+const prefillValorKey = (code: string) => `_prefill_valor_${code}`;
+const prefillDocKey = (code: string) => `_prefill_doc_${code}`;
+
 export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   field,
   showError = false,
 }) => {
-  const { getFieldValue, getFieldError, updateField, setFieldError, formData, getAllDynamicOptions } = useWizard();
+  const { getFieldValue, getFieldError, getFieldLabel, updateField, setFieldError, formData, getAllDynamicOptions } = useWizard();
+  // Diseño 2 (BAL-4963): saludo, mensajes por tipo y modal con el estilo del kit.
+  const v2 = useCamposV2();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Prellenado desde el lead de un socio: solo lectura, igual que el resto de
   // los campos que llegaron con el lead (ver `useLeadPrefill`).
@@ -93,6 +115,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const session = useSessionOptional();
   const prefilledRef = useRef(false);
   const [lockedByModal, setLockedByModal] = useState(false);
+  // Documento fijo: no se edita ni se "corrige" desde el saludo.
+  const documentoBloqueado = !!field.readonly || lockedByModal || isLockedFromLead;
 
   // Pre-fill from DNI overlay (VIP gate, CADE, InlineDniGate)
   //
@@ -167,6 +191,35 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const handlePrefillReady = useCallback((data: PrefillData) => {
     let hasInvalidNames = false;
 
+    // Escribe lo que trajo el lookup. En Diseño 2, si la persona ya corrigió
+    // el campo (su valor no es el que el prefill dejó la vez anterior), su
+    // valor gana y el campo queda abierto como input. Diseño 1 no cambia.
+    const mismoDocumento = !!value && formData[prefillDocKey(field.code)]?.value === value;
+    const escribir = (code: string, valor: string) => {
+      // BAL-4963 (ronda 2): un campo bloqueado por el lead de un socio nunca
+      // se pisa con lo que traiga ESTE lookup. El lead es la fuente de
+      // verdad (ver `useLeadPrefill`); sin esta guarda, el DNI del titular
+      // podía dejar el nombre de OTRA persona (el que trajo el lookup)
+      // encima del nombre que llegó bloqueado. Y como "limpiar" tampoco toca
+      // los campos bloqueados, ese nombre ajeno quedaba pegado: "Corrige" +
+      // un segundo documento que no encuentra a nadie no lo hacía volver al
+      // del lead.
+      if (formData[leadLockKey(code)]?.value === 'true') return;
+      if (v2) {
+        const anterior = formData[prefillValorKey(code)]?.value;
+        const actual = formData[code]?.value;
+        const corregido = mismoDocumento && anterior !== undefined
+          && typeof actual === 'string' && actual.trim() !== '' && actual !== anterior;
+        updateField(prefillValorKey(code), valor);
+        if (corregido) {
+          updateField(`_prefill_empty_${code}`, 'true');
+          return;
+        }
+      }
+      updateField(code, valor);
+      updateField(`_prefill_empty_${code}`, valor ? '' : 'true');
+    };
+
     if (prefillConfig?.prefill_fields) {
       // Legacy mode: Record<target, source | source[]> from form builder.
       // Array values concatenate multiple API fields into one target (e.g.
@@ -183,8 +236,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
             return str;
           }).filter(Boolean);
           const joined = parts.join(' ');
-          updateField(formFieldCode, joined);
-          updateField(`_prefill_empty_${formFieldCode}`, joined ? '' : 'true');
+          escribir(formFieldCode, joined);
         } else {
           const val = data[apiSource as keyof PrefillData];
           const strVal = val ? String(val) : '';
@@ -195,8 +247,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
             hasInvalidNames = true;
           }
 
-          updateField(formFieldCode, isValid ? strVal : '');
-          updateField(`_prefill_empty_${formFieldCode}`, isValid && strVal ? '' : 'true');
+          escribir(formFieldCode, isValid ? strVal : '');
         }
       }
     } else if (prefillConfig?.fields_to_fill) {
@@ -211,8 +262,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
           hasInvalidNames = true;
         }
 
-        updateField(formFieldCode, isValid ? strVal : '');
-        updateField(`_prefill_empty_${formFieldCode}`, isValid && strVal ? '' : 'true');
+        escribir(formFieldCode, isValid ? strVal : '');
       }
     } else {
       // Legacy mode: use DEFAULT_PREFILL_MAP for backward compatibility
@@ -235,17 +285,66 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
               hasInvalidNames = true;
             }
 
-            updateField(code, isValid ? strVal : '');
-            updateField(`_prefill_empty_${code}`, isValid && strVal ? '' : 'true');
+            escribir(code, isValid ? strVal : '');
             break;
           }
         }
       }
     }
 
+    if (v2) updateField(prefillDocKey(field.code), value || '');
     updateField(`_prefill_status_${field.code}`, hasInvalidNames ? 'not_found' : 'found');
     prefilledRef.current = true;
-  }, [prefillConfig, formData, updateField]);
+  }, [prefillConfig, formData, updateField, v2, value, field.code]);
+
+  // Los campos que llena el prefill de este documento.
+  const codigosDelPrellenado = useCallback((): string[] => {
+    if (prefillConfig?.prefill_fields) return Object.keys(prefillConfig.prefill_fields);
+    if (prefillConfig?.fields_to_fill) return [...prefillConfig.fields_to_fill];
+    // Legacy mode
+    const formFieldCodes = Object.keys(formData);
+    const codigos: string[] = [];
+    for (const [prefillKey, possibleCodes] of Object.entries(DEFAULT_PREFILL_MAP)) {
+      if (prefillKey === 'source') continue;
+      const code = possibleCodes.find((c) => formFieldCodes.includes(c) || c === possibleCodes[0]);
+      if (code) codigos.push(code);
+    }
+    return codigos;
+  }, [prefillConfig, formData]);
+
+  // Borra solo las marcas de contabilidad del prefill (`_prefill_valor_*` y
+  // `_prefill_doc_*`), SIN tocar el valor de los campos. Las usa
+  // `limpiarCamposDelPrellenado` (que además vacía los campos) y, directo,
+  // el "no encontrado" de abajo cuando el prefill no corrió en esta sesión:
+  // aunque no haya nada que limpiar en pantalla, las marcas pueden venir de
+  // un documento ANTERIOR que ya no es el que está puesto (borrador
+  // recargado), y dejarlas ahí confundiría la próxima comparación de
+  // "la persona corrigió este campo" si alguien vuelve a escribir ese
+  // documento viejo.
+  const limpiarMarcasDelPrellenado = useCallback(() => {
+    for (const formFieldCode of codigosDelPrellenado()) {
+      if (formData[prefillValorKey(formFieldCode)] !== undefined) {
+        updateField(prefillValorKey(formFieldCode), '');
+      }
+    }
+    if (formData[prefillDocKey(field.code)]?.value) updateField(prefillDocKey(field.code), '');
+  }, [codigosDelPrellenado, formData, updateField, field.code]);
+
+  // Borra los campos que llenó el prefill y sus marcas. Lo usan el
+  // `not_found` de abajo y, en Diseño 2, "Corrige tu DNI".
+  //
+  // Un campo que llegó con el lead de un socio (`_lead_locked_*`) no se toca:
+  // está bloqueado, así que vaciarlo dejaría a la persona sin poder llenarlo.
+  const limpiarCamposDelPrellenado = useCallback(() => {
+    for (const formFieldCode of codigosDelPrellenado()) {
+      if (formData[leadLockKey(formFieldCode)]?.value === 'true') continue;
+      updateField(formFieldCode, '');
+      updateField(`_prefill_empty_${formFieldCode}`, '');
+    }
+    limpiarMarcasDelPrellenado();
+
+    prefilledRef.current = false;
+  }, [codigosDelPrellenado, formData, updateField, limpiarMarcasDelPrellenado]);
 
   // Handle clearing fields when no prefill data is available
   // Only clear if fields were previously auto-filled (not manually entered)
@@ -253,37 +352,19 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Mark as not found — this triggers visibility of personal fields
     updateField(`_prefill_status_${field.code}`, 'not_found');
 
-    if (!prefilledRef.current) return; // Don't clear manually entered data
-
-    const targets = prefillConfig?.prefill_fields
-      ? Object.keys(prefillConfig.prefill_fields)
-      : prefillConfig?.fields_to_fill ?? null;
-
-    if (targets) {
-      // Clear fields and their empty markers (covers both legacy and new shapes)
-      for (const formFieldCode of targets) {
-        updateField(formFieldCode, '');
-        updateField(`_prefill_empty_${formFieldCode}`, '');
-      }
-    } else {
-      // Legacy mode
-      const formFieldCodes = Object.keys(formData);
-
-      for (const [prefillKey, possibleCodes] of Object.entries(DEFAULT_PREFILL_MAP)) {
-        if (prefillKey === 'source') continue;
-
-        for (const code of possibleCodes) {
-          if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
-            updateField(code, '');
-            updateField(`_prefill_empty_${code}`, '');
-            break;
-          }
-        }
-      }
+    if (!prefilledRef.current) {
+      // BAL-4963 (ronda 2): el prefill no corrió en ESTA sesión (borrador
+      // recién cargado, o el lookup nunca llegó a "found" para este
+      // documento), así que no se tocan los campos — pueden ser datos que la
+      // persona escribió a mano. Pero las marcas sí se limpian: si no, un
+      // "no encontrado" con un documento NUEVO deja las marcas del documento
+      // VIEJO en el borrador.
+      limpiarMarcasDelPrellenado();
+      return; // Don't clear manually entered data
     }
 
-    prefilledRef.current = false;
-  }, [prefillConfig, formData, updateField]);
+    limpiarCamposDelPrellenado();
+  }, [field.code, updateField, limpiarCamposDelPrellenado, limpiarMarcasDelPrellenado]);
 
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
@@ -382,13 +463,48 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Tambien recorta el valor al `max_length` del tipo nuevo: el atributo
   // `maxLength` del input frena lo que se TIPEA, no lo que ya estaba.
   const tipoAnterior = useRef(documentType);
+  // El tipo tal como está en el formulario ('' si nadie lo eligió todavía).
+  // Sirve para no confundir con un cambio de la persona lo que es el borrador
+  // recién cargado o el default que se fija al montar.
+  const tipoCrudo = (getFieldValue(documentTypeField) as string) || '';
+  const tipoCrudoAnterior = useRef(tipoCrudo);
   useEffect(() => {
     if (tipoAnterior.current === documentType) return;
     tipoAnterior.current = documentType;
+    // BAL-4963 (ronda 2, documentando lo que ya hacía este código): si el
+    // campo tipo estaba en '' (nadie lo había elegido todavía) y pasa a tener
+    // un valor, ESE cambio no cuenta como "la persona cambió de tipo" — es la
+    // resolución del default (o el tipo que trajo el borrador) al montar, no
+    // un gesto de la persona. `loEligioLaPersona` queda en `false` ahí, así
+    // que el bloque de abajo no borra nada.
+    //
+    // Importa porque el número puede llegar ANTES de que exista un tipo: la
+    // persona puede tipear el documento mientras el combo de tipo sigue en
+    // blanco (o el combo tarda un render en resolver su default). Sin esta
+    // guarda, el primer `documentType` que aparece —aunque sea el default y
+    // no una elección— borraría lo que la persona ya escribió, antes de que
+    // ella haya tocado el selector de tipo siquiera una vez.
+    const loEligioLaPersona = tipoCrudoAnterior.current !== '';
 
     const actual = (getFieldValue(field.code) as string) || '';
     if (!actual) {
       setFieldError?.(field.code, null);
+      return;
+    }
+
+    // Diseño 2 (como el prototipo): cambiar de tipo borra el número y lo que
+    // llenó el prefill. Un documento bloqueado no se toca.
+    if (v2 && loEligioLaPersona && !documentoBloqueado) {
+      const habiaPrellenado =
+        prefilledRef.current || getFieldValue(`_prefill_status_${field.code}`) === 'found';
+      updateField(field.code, '');
+      updateField(`_prefill_status_${field.code}`, '');
+      if (habiaPrellenado) limpiarCamposDelPrellenado();
+      resetCheck();
+      setFieldError?.(field.code, null);
+      // El campo quedó vacío por el cambio de tipo, no por la persona: no
+      // muestra "Ingresa tu número…" hasta que lo toque o intente continuar.
+      reiniciarCampoTocado(field.code);
       return;
     }
 
@@ -411,7 +527,11 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       field.code,
       documentRules ? checkDocumentAgainstRules(siguiente, documentRules) : null
     );
-  }, [documentType, documentRules, field.code, getFieldValue, updateField, setFieldError, resetCheck]);
+  }, [documentType, documentRules, field.code, getFieldValue, updateField, setFieldError, resetCheck,
+    v2, documentoBloqueado, limpiarCamposDelPrellenado]);
+  useEffect(() => {
+    tipoCrudoAnterior.current = tipoCrudo;
+  }, [tipoCrudo]);
 
   // Build tooltip from API help_text
   const tooltip = field.help_text ? {
@@ -425,7 +545,47 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // El bloqueo de whitelist lo comunica el modal, no un texto al pie: son dos
   // cosas distintas y mostrarlas juntas es ruido. El campo solo pinta los
   // errores de formato.
-  const displayError = error;
+  //
+  // Diseño 2: el texto del error sale de la tabla de Brenda por tipo (y
+  // `required_message` de la BD gana cuando está vacío). Cuándo hay error lo
+  // sigue decidiendo el validador de siempre.
+  const displayError = v2
+    ? mensajeDocumentoV2({ error, valor: value, tipo: documentType, requiredMessage: field.required_message })
+    : error;
+
+  // Diseño 2: "¡Hola, {Nombre}!" con el estado del prefill que ya existe.
+  const nombreSaludo = useMemo(
+    () => (v2 ? nombreDelSaludo(field, Object.fromEntries(
+      Object.entries(formData).map(([k, st]) => [k, st?.value as string | string[] | undefined]),
+    )) : null),
+    [v2, field, formData],
+  );
+
+  // Diseño 2: "Número de {tipo}" con la etiqueta de la opción elegida (la del
+  // catálogo de tipos, o la que guardó el select). Sin opción, la de la BD.
+  //
+  // BAL-4963 (ronda 2): SOLO el documento del titular recibe este tratamiento.
+  // El documento de un familiar (este mismo componente también lo pinta, ver
+  // `esDocumentoDelTitular` arriba) conserva la etiqueta que trae la BD —
+  // "Documento del familiar", "DNI del aval", etc. — tal cual la escribió
+  // Brenda, en vez de que todos los documentos de la ficha digan lo mismo.
+  const etiquetaDelTipo = v2 && esDocumentoDelTitular
+    ? (getAllDynamicOptions?.()?.[documentTypeField] || []).find(
+        (o) => String(o.value).toLowerCase() === documentType.toLowerCase(),
+      )?.label ?? getFieldLabel?.(documentTypeField)
+    : undefined;
+  const etiqueta = v2 && esDocumentoDelTitular ? etiquetaDelNumero(etiquetaDelTipo, field.label) : field.label;
+
+  // "Corrige tu DNI": lo mismo que pasa hoy al cambiar el documento (número,
+  // prefill y campos que llenó, en blanco) y el foco vuelve al campo.
+  const corregirDocumento = useCallback(() => {
+    updateField(field.code, '');
+    setFieldError?.(field.code, null);
+    updateField(`_prefill_status_${field.code}`, '');
+    limpiarCamposDelPrellenado();
+    resetCheck();
+    inputRef.current?.focus();
+  }, [field.code, updateField, setFieldError, limpiarCamposDelPrellenado, resetCheck]);
 
   // Determine success state
   const hasValue = !!value;
@@ -437,20 +597,31 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     <>
       <TextInput
         id={field.code}
-        label={field.label}
+        label={etiqueta}
         value={value}
         onChange={handleChange}
         error={displayError}
         required={field.required}
-        disabled={field.readonly || lockedByModal || isLockedFromLead}
+        disabled={documentoBloqueado}
         tooltip={tooltip}
         type="text"
         inputMode={isNumericDoc ? 'numeric' : 'text'}
         placeholder={documentRules?.placeholder || field.placeholder || undefined}
         maxLength={documentRules?.max_length || field.max_length || undefined}
+        showCounter={field.show_counter}
         success={isSuccess}
         isLoading={isChecking}
+        {...(v2 ? { inputRef } : {})}
       />
+
+      {nombreSaludo && (
+        <SaludoPrellenadoV2
+          nombre={nombreSaludo}
+          esDni={documentType === 'dni'}
+          // Documento bloqueado (puerta VIP o lead de un socio): sin enlace.
+          onCorregir={documentoBloqueado ? undefined : corregirDocumento}
+        />
+      )}
 
       {esDocumentoDelTitular && (
         <CouponDocumentStatus documentComplete={documentoCompleto !== null} />
@@ -471,6 +642,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
           }
           firstName={whitelist?.first_name ?? null}
           onCerrar={() => setModalCerrado(true)}
+          {...(v2 ? { v2: true } : {})}
         />
       )}
     </>

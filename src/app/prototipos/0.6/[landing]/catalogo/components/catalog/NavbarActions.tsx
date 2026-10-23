@@ -5,6 +5,7 @@
  * Incluye: Buscador con sugerencias, Favoritos y Carrito
  */
 
+import { ZONA_TACTIL_44 } from '@/app/prototipos/0.6/components/diseno-2/zonaTactil';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Search, Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
@@ -342,7 +343,7 @@ export const NavbarFavorites: React.FC<NavbarFavoritesProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+      className={`${ZONA_TACTIL_44} flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         isActive
           ? 'bg-[var(--color-primary)] text-white'
           : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
@@ -377,7 +378,7 @@ export const NavbarSearchButton: React.FC<NavbarSearchButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+      className={`${ZONA_TACTIL_44} flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         isActive
           ? 'bg-[var(--color-primary)] text-white'
           : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
@@ -408,7 +409,7 @@ export const NavbarCartButton: React.FC<NavbarCartButtonProps> = ({
     <button
       id={id}
       onClick={onClick}
-      className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+      className={`${ZONA_TACTIL_44} flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         count > 0 && isOverLimit
           ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
           : count > 0
@@ -446,7 +447,7 @@ export const NavbarWishlistButton: React.FC<NavbarWishlistButtonProps> = ({
     <button
       id={id}
       onClick={onClick}
-      className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+      className={`${ZONA_TACTIL_44} flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         count > 0
           ? 'bg-[var(--color-primary)] text-white'
           : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
@@ -518,7 +519,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
       {/* Wishlist Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+        className={`${ZONA_TACTIL_44} flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
           items.length > 0
             ? 'bg-[var(--color-primary)] text-white'
             : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
@@ -715,7 +716,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
       {/* Cart Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+        className={`${ZONA_TACTIL_44} flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
           items.length > 0 && isOverLimit
             ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
             : items.length > 0

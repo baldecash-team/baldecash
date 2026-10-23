@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { ShieldCheck, Lock, Check, Plus, X, Users, ExternalLink, HeartPulse, Scale, Laptop } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -9,6 +10,7 @@ import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
 import { useParams } from 'next/navigation';
+import { ZONA_TACTIL_44 } from '@/app/prototipos/0.6/components/diseno-2/zonaTactil';
 
 interface InsuranceDetailModalProps {
   plan: InsurancePlan | null;
@@ -158,7 +160,8 @@ const MODAL_CONFIG: Record<string, {
 
 const DEFAULT_MODAL = MODAL_CONFIG.garantia_extendida;
 
-function getModalConfig(type: string) {
+/** El contenido de «¿Qué cubre?» por tipo (lo reutiliza la hoja de Diseño 2). */
+export function getModalConfig(type: string) {
   return MODAL_CONFIG[type] || DEFAULT_MODAL;
 }
 
@@ -488,7 +491,8 @@ const ModalContentShared: React.FC<{
 
         <button
           onClick={handleToggleAndClose}
-          className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          data-accion-seguro
+          className={`${ZONA_TACTIL_44} w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
             isSelected
               ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
               : 'bg-[var(--color-primary)] text-white hover:brightness-90'
@@ -552,6 +556,31 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
   const scrollYRef = useRef<number>(0);
   const didLockRef = useRef<boolean>(false);
 
+  // Hoja como diálogo (QA en celular, BAL-4969): al abrir, el foco entra a
+  // la hoja; Escape la cierra; al cerrar, el foco vuelve al botón que la abrió.
+  const hojaRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+  useEffect(() => {
+    if (!shouldShow) return;
+    const previo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const id = window.requestAnimationFrame(() => hojaRef.current?.focus({ preventScroll: true }));
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCloseRef.current();
+      }
+    };
+    document.addEventListener('keydown', alTeclear);
+    return () => {
+      window.cancelAnimationFrame(id);
+      document.removeEventListener('keydown', alTeclear);
+      if (previo && previo.isConnected) previo.focus({ preventScroll: true });
+    };
+  }, [shouldShow]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -578,7 +607,12 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
     };
   }, [isOpen]);
 
-  return (
+  // En un portal a <body>: dentro del paso, la hoja quedaba en el contexto de
+  // apilamiento del contenido (z-10) y la barra fija de abajo de Diseño 2
+  // (z-40) y la cabecera quedaban ENCIMA aunque la hoja diga z-[9999]
+  // (QA en celular, BAL-4969, bug 1).
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <AnimatePresence mode="wait">
       {shouldShow && plan && (
         <>
@@ -606,8 +640,14 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
             onDragEnd={(_, info) => {
               if (info.offset.y > 100) onClose();
             }}
-            className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[9999] flex flex-col max-h-[80vh] overflow-hidden"
-            style={{ overscrollBehavior: 'contain', background: isGamer ? (isDark ? '#141414' : '#f0f0f0') : '#ffffff' }}
+            ref={hojaRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={getModalConfig(plan.insuranceType).title}
+            tabIndex={-1}
+            data-hoja-seguro
+            className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[9999] flex flex-col max-h-[80vh] overflow-hidden outline-none"
+            style={{ overscrollBehavior: 'contain', background: isGamer ? (isDark ? '#141414' : '#f0f0f0') : '#ffffff', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             {/* Franja del drag-handle: morada (no gamer) para que se una con el
                 header morado y la parte superior no quede blanca. flex-none →
@@ -637,7 +677,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
                 <button
                   onClick={onClose}
                   aria-label="Cerrar"
-                  className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                  className={`${ZONA_TACTIL_44} w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0`}
                 >
                   <X className="w-4 h-4 text-white" />
                 </button>
@@ -652,7 +692,8 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps & { isGamer: boolean
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 };
 

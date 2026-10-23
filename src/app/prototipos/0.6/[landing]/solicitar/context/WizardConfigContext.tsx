@@ -61,6 +61,44 @@ export const useWizardConfig = () => {
  */
 export const useWizardConfigOptional = () => useContext(WizardConfigContext);
 
+/**
+ * Los pasos tal como los cuenta Diseño 1 (`WizardProgress.progressSteps`):
+ * los regulares + SOLO el primer `is_summary_step` (nunca todos). Única
+ * fuente de la lista para el progreso de Diseño 2 (`ProgresoV2`) y para
+ * `TransicionDelWizard` — los dos reusan esto en vez de repetir el orden a
+ * mano, que es como se coló el bug de contar cada resumen de más (BAL-4959).
+ *
+ * Si la API no trae NINGÚN `is_summary_step`, `WizardProgress` (líneas
+ * ~125-139) igual agrega un "Resumen" sintético al final de todas formas —
+ * así que acá se agrega el mismo, con la misma condición (sin resumen real)
+ * y la misma etiqueta ("Resumen"), para que N sea igual en los dos diseños
+ * (re-revisión de BAL-4959). Con un resumen real no se toca nada: se sigue
+ * devolviendo ESE paso tal cual, con su propio título.
+ */
+export function pasosConPrimerResumen(steps: WizardStep[]): WizardStep[] {
+  const regulares = steps.filter((s) => !s.is_summary_step);
+  const primerResumen = steps.find((s) => s.is_summary_step);
+  if (primerResumen) return [...regulares, primerResumen];
+
+  const resumenSintetico: WizardStep = {
+    id: -1,
+    code: 'resumen',
+    url_slug: 'resumen',
+    name: 'Resumen',
+    title: 'Resumen',
+    description: '',
+    icon: '',
+    order: regulares.length,
+    required: false,
+    skippable: false,
+    estimated_time_minutes: 0,
+    is_summary_step: true,
+    motivational: null,
+    fields: [],
+  };
+  return [...regulares, resumenSintetico];
+}
+
 interface WizardConfigProviderProps {
   children: ReactNode;
   slug: string;

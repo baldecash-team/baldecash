@@ -8,6 +8,7 @@ import { useSubmitApplication } from '../useSubmitApplication';
 import { calcularPrellenado, marcadoresDeBloqueo } from '../useLeadPrefill';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { readDemoApplication } from '../../utils/demoApplication';
+import { saveConsentStorage } from '../../utils/consentStorage';
 import type { LeadPrefill } from '@/app/prototipos/0.6/services/leadPrefillApi';
 import type { WizardStep } from '../../../../services/wizardApi';
 
@@ -80,6 +81,7 @@ jest.mock('../../context/ProductContext', () => ({
     getDiscountAmount: () => 10, // Fixed coupon: returns discount value directly
     getDiscountedMonthlyPayment: () => 90,
     getTotalPrice: () => 1080,
+    getTotalMonthlyPayment: () => 267,
     clearProduct: mockClearProduct,
     clearCartProducts: mockClearCartProducts,
     clearAccessories: mockClearAccessories,
@@ -111,10 +113,11 @@ jest.mock('../../context/WizardConfigContext', () => ({
 
 // Mock useAnalytics (returns no-ops by default)
 const mockAnalyticsTrack = jest.fn();
+const mockTrackSummarySubmit = jest.fn();
 jest.mock('@/app/prototipos/0.6/analytics/useAnalytics', () => ({
   useAnalytics: () =>
     new Proxy(
-      { track: mockAnalyticsTrack },
+      { track: mockAnalyticsTrack, trackSummarySubmit: mockTrackSummarySubmit },
       { get: (target, prop) => (target as Record<string, unknown>)[prop as string] ?? jest.fn() }
     ),
 }));
@@ -269,6 +272,24 @@ describe('useSubmitApplication', () => {
       const msg = onToast.mock.calls[0][0] as string;
       expect(msg).toContain('Quítalo');
       expect(result.current.error).toBe(msg);
+    });
+
+    it('APPLICATION_CAP_REACHED: mensaje humano con tildes, no el texto crudo de ws2 (BAL-4969)', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'APPLICATION_CAP_REACHED',
+        error: 'Por ahora no estamos recibiendo mas solicitudes en esta campana.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toContain('no estamos recibiendo más solicitudes');
+      expect(msg).toContain('campaña');
     });
 
     it('un codigo desconocido cae al mensaje del API', async () => {
@@ -1227,5 +1248,220 @@ describe('lead de socio (A365): institucion y sede llegan al submit', () => {
 
     const enviado = mockSubmitApplication.mock.calls[0][0].form_data;
     expect(Object.keys(enviado).some(k => k.startsWith('_'))).toBe(false);
+  });
+});
+
+/**
+ * BAL-5007: el submit lleva las casillas de consentimiento en la raíz del
+ * payload (`consents`), leídas de `consentStorage` ANTES de limpiarlo. ws2
+ * guarda una fila en `application_consent` por cada una en `true`.
+ *
+ * Diseño 1 (intro de /solicitar) y Diseño 2 (modal "Lo quiero") escriben las
+ * MISMAS claves; el envío no distingue el diseño, lee las claves. Por eso cada
+ * caso se prueba con las claves tal como las deja cada diseño.
+ */
+describe('consentimiento en el payload (BAL-5007)', () => {
+  const L = mockParams.landing;
+  const KEY_TERMS = `baldecash-${L}-wizard-acceptTerms`;
+  const KEY_PRIVACY = `baldecash-${L}-wizard-acceptPrivacy`;
+  const KEY_PROMOS = `baldecash-${L}-wizard-acceptPromos`;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    mockSubmitApplication.mockResolvedValue({ success: true, application_code: 'APP-1' });
+  });
+
+  async function enviar(opciones?: Parameters<typeof useSubmitApplication>[0]) {
+    const { result } = renderHook(() => useSubmitApplication(opciones));
+    await act(async () => {
+      await result.current.submit();
+    });
+    return mockSubmitApplication.mock.calls[0][0] as { consents?: unknown };
+  }
+
+  it('Diseño 1: las tres casillas marcadas en la intro viajan en true', async () => {
+    // La intro de /solicitar guarda cada casilla por su lado al marcarla.
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'true');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+  });
+
+  it('Diseño 2: el modal "Lo quiero" deja términos y privacidad, sin promos', async () => {
+    // Su casilla única acepta términos Y privacidad; promos va aparte.
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'false');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: false });
+  });
+
+  it('promos en false se manda false, no se omite ni se vuelve true', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'false');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toHaveProperty('promos', false);
+  });
+
+  it('con el storage vacío no inventa un true: el bloque no viaja', async () => {
+    const payload = await enviar();
+
+    expect(payload.consents).toBeUndefined();
+  });
+
+  it('una casilla sin dato, con otras que sí lo tienen, va en false', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: false, promos: false });
+  });
+
+  it('se lee ANTES de limpiar el storage', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'true');
+    // Lo que había en el storage en el instante exacto del POST.
+    let enElPost: (string | null)[] = [];
+    mockSubmitApplication.mockImplementationOnce(async () => {
+      enElPost = [KEY_TERMS, KEY_PRIVACY, KEY_PROMOS].map((k) => localStorage.getItem(k));
+      return { success: true, application_code: 'APP-1' };
+    });
+
+    const payload = await enviar();
+
+    expect(enElPost).toEqual(['true', 'true', 'true']);
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+    // Y el envío exitoso sí lo limpió después (BAL-2657).
+    expect(localStorage.getItem(KEY_TERMS)).toBeNull();
+    expect(localStorage.getItem(KEY_PRIVACY)).toBeNull();
+    expect(localStorage.getItem(KEY_PROMOS)).toBeNull();
+  });
+
+  it('storage vacío y casillas marcadas en pantalla (renueva-*): manda lo de la pantalla', async () => {
+    const payload = await enviar({
+      consentimientoEnPantalla: { terms: true, privacy: true, promos: false },
+    });
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: false });
+  });
+
+  it('si hay storage, manda el storage y la pantalla solo cubre lo que falta', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+
+    const payload = await enviar({
+      consentimientoEnPantalla: { terms: false, privacy: false, promos: true },
+    });
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+  });
+
+  it('envío anticipado (stayInWizard) también lleva el bloque', async () => {
+    localStorage.setItem(KEY_TERMS, 'true');
+    localStorage.setItem(KEY_PRIVACY, 'true');
+    localStorage.setItem(KEY_PROMOS, 'false');
+
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit({ stayInWizard: true });
+    });
+
+    expect(mockSubmitApplication.mock.calls[0][0].consents).toEqual({
+      terms: true, privacy: true, promos: false,
+    });
+    // Sigue en el wizard: no limpia, las pantallas que faltan lo necesitan.
+    expect(localStorage.getItem(KEY_TERMS)).toBe('true');
+  });
+});
+
+/**
+ * Rediseño completo (Diseño 2 + BAL-5007): en Diseño 2 no hay intro con
+ * casillas; lo único que deja el consentimiento es el modal "Lo quiero", que
+ * escribe con `saveConsentStorage`. Aquí se usa ESA función real (no claves
+ * escritas a mano) para probar que lo que guarda el modal es lo que lee el
+ * submit: si alguna de las dos cambia de claves, este test se rompe.
+ */
+describe('Diseño 2: lo que guarda el modal "Lo quiero" llega al submit (BAL-5007)', () => {
+  const L = mockParams.landing;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    mockSubmitApplication.mockResolvedValue({ success: true, application_code: 'APP-1' });
+  });
+
+  async function enviar() {
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+    return mockSubmitApplication.mock.calls[0][0] as { consents?: unknown };
+  }
+
+  it('modal sin promos: términos y privacidad en true, promos en false', async () => {
+    // Lo mismo que hace LoQuieroModal al continuar.
+    saveConsentStorage(L, { acceptTerms: true, acceptPrivacy: true, acceptPromos: false });
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: false });
+  });
+
+  it('modal con promos marcado: las tres en true', async () => {
+    saveConsentStorage(L, { acceptTerms: true, acceptPrivacy: true, acceptPromos: true });
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+  });
+});
+
+describe('E2E BAL-4969: doble clic y cuota del evento', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('dos llamadas seguidas (doble clic) mandan UN solo POST /submit', async () => {
+    let resolver: (v: unknown) => void = () => {};
+    mockSubmitApplication.mockImplementationOnce(() => new Promise((r) => { resolver = r; }));
+    const { result } = renderHook(() => useSubmitApplication({}));
+
+    let segunda: boolean | undefined;
+    await act(async () => {
+      void result.current.submit();
+      segunda = await result.current.submit();
+    });
+    expect(segunda).toBe(false);
+    expect(mockSubmitApplication).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolver({ success: false, error: 'x' });
+    });
+  });
+
+  it('tras un envío fallido se puede volver a intentar', async () => {
+    mockSubmitApplication.mockResolvedValue({ success: false, error: 'x' });
+    const { result } = renderHook(() => useSubmitApplication({}));
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.submit(); });
+    expect(mockSubmitApplication).toHaveBeenCalledTimes(2);
+    mockSubmitApplication.mockReset();
+  });
+
+  it('summary_submit manda la cuota con extras (equipo + accesorios + seguros)', async () => {
+    mockSubmitApplication.mockResolvedValueOnce({ success: false, error: 'x' });
+    const { result } = renderHook(() => useSubmitApplication({}));
+    await act(async () => { await result.current.submit(); });
+    expect(mockTrackSummarySubmit).toHaveBeenCalledWith(expect.objectContaining({ total_monthly: 267 }));
   });
 });

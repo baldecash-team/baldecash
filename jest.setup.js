@@ -41,6 +41,10 @@ jest.mock('framer-motion', () => ({
     h3: ({ children, ...props }) => <h3 {...props}>{children}</h3>,
   },
   AnimatePresence: ({ children }) => <>{children}</>,
+  // BAL-4959: `TransicionPaso` (Diseño 2) lo usa para respetar
+  // `prefers-reduced-motion`. Sin esto cualquier test que lo monte explota
+  // con "useReducedMotion is not a function" — nadie lo necesitaba antes.
+  useReducedMotion: () => false,
 }));
 
 // Suppress console errors during tests (optional, remove if you want to see them)

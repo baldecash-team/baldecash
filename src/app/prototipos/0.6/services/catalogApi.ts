@@ -612,6 +612,19 @@ function mapCondition(condition: string | null | undefined): ProductCondition {
 }
 
 /**
+ * Accesorios del combo de la card (regalos), tal como los manda `/products`
+ * en `combo.accessories`. Sin combo o sin accesorios: undefined.
+ */
+function comboAccessoriesFromApi(combo: unknown): CatalogProduct['comboAccessories'] {
+  const accs = (combo as { accessories?: { product_id?: number | null; product_name?: string; price?: number | null }[] } | null | undefined)?.accessories;
+  if (!Array.isArray(accs) || accs.length === 0) return undefined;
+  const lista = accs
+    .filter((a) => a.product_id != null)
+    .map((a) => ({ productId: Number(a.product_id), name: a.product_name ?? '', price: Number(a.price ?? 0) }));
+  return lista.length > 0 ? lista : undefined;
+}
+
+/**
  * Map API product to frontend CatalogProduct
  *
  * Note: The API doesn't return full specs in the catalog list.
@@ -669,6 +682,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     comboImage,
     comboId,
     comboAddons: (apiProduct as { combo_addons?: CatalogProduct['comboAddons'] }).combo_addons,
+    comboAccessories: comboAccessoriesFromApi(apiProduct.combo),
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],

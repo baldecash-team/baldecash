@@ -10,6 +10,8 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Check } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import { useCamposV2, ETIQUETA_V2, MarcaOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { CasillaV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/CasillaV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -83,6 +85,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   alignTop = false,
   reserveBottomSpace = false,
 }) => {
+  const v2 = useCamposV2();
   // Determinar si es modo simple (sin opciones) o múltiple (con opciones)
   const isSimpleMode = !options || options.length === 0;
   const useReservedBottomSlot = isSimpleMode && reserveBottomSpace;
@@ -153,10 +156,35 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
     </button>
   );
 
+  // Diseño 2 (BAL-4960): la casilla simple es una caja propia (neutra, roja
+  // con sacudida al intentar seguir sin marcarla, verde con «¡Listo!»).
+  if (v2 && isSimpleMode) {
+    return (
+      <CasillaV2
+        id={id}
+        label={label}
+        checked={isCheckedSimple}
+        onToggle={handleSimpleChange}
+        error={error}
+        helpText={helpText}
+        tooltip={tooltip}
+        disabled={disabled}
+        required={required}
+      />
+    );
+  }
+
   return (
     <div id={id} className={useReservedBottomSlot ? 'space-y-1.5' : 'space-y-3'}>
       {/* Label (solo para modo múltiple o como título) */}
-      {!isSimpleMode && (
+      {!isSimpleMode && v2 && (
+        <label className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
+      {!isSimpleMode && !v2 && (
         <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
           {label}
           {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}

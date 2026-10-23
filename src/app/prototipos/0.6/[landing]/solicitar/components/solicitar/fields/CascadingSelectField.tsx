@@ -327,8 +327,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   const claveDeFiltro = JSON.stringify(extraDeFiltro);
 
   // Handle lazy search (debounced)
-  const handleSearch = useCallback((searchTerm: string) => {
-    if (!isLazySearch || !field.options_source) return;
+  // Devuelve `false` cuando no va a buscar: el buscador de Diseño 2 no deja
+  // una elección automática esperando resultados que nunca llegan.
+  const handleSearch = useCallback((searchTerm: string): boolean => {
+    if (!isLazySearch || !field.options_source) return false;
 
     // Clear previous timeout
     if (searchTimeoutRef.current) {
@@ -338,14 +340,14 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
     // Don't search if less than min characters
     if (searchTerm.length < minSearchLength) {
       setLocalDynamicOptions([]);
-      return;
+      return false;
     }
 
     // Ningún tipo de institución en común entre lo que permite el paso y lo
     // que respondió el cliente: no sale ninguna institución (BAL-4841).
     if (extraDeFiltro === null) {
       setLocalDynamicOptions([]);
-      return;
+      return false;
     }
     const filtro = extraDeFiltro;
 
@@ -366,6 +368,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         setIsSearching(false);
       }
     }, 300);
+    return true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLazySearch, field.options_source, minSearchLength, claveDeFiltro]);
 

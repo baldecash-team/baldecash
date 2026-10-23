@@ -20,7 +20,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
-import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isGamerLanding, admiteDiseno2 } from '@/app/prototipos/0.6/utils/theme';
 
 // Context
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -42,7 +42,8 @@ import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
-import { useToast } from '@/app/prototipos/_shared';
+import { useToast, ModalAviso } from '@/app/prototipos/_shared';
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -64,6 +65,40 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
+// Diseño 2 de la solicitud (BAL-4959): solo el marco; la lógica es la de acá.
+import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer, AvisoV2 } from '@/app/prototipos/0.6/components/diseno-2';
+import { etiquetaDelPaso } from '@/app/prototipos/0.6/components/diseno-2/ProgresoV2';
+// Paso 4 · Resumen de Diseño 2 (BAL-4966): los seguros entran al paso.
+import {
+  segurosVanEnElPaso4,
+  solicitudCreadaAntesDelPaso,
+  hayComplementosDespues,
+  nombreDelUltimoPaso,
+  encabezadoDelPaso4,
+} from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
+import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePaso4V2';
+import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
+import { ConfirmarSinProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ConfirmarSinProteccionesV2';
+// Guardas del paso en Diseño 2 (BAL-4969, casuísticas): aviso en el paso, nunca la intro de Diseño 1.
+import {
+  guardaActivaV2,
+  textoDeGuardaV2,
+  proteccionPasaElTope,
+  textoDeTopeDelPlan,
+  pedirAbrirSelectorDePlazo,
+  type AccionDeGuardaV2,
+} from '@/app/prototipos/0.6/components/diseno-2/guardasV2';
+import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGuardaV2';
+import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
+import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
+import { enfocarCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
+
+/**
+ * El Paso 4 vuelve a la vista 1 y abre la sección antes de bajar al campo
+ * (`volverAlCampo`, ~60 + 60 ms): el foco va después, cuando el campo ya está.
+ */
+const ESPERA_FOCO_PASO4_MS = 160;
+import { seccionesConSegurosDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/seguroAntesDelWizard';
 
 
 // Helper function to get Lucide icon by name
@@ -105,11 +140,26 @@ function StepContent() {
   // Reacondicionado: aceptación obligatoria antes de enviar la solicitud
   const [showRefurbAcceptance, setShowRefurbAcceptance] = useState(false);
   const refurbAcceptedRef = useRef(false);
+  // Diseño 2 · Paso 4 (BAL-4966): los planes no cargaron y hay seguros
+  // elegidos. Enviar pide confirmar "Enviar sin protecciones".
+  const [confirmarSinProtecciones, setConfirmarSinProtecciones] = useState(false);
+  const sinProteccionesConfirmadoRef = useRef(false);
+  // Diseño 2 · Paso 4: la hoja "¿Qué cubre?" está abierta → sin barra fija.
+  const [detalleSeguroAbierto, setDetalleSeguroAbierto] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud, disenoResuelto = true, campanaAbierta = true } = useLayout();
+
+  /**
+   * Diseño 2 (`features.solicitud_design === 2`): el paso se pinta dentro de
+   * `ShellV2` en vez de `WizardLayout`. Es solo el marco: validación, borrador,
+   * envío anticipado, guards y navegación son los mismos de abajo. Zona gamer
+   * queda en Diseño 1 (decisión D6 del planning), y las landings de tema oscuro
+   * también (BAL-4969, I-2: el kit es de fondo claro).
+   */
+  const usarDiseno2 = disenoSolicitud === 2 && admiteDiseno2(landing);
 
   // Get wizard config from API
   const {
@@ -153,19 +203,25 @@ function StepContent() {
   // por instancia y saldria a buscar `solicitar-config` una segunda vez.
   const flujo = useSolicitarFlow({ slug: landing, previewKey });
   const { shouldShowComplementos, isCouponRequired, isEnabled, kycEnabled, isKycStepEnabled, envioAnticipadoStep, firmaPorAceptacion, isLoading: isFlowConfigLoading } = flujo;
+  // Algunos mocks viejos de `useSolicitarFlow` no traen estos dos.
+  const sectionsAfterWizard = flujo.sectionsAfterWizard;
+  const configLoadFailed = flujo.configLoadFailed === true;
 
   // Get applied coupon and term validation from product context
-  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts, selectedInsurances, clearInsurance, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
 
   // Toast notifications for submit
-  const { showToast } = useToast(4000);
+  // El aviso de envío ("Hay campos incompletos en…", errores del envío). Solo
+  // Diseño 2 lo pinta (QA F10 · Falla 2c, BAL-4969): Diseño 1 nunca montó el
+  // <Toast/> en esta pantalla y queda como estaba (ver prepr-web-report.md).
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  // El mensaje de "unidad tomada" solo tuvo modal en el paso regular, que ahora
-  // vive en `usePasoDelWizard` y monta el suyo. Esta instancia —la del resumen—
-  // nunca lo renderizo, asi que el valor no se lee: se conserva el callback para
-  // no cambiarle el contrato al hook de envio.
-  const [, setUnidadTomada] = useState<string | null>(null);
+  // "Unidad tomada" al enviar desde el resumen (BAL-4969, casuísticas): antes
+  // el valor no se leía y el envío fallaba en silencio (el hook no muestra el
+  // aviso si hay `onUnidadTomada`). Ahora el resumen monta el mismo modal que
+  // el paso regular (`usePasoDelWizard`), en los dos diseños.
+  const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
@@ -180,10 +236,30 @@ function StepContent() {
    * Va acá, junto al resto de los hooks y ANTES de los early returns, o se
    * rompe el orden de hooks de React.
    */
-  const paso = usePasoDelWizard({ stepSlug, flujo, gamer: isGamerLanding(landing) });
+  // Diseño 2: la celebración entre pasos es "¡Un paso más!".
+  const paso = usePasoDelWizard({
+    stepSlug,
+    flujo,
+    gamer: isGamerLanding(landing),
+    Celebracion: usarDiseno2 ? TransicionDelWizard : undefined,
+    diseno2: usarDiseno2,
+    // `form_step_view` con el diseño de verdad, no el 1 por defecto (BAL-4969).
+    disenoResuelto,
+  });
+
+  /*
+   * Guardas del paso. Diseño 1 manda a `/solicitar` (su intro). Diseño 2 NO:
+   * esa pantalla no existe ahí, así que la persona se queda en el paso y ve el
+   * aviso de `guardaV2` (más abajo) con la salida que corresponde (BAL-4969,
+   * casuísticas). Todas esperan a `disenoResuelto`: antes de que llegue
+   * `/config`, `disenoSolicitud` vale el 1 por defecto y una landing en Diseño
+   * 2 se iría a la intro de Diseño 1 por un instante de carga.
+   */
+  const guardasDeDiseno1 = disenoResuelto && !usarDiseno2;
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (!isProductHydrated) return;
     // `paso.submitSucceeded` es el del envio del paso regular, que corre en su
     // propio `useSubmitApplication`. Sin mirarlo, un envio que limpia el
@@ -193,35 +269,99 @@ function StepContent() {
     if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded && !paso.submitSucceeded) {
       router.replace(routes.solicitar(landing));
     }
-  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded, paso.submitSucceeded]);
+  }, [guardasDeDiseno1, isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded, paso.submitSucceeded]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
       router.push(routes.solicitar(landing));
     }
-  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+  }, [guardasDeDiseno1, isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (cartProducts.length > 1 && !hasUnifiedTerms()) {
       router.push(routes.solicitar(landing));
     }
-  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+  }, [guardasDeDiseno1, cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (isOverQuotaLimit) {
       router.push(routes.solicitar(landing));
     }
-  }, [isOverQuotaLimit, landing, router]);
+  }, [guardasDeDiseno1, isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (unavailableProductIds.length > 0) {
       router.push(routes.solicitar(landing));
     }
-  }, [unavailableProductIds, landing, router]);
+  }, [guardasDeDiseno1, unavailableProductIds, landing, router]);
+
+  /**
+   * Diseño 2: la guarda que manda (o `null`). Bloquea "Continuar" y "Enviar"
+   * y se pinta como aviso dentro del paso.
+   */
+  const guardaV2 = usarDiseno2
+    ? guardaActivaV2({
+        productoHidratado: isProductHydrated,
+        hayProducto: !!selectedProduct || cartProducts.length > 0,
+        enviado: submitSucceeded || paso.submitSucceeded,
+        hayNoDisponibles: unavailableProductIds.length > 0,
+        flujoCargado: !isFlowConfigLoading,
+        cuponObligatorio: isCouponRequired,
+        hayCupon: !!appliedCoupon,
+        plazosDistintos: cartProducts.length > 1 && !hasUnifiedTerms(),
+        sobreElTope: isOverQuotaLimit,
+        maximo: maxMonthlyQuota,
+        conProtecciones: (selectedInsurances?.length ?? 0) > 0,
+      })
+    : null;
+
+  /** A dónde vuelve Diseño 2 cuando no hay paso anterior: el origen del modal o el catálogo. */
+  const origenV2 = () => leerOrigenDiseno2(landing) || routes.catalogo(landing);
+
+  const accionDeGuarda = (tipo: AccionDeGuardaV2) => {
+    if (tipo === 'catalogo') router.push(routes.catalogo(landing));
+    else if (tipo === 'origen') router.push(origenV2());
+    else if (tipo === 'quitar-protecciones') clearInsurance();
+    else pedirAbrirSelectorDePlazo();
+  };
+
+  /*
+   * Cupo de la campaña lleno (BAL-4969, casuísticas): Diseño 1 lo avisa en su
+   * intro; Diseño 2 no la tiene, así que lo avisa en cada paso, ANTES de que
+   * la persona llene todo. Igual que en Diseño 1, no bloquea: el envío valida
+   * el cupo en el servidor (y si rebota, `APPLICATION_CAP_REACHED` tiene su
+   * mensaje).
+   */
+  const avisoCampanaV2 = usarDiseno2 && !campanaAbierta ? (
+    <AvisoGuardaV2
+      tono="info"
+      titulo="Por ahora no estamos recibiendo más solicitudes"
+      mensaje="Se llenaron los cupos de esta campaña. Si ya enviaste la tuya, sigue su curso con normalidad y te vamos a contactar."
+      className="mb-4"
+    />
+  ) : null;
+
+  const avisoGuardaV2 = guardaV2
+    ? (() => {
+        const t = textoDeGuardaV2(guardaV2);
+        return (
+          <AvisoGuardaV2
+            titulo={t.titulo}
+            mensaje={t.mensaje}
+            accion={{ texto: t.accion.texto, onClick: () => accionDeGuarda(t.accion.tipo) }}
+            className="mb-4"
+          />
+        );
+      })()
+    : null;
 
   // Get step config from API using URL slug
   const step = getStepByUrlSlug(stepSlug);
@@ -332,6 +472,53 @@ function StepContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redirigirAlContrato, landing]);
 
+  /**
+   * Paso 4 de Diseño 2 (BAL-4966). Los seguros van en este paso si la landing
+   * tiene la sección `insurance`, este es el resumen que envía y la solicitud
+   * no se creó antes (envío anticipado, D5: ver `segurosVanEnElPaso4`).
+   * `/complementos` ya no cuenta los seguros en Diseño 2.
+   */
+  const esElQueEnvia = enviaEnEstePaso || navigation.isLast;
+  const segurosEnPaso4 = segurosVanEnElPaso4({
+    diseno2: usarDiseno2,
+    esResumen: isSummaryStep,
+    esElQueEnvia,
+    // Diseño 2: un seguro configurado ANTES del wizard también entra acá
+    // (no hay intro que lo ofrezca, BAL-4969).
+    sectionsAfterWizard: seccionesConSegurosDelPaso4(sectionsAfterWizard, flujo.sectionsBeforeWizard, usarDiseno2),
+    envioAnticipadoStep,
+    indicePaso: navigation.currentIndex,
+    yaEnviada,
+  });
+  const hayComplementos = hayComplementosDespues(sectionsAfterWizard, usarDiseno2, shouldShowComplementos);
+  const paso4 = usePaso4V2({
+    activo: usarDiseno2 && isSummaryStep && !isFlowConfigLoading && !configLoadFailed,
+    conSeguros: segurosEnPaso4,
+    creadaAntes: esElQueEnvia && solicitudCreadaAntesDelPaso(envioAnticipadoStep, navigation.currentIndex, yaEnviada),
+  });
+
+  /**
+   * Paso 4 de Diseño 2: una protección que pasaría la cuota por encima del
+   * tope NO se agrega. Se avisa junto a esa protección (y arriba, por si la
+   * hoja "¿Qué cubre?" la tapa), en vez de dejarla y bloquear el envío.
+   */
+  const [planSobreTope, setPlanSobreTope] = useState<string | null>(null);
+  const { alternar: alternarSeguro, elegidos: segurosElegidos, planes: planesDeSeguro } = paso4.seguros;
+  const alternarProteccion = useCallback(
+    (planId: string) => {
+      const plan = planesDeSeguro.find((p) => p.id === planId);
+      const yaElegido = segurosElegidos.includes(planId);
+      if (!yaElegido && plan && proteccionPasaElTope(getTotalMonthlyPayment(), plan.monthlyPrice, maxMonthlyQuota)) {
+        setPlanSobreTope(planId);
+        showToast(textoDeTopeDelPlan(maxMonthlyQuota), 'warning');
+        return;
+      }
+      setPlanSobreTope(null);
+      alternarSeguro(planId);
+    },
+    [planesDeSeguro, segurosElegidos, getTotalMonthlyPayment, maxMonthlyQuota, alternarSeguro, showToast],
+  );
+
   // Build form values for validation
   const formValues = useMemo(() => {
     const values: Record<string, string | string[]> = {};
@@ -347,6 +534,16 @@ function StepContent() {
     }
     return values;
   }, [formData]);
+
+  // Diseño 2: el título del Paso 1 sigue siendo el del paso. El saludo
+  // "¡Hola, {Nombre}!" sale una sola vez, en la tarjeta bajo el documento
+  // (`SaludoPrellenadoV2`), como en el prototipo de Brenda (verificación final).
+
+  // Diseño 2, Paso 4: "¡Último paso, {Nombre}!" con el mismo origen del saludo.
+  const nombrePaso4 = useMemo(
+    () => (usarDiseno2 && isSummaryStep ? nombreDelUltimoPaso(steps, formValues) : null),
+    [usarDiseno2, isSummaryStep, steps, formValues],
+  );
 
   // Load summary field values from localStorage
   useEffect(() => {
@@ -380,8 +577,8 @@ function StepContent() {
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
-    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions());
-  }, [step, formValues, setFieldError, getAllDynamicOptions]);
+    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2: usarDiseno2 });
+  }, [step, formValues, setFieldError, getAllDynamicOptions, usarDiseno2]);
 
   // Get display value for a field in summary
   const getFieldDisplayValue = (field: WizardField, value: string | string[] | undefined, savedLabel?: string): string => {
@@ -521,16 +718,18 @@ function StepContent() {
   // Validate all regular steps (cross-step validation before submit)
   const validateAllSteps = useCallback((): { stepTitle: string; stepSlug: string } | null => {
     for (const s of regularSteps) {
-      const firstError = validateStepFields(s, formValues, setFieldError, getAllDynamicOptions());
+      const firstError = validateStepFields(s, formValues, setFieldError, getAllDynamicOptions(), { diseno2: usarDiseno2 });
       if (firstError) {
         return {
-          stepTitle: s.title || s.name,
+          // Diseño 2 nombra el paso como su barra de progreso (M-3, BAL-4969);
+          // Diseño 1 queda como estaba.
+          stepTitle: usarDiseno2 ? etiquetaDelPaso(s) : s.title || s.name,
           stepSlug: getStepSlug(s),
         };
       }
     }
     return null;
-  }, [regularSteps, formValues, setFieldError, getAllDynamicOptions]);
+  }, [regularSteps, formValues, setFieldError, getAllDynamicOptions, usarDiseno2]);
 
   // Summary specific handlers
   // Reacondicionado: ¿la selección (producto único o carrito) incluye un equipo reacondicionado?
@@ -538,15 +737,30 @@ function StepContent() {
     isRefurbishedCondition(selectedProduct?.condition) ||
     cartProducts.some((p) => isRefurbishedCondition(p.condition));
 
+  // Un doble clic en "Enviar"/"Continuar" (o en el botón de un modal que
+  // envía) avanza una sola vez (E2E BAL-4969). Sin cambio visual.
+  const tomarCandado = useCandadoDeAvance();
+
   const handleSummarySubmit = async () => {
     // Wait for flow config to be ready
     if (isFlowConfigLoading) return;
+
+    // Diseño 2: un error del envío anterior se queda hasta que se cierra o
+    // se vuelve a intentar (verificación final, BAL-4969).
+    hideToast();
 
     // Validar campos del paso de resumen usando la misma lógica que pasos regulares
     setSubmitted(true);
     const firstErrorField = validateStep();
     if (firstErrorField) {
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Diseño 2: en celular el campo puede estar en la vista 1; se vuelve
+      // ahí y se baja al campo con la guía, y después recibe el foco
+      // (BAL-4969). Diseño 1, como siempre.
+      if (usarDiseno2) {
+        paso4.volverAlCampo(firstErrorField);
+        window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
+      }
+      else document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -565,7 +779,10 @@ function StepContent() {
     }
 
     // Reacondicionado: exige aceptación explícita antes de continuar/enviar.
-    if (isRefurbishedSelection && !refurbAcceptedRef.current) {
+    // Diseño 2 no: el aviso ya se mostró dentro del modal "Lo quiero", donde
+    // se aceptan los términos (4ee75501); repetirlo acá era un segundo modal
+    // con su propia casilla y un botón más que mandaba el envío (BAL-4969).
+    if (!usarDiseno2 && isRefurbishedSelection && !refurbAcceptedRef.current) {
       setShowRefurbAcceptance(true);
       return;
     }
@@ -576,20 +793,41 @@ function StepContent() {
     }
 
     // Check if there are sections after wizard (complementos page)
-    if (shouldShowComplementos) {
+    // (Diseño 2: los seguros ya no cuentan, van en este paso.)
+    if (hayComplementos) {
+      if (!tomarCandado()) return;
       // Navigate to complementos page for insurance/accessories sections
       setIsSubmitting(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
       router.push(routes.solicitarComplementos(landing));
     } else if (yaEnviada && handoff) {
+      if (!tomarCandado()) return;
       // El envío anticipado ya creó la solicitud: mandarla otra vez crearía una
       // segunda con los mismos datos.
       router.push(routes.solicitarConfirmacion(
         landing, handoff.applicationCode, false, handoff.publicToken
       ));
     } else {
+      // Diseño 2: los planes no cargaron y hay seguros elegidos. Este envío
+      // los perdería (`insuranceIds` sale vacío), así que NO se manda `[]` en
+      // silencio: se pide confirmación ("Reintentar" o "Enviar sin
+      // protecciones"). Recién al confirmar se suelta la selección.
+      if (paso4.pideConfirmarEnvio && !sinProteccionesConfirmadoRef.current) {
+        setConfirmarSinProtecciones(true);
+        return;
+      }
+      if (!tomarCandado()) return;
+      sinProteccionesConfirmadoRef.current = false;
       // No sections after wizard - submit application directly
-      await submitApplication({ insuranceId: null, otpEnabled: isEnabled('otp_verification'), kycEnabled });
+      // Diseño 2: con los seguros elegidos en este paso (el mismo
+      // `insurance_ids` que manda `/complementos`). Diseño 1: sin seguros.
+      const insuranceIds = paso4.insuranceIds;
+      await submitApplication({
+        insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
+        ...(insuranceIds.length > 0 ? { insuranceIds } : {}),
+        otpEnabled: isEnabled('otp_verification'),
+        kycEnabled,
+      });
       // The hook handles navigation to confirmation page on success
       // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
@@ -609,12 +847,17 @@ function StepContent() {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
       router.push(routes.solicitarStep(landing, prevSlug));
     } else {
-      router.push(routes.solicitar(landing));
+      // Diseño 2 no tiene intro: vuelve al origen del modal o al catálogo.
+      router.push(usarDiseno2 ? origenV2() : routes.solicitar(landing));
     }
   };
 
   // Handler para pasos de resumen que NO son el último (continúan a otro paso)
   const handleSummaryNext = () => {
+    // Diseño 2: un error del envío anterior se queda hasta que se cierra o
+    // se vuelve a intentar (verificación final, BAL-4969).
+    hideToast();
+
     // Validar campos del paso de resumen usando la misma lógica que pasos regulares
     setSubmitted(true);
     const firstErrorField = validateStep();
@@ -622,6 +865,8 @@ function StepContent() {
       document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    if (!tomarCandado()) return;
 
     // Mark step as completed
     if (step) {
@@ -643,6 +888,19 @@ function StepContent() {
   const navigateToStep = (stepPath: string) => {
     router.push(routes.solicitarStep(landing, stepPath));
   };
+
+  // El mismo modal de "unidad tomada" del paso regular (z-60 por la navbar).
+  const modalUnidadTomadaResumen = unidadTomada ? (
+    <div className="relative z-[60]">
+      <ModalAviso
+        titulo="Ese equipo ya no está disponible"
+        mensaje={unidadTomada}
+        textoBoton="Elegir otro equipo"
+        onCerrar={() => router.push(routes.catalogo(landing))}
+        tono="error"
+      />
+    </div>
+  ) : null;
 
   // Lead guard
   if (!hasLeadAccess) return <LoadingFallback />;
@@ -669,7 +927,7 @@ function StepContent() {
           No se encontro el paso: {stepSlug}
         </p>
         <button
-          onClick={() => router.push(routes.solicitar(landing))}
+          onClick={() => router.push(usarDiseno2 ? origenV2() : routes.solicitar(landing))}
           className={`underline ${isGamer ? 'text-[#00ffd5]' : 'text-[var(--color-primary)]'}`}
         >
           Volver al formulario
@@ -738,6 +996,42 @@ function StepContent() {
       sus casillas y acepta con sus propios botones.
     */
     if (handoff && condicionesFijas) {
+      const contrato = (
+        <ContratoEnWizard
+          landing={landing}
+          handoff={handoff}
+          onBack={handleSummaryBack}
+          stepSlug={step.url_slug || step.code}
+          // El estado `handoff` de ACÁ (leído una vez por montaje) no se
+          // re-deriva solo cuando `ContratoEnWizard` limpia la marca de
+          // "aceptado" en sessionStorage tras un 409 — sin este callback,
+          // las gates de más abajo (Atrás, indicador de pasos, redirect)
+          // seguirían bloqueando con el `true` viejo.
+          onContratoVencido={() => setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid))}
+        />
+      );
+
+      if (usarDiseno2) {
+        return (
+          <>
+            <ShellV2
+              currentStep={step.url_slug || step.code}
+              step={step}
+              title={step.title}
+              description={step.description}
+              onStepClick={bloqueaContrato ? undefined : handleStepClick}
+              isLastStep
+              sinNavegacion
+              condicionesFijas={condicionesFijas}
+              navbarProps={navbarProps || undefined}
+            >
+              {() => contrato}
+            </ShellV2>
+            <Footer data={footerData} landing={landing} agreementData={agreementData} />
+          </>
+        );
+      }
+
       const contenido = (
         <WizardLayout
           currentStep={step.url_slug || step.code}
@@ -751,18 +1045,7 @@ function StepContent() {
           navbarProps={isGamer ? undefined : (navbarProps || undefined)}
           motivational={step.motivational}
         >
-          <ContratoEnWizard
-            landing={landing}
-            handoff={handoff}
-            onBack={handleSummaryBack}
-            stepSlug={step.url_slug || step.code}
-            // El estado `handoff` de ACÁ (leído una vez por montaje) no se
-            // re-deriva solo cuando `ContratoEnWizard` limpia la marca de
-            // "aceptado" en sessionStorage tras un 409 — sin este callback,
-            // las gates de más abajo (Atrás, indicador de pasos, redirect)
-            // seguirían bloqueando con el `true` viejo.
-            onContratoVencido={() => setHandoff(readEnvioAnticipadoHandoff(landing, sessionUuid))}
-          />
+          {contrato}
         </WizardLayout>
       );
 
@@ -778,7 +1061,7 @@ function StepContent() {
 
     // Determinar dinámicamente si es el último paso del wizard
     // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
-    const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !shouldShowComplementos);
+    const isActuallyLastStep = enviaEnEstePaso || (navigation.isLast && !hayComplementos);
 
     // Determinar el handler correcto para el botón:
     // - Si NO es el último paso real: onNext maneja "Continuar"
@@ -795,6 +1078,229 @@ function StepContent() {
     // igual — sin ellos la solicitud no se podría enviar. Aplica también al
     // paso de resumen que no es el último: es este mismo render.
     const sinResumen = mostrarResumen === false;
+
+    // El cuerpo del resumen es el mismo en los dos diseños. Diseño 2 le pasa
+    // los campos tocados para los errores al salir del campo; Diseño 1 no, y
+    // el render queda como siempre.
+    // El repaso de lo ya llenado: un bloque por paso con su "Editar". Diseño 1
+    // lo pinta en el cuerpo; Diseño 2, en "Ver detalle" del panel.
+    const repasoDeDatos = () => regularSteps.map((s) => {
+          const visibleFields = getVisibleFields(s);
+          if (visibleFields.length === 0) return null;
+
+          const IconComponent = getIconComponent(s.icon);
+          const sSlug = getStepSlug(s);
+
+          return (
+            <SummarySection
+              key={s.id}
+              icon={IconComponent}
+              title={s.title}
+              onEdit={() => {
+                tracker?.track('summary_edit_click', { section: s.code });
+                navigateToStep(sSlug);
+              }}
+            >
+              {visibleFields.map((field) => {
+                const value = getFieldValue(field.code);
+                const savedLabel = getFieldLabel(field.code);
+
+                // File fields: show filename with link to view
+                if (field.type === 'file') {
+                  const fileData = formData[field.code];
+                  const files = Array.isArray(value) ? value : [];
+                  const lostFileNames = fileData?.label;
+
+                  let fileContent: React.ReactNode;
+                  if (files.length > 0 && files[0] && typeof files[0] === 'object' && 'file' in files[0]) {
+                    // Files in memory — show clickable links
+                    fileContent = (
+                      <span className="flex flex-col items-end gap-1">
+                        {files.map((f: { id?: string; file?: File; name?: string }, i: number) => (
+                          <button
+                            key={f.id || i}
+                            type="button"
+                            onClick={() => {
+                              if (f.file) {
+                                const url = URL.createObjectURL(f.file);
+                                window.open(url, '_blank');
+                              }
+                            }}
+                            className="text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <LucideIcons.Paperclip className="w-3.5 h-3.5" />
+                            {f.name || 'Archivo adjunto'}
+                          </button>
+                        ))}
+                      </span>
+                    );
+                  } else if (lostFileNames) {
+                    // Files lost after refresh — show names without link
+                    fileContent = (
+                      <span className="flex items-center gap-1 text-neutral-500">
+                        <LucideIcons.Paperclip className="w-3.5 h-3.5" />
+                        {lostFileNames}
+                      </span>
+                    );
+                  } else {
+                    fileContent = 'No adjunto';
+                  }
+
+                  return (
+                    <SummaryItem
+                      key={field.id}
+                      label={field.label}
+                      value={fileContent}
+                    />
+                  );
+                }
+
+                const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined, savedLabel);
+
+                return (
+                  <SummaryItem
+                    key={field.id}
+                    label={field.label}
+                    value={displayValue}
+                  />
+                );
+              })}
+            </SummarySection>
+          );
+        });
+
+    const cuerpoResumen = (camposTocados?: ReadonlySet<string>) => (
+      <div className="space-y-4">
+        {/* Dynamic sections from regular API steps */}
+        {!sinResumen && repasoDeDatos()}
+
+        {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
+            los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
+        {step.fields.length > 0 && (
+          // Sin los bloques de resumen arriba, el recuadro interior ya no
+          // separa nada: los campos van directo en la tarjeta del paso, como
+          // en un paso regular, en vez de una tarjeta dentro de otra.
+          <div className={sinResumen ? undefined : 'bg-white rounded-xl border border-neutral-200 p-4 sm:p-6'}>
+            <DynamicWizardStep
+              step={step}
+              showErrors={submitted}
+              camposTocados={camposTocados}
+            />
+          </div>
+        )}
+
+        {/* Aceptación obligatoria de reacondicionado antes de enviar la solicitud */}
+        <RefurbishedAcceptanceModal
+          isOpen={showRefurbAcceptance}
+          onClose={() => setShowRefurbAcceptance(false)}
+          onAccept={() => {
+            refurbAcceptedRef.current = true;
+            setShowRefurbAcceptance(false);
+            handleSummarySubmit();
+          }}
+          productName={selectedProduct?.name}
+        />
+      </div>
+    );
+
+    // Diseño 2: el mismo cuerpo y los mismos handlers, dentro de `ShellV2`.
+    // `isBusy` (solo navega a complementos) e `isSubmitting` (crea la
+    // solicitud) van separados por lo mismo que en `MobileStickyCta`.
+    if (usarDiseno2) {
+      const encabezado = encabezadoDelPaso4(step, nombrePaso4);
+      // Celular: una sola pantalla como en el prototipo de Brenda (campos,
+      // protecciones y la barra con "Enviar…"), sin "Continuar" intermedio.
+      const frecuencia = getAllProducts()[0]?.paymentFrequency;
+
+      return (
+        <>
+          <ShellV2
+            currentStep={step.url_slug || step.code}
+            step={step}
+            title={encabezado.titulo}
+            antetitulo={encabezado.antetitulo}
+            // Sin descripción en la BD, el subtítulo dice solo lo que el paso
+            // pide (día de pago, dirección), no el de Brenda fijo (BAL-4969).
+            description={subtituloDelPaso4(step)}
+            // Cada bloque (campos, protecciones) lleva su propia tarjeta.
+            sinTarjeta
+            onBack={handleSummaryBack}
+            onNext={nextHandler}
+            onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
+            onStepClick={handleStepClick}
+            condicionesFijas={condicionesFijas}
+            isLastStep={isActuallyLastStep}
+            isSubmitting={isAppSubmitting}
+            isBusy={isSubmitting}
+            submitMessage={submitMessage}
+            canProceed={!bloqueadoPorWhitelist && !guardaV2}
+            navbarProps={navbarProps || undefined}
+            // `summary-off` (D3): el Paso 4 sale igual, sin "Ver detalle".
+            detalle={sinResumen ? undefined : <>{repasoDeDatos()}</>}
+            pasoResumen
+            textoEnviar={paso4.textoEnviar}
+            // Con la hoja "¿Qué cubre?" abierta no hay "Enviar" abajo (QA en
+            // celular, BAL-4969, bug 1).
+            ocultarBarraInferior={detalleSeguroAbierto}
+          >
+            {(camposTocados) => (
+              <div className="space-y-4">
+                {avisoCampanaV2}
+                {avisoGuardaV2}
+                {step.fields.length > 0 && (
+                  <div
+                    data-vista-paso4="1"
+                    // Con secciones, cada una trae su tarjeta (prototipo).
+                    className={step.groups?.length ? undefined : 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
+                    style={step.groups?.length ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
+                  >
+                    <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
+                  </div>
+                )}
+                {segurosEnPaso4 && (
+                  <div data-vista-paso4="2">
+                    <ProteccionesV2
+                      {...paso4.seguros}
+                      alternar={alternarProteccion}
+                      avisoDelPlan={planSobreTope && !segurosElegidos.includes(planSobreTope) ? { planId: planSobreTope, texto: textoDeTopeDelPlan(maxMonthlyQuota) } : null}
+                      landing={landing} frecuencia={frecuencia} onDetalleAbiertoChange={setDetalleSeguroAbierto} />
+                  </div>
+                )}
+                <ConfirmarSinProteccionesV2
+                  isOpen={confirmarSinProtecciones && paso4.pideConfirmarEnvio}
+                  elegidas={paso4.seguros.elegidos.length}
+                  onClose={() => setConfirmarSinProtecciones(false)}
+                  onReintentar={() => {
+                    setConfirmarSinProtecciones(false);
+                    paso4.seguros.reintentar();
+                  }}
+                  onEnviarSinProtecciones={() => {
+                    sinProteccionesConfirmadoRef.current = true;
+                    setConfirmarSinProtecciones(false);
+                    paso4.soltarParaEnviarSinProtecciones();
+                    void handleSummarySubmit();
+                  }}
+                />
+              </div>
+            )}
+          </ShellV2>
+          <Footer data={footerData} landing={landing} agreementData={agreementData} />
+          {/* La barra fija de celular no tapa el final del footer */}
+          <BarraInferiorV2Spacer />
+          <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          {modalUnidadTomadaResumen}
+          {/* M-2 (BAL-4969): el aviso del kit (status + aria-live, cerrar de
+              44px, reduced-motion). El `Toast` compartido de Diseño 1 no cambia. */}
+          <AvisoV2
+            message={toast?.message ?? null}
+            type={toast?.type}
+            isVisible={isToastVisible}
+            onClose={hideToast}
+            duration={4000}
+          />
+        </>
+      );
+    }
 
     const pageContent = (
       <WizardLayout
@@ -819,119 +1325,7 @@ function StepContent() {
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
         ctaFijoEnMovil
       >
-        <div className="space-y-4">
-          {/* Dynamic sections from regular API steps */}
-          {!sinResumen && regularSteps.map((s) => {
-            const visibleFields = getVisibleFields(s);
-            if (visibleFields.length === 0) return null;
-
-            const IconComponent = getIconComponent(s.icon);
-            const sSlug = getStepSlug(s);
-
-            return (
-              <SummarySection
-                key={s.id}
-                icon={IconComponent}
-                title={s.title}
-                onEdit={() => {
-                  tracker?.track('summary_edit_click', { section: s.code });
-                  navigateToStep(sSlug);
-                }}
-              >
-                {visibleFields.map((field) => {
-                  const value = getFieldValue(field.code);
-                  const savedLabel = getFieldLabel(field.code);
-
-                  // File fields: show filename with link to view
-                  if (field.type === 'file') {
-                    const fileData = formData[field.code];
-                    const files = Array.isArray(value) ? value : [];
-                    const lostFileNames = fileData?.label;
-
-                    let fileContent: React.ReactNode;
-                    if (files.length > 0 && files[0] && typeof files[0] === 'object' && 'file' in files[0]) {
-                      // Files in memory — show clickable links
-                      fileContent = (
-                        <span className="flex flex-col items-end gap-1">
-                          {files.map((f: { id?: string; file?: File; name?: string }, i: number) => (
-                            <button
-                              key={f.id || i}
-                              type="button"
-                              onClick={() => {
-                                if (f.file) {
-                                  const url = URL.createObjectURL(f.file);
-                                  window.open(url, '_blank');
-                                }
-                              }}
-                              className="text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
-                            >
-                              <LucideIcons.Paperclip className="w-3.5 h-3.5" />
-                              {f.name || 'Archivo adjunto'}
-                            </button>
-                          ))}
-                        </span>
-                      );
-                    } else if (lostFileNames) {
-                      // Files lost after refresh — show names without link
-                      fileContent = (
-                        <span className="flex items-center gap-1 text-neutral-500">
-                          <LucideIcons.Paperclip className="w-3.5 h-3.5" />
-                          {lostFileNames}
-                        </span>
-                      );
-                    } else {
-                      fileContent = 'No adjunto';
-                    }
-
-                    return (
-                      <SummaryItem
-                        key={field.id}
-                        label={field.label}
-                        value={fileContent}
-                      />
-                    );
-                  }
-
-                  const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined, savedLabel);
-
-                  return (
-                    <SummaryItem
-                      key={field.id}
-                      label={field.label}
-                      value={displayValue}
-                    />
-                  );
-                })}
-              </SummarySection>
-            );
-          })}
-
-          {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
-              los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
-          {step.fields.length > 0 && (
-            // Sin los bloques de resumen arriba, el recuadro interior ya no
-            // separa nada: los campos van directo en la tarjeta del paso, como
-            // en un paso regular, en vez de una tarjeta dentro de otra.
-            <div className={sinResumen ? undefined : 'bg-white rounded-xl border border-neutral-200 p-4 sm:p-6'}>
-              <DynamicWizardStep
-                step={step}
-                showErrors={submitted}
-              />
-            </div>
-          )}
-
-          {/* Aceptación obligatoria de reacondicionado antes de enviar la solicitud */}
-          <RefurbishedAcceptanceModal
-            isOpen={showRefurbAcceptance}
-            onClose={() => setShowRefurbAcceptance(false)}
-            onAccept={() => {
-              refurbAcceptedRef.current = true;
-              setShowRefurbAcceptance(false);
-              handleSummarySubmit();
-            }}
-            productName={selectedProduct?.name}
-          />
-        </div>
+        {cuerpoResumen()}
       </WizardLayout>
     );
 
@@ -963,6 +1357,7 @@ function StepContent() {
           {pageContent}
           {stickyCta}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          {modalUnidadTomadaResumen}
         </GamerWizardWrapper>
       );
     }
@@ -973,6 +1368,46 @@ function StepContent() {
         {stickyCta}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        {modalUnidadTomadaResumen}
+      </>
+    );
+  }
+
+  // Diseño 2: el mismo paso (`usePasoDelWizard` + `PasoDelWizard`) dentro de
+  // `ShellV2`. Los overlays —transición, envío, "unidad tomada"— son los del
+  // hook, igual que en Diseño 1.
+  if (usarDiseno2) {
+    return (
+      <>
+        {paso.overlays}
+        <ShellV2
+          currentStep={step.url_slug || step.code}
+          step={paso.step ?? step}
+          title={step.title}
+          description={step.description}
+          onBack={paso.handleBack}
+          onNext={paso.handleNext}
+          onSubmit={paso.handleNext}
+          onStepClick={paso.handleStepClick}
+          condicionesFijas={condicionesFijas}
+          isFirstStep={navigation.isFirst}
+          isLastStep={paso.esElQueEnvia}
+          isSubmitting={paso.isSubmitting}
+          submitMessage={paso.submitMessage}
+          canProceed={paso.canProceed && !guardaV2}
+          navbarProps={navbarProps || undefined}
+          ocultarBarraInferior={paso.celebrando}
+        >
+          {(camposTocados) => (
+            <>
+              {avisoCampanaV2}
+              {avisoGuardaV2}
+              <PasoDelWizard paso={paso} camposTocados={camposTocados} />
+            </>
+          )}
+        </ShellV2>
+        {/* Pasos 1 a 3: Atrás y Continuar van en línea (sin barra fija). */}
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
       </>
     );
   }

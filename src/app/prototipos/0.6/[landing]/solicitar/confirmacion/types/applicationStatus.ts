@@ -24,6 +24,8 @@ export interface ApplicationStatusData {
   evaluated_at?: string | null;
   approved_at?: string | null;
   applicant_name?: string | null;
+  /** Celular del titular enmascarado ("9XX XXX 321"), para "al +51 …" (BAL-4969). */
+  applicant_phone_masked?: string | null;
 
   // Products array (multiple products support)
   products?: Array<{

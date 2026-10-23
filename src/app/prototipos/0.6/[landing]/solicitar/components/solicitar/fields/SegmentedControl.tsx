@@ -6,10 +6,17 @@
  * Botones con fondo deslizante animado
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  chipV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -55,6 +62,96 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   required = true,
 }) => {
   const showSuccess = success && !error && !!value;
+  const v2 = useCamposV2();
+  const botonesRef = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // Toggle: si ya está seleccionado, limpiar. Igual en los dos diseños.
+  const elegir = (option: SegmentedOption) => {
+    if (option.disabled || disabled) return;
+    onFocus?.();
+    if (value === option.value) {
+      onChange('');
+    } else {
+      onChange(option.value);
+    }
+    onBlur?.();
+  };
+
+  // Diseño 2, grupo de un solo elegido (role="radiogroup"): las flechas
+  // mueven Y eligen la opción vecina habilitada, como un <input type="radio">
+  // nativo. Envuelve (de la última vuelve a la primera).
+  const moverConFlechas = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const avanza = e.key === 'ArrowRight' || e.key === 'ArrowDown';
+    const retrocede = e.key === 'ArrowLeft' || e.key === 'ArrowUp';
+    if (!avanza && !retrocede) return;
+    e.preventDefault();
+    const habilitados = options
+      .map((o, i) => ({ o, i }))
+      .filter(({ o }) => !o.disabled && !disabled);
+    if (habilitados.length === 0) return;
+    const posActual = habilitados.findIndex(({ i }) => i === index);
+    const siguientePos =
+      (posActual + (avanza ? 1 : -1) + habilitados.length) % habilitados.length;
+    const siguiente = habilitados[siguientePos];
+    elegir(options[siguiente.i]);
+    botonesRef.current[siguiente.i]?.focus();
+  };
+
+  // Diseño 2 (BAL-4960): botones-chip («Tipo de documento», «Situación
+  // actual» del prototipo). Elegido: fondo de marca y texto blanco; los demás,
+  // borde y texto de marca. Una fila con tantas columnas como opciones.
+  if (v2) {
+    const errorId = `${id}-error`;
+    return (
+      <div
+        id={id}
+        role="radiogroup"
+        aria-labelledby={`${id}-label`}
+        aria-describedby={error ? errorId : undefined}
+        className="flex flex-col gap-2.5"
+      >
+        <span id={`${id}-label`} className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </span>
+        <div
+          className={`grid gap-2 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}
+          style={{ gridTemplateColumns: `repeat(${Math.max(options.length, 1)}, minmax(0, 1fr))` }}
+        >
+          {options.map((option, index) => {
+            const isSelected = value === option.value;
+            // Roving tabindex: el elegido es el único tabbable; sin nada
+            // elegido, el primero.
+            const esTabbable = isSelected || (!value && index === 0);
+            return (
+              <button
+                key={option.value}
+                ref={(el) => {
+                  botonesRef.current[index] = el;
+                }}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                tabIndex={esTabbable ? 0 : -1}
+                onClick={() => elegir(option)}
+                onKeyDown={(e) => moverConFlechas(e, index)}
+                disabled={option.disabled || disabled}
+                className={`${chipV2(isSelected)} ${error && !isSelected ? '!border-[#C2410C]' : ''} ${
+                  option.disabled ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        {helpText && !error && <p className="text-[13px] text-[#5B6275]">{helpText}</p>}
+        {error && <ErrorCampoV2 id={errorId}>{error}</ErrorCampoV2>}
+      </div>
+    );
+  }
+
   return (
     <div id={id} className="space-y-3">
       {/* Label */}
@@ -78,17 +175,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             <button
               key={option.value}
               type="button"
-              onClick={() => {
-                if (option.disabled || disabled) return;
-                onFocus?.();
-                // Toggle: si ya está seleccionado, limpiar
-                if (value === option.value) {
-                  onChange('');
-                } else {
-                  onChange(option.value);
-                }
-                onBlur?.();
-              }}
+              onClick={() => elegir(option)}
               disabled={option.disabled || disabled}
               className={`
                 relative flex-1 py-2.5 min-h-[44px] text-sm font-medium rounded-lg cursor-pointer

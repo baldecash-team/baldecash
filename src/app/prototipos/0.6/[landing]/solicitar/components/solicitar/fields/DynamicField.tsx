@@ -15,7 +15,7 @@ import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
 import { resolverForma } from './formaDeLista';
-import { TextInput } from './TextInput';
+import { TextInput, contadorVisible } from './TextInput';
 import { CurrencyInput } from './CurrencyInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -29,15 +29,43 @@ import { CheckboxField } from './CheckboxField';
 import { ListaDeVarias, comoLista } from './ListaDeVarias';
 import { DocumentNumberField } from './DocumentNumberField';
 import { AddressAutocompleteField } from './AddressAutocompleteField';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { mensajeCelularV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
 interface DynamicFieldProps {
   field: WizardField;
   showError?: boolean;
   /** Step order number for event tracking */
   stepOrder?: number;
+  /**
+   * Diseño 2 (BAL-4960, revisión F2): avisa a `DynamicWizardStep` cuando este
+   * campo tiene un error LOCAL (no vive en `formData`: `DateInput` por edad
+   * mínima / fuera de rango, `AddressAutocompleteField` por geolocalización
+   * o Google Maps). Se usa para ocultar la pista (`hint`) — "si hay error
+   * visible, la pista no se muestra" — sin duplicar la lógica de validación.
+   */
+  onLocalErrorChange?: (code: string, hasError: boolean) => void;
+  /**
+   * Diseño 2 (BAL-4960): la pista, cuando el campo la pinta junto a su
+   * contador de caracteres (ver `pistaVaEnElCampo`). Si no, la pinta
+   * `DynamicWizardStep` y esto llega vacío.
+   */
+  pista?: string | null;
 }
 
-export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder }) => {
+/** Tipos que pintan su contador dentro de `TextInput` (con `max_length`). */
+const TIPOS_CON_CONTADOR = new Set(['text', 'phone']);
+
+/**
+ * Diseño 2 (BAL-4960): ¿la pista va dentro del campo, en la fila de su
+ * contador? Solo si el campo es de texto con máximo y el contador se ve.
+ */
+export function pistaVaEnElCampo(field: WizardField, v2: boolean): boolean {
+  return v2 && TIPOS_CON_CONTADOR.has(field.type) && !!field.max_length
+    && contadorVisible(field.show_counter, v2);
+}
+
+export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange, pista }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
   const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
@@ -45,6 +73,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   // Get current value and error
   const value = getFieldValue(field.code) as string;
   const error = showError ? getFieldError(field.code) : undefined;
+  // Diseño 2 (BAL-4963): los textos de Brenda para el celular.
+  const v2 = useCamposV2();
 
   // Build form values object for visibility evaluation
   const formValues = useMemo(() => {
@@ -211,6 +241,15 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onFieldBlur(field.code, hasValue);
   }, [field.code, getFieldValue, onFieldBlur]);
 
+  // Diseño 2: reenvía el error local del campo (DateInput, AddressAutocompleteField)
+  // con su código, para que `DynamicWizardStep` oculte la pista.
+  const handleLocalErrorChange = useCallback(
+    (hasError: boolean) => {
+      onLocalErrorChange?.(field.code, hasError);
+    },
+    [field.code, onLocalErrorChange]
+  );
+
 
   // Common props for all field types
   const commonProps = {
@@ -253,6 +292,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         <AddressAutocompleteField
           field={field}
           showError={showError}
+          onLocalErrorChange={onLocalErrorChange ? handleLocalErrorChange : undefined}
         />
       );
 
@@ -272,6 +312,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           type="text"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
+          showCounter={field.show_counter}
+          pista={pista}
           success={!error && !!value}
         />
       );
@@ -296,9 +338,15 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         <TextInput
           {...commonProps}
           onChange={(newValue: string) => updateField(field.code, newValue.replace(/\D/g, ''))}
+          // Diseño 2: el texto del error de Brenda (vacío, corto, no empieza
+          // con 9); cuándo hay error lo decide el validador. Solo el celular
+          // del titular habla de "tu celular".
+          error={v2 ? mensajeCelularV2({ error, valor: value, field, bloqueado: isLockedFromLead }) : error}
           type="tel"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
+          showCounter={field.show_counter}
+          pista={pista}
           inputMode="numeric"
           success={!error && !!value}
           startContent={field.prefix || undefined}
@@ -357,6 +405,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           minDate={limitesFecha.min}
           maxDate={limitesFecha.max}
           limitMessage={limitesFecha.mensaje}
+          onLocalErrorChange={onLocalErrorChange ? handleLocalErrorChange : undefined}
         />
       );
 
@@ -463,6 +512,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           {...commonProps}
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
+          showCounter={field.show_counter}
           rows={4}
           success={!error && !!value}
         />

@@ -112,9 +112,14 @@ export type EventType =
   | 'insurance_view_terms'
   | 'summary_edit_click'
   | 'summary_submit'
+  // Medición Diseño 1 vs Diseño 2 (BAL-4969, Parte 2): una vez al montar
+  // cada paso del wizard, en los dos diseños. Ver `usePasoDelWizard.tsx`.
+  | 'form_step_view'
   | 'form_step_complete'
   | 'form_step_back'
   | 'form_step_validation_error'
+  // Error de un campo al salir de él (Diseño 2, `useErroresAlSalir`, BAL-4969).
+  | 'form_field_error'
   | 'form_submit_success'
   | 'form_submit_error'
   | 'coupon_applied'
@@ -168,6 +173,13 @@ export type EventType =
   // Phase 13: A/B testing
   | 'accessory_variant_assigned'
   | 'lead_modal_variant_assigned'
+  // BAL-4852: modal de "Lo quiero" (catálogo y ficha). ws2 descarta los tipos
+  // que no estén en ALL_EVENT_TYPES de app/schemas/user_event.py.
+  | 'lo_quiero_modal_open'
+  | 'lo_quiero_modal_accessory_toggle'
+  | 'lo_quiero_modal_coupon_applied'
+  | 'lo_quiero_modal_close'
+  | 'lo_quiero_modal_continue'
   // Phase 14: Admisión (OTP correo + autoservicio de video) — eventos por link/etapa
   | 'admission_link_open'
   | 'admission_stage_enter'

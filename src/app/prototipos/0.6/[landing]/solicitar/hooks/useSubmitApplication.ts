@@ -18,7 +18,11 @@ import {
   type UploadedFileData,
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
-import { clearConsentStorage } from '../utils/consentStorage';
+import {
+  clearConsentStorage,
+  readSubmitConsents,
+  type PartialSubmitConsents,
+} from '../utils/consentStorage';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
 import { saveEnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
@@ -75,6 +79,16 @@ interface UseSubmitApplicationOptions {
    * siempre.
    */
   onUnidadTomada?: (mensaje: string) => void;
+  /**
+   * Las casillas de consentimiento que la pantalla que monta el hook tiene
+   * marcadas AHORA, si es que las muestra (la intro de renueva-*, que crea la
+   * solicitud desde el paso embebido, BAL-5007).
+   *
+   * Es respaldo, no fuente: manda lo guardado en `consentStorage`, que es lo
+   * que escriben las dos intros y el modal de Diseño 2. Solo cubre la casilla
+   * que no tenga nada guardado (storage bloqueado, modo privado).
+   */
+  consentimientoEnPantalla?: PartialSubmitConsents;
 }
 
 interface SubmitOptions {
@@ -216,7 +230,11 @@ interface UseSubmitApplicationResult {
 export function useSubmitApplication(
   options: UseSubmitApplicationOptions = {}
 ): UseSubmitApplicationResult {
-  const { onToast, onUnidadTomada } = options;
+  const { onToast, onUnidadTomada, consentimientoEnPantalla } = options;
+  // En un ref para que `submit` lea lo marcado al momento de enviar, no lo del
+  // render en que se armó el callback.
+  const consentimientoEnPantallaRef = useRef(consentimientoEnPantalla);
+  consentimientoEnPantallaRef.current = consentimientoEnPantalla;
 
   const router = useRouter();
   const params = useParams();
@@ -229,6 +247,10 @@ export function useSubmitApplication(
   const [error, setError] = useState<string | null>(null);
   const [submitSucceeded, setSubmitSucceeded] = useState(false);
   const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Candado contra el doble clic: `isSubmitting` es estado y no cambia hasta
+  // el próximo render, así que dos clics seguidos entraban los dos y salían
+  // dos POST /submit (E2E BAL-4969, variante C). El ref se cierra en el acto.
+  const enVueloRef = useRef(false);
 
   // Bloqueo de navegación durante el envío
   useEffect(() => {
@@ -265,6 +287,7 @@ export function useSubmitApplication(
     getDiscountAmount,
     getDiscountedMonthlyPayment,
     getTotalPrice,
+    getTotalMonthlyPayment,
     clearProduct,
     clearCartProducts,
     clearAccessories,
@@ -353,6 +376,8 @@ export function useSubmitApplication(
       const { insuranceId = null, insuranceIds, otpEnabled = false, kycEnabled = false,
               stayInWizard = false, conContrato = false } = submitOptions;
 
+      if (enVueloRef.current) return false;
+
       setError(null);
 
       // Validate session exists
@@ -374,14 +399,22 @@ export function useSubmitApplication(
         return false;
       }
 
+      // El consentimiento se lee ACÁ, antes de cualquier `await`: al terminar,
+      // el envío exitoso limpia el storage (`clearConsentStorage`) y después
+      // ya no queda qué mandar (BAL-5007).
+      const consents = readSubmitConsents(landing, consentimientoEnPantallaRef.current);
+
       let succeeded = false;
+      enVueloRef.current = true;
       setIsSubmitting(true);
       setSubmitStage('validating');
 
       // Emit summary_submit right at the start of the submission flow.
       // Incluye totales calculables desde los datos ya disponibles.
       try {
-        const totalMonthly = allProducts.reduce((sum, p) => sum + (p.monthlyPayment || 0), 0);
+        // La cuota que la persona ve y firma: equipo + accesorios + seguros
+        // (antes solo el equipo: 239 donde la cuota era 267, BAL-4969).
+        const totalMonthly = getTotalMonthlyPayment();
         analytics.trackSummarySubmit({
           product_count: allProducts.length,
           accessory_count: selectedAccessories.length,
@@ -556,6 +589,9 @@ export function useSubmitApplication(
           coupon_code: appliedCoupon?.code,
           wizard_form_id: wizardConfig?.form_id ?? undefined,
           wizard_form_version_id: wizardConfig?.form_version_id ?? undefined,
+          // Sin ningún dato va `undefined` y la clave no viaja: ws2 lo avisa
+          // a Sentry. Nunca se rellena con `true`.
+          consents,
           files: uploadFiles.length > 0 ? uploadFiles : undefined,
         });
 
@@ -782,13 +818,20 @@ export function useSubmitApplication(
             // cupón como válido. El texto del API dice qué pasó pero no qué
             // hacer, y la única salida es enviar sin el cupón (caso DNI
             // 60477990, 22-09-2026: ~10 envíos rechazados sin explicación).
+            // El cupo de la campaña se llenó mientras la persona llenaba
+            // (BAL-4969, casuísticas). El texto de ws2 viene sin tildes.
+            APPLICATION_CAP_REACHED:
+              'Por ahora no estamos recibiendo más solicitudes: se llenaron ' +
+              'los cupos de esta campaña. Si ya enviaste la tuya, sigue su ' +
+              'curso con normalidad y te vamos a contactar.',
             COUPON_USER_LIMIT_REACHED:
               'Ya usaste este cupón en otra solicitud. Quítalo para enviar ' +
               'esta solicitud.',
           };
           const msg =
             (result.error_code ? MENSAJES[result.error_code] : undefined) ||
-            result.error ||
+            // Solo texto: un `error` lista u objeto tumbaba el aviso (BAL-4969).
+            (typeof result.error === 'string' ? result.error : undefined) ||
             'Error al enviar la solicitud. Por favor intenta nuevamente.';
           setError(msg);
           // La unidad tomada va al modal si el caller lo maneja; si no, cae al
@@ -821,6 +864,9 @@ export function useSubmitApplication(
         // Solo resetear si NO fue exitoso — en éxito, el componente se
         // desmonta con router.push() y no necesita limpieza. Esto evita
         // una ventana donde el botón se re-habilita antes del redirect.
+        // El candado sigue cerrado tras un éxito que navega (el componente
+        // se va); con `stayInWizard` el formulario sigue y se libera.
+        if (!succeeded || stayInWizard) enVueloRef.current = false;
         if (!succeeded) {
           setIsSubmitting(false);
           setTimeout(() => setSubmitStage('idle'), 100);
@@ -840,6 +886,7 @@ export function useSubmitApplication(
       getDiscountAmount,
       getDiscountedMonthlyPayment,
       getTotalPrice,
+      getTotalMonthlyPayment,
       marcarSesionConvertida,
       resetForm,
       clearProduct,

@@ -7,6 +7,7 @@
  * Insurance and Accessories state is managed via ProductContext
  */
 
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import React, { Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -21,7 +22,7 @@ import { CubeGridSpinner, useScrollToTop, Toast, useToast, ModalAviso } from '@/
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, admiteDiseno2 } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -37,6 +38,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
+import { seccionesDeComplementos } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -117,7 +119,7 @@ function ComplementosContent() {
   }, [isProductHydrated]); // fire once after hydration
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, disenoSolicitud } = useLayout();
 
   // Get wizard config for back navigation and cross-step validation
   const { steps } = useWizardConfig();
@@ -208,15 +210,27 @@ function ComplementosContent() {
     return regularSteps.length > 0 ? regularSteps[regularSteps.length - 1] : null;
   }, [steps]);
 
+  // Diseño 2 (BAL-4966): si el formulario tiene paso resumen, los seguros ya
+  // se ofrecieron en el Paso 4 y acá no se repiten. Diseño 1: todas, como
+  // siempre. La selección sigue en `ProductContext` y viaja igual en el submit.
+  const seccionesAMostrar = useMemo(
+    () => seccionesDeComplementos(
+      sectionsAfterWizard,
+      disenoSolicitud === 2 && admiteDiseno2(landing),
+      steps.some(s => s.is_summary_step),
+    ),
+    [sectionsAfterWizard, disenoSolicitud, landing, steps],
+  );
+
   // Check if insurance section is included
   const hasInsuranceSection = useMemo(() => {
-    return sectionsAfterWizard.some(s => s.type === 'insurance');
-  }, [sectionsAfterWizard]);
+    return seccionesAMostrar.some(s => s.type === 'insurance');
+  }, [seccionesAMostrar]);
 
   // Check if accessories section is included
   const hasAccessoriesSection = useMemo(() => {
-    return sectionsAfterWizard.some(s => s.type === 'accessories');
-  }, [sectionsAfterWizard]);
+    return seccionesAMostrar.some(s => s.type === 'accessories');
+  }, [seccionesAMostrar]);
 
   const handleBack = () => {
     tracker?.track('complementos_back', {
@@ -226,6 +240,9 @@ function ComplementosContent() {
     const lastStepSlug = lastStep ? getStepSlug(lastStep) : 'resumen';
     router.push(routes.solicitarStep(landing, lastStepSlug));
   };
+
+  // Doble clic en "Enviar": envía una sola vez (E2E BAL-4969).
+  const tomarCandado = useCandadoDeAvance();
 
   const handleSubmit = async () => {
     // Validate ALL wizard steps (regular + summary steps with fields) before submitting
@@ -248,6 +265,7 @@ function ComplementosContent() {
     // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
     // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
     const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
+    if (!tomarCandado()) return;
     await submitApplication({
       insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
       insuranceIds,
@@ -300,7 +318,7 @@ function ComplementosContent() {
 
         {/* Dynamic Sections */}
         <div className="space-y-6">
-          {sectionsAfterWizard.map((section, index) => (
+          {seccionesAMostrar.map((section, index) => (
             <motion.div
               key={section.type}
               initial={{ opacity: 0, y: 10 }}
@@ -316,7 +334,7 @@ function ComplementosContent() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 * (sectionsAfterWizard.length + 1) }}
+          transition={{ delay: 0.1 * (seccionesAMostrar.length + 1) }}
           className="mt-6 bg-white rounded-xl border border-neutral-200 overflow-hidden"
         >
           {/* Breakdown items */}

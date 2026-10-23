@@ -16,8 +16,9 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
-import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
-import { isDarkLanding, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
+import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, campanaAbierta as campanaRecibe, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
+import { isDarkLanding, admiteDiseno2, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
+import { colorSobrePrimary, primaryParaTexto } from '@/app/prototipos/0.6/utils/colorContrast';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -142,6 +143,48 @@ interface LayoutContextValue {
    * slug de la landing.
    */
   barraDeOrden: boolean;
+  /**
+   * Diseño de la solicitud (BAL-4958): `1` es el actual, `2` es el modal "Lo
+   * quiero". Se resuelve con `resolveDisenoSolicitud` desde
+   * `features.solicitud_design`; cualquier valor que no sea `2` (ni el string
+   * `'2'`) cae en `1`. Preferí `useDisenoSolicitud()` en vez de leer este
+   * campo directo.
+   */
+  disenoSolicitud: 1 | 2;
+  /**
+   * "Lo quiero" abre el modal de accesorios, términos y cupón y pasa directo
+   * al primer paso del formulario (BAL-4852). Derivado de `disenoSolicitud
+   * === 2` y `admiteDiseno2(landing)` (gamer y tema oscuro quedan fuera,
+   * BAL-4969 I-2); se conserva con este nombre porque así lo consumen catálogo y
+   * ficha. Opcional en el tipo para que los contextos armados a mano (tests,
+   * mocks) sigan valiendo; sin el campo es `false`.
+   */
+  loQuieroModal?: boolean;
+  /**
+   * `disenoSolicitud` ya salió de `/config` (BAL-4969, casuísticas). Mientras
+   * es `false`, `disenoSolicitud` vale el `1` por defecto y NO dice nada: las
+   * guardas del paso y la medición esperan a este flag. Opcional por los
+   * contextos armados a mano (tests, mocks): sin el campo cuenta como resuelto.
+   */
+  disenoResuelto?: boolean;
+  /**
+   * La campaña sigue recibiendo solicitudes (`application_cap.abierto` de
+   * `/config`). Diseño 2 no tiene la intro que lo avisaba en Diseño 1, así
+   * que lo avisa en el paso (BAL-4969, casuísticas). Sin el dato: abierta.
+   */
+  campanaAbierta?: boolean;
+}
+
+/**
+ * Resuelve `features.solicitud_design` a `1` o `2` (BAL-4958).
+ *
+ * El preset `solicitud-design-v2` es `value_type` int, pero por las dudas de
+ * cómo lo entregue el backend se acepta tanto el número `2` como el string
+ * `'2'`. Cualquier otro valor -incluida la ausencia de la clave- cae en `1`,
+ * que es el diseño actual: una landing sin el preset no cambia.
+ */
+export function resolveDisenoSolicitud(value: unknown): 1 | 2 {
+  return value === 2 || value === '2' ? 2 : 1;
 }
 
 /**
@@ -201,11 +244,18 @@ export function LayoutProvider({
   const [chipsDeUso, setChipsDeUso] = useState(false);
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
+  const [disenoSolicitud, setDisenoSolicitud] = useState<1 | 2>(1);
+  // De qué landing es el diseño que hay: si cambia la landing, el viejo no vale.
+  const [disenoPara, setDisenoPara] = useState<string | null>(null);
+  const disenoResuelto = disenoPara === landing;
+  const [campanaAbierta, setCampanaAbierta] = useState(true);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
   useEffect(() => {
-    fetchLandingConfig(landing).then(cfg => {
+    // Con `previewKey` (vista previa de una landing en borrador) el backend
+    // resuelve el diseño de esa landing; sin ella, una no publicada cae en D1.
+    fetchLandingConfig(landing, previewKey).then(cfg => {
       // Encadenamiento opcional: una landing sin ingredientes de este grupo no
       // trae el espacio de nombres, y sin esto el contexto entero se cae.
       setOverlayVariant(cfg.features?.overlay_variant || '');
@@ -242,8 +292,13 @@ export function LayoutProvider({
       // segundo financiamiento no hereda el comportamiento por su nombre.
       setFiltroPorUso(cfg.features?.has_usage_filter !== false);
       setBarraDeOrden(cfg.features?.has_catalog_sort_bar !== false);
+      // BAL-4958: reemplaza al ingrediente `lo-quiero-modal-on`. Cualquier
+      // valor que no sea 2 (número o string) cae en el diseño actual.
+      setDisenoSolicitud(resolveDisenoSolicitud(cfg.features?.solicitud_design));
+      setDisenoPara(landing);
+      setCampanaAbierta(campanaRecibe(cfg));
     });
-  }, [landing]);
+  }, [landing, previewKey]);
 
   // Fetch layout data once on mount (wait for preview context to hydrate first)
   useEffect(() => {
@@ -403,6 +458,12 @@ export function LayoutProvider({
   const secondaryColor = dark ? NVIDIA_TURQUOISE : (layoutData?.secondary_color || '#03DBD0');
   const primaryColorRgb = hexToRgb(primaryColor);
   const secondaryColorRgb = hexToRgb(secondaryColor);
+  // Diseño 2 (BAL-4969, I-1): el kit usa el color de la landing, y con un
+  // primary claro (isil, ucal, nvidia…) el blanco encima o el primary sobre
+  // blanco no se leen. Estas dos variables resuelven el texto legible; Diseño 1
+  // no las usa. Los defaults (sin landing) viven en globals.css.
+  const onPrimaryColor = colorSobrePrimary(primaryColor);
+  const primaryTextColor = primaryParaTexto(primaryColor);
 
   // Set CSS variables on :root so they're available to portals (modals, drawers)
   useEffect(() => {
@@ -410,6 +471,8 @@ export function LayoutProvider({
     document.documentElement.style.setProperty('--color-secondary', secondaryColor);
     document.documentElement.style.setProperty('--color-primary-rgb', primaryColorRgb);
     document.documentElement.style.setProperty('--color-secondary-rgb', secondaryColorRgb);
+    document.documentElement.style.setProperty('--color-on-primary', onPrimaryColor);
+    document.documentElement.style.setProperty('--color-primary-text', primaryTextColor);
 
     // Tema oscuro: data-theme en <html> para que los tokens de globals.css apliquen
     // también a modales/drawers montados en portales (fuera del layout). THEME_DARK.md §5.5.
@@ -425,9 +488,11 @@ export function LayoutProvider({
       document.documentElement.style.removeProperty('--color-secondary');
       document.documentElement.style.removeProperty('--color-primary-rgb');
       document.documentElement.style.removeProperty('--color-secondary-rgb');
+      document.documentElement.style.removeProperty('--color-on-primary');
+      document.documentElement.style.removeProperty('--color-primary-text');
       document.documentElement.removeAttribute('data-theme');
     };
-  }, [dark, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
+  }, [dark, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, onPrimaryColor, primaryTextColor]);
 
   // Extract public settings from layout data
   const settings = useMemo<Record<string, string>>(() => layoutData?.settings ?? {}, [layoutData]);
@@ -475,7 +540,11 @@ export function LayoutProvider({
     navbarProps,
     footerData,
     agreementData,
-    isLoading,
+    // El layout Y el diseño de la solicitud (BAL-4969, casuísticas): sin
+    // esperar a `/config`, la página se pintaba en Diseño 1 y saltaba a
+    // Diseño 2 (parpadeo), y un "Lo quiero" temprano iba a la intro de
+    // Diseño 1. `/config` ya trae el diseño efectivo (preset o modo global).
+    isLoading: isLoading || !disenoResuelto,
     hasError,
     landing,
     landingId,
@@ -501,7 +570,12 @@ export function LayoutProvider({
     chipsDeUso,
     filtroPorUso,
     barraDeOrden,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden]);
+    disenoSolicitud,
+    // Las landings sin Diseño 2 (gamer, tema oscuro: BAL-4969 I-2) no abren el modal.
+    loQuieroModal: disenoSolicitud === 2 && admiteDiseno2(landing),
+    disenoResuelto,
+    campanaAbierta,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud, disenoResuelto, campanaAbierta]);
 
   return (
     <LayoutContext.Provider value={value}>
@@ -516,6 +590,16 @@ export function useLayout() {
     throw new Error('useLayout must be used within a LayoutProvider');
   }
   return context;
+}
+
+/**
+ * Selector para el diseño de la solicitud (BAL-4958): `1` (actual) o `2`
+ * (modal "Lo quiero"). Vive junto a `useLayout` porque es el mismo contexto;
+ * existe como selector propio para que los consumidores que solo necesitan
+ * esto no repitan `useLayout().disenoSolicitud` en cada archivo.
+ */
+export function useDisenoSolicitud(): 1 | 2 {
+  return useLayout().disenoSolicitud;
 }
 
 export default LayoutContext;

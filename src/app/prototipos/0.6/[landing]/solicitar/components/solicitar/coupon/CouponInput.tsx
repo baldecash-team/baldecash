@@ -12,7 +12,7 @@
  * Validates coupons via API: POST /api/v1/public/coupons/validate
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import { Tag, Loader2, Check, X, Sparkles, Lock, AlertTriangle } from 'lucide-react';
@@ -71,14 +71,35 @@ function marcarReportado(code: string): void {
   }
 }
 
+/**
+ * Quitar el cupón aplicado: el evento `coupon_removed` y el borrado del
+ * contexto. Lo usan esta caja y la fila del cupón del modal "Lo quiero"
+ * (BAL-4958), para que las dos vías reporten igual.
+ */
+export function useQuitarCupon(): () => void {
+  const tracker = useEventTrackerOptional();
+  const { appliedCoupon, clearCoupon } = useProduct();
+  const codigo = appliedCoupon?.code;
+  return useCallback(() => {
+    tracker?.track('coupon_removed', { coupon_code: codigo });
+    clearCoupon();
+  }, [tracker, codigo, clearCoupon]);
+}
+
 interface CouponInputProps {
   /**
    * Si es true, muestra un indicador de que el cupón es obligatorio
    */
   isRequired?: boolean;
+  /**
+   * Versión de una sola línea (modal de "Lo quiero", BAL-4957): sin tarjeta ni
+   * título, input + Aplicar en una fila, y el aplicado en una línea sin
+   * confeti. La validación y los eventos son los mismos.
+   */
+  compacto?: boolean;
 }
 
-export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) => {
+export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false, compacto = false }) => {
   const tracker = useEventTrackerOptional();
   // Slug de la landing: igual que lo lee `SelectedProductBar`, un vecino de
   // este mismo flujo de /solicitar. Se usa para el formato del monto (Family
@@ -91,7 +112,6 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   const {
     appliedCoupon,
     setAppliedCoupon,
-    clearCoupon,
     removedCouponNotice,
     selectedProduct,
     cartProducts,
@@ -188,9 +208,9 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     }
   };
 
+  const quitarCupon = useQuitarCupon();
   const handleRemoveCoupon = () => {
-    tracker?.track('coupon_removed', { coupon_code: appliedCoupon?.code });
-    clearCoupon();
+    quitarCupon();
     setCouponCode('');
     setState('idle');
   };
@@ -248,6 +268,89 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
   // documento, que quedó confirmado.
   const isPendingDocument = couponPendingDocument(appliedCoupon);
   const isConfirmedForDocument = couponConfirmedForDocument(appliedCoupon);
+
+  if (compacto && appliedCoupon) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 pl-3 pr-1 min-h-[44px] text-sm">
+        <Check className="w-4 h-4 text-green-600 shrink-0" aria-hidden />
+        <span className="font-bold text-green-700 shrink-0">{appliedCoupon.code}</span>
+        <span className="flex-1 min-w-0 truncate text-green-700">
+          {isPendingDocument
+            ? 'Por confirmar'
+            : isGiftCoupon
+              ? `+ ${giftName}`
+              : scopeText
+                ? `Descuento ${scopeText}`
+                : appliedCoupon.label}
+        </span>
+        {!isGiftCoupon && scopeText && (
+          <span className="font-bold text-green-700 whitespace-nowrap">-S/{discountAmount.toFixed(0)}</span>
+        )}
+        {isLockedCampaign ? (
+          <span className="p-2 text-neutral-400" title="Cupón de campaña — no se puede quitar">
+            <Lock className="w-4 h-4" aria-hidden />
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleRemoveCoupon}
+            aria-label="Quitar cupón"
+            className="w-10 h-10 shrink-0 flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (compacto) {
+    return (
+      <div>
+        {removedCouponNotice && (
+          <p role="alert" className="mb-1.5 flex items-start gap-1.5 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+            <span>{getCouponRemovedMessage(removedCouponNotice.code, removedCouponNotice.rejection, isRequired)}</span>
+          </p>
+        )}
+        <div className="flex gap-2">
+          <motion.div
+            className="flex-1 min-w-0"
+            animate={state === 'error' ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+            transition={{ duration: 0.4 }}
+          >
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              onKeyDown={handleKeyDown}
+              placeholder={isRequired ? 'Código de cupón (obligatorio)' : 'Código de cupón'}
+              aria-label="Código de cupón"
+              aria-invalid={state === 'error'}
+              disabled={state === 'validating' || state === 'success'}
+              style={{ fontSize: '16px' }}
+              className={`w-full h-11 px-3 rounded-lg border text-base font-medium uppercase outline-none transition-colors duration-150 disabled:opacity-50 ${
+                state === 'error'
+                  ? 'border-red-300 bg-red-50 text-red-700 placeholder:text-red-300'
+                  : 'border-neutral-300 bg-white text-neutral-800 placeholder:normal-case placeholder:font-normal placeholder:text-neutral-400 focus:border-[var(--color-primary)]'
+              }`}
+            />
+          </motion.div>
+          <button
+            type="button"
+            onClick={handleApplyCoupon}
+            disabled={state === 'validating' || state === 'success'}
+            className="h-11 px-4 rounded-lg font-semibold text-sm bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 flex items-center gap-1.5 cursor-pointer transition-[filter] duration-150 disabled:cursor-wait disabled:opacity-70"
+          >
+            {state === 'validating' ? <Loader2 className="w-4 h-4 animate-spin" aria-label="Validando" /> : 'Aplicar'}
+          </button>
+        </div>
+        {state === 'error' && errorMessage && (
+          <p role="alert" className="text-xs text-red-600 mt-1">{errorMessage}</p>
+        )}
+      </div>
+    );
+  }
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {

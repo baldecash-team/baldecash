@@ -10,6 +10,7 @@ import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast, useIsMobile } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // Lead guard
@@ -85,7 +86,7 @@ function ProductDetailContent() {
   const isMobile = useIsMobile();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, overlayVariant } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, overlayVariant, loQuieroModal } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
@@ -206,7 +207,7 @@ function ProductDetailContent() {
     setSelectedProduct(productsForContext[0]);
 
     // Navigate to solicitar
-    router.push(routes.solicitar(landing));
+    irALaSolicitud(router, landing);
   }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   const hasCatalog = landingConfig.layout.has_catalog;
@@ -512,6 +513,9 @@ function ProductDetailContent() {
           paymentFrequencies={apiData.paymentFrequencies}
           showPlatformCommission={landingConfig.features.show_platform_commission}
           startDate={inicioCronograma}
+          // BAL-4852: con el ingrediente, "Lo quiero" abre el modal en vez de
+          // ir a /solicitar. Con multiproducto prendido el flujo queda igual.
+          loQuieroModal={!!loQuieroModal && !ALLOW_MULTI_PRODUCT}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
           onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
           onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}

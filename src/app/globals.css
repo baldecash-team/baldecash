@@ -88,6 +88,10 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   --nextui-radius-medium: 12px;
   --nextui-radius-large: 14px;
   --nextui-radius-full: 9999px;
+  /* Diseño 2 (BAL-4969): texto sobre el primary y primary legible sobre blanco.
+     LayoutContext los recalcula con el color de la landing; esto es sin landing. */
+  --color-on-primary: #FFFFFF;
+  --color-primary-text: #4654CD;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -266,6 +270,189 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 .group[data-focus="true"] {
   --tw-ring-shadow: none !important;
   outline: none !important;
+}
+
+/* ============================================
+   Diseño 2 (BAL-4960) — CasillaV2
+   ============================================
+   Keyframes globales: un solo <style> para todas las instancias de
+   CasillaV2 en la página, en vez de uno por casilla (BAL-4960, revisión F2).
+*/
+@keyframes casillaV2Sacudida {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.casilla-v2-sacudida { animation: casillaV2Sacudida 0.5s ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  .casilla-v2-sacudida { animation: none; }
+}
+
+/* ============================================
+   Diseño 2 (BAL-4969) — Movimiento
+   ============================================
+   Curvas y duraciones del prototipo de Brenda (2026-10-20): `bcPop`,
+   `bcPulseA/B`, `bcCheckIn`, `bcGrow`/`bcProgIn`, `bcFadeIn`, `bcHop` y
+   `bcBurst`. Donde Brenda no define nada: 150–250 ms con
+   cubic-bezier(.2,.8,.2,1) y 4–12 px. Solo `transform` y `opacity`.
+   `prefers-reduced-motion` las apaga todas abajo (en JS, el mismo criterio
+   sale de `diseno-2/movimiento.ts`).
+*/
+@keyframes d2Pop {
+  0% { opacity: 0; transform: translateY(14px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes d2PopHoja {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes d2Aparece {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes d2Fundido {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes d2FundidoSale {
+  100% { opacity: 0; }
+}
+@keyframes d2Sale {
+  100% { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+@keyframes d2SaleHoja {
+  100% { opacity: 0.6; transform: translateY(100%); }
+}
+@keyframes d2PulsoA {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes d2PulsoB {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes d2CheckIn {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes d2Crece {
+  0% { transform: scaleX(var(--d2-desde, 0)); }
+  100% { transform: scaleX(1); }
+}
+/* Transición entre pasos (puente del prototipo): salto de Baldecito
+   (`bcHop`, la distancia sale de --d2-salto), anillo del paso que sigue
+   (`bcRing`) y Baldecito vivo (`bcBob`, `bcWave`, `bcBlink`). */
+@keyframes d2Salto {
+  0% { transform: translate(0, 0) scale(1, 1); }
+  14% { transform: translate(0, 3px) scale(1.1, 0.88); }
+  50% { transform: translate(calc(var(--d2-salto, 88px) / 2), -48px) scale(0.95, 1.07) rotate(6deg); }
+  82% { transform: translate(var(--d2-salto, 88px), 0) scale(1.12, 0.86); }
+  91% { transform: translate(var(--d2-salto, 88px), -5px) scale(0.97, 1.04); }
+  100% { transform: translate(var(--d2-salto, 88px), 0) scale(1, 1); }
+}
+@keyframes d2Llenado {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes d2Anillo {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.45); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); box-shadow: 0 0 0 12px rgba(var(--color-primary-rgb), 0); }
+}
+@keyframes d2Flota {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes d2Saluda {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-30deg); }
+}
+@keyframes d2Parpadea {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+/* Punto del hito "en curso" de la confirmación (`bcPulso`). */
+@keyframes d2Pulso {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.6); opacity: 0.55; }
+}
+@keyframes d2Chispa {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(120deg); }
+}
+
+/* Entrada de una pieza que aparece (resumen de sección, saludo, campo que se destapa).
+   `backwards` y no `both`: el final es el estado natural, y una animación que
+   se queda "llenando" `transform`/`opacity` deja un contexto de apilamiento
+   que encierra el z-index de las listas desplegables de adentro (la lista de
+   «Carrera» quedaba bajo el campo siguiente, verificación final BAL-4969). */
+.d2-pop { animation: d2Pop 0.25s ease-out backwards; }
+/* Entrada de pantalla: tarjeta del paso y panel "Tu solicitud". */
+.d2-pop-lento { animation: d2Pop 0.3s ease-out backwards; }
+/* Modal y hoja: centrado en escritorio, hoja desde abajo en celular. */
+.d2-pop-modal { animation: d2Pop 0.22s ease-out both; }
+.d2-pop-modal-chico { animation: d2Pop 0.2s ease-out both; }
+@media (max-width: 767px) {
+  .d2-pop-modal, .d2-pop-hoja { animation: d2PopHoja 0.25s ease-out both; }
+}
+.d2-sale { animation: d2Sale 0.16s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+@media (max-width: 767px) {
+  .d2-sale-hoja { animation: d2SaleHoja 0.2s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+}
+@media (min-width: 768px) {
+  .d2-sale-hoja { animation: d2Sale 0.16s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+}
+.d2-fundido { animation: d2Fundido 0.2s ease-out backwards; }
+.d2-fundido-sale { animation: d2FundidoSale 0.16s ease-in both; pointer-events: none; }
+/* Saludo del Paso 1 (BAL-4963): fundido y 6 px hacia arriba. */
+@keyframes d2Sube {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: none; }
+}
+.d2-saludo { animation: d2Sube 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+/* Caja de Términos del modal "Lo quiero" (BAL-4958, `bcConsent` de Brenda):
+   brillo ámbar al llegar (2 veces) y sacudida alterna A/B en cada intento. */
+@keyframes d2BrilloConsentimiento {
+  0% { box-shadow: 0 0 0 0 rgba(242, 182, 50, 0.6); }
+  100% { box-shadow: 0 0 0 12px rgba(242, 182, 50, 0); }
+}
+@keyframes d2SacudidaB {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.d2-brillo-consentimiento { animation: d2BrilloConsentimiento 1.4s ease-out 0.6s 2; }
+.d2-sacudida-a { animation: casillaV2Sacudida 0.5s ease-in-out; }
+.d2-sacudida-b { animation: d2SacudidaB 0.5s ease-in-out; }
+/* Errores, desplegables y regiones que se abren. */
+.d2-aparece { animation: d2Aparece 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+/* La cuota cambió: dos nombres para poder repetir el pulso sin desmontar. */
+.d2-pulso-a { animation: d2PulsoA 0.45s ease-out; }
+.d2-pulso-b { animation: d2PulsoB 0.45s ease-out; }
+.d2-check-in { animation: d2CheckIn 0.3s ease-out both; }
+/* Progreso: el check del paso recién hecho y el número del actual. */
+.d2-check-hecho { animation: d2CheckIn 0.45s ease-out 0.1s both; }
+.d2-check-actual { animation: d2CheckIn 0.4s ease-out 0.85s both; }
+/* Barra que se llena desde --d2-desde (0..1) hasta su ancho. */
+.d2-crece { transform-origin: left center; animation: d2Crece 0.7s ease-out 0.35s both; }
+.d2-crece-movil { transform-origin: left center; animation: d2Crece 0.7s ease-out 0.25s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .d2-pop, .d2-pop-lento, .d2-pop-modal, .d2-pop-modal-chico, .d2-pop-hoja,
+  .d2-sale, .d2-sale-hoja, .d2-fundido, .d2-fundido-sale, .d2-aparece,
+  .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-check-hecho, .d2-check-actual,
+  .d2-crece, .d2-crece-movil, .d2-saludo,
+  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b, .d2-baldecito-parte {
+    animation: none !important;
+  }
 }
 
 /* Inputs nativos - sin outline */

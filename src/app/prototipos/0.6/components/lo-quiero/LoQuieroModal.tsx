@@ -1,0 +1,1259 @@
+'use client';
+
+/**
+ * Modal de "Lo quiero" (BAL-4852, rediseño de Brenda).
+ *
+ * Reemplaza la pantalla intermedia de /solicitar cuando la landing está en
+ * Diseño 2 (`features.solicitud_design === 2`): encima del catálogo o de la ficha se
+ * ofrecen los accesorios sugeridos, la casilla de términos y el cupón, y de
+ * ahí se pasa DIRECTO al primer paso del formulario.
+ *
+ * No calcula precios: la cuota del equipo es la que ya armó la card o la ficha
+ * (la misma que llega hoy a /solicitar) y la de cada accesorio sale del mismo
+ * endpoint que usa la sección de accesorios de /solicitar. El total es la suma
+ * de esas cuotas, igual que el "Cuota total" de la intro.
+ *
+ * Todo lo que guarda va a las mismas claves que la intro de /solicitar
+ * (producto, accesorios, cupón y casillas), así que el formulario no distingue
+ * por dónde entró la persona. /solicitar sigue vivo para links directos y para
+ * "retoma tu solicitud".
+ */
+
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useParams, useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
+import { AlertTriangle, ArrowRight, Check, ChevronDown, Gift, Lock, Package, Tag, X } from 'lucide-react';
+
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import { getLandingAccessories, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import {
+  ProductProvider,
+  useProduct,
+  useProductOptional,
+  type SelectedProduct,
+} from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { WizardConfigProvider, useWizardConfig } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
+import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
+import { CouponInput, useQuitarCupon } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
+import { getTermUnit } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/etiquetaDePlazo';
+import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
+// I6 (BAL-4969): la cuota se escribe como en el panel, el Shell y la confirmación
+// (`formatCuotaDeLanding`: centavos en Family Farms, entera en el resto).
+import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage';
+import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
+import { useMesPrimeraCuota } from './useMesPrimeraCuota';
+import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
+import { prefiereMenosMovimiento, useSalidaAnimada } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
+import { datosUtiles, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
+import { CajaAvisoDelEquipo, type AvisoDelEquipo } from './avisoDelEquipo';
+
+export type LoQuieroOrigen = 'catalogo' | 'ficha' | 'entrada';
+
+/**
+ * El tipo real del producto para el título del modal (prototipo: «¿Quieres
+ * complementar tu laptop?»). Un tipo desconocido queda en «equipo».
+ */
+export function nombreDelTipo(tipo: string | null | undefined): string {
+  const t = String(tipo ?? '').trim().toLowerCase();
+  if (t === 'laptop' || t === 'notebook') return 'laptop';
+  if (t === 'tablet') return 'tablet';
+  if (t === 'celular' || t === 'smartphone' || t === 'phone' || t === 'telefono' || t === 'teléfono') return 'celular';
+  return 'equipo';
+}
+
+/**
+ * Accesorio que ya viene dentro del combo elegido (regalo). `id` es el id de
+ * producto, el mismo que trae el endpoint de accesorios: con eso se saca de
+ * la lista de "Agregar" y se muestra como incluido (BAL-4957).
+ */
+export interface RegaloDelCombo {
+  id: string;
+  name: string;
+  image?: string;
+  /** Sin costo para el cliente. */
+  gratis: boolean;
+}
+
+interface LoQuieroModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  origen: LoQuieroOrigen;
+  /** Regalos del combo de la card o la ficha. Sin combo: vacío. */
+  regalos?: RegaloDelCombo[];
+  /**
+   * Reacondicionado / entrega programada del equipo (BAL-4958): en Diseño 2
+   * el aviso va dentro del modal, sin el modal de confirmación de Diseño 1.
+   */
+  avisos?: AvisoDelEquipo[];
+}
+
+/** Arrastrar la hoja hacia abajo más de esto (px) la cierra, en celular. */
+const UMBRAL_ARRASTRE = 100;
+
+/** Cuántos accesorios se ven antes de "Ver todos". Pendiente de confirmar con Brenda. */
+const ACCESORIOS_VISIBLES = 8;
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Plazo en cuotas literales, que es lo que espera el endpoint de accesorios.
+ * Misma regla que `AccessoriesSection`: si el producto no trae `term` (la card
+ * del catálogo a veces solo trae meses), se deriva por la frecuencia.
+ */
+function plazoEnCuotas(p: SelectedProduct | null): number {
+  if (!p) return 24;
+  if (p.term) return p.term;
+  if (p.months) {
+    if (p.paymentFrequency === 'semanal') return p.months * 4;
+    if (p.paymentFrequency === 'quincenal') return p.months * 2;
+    return p.months;
+  }
+  return 24;
+}
+
+/** La misma variante A/B de accesorios que asigna `AccessoriesSection`. */
+function varianteAbAccesorios(): string {
+  try {
+    const guardada = sessionStorage.getItem('ab_accessories_variant');
+    if (guardada) return guardada;
+    const asignada = Math.random() < 0.5 ? 'A' : 'B';
+    sessionStorage.setItem('ab_accessories_variant', asignada);
+    return asignada;
+  } catch {
+    return 'A';
+  }
+}
+
+function sufijoDeFrecuencia(freq?: string): string {
+  if (freq === 'semanal') return '/sem';
+  if (freq === 'quincenal') return '/qcn';
+  return '/mes';
+}
+
+/**
+ * Imagen del accesorio con respaldo: sin URL o si la URL falla, un paquete
+ * sobre fondo gris en vez del ícono roto del navegador.
+ */
+function ImagenAccesorio({ src, className = '' }: { src?: string | null; className?: string }) {
+  // Se recuerda QUÉ url falló: si cambia la url, se vuelve a intentar.
+  const [srcRoto, setSrcRoto] = useState<string | null>(null);
+  const ok = !!src && srcRoto !== src;
+  return (
+    <div className={`flex items-center justify-center overflow-hidden shrink-0 ${ok ? 'bg-white' : 'bg-neutral-100'} ${className}`}>
+      {ok ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className="w-full h-full object-contain" loading="lazy" onError={() => setSrcRoto(src)} />
+      ) : (
+        <Package className="w-1/3 h-1/3 max-w-8 max-h-8 text-neutral-400" strokeWidth={1.5} aria-hidden />
+      )}
+    </div>
+  );
+}
+
+/**
+ * El equipo elegido, cuando el modal no ofrece accesorios (landing con
+ * accesorios apagados o sin accesorios para el equipo): foto, nombre, specs
+ * cortas y los regalos del combo. Tarjeta con el borde estándar del kit.
+ */
+function TarjetaDelEquipo({ producto, regalos }: { producto: SelectedProduct; regalos: RegaloDelCombo[] }) {
+  const specs = [producto.specs?.processor, producto.specs?.ram, producto.specs?.storage]
+    .map((s) => (s ?? '').trim())
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <div data-tarjeta-equipo className="flex items-center gap-3 rounded-[10px] border-[1.5px] border-[#C9CEF0] bg-white p-3 md:gap-4 md:p-4">
+      <ImagenAccesorio src={producto.image} className="h-[72px] w-[72px] rounded-[10px] md:h-24 md:w-24" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="text-[15px] font-bold leading-snug text-[#1E2230] line-clamp-2">{producto.name}</p>
+        {specs && <p className="text-[13px] text-[#5B6275]">{specs}</p>}
+        {regalos.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {regalos.map((r) => (
+              <span key={r.id} className="inline-flex items-center gap-1 rounded-full bg-[#E3F5F1] px-2 py-0.5 text-[11.5px] font-semibold text-[#0B6B5C]">
+                <Gift className="h-3 w-3" aria-hidden />
+                {r.gratis ? 'Incluye' : 'Con'} {nombreParaMostrar(r.name)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Monta el modal solo cuando está abierto: así el producto que la card o la
+ * ficha acaban de guardar ya está en storage cuando arrancan los providers.
+ *
+ * El catálogo ya trae su `ProductProvider` y se usa ese, para que el cupón de
+ * campaña y el producto elegido sean los mismos que ve la página. La ficha no
+ * tiene uno: el modal monta el suyo, que lee lo que la ficha guardó.
+ */
+export function LoQuieroModal({ isOpen, onClose, origen, regalos, avisos }: LoQuieroModalProps) {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+  const productoExterno = useProductOptional();
+
+  if (!isOpen) return null;
+
+  const contenido = (
+    <WizardConfigProvider slug={landing}>
+      <LoQuieroModalContent onClose={onClose} origen={origen} landing={landing} regalos={regalos ?? []} avisos={avisos ?? []} />
+    </WizardConfigProvider>
+  );
+
+  return productoExterno ? contenido : <ProductProvider landingSlug={landing}>{contenido}</ProductProvider>;
+}
+
+type EstadoAccesorios = 'cargando' | 'listo' | 'error';
+
+function LoQuieroModalContent({
+  onClose,
+  origen,
+  landing,
+  regalos,
+  avisos,
+}: {
+  onClose: () => void;
+  origen: LoQuieroOrigen;
+  landing: string;
+  regalos: RegaloDelCombo[];
+  avisos: AvisoDelEquipo[];
+}) {
+  const router = useRouter();
+  const analytics = useAnalytics();
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  const session = useSessionOptional();
+  const { deferredPayment } = useLayout();
+  const {
+    selectedProduct,
+    setSelectedProduct,
+    selectedAccessories,
+    toggleAccessory,
+    clearAccessories,
+    appliedCoupon,
+    isOverQuotaLimit,
+    maxMonthlyQuota,
+  } = useProduct();
+  const { steps, isLoading: isConfigLoading, error: configError } = useWizardConfig();
+  const flujo = useSolicitarFlow({ slug: landing, previewKey });
+  const { isCouponRequired } = flujo;
+  const accesoriosHabilitados = !flujo.isLoading && flujo.isEnabled('accessories');
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const terminosRef = useRef<HTMLButtonElement>(null);
+
+  // ── Apertura: limpiar accesorios de un intento anterior + evento ──────────
+  // La ficha guardaba el producto sin tocar los accesorios, así que un intento
+  // abandonado los arrastraba al siguiente equipo.
+  const productoId = selectedProduct?.id ?? null;
+  // En desarrollo StrictMode monta → desmonta → monta y el efecto corre dos
+  // veces: el evento salía duplicado (E2E BAL-4969, bug 3). El ref sobrevive
+  // a ese doble montaje, así que registra la apertura una sola vez.
+  const aperturaRegistradaRef = useRef(false);
+  useEffect(() => {
+    clearAccessories();
+    if (aperturaRegistradaRef.current) return;
+    aperturaRegistradaRef.current = true;
+    analytics.track('lo_quiero_modal_open', {
+      product_id: productoId,
+      origen,
+      has_coupon: !!appliedCoupon,
+    });
+    // Solo al abrir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Foco atrapado, Escape y scroll del fondo ──────────────────────────────
+  const [detalle, setDetalle] = useState<Accessory | null>(null);
+  const detalleRef = useRef<HTMLDivElement>(null);
+  // Tarjeta que abrió el detalle: al cerrarlo, el foco vuelve ahí.
+  const origenDetalleRef = useRef<HTMLElement | null>(null);
+  const cerrarRef = useRef<(motivo: string) => void>(() => {});
+  const cerrarDetalleRef = useRef<() => void>(() => {});
+  const detalleAbiertoRef = useRef(false);
+  detalleAbiertoRef.current = !!detalle;
+  // Modal del cupón (BAL-4958): la capa de más arriba.
+  const [cuponAbierto, setCuponAbierto] = useState(false);
+  const cuponCapaRef = useRef<HTMLDivElement>(null);
+  const filaCuponRef = useRef<HTMLButtonElement>(null);
+  const cuponAbiertoRef = useRef(false);
+  cuponAbiertoRef.current = cuponAbierto;
+  const cerrarCuponRef = useRef<() => void>(() => {});
+
+  // Salidas animadas (BAL-4969): cada capa se va con su animación y recién
+  // después se desmonta. Con menos movimiento, de una.
+  const [saliendo, salirModal] = useSalidaAnimada();
+  const [detalleSaliendo, salirDetalle] = useSalidaAnimada();
+  const [cuponSaliendo, salirCupon] = useSalidaAnimada();
+
+  const cerrarDetalle = useCallback(() => {
+    salirDetalle(() => {
+      setDetalle(null);
+      const origenFoco = origenDetalleRef.current;
+      requestAnimationFrame(() => origenFoco?.focus());
+    });
+  }, [salirDetalle]);
+  cerrarDetalleRef.current = cerrarDetalle;
+
+  useEffect(() => {
+    if (detalle) detalleRef.current?.focus();
+  }, [detalle]);
+
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Con el cupón o el detalle encima, Escape y Tab son de esa capa: Escape
+      // cierra solo la de más arriba, no el modal entero.
+      const capa = cuponAbiertoRef.current
+        ? cuponCapaRef.current
+        : detalleAbiertoRef.current
+          ? detalleRef.current
+          : panelRef.current;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (cuponAbiertoRef.current) cerrarCuponRef.current();
+        else if (detalleAbiertoRef.current) cerrarDetalleRef.current();
+        else cerrarRef.current('escape');
+        return;
+      }
+      if (e.key !== 'Tab' || !capa) return;
+      const nodos = Array.from(capa.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (n) => n.offsetParent !== null,
+      );
+      if (nodos.length === 0) return;
+      const primero = nodos[0];
+      const ultimo = nodos[nodos.length - 1];
+      const activo = document.activeElement;
+      if (e.shiftKey && (activo === primero || activo === capa)) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && activo === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      } else if (!capa.contains(activo)) {
+        e.preventDefault();
+        primero.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = overflowPrevio;
+      anterior?.focus?.();
+    };
+  }, []);
+
+  // ── Accesorios: mismo endpoint y parámetros que /solicitar ────────────────
+  const [accesorios, setAccesorios] = useState<Accessory[]>([]);
+  const [estadoAcc, setEstadoAcc] = useState<EstadoAccesorios>('cargando');
+  const [verTodos, setVerTodos] = useState(false);
+  const plazo = plazoEnCuotas(selectedProduct);
+  const frecuencia = selectedProduct?.paymentFrequency;
+
+  useEffect(() => {
+    if (flujo.isLoading) return;
+    if (!accesoriosHabilitados || !selectedProduct) {
+      setAccesorios([]);
+      setEstadoAcc('listo');
+      return;
+    }
+    let cancelado = false;
+    setEstadoAcc('cargando');
+    const tipo = selectedProduct.type?.toLowerCase() || 'laptop';
+    getLandingAccessories(
+      landing,
+      [tipo],
+      plazo,
+      previewKey,
+      frecuencia,
+      varianteAbAccesorios(),
+      resolveEcosistema(selectedProduct.brand, selectedProduct.type),
+      session?.sessionUuid ?? null,
+      true,
+      selectedProduct.slug ?? null,
+      selectedProduct.initialAmount ?? null,
+      { lanzarError: true },
+    )
+      .then((api) => {
+        if (cancelado) return;
+        setAccesorios(
+          api.map((acc) => ({
+            id: acc.id,
+            name: acc.name,
+            description: acc.description || '',
+            price: acc.price,
+            monthlyQuota: acc.monthlyQuota,
+            term: acc.term,
+            image: acc.image || acc.thumbnail_url || '',
+            thumbnailUrl: acc.image || acc.thumbnail_url,
+            category: acc.category ?? { slug: 'otro', name: 'Otro' },
+            isRecommended: acc.isRecommended || false,
+            isMoltiTop: acc.isMoltiTop || false,
+            compatibleWith: acc.compatibleWith || ['all'],
+            specs: acc.specs || [],
+            brand: acc.brand,
+          })),
+        );
+        setEstadoAcc('listo');
+      })
+      .catch((error) => {
+        if (cancelado) return;
+        Sentry.captureException(error, {
+          tags: { modulo: 'lo_quiero_modal', accion: 'cargar_accesorios', landing },
+          extra: { product_id: selectedProduct.id, plazo, frecuencia },
+        });
+        setAccesorios([]);
+        setEstadoAcc('error');
+      });
+    return () => {
+      cancelado = true;
+    };
+    // El producto no cambia con el modal abierto: basta su id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landing, flujo.isLoading, accesoriosHabilitados, productoId, plazo, frecuencia, previewKey]);
+
+  // Lo que ya viene en el combo no se ofrece: se muestra como incluido.
+  const idsRegalo = useMemo(() => new Set(regalos.map((r) => r.id)), [regalos]);
+  const ofrecibles = useMemo(
+    () => ordenarPorCategoria(accesorios.filter((a) => !idsRegalo.has(String(a.id)))),
+    [accesorios, idsRegalo],
+  );
+  const regalosVisibles = useMemo(
+    () =>
+      regalos.map((r) => {
+        const delListado = accesorios.find((a) => String(a.id) === r.id);
+        return { ...r, image: r.image || delListado?.thumbnailUrl || delListado?.image };
+      }),
+    [regalos, accesorios],
+  );
+  const hayAccesorios = accesoriosHabilitados && (estadoAcc === 'cargando' || ofrecibles.length > 0);
+  const accesoriosVisibles = verTodos ? ofrecibles : ofrecibles.slice(0, ACCESORIOS_VISIBLES);
+
+  const alternarAccesorio = useCallback(
+    (acc: Accessory) => {
+      const estaba = selectedAccessories.some((a) => a.id === acc.id);
+      analytics.track('lo_quiero_modal_accessory_toggle', {
+        accessory_id: String(acc.id),
+        accessory_name: acc.name,
+        action: estaba ? 'remove' : 'add',
+        monthly_quota: acc.monthlyQuota,
+        selected_count: selectedAccessories.length + (estaba ? -1 : 1),
+        product_id: productoId,
+      });
+      // Los eventos de siempre, para que el embudo de accesorios no pierda
+      // las altas que ahora pasan por el modal.
+      if (estaba) {
+        analytics.trackAccessoryRemove({ accessory_id: String(acc.id), source_product_id: productoId });
+      } else {
+        analytics.trackAccessoryAdd({
+          accessory_id: String(acc.id),
+          accessory_name: acc.name,
+          price: acc.price ?? null,
+          source_product_id: productoId,
+        });
+      }
+      toggleAccessory(acc);
+    },
+    [selectedAccessories, analytics, productoId, toggleAccessory],
+  );
+
+  // ── Cupón ────────────────────────────────────────────────────────────────
+  const [muestraCupon, setMuestraCupon] = useState(true);
+  useEffect(() => {
+    fetchLandingConfig(landing).then((cfg) => setMuestraCupon(cfg.features.has_coupon));
+  }, [landing]);
+  const [errorCupon, setErrorCupon] = useState<string | null>(null);
+  const cuponVisible = muestraCupon || isCouponRequired;
+  const quitarCupon = useQuitarCupon();
+
+  // El cupón se escribe en un modal chico encima de este (BAL-4958). La
+  // validación y la aplicación son las de `CouponInput`, que vive adentro.
+  const abrirCupon = useCallback(() => setCuponAbierto(true), []);
+  const cerrarCupon = useCallback(() => {
+    salirCupon(() => {
+      setCuponAbierto(false);
+      // La fila se vuelve a pintar (con o sin cupón): se busca después del render.
+      requestAnimationFrame(() => filaCuponRef.current?.focus());
+    });
+  }, [salirCupon]);
+  cerrarCuponRef.current = cerrarCupon;
+
+  useEffect(() => {
+    if (!cuponAbierto) return;
+    cuponCapaRef.current?.querySelector<HTMLInputElement>('input')?.focus();
+  }, [cuponAbierto]);
+
+  // Cupón válido: el modal chico se cierra solo.
+  const codigoAplicado = appliedCoupon?.code ?? null;
+  useEffect(() => {
+    if (codigoAplicado && cuponAbiertoRef.current) cerrarCuponRef.current();
+  }, [codigoAplicado]);
+
+  const quitarCuponDeLaFila = () => {
+    quitarCupon();
+    requestAnimationFrame(() => filaCuponRef.current?.focus());
+  };
+
+  // Solo cuenta lo que se aplica DENTRO del modal: el de campaña que ya venía
+  // del link lo reporta `CouponInput` con `source: 'url'`.
+  const codigoAlAbrir = useRef(appliedCoupon?.code ?? null);
+  useEffect(() => {
+    const codigo = appliedCoupon?.code ?? null;
+    if (!codigo) return;
+    setErrorCupon(null);
+    if (codigo === codigoAlAbrir.current) return;
+    codigoAlAbrir.current = codigo;
+    analytics.track('lo_quiero_modal_coupon_applied', {
+      coupon_code: codigo,
+      coupon_type: appliedCoupon?.couponType,
+      product_id: productoId,
+    });
+  }, [appliedCoupon, analytics, productoId]);
+
+  // ── Términos ─────────────────────────────────────────────────────────────
+  // Arranca marcada si la persona ya había aceptado las dos en /solicitar.
+  const [aceptaTerminos, setAceptaTerminos] = useState(() => {
+    const c = readConsentStorage(landing);
+    return c.acceptTerms && c.acceptPrivacy;
+  });
+  const [aceptaPromos, setAceptaPromos] = useState(false);
+  const [errorTerminos, setErrorTerminos] = useState(false);
+  // Cada intento fallido vuelve a sacudir la caja (alterna dos animaciones).
+  const [intentosTerminos, setIntentosTerminos] = useState(0);
+
+  // ── Cuota diferida: "1.ª cuota en <mes>" ─────────────────────────────────
+  // El mes lo calcula ws2 (`first-payment-date`). Sin respuesta, no se muestra.
+  // Misma fuente que el panel "Tu solicitud" de Diseño 2.
+  const esDiferida = !!deferredPayment?.enabled;
+  const mesPrimeraCuota = useMesPrimeraCuota(landing, esDiferida);
+
+  // ── Totales (cuotas del backend, sin descuentos calculados acá) ───────────
+  const cuotaEquipo = selectedProduct?.monthlyPayment ?? 0;
+  const cuotaAccesorios = selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0);
+  const total = cuotaEquipo + cuotaAccesorios;
+  const n = selectedAccessories.length;
+  const plazoVisible = selectedProduct?.term ?? selectedProduct?.months ?? plazo;
+  const leyenda = [
+    `${plazoVisible} ${getTermUnit(plazoVisible, frecuencia)}`,
+    selectedProduct && selectedProduct.initialAmount > 0
+      ? `inicial S/${formatCuotaDeLanding(selectedProduct.initialAmount, landing)}`
+      : 'sin inicial',
+    // Como el prototipo (`footPlan`): los accesorios elegidos van en la leyenda,
+    // sin la línea aparte "Equipo S/x + accesorios S/y".
+    selectedAccessories.length > 0
+      ? `${selectedAccessories.length} ${selectedAccessories.length === 1 ? 'accesorio' : 'accesorios'}`
+      : null,
+    appliedCoupon ? 'con cupón' : null,
+  ].filter(Boolean).join(' · ');
+  const totalVisible = formatCuotaDeLanding(total, landing);
+
+  // ── Pulso del total al agregar/quitar o con el cupón ──────────────────────
+  const totalRef = useRef<HTMLSpanElement>(null);
+  const pulsoInicial = useRef(true);
+  const codigoCupon = appliedCoupon?.code ?? null;
+  useEffect(() => {
+    if (pulsoInicial.current) {
+      pulsoInicial.current = false;
+      return;
+    }
+    const el = totalRef.current;
+    if (!el || typeof el.animate !== 'function') return;
+    if (prefiereMenosMovimiento()) return;
+    // `bcPulseA/B` del prototipo: crece 10 % al 40 % y vuelve, 0,45 s ease-out.
+    el.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.4 }, { transform: 'scale(1)' }],
+      { duration: 450, easing: 'ease-out' },
+    );
+  }, [totalVisible, codigoCupon]);
+
+  // ── Celular: teclado abierto (el cupón no puede quedar tapado) ────────────
+  // `dvh` no se encoge con el teclado en todos los navegadores: se mide el
+  // viewport visible y se sube la hoja por encima del teclado.
+  const [teclado, setTeclado] = useState<{ alto: number; visible: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const medir = () => {
+      const tapado = window.innerHeight - vv.height - vv.offsetTop;
+      setTeclado(tapado > 80 ? { alto: tapado, visible: vv.height } : null);
+    };
+    vv.addEventListener('resize', medir);
+    vv.addEventListener('scroll', medir);
+    return () => {
+      vv.removeEventListener('resize', medir);
+      vv.removeEventListener('scroll', medir);
+    };
+  }, []);
+
+  // ── Celular: arrastrar la rayita hacia abajo cierra ───────────────────────
+  // Solo la cabecera es arrastrable, así el scroll de la lista no se toca.
+  const [arrastre, setArrastre] = useState(0);
+  const inicioArrastre = useRef<number | null>(null);
+  const esCelular = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+  const onArrastreInicio = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!esCelular() || (e.target as HTMLElement).closest('button, a')) return;
+    inicioArrastre.current = e.clientY;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onArrastreMovimiento = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (inicioArrastre.current === null) return;
+    setArrastre(Math.max(0, e.clientY - inicioArrastre.current));
+  };
+  const onArrastreFin = () => {
+    if (inicioArrastre.current === null) return;
+    inicioArrastre.current = null;
+    if (arrastre > UMBRAL_ARRASTRE) {
+      cerrarRef.current('arrastre');
+      return;
+    }
+    setArrastre(0);
+  };
+
+  // ── Primer paso del formulario ───────────────────────────────────────────
+  const slugPrimerPaso = useMemo(() => slugDelPaso(primerPasoRegular(steps)), [steps]);
+  const [navegando, setNavegando] = useState(false);
+  const preparando = isConfigLoading || flujo.isLoading;
+
+  // Ya se eligió «Continuar»: un cierre que llegue después no es un abandono.
+  // Con doble clic en escritorio, el botón se angosta (ruedita) y el segundo
+  // clic cae en «Volver», que registraba un `close` falso (E2E 3 capas).
+  const continuandoRef = useRef(false);
+
+  const cerrar = useCallback(
+    (motivo: string) => {
+      if (continuandoRef.current) return;
+      // Una sola salida: un segundo cierre mientras se va no cuenta dos veces.
+      if (!salirModal(() => onClose())) return;
+      analytics.track('lo_quiero_modal_close', {
+        motivo,
+        product_id: productoId,
+        accessories_count: selectedAccessories.length,
+        terms_checked: aceptaTerminos,
+      });
+    },
+    [analytics, productoId, selectedAccessories.length, aceptaTerminos, onClose, salirModal],
+  );
+  cerrarRef.current = cerrar;
+
+  // `navegando` es estado: el segundo clic de un doble clic puede no verlo
+  // todavía. El candado es un ref y se cierra en el acto (E2E BAL-4969).
+  const tomarCandado = useCandadoDeAvance();
+
+  const continuar = () => {
+    if (navegando) return;
+    if (!aceptaTerminos) {
+      setErrorTerminos(true);
+      setIntentosTerminos((n) => n + 1);
+      terminosRef.current?.focus();
+      terminosRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
+    if (isCouponRequired && !appliedCoupon) {
+      setErrorCupon('Debes ingresar un cupón válido para continuar');
+      setCuponAbierto(true);
+      return;
+    }
+    if (isOverQuotaLimit) return;
+    if (!tomarCandado()) return;
+    continuandoRef.current = true;
+
+    saveConsentStorage(landing, { acceptTerms: true, acceptPrivacy: true, acceptPromos: aceptaPromos });
+
+    analytics.track('lo_quiero_modal_continue', {
+      product_id: productoId,
+      origen,
+      accessories_count: n,
+      accessory_ids: selectedAccessories.map((a) => String(a.id)).join(','),
+      has_coupon: !!appliedCoupon,
+      coupon_code: appliedCoupon?.code ?? null,
+      accept_promos: aceptaPromos,
+      monthly_total: Math.round(total * 100) / 100,
+      first_step: slugPrimerPaso,
+    });
+
+    // Los regalos del combo los conoce solo quien abrió el modal (la card o la
+    // ficha). Se guardan en el producto para que el panel "Tu solicitud" de
+    // los pasos los muestre sin volver a resolver el combo.
+    if (selectedProduct) {
+      setSelectedProduct({
+        ...selectedProduct,
+        regalos: regalos.map((r) => ({ id: r.id, name: r.name, gratis: r.gratis })),
+      });
+    }
+
+    // Paso 1 de Diseño 2: "Atrás" vuelve acá (catálogo o ficha), no a
+    // `/solicitar` (BAL-4959, decisión del controlador). Se guarda ANTES de
+    // navegar: "la URL actual" todavía es esta página.
+    guardarOrigenDiseno2(landing);
+
+    setNavegando(true);
+    if (slugPrimerPaso) {
+      router.push(routes.solicitarStep(landing, slugPrimerPaso));
+      return;
+    }
+    // Sin primer paso resuelto (config caída o sin pasos): la intro de siempre
+    // sabe manejarlo, y lo que la persona eligió ya quedó guardado.
+    Sentry.captureMessage('lo_quiero_modal: sin primer paso del formulario', {
+      level: 'warning',
+      tags: { modulo: 'lo_quiero_modal', accion: 'resolver_primer_paso', landing },
+      extra: { config_error: configError, steps: steps.length },
+    });
+    router.push(routes.solicitar(landing));
+  };
+
+  const textoBoton = n > 0 ? `Continuar con ${n} ${n === 1 ? 'accesorio' : 'accesorios'}` : 'Continuar a mis datos';
+  const sufijo = sufijoDeFrecuencia(frecuencia);
+  const botonDeshabilitado = preparando || navegando || isOverQuotaLimit;
+
+  const alternarTerminos = () => {
+    setAceptaTerminos((v) => !v);
+    setErrorTerminos(false);
+  };
+
+  const abrirDetalle = (acc: Accessory, origenFoco: HTMLElement) => {
+    analytics.trackAccessoryView({ accessory_id: String(acc.id), accessory_name: acc.name });
+    origenDetalleRef.current = origenFoco;
+    setDetalle(acc);
+  };
+
+  const detalleElegido = detalle ? selectedAccessories.some((a) => a.id === detalle.id) : false;
+  const datosDetalle = detalle ? datosUtiles(detalle) : [];
+
+  const modal = (
+    <div
+      className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center font-['Asap',_sans-serif]"
+      style={teclado ? { paddingBottom: teclado.alto } : undefined}
+    >
+      <div className={`absolute inset-0 bg-black/50 ${saliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={() => cerrar('fondo')} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lo-quiero-titulo"
+        aria-describedby="lo-quiero-subtitulo"
+        tabIndex={-1}
+        style={{
+          ...(teclado ? { maxHeight: teclado.visible - 8 } : null),
+          ...(arrastre > 0 ? { transform: `translateY(${arrastre}px)`, transition: 'none' } : null),
+        }}
+        className={`relative w-full md:mx-4 md:max-w-[880px] bg-white rounded-t-2xl md:rounded-2xl shadow-md flex flex-col max-h-[94dvh] md:max-h-[92vh] outline-none transition-transform duration-200 ${saliendo ? 'd2-sale-hoja' : 'd2-pop-modal'}`}
+      >
+        {/* Cabecera: en celular es también la zona de arrastre */}
+        <div
+          className="shrink-0 border-b border-neutral-100 px-4 md:px-6 pt-2 md:pt-5 pb-3 touch-none select-none md:touch-auto md:select-auto"
+          onPointerDown={onArrastreInicio}
+          onPointerMove={onArrastreMovimiento}
+          onPointerUp={onArrastreFin}
+          onPointerCancel={onArrastreFin}
+        >
+          <div className="md:hidden flex justify-center pb-2" aria-hidden>
+            <span className="block w-10 h-1.5 rounded-full bg-neutral-300" />
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 id="lo-quiero-titulo" className="font-['Baloo_2',_sans-serif] text-lg md:text-2xl font-bold text-neutral-800 leading-tight">
+                {hayAccesorios ? `¿Quieres complementar tu ${nombreDelTipo(selectedProduct?.type)}?` : 'Un paso más y empiezas tu solicitud'}
+              </h2>
+              <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[#5B6275] mt-0.5">
+                {hayAccesorios
+                  ? 'Es opcional. Lo que agregues se suma a tu cuota mensual.'
+                  : 'Revisa tu equipo y acepta los términos para continuar.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => cerrar('x')}
+              aria-label="Cerrar"
+              className="w-11 h-11 -mt-1 shrink-0 rounded-full bg-[#F4F5F8] hover:bg-[#E9EBF0] flex items-center justify-center text-[#1E2230] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+        </div>
+
+        {/* Cuerpo con scroll. Siempre trae algo: el aviso del equipo, los
+            accesorios o, sin accesorios, la tarjeta del equipo elegido (sin
+            la franja vacía de antes). */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-3 md:py-4 flex flex-col gap-3">
+          {avisos.map((a) => (
+            <CajaAvisoDelEquipo key={a.tipo} aviso={a} />
+          ))}
+          {!hayAccesorios && !flujo.isLoading && selectedProduct && (
+            <TarjetaDelEquipo producto={selectedProduct} regalos={regalosVisibles} />
+          )}
+          {estadoAcc === 'error' && accesoriosHabilitados && (
+            <div role="status" className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+              <span>No pudimos cargar los accesorios. Puedes continuar sin ellos.</span>
+            </div>
+          )}
+
+          {hayAccesorios && (
+            <section aria-labelledby="lo-quiero-accesorios">
+              <div className="flex items-baseline gap-2 mb-2.5">
+                <h3 id="lo-quiero-accesorios" className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Accesorios sugeridos
+                </h3>
+              </div>
+              {estadoAcc === 'cargando' ? (
+                <ul className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3" aria-busy="true" aria-label="Cargando accesorios">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <li key={i} className="h-[76px] md:h-[188px] rounded-xl border border-neutral-100 bg-neutral-50 animate-pulse motion-reduce:animate-none" />
+                  ))}
+                </ul>
+              ) : (
+                <>
+                  <ul className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                    {/* Lo que ya trae el combo: incluido, sin precio, no se elige */}
+                    {regalosVisibles.map((r) => (
+                      <li
+                        key={`regalo-${r.id}`}
+                        className="flex md:flex-col items-center md:items-stretch gap-3 rounded-xl border border-[#BFE6DA] bg-[#F2FBF8] p-2.5 md:p-3"
+                      >
+                        <ImagenAccesorio src={r.image} className="w-14 h-14 md:w-full md:h-20 rounded-lg" />
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <span className="self-start inline-flex items-center gap-1 rounded-full bg-[#DDF3EC] px-2 py-0.5 text-[11px] font-semibold text-[#0B6B5C]">
+                            <Check className="w-3 h-3" strokeWidth={3} aria-hidden />
+                            {r.gratis ? 'Incluido gratis' : 'Incluido en tu equipo'}
+                          </span>
+                          <p className="mt-1 text-sm font-semibold text-neutral-800 line-clamp-2 md:min-h-[2.5rem]">{nombreParaMostrar(r.name)}</p>
+                          <p className="hidden md:flex mt-auto items-center gap-1 text-xs text-[#0B6B5C]">
+                            <Gift className="w-3.5 h-3.5" aria-hidden /> Ya viene con tu equipo
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                    {accesoriosVisibles.map((acc) => {
+                      const elegido = selectedAccessories.some((a) => a.id === acc.id);
+                      const nombre = nombreParaMostrar(acc.name, acc.brand?.name);
+                      return (
+                        <li
+                          key={acc.id}
+                          className={`relative flex md:flex-col items-center md:items-stretch gap-3 md:gap-2 rounded-xl border-[1.5px] px-3 py-2.5 md:p-2.5 transition-[border-color,background-color] duration-150 ${
+                            elegido
+                              ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.04)]'
+                              : 'border-[#E3E6EE] bg-white'
+                          }`}
+                        >
+                          {/* Foto con el check de "agregado" (prototipo: arriba a la derecha). */}
+                          <div className="relative shrink-0 md:w-full">
+                            <ImagenAccesorio src={acc.thumbnailUrl || acc.image} className="w-14 h-14 md:w-full md:h-16 rounded-[10px]" />
+                            {elegido && (
+                              <span className="absolute -top-1.5 -right-1.5 md:top-1.5 md:right-1.5 w-[22px] h-[22px] md:w-6 md:h-6 rounded-full bg-[var(--color-primary)] flex items-center justify-center d2-check-in" aria-hidden>
+                                <Check className="w-3 h-3 md:w-[13px] md:h-[13px] text-[var(--color-on-primary)]" strokeWidth={3} />
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col gap-px md:gap-2">
+                            <p className="text-sm font-semibold text-[#1E2230] line-clamp-2 leading-[1.25] md:min-h-[35px]">{nombre}</p>
+                            {/* Precio y "Ver detalle" (prototipo): en celular uno debajo del
+                                otro; en escritorio en una fila, con el botón abajo. */}
+                            <div className="flex flex-col items-start md:flex-row md:items-center md:justify-between md:gap-1.5">
+                              <span className="text-[13px] md:text-sm font-bold text-[var(--color-primary-text)] md:text-[#1E2230] whitespace-nowrap">
+                                +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
+                              </span>
+                              <button
+                                type="button"
+                                data-ver-detalle
+                                onClick={(e) => abrirDetalle(acc, e.currentTarget)}
+                                aria-label={`Ver detalle de ${nombre}`}
+                                className="-my-2.5 md:my-0 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-sm text-[12.5px] md:text-[13px] font-semibold text-[var(--color-primary-text)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                              >
+                                Ver detalle
+                              </button>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alternarAccesorio(acc)}
+                            aria-pressed={elegido}
+                            aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
+                            className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-full border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                              elegido
+                                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
+                                : 'bg-white text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
+                            }`}
+                          >
+                            {elegido ? (
+                              <>
+                                Agregado <Check className="w-4 h-4 d2-check-in" strokeWidth={3} aria-hidden />
+                              </>
+                            ) : (
+                              'Agregar'
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {ofrecibles.length > ACCESORIOS_VISIBLES && (
+                    <button
+                      type="button"
+                      onClick={() => setVerTodos((v) => !v)}
+                      className="mt-2 w-full md:w-auto min-h-[44px] px-4 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      {verTodos ? 'Ver menos' : `Ver todos (${ofrecibles.length})`}
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${verTodos ? 'rotate-180' : ''}`} aria-hidden />
+                    </button>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+        </div>
+
+        {/* Pie fijo */}
+        {/* Celular (QA a 360 px, BAL-4969): pie compacto para que los
+            accesorios tengan más alto —filas de 40 px pegadas (la fila entera
+            es la zona táctil), la leyenda en una línea arriba y el precio al
+            lado del botón—. Escritorio, igual que antes. */}
+        <div data-pie-lo-quiero className="shrink-0 border-t border-neutral-100 px-4 md:px-6 pt-1 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-white rounded-b-2xl">
+          {/* Lista simple (BAL-4958, aprobado por Emilio): tres filas iguales,
+              sin cajas, alineadas a la izquierda, igual en celular y escritorio.
+              - Términos: los enlaces van DENTRO de la frase. Tocar la frase o la
+                casilla marca; tocar un enlace abre el documento y NO marca.
+                La casilla es solo el cuadrito (`role="checkbox"`), así que los
+                enlaces nunca quedan dentro del control (QA F10 · Falla 1).
+              - El cupón se escribe en un modal chico encima de este. */}
+          <div className="flex flex-col gap-1.5">
+            {/* Caja de Términos (prototipo de Brenda, `bcConsent`): ámbar con un
+                brillo al llegar, naranja y sacudida si intentan seguir sin
+                marcarla, verde al marcarla. Borde y radio del estándar del kit
+                (`CAJA_V2`: 1,5 px y 10 px). Con reduced-motion cambian solo
+                los colores (`globals.css`). */}
+            <div
+              data-terminos-v2={aceptaTerminos ? 'marcada' : errorTerminos ? 'error' : 'neutra'}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('a')) return;
+                alternarTerminos();
+              }}
+              className={`flex items-center gap-3 rounded-[10px] border-[1.5px] px-3 py-[11px] md:px-4 md:py-3 cursor-pointer select-none transition-colors duration-150 ${
+                aceptaTerminos
+                  ? 'border-[#0E8C78] bg-[#E8F7F2]'
+                  : errorTerminos
+                    ? `border-[#C2410C] bg-[#FFF1EB] ${intentosTerminos % 2 ? 'd2-sacudida-a' : 'd2-sacudida-b'}`
+                    : 'border-[#F2B632] bg-[#FFF6D8] d2-brillo-consentimiento'
+              }`}
+            >
+              <button
+                ref={terminosRef}
+                type="button"
+                role="checkbox"
+                aria-checked={aceptaTerminos}
+                aria-invalid={errorTerminos && !aceptaTerminos}
+                aria-labelledby="lo-quiero-terminos-texto"
+                aria-describedby={errorTerminos && !aceptaTerminos ? 'lo-quiero-terminos-error' : undefined}
+                className={`w-6 h-6 md:w-[22px] md:h-[22px] rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                  aceptaTerminos
+                    ? 'bg-[#0E8C78] border-[#0E8C78]'
+                    : errorTerminos
+                      ? 'bg-white border-[#C2410C]'
+                      : 'bg-white border-neutral-400'
+                }`}
+              >
+                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white d2-check-in" strokeWidth={3} aria-hidden />}
+              </button>
+              <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span id="lo-quiero-terminos-texto" className="text-sm font-semibold leading-[1.3] text-[#1E2230]">
+                  Acepto los{' '}
+                  <a
+                    href={routes.legal(landing, 'terminos-y-condiciones')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  >
+                    Términos
+                  </a>{' '}
+                  y la{' '}
+                  <a
+                    href={routes.legal(landing, 'politica-de-privacidad')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  >
+                    Política de privacidad
+                  </a>
+                </span>
+                {errorTerminos && !aceptaTerminos && (
+                  <span
+                    id="lo-quiero-terminos-error"
+                    role="alert"
+                    className="d2-aparece block text-[12.5px] md:text-[13px] leading-[1.35] font-bold text-[#B23C0A]"
+                  >
+                    Marca la casilla para continuar.
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <div
+              onClick={() => setAceptaPromos((v) => !v)}
+              className="flex items-center gap-3 min-h-[40px] md:min-h-[44px] px-3 md:px-4 cursor-pointer select-none"
+            >
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={aceptaPromos}
+                aria-labelledby="lo-quiero-promos-texto"
+                className={`w-6 h-6 md:w-[22px] md:h-[22px] rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                  aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-white border-neutral-400'
+                }`}
+              >
+                {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)] d2-check-in" strokeWidth={3} aria-hidden />}
+              </button>
+              <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-[13px] md:text-sm font-semibold leading-[1.3] text-[#1E2230]">
+                Quiero recibir promociones <span className="font-normal text-[#8A90A2]">(opcional)</span>
+              </span>
+            </div>
+
+          </div>
+
+          {isOverQuotaLimit && (
+            <div role="alert" className="d2-aparece mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+              <span>La cuota supera el límite de S/{maxMonthlyQuota}/mes. Quita algún accesorio para continuar.</span>
+            </div>
+          )}
+
+          {/* Total, cupón y botones (prototipo de Brenda): en escritorio una
+              fila —total, "Agregar cupón", Volver y Continuar—; en celular el
+              total con el cupón al lado y Continuar a todo lo ancho abajo. */}
+          <div className="mt-2.5 flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="flex min-w-0 items-center justify-between gap-3 md:justify-start md:gap-[18px]">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="leading-none whitespace-nowrap" aria-live="polite">
+                  <span
+                    ref={totalRef}
+                    className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[30px] md:text-[32px] font-bold text-[var(--color-primary-text)]"
+                  >
+                    S/{totalVisible}
+                  </span>
+                  <span className="ml-0.5 text-[15px] font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
+                </p>
+                <p className="truncate text-xs text-[#5B6275]">{leyenda}</p>
+                {/* Cuota diferida (prototipo, `prod.diferida`): pastilla verde
+                    con el mes real de la primera cuota (ws2). */}
+                {esDiferida && mesPrimeraCuota && (
+                  <span data-diferida-v2 className="self-start inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-[#E3F5F1] px-[9px] py-[3px] text-xs font-bold text-[#0B6B5C]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="5" width="18" height="16" rx="2" />
+                      <path d="M16 3v4M8 3v4M3 10h18" />
+                    </svg>
+                    1.ª cuota en {mesPrimeraCuota}
+                  </span>
+                )}
+              </div>
+              {cuponVisible && (
+                <div className="flex shrink-0 flex-col items-end">
+                  {appliedCoupon ? (
+                    <div role="status" className="flex flex-col items-end gap-0.5">
+                      <span className="inline-flex min-h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[#E3F5F1] px-3 text-[13.5px] font-bold text-[#0B6B5C]">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+                        Cupón {appliedCoupon.code}
+                        {appliedCoupon.lockedFromUrl && (
+                          <Lock className="h-3.5 w-3.5" aria-label="Cupón de campaña: no se puede quitar" />
+                        )}
+                      </span>
+                      {!appliedCoupon.lockedFromUrl && (
+                        <button
+                          ref={filaCuponRef}
+                          type="button"
+                          onClick={quitarCuponDeLaFila}
+                          aria-label={`Quitar cupón ${appliedCoupon.code}`}
+                          className="-my-2 inline-flex min-h-[44px] items-center rounded-sm px-1 text-[12.5px] font-bold text-[#0B6B5C] underline underline-offset-2 hover:opacity-80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      ref={filaCuponRef}
+                      type="button"
+                      onClick={abrirCupon}
+                      aria-haspopup="dialog"
+                      className="inline-flex min-h-[44px] md:min-h-[38px] items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-dashed border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3.5 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    >
+                      <Tag className="h-4 w-4 shrink-0" aria-hidden />
+                      Agregar cupón
+                      {isCouponRequired && <span className="font-semibold opacity-80"> (obligatorio)</span>}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-2.5">
+              <button
+                type="button"
+                onClick={() => cerrar('volver')}
+                className="hidden md:inline-flex min-h-[48px] items-center rounded-xl border-[1.5px] border-[#C9CEF0] bg-white px-[18px] text-[15px] font-semibold text-[#1E2230] cursor-pointer transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={continuar}
+                disabled={botonDeshabilitado}
+                className={`w-full md:w-auto min-h-[48px] px-[22px] rounded-xl text-base font-bold inline-flex items-center justify-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                  botonDeshabilitado
+                    ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                    : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[0_4px_12px_rgba(var(--color-primary-rgb),0.25)] hover:brightness-90 cursor-pointer'
+                }`}
+              >
+                {preparando || navegando ? (
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin motion-reduce:animate-none" aria-label="Cargando" />
+                ) : (
+                  <>
+                    {textoBoton}
+                    <ArrowRight className="w-[18px] h-[18px]" strokeWidth={2.4} aria-hidden />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          {errorCupon && !appliedCoupon && !cuponAbierto && (
+            <p role="alert" className="d2-aparece mt-1 text-xs font-semibold text-red-600">{errorCupon}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Detalle del accesorio: capa propia encima del modal */}
+      {detalle && (
+        <div className="absolute inset-0 z-10 flex items-end md:items-center justify-center">
+          <div className={`absolute inset-0 bg-black/40 ${detalleSaliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={cerrarDetalle} />
+          <div
+            ref={detalleRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lo-quiero-detalle-titulo"
+            tabIndex={-1}
+            // Hoja de detalle: `bcPop` 0,2 s en escritorio y 0,25 s desde abajo en celular.
+            className={`relative w-full md:mx-4 md:max-w-[440px] bg-white rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none ${detalleSaliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'}`}
+          >
+            {/* Hoja "Ver detalle" (prototipo de Brenda): nombre y cerrar arriba,
+                foto, la cuota en su caja gris, la descripción y las
+                características que trae el accesorio, y "Cerrar" + "Agregar". */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-5 md:px-[26px] md:pt-[26px] flex flex-col gap-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <h3 id="lo-quiero-detalle-titulo" className="text-[19px] md:text-[21px] font-bold text-[#1E2230] leading-tight pt-2">
+                  {nombreParaMostrar(detalle.name, detalle.brand?.name)}
+                </h3>
+                <button
+                  type="button"
+                  onClick={cerrarDetalle}
+                  aria-label="Cerrar detalle"
+                  className="w-11 h-11 shrink-0 rounded-full bg-[#F4F5F8] hover:bg-[#E9EBF0] flex items-center justify-center text-[#1E2230] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                >
+                  <X className="w-[18px] h-[18px]" />
+                </button>
+              </div>
+              <ImagenAccesorio src={detalle.image || detalle.thumbnailUrl} className="w-full h-40 rounded-xl p-3" />
+              <div className="rounded-xl bg-[#F4F5F8] px-3.5 py-3 flex flex-col gap-0.5">
+                <p className="leading-none">
+                  <span className="text-[22px] font-bold text-[var(--color-primary-text)]">
+                    +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
+                  </span>
+                  <span className="text-sm font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
+                </p>
+                {detalle.price > 0 && (
+                  <p className="text-[13px] text-[#5B6275]">
+                    S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
+                  </p>
+                )}
+              </div>
+              {detalle.description?.trim() && (detalle.specs?.length ?? 0) > 0 && (
+                <p className="text-[15px] leading-snug text-[#3A4052] whitespace-pre-line">{detalle.description.trim()}</p>
+              )}
+              {datosDetalle.length > 0 && (
+                <ul className="space-y-1.5">
+                  {datosDetalle.map((d) => (
+                    <li key={d} className="flex items-start gap-2 text-sm text-[#3A4052]">
+                      <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="shrink-0 px-5 md:px-[26px] pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[26px] flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={cerrarDetalle}
+                className="min-h-[48px] px-5 rounded-xl border-[1.5px] border-[#C9CEF0] bg-white text-[15px] font-semibold text-[#1E2230] cursor-pointer transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  alternarAccesorio(detalle);
+                  cerrarDetalle();
+                }}
+                className="flex-1 md:flex-none min-h-[48px] px-5 rounded-xl bg-[var(--color-primary)] text-[15px] font-bold text-[var(--color-on-primary)] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors duration-150 hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                {detalleElegido ? 'Quitar de mi solicitud' : 'Agregar a mi solicitud'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cupón: modal chico encima de este (BAL-4958). Escape lo cierra solo
+          a él; la validación es la de `CouponInput`, que vive adentro. */}
+      {cuponAbierto && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center px-4"
+          style={teclado ? { bottom: teclado.alto } : undefined}
+        >
+          <div className={`absolute inset-0 bg-black/40 ${cuponSaliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={cerrarCupon} />
+          <div
+            ref={cuponCapaRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lo-quiero-cupon-titulo"
+            className={`relative w-full max-w-[400px] bg-white rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none ${cuponSaliendo ? 'd2-sale' : 'd2-pop-modal-chico'}`}
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 id="lo-quiero-cupon-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-neutral-800 leading-tight">
+                Ingresa tu cupón
+              </h3>
+              <button
+                type="button"
+                onClick={cerrarCupon}
+                aria-label="Cerrar cupón"
+                className="w-11 h-11 -mr-2 shrink-0 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <CouponInput compacto isRequired={isCouponRequired} />
+            {errorCupon && !appliedCoupon && (
+              <p role="alert" className="d2-aparece text-xs font-semibold text-red-600 mt-1.5">{errorCupon}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return createPortal(modal, document.body);
+}
+
+export default LoQuieroModal;

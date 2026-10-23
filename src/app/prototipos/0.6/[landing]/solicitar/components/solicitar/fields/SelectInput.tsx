@@ -5,9 +5,25 @@
  * Dropdown con bordes redondeados y búsqueda
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Check, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import {
+  useCamposV2,
+  ETIQUETA_V2,
+  CAJA_V2,
+  bordeV2,
+  MarcaOpcionalV2,
+  ErrorCampoV2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import {
+  coincide,
+  eleccionAutomatica,
+  minimoDeLetras,
+  MAX_SUGERENCIAS_V2,
+} from '@/app/prototipos/0.6/components/diseno-2/campos/busquedaV2';
+import { useBuscadorSobreElTeclado } from '@/app/prototipos/0.6/components/diseno-2/campos/useBuscadorSobreElTeclado';
+import { ZONA_TACTIL_44 } from '@/app/prototipos/0.6/components/diseno-2/zonaTactil';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -38,8 +54,11 @@ interface SelectInputProps {
   disabled?: boolean;
   required?: boolean;
   searchable?: boolean;
-  /** Callback for remote search (lazy loading). If provided, disables local filtering. */
-  onSearch?: (searchTerm: string) => void;
+  /**
+   * Callback for remote search (lazy loading). If provided, disables local filtering.
+   * Devuelve `false` si no va a buscar (no hay resultados que esperar).
+   */
+  onSearch?: (searchTerm: string) => boolean | void;
   /** Whether remote search is in progress */
   isSearching?: boolean;
   /** Minimum characters required before searching (for lazy loading) */
@@ -83,6 +102,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  // Diseño 2 (BAL-4960): mismo desplegable, otro vestido.
+  const v2 = useCamposV2();
 
   const showError = !!error;
   const showSuccess = success && !error && value;
@@ -99,13 +120,112 @@ export const SelectInput: React.FC<SelectInputProps> = ({
     }
     // Local search: filter options by search term
     if (!searchTerm) return options;
+    // Diseño 2 (BAL-4964): sin tildes ni mayúsculas ("pacifico" encuentra
+    // "Pacífico"). Diseño 1, como siempre.
+    if (v2) return options.filter((option) => coincide(option.label, searchTerm));
     return options.filter((option) =>
       option.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [options, searchTerm, isRemoteSearch]);
+  }, [options, searchTerm, isRemoteSearch, v2]);
+
+  // Diseño 2: como máximo 5 sugerencias mientras se busca.
+  const visibleOptions = v2 && (isRemoteSearch || searchTerm)
+    ? filteredOptions.slice(0, MAX_SUGERENCIAS_V2)
+    : filteredOptions;
 
   // Check if user needs to type more characters for remote search
   const needsMoreChars = isRemoteSearch && minSearchLength > 0 && searchTerm.length < minSearchLength;
+
+  // Diseño 2 (verificación final, BAL-4969): los buscadores remotos
+  // (institución, carrera) son como en el prototipo de Brenda: un campo con
+  // lupa donde se escribe directo y los resultados caen debajo. No un
+  // desplegable con el buscador adentro.
+  const buscadorEnCampo = v2 && searchable && isRemoteSearch;
+
+  // ── Diseño 2: al salir del buscador, una sola coincidencia se elige sola ──
+  // El dedo (o el mouse) dentro del desplegable no cuenta como salir: en
+  // Safari un botón no toma el foco al tocarlo y el blur llega sin destino.
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  const punteroDentroRef = useRef(false);
+  // Búsqueda remota: los resultados del término actual todavía no llegan
+  // (debounce de 300 ms + la red). Si la persona sale en ese rato, se decide
+  // cuando lleguen.
+  const esperandoResultadosRef = useRef(false);
+  const vioBuscandoRef = useRef(false);
+  const elegirAlLlegarRef = useRef<string | null>(null);
+
+  // Diseño 2, celular: el buscador sube arriba al abrirse y la lista mide lo
+  // que queda visible sobre el teclado (QA en celular, BAL-4969, bug 2).
+  const listaRef = useRef<HTMLDivElement>(null);
+  const altoListaV2 = useBuscadorSobreElTeclado({
+    activo: v2 && searchable && isOpen,
+    campoRef: contenedorRef,
+    listaRef,
+  });
+
+  // Una búsqueda nueva (o abrir otra vez) deja sin efecto la decisión
+  // pendiente de antes: no se elige con un término viejo.
+  const olvidarPendiente = () => {
+    elegirAlLlegarRef.current = null;
+    esperandoResultadosRef.current = false;
+    vioBuscandoRef.current = false;
+  };
+
+  const elegirSolaSiHayUna = (termino: string, candidatas: SelectOption[]) => {
+    const unica = eleccionAutomatica(candidatas, termino, minimoDeLetras(minSearchLength));
+    if (unica && unica.value !== value) onChange(unica.value, unica.label);
+  };
+
+  const salirDelBuscador = () => {
+    const termino = searchTerm;
+    setIsOpen(false);
+    setSearchTerm('');
+    onBlur?.();
+    if (!v2 || !termino) return;
+    if (isRemoteSearch && (esperandoResultadosRef.current || isSearching)) {
+      elegirAlLlegarRef.current = termino;
+      return;
+    }
+    elegirSolaSiHayUna(termino, filteredOptions);
+  };
+
+  useEffect(() => {
+    if (!v2 || !isRemoteSearch) return;
+    if (isSearching) {
+      vioBuscandoRef.current = true;
+      return;
+    }
+    if (!vioBuscandoRef.current || !esperandoResultadosRef.current) return;
+    esperandoResultadosRef.current = false;
+    vioBuscandoRef.current = false;
+    const pendiente = elegirAlLlegarRef.current;
+    elegirAlLlegarRef.current = null;
+    if (pendiente) elegirSolaSiHayUna(pendiente, options);
+    // Solo cuando termina una búsqueda; `options` llega en el mismo render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearching, v2, isRemoteSearch]);
+
+  // Lo que pasa al escribir, venga del buscador de adentro (desplegable) o del
+  // campo mismo (buscador en el campo).
+  const escribir = (newValue: string) => {
+    setSearchTerm(newValue);
+    if (v2) olvidarPendiente();
+    // For remote search, call onSearch when user types enough characters
+    if (onSearch && newValue.length >= minSearchLength) {
+      const buscara = onSearch(newValue) !== false;
+      // Diseño 2: hay resultados que esperar solo si de verdad
+      // se lanzó una búsqueda.
+      if (v2) esperandoResultadosRef.current = buscara;
+    }
+  };
+
+  const abrirBuscadorEnCampo = () => {
+    if (disabled || isOpen) return;
+    olvidarPendiente();
+    setSearchTerm('');
+    setIsOpen(true);
+    onFocus?.();
+  };
 
   const selectedOption = options.find((opt) => opt.value === value);
   // Use savedLabel as fallback when options aren't loaded (lazy search after refresh)
@@ -133,13 +253,47 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   };
 
   return (
-    <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
+    <div
+      id={id}
+      className={v2 ? 'flex flex-col gap-1.5' : small ? 'space-y-1' : 'space-y-1.5'}
+      {...(v2
+        ? {
+            ref: contenedorRef,
+            // Al subir el buscador, que no quede bajo la cabecera fija.
+            // (62 px = `ALTO_CABECERA_MOVIL` de `PanelSolicitudV2`, + 8 de aire).
+            style: { scrollMarginTop: 70 },
+            onPointerDownCapture: () => {
+              punteroDentroRef.current = true;
+              window.setTimeout(() => {
+                punteroDentroRef.current = false;
+              }, 400);
+            },
+            // Diseño 2: el foco sale del campo entero (Tab desde el buscador
+            // o desde una opción) con la lista abierta: se cierra y, con una
+            // sola coincidencia, la elige.
+            onBlur: (e: React.FocusEvent<HTMLDivElement>) => {
+              if (!isOpen || punteroDentroRef.current) return;
+              const destino = e.relatedTarget as Node | null;
+              if (destino && contenedorRef.current?.contains(destino)) return;
+              salirDelBuscador();
+            },
+          }
+        : {})}
+    >
       {/* Label */}
-      <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
-        {label}
-        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-        {tooltip && <FieldTooltip tooltip={tooltip} />}
-      </label>
+      {v2 ? (
+        <label htmlFor={`${id}-trigger`} className={ETIQUETA_V2}>
+          {label}
+          {!required && <MarcaOpcionalV2 />}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      ) : (
+        <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
+          {label}
+          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+          {tooltip && <FieldTooltip tooltip={tooltip} />}
+        </label>
+      )}
 
       {/* Help text */}
       {helpText && (
@@ -147,16 +301,72 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       )}
 
       {/* Select trigger */}
-      <div className="relative">
+      {/* Abierto, el buscador en el campo queda por encima de la capa de
+          "clic afuera" (z-30): se puede tocar para mover el cursor. */}
+      <div className={buscadorEnCampo && isOpen ? 'relative z-40' : 'relative'}>
+        {buscadorEnCampo ? (
+          <div className="relative">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--color-primary-text)]"
+            />
+            <input
+              id={`${id}-trigger`}
+              type="text"
+              role="combobox"
+              autoComplete="off"
+              enterKeyHint="done"
+              aria-autocomplete="list"
+              aria-expanded={isOpen}
+              aria-controls={`${id}-listbox`}
+              aria-describedby={showError && error ? `${id}-error` : undefined}
+              disabled={disabled}
+              value={isOpen ? searchTerm : displayLabel || ''}
+              placeholder={isOpen && displayLabel ? displayLabel : placeholder}
+              onFocus={abrirBuscadorEnCampo}
+              onClick={abrirBuscadorEnCampo}
+              onChange={(e) => {
+                if (!isOpen) {
+                  olvidarPendiente();
+                  setIsOpen(true);
+                  onFocus?.();
+                }
+                escribir(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && isOpen) {
+                  e.preventDefault();
+                  setIsOpen(false);
+                  setSearchTerm('');
+                  onBlur?.();
+                } else if (e.key === 'Enter' && isOpen) {
+                  e.preventDefault();
+                  if (!isSearching && !needsMoreChars && visibleOptions.length === 1) handleSelect(visibleOptions[0].value);
+                }
+              }}
+              style={{ fontSize: '16px' }}
+              className={`w-full pl-10 pr-10 text-[#1E2230] placeholder:text-[#8A90A2] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })} ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}`}
+            />
+            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              {isSearching && (
+                <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" aria-hidden />
+              )}
+              {!isOpen && showSuccess && <Check className="w-5 h-5 text-[#0E8C78]" aria-hidden />}
+            </div>
+          </div>
+        ) : (
         <div
+          id={v2 ? `${id}-trigger` : undefined}
           role="button"
           tabIndex={disabled ? -1 : 0}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-controls={`${id}-listbox`}
+          aria-describedby={v2 && showError && error ? `${id}-error` : undefined}
           onClick={() => {
             if (disabled) return;
             const willOpen = !isOpen;
+            if (willOpen && v2) olvidarPendiente();
             setIsOpen(willOpen);
             if (willOpen) onFocus?.();
             else onBlur?.();
@@ -165,6 +375,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             if (disabled) return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
+              if (!isOpen && v2) olvidarPendiente();
               setIsOpen(!isOpen);
             } else if (e.key === 'Escape' && isOpen) {
               e.preventDefault();
@@ -172,7 +383,12 @@ export const SelectInput: React.FC<SelectInputProps> = ({
               onBlur?.();
             }
           }}
-          className={`
+          className={v2 ? `
+            w-full px-3.5 flex items-center justify-between gap-2 cursor-pointer text-left text-base
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
+            ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
+            ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
+          ` : `
             w-full px-3 flex items-center justify-between gap-2
             rounded-lg border-2 transition-all cursor-pointer text-left
             ${small ? 'h-9' : 'h-11'}
@@ -180,7 +396,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          <span className={`truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
+          <span className={v2 ? `truncate ${displayLabel ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
             {displayLabel || placeholder}
           </span>
 
@@ -192,16 +408,18 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   e.stopPropagation();
                   handleClear();
                 }}
-                className="w-5 h-5 rounded-full hover:bg-neutral-200 flex items-center justify-center cursor-pointer"
+                aria-label={v2 ? `Limpiar ${label}` : undefined}
+                className={`${v2 ? ZONA_TACTIL_44 : ''} w-5 h-5 rounded-full hover:bg-neutral-200 flex items-center justify-center cursor-pointer`}
               >
                 <X className="w-3 h-3 text-neutral-500" />
               </button>
             )}
-            {showSuccess && <Check className="w-5 h-5 text-[#22c55e]" />}
-            {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
-            <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
+            {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+            <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
+        )}
 
         {/* Dropdown */}
         {isOpen && (
@@ -210,8 +428,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             role="listbox"
             className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden"
           >
-            {/* Search input */}
-            {searchable && (
+            {/* Search input (el buscador en el campo ya lo tiene arriba) */}
+            {searchable && !buscadorEnCampo && (
               <div className="p-2 border-b border-neutral-100">
                 <div className="flex items-center gap-2 h-9 px-3 bg-neutral-50 rounded-md">
                   <Search className="w-4 h-4 text-neutral-400" />
@@ -220,14 +438,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                     type="text"
                     placeholder={minSearchLength > 0 ? `Escribe al menos ${minSearchLength} letras...` : 'Buscar...'}
                     value={searchTerm}
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      setSearchTerm(newValue);
-                      // For remote search, call onSearch when user types enough characters
-                      if (onSearch && newValue.length >= minSearchLength) {
-                        onSearch(newValue);
-                      }
-                    }}
+                    onChange={(e) => escribir(e.target.value)}
                     style={{ fontSize: '16px' }}
                     className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />
@@ -240,7 +451,12 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 
             {/* Options list — extra pb on mobile so the last options stay
                 visible above the iOS virtual keyboard when it is open. */}
-            <div className="max-h-[min(15rem,50vh)] overflow-y-auto p-1 pb-16 sm:pb-1 overscroll-contain">
+            <div
+              ref={listaRef}
+              data-lista-buscador
+              className={`max-h-[min(15rem,50vh)] overflow-y-auto p-1 ${altoListaV2 !== null ? 'pb-1' : 'pb-16 sm:pb-1'} overscroll-contain`}
+              style={altoListaV2 !== null ? { maxHeight: altoListaV2 } : undefined}
+            >
               {needsMoreChars ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   {searchPrompt || `Escribe al menos ${minSearchLength} caracteres para buscar`}
@@ -250,12 +466,12 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
                   Buscando...
                 </div>
-              ) : filteredOptions.length === 0 ? (
+              ) : visibleOptions.length === 0 ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron resultados
                 </div>
               ) : (
-                filteredOptions.map((option) => (
+                visibleOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -291,6 +507,10 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         <div
           className="fixed inset-0 z-30"
           onClick={() => {
+            if (v2) {
+              salirDelBuscador();
+              return;
+            }
             setIsOpen(false);
             onBlur?.();
           }}
@@ -298,8 +518,11 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         />
       )}
 
+      {/* Diseño 2: el error solo cuando hay; sin alto reservado. */}
+      {v2 && !hideErrorText && error && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}
+
       {/* Error message - reserva alto para alinear en grids, salvo en modo compact */}
-      {!hideErrorText && (!compact || error) && (
+      {!v2 && !hideErrorText && (!compact || error) && (
         <div className={compact ? '' : 'min-h-[20px]'}>
           {error && (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">
