@@ -112,6 +112,9 @@ export type EventType =
   | 'insurance_view_terms'
   | 'summary_edit_click'
   | 'summary_submit'
+  // Medición Diseño 1 vs Diseño 2 (BAL-4969, Parte 2): una vez al montar
+  // cada paso del wizard, en los dos diseños. Ver `usePasoDelWizard.tsx`.
+  | 'form_step_view'
   | 'form_step_complete'
   | 'form_step_back'
   | 'form_step_validation_error'

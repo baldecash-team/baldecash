@@ -359,6 +359,32 @@ export function usePasoDelWizard(opciones: {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step, tracker, formValues, formData]);
 
+  /**
+   * Emite `form_step_view` UNA vez al montar este paso (BAL-4969, medición
+   * Diseño 1 vs Diseño 2). Corre en los dos diseños por igual: `ShellV2`
+   * (Diseño 2) y `PasoDelWizard`/`StepClient` (Diseño 1) montan los dos este
+   * mismo hook, así que un solo punto cubre ambos — el paso "resumen" incluido,
+   * porque también es un `step` normal de este wizard.
+   *
+   * `pasosVistosRef` (no un solo valor) porque `step` es un objeto NUEVO en
+   * cada `useMemo` que depende de `celularBloqueado`/`diseno2`: sin la guarda
+   * por slug, cada re-render de ESE tipo reemitiría el evento aunque el paso
+   * mostrado en pantalla no cambió.
+   */
+  const pasosVistosRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!step || !tracker) return;
+    const slug = step.url_slug || step.code;
+    if (pasosVistosRef.current.has(slug)) return;
+    pasosVistosRef.current.add(slug);
+    tracker.track('form_step_view', {
+      step_slug: slug,
+      step_index: navigation.currentIndex,
+      total_steps: steps.length,
+      diseno: diseno2 ? 2 : 1,
+    });
+  }, [step, tracker, navigation.currentIndex, steps.length, diseno2]);
+
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
