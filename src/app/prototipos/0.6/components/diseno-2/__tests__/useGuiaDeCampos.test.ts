@@ -103,3 +103,18 @@ describe('esDeLargoFijo', () => {
     expect(esDeLargoFijo({ type: 'email' })).toBe(false);
   });
 });
+
+describe('irAlPrimerErrorV2: el foco va al campo con error (BAL-4969, casuísticas)', () => {
+  it('trae el campo a la vista y le da el foco al input, sin dejarlo en el botón', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { irAlPrimerErrorV2 } = require('../useGuiaDeCampos');
+    document.body.innerHTML = `
+      <div data-campo="email"><label for="email">Correo</label><input id="email" /></div>
+      <button id="continuar">Continuar</button>`;
+    Element.prototype.scrollIntoView = jest.fn();
+    (document.getElementById('continuar') as HTMLElement).focus();
+    irAlPrimerErrorV2('email');
+    expect(document.activeElement).toBe(document.getElementById('email'));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+});

@@ -49,6 +49,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { irAlPrimerErrorV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 
 export interface PasoDelWizardControles {
@@ -427,7 +428,10 @@ export function usePasoDelWizard(opciones: {
         step_title: step?.title,
         error_field: firstErrorField,
       });
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Diseño 2: además del scroll, el foco va al campo (teclado y lector
+      // de pantalla, BAL-4969). Diseño 1, como siempre.
+      if (diseno2) irAlPrimerErrorV2(firstErrorField);
+      else document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     tracker?.track('form_step_complete', {

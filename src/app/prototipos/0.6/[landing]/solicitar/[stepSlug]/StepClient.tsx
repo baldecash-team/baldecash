@@ -91,6 +91,13 @@ import {
 import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGuardaV2';
 import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
+import { enfocarCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
+
+/**
+ * El Paso 4 vuelve a la vista 1 y abre la sección antes de bajar al campo
+ * (`volverAlCampo`, ~60 + 60 ms): el foco va después, cuando el campo ya está.
+ */
+const ESPERA_FOCO_PASO4_MS = 160;
 import { seccionesConSegurosDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/seguroAntesDelWizard';
 
 
@@ -743,8 +750,12 @@ function StepContent() {
     const firstErrorField = validateStep();
     if (firstErrorField) {
       // Diseño 2: en celular el campo puede estar en la vista 1; se vuelve
-      // ahí y se baja al campo con la guía. Diseño 1, como siempre.
-      if (usarDiseno2) paso4.volverAlCampo(firstErrorField);
+      // ahí y se baja al campo con la guía, y después recibe el foco
+      // (BAL-4969). Diseño 1, como siempre.
+      if (usarDiseno2) {
+        paso4.volverAlCampo(firstErrorField);
+        window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
+      }
       else document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -1190,6 +1201,7 @@ function StepContent() {
         const firstErrorField = validateStep();
         if (firstErrorField) {
           paso4.volverAlCampo(firstErrorField);
+          window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
           return;
         }
         paso4.irAVista2();

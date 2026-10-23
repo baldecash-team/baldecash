@@ -105,6 +105,45 @@ export function resaltar(el: HTMLElement | null | undefined) {
   }, DURACION_BRILLO_MS);
 }
 
+/**
+ * Lleva el FOCO al control del campo, sin mover la pantalla (el scroll ya lo
+ * hizo `resaltar`). BAL-4969, casuísticas: al apretar "Continuar" con un campo
+ * mal, quien usa teclado o lector de pantalla se quedaba en el botón.
+ */
+export function enfocarCampoV2(codigo: string): void {
+  if (typeof document === 'undefined') return;
+  const contenedor = document.querySelector<HTMLElement>(`[data-campo="${CSS.escape(codigo)}"]`);
+  const control = contenedor?.querySelector<HTMLElement>(ENFOCABLE) ?? document.getElementById(codigo);
+  control?.focus({ preventScroll: true });
+}
+
+/** Espera para que una sección recién abierta pinte su campo antes del foco. */
+const ESPERA_FOCO_MS = 80;
+
+/**
+ * El primer campo con error al apretar "Continuar" (Diseño 2): abre su
+ * sección si estaba cerrada, lo trae a la vista con el brillo de la guía y le
+ * da el foco.
+ */
+export function irAlPrimerErrorV2(codigo: string): void {
+  if (typeof document === 'undefined') return;
+  const el = document.querySelector<HTMLElement>(`[data-campo="${CSS.escape(codigo)}"]`);
+  if (!el) {
+    document.getElementById(codigo)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    enfocarCampoV2(codigo);
+    return;
+  }
+  if (abrirSeccionDe(el)) {
+    window.setTimeout(() => {
+      resaltar(el);
+      enfocarCampoV2(codigo);
+    }, ESPERA_FOCO_MS);
+    return;
+  }
+  resaltar(el);
+  enfocarCampoV2(codigo);
+}
+
 function esVisible(el: HTMLElement): boolean {
   return el.offsetParent !== null || el.getClientRects().length > 0;
 }
