@@ -57,6 +57,18 @@ import { CajaAvisoDelEquipo, type AvisoDelEquipo } from './avisoDelEquipo';
 export type LoQuieroOrigen = 'catalogo' | 'ficha' | 'entrada';
 
 /**
+ * El tipo real del producto para el título del modal (prototipo: «¿Quieres
+ * complementar tu laptop?»). Un tipo desconocido queda en «equipo».
+ */
+export function nombreDelTipo(tipo: string | null | undefined): string {
+  const t = String(tipo ?? '').trim().toLowerCase();
+  if (t === 'laptop' || t === 'notebook') return 'laptop';
+  if (t === 'tablet') return 'tablet';
+  if (t === 'celular' || t === 'smartphone' || t === 'phone' || t === 'telefono' || t === 'teléfono') return 'celular';
+  return 'equipo';
+}
+
+/**
  * Accesorio que ya viene dentro del combo elegido (regalo). `id` es el id de
  * producto, el mismo que trae el endpoint de accesorios: con eso se saca de
  * la lista de "Agregar" y se muestra como incluido (BAL-4957).
@@ -534,6 +546,11 @@ function LoQuieroModalContent({
     selectedProduct && selectedProduct.initialAmount > 0
       ? `inicial S/${formatCuotaDeLanding(selectedProduct.initialAmount, landing)}`
       : 'sin inicial',
+    // Como el prototipo (`footPlan`): los accesorios elegidos van en la leyenda,
+    // sin la línea aparte "Equipo S/x + accesorios S/y".
+    selectedAccessories.length > 0
+      ? `${selectedAccessories.length} ${selectedAccessories.length === 1 ? 'accesorio' : 'accesorios'}`
+      : null,
     appliedCoupon ? 'con cupón' : null,
   ].filter(Boolean).join(' · ');
   const totalVisible = formatCuotaDeLanding(total, landing);
@@ -731,7 +748,7 @@ function LoQuieroModalContent({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 id="lo-quiero-titulo" className="font-['Baloo_2',_sans-serif] text-lg md:text-2xl font-bold text-neutral-800 leading-tight">
-                {hayAccesorios ? '¿Quieres complementar tu equipo?' : 'Un paso más y empiezas tu solicitud'}
+                {hayAccesorios ? `¿Quieres complementar tu ${nombreDelTipo(selectedProduct?.type)}?` : 'Un paso más y empiezas tu solicitud'}
               </h2>
               <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[#5B6275] mt-0.5">
                 {hayAccesorios
@@ -806,7 +823,6 @@ function LoQuieroModalContent({
                     {accesoriosVisibles.map((acc) => {
                       const elegido = selectedAccessories.some((a) => a.id === acc.id);
                       const nombre = nombreParaMostrar(acc.name, acc.brand?.name);
-                      const categoria = acc.category && acc.category.slug !== 'otro' ? acc.category.name : null;
                       return (
                         <li
                           key={acc.id}
@@ -826,9 +842,6 @@ function LoQuieroModalContent({
                             )}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col gap-px md:gap-2">
-                            {categoria && (
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400 truncate">{categoria}</span>
-                            )}
                             <p className="text-sm font-semibold text-[#1E2230] line-clamp-2 leading-[1.25] md:min-h-[35px]">{nombre}</p>
                             {/* Precio y "Ver detalle" (prototipo): en celular uno debajo del
                                 otro; en escritorio en una fila, con el botón abajo. */}
@@ -1027,11 +1040,6 @@ function LoQuieroModalContent({
                     </svg>
                     1.ª cuota en {mesPrimeraCuota}
                   </span>
-                )}
-                {n > 0 && (
-                  <p className="truncate text-xs text-neutral-600">
-                    Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}
-                  </p>
                 )}
               </div>
               {cuponVisible && (

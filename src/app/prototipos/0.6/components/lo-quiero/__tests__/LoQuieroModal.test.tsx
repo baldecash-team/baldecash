@@ -417,7 +417,36 @@ describe('LoQuieroModal · formato de la cuota (I6)', () => {
     mockElegidos = [{ id: 9, name: 'Mouse', monthlyQuota: 10.25 }];
     pintar();
     expect(await screen.findByText('S/80.75')).toBeInTheDocument();
-    expect(screen.getByText(/Equipo S\/70\.50 \+ accesorios S\/10\.25/)).toBeInTheDocument();
+    // Sin la línea aparte "Equipo S/x + accesorios S/y" (prototipo): la
+    // leyenda cuenta los accesorios.
+    expect(screen.queryByText(/Equipo S\/70\.50 \+ accesorios/)).not.toBeInTheDocument();
+    expect(screen.getByText(/24 meses · sin inicial · 1 accesorio/)).toBeInTheDocument();
+  });
+});
+
+describe('LoQuieroModal · como el prototipo (verificación final, BAL-4969)', () => {
+  const ACC = (id: string, name: string, category: Record<string, string> | null) => ({
+    id, name, description: '', price: 60, monthlyQuota: 5, image: '', category,
+    isRecommended: true, compatibleWith: [], term: 24,
+  });
+
+  it.each([
+    ['laptop', 'laptop'],
+    ['tablet', 'tablet'],
+    ['celular', 'celular'],
+    ['otro', 'equipo'],
+  ])('el título usa el tipo real del producto (%s → %s)', async (tipo, palabra) => {
+    mockProducto = producto({ type: tipo });
+    mockAccesorios = [ACC('a1', 'Mouse', null)];
+    pintar();
+    expect(await screen.findByRole('heading', { name: `¿Quieres complementar tu ${palabra}?` })).toBeInTheDocument();
+  });
+
+  it('las tarjetas de accesorios no llevan la etiqueta de categoría', async () => {
+    mockAccesorios = [ACC('a1', 'Mochila Nova', { slug: 'mochila', name: 'Mochila' }), ACC('a2', 'Mouse', null)];
+    pintar();
+    await screen.findByText('Mochila Nova');
+    expect(screen.queryByText('Mochila')).not.toBeInTheDocument();
   });
 });
 

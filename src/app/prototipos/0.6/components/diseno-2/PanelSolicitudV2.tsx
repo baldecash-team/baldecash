@@ -396,11 +396,6 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
               <span className="text-sm font-semibold">{sufijoDeFrecuencia(datos.frecuencia)}</span>
             </span>
           </div>
-          {datos.cuotaAccesorios > 0 && (
-            <p className="mt-0.5 text-right text-xs text-[#5B6275]">
-              Equipo {datos.precio(datos.cuotaEquipo)} + accesorios {datos.precio(datos.cuotaAccesorios)}
-            </p>
-          )}
           <AvisoTope datos={datos} />
           {envio && (
             <>
