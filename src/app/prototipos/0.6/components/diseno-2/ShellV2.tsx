@@ -235,7 +235,10 @@ export function ShellV2({
       />
       <div className="lg:hidden" style={{ height: ALTO_CABECERA_MOVIL }} aria-hidden />
 
-      <div className="relative z-10 mx-auto max-w-[1100px] px-4 pt-6 pb-10 lg:pt-8">
+      {/* Mismo contenedor que el Navbar (max-w-7xl + px-4/6/8): el formulario
+          arranca a la altura del logo y «Tu solicitud» termina a la altura de
+          «Zona Estudiantes». */}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pt-8">
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
           <div className="min-w-0">
             <div className="hidden lg:block">
