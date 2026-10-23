@@ -416,6 +416,7 @@ function RealConfirmationContent({
         overlayVariant={overlayVariant}
         landing={landing}
         applicationCode={applicationCode}
+        telefono={applicationData?.applicant_phone_masked ?? null}
         conDireccion={conDireccion}
         onDescargarConstancia={() => {
           const sessionId = getStoredSessionUuid(landing);

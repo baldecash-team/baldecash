@@ -95,6 +95,25 @@ describe('confirmacionClient — F8, Diseño 2 (BAL-4967)', () => {
     expect(screen.queryByText('¿Tienes alguna duda?')).toBeInTheDocument(); // ContactInfo, reusado tal cual
   });
 
+  it('con el celular enmascarado de /status, el subtítulo dice "al +51 9XX XXX 321" (BAL-4969)', async () => {
+    mockGetApplicationStatus.mockResolvedValue({
+      code: 'APP-2026-00123',
+      reference: 'APP-2026-00123',
+      status: 'received',
+      submitted_at: '2026-10-22T08:38:00-05:00',
+      applicant_name: 'Brenda',
+      applicant_phone_masked: '9XX XXX 321',
+      products: [{ name: 'Laptop Lenovo V15', image: null, quantity: 1, unit_price: 1, final_price: 1, monthly_quota: 159 }],
+      term: 24,
+      term_months: 24,
+      payment_frequency: 'mensual',
+      total_monthly_payment: 159,
+      status_history: [],
+    } as never);
+    render(<ConfirmacionPage />);
+    expect(await screen.findByText(/al \+51 9XX XXX 321/)).toBeInTheDocument();
+  });
+
   it('respuesta limitada (sin token, BAL-4188): pinta la vista limitada de Diseño 2', async () => {
     mockGetApplicationStatus.mockResolvedValue({
       code: 'APP-2026-00123',

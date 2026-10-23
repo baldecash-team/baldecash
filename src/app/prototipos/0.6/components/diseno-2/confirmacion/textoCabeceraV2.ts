@@ -17,10 +17,8 @@ export interface DatosCabeceraV2 {
   /** Mismo plazo que usa Diseño 1 (`data.estimatedResponseHours`, hoy 24). Nunca se inventa uno nuevo. */
   estimatedResponseHours: number;
   /**
-   * Celular del titular, si la confirmación lo tiene disponible. Hoy
-   * `/status` no lo trae (ver `ApplicationStatusData`), así que llega
-   * `undefined` siempre y la frase omite "al +51 …" — queda listo para el
-   * día que el backend lo agregue.
+   * Celular del titular enmascarado (`applicant_phone_masked` de `/status`,
+   * BAL-4969). Sin él, la frase omite "al +51 …".
    */
   telefono?: string | null;
   modoCierreKyc?: 'completado' | 'aprobado' | null;

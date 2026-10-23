@@ -45,9 +45,8 @@ export interface ConfirmacionV2Props {
   applicationCode?: string | null;
   onDescargarConstancia?: () => void;
   /**
-   * Celular del titular para "al +51 …". Hoy siempre `undefined`: el
-   * `/status` público no lo trae (ver `textoCabeceraV2`). Queda como prop
-   * para cuando el backend lo agregue.
+   * Celular del titular para "al +51 …": `applicant_phone_masked` de
+   * `/status`, enmascarado («9XX XXX 321»).
    */
   telefono?: string | null;
   /** Día de pago / entrega: ver nota de disponibilidad en `resumenTarjetaV2`. */
