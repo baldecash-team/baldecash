@@ -22,7 +22,11 @@ export interface AvisoV2Props {
   type?: ToastType;
   isVisible: boolean;
   onClose: () => void;
-  /** ms; 0 no lo cierra solo. */
+  /**
+   * ms; 0 no lo cierra solo. Un error nunca se cierra solo (verificación
+   * final, BAL-4969): como los demás errores de Diseño 2, se queda hasta que
+   * la persona lo cierra o lo corrige (vuelve a enviar).
+   */
   duration?: number;
 }
 
@@ -39,11 +43,12 @@ function tonoDelAviso(type: ToastType) {
 export function AvisoV2({ message, type = 'warning', isVisible, onClose, duration = 4000 }: AvisoV2Props) {
   const menosMovimiento = useMenosMovimiento();
 
+  const seCierraSolo = duration > 0 && type !== 'error';
   useEffect(() => {
-    if (!isVisible || duration <= 0) return;
+    if (!isVisible || !seCierraSolo) return;
     const t = setTimeout(onClose, duration);
     return () => clearTimeout(t);
-  }, [isVisible, duration, onClose]);
+  }, [isVisible, seCierraSolo, duration, onClose]);
 
   const tono = tonoDelAviso(type);
   // Defensa (BAL-4969): si algún día llega algo que no es texto (un `detail`

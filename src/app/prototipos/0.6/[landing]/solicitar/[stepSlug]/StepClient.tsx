@@ -740,6 +740,10 @@ function StepContent() {
     // Wait for flow config to be ready
     if (isFlowConfigLoading) return;
 
+    // Diseño 2: un error del envío anterior se queda hasta que se cierra o
+    // se vuelve a intentar (verificación final, BAL-4969).
+    hideToast();
+
     // Validar campos del paso de resumen usando la misma lógica que pasos regulares
     setSubmitted(true);
     const firstErrorField = validateStep();
@@ -839,6 +843,10 @@ function StepContent() {
 
   // Handler para pasos de resumen que NO son el último (continúan a otro paso)
   const handleSummaryNext = () => {
+    // Diseño 2: un error del envío anterior se queda hasta que se cierra o
+    // se vuelve a intentar (verificación final, BAL-4969).
+    hideToast();
+
     // Validar campos del paso de resumen usando la misma lógica que pasos regulares
     setSubmitted(true);
     const firstErrorField = validateStep();
