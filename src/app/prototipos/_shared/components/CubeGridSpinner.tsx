@@ -50,6 +50,10 @@ export const CubeGridSpinner: React.FC<CubeGridSpinnerProps> = ({
           .ticket-1 { animation: t1-show 1s ease-in-out infinite; }
           .ticket-2 { animation: t2-show 1s ease-in-out infinite; }
           .ticket-3 { animation: t3-show 1s ease-in-out infinite; }
+          /* Movimiento reducido: la cubeta quieta con sus tres tickets. */
+          @media (prefers-reduced-motion: reduce) {
+            .ticket-1, .ticket-2, .ticket-3 { animation: none; }
+          }
         `}</style>
 
         <g transform="translate(50 50)">
