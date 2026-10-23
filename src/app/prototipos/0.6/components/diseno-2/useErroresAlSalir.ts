@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWizard } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardContext';
 import { validateField, type WizardField, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 /**
  * Lugares fuera del campo a donde se va el foco SIN haberlo dejado: la lista
@@ -39,6 +40,9 @@ export function reiniciarCampoTocado(codigo: string): void {
 
 export function useErroresAlSalir(step: WizardStep | null) {
   const { formData, setFieldError, getAllDynamicOptions } = useWizard();
+  // `form_field_error` (BAL-4969, casuísticas): estaba en el catálogo de ws2
+  // pero nadie lo emitía, y la medición de errores por campo salía vacía.
+  const tracker = useEventTrackerOptional();
   // Cada paso arranca sin campos tocados: lo tocado se guarda junto con el
   // paso al que pertenece, y al cambiar de paso se lee como vacío.
   const codigoPaso = step?.code ?? null;
@@ -105,9 +109,22 @@ export function useErroresAlSalir(step: WizardStep | null) {
       // visibilidad (que con el prellenado no es la simple).
       const { error } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
       const actual = formData[codigo]?.error ?? null;
-      if ((error ?? null) !== actual) setFieldError(codigo, error);
+      if ((error ?? null) !== actual) {
+        setFieldError(codigo, error);
+        // Un error NUEVO al salir del campo (o al corregir mal): una fila por
+        // cambio de mensaje, no por tecla.
+        if (error) {
+          tracker?.track('form_field_error', {
+            step_code: codigoPaso,
+            field_code: codigo,
+            error_field: codigo,
+            error_message: error,
+            diseno: 2,
+          });
+        }
+      }
     }
-  }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError]);
+  }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError, tracker, codigoPaso]);
 
   return { camposTocados, onBlur };
 }

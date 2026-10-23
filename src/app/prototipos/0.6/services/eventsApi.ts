@@ -118,6 +118,8 @@ export type EventType =
   | 'form_step_complete'
   | 'form_step_back'
   | 'form_step_validation_error'
+  // Error de un campo al salir de él (Diseño 2, `useErroresAlSalir`, BAL-4969).
+  | 'form_field_error'
   | 'form_submit_success'
   | 'form_submit_error'
   | 'coupon_applied'
