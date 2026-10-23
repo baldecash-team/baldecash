@@ -416,6 +416,10 @@ describe('Buscador en Diseño 2', () => {
   const buscador = () => screen.getByPlaceholderText(/Buscar|Escribe/) as HTMLInputElement;
   const opcionesVisibles = () =>
     Array.from(document.querySelectorAll('[role="listbox"] button')).map((b) => b.textContent);
+  // Búsqueda remota (institución, carrera): el buscador es el campo mismo,
+  // con lupa, como en el prototipo de Brenda (verificación final).
+  const campo = () => screen.getByRole('combobox') as HTMLInputElement;
+  const abrirCampo = () => fireEvent.focus(campo());
 
   it('sin tildes ni mayúsculas, y como máximo 5 visibles', () => {
     render(
@@ -498,20 +502,20 @@ describe('Buscador en Diseño 2', () => {
       </CamposV2Provider>
     );
     const { rerender } = render(<Buscador options={[]} isSearching={false} />);
-    abrir();
-    fireEvent.change(buscador(), { target: { value: 'pa' } });
+    abrirCampo();
+    fireEvent.change(campo(), { target: { value: 'pa' } });
     expect(onSearch).not.toHaveBeenCalled();
     expect(screen.getByText(/al menos 3/)).toBeInTheDocument();
 
-    fireEvent.change(buscador(), { target: { value: 'univ' } });
+    fireEvent.change(campo(), { target: { value: 'univ' } });
     expect(onSearch).toHaveBeenLastCalledWith('univ');
     rerender(<Buscador options={[]} isSearching />);
     rerender(<Buscador options={INSTITUCIONES} isSearching={false} />);
     expect(opcionesVisibles()).toHaveLength(5);
 
     // Escribe más y sale antes de la respuesta: decide cuando llega.
-    fireEvent.change(buscador(), { target: { value: 'pacifico' } });
-    fireEvent.blur(buscador(), { relatedTarget: document.body });
+    fireEvent.change(campo(), { target: { value: 'pacifico' } });
+    fireEvent.blur(campo(), { relatedTarget: document.body });
     expect(onChange).not.toHaveBeenCalled();
     rerender(<Buscador options={INSTITUCIONES} isSearching />);
     rerender(<Buscador options={[INSTITUCIONES[0]]} isSearching={false} />);
@@ -543,13 +547,13 @@ describe('Buscador en Diseño 2', () => {
     it('abrir y escribir otra vez descarta la elección pendiente del término viejo', () => {
       const onChange = jest.fn();
       const rerender = pintarRemoto(jest.fn(() => true), onChange);
-      abrir();
-      fireEvent.change(buscador(), { target: { value: 'pacifico' } });
+      abrirCampo();
+      fireEvent.change(campo(), { target: { value: 'pacifico' } });
       // Sale antes de que lleguen los resultados: queda pendiente "pacifico".
-      fireEvent.blur(buscador(), { relatedTarget: document.body });
+      fireEvent.blur(campo(), { relatedTarget: document.body });
       // Vuelve a abrir y escribe otra cosa: lo pendiente ya no vale.
-      abrir();
-      fireEvent.change(buscador(), { target: { value: 'univ' } });
+      abrirCampo();
+      fireEvent.change(campo(), { target: { value: 'univ' } });
       rerender(INSTITUCIONES, true);
       rerender([INSTITUCIONES[0]], false);
       // Llegó una sola coincidencia, pero la persona sigue en el buscador.
@@ -560,15 +564,50 @@ describe('Buscador en Diseño 2', () => {
     it('si no va a buscar (filtro vacío: onSearch devuelve false), no deja nada esperando', () => {
       const onChange = jest.fn();
       const rerender = pintarRemoto(jest.fn(() => false), onChange);
-      abrir();
-      fireEvent.change(buscador(), { target: { value: 'pacifico' } });
-      fireEvent.blur(buscador(), { relatedTarget: document.body });
+      abrirCampo();
+      fireEvent.change(campo(), { target: { value: 'pacifico' } });
+      fireEvent.blur(campo(), { relatedTarget: document.body });
       expect(onChange).not.toHaveBeenCalled();
       // Una búsqueda que termina después no elige nada con ese término.
       rerender(INSTITUCIONES, true);
       rerender([INSTITUCIONES[0]], false);
       expect(onChange).not.toHaveBeenCalled();
     });
+  });
+
+  it('búsqueda remota: es un campo con lupa donde se escribe directo; sin desplegable con buscador adentro', () => {
+    const onSearch = jest.fn(() => true);
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <CamposV2Provider>
+        <SelectInput id="institution" label="Institución" value="" onChange={onChange} options={[]}
+          placeholder="Busca tu institución" onSearch={onSearch} minSearchLength={3} />
+      </CamposV2Provider>,
+    );
+    expect(campo()).toHaveAttribute('placeholder', 'Busca tu institución');
+    expect(screen.queryByRole('button', { name: /Busca/ })).not.toBeInTheDocument();
+    // Se escribe directo en el campo, sin abrir nada antes.
+    fireEvent.change(campo(), { target: { value: 'pacif' } });
+    expect(onSearch).toHaveBeenLastCalledWith('pacif');
+    expect(campo()).toHaveAttribute('aria-expanded', 'true');
+    // Los resultados caen debajo, sin un segundo buscador dentro de la lista.
+    rerender(
+      <CamposV2Provider>
+        <SelectInput id="institution" label="Institución" value="" onChange={onChange} options={[INSTITUCIONES[0]]}
+          placeholder="Busca tu institución" onSearch={onSearch} minSearchLength={3} />
+      </CamposV2Provider>,
+    );
+    expect(screen.getByRole('listbox').querySelector('input')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Universidad del Pacífico' }));
+    expect(onChange).toHaveBeenCalledWith('1', 'Universidad del Pacífico');
+    // Elegida, el campo muestra el nombre.
+    rerender(
+      <CamposV2Provider>
+        <SelectInput id="institution" label="Institución" value="1" onChange={onChange} options={[INSTITUCIONES[0]]}
+          placeholder="Busca tu institución" onSearch={onSearch} minSearchLength={3} />
+      </CamposV2Provider>,
+    );
+    expect(campo().value).toBe('Universidad del Pacífico');
   });
 
   it('Diseño 1: sin el límite de 5 ni la elección sola', () => {

@@ -136,6 +136,12 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   // Check if user needs to type more characters for remote search
   const needsMoreChars = isRemoteSearch && minSearchLength > 0 && searchTerm.length < minSearchLength;
 
+  // Diseño 2 (verificación final, BAL-4969): los buscadores remotos
+  // (institución, carrera) son como en el prototipo de Brenda: un campo con
+  // lupa donde se escribe directo y los resultados caen debajo. No un
+  // desplegable con el buscador adentro.
+  const buscadorEnCampo = v2 && searchable && isRemoteSearch;
+
   // ── Diseño 2: al salir del buscador, una sola coincidencia se elige sola ──
   // El dedo (o el mouse) dentro del desplegable no cuenta como salir: en
   // Safari un botón no toma el foco al tocarlo y el blur llega sin destino.
@@ -198,6 +204,28 @@ export const SelectInput: React.FC<SelectInputProps> = ({
     // Solo cuando termina una búsqueda; `options` llega en el mismo render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSearching, v2, isRemoteSearch]);
+
+  // Lo que pasa al escribir, venga del buscador de adentro (desplegable) o del
+  // campo mismo (buscador en el campo).
+  const escribir = (newValue: string) => {
+    setSearchTerm(newValue);
+    if (v2) olvidarPendiente();
+    // For remote search, call onSearch when user types enough characters
+    if (onSearch && newValue.length >= minSearchLength) {
+      const buscara = onSearch(newValue) !== false;
+      // Diseño 2: hay resultados que esperar solo si de verdad
+      // se lanzó una búsqueda.
+      if (v2) esperandoResultadosRef.current = buscara;
+    }
+  };
+
+  const abrirBuscadorEnCampo = () => {
+    if (disabled || isOpen) return;
+    olvidarPendiente();
+    setSearchTerm('');
+    setIsOpen(true);
+    onFocus?.();
+  };
 
   const selectedOption = options.find((opt) => opt.value === value);
   // Use savedLabel as fallback when options aren't loaded (lazy search after refresh)
@@ -273,7 +301,60 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       )}
 
       {/* Select trigger */}
-      <div className="relative">
+      {/* Abierto, el buscador en el campo queda por encima de la capa de
+          "clic afuera" (z-30): se puede tocar para mover el cursor. */}
+      <div className={buscadorEnCampo && isOpen ? 'relative z-40' : 'relative'}>
+        {buscadorEnCampo ? (
+          <div className="relative">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--color-primary-text)]"
+            />
+            <input
+              id={`${id}-trigger`}
+              type="text"
+              role="combobox"
+              autoComplete="off"
+              enterKeyHint="done"
+              aria-autocomplete="list"
+              aria-expanded={isOpen}
+              aria-controls={`${id}-listbox`}
+              aria-describedby={showError && error ? `${id}-error` : undefined}
+              disabled={disabled}
+              value={isOpen ? searchTerm : displayLabel || ''}
+              placeholder={isOpen && displayLabel ? displayLabel : placeholder}
+              onFocus={abrirBuscadorEnCampo}
+              onClick={abrirBuscadorEnCampo}
+              onChange={(e) => {
+                if (!isOpen) {
+                  olvidarPendiente();
+                  setIsOpen(true);
+                  onFocus?.();
+                }
+                escribir(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && isOpen) {
+                  e.preventDefault();
+                  setIsOpen(false);
+                  setSearchTerm('');
+                  onBlur?.();
+                } else if (e.key === 'Enter' && isOpen) {
+                  e.preventDefault();
+                  if (!isSearching && !needsMoreChars && visibleOptions.length === 1) handleSelect(visibleOptions[0].value);
+                }
+              }}
+              style={{ fontSize: '16px' }}
+              className={`w-full pl-10 pr-10 text-[#1E2230] placeholder:text-[#8A90A2] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })} ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}`}
+            />
+            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              {isSearching && (
+                <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" aria-hidden />
+              )}
+              {!isOpen && showSuccess && <Check className="w-5 h-5 text-[#0E8C78]" aria-hidden />}
+            </div>
+          </div>
+        ) : (
         <div
           id={v2 ? `${id}-trigger` : undefined}
           role="button"
@@ -338,6 +419,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
+        )}
 
         {/* Dropdown */}
         {isOpen && (
@@ -346,8 +428,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             role="listbox"
             className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden"
           >
-            {/* Search input */}
-            {searchable && (
+            {/* Search input (el buscador en el campo ya lo tiene arriba) */}
+            {searchable && !buscadorEnCampo && (
               <div className="p-2 border-b border-neutral-100">
                 <div className="flex items-center gap-2 h-9 px-3 bg-neutral-50 rounded-md">
                   <Search className="w-4 h-4 text-neutral-400" />
@@ -356,18 +438,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                     type="text"
                     placeholder={minSearchLength > 0 ? `Escribe al menos ${minSearchLength} letras...` : 'Buscar...'}
                     value={searchTerm}
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      setSearchTerm(newValue);
-                      if (v2) olvidarPendiente();
-                      // For remote search, call onSearch when user types enough characters
-                      if (onSearch && newValue.length >= minSearchLength) {
-                        const buscara = onSearch(newValue) !== false;
-                        // Diseño 2: hay resultados que esperar solo si de verdad
-                        // se lanzó una búsqueda.
-                        if (v2) esperandoResultadosRef.current = buscara;
-                      }
-                    }}
+                    onChange={(e) => escribir(e.target.value)}
                     style={{ fontSize: '16px' }}
                     className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />
