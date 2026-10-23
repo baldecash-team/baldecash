@@ -217,6 +217,10 @@ export interface WizardStepGroup {
   order: number;
   is_collapsible: boolean;
   field_codes: string[];
+  /** Ícono lucide (kebab-case) del círculo junto al título. Solo si tiene valor. */
+  icon?: string;
+  /** Línea gris bajo el título de la sección. Solo si tiene valor. */
+  description?: string;
 }
 
 /**

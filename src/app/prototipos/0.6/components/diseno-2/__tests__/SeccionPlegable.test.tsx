@@ -348,3 +348,27 @@ describe('SeccionPlegable', () => {
     el.remove();
   });
 });
+
+describe('SeccionPlegable — ícono y descripción de la sección (prototipo de Brenda)', () => {
+  it('pinta el círculo con el ícono de la BD y la descripción bajo el título', () => {
+    const { container } = render(
+      <SeccionPlegable codigo="dir" titulo="Dirección de tu casa" icono="house" descripcion="Donde vives ahora." plegable={false} completa={false} resumen="">
+        <input aria-label="calle" />
+      </SeccionPlegable>,
+    );
+    expect(container.querySelector('[data-icono-seccion="house"] svg')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Dirección de tu casa' })).toBeInTheDocument();
+    expect(screen.getByText('Donde vives ahora.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Dirección de tu casa' })).toBeInTheDocument();
+  });
+
+  it('un ícono que la web no conoce no deja un círculo vacío', () => {
+    const { container } = render(
+      <SeccionPlegable codigo="x" titulo="Tus estudios" icono="cohete" plegable={false} completa={false} resumen="">
+        <input aria-label="a" />
+      </SeccionPlegable>,
+    );
+    expect(container.querySelector('[data-icono-seccion]')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Tus estudios' })).toBeInTheDocument();
+  });
+});

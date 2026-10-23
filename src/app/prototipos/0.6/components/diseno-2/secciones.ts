@@ -265,3 +265,42 @@ export function resumenDeSeccion(
   }
   return partes.join(' · ');
 }
+
+/**
+ * Cascadas en una fila (BAL-4966, prototipo de Brenda: Departamento, Provincia
+ * y Distrito juntos). Una cascada son 2 o 3 listas SEGUIDAS en el orden del
+ * paso donde cada una depende de la anterior (`cascade_from` = código de la
+ * de arriba). Devuelve, por código, cuántas listas tiene su cascada y su lugar; los
+ * campos que no son parte de una cascada no aparecen. No conoce códigos: lo
+ * decide `cascade_from` del snapshot.
+ *
+ * Choca con D7 (una columna en Diseño 2): gana el prototipo, que las pone en
+ * una fila de 3 en escritorio y de 2 + 1 en celular.
+ */
+export function cascadasEnFila(fields: WizardField[]): Map<string, { largo: number; indice: number }> {
+  const fila = new Map<string, { largo: number; indice: number }>();
+  let i = 0;
+  while (i < fields.length) {
+    let j = i;
+    while (
+      j + 1 < fields.length &&
+      fields[j + 1].cascade_from &&
+      fields[j + 1].cascade_from === fields[j].code &&
+      fields[j].type === 'select' &&
+      fields[j + 1].type === 'select'
+    ) j++;
+    const largo = j - i + 1;
+    if (largo >= 2 && largo <= 3) for (let k = i; k <= j; k++) fila.set(fields[k].code, { largo, indice: k - i });
+    i = j + 1;
+  }
+  return fila;
+}
+
+/**
+ * Clases de columna de un campo en una cascada en fila. Celular: de a dos
+ * (la tercera sola abajo, como el prototipo); escritorio: todas en una fila.
+ */
+export function columnasDeCascada(largo: number, indice: number): string {
+  if (largo === 2) return 'col-span-6';
+  return indice < 2 ? 'col-span-6 md:col-span-4' : 'col-span-12 md:col-span-4';
+}

@@ -32,6 +32,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { flushSync } from 'react-dom';
 import { Check } from 'lucide-react';
 import { esPantallaDeCelular, prefiereMenosMovimiento } from './movimiento';
+import { IconoDeSeccionV2 } from './IconoDeSeccionV2';
 
 /** Evento DOM que abre una sección cerrada (lo dispara la guía de campos). */
 export const EVENTO_ABRIR_SECCION = 'diseno2:abrir-seccion';
@@ -70,6 +71,16 @@ export interface SeccionPlegableProps {
   /** Código de la sección (`groups[].code`): arma los ids. */
   codigo: string;
   titulo: string;
+  /** `groups[].icon`: círculo con el ícono junto al título (prototipo). */
+  icono?: string | null;
+  /** `groups[].description`: línea gris bajo el título ("Donde vives ahora."). */
+  descripcion?: string | null;
+  /**
+   * La sección tiene un solo campo y su etiqueta ES el título (Paso 4 del
+   * prototipo: "¿Qué día del mes prefieres pagar?"). Abierta no repite el
+   * título: la etiqueta del campo hace de título de la tarjeta.
+   */
+  tituloEnElCampo?: boolean;
   /** `groups[].is_collapsible`. Sin esto solo agrupa. */
   plegable: boolean;
   /** Todos sus obligatorios visibles llenos y todo lo escrito válido. */
@@ -92,6 +103,9 @@ interface Cierre {
 export function SeccionPlegable({
   codigo,
   titulo,
+  icono,
+  descripcion,
+  tituloEnElCampo = false,
   plegable,
   completa,
   resumen,
@@ -269,7 +283,8 @@ export function SeccionPlegable({
       ref={raizRef}
       data-seccion={codigo}
       data-cerrada={cerrada ? 'true' : 'false'}
-      aria-labelledby={idTitulo}
+      aria-labelledby={tituloEnElCampo && !cerrada ? undefined : idTitulo}
+      aria-label={tituloEnElCampo && !cerrada ? titulo : undefined}
       className="col-span-12 flex flex-col gap-4"
       onFocus={() => {
         focoDentroRef.current = true;
@@ -285,7 +300,7 @@ export function SeccionPlegable({
           el resumen y "Editar" alrededor. */}
       <div
         // Cerrada: la línea de resumen entra con `bcPop` 0,25 s del prototipo.
-        className={cerrada ? 'd2-pop flex items-center gap-3 py-1' : undefined}
+        className={cerrada ? 'd2-pop flex items-center gap-3 py-1' : tituloEnElCampo ? 'hidden' : undefined}
         data-resumen-seccion={cerrada ? codigo : undefined}
       >
         {cerrada && (
@@ -296,6 +311,19 @@ export function SeccionPlegable({
             <Check className="h-[15px] w-[15px]" strokeWidth={3} />
           </span>
         )}
+        {!cerrada && tituloEnElCampo ? null : !cerrada && (icono || descripcion) ? (
+          // Abierta con ícono o descripción: círculo + título (+ línea gris),
+          // como "Tus estudios" y "Dirección de tu casa" del prototipo.
+          <div className="flex items-center gap-2.5">
+            <IconoDeSeccionV2 nombre={icono} />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <h2 id={idTitulo} className="text-lg font-bold leading-snug text-[#1E2230]">
+                {titulo}
+              </h2>
+              {descripcion && <p className="text-sm text-[#5B6275]">{descripcion}</p>}
+            </div>
+          </div>
+        ) : (
         <div className={cerrada ? 'flex min-w-0 flex-grow flex-col gap-0.5' : undefined}>
           <h2
             id={idTitulo}
@@ -311,6 +339,7 @@ export function SeccionPlegable({
             </p>
           )}
         </div>
+        )}
         {cerrada && (
           <button
             type="button"
@@ -327,7 +356,7 @@ export function SeccionPlegable({
       <div
         id={idContenido}
         hidden={cerrada}
-        className={cerrada ? 'hidden' : `grid grid-cols-12 gap-y-4${yaSeCerro ? ' d2-aparece' : ''}`}
+        className={cerrada ? 'hidden' : `grid grid-cols-12 gap-x-3 gap-y-4${yaSeCerro ? ' d2-aparece' : ''}`}
       >
         {children}
       </div>

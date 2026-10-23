@@ -17,7 +17,7 @@ import { CamposV2Provider, PISTA_V2, TARJETA_V2, TARJETA_V2_ESTILO } from '@/app
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
 import { ayudaDelNumero, camposPrellenadosEscondidos, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
-import { armarBloques, camposPegados, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
+import { armarBloques, camposPegados, cascadasEnFila, columnasDeCascada, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -372,6 +372,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     () => (esV2 && !step.groups?.length ? ordenConPegados(step.fields, pegados) : []),
     [esV2, step, pegados],
   );
+  // Diseño 2: Departamento / Provincia / Distrito en una fila (prototipo).
+  const cascadas = useMemo(() => (esV2 ? cascadasEnFila(step.fields) : new Map<string, { largo: number; indice: number }>()), [esV2, step]);
 
   // Diseño 2 (BAL-4969): los campos visibles al montar el paso entran con la
   // tarjeta; los que aparecen DESPUÉS (una dependencia los destapa, o
@@ -436,10 +438,11 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       <React.Fragment key={field.code}>
         <div
           // Diseño 2: una sola columna (decisión D7), se ignoran
-          // `grid_columns` / `grid_columns_mobile`. Un "Otra" pegado a su
-          // lista va más junto: se siente parte del mismo campo.
+          // `grid_columns` / `grid_columns_mobile`; salvo una cascada
+          // (departamento > provincia > distrito), que va en una fila como
+          // en el prototipo. Un "Otra" pegado a su lista va más junto.
           className={esV2
-            ? `col-span-12 campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
+            ? `${cascadas.has(field.code) ? columnasDeCascada(cascadas.get(field.code)!.largo, cascadas.get(field.code)!.indice) : 'col-span-12'} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
             : `${colMobileClass} ${colClass}`}
           {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2, ...(pegadoA ? { 'data-pegado-a': pegadoA } : {}) } : {})}
         >
@@ -492,7 +495,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   } else if (!step.groups?.length) {
     // Diseño 2 sin secciones: una columna, en el orden del paso.
     campos = (
-      <div ref={contenedorRef} className="grid grid-cols-12 gap-y-4">
+      <div ref={contenedorRef} className="grid grid-cols-12 gap-x-3 gap-y-4">
         {ordenV2.map((field) => pintarCampo(field))}
       </div>
     );
@@ -506,7 +509,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
           if (bloque.tipo === 'sueltos') {
             if (!bloque.campos.some((f) => fieldVisibility[f.code])) return null;
             return (
-              <div key="__sin-seccion" data-tarjeta-v2 className={`grid grid-cols-12 gap-y-4 ${TARJETA_V2}`} style={TARJETA_V2_ESTILO}>
+              <div key="__sin-seccion" data-tarjeta-v2 className={`grid grid-cols-12 gap-x-3 gap-y-4 ${TARJETA_V2}`} style={TARJETA_V2_ESTILO}>
                 {bloque.campos.map((field) => pintarCampo(field))}
               </div>
             );
@@ -527,6 +530,14 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
             <SeccionPlegable
               codigo={bloque.grupo.code}
               titulo={bloque.grupo.name}
+              icono={bloque.grupo.icon}
+              descripcion={bloque.grupo.description}
+              tituloEnElCampo={
+                bloque.campos.length === 1 &&
+                !bloque.grupo.icon &&
+                !bloque.grupo.description &&
+                bloque.campos[0].label.trim().toLowerCase() === bloque.grupo.name.trim().toLowerCase()
+              }
               plegable={bloque.grupo.is_collapsible}
               completa={completa}
               resumen={resumenDeSeccion(visibles, formValues, getFieldLabel, pegados)}

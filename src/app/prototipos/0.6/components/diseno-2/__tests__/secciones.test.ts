@@ -5,6 +5,8 @@
 import type { WizardField } from '@/app/prototipos/0.6/services/wizardApi';
 import {
   armarBloques,
+  cascadasEnFila,
+  columnasDeCascada,
   camposPegados,
   ordenConPegados,
   etiquetaCorta,
@@ -254,5 +256,29 @@ describe('Buscador de Diseño 2', () => {
     expect(eleccionAutomatica(varias, 'ingen', 3)).toBeNull();
     expect(eleccionAutomatica(una, 'pa', 3)).toBeNull();
     expect(eleccionAutomatica([{ label: 'A', disabled: true }], 'aaa', 3)).toBeNull();
+  });
+});
+
+describe('cascadasEnFila (Departamento / Provincia / Distrito en una fila)', () => {
+  const dep = campo('department', { type: 'select' });
+  const prov = campo('province', { type: 'select', cascade_from: 'department' });
+  const dist = campo('district', { type: 'select', cascade_from: 'province' });
+
+  it('marca las tres listas encadenadas con su lugar', () => {
+    const fila = cascadasEnFila([campo('payment_day', { type: 'select' }), dep, prov, dist, campo('address')]);
+    expect(fila.get('department')).toEqual({ largo: 3, indice: 0 });
+    expect(fila.get('district')).toEqual({ largo: 3, indice: 2 });
+    expect(fila.has('payment_day')).toBe(false);
+    expect(fila.has('address')).toBe(false);
+  });
+
+  it('si algo se mete en medio, no hay fila', () => {
+    expect(cascadasEnFila([dep, campo('x'), prov]).size).toBe(0);
+  });
+
+  it('clases: 2 + 1 en celular y 3 en escritorio', () => {
+    expect(columnasDeCascada(3, 0)).toBe('col-span-6 md:col-span-4');
+    expect(columnasDeCascada(3, 2)).toBe('col-span-12 md:col-span-4');
+    expect(columnasDeCascada(2, 1)).toBe('col-span-6');
   });
 });
