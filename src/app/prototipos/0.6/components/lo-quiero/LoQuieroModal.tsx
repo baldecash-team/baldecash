@@ -23,7 +23,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { AlertTriangle, ArrowRight, Check, ChevronDown, ChevronRight, Gift, Package, Tag, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, ChevronDown, ChevronRight, Gift, Lock, Package, Tag, X } from 'lucide-react';
 
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -40,7 +40,7 @@ import {
 } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { WizardConfigProvider, useWizardConfig } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
-import { CouponInput } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
+import { CouponInput, useQuitarCupon } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
 import { getTermUnit } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/etiquetaDePlazo';
 import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 // I6 (BAL-4969): la cuota se escribe como en el panel, el Shell y la confirmación
@@ -198,7 +198,7 @@ function LoQuieroModalContent({
   const accesoriosHabilitados = !flujo.isLoading && flujo.isEnabled('accessories');
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const terminosRef = useRef<HTMLDivElement>(null);
+  const terminosRef = useRef<HTMLButtonElement>(null);
 
   // ── Apertura: limpiar accesorios de un intento anterior + evento ──────────
   // La ficha guardaba el producto sin tocar los accesorios, así que un intento
@@ -224,6 +224,13 @@ function LoQuieroModalContent({
   const cerrarDetalleRef = useRef<() => void>(() => {});
   const detalleAbiertoRef = useRef(false);
   detalleAbiertoRef.current = !!detalle;
+  // Modal del cupón (BAL-4958): la capa de más arriba.
+  const [cuponAbierto, setCuponAbierto] = useState(false);
+  const cuponCapaRef = useRef<HTMLDivElement>(null);
+  const filaCuponRef = useRef<HTMLButtonElement>(null);
+  const cuponAbiertoRef = useRef(false);
+  cuponAbiertoRef.current = cuponAbierto;
+  const cerrarCuponRef = useRef<() => void>(() => {});
 
   const cerrarDetalle = useCallback(() => {
     setDetalle(null);
@@ -243,11 +250,17 @@ function LoQuieroModalContent({
     document.body.style.overflow = 'hidden';
 
     const onKeyDown = (e: KeyboardEvent) => {
-      // Con el detalle encima, Escape y Tab son de esa capa.
-      const capa = detalleAbiertoRef.current ? detalleRef.current : panelRef.current;
+      // Con el cupón o el detalle encima, Escape y Tab son de esa capa: Escape
+      // cierra solo la de más arriba, no el modal entero.
+      const capa = cuponAbiertoRef.current
+        ? cuponCapaRef.current
+        : detalleAbiertoRef.current
+          ? detalleRef.current
+          : panelRef.current;
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (detalleAbiertoRef.current) cerrarDetalleRef.current();
+        if (cuponAbiertoRef.current) cerrarCuponRef.current();
+        else if (detalleAbiertoRef.current) cerrarDetalleRef.current();
         else cerrarRef.current('escape');
         return;
       }
@@ -397,10 +410,35 @@ function LoQuieroModalContent({
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => setMuestraCupon(cfg.features.has_coupon));
   }, [landing]);
-  const [cuponAbierto, setCuponAbierto] = useState(false);
   const [errorCupon, setErrorCupon] = useState<string | null>(null);
   const cuponVisible = muestraCupon || isCouponRequired;
-  const panelCuponAbierto = cuponVisible && (cuponAbierto || !!appliedCoupon || isCouponRequired);
+  const quitarCupon = useQuitarCupon();
+
+  // El cupón se escribe en un modal chico encima de este (BAL-4958). La
+  // validación y la aplicación son las de `CouponInput`, que vive adentro.
+  const abrirCupon = useCallback(() => setCuponAbierto(true), []);
+  const cerrarCupon = useCallback(() => {
+    setCuponAbierto(false);
+    // La fila se vuelve a pintar (con o sin cupón): se busca después del render.
+    requestAnimationFrame(() => filaCuponRef.current?.focus());
+  }, []);
+  cerrarCuponRef.current = cerrarCupon;
+
+  useEffect(() => {
+    if (!cuponAbierto) return;
+    cuponCapaRef.current?.querySelector<HTMLInputElement>('input')?.focus();
+  }, [cuponAbierto]);
+
+  // Cupón válido: el modal chico se cierra solo.
+  const codigoAplicado = appliedCoupon?.code ?? null;
+  useEffect(() => {
+    if (codigoAplicado && cuponAbiertoRef.current) cerrarCuponRef.current();
+  }, [codigoAplicado]);
+
+  const quitarCuponDeLaFila = () => {
+    quitarCupon();
+    requestAnimationFrame(() => filaCuponRef.current?.focus());
+  };
 
   // Solo cuenta lo que se aplica DENTRO del modal: el de campaña que ya venía
   // del link lo reporta `CouponInput` con `source: 'url'`.
@@ -538,6 +576,7 @@ function LoQuieroModalContent({
     }
     if (isCouponRequired && !appliedCoupon) {
       setErrorCupon('Debes ingresar un cupón válido para continuar');
+      setCuponAbierto(true);
       return;
     }
     if (isOverQuotaLimit) return;
@@ -812,144 +851,137 @@ function LoQuieroModalContent({
 
         {/* Pie fijo */}
         <div className="shrink-0 border-t border-neutral-100 px-4 md:px-6 pt-2 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-white rounded-b-2xl">
-          <div className="flex flex-col md:flex-row md:items-center md:gap-3">
-            {/* Casilla única de Términos + Privacidad: neutra hasta que falte.
-                QA F10 · Falla 1 (BAL-4969): los enlaces ya no van DENTRO de la
-                casilla. Antes el centro del texto caía sobre «Política de
-                privacidad» y tocar la frase abría la página en vez de marcar.
-                Ahora toda la frase marca y los enlaces van en su propia línea,
-                fuera del `role="checkbox"` (tampoco se anida un enlace dentro
-                de un control). */}
+          {/* Lista simple (BAL-4958, aprobado por Emilio): tres filas iguales,
+              sin cajas, alineadas a la izquierda, igual en celular y escritorio.
+              - Términos: los enlaces van DENTRO de la frase. Tocar la frase o la
+                casilla marca; tocar un enlace abre el documento y NO marca.
+                La casilla es solo el cuadrito (`role="checkbox"`), así que los
+                enlaces nunca quedan dentro del control (QA F10 · Falla 1).
+              - El cupón se escribe en un modal chico encima de este. */}
+          <div className="flex flex-col">
             <div
-              className={`rounded-lg border transition-colors duration-150 md:flex-1 ${
-                aceptaTerminos
-                  ? 'border-[#BFE6DA] bg-[#F2FBF8]'
-                  : errorTerminos
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-neutral-200 bg-white hover:border-neutral-300'
-              }`}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('a')) return;
+                alternarTerminos();
+              }}
+              className="flex items-start gap-2.5 min-h-[44px] py-2.5 cursor-pointer select-none"
             >
-              <div
+              <button
                 ref={terminosRef}
+                type="button"
                 role="checkbox"
                 aria-checked={aceptaTerminos}
                 aria-invalid={errorTerminos && !aceptaTerminos}
+                aria-labelledby="lo-quiero-terminos-texto"
                 aria-describedby={errorTerminos && !aceptaTerminos ? 'lo-quiero-terminos-error' : undefined}
-                tabIndex={0}
-                onClick={alternarTerminos}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    alternarTerminos();
-                  }
-                }}
-                className="flex items-center gap-2.5 min-h-[44px] rounded-lg px-2.5 pt-1.5 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                className={`w-5 h-5 mt-px rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                  aceptaTerminos
+                    ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                    : errorTerminos
+                      ? 'bg-white border-red-500'
+                      : 'bg-white border-neutral-400'
+                }`}
               >
-                <span
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${
-                    aceptaTerminos
-                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-                      : errorTerminos
-                        ? 'bg-white border-red-500'
-                        : 'bg-white border-neutral-400'
-                  }`}
-                  aria-hidden
-                >
-                  {aceptaTerminos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} />}
+                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} aria-hidden />}
+              </button>
+              <span className="flex-1 min-w-0 text-sm leading-[22px] text-neutral-800">
+                <span id="lo-quiero-terminos-texto">
+                  Acepto los{' '}
+                  <a
+                    href={routes.legal(landing, 'terminos-y-condiciones')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-semibold underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  >
+                    Términos
+                  </a>{' '}
+                  y la{' '}
+                  <a
+                    href={routes.legal(landing, 'politica-de-privacidad')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-semibold underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  >
+                    Política de privacidad
+                  </a>
                 </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm text-neutral-800">Acepto Términos y Política de privacidad</span>
-                  {errorTerminos && !aceptaTerminos && (
-                    <span id="lo-quiero-terminos-error" role="alert" className="block text-xs font-semibold text-red-600">
-                      Marca la casilla para continuar.
-                    </span>
-                  )}
-                </span>
-                {aceptaTerminos && <span className="text-xs font-semibold text-[#0B6B5C] shrink-0">¡Listo!</span>}
-              </div>
-              {/* M-1 (BAL-4969): cada enlace tiene su propia área táctil de 44px y
-                  separación entre ambos; siguen fuera del `role="checkbox"`. */}
-              <div className="flex flex-wrap items-center gap-x-1 pl-[32px] pr-2.5 text-xs text-neutral-500">
-                <span>Leer</span>
-                <a
-                  href={routes.legal(landing, 'terminos-y-condiciones')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2 underline text-[var(--color-primary-text)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                >
-                  Términos
-                </a>
-                <span aria-hidden>·</span>
-                <a
-                  href={routes.legal(landing, 'politica-de-privacidad')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2 underline text-[var(--color-primary-text)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                >
-                  Política de privacidad
-                </a>
-              </div>
+                {errorTerminos && !aceptaTerminos && (
+                  <span id="lo-quiero-terminos-error" role="alert" className="block text-xs font-semibold text-red-600">
+                    Marca la casilla para continuar.
+                  </span>
+                )}
+              </span>
             </div>
 
-            {/* Promociones (opcional) + cupón plegable en la misma fila */}
-            <div className="flex items-center gap-2 md:shrink-0">
-              <div
+            <div
+              onClick={() => setAceptaPromos((v) => !v)}
+              className="flex items-start gap-2.5 min-h-[44px] py-2.5 cursor-pointer select-none"
+            >
+              <button
+                type="button"
                 role="checkbox"
                 aria-checked={aceptaPromos}
-                tabIndex={0}
-                onClick={() => setAceptaPromos((v) => !v)}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    setAceptaPromos((v) => !v);
-                  }
-                }}
-                className="flex-1 md:flex-none flex items-center gap-2.5 min-h-[44px] px-2.5 cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                aria-labelledby="lo-quiero-promos-texto"
+                className={`w-5 h-5 mt-px rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                  aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-white border-neutral-400'
+                }`}
               >
-                <span
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${
-                    aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-white border-neutral-400'
-                  }`}
-                  aria-hidden
-                >
-                  {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} />}
-                </span>
-                <span className="text-sm text-neutral-700">
-                  Quiero promociones <span className="text-neutral-400">(opcional)</span>
-                </span>
-              </div>
-              {cuponVisible && !appliedCoupon && !isCouponRequired && (
-                <button
-                  type="button"
-                  onClick={() => setCuponAbierto((v) => !v)}
-                  aria-expanded={cuponAbierto}
-                  className="shrink-0 min-h-[44px] px-2.5 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] inline-flex items-center gap-1.5 cursor-pointer transition-colors duration-150"
-                >
-                  <Tag className="w-4 h-4" aria-hidden />
-                  {cuponAbierto ? (
-                    'Ocultar'
+                {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} aria-hidden />}
+              </button>
+              <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-sm leading-[22px] text-neutral-800">
+                Quiero recibir promociones
+              </span>
+            </div>
+
+            {cuponVisible && (
+              appliedCoupon ? (
+                <div className="flex items-center gap-2.5 min-h-[44px] text-sm leading-[22px] text-neutral-800">
+                  <Tag className="w-5 h-5 shrink-0 text-[#0B6B5C]" aria-hidden />
+                  <span className="min-w-0">
+                    Cupón <strong className="font-semibold">{appliedCoupon.code}</strong> aplicado
+                  </span>
+                  {appliedCoupon.lockedFromUrl ? (
+                    <span className="inline-flex items-center text-neutral-400" title="Cupón de campaña: no se puede quitar">
+                      <Lock className="w-4 h-4" aria-hidden />
+                    </span>
                   ) : (
                     <>
-                      <span className="md:hidden">Cupón</span>
-                      <span className="hidden md:inline">¿Tienes cupón?</span>
+                      <span aria-hidden className="text-neutral-400">·</span>
+                      <button
+                        ref={filaCuponRef}
+                        type="button"
+                        onClick={quitarCuponDeLaFila}
+                        aria-label={`Quitar cupón ${appliedCoupon.code}`}
+                        className="min-h-[44px] px-1 -mx-1 rounded-md font-semibold underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                      >
+                        Quitar
+                      </button>
                     </>
                   )}
+                </div>
+              ) : (
+                <button
+                  ref={filaCuponRef}
+                  type="button"
+                  onClick={abrirCupon}
+                  aria-haspopup="dialog"
+                  className="self-start flex items-center gap-2.5 min-h-[44px] pr-2 rounded-md text-left text-sm leading-[22px] text-neutral-800 hover:text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                >
+                  <Tag className="w-5 h-5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
+                  <span>
+                    ¿Tienes un cupón?
+                    {isCouponRequired && <span className="text-neutral-500"> (obligatorio)</span>}
+                  </span>
+                  <ChevronRight className="w-4 h-4 shrink-0 text-neutral-400" aria-hidden />
                 </button>
-              )}
-            </div>
+              )
+            )}
+            {errorCupon && !appliedCoupon && !cuponAbierto && (
+              <p role="alert" className="pl-[30px] text-xs font-semibold text-red-600">{errorCupon}</p>
+            )}
           </div>
-
-          {/* Cupón: una sola línea dentro del pie */}
-          {panelCuponAbierto && (
-            <div className="mt-1.5">
-              <CouponInput compacto isRequired={isCouponRequired} />
-              {errorCupon && !appliedCoupon && (
-                <p role="alert" className="text-xs text-red-600 mt-1">{errorCupon}</p>
-              )}
-            </div>
-          )}
 
           {isOverQuotaLimit && (
             <div role="alert" className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -1078,6 +1110,41 @@ function LoQuieroModalContent({
                 {detalleElegido ? 'Quitar de mi solicitud' : 'Agregar a mi solicitud'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Cupón: modal chico encima de este (BAL-4958). Escape lo cierra solo
+          a él; la validación es la de `CouponInput`, que vive adentro. */}
+      {cuponAbierto && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center px-4"
+          style={teclado ? { bottom: teclado.alto } : undefined}
+        >
+          <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-150" aria-hidden="true" onClick={cerrarCupon} />
+          <div
+            ref={cuponCapaRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lo-quiero-cupon-titulo"
+            className="relative w-full max-w-[400px] bg-white rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 id="lo-quiero-cupon-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-neutral-800 leading-tight">
+                Ingresa tu cupón
+              </h3>
+              <button
+                type="button"
+                onClick={cerrarCupon}
+                aria-label="Cerrar cupón"
+                className="w-11 h-11 -mr-2 shrink-0 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <CouponInput compacto isRequired={isCouponRequired} />
+            {errorCupon && !appliedCoupon && (
+              <p role="alert" className="text-xs font-semibold text-red-600 mt-1.5">{errorCupon}</p>
+            )}
           </div>
         </div>
       )}

@@ -12,7 +12,7 @@
  * Validates coupons via API: POST /api/v1/public/coupons/validate
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import { Tag, Loader2, Check, X, Sparkles, Lock, AlertTriangle } from 'lucide-react';
@@ -71,6 +71,21 @@ function marcarReportado(code: string): void {
   }
 }
 
+/**
+ * Quitar el cupón aplicado: el evento `coupon_removed` y el borrado del
+ * contexto. Lo usan esta caja y la fila del cupón del modal "Lo quiero"
+ * (BAL-4958), para que las dos vías reporten igual.
+ */
+export function useQuitarCupon(): () => void {
+  const tracker = useEventTrackerOptional();
+  const { appliedCoupon, clearCoupon } = useProduct();
+  const codigo = appliedCoupon?.code;
+  return useCallback(() => {
+    tracker?.track('coupon_removed', { coupon_code: codigo });
+    clearCoupon();
+  }, [tracker, codigo, clearCoupon]);
+}
+
 interface CouponInputProps {
   /**
    * Si es true, muestra un indicador de que el cupón es obligatorio
@@ -97,7 +112,6 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false, co
   const {
     appliedCoupon,
     setAppliedCoupon,
-    clearCoupon,
     removedCouponNotice,
     selectedProduct,
     cartProducts,
@@ -194,9 +208,9 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false, co
     }
   };
 
+  const quitarCupon = useQuitarCupon();
   const handleRemoveCoupon = () => {
-    tracker?.track('coupon_removed', { coupon_code: appliedCoupon?.code });
-    clearCoupon();
+    quitarCupon();
     setCouponCode('');
     setState('idle');
   };
@@ -326,7 +340,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false, co
             type="button"
             onClick={handleApplyCoupon}
             disabled={state === 'validating' || state === 'success'}
-            className="h-11 px-4 rounded-lg font-semibold text-sm bg-[var(--color-primary)] text-white hover:brightness-90 flex items-center gap-1.5 cursor-pointer transition-[filter] duration-150 disabled:cursor-wait disabled:opacity-70"
+            className="h-11 px-4 rounded-lg font-semibold text-sm bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 flex items-center gap-1.5 cursor-pointer transition-[filter] duration-150 disabled:cursor-wait disabled:opacity-70"
           >
             {state === 'validating' ? <Loader2 className="w-4 h-4 animate-spin" aria-label="Validando" /> : 'Aplicar'}
           </button>
