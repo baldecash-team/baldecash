@@ -100,4 +100,17 @@ describe('resumenDeTarjetaV2', () => {
     expect(r!.leyenda).toContain('12 semanas');
     expect(r!.leyenda).toContain('3 meses');
   });
+
+  // Revisión final I2 (BAL-4969): en main el regalo Dinet sale de `accessories`
+  // y viaja aparte en `regaloBaldecash`; Diseño 2 no lo puede perder.
+  it('regalo Dinet (`regaloBaldecash`): sale en su propio campo', () => {
+    const data = baseData({ regaloBaldecash: { name: 'Mouse Logitech M170', image: '' } });
+    const r = resumenDeTarjetaV2(data, 'pago-diferido')!;
+    expect(r.regaloBaldecash).toBe('Mouse Logitech M170');
+    expect(r.regalo).toBeNull();
+  });
+
+  it('sin regalo Dinet: regaloBaldecash es null', () => {
+    expect(resumenDeTarjetaV2(baseData({ regaloBaldecash: null }), 'pago-diferido')!.regaloBaldecash).toBeNull();
+  });
 });

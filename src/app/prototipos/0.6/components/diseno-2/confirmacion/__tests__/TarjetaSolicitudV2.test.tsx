@@ -58,4 +58,21 @@ describe('TarjetaSolicitudV2', () => {
     render(<TarjetaSolicitudV2 data={baseData({ totalMonthlyQuota: 321 })} landingSlug="pago-diferido" />);
     expect(screen.getByText('S/321')).toBeInTheDocument();
   });
+
+  // Revisión final I2 (BAL-4969): el regalo Dinet (`regaloBaldecash`) se pinta.
+  it('con regalo Dinet muestra la fila «BaldeCash te regala»', () => {
+    render(
+      <TarjetaSolicitudV2
+        data={baseData({ regaloBaldecash: { name: 'Mouse Logitech M170', image: '' } })}
+        landingSlug="pago-diferido"
+      />,
+    );
+    expect(screen.getByText('BaldeCash te regala')).toBeInTheDocument();
+    expect(screen.getByText(/Mouse Logitech M170 · Gratis/)).toBeInTheDocument();
+  });
+
+  it('sin regalo Dinet no hay fila «BaldeCash te regala»', () => {
+    render(<TarjetaSolicitudV2 data={baseData()} landingSlug="pago-diferido" />);
+    expect(screen.queryByText('BaldeCash te regala')).not.toBeInTheDocument();
+  });
 });

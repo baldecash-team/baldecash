@@ -23,6 +23,12 @@ export interface ResumenTarjetaV2 {
   diaDePago: string | null;
   entrega: string | null;
   regalo: string | null;
+  /**
+   * Regalo de BaldeCash (regalo Dinet, `gift_source = "regalo_dinet"`). En
+   * `main` sale de `accessories` y viaja aparte en `regaloBaldecash`; Diseño 1
+   * lo pinta en su bloque «BaldeCash te regala» y Diseño 2 en su propia fila.
+   */
+  regaloBaldecash: string | null;
 }
 
 export interface OpcionesTarjetaV2 {
@@ -79,5 +85,17 @@ export function resumenDeTarjetaV2(
   const regalos = (data.accessories || []).filter((a) => a.isGift).map((a) => a.name);
   const regalo = regalos.length ? regalos.join(', ') : null;
 
-  return { nombreEquipo, leyenda, rotuloCuota, cuota, sufijoCuota, diaDePago, entrega, regalo };
+  const regaloBaldecash = data.regaloBaldecash?.name?.trim() || null;
+
+  return {
+    nombreEquipo,
+    leyenda,
+    rotuloCuota,
+    cuota,
+    sufijoCuota,
+    diaDePago,
+    entrega,
+    regalo,
+    regaloBaldecash,
+  };
 }

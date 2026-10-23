@@ -10,6 +10,10 @@ import React from 'react';
 import { Gift, Laptop } from 'lucide-react';
 import type { ReceivedData } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/types/received';
 import { resumenDeTarjetaV2, type OpcionesTarjetaV2 } from './resumenTarjetaV2';
+import { REGALO_BALDECASH_TEXTOS } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/regaloBaldecash';
+
+/** «BaldeCash te regala» sin el emoji del título de Diseño 1 (acá va el ícono). */
+const ETIQUETA_REGALO_BALDECASH = REGALO_BALDECASH_TEXTOS.titulo.replace(/^\P{L}+/u, '');
 
 export interface TarjetaSolicitudV2Props {
   data: ReceivedData;
@@ -61,6 +65,17 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E6F7F1] px-2.5 py-1 text-xs font-bold text-[#0B6B5C]">
                 <Gift className="h-3.5 w-3.5" aria-hidden />
                 {resumen.regalo}
+              </span>
+            }
+          />
+        )}
+        {resumen.regaloBaldecash && (
+          <Fila
+            etiqueta={ETIQUETA_REGALO_BALDECASH}
+            valor={
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E6F7F1] px-2.5 py-1 text-xs font-bold text-[#0B6B5C]">
+                <Gift className="h-3.5 w-3.5" aria-hidden />
+                {resumen.regaloBaldecash} · {REGALO_BALDECASH_TEXTOS.etiquetaPrecio}
               </span>
             }
           />
