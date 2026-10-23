@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { WizardStep, WizardField, evaluateFieldVisibility, evaluatePrefillFieldVisibility, getPrefillTargetFieldCodes, getDocumentTypeRules, validateField } from '../../../../../services/wizardApi';
-import { DynamicField } from '../fields/DynamicField';
+import { DynamicField, pistaVaEnElCampo } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
@@ -424,6 +424,10 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         ))
         : null);
 
+    // BAL-4960: un campo de texto con contador pinta él mismo la pista, en
+    // la fila del contador (pista a la izquierda, número a la derecha).
+    const pistaEnElCampo = pistaVaEnElCampo(field, esV2);
+
     // Diseño 2: opcional plegado. Con valor (borrador) sale abierto.
     const plegado = esV2 && field.collapsed_optional === true && !field.required
       && !conValor && !abiertos.has(field.code);
@@ -450,9 +454,11 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 showError={mostrarError}
                 stepOrder={stepOrder}
                 onLocalErrorChange={esV2 ? reportarErrorLocal : undefined}
+                // BAL-4960: con contador, la pista va en su misma fila (la pinta el campo).
+                pista={pistaEnElCampo && !errorVisible && !conSaludo ? pista : null}
               />
               {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
-              {pista && !errorVisible && !conSaludo && (
+              {pista && !pistaEnElCampo && !errorVisible && !conSaludo && (
                 <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{pista}</p>
               )}
             </EntradaDelCampo>

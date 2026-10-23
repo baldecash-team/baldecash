@@ -202,6 +202,12 @@ export interface WizardField {
    * no es obligatorio. Diseño 1 lo muestra normal.
    */
   collapsed_optional?: true;
+  /**
+   * BAL-4960: mostrar el contador de caracteres («12/50»), ya resuelto paso >
+   * banco. Solo viene si alguno lo define. Sin la llave, cada diseño hace lo
+   * de siempre (Diseño 1 lo muestra, Diseño 2 no). El máximo se respeta igual.
+   */
+  show_counter?: boolean;
 }
 
 /** Sección de un paso (Diseño 2). Se pinta en F5/F6; en F2 solo se tolera. */

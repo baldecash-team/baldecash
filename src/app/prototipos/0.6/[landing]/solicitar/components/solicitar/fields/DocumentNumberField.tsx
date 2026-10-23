@@ -608,6 +608,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         inputMode={isNumericDoc ? 'numeric' : 'text'}
         placeholder={documentRules?.placeholder || field.placeholder || undefined}
         maxLength={documentRules?.max_length || field.max_length || undefined}
+        showCounter={field.show_counter}
         success={isSuccess}
         isLoading={isChecking}
         {...(v2 ? { inputRef } : {})}

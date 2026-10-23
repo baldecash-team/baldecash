@@ -15,7 +15,7 @@ import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
 import { resolverForma } from './formaDeLista';
-import { TextInput } from './TextInput';
+import { TextInput, contadorVisible } from './TextInput';
 import { CurrencyInput } from './CurrencyInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -45,9 +45,27 @@ interface DynamicFieldProps {
    * visible, la pista no se muestra" — sin duplicar la lógica de validación.
    */
   onLocalErrorChange?: (code: string, hasError: boolean) => void;
+  /**
+   * Diseño 2 (BAL-4960): la pista, cuando el campo la pinta junto a su
+   * contador de caracteres (ver `pistaVaEnElCampo`). Si no, la pinta
+   * `DynamicWizardStep` y esto llega vacío.
+   */
+  pista?: string | null;
 }
 
-export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange }) => {
+/** Tipos que pintan su contador dentro de `TextInput` (con `max_length`). */
+const TIPOS_CON_CONTADOR = new Set(['text', 'phone']);
+
+/**
+ * Diseño 2 (BAL-4960): ¿la pista va dentro del campo, en la fila de su
+ * contador? Solo si el campo es de texto con máximo y el contador se ve.
+ */
+export function pistaVaEnElCampo(field: WizardField, v2: boolean): boolean {
+  return v2 && TIPOS_CON_CONTADOR.has(field.type) && !!field.max_length
+    && contadorVisible(field.show_counter, v2);
+}
+
+export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange, pista }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
   const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
@@ -294,6 +312,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           type="text"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
+          showCounter={field.show_counter}
+          pista={pista}
           success={!error && !!value}
         />
       );
@@ -325,6 +345,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           type="tel"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
+          showCounter={field.show_counter}
+          pista={pista}
           inputMode="numeric"
           success={!error && !!value}
           startContent={field.prefix || undefined}
@@ -490,6 +512,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           {...commonProps}
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
+          showCounter={field.show_counter}
           rows={4}
           success={!error && !!value}
         />

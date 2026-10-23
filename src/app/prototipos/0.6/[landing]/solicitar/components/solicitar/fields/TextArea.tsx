@@ -38,6 +38,11 @@ interface TextAreaProps {
   disabled?: boolean;
   required?: boolean;
   maxLength?: number;
+  /**
+   * BAL-4960: true/false = mostrar/ocultar el contador. Sin valor = como
+   * siempre: el área de texto lo muestra en los dos diseños.
+   */
+  showCounter?: boolean | null;
 }
 
 export const TextArea: React.FC<TextAreaProps> = ({
@@ -56,10 +61,13 @@ export const TextArea: React.FC<TextAreaProps> = ({
   disabled = false,
   required = true,
   maxLength,
+  showCounter,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   // Diseño 2 (BAL-4960): mismo texto largo, otro vestido.
   const v2 = useCamposV2();
+  // BAL-4960: el área de texto siempre mostró el contador (en los dos diseños).
+  const verContador = (showCounter ?? true) && !!maxLength;
   const showError = !!error;
   const showSuccess = success && !error && value;
 
@@ -142,10 +150,10 @@ export const TextArea: React.FC<TextAreaProps> = ({
         </div>
       </div>
 
-      {v2 && (error || maxLength) && (
+      {v2 && (error || verContador) && (
         <div className="flex items-start justify-between gap-2">
           {error ? <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2> : <span />}
-          {maxLength && <p className="flex-shrink-0 text-xs text-[#5B6275]">{value.length}/{maxLength}</p>}
+          {verContador && <p className="flex-shrink-0 text-xs text-[#5B6275]">{value.length}/{maxLength}</p>}
         </div>
       )}
 
@@ -159,7 +167,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
         ) : (
           <span />
         )}
-        {maxLength && (
+        {verContador && (
           <p className="text-xs text-neutral-400 flex-shrink-0">
             {value.length}/{maxLength}
           </p>
