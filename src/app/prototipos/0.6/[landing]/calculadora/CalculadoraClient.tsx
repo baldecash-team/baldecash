@@ -28,6 +28,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { routes } from '../../utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { simularCalculadora, type SimulacionFinanciamiento } from './api/simuladorApi';
 import { DetalleFinanciamientoModal } from './components/DetalleFinanciamientoModal';
 import { entregarASolicitar } from './utils/entrega';
@@ -286,7 +287,7 @@ export function CalculadoraClient() {
       return;
     }
 
-    router.push(routes.solicitar(landing));
+    irALaSolicitud(router, landing);
   }, [
     puedeContinuar,
     simulacion,

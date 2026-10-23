@@ -58,6 +58,9 @@ import { primerPasoRegular } from './utils/primerPaso';
 // Analytics
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
+// Diseño 2: `/solicitar` es el modal "Lo quiero", no la intro (BAL-4969).
+import { EntradaSolicitudV2 } from './EntradaSolicitudV2';
+
 // Checkbox definido fuera del componente padre para evitar remount en cada
 // render cuando cambia el estado del padre (antes se redefinía dentro del
 // componente, causando que React lo tratara como un tipo nuevo).
@@ -1138,7 +1141,20 @@ export default function WizardPreviewPage() {
 
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <WizardPreviewContent />
+      <SolicitarSegunDiseno landing={landing} />
     </Suspense>
   );
+}
+
+/**
+ * Diseño 2 no tiene intro (BAL-4969, casuísticas): `/solicitar` abre el modal
+ * "Lo quiero" (`EntradaSolicitudV2`). Se espera a que el diseño esté resuelto
+ * para no pintar la intro de Diseño 1 un instante. `renueva-*` queda en su
+ * intro, que embebe el formulario.
+ */
+function SolicitarSegunDiseno({ landing }: { landing: string }) {
+  const { loQuieroModal, disenoResuelto = true } = useLayout();
+  if (!disenoResuelto) return <LoadingFallback />;
+  if (loQuieroModal && !isSecondFinancingLanding(landing)) return <EntradaSolicitudV2 />;
+  return <WizardPreviewContent />;
 }

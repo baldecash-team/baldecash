@@ -22,6 +22,7 @@ import { ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useProductOptional, type SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { useIsMobile } from '@/app/prototipos/_shared/hooks/useIsMobile';
 
 // Dynamic storage key based on landing slug (fallback when no ProductProvider)
@@ -56,12 +57,7 @@ import { useQuiz } from '../../hooks/useQuiz';
 import { submitQuizResponse, getQuizRecommendations, mapApiToQuizResults } from '../../../services/quizApi';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
-// URL helpers - updated for 0.6 dynamic routes
-const getWizardUrl = (landing?: string) => {
-  const landingSlug = landing || 'home';
-  return routes.solicitar(landingSlug);
-};
-
+// URL helpers - updated for 0.6 dynamic routes (la entrada a la solicitud es `irALaSolicitud`)
 // Configuración para cálculo de cuota
 const WIZARD_SELECTED_TERM = 24;
 
@@ -421,7 +417,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       cleanupBodyStyles();
 
       // Navegar al wizard
-      router.push(getWizardUrl(landing));
+      irALaSolicitud(router, landing || 'home');
     },
     [results, onClose, handleRestart, router, landing, selectProductForWizard, cleanupBodyStyles]
   );

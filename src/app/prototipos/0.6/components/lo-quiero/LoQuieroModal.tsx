@@ -54,7 +54,7 @@ import { prefiereMenosMovimiento, useSalidaAnimada } from '@/app/prototipos/0.6/
 import { datosUtiles, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
 import { CajaAvisoDelEquipo, type AvisoDelEquipo } from './avisoDelEquipo';
 
-export type LoQuieroOrigen = 'catalogo' | 'ficha';
+export type LoQuieroOrigen = 'catalogo' | 'ficha' | 'entrada';
 
 /**
  * Accesorio que ya viene dentro del combo elegido (regalo). `id` es el id de

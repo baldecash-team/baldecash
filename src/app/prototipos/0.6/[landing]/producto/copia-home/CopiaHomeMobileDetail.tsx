@@ -20,6 +20,7 @@ import {
   FileText, Download, Truck, ArrowRight, Store, CalendarDays,
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
@@ -316,7 +317,7 @@ export function CopiaHomeMobileDetail({
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selected));
       localStorage.removeItem(getCartProductsKey(landing));
     } catch { /* localStorage no disponible */ }
-    router.push(routes.solicitar(landing));
+    irALaSolicitud(router, landing);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, paymentFrequency, colorId, selectedColor, landing, router, galleryImages]);
 

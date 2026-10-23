@@ -55,3 +55,36 @@ export function leerOrigenDiseno2(landing: string): string | null {
 }
 
 export default guardarOrigenDiseno2;
+
+/*
+ * La puerta por la que se entró a `/solicitar` sin pasar por la card ni la
+ * ficha (comparador, "Retomar", calculadora, copia-home, quiz…), BAL-4969
+ * casuísticas. En Diseño 2 `/solicitar` abre el modal "Lo quiero" y, si la
+ * persona lo cierra, vuelve acá. Va en su propia clave: el modal pisa la de
+ * arriba con `/solicitar` al continuar (para que "Atrás" del Paso 1 vuelva al
+ * modal), y sin esta el modal no sabría a dónde salir.
+ */
+function claveEntrada(landing: string): string {
+  return `baldecash-${landing}-diseno2-entrada`;
+}
+
+/** Guarda la página actual como la puerta de entrada a `/solicitar`. */
+export function guardarEntradaALaSolicitud(landing: string): void {
+  try {
+    sessionStorage.setItem(claveEntrada(landing), `${window.location.pathname}${window.location.search}`);
+  } catch {
+    // Sin storage: al cerrar el modal se cae al catálogo.
+  }
+}
+
+/** La puerta guardada (solo rutas internas y que no sean `/solicitar`), o `null`. */
+export function leerEntradaALaSolicitud(landing: string): string | null {
+  try {
+    const guardado = sessionStorage.getItem(claveEntrada(landing));
+    if (!guardado || !guardado.startsWith('/') || guardado.startsWith('//')) return null;
+    if (/\/solicitar(\/|\?|$)/.test(guardado)) return null;
+    return guardado;
+  } catch {
+    return null;
+  }
+}

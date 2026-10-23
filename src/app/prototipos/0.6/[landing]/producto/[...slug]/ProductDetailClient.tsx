@@ -10,6 +10,7 @@ import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast, useIsMobile } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // Lead guard
@@ -206,7 +207,7 @@ function ProductDetailContent() {
     setSelectedProduct(productsForContext[0]);
 
     // Navigate to solicitar
-    router.push(routes.solicitar(landing));
+    irALaSolicitud(router, landing);
   }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   const hasCatalog = landingConfig.layout.has_catalog;

@@ -137,6 +137,7 @@ import { mapQuizAnswersToFilters } from './utils/quizFilters';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { captureLandingParams, consumePendingCategoria, clearPendingCoupon, readCouponParam } from '@/app/prototipos/0.6/utils/landingParams';
 import { usePromoterLinkReset } from '@/app/prototipos/0.6/hooks/usePromoterLinkReset';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
@@ -2620,7 +2621,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       <ResumeFinancingModal
         isOpen={isResumeModalOpen}
         onClose={closeResumeModal}
-        onContinue={() => router.push(getWizardUrl(landing))}
+        onContinue={() => irALaSolicitud(router, landing)}
       />
 
       {/* Cart Limit Modal — only in multi-product mode */}

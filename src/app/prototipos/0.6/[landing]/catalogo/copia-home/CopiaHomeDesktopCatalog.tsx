@@ -25,6 +25,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import { CopiaHomePromoBanner, PROMO_BANNER_HEIGHT } from '@/app/prototipos/0.6/components/CopiaHomePromoBanner';
 import { POLITICAS_PDF_URL, POLITICAS_PDF_FILENAME } from '@/app/prototipos/0.6/[landing]/producto/copia-home/politicasPdf';
@@ -174,7 +175,7 @@ export function CopiaHomeDesktopCatalog() {
           storage: p.specs?.storage ? `${p.specs.storage.size}GB ${p.specs.storage.type ?? ''}`.trim() : '',
         },
       });
-      router.push(routes.solicitar(landing));
+      irALaSolicitud(router, landing);
     },
     [setSelectedProduct, clearCartProducts, clearAccessories, router, landing],
   );
