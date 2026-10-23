@@ -387,10 +387,14 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(120deg); }
 }
 
-/* Entrada de una pieza que aparece (resumen de sección, saludo, campo que se destapa). */
-.d2-pop { animation: d2Pop 0.25s ease-out both; }
+/* Entrada de una pieza que aparece (resumen de sección, saludo, campo que se destapa).
+   `backwards` y no `both`: el final es el estado natural, y una animación que
+   se queda "llenando" `transform`/`opacity` deja un contexto de apilamiento
+   que encierra el z-index de las listas desplegables de adentro (la lista de
+   «Carrera» quedaba bajo el campo siguiente, verificación final BAL-4969). */
+.d2-pop { animation: d2Pop 0.25s ease-out backwards; }
 /* Entrada de pantalla: tarjeta del paso y panel "Tu solicitud". */
-.d2-pop-lento { animation: d2Pop 0.3s ease-out both; }
+.d2-pop-lento { animation: d2Pop 0.3s ease-out backwards; }
 /* Modal y hoja: centrado en escritorio, hoja desde abajo en celular. */
 .d2-pop-modal { animation: d2Pop 0.22s ease-out both; }
 .d2-pop-modal-chico { animation: d2Pop 0.2s ease-out both; }
@@ -404,14 +408,14 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 @media (min-width: 768px) {
   .d2-sale-hoja { animation: d2Sale 0.16s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
 }
-.d2-fundido { animation: d2Fundido 0.2s ease-out both; }
+.d2-fundido { animation: d2Fundido 0.2s ease-out backwards; }
 .d2-fundido-sale { animation: d2FundidoSale 0.16s ease-in both; pointer-events: none; }
 /* Saludo del Paso 1 (BAL-4963): fundido y 6 px hacia arriba. */
 @keyframes d2Sube {
   0% { opacity: 0; transform: translateY(6px); }
   100% { opacity: 1; transform: none; }
 }
-.d2-saludo { animation: d2Sube 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.d2-saludo { animation: d2Sube 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 /* Caja de Términos del modal "Lo quiero" (BAL-4958, `bcConsent` de Brenda):
    brillo ámbar al llegar (2 veces) y sacudida alterna A/B en cada intento. */
 @keyframes d2BrilloConsentimiento {
@@ -429,7 +433,7 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 .d2-sacudida-a { animation: casillaV2Sacudida 0.5s ease-in-out; }
 .d2-sacudida-b { animation: d2SacudidaB 0.5s ease-in-out; }
 /* Errores, desplegables y regiones que se abren. */
-.d2-aparece { animation: d2Aparece 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.d2-aparece { animation: d2Aparece 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 /* La cuota cambió: dos nombres para poder repetir el pulso sin desmontar. */
 .d2-pulso-a { animation: d2PulsoA 0.45s ease-out; }
 .d2-pulso-b { animation: d2PulsoB 0.45s ease-out; }
