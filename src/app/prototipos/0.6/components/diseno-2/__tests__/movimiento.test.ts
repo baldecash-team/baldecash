@@ -3,7 +3,13 @@
  * `prefers-reduced-motion` del kit de Diseño 2.
  */
 import { renderHook, act } from '@testing-library/react';
-import { prefiereMenosMovimiento, useMenosMovimiento } from '../movimiento';
+import {
+  DURACION_SALIDA_MS,
+  prefiereMenosMovimiento,
+  useMenosMovimiento,
+  usePulsoAlCambiar,
+  useSalidaAnimada,
+} from '../movimiento';
 
 const original = window.matchMedia;
 let oyente: ((e: { matches: boolean }) => void) | null = null;
@@ -75,5 +81,74 @@ describe('movimiento', () => {
     expect(prefiereMenosMovimiento()).toBe(false);
     const { result } = renderHook(() => useMenosMovimiento());
     expect(result.current).toBe(false);
+  });
+
+  describe('usePulsoAlCambiar (BAL-4969, transiciones de Brenda)', () => {
+    it('no pulsa al montar; cada cambio alterna A/B para repetir el pulso', () => {
+      simular(false);
+      const { result, rerender } = renderHook(({ v }) => usePulsoAlCambiar(v), { initialProps: { v: 100 } });
+      expect(result.current).toBe('');
+      rerender({ v: 100 });
+      expect(result.current).toBe('');
+      rerender({ v: 120 });
+      expect(result.current).toBe('d2-pulso-a');
+      rerender({ v: 90 });
+      expect(result.current).toBe('d2-pulso-b');
+      rerender({ v: 90 });
+      expect(result.current).toBe('d2-pulso-b');
+    });
+
+    it('con menos movimiento nunca pulsa', () => {
+      simular(true);
+      const { result, rerender } = renderHook(({ v }) => usePulsoAlCambiar(v), { initialProps: { v: 1 } });
+      rerender({ v: 2 });
+      expect(result.current).toBe('');
+    });
+  });
+
+  describe('useSalidaAnimada', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('marca "saliendo" y avisa al terminar la animación, una sola vez', () => {
+      simular(false);
+      const alTerminar = jest.fn();
+      const { result } = renderHook(() => useSalidaAnimada());
+      act(() => {
+        result.current[1](alTerminar);
+      });
+      expect(result.current[0]).toBe(true);
+      // Una segunda llamada mientras sale no hace nada.
+      act(() => {
+        expect(result.current[1](alTerminar)).toBe(false);
+      });
+      expect(alTerminar).not.toHaveBeenCalled();
+      act(() => jest.advanceTimersByTime(DURACION_SALIDA_MS));
+      expect(alTerminar).toHaveBeenCalledTimes(1);
+      expect(result.current[0]).toBe(false);
+    });
+
+    it('con menos movimiento avisa de una, sin animar', () => {
+      simular(true);
+      const alTerminar = jest.fn();
+      const { result } = renderHook(() => useSalidaAnimada());
+      act(() => {
+        result.current[1](alTerminar);
+      });
+      expect(alTerminar).toHaveBeenCalledTimes(1);
+      expect(result.current[0]).toBe(false);
+    });
+
+    it('si se desmonta a mitad, no avisa', () => {
+      simular(false);
+      const alTerminar = jest.fn();
+      const { result, unmount } = renderHook(() => useSalidaAnimada());
+      act(() => {
+        result.current[1](alTerminar);
+      });
+      unmount();
+      jest.advanceTimersByTime(DURACION_SALIDA_MS * 2);
+      expect(alTerminar).not.toHaveBeenCalled();
+    });
   });
 });

@@ -162,7 +162,7 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
                         : 'border-[var(--color-primary)] bg-white text-[var(--color-primary-text)] hover:bg-[#F3F5FD]'
                     }`}
                   >
-                    {elegido && <Check className="h-4 w-4" strokeWidth={3} aria-hidden data-check-v2 />}
+                    {elegido && <Check className="h-4 w-4 d2-check-in" strokeWidth={3} aria-hidden data-check-v2 />}
                     Agregar
                   </button>
                 </div>

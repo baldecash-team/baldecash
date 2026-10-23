@@ -257,7 +257,8 @@ export function ShellV2({
               ref={tarjetaRef}
               onBlur={onBlur}
               onKeyDown={onKeyDown}
-              className={sinTarjeta ? 'mt-4' : 'mt-4 rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
+              // Entrada del paso (adelante o atrás): `bcPop` 0,3 s del prototipo.
+              className={sinTarjeta ? 'mt-4 d2-pop-lento' : 'mt-4 d2-pop-lento rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
               style={sinTarjeta ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
             >
               {children(camposTocados)}
@@ -328,7 +329,7 @@ export function ShellV2({
           </div>
 
           <div className="hidden lg:block">
-            <div className="sticky" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
+            <div className="sticky d2-pop-lento" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
               <PanelSolicitudV2 datos={datosDelPanel} detalle={detalle} />
             </div>
           </div>

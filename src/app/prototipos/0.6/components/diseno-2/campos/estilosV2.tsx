@@ -69,10 +69,16 @@ export function bordeV2({ error, foco, correcto }: EstadoCajaV2): string {
   return 'border-[#C9CEF0]';
 }
 
+/**
+ * Respuesta al toque de un botón-chip: se hunde un poco (3 %) mientras se
+ * presiona. Sin escala con menos movimiento (BAL-4969).
+ */
+export const PRESION_V2 = 'active:scale-[0.97] motion-reduce:active:scale-100';
+
 /** Botón-chip de una opción (tipo de documento, situación…): alto ≥44px. */
 export function chipV2(seleccionado: boolean): string {
   return [
-    'min-h-[48px] rounded-[10px] border-[1.5px] px-2 text-sm leading-tight transition-colors duration-150 cursor-pointer',
+    `min-h-[48px] rounded-[10px] border-[1.5px] px-2 text-sm leading-tight transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer`,
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
     seleccionado
       ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-[var(--color-on-primary)]'
@@ -88,7 +94,8 @@ export function MarcaOpcionalV2() {
 /** El error de un campo en Diseño 2: texto plano, sin ícono. */
 export function ErrorCampoV2({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <p id={id} role="alert" className={ERROR_V2}>
+    // Aparece con un fundido corto hacia abajo (no hay curva en el prototipo).
+    <p id={id} role="alert" className={`d2-aparece ${ERROR_V2}`}>
       {children}
     </p>
   );

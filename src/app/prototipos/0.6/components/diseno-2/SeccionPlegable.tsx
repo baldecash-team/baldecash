@@ -104,6 +104,10 @@ export function SeccionPlegable({
   // el render, el patrón de React para derivar de props.
   if (cerradaPorSalir && (conError || !completa)) setCerradaPorSalir(false);
   const cerrada = plegable && cerradaPorSalir && completa && !conError;
+  // Ya se cerró alguna vez: desde ahí, al reabrirse, el contenido entra con
+  // un fundido corto (al montar el paso no, que ya entra la tarjeta entera).
+  const [yaSeCerro, setYaSeCerro] = useState(false);
+  if (cerrada && !yaSeCerro) setYaSeCerro(true);
 
   const raizRef = useRef<HTMLElement>(null);
   const estuvoDentroRef = useRef(false);
@@ -280,7 +284,8 @@ export function SeccionPlegable({
       {/* El título es el mismo `h2` abierta o cerrada; cerrada suma el check,
           el resumen y "Editar" alrededor. */}
       <div
-        className={cerrada ? 'flex items-center gap-3 py-1' : undefined}
+        // Cerrada: la línea de resumen entra con `bcPop` 0,25 s del prototipo.
+        className={cerrada ? 'd2-pop flex items-center gap-3 py-1' : undefined}
         data-resumen-seccion={cerrada ? codigo : undefined}
       >
         {cerrada && (
@@ -319,7 +324,11 @@ export function SeccionPlegable({
           </button>
         )}
       </div>
-      <div id={idContenido} hidden={cerrada} className={cerrada ? 'hidden' : 'grid grid-cols-12 gap-y-4'}>
+      <div
+        id={idContenido}
+        hidden={cerrada}
+        className={cerrada ? 'hidden' : `grid grid-cols-12 gap-y-4${yaSeCerro ? ' d2-aparece' : ''}`}
+      >
         {children}
       </div>
     </section>

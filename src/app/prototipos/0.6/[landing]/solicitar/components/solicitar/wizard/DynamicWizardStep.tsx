@@ -361,6 +361,15 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     [esV2, step, pegados],
   );
 
+  // Diseño 2 (BAL-4969): los campos visibles al montar el paso entran con la
+  // tarjeta; los que aparecen DESPUÉS (una dependencia los destapa, o
+  // "+ Agregar …") entran con `bcPop` 0,25 s del prototipo. Se anota la
+  // primera foto de visibilidad que tenga datos.
+  const [visiblesAlMontar, setVisiblesAlMontar] = useState<ReadonlySet<string> | null>(null);
+  if (esV2 && visiblesAlMontar === null && Object.keys(fieldVisibility).length > 0) {
+    setVisiblesAlMontar(new Set(Object.keys(fieldVisibility).filter((c) => fieldVisibility[c])));
+  }
+
   const pintarCampo = (field: WizardField) => {
     // Hide wrapper for invisible fields so grid gap doesn't create empty space
     if (!fieldVisibility[field.code]) return null;
@@ -424,7 +433,9 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
           {plegado ? (
             <AgregarOpcionalV2 label={field.label} onAbrir={() => abrirPlegado(field.code)} />
           ) : (
-            <>
+            <EntradaDelCampo
+              anima={esV2 && (abiertos.has(field.code) || (visiblesAlMontar !== null && !visiblesAlMontar.has(field.code)))}
+            >
               <DynamicField
                 field={field}
                 showError={mostrarError}
@@ -435,7 +446,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
               {pista && !errorVisible && !conSaludo && (
                 <p className={`mt-1.5 ${PISTA_V2}`} data-pista={field.code}>{pista}</p>
               )}
-            </>
+            </EntradaDelCampo>
           )}
         </div>
         {resumen.length > 0 && (
@@ -450,7 +461,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
           <div className="col-span-12 -mt-1 mb-2">
             {/* Diseño 2 (I5, BAL-4969): el color de la landing; Diseño 1 igual que siempre. */}
             <div className={esV2
-              ? 'flex items-center gap-3 bg-[rgba(var(--color-primary-rgb),0.05)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl px-4 py-3'
+              ? 'd2-pop-lento flex items-center gap-3 bg-[rgba(var(--color-primary-rgb),0.05)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl px-4 py-3'
               : 'flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3'}>
               <CalendarDays className={esV2 ? 'w-5 h-5 text-[var(--color-primary-text)] flex-shrink-0' : 'w-5 h-5 text-[#4654CD] flex-shrink-0'} />
               <p className="text-sm text-neutral-700">
@@ -522,5 +533,16 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
   return esV2 ? <CamposV2Provider>{campos}</CamposV2Provider> : campos;
 };
+
+/**
+ * Diseño 2: envoltorio de un campo que aparece después de montado el paso.
+ * La animación va en un hijo y no en `.campo-v2`, porque ahí vive el
+ * `brilloCampoV2` de la guía: compartir la propiedad `animation` haría que
+ * el pop se repitiera al apagarse el brillo. Sin `anima`, no envuelve nada.
+ */
+function EntradaDelCampo({ anima, children }: { anima: boolean; children: React.ReactNode }) {
+  if (!anima) return <>{children}</>;
+  return <div className="d2-pop">{children}</div>;
+}
 
 export default DynamicWizardStep;

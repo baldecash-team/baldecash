@@ -78,15 +78,27 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
           const esActual = i === indiceActual;
           const hecho = !esActual && completados.has(paso.slug);
           const clicable = pasoEsClicable(i, paso.slug, indiceActual, completados, !!onIrAPaso);
-          const barra = esActual || hecho || i < indiceActual ? 'bg-[var(--color-primary)]' : 'bg-[#E3E6EE]';
+          const llena = esActual || hecho || i < indiceActual;
+          // Al llegar al paso (prototipo de Brenda): la barra del actual se
+          // llena (`bcGrow` 0,7 s), el check del recién hecho aparece
+          // (`bcCheckIn` 0,45 s) y después el número del actual (0,4 s a los
+          // 0,85 s). Solo transform; con menos movimiento, `globals.css` las apaga.
+          const animNumero = esActual ? ' d2-check-actual' : hecho && i === indiceActual - 1 ? ' d2-check-hecho' : '';
 
           const contenido = (
             <>
-              <span className={`block h-1 rounded-full ${barra}`} aria-hidden />
+              <span className="relative block h-1 overflow-hidden rounded-full bg-[#E3E6EE]" aria-hidden>
+                {llena && (
+                  <span
+                    data-barra-llena
+                    className={`absolute inset-0 rounded-full bg-[var(--color-primary)]${esActual ? ' d2-crece' : ''}`}
+                  />
+                )}
+              </span>
               <span className="mt-2.5 flex items-center gap-2 min-w-0">
                 <span
                   aria-hidden
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold${animNumero} ${
                     hecho || esActual
                       ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
                       : 'border border-[#D5D9E6] bg-white text-[#5B6275]'
@@ -147,9 +159,11 @@ export function ProgresoMovilV2({ indiceActual, total }: { indiceActual: number;
       aria-valuemax={total}
       aria-valuenow={numero}
     >
+      {/* Se llena desde donde quedó el paso anterior (`bcProgIn` del
+          prototipo): escala, no ancho, para no recalcular el layout. */}
       <div
-        className="h-full bg-[var(--color-primary)] transition-[width] duration-300 motion-reduce:transition-none"
-        style={{ width: `${(numero / total) * 100}%` }}
+        className="h-full bg-[var(--color-primary)] d2-crece-movil"
+        style={{ width: `${(numero / total) * 100}%`, ['--d2-desde' as string]: (numero - 1) / numero }}
       />
     </div>
   );

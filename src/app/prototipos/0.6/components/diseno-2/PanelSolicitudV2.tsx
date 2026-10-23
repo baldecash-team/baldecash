@@ -44,6 +44,8 @@ import {
 } from '@/app/prototipos/0.6/utils/couponDocument';
 import { useMesPrimeraCuota } from '../lo-quiero/useMesPrimeraCuota';
 import { ProgresoMovilV2 } from './ProgresoV2';
+import { usePulsoAlCambiar } from './movimiento';
+import { PRESION_V2 } from './campos/estilosV2';
 
 /** Con más plazos que esto, o con armadas, el selector es una lista. */
 const MAX_BOTONES_DE_PLAZO = 6;
@@ -176,7 +178,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                     type="button"
                     aria-pressed={elegido}
                     onClick={() => handleTermChange(t)}
-                    className={`flex min-h-[48px] flex-col items-center justify-center rounded-lg border px-1 py-1 leading-tight transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
+                    className={`flex min-h-[48px] flex-col items-center justify-center rounded-lg border px-1 py-1 leading-tight transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]'
                         : 'border-[#D5D9E6] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
@@ -216,7 +218,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                   type="button"
                   aria-pressed={elegido}
                   onClick={() => handleInitialChange(principal.id, principal.initialPercent, o.percent)}
-                  className={`min-h-[44px] rounded-lg border px-2 text-sm font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
+                  className={`min-h-[44px] rounded-lg border px-2 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                     elegido
                       ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary-text)]'
                       : 'border-[#D5D9E6] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
@@ -272,10 +274,10 @@ function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; cl
         className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         Ver detalle
-        <ChevronDown className={`h-4 w-4 transition-transform duration-150 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+        <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       {abierto && (
-        <div id={id} role="region" aria-label="Detalle de tu solicitud" className="mt-2 space-y-3 text-left">
+        <div id={id} role="region" aria-label="Detalle de tu solicitud" className="d2-aparece mt-2 space-y-3 text-left">
           {detalle}
         </div>
       )}
@@ -288,6 +290,8 @@ function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; cl
 export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; detalle?: React.ReactNode }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  // La cuota cambió (plazo, inicial): pulso como el total del modal (`bcPulse`).
+  const pulso = usePulsoAlCambiar(datos.total);
   if (!datos.principal) {
     // Sin producto principal no hay equipo ni cuota que mostrar, pero el
     // repaso del Paso 4 sigue: es lo que permite revisar y "Editar".
@@ -330,7 +334,7 @@ export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; det
         <div className="px-5 pt-4 pb-5">
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}</span>
-            <span className={`font-['Baloo_2',_sans-serif] text-2xl font-bold ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary-text)]'}`}>
+            <span className={`inline-block origin-right font-['Baloo_2',_sans-serif] text-2xl font-bold ${pulso} ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary-text)]'}`}>
               {datos.precio(datos.total)}
               <span className="text-sm font-semibold">{sufijoDeFrecuencia(datos.frecuencia)}</span>
             </span>
@@ -351,10 +355,10 @@ export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; det
                 className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cambiar plazo o inicial
-                <ChevronDown className={`h-4 w-4 transition-transform duration-150 ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
               </button>
               {abierto && (
-                <div id={idSelector} className="mt-1 border-t border-[#E3E6EE] pt-3">
+                <div id={idSelector} className="d2-aparece mt-1 border-t border-[#E3E6EE] pt-3">
                   <SelectorPlazoInicial datos={datos} />
                 </div>
               )}
@@ -386,6 +390,7 @@ export function CabeceraSolicitudV2({
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const pulso = usePulsoAlCambiar(datos.total);
 
   // Escape cierra el desplegable.
   useEffect(() => {
@@ -423,7 +428,7 @@ export function CabeceraSolicitudV2({
   return (
     <header className="lg:hidden fixed inset-x-0 top-0 z-40" data-cabecera-v2>
       {abierto && (
-        <div className="fixed inset-0 bg-black/20" aria-hidden onClick={() => setAbierto(false)} />
+        <div className="d2-fundido fixed inset-0 bg-black/20" aria-hidden onClick={() => setAbierto(false)} />
       )}
       <div className="relative border-b border-[#E3E6EE] bg-[#F3F5FD] shadow-[0_2px_10px_rgba(30,34,48,0.06)]">
         <div className="flex items-center pr-3.5">
@@ -452,10 +457,10 @@ export function CabeceraSolicitudV2({
                 <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-text)]">
                   <span className="truncate">
                     {datos.principal
-                      ? <>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)} · {datos.leyenda}</>
+                      ? <><span className={`inline-block origin-left ${pulso}`}>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)}</span> · {datos.leyenda}</>
                       : 'Revisa tus datos'}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
                 </span>
               </span>
             </button>
@@ -473,7 +478,7 @@ export function CabeceraSolicitudV2({
             ref={panelRef}
             id={idSelector}
             tabIndex={-1}
-            className="max-h-[70vh] overflow-y-auto border-t border-[#E3E6EE] bg-white px-4 pt-3 pb-4"
+            className="d2-aparece max-h-[70vh] overflow-y-auto border-t border-[#E3E6EE] bg-white px-4 pt-3 pb-4"
           >
             {datos.principal && (<>
             <div className="flex items-start justify-between gap-3">
