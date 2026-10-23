@@ -8,6 +8,7 @@ import { useSubmitApplication } from '../useSubmitApplication';
 import { calcularPrellenado, marcadoresDeBloqueo } from '../useLeadPrefill';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { readDemoApplication } from '../../utils/demoApplication';
+import { saveConsentStorage } from '../../utils/consentStorage';
 import type { LeadPrefill } from '@/app/prototipos/0.6/services/leadPrefillApi';
 import type { WizardStep } from '../../../../services/wizardApi';
 
@@ -1360,5 +1361,47 @@ describe('consentimiento en el payload (BAL-5007)', () => {
     });
     // Sigue en el wizard: no limpia, las pantallas que faltan lo necesitan.
     expect(localStorage.getItem(KEY_TERMS)).toBe('true');
+  });
+});
+
+/**
+ * Rediseño completo (Diseño 2 + BAL-5007): en Diseño 2 no hay intro con
+ * casillas; lo único que deja el consentimiento es el modal "Lo quiero", que
+ * escribe con `saveConsentStorage`. Aquí se usa ESA función real (no claves
+ * escritas a mano) para probar que lo que guarda el modal es lo que lee el
+ * submit: si alguna de las dos cambia de claves, este test se rompe.
+ */
+describe('Diseño 2: lo que guarda el modal "Lo quiero" llega al submit (BAL-5007)', () => {
+  const L = mockParams.landing;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    mockSubmitApplication.mockResolvedValue({ success: true, application_code: 'APP-1' });
+  });
+
+  async function enviar() {
+    const { result } = renderHook(() => useSubmitApplication());
+    await act(async () => {
+      await result.current.submit();
+    });
+    return mockSubmitApplication.mock.calls[0][0] as { consents?: unknown };
+  }
+
+  it('modal sin promos: términos y privacidad en true, promos en false', async () => {
+    // Lo mismo que hace LoQuieroModal al continuar.
+    saveConsentStorage(L, { acceptTerms: true, acceptPrivacy: true, acceptPromos: false });
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: false });
+  });
+
+  it('modal con promos marcado: las tres en true', async () => {
+    saveConsentStorage(L, { acceptTerms: true, acceptPrivacy: true, acceptPromos: true });
+
+    const payload = await enviar();
+
+    expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
   });
 });
