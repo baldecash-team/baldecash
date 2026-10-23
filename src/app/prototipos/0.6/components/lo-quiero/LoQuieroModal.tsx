@@ -475,6 +475,8 @@ function LoQuieroModalContent({
   });
   const [aceptaPromos, setAceptaPromos] = useState(false);
   const [errorTerminos, setErrorTerminos] = useState(false);
+  // Cada intento fallido vuelve a sacudir la caja (alterna dos animaciones).
+  const [intentosTerminos, setIntentosTerminos] = useState(0);
 
   // ── Cuota diferida: "1.ª cuota en <mes>" ─────────────────────────────────
   // El mes lo calcula ws2 (`first-payment-date`). Sin respuesta, no se muestra.
@@ -583,6 +585,7 @@ function LoQuieroModalContent({
     if (navegando) return;
     if (!aceptaTerminos) {
       setErrorTerminos(true);
+      setIntentosTerminos((n) => n + 1);
       terminosRef.current?.focus();
       terminosRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       return;
@@ -879,13 +882,25 @@ function LoQuieroModalContent({
                 La casilla es solo el cuadrito (`role="checkbox"`), así que los
                 enlaces nunca quedan dentro del control (QA F10 · Falla 1).
               - El cupón se escribe en un modal chico encima de este. */}
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1.5">
+            {/* Caja de Términos (prototipo de Brenda, `bcConsent`): ámbar con un
+                brillo al llegar, naranja y sacudida si intentan seguir sin
+                marcarla, verde al marcarla. Borde y radio del estándar del kit
+                (`CAJA_V2`: 1,5 px y 10 px). Con reduced-motion cambian solo
+                los colores (`globals.css`). */}
             <div
+              data-terminos-v2={aceptaTerminos ? 'marcada' : errorTerminos ? 'error' : 'neutra'}
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest('a')) return;
                 alternarTerminos();
               }}
-              className="flex items-start gap-2.5 min-h-[40px] py-[9px] md:min-h-[44px] md:py-2.5 cursor-pointer select-none"
+              className={`flex items-center gap-3 rounded-[10px] border-[1.5px] px-3 py-[11px] md:px-4 md:py-3 cursor-pointer select-none transition-colors duration-150 ${
+                aceptaTerminos
+                  ? 'border-[#0E8C78] bg-[#E8F7F2]'
+                  : errorTerminos
+                    ? `border-[#C2410C] bg-[#FFF1EB] ${intentosTerminos % 2 ? 'd2-sacudida-a' : 'd2-sacudida-b'}`
+                    : 'border-[#F2B632] bg-[#FFF6D8] d2-brillo-consentimiento'
+              }`}
             >
               <button
                 ref={terminosRef}
@@ -895,25 +910,25 @@ function LoQuieroModalContent({
                 aria-invalid={errorTerminos && !aceptaTerminos}
                 aria-labelledby="lo-quiero-terminos-texto"
                 aria-describedby={errorTerminos && !aceptaTerminos ? 'lo-quiero-terminos-error' : undefined}
-                className={`w-5 h-5 mt-px rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                className={`w-6 h-6 md:w-[22px] md:h-[22px] rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   aceptaTerminos
-                    ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                    ? 'bg-[#0E8C78] border-[#0E8C78]'
                     : errorTerminos
-                      ? 'bg-white border-red-500'
+                      ? 'bg-white border-[#C2410C]'
                       : 'bg-white border-neutral-400'
                 }`}
               >
-                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)] d2-check-in" strokeWidth={3} aria-hidden />}
+                {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
-              <span className="flex-1 min-w-0 text-sm leading-[22px] text-neutral-800">
-                <span id="lo-quiero-terminos-texto">
+              <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span id="lo-quiero-terminos-texto" className="text-sm font-semibold leading-[1.3] text-[#1E2230]">
                   Acepto los{' '}
                   <a
                     href={routes.legal(landing, 'terminos-y-condiciones')}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="font-semibold underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    className="underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
                     Términos
                   </a>{' '}
@@ -923,13 +938,17 @@ function LoQuieroModalContent({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="font-semibold underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    className="underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
                     Política de privacidad
                   </a>
                 </span>
                 {errorTerminos && !aceptaTerminos && (
-                  <span id="lo-quiero-terminos-error" role="alert" className="d2-aparece block text-xs font-semibold text-red-600">
+                  <span
+                    id="lo-quiero-terminos-error"
+                    role="alert"
+                    className="d2-aparece block text-[12.5px] md:text-[13px] leading-[1.35] font-bold text-[#B23C0A]"
+                  >
                     Marca la casilla para continuar.
                   </span>
                 )}
@@ -938,14 +957,14 @@ function LoQuieroModalContent({
 
             <div
               onClick={() => setAceptaPromos((v) => !v)}
-              className="flex items-start gap-2.5 min-h-[40px] py-[9px] md:min-h-[44px] md:py-2.5 cursor-pointer select-none"
+              className="flex items-center gap-3 min-h-[40px] md:min-h-[44px] px-3 md:px-4 cursor-pointer select-none"
             >
               <button
                 type="button"
                 role="checkbox"
                 aria-checked={aceptaPromos}
                 aria-labelledby="lo-quiero-promos-texto"
-                className={`w-5 h-5 mt-px rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                className={`w-6 h-6 md:w-[22px] md:h-[22px] rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-white border-neutral-400'
                 }`}
               >

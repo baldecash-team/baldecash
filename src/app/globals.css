@@ -392,6 +392,22 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   100% { opacity: 1; transform: none; }
 }
 .d2-saludo { animation: d2Sube 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* Caja de Términos del modal "Lo quiero" (BAL-4958, `bcConsent` de Brenda):
+   brillo ámbar al llegar (2 veces) y sacudida alterna A/B en cada intento. */
+@keyframes d2BrilloConsentimiento {
+  0% { box-shadow: 0 0 0 0 rgba(242, 182, 50, 0.6); }
+  100% { box-shadow: 0 0 0 12px rgba(242, 182, 50, 0); }
+}
+@keyframes d2SacudidaB {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.d2-brillo-consentimiento { animation: d2BrilloConsentimiento 1.4s ease-out 0.6s 2; }
+.d2-sacudida-a { animation: casillaV2Sacudida 0.5s ease-in-out; }
+.d2-sacudida-b { animation: d2SacudidaB 0.5s ease-in-out; }
 /* Errores, desplegables y regiones que se abren. */
 .d2-aparece { animation: d2Aparece 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 /* La cuota cambió: dos nombres para poder repetir el pulso sin desmontar. */
@@ -409,7 +425,8 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   .d2-pop, .d2-pop-lento, .d2-pop-modal, .d2-pop-modal-chico, .d2-pop-hoja,
   .d2-sale, .d2-sale-hoja, .d2-fundido, .d2-fundido-sale, .d2-aparece,
   .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-check-hecho, .d2-check-actual,
-  .d2-crece, .d2-crece-movil, .d2-saludo {
+  .d2-crece, .d2-crece-movil, .d2-saludo,
+  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b {
     animation: none !important;
   }
 }

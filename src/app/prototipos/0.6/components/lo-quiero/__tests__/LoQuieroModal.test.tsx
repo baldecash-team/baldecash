@@ -244,6 +244,27 @@ describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () =>
       acceptPromos: true,
     });
   });
+
+  it('caja de Términos de Brenda: ámbar con brillo, naranja con sacudida que se repite, verde al marcar', async () => {
+    pintar();
+    const casilla = await screen.findByRole('checkbox', { name: FRASE });
+    const caja = document.querySelector('[data-terminos-v2]')!;
+    expect(caja).toHaveAttribute('data-terminos-v2', 'neutra');
+    expect(caja).toHaveClass('border-[#F2B632]', 'bg-[#FFF6D8]', 'd2-brillo-consentimiento', 'rounded-[10px]', 'border-[1.5px]');
+
+    const continuar = await screen.findByRole('button', { name: /Continuar a mis datos/ });
+    fireEvent.click(continuar);
+    expect(caja).toHaveAttribute('data-terminos-v2', 'error');
+    expect(caja).toHaveClass('border-[#C2410C]', 'bg-[#FFF1EB]', 'd2-sacudida-a');
+    expect(screen.getByRole('alert')).toHaveTextContent('Marca la casilla para continuar.');
+    fireEvent.click(continuar);
+    expect(caja).toHaveClass('d2-sacudida-b');
+
+    fireEvent.click(casilla);
+    expect(caja).toHaveAttribute('data-terminos-v2', 'marcada');
+    expect(caja).toHaveClass('border-[#0E8C78]', 'bg-[#E8F7F2]');
+    expect(screen.queryByText('Marca la casilla para continuar.')).not.toBeInTheDocument();
+  });
 });
 
 describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
