@@ -24,6 +24,19 @@ import { validateField, type WizardField, type WizardStep } from '@/app/prototip
  */
 const DENTRO_DE_UN_DESPLEGABLE = '[role="listbox"], [role="option"], [role="dialog"], [data-slot="popover"], [data-slot="content"]';
 
+/**
+ * Un campo que el propio formulario vació (p. ej. el número de documento al
+ * cambiar de tipo) vuelve a "no tocado": su error espera a que la persona lo
+ * toque de nuevo o intente continuar (hallazgo menor del QA F10, BAL-4969).
+ */
+export const EVENTO_CAMPO_REINICIADO = 'diseno2:campo-reiniciado';
+
+/** Avisa que `codigo` se vació solo y no debe mostrar error todavía. */
+export function reiniciarCampoTocado(codigo: string): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<string>(EVENTO_CAMPO_REINICIADO, { detail: codigo }));
+}
+
 export function useErroresAlSalir(step: WizardStep | null) {
   const { formData, setFieldError, getAllDynamicOptions } = useWizard();
   // Cada paso arranca sin campos tocados: lo tocado se guarda junto con el
@@ -56,6 +69,23 @@ export function useErroresAlSalir(step: WizardStep | null) {
       return { paso: codigoPaso, campos: new Set(prev.campos).add(codigo) };
     });
   }, [codigoPaso]);
+
+  // Un campo vaciado por el formulario deja de contar como tocado.
+  useEffect(() => {
+    const alReiniciar = (e: Event) => {
+      const codigo = (e as CustomEvent<string>).detail;
+      if (!codigo) return;
+      setTocados((prev) => {
+        if (prev.paso !== codigoPaso || !prev.campos.has(codigo)) return prev;
+        const campos = new Set(prev.campos);
+        campos.delete(codigo);
+        return { paso: codigoPaso, campos };
+      });
+      setFieldError(codigo, null);
+    };
+    window.addEventListener(EVENTO_CAMPO_REINICIADO, alReiniciar);
+    return () => window.removeEventListener(EVENTO_CAMPO_REINICIADO, alReiniciar);
+  }, [codigoPaso, setFieldError]);
 
   // Validar lo tocado, y revalidar a cada cambio. Solo se escribe el error si
   // cambió: `setFieldError` crea estado nuevo y sin el guard esto no pararía.

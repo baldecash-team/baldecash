@@ -24,6 +24,7 @@ import { isValidPersonName } from '../../../../../services/nameValidation';
 import { PrefillData } from '../../../../../services/applicationApi';
 import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { SaludoPrellenadoV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/SaludoPrellenadoV2';
+import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/useErroresAlSalir';
 import {
   etiquetaDelNumero,
   mensajeDocumentoV2,
@@ -501,6 +502,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       if (habiaPrellenado) limpiarCamposDelPrellenado();
       resetCheck();
       setFieldError?.(field.code, null);
+      // El campo quedó vacío por el cambio de tipo, no por la persona: no
+      // muestra "Ingresa tu número…" hasta que lo toque o intente continuar.
+      reiniciarCampoTocado(field.code);
       return;
     }
 

@@ -667,6 +667,21 @@ describe('Revisión 6 · etiqueta, ayuda y borrado por tipo de documento', () =>
     expect(document.querySelector('[data-saludo-v2]')).toBeNull();
   });
 
+  it('QA F10 (menor): al cambiar de tipo, el número vaciado vuelve a "no tocado" (sin error adelantado)', () => {
+    const avisos: string[] = [];
+    const oir = (e: Event) => avisos.push((e as CustomEvent<string>).detail);
+    window.addEventListener('diseno2:campo-reiniciado', oir);
+    try {
+      poner('document_number', '7000');
+      montar(true, PASO_SIN_HINT);
+      act(() => poner('document_type', 'ce'));
+      expect(valores().document_number).toBe('');
+      expect(avisos).toEqual(['document_number']);
+    } finally {
+      window.removeEventListener('diseno2:campo-reiniciado', oir);
+    }
+  });
+
   it('un documento bloqueado no se borra al cambiar de tipo', () => {
     poner('document_number', '12345678');
     poner('_lead_locked_document_number', 'true');
