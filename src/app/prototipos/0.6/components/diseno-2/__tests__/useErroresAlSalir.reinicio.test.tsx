@@ -23,10 +23,12 @@ const PASO = {
   fields: [{ code: 'document_number', label: 'Número', type: 'document_number', required: true, dependency_groups: [], validations: [] }],
 } as unknown as WizardStep;
 
-let tocados: ReadonlySet<string> = new Set();
+const visto: { tocados: ReadonlySet<string> } = { tocados: new Set() };
 function Prueba() {
   const { camposTocados, onBlur } = useErroresAlSalir(PASO);
-  tocados = camposTocados;
+  React.useEffect(() => {
+    visto.tocados = camposTocados;
+  }, [camposTocados]);
   return (
     <div data-campo="document_number" onBlur={onBlur}>
       <input aria-label="numero" />
@@ -39,12 +41,12 @@ beforeEach(() => mockSetFieldError.mockClear());
 it('tocado al salir; reiniciado por el formulario, deja de estarlo y se limpia su error', () => {
   const { getByLabelText } = render(<Prueba />);
   fireEvent.blur(getByLabelText('numero'));
-  expect(tocados.has('document_number')).toBe(true);
+  expect(visto.tocados.has('document_number')).toBe(true);
   expect(mockSetFieldError).toHaveBeenCalledWith('document_number', 'Este campo es requerido');
 
   mockSetFieldError.mockClear();
   act(() => reiniciarCampoTocado('document_number'));
-  expect(tocados.has('document_number')).toBe(false);
+  expect(visto.tocados.has('document_number')).toBe(false);
   expect(mockSetFieldError).toHaveBeenCalledWith('document_number', null);
   expect(mockSetFieldError).not.toHaveBeenCalledWith('document_number', 'Este campo es requerido');
 });

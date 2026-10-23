@@ -6,7 +6,7 @@
  * según la preferencia usan `useMenosMovimiento()`.
  */
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 const CONSULTA_MENOS_MOVIMIENTO = '(prefers-reduced-motion: reduce)';
 
@@ -28,23 +28,21 @@ export function esPantallaDeCelular(): boolean {
   }
 }
 
+function suscribirMenosMovimiento(avisar: () => void): () => void {
+  let consulta: MediaQueryList;
+  try {
+    consulta = window.matchMedia(CONSULTA_MENOS_MOVIMIENTO);
+  } catch {
+    return () => {};
+  }
+  consulta.addEventListener?.('change', avisar);
+  return () => consulta.removeEventListener?.('change', avisar);
+}
+
 /**
- * Hook de `prefers-reduced-motion`: arranca en `false` (igual en el servidor
- * y en el primer render del cliente) y sigue los cambios de la preferencia.
+ * Hook de `prefers-reduced-motion`: `false` en el servidor y sigue los
+ * cambios de la preferencia en el navegador.
  */
 export function useMenosMovimiento(): boolean {
-  const [reducido, setReducido] = useState(false);
-  useEffect(() => {
-    let consulta: MediaQueryList;
-    try {
-      consulta = window.matchMedia(CONSULTA_MENOS_MOVIMIENTO);
-    } catch {
-      return;
-    }
-    setReducido(consulta.matches);
-    const alCambiar = (e: MediaQueryListEvent) => setReducido(e.matches);
-    consulta.addEventListener?.('change', alCambiar);
-    return () => consulta.removeEventListener?.('change', alCambiar);
-  }, []);
-  return reducido;
+  return useSyncExternalStore(suscribirMenosMovimiento, prefiereMenosMovimiento, () => false);
 }

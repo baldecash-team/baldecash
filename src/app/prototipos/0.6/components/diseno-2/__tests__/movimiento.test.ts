@@ -38,6 +38,7 @@ describe('movimiento', () => {
     simular(true);
     const { result, unmount } = renderHook(() => useMenosMovimiento());
     expect(result.current).toBe(true);
+    simular(false);
     act(() => oyente?.({ matches: false }));
     expect(result.current).toBe(false);
     unmount();
