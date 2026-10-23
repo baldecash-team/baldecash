@@ -160,6 +160,13 @@ interface LayoutContextValue {
    * mocks) sigan valiendo; sin el campo es `false`.
    */
   loQuieroModal?: boolean;
+  /**
+   * `disenoSolicitud` ya salió de `/config` (BAL-4969, casuísticas). Mientras
+   * es `false`, `disenoSolicitud` vale el `1` por defecto y NO dice nada: las
+   * guardas del paso y la medición esperan a este flag. Opcional por los
+   * contextos armados a mano (tests, mocks): sin el campo cuenta como resuelto.
+   */
+  disenoResuelto?: boolean;
 }
 
 /**
@@ -232,6 +239,7 @@ export function LayoutProvider({
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
   const [disenoSolicitud, setDisenoSolicitud] = useState<1 | 2>(1);
+  const [disenoResuelto, setDisenoResuelto] = useState(false);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -276,6 +284,7 @@ export function LayoutProvider({
       // BAL-4958: reemplaza al ingrediente `lo-quiero-modal-on`. Cualquier
       // valor que no sea 2 (número o string) cae en el diseño actual.
       setDisenoSolicitud(resolveDisenoSolicitud(cfg.features?.solicitud_design));
+      setDisenoResuelto(true);
     });
   }, [landing]);
 
@@ -548,7 +557,8 @@ export function LayoutProvider({
     disenoSolicitud,
     // Las landings sin Diseño 2 (gamer, tema oscuro: BAL-4969 I-2) no abren el modal.
     loQuieroModal: disenoSolicitud === 2 && admiteDiseno2(landing),
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud]);
+    disenoResuelto,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud, disenoResuelto]);
 
   return (
     <LayoutContext.Provider value={value}>

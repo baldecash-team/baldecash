@@ -26,7 +26,7 @@
  * backend por duplicado en cada paso (BAL-4959, hallazgo de la revisión).
  */
 
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronDown, Gift, Laptop, Package, ShieldCheck, Tag, AlertTriangle } from 'lucide-react';
@@ -46,6 +46,27 @@ import { useMesPrimeraCuota } from '../lo-quiero/useMesPrimeraCuota';
 import { ProgresoMovilV2 } from './ProgresoV2';
 import { usePulsoAlCambiar } from './movimiento';
 import { PRESION_V2 } from './campos/estilosV2';
+import { EVENTO_ABRIR_PLAZO_V2 } from './guardasV2';
+
+/** Escritorio (`lg`): ahí manda el panel; abajo de eso, la cabecera. */
+function esEscritorio(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches;
+}
+
+/**
+ * El aviso de tope de cuota pide abrir "Cambiar plazo o inicial" (BAL-4969,
+ * casuísticas). Solo responde el que se ve: el panel en escritorio, la
+ * cabecera en celular (los dos están montados a la vez).
+ */
+function useAbrirAlPedirPlazo(enEscritorio: boolean, abrir: () => void) {
+  useEffect(() => {
+    const alPedir = () => {
+      if (esEscritorio() === enEscritorio) abrir();
+    };
+    window.addEventListener(EVENTO_ABRIR_PLAZO_V2, alPedir);
+    return () => window.removeEventListener(EVENTO_ABRIR_PLAZO_V2, alPedir);
+  }, [enEscritorio, abrir]);
+}
 
 /** Con más plazos que esto, o con armadas, el selector es una lista. */
 const MAX_BOTONES_DE_PLAZO = 6;
@@ -310,6 +331,12 @@ export interface EnvioDelPanel {
 export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPanel; detalle?: React.ReactNode; envio?: EnvioDelPanel | null }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  const selectorRef = useRef<HTMLDivElement>(null);
+  const abrirSelector = useCallback(() => {
+    setAbierto(true);
+    requestAnimationFrame(() => selectorRef.current?.scrollIntoView?.({ block: 'nearest' }));
+  }, []);
+  useAbrirAlPedirPlazo(true, abrirSelector);
   // La cuota cambió (plazo, inicial): pulso como el total del modal (`bcPulse`).
   const pulso = usePulsoAlCambiar(datos.total);
   if (!datos.principal) {
@@ -382,6 +409,13 @@ export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPan
                   <span className="italic text-[#8A90A2]">Por elegir</span>
                 )}
               </div>
+              {/* El aviso de tope pidió "Cambiar plazo": en el paso que envía
+                  el selector no tiene botón propio, se abre acá. */}
+              {abierto && datos.hayQueElegir && (
+                <div ref={selectorRef} className="d2-aparece mt-3 border-t border-[#E3E6EE] pt-3">
+                  <SelectorPlazoInicial datos={datos} />
+                </div>
+              )}
               <button
                 type="button"
                 data-enviar-panel-v2
@@ -411,7 +445,7 @@ export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPan
                 <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
               </button>
               {abierto && (
-                <div id={idSelector} className="d2-aparece mt-1 border-t border-[#E3E6EE] pt-3">
+                <div id={idSelector} ref={selectorRef} className="d2-aparece mt-1 border-t border-[#E3E6EE] pt-3">
                   <SelectorPlazoInicial datos={datos} />
                 </div>
               )}
@@ -444,6 +478,8 @@ export function CabeceraSolicitudV2({
   const idSelector = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const pulso = usePulsoAlCambiar(datos.total);
+  const abrirDesplegable = useCallback(() => setAbierto(true), []);
+  useAbrirAlPedirPlazo(false, abrirDesplegable);
 
   // Escape cierra el desplegable.
   useEffect(() => {

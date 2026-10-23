@@ -50,9 +50,14 @@ export interface ProteccionesV2Props
    * puede enviar (QA en celular, BAL-4969, bug 1).
    */
   onDetalleAbiertoChange?: (abierto: boolean) => void;
+  /**
+   * Una protección que no se dejó agregar porque la cuota pasaría el tope
+   * (BAL-4969, casuísticas): el aviso va junto a esa protección.
+   */
+  avisoDelPlan?: { planId: string; texto: string } | null;
 }
 
-export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange }: ProteccionesV2Props) {
+export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange, avisoDelPlan }: ProteccionesV2Props) {
   const [detalle, setDetalle] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
@@ -143,6 +148,12 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
                   >
                     ¿Qué cubre?
                   </button>
+                  {avisoDelPlan?.planId === plan.id && (
+                    <p role="alert" data-tope-plan-v2 className="mt-1 flex items-start gap-1.5 rounded-lg border border-[#F2B79A] bg-[#FFF1EB] px-2.5 py-2 text-[13px] leading-snug text-[#1E2230]">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#C2410C]" aria-hidden />
+                      {avisoDelPlan.texto}
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-3">
                   <span className="whitespace-nowrap text-sm font-bold text-[#1E2230]">{precio(plan)}</span>

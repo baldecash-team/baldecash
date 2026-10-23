@@ -79,6 +79,17 @@ import {
 import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePaso4V2';
 import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
 import { ConfirmarSinProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ConfirmarSinProteccionesV2';
+// Guardas del paso en Diseño 2 (BAL-4969, casuísticas): aviso en el paso, nunca la intro de Diseño 1.
+import {
+  guardaActivaV2,
+  textoDeGuardaV2,
+  proteccionPasaElTope,
+  textoDeTopeDelPlan,
+  pedirAbrirSelectorDePlazo,
+  type AccionDeGuardaV2,
+} from '@/app/prototipos/0.6/components/diseno-2/guardasV2';
+import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGuardaV2';
+import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 
 
 // Helper function to get Lucide icon by name
@@ -130,7 +141,7 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud, disenoResuelto = true } = useLayout();
 
   /**
    * Diseño 2 (`features.solicitud_design === 2`): el paso se pinta dentro de
@@ -188,7 +199,7 @@ function StepContent() {
   const configLoadFailed = flujo.configLoadFailed === true;
 
   // Get applied coupon and term validation from product context
-  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts, selectedInsurances, clearInsurance, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
 
   // Toast notifications for submit
   // El aviso de envío ("Hay campos incompletos en…", errores del envío). Solo
@@ -225,8 +236,19 @@ function StepContent() {
     diseno2: usarDiseno2,
   });
 
+  /*
+   * Guardas del paso. Diseño 1 manda a `/solicitar` (su intro). Diseño 2 NO:
+   * esa pantalla no existe ahí, así que la persona se queda en el paso y ve el
+   * aviso de `guardaV2` (más abajo) con la salida que corresponde (BAL-4969,
+   * casuísticas). Todas esperan a `disenoResuelto`: antes de que llegue
+   * `/config`, `disenoSolicitud` vale el 1 por defecto y una landing en Diseño
+   * 2 se iría a la intro de Diseño 1 por un instante de carga.
+   */
+  const guardasDeDiseno1 = disenoResuelto && !usarDiseno2;
+
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (!isProductHydrated) return;
     // `paso.submitSucceeded` es el del envio del paso regular, que corre en su
     // propio `useSubmitApplication`. Sin mirarlo, un envio que limpia el
@@ -236,35 +258,83 @@ function StepContent() {
     if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded && !paso.submitSucceeded) {
       router.replace(routes.solicitar(landing));
     }
-  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded, paso.submitSucceeded]);
+  }, [guardasDeDiseno1, isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded, paso.submitSucceeded]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
       router.push(routes.solicitar(landing));
     }
-  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+  }, [guardasDeDiseno1, isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (cartProducts.length > 1 && !hasUnifiedTerms()) {
       router.push(routes.solicitar(landing));
     }
-  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+  }, [guardasDeDiseno1, cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (isOverQuotaLimit) {
       router.push(routes.solicitar(landing));
     }
-  }, [isOverQuotaLimit, landing, router]);
+  }, [guardasDeDiseno1, isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
+    if (!guardasDeDiseno1) return;
     if (unavailableProductIds.length > 0) {
       router.push(routes.solicitar(landing));
     }
-  }, [unavailableProductIds, landing, router]);
+  }, [guardasDeDiseno1, unavailableProductIds, landing, router]);
+
+  /**
+   * Diseño 2: la guarda que manda (o `null`). Bloquea "Continuar" y "Enviar"
+   * y se pinta como aviso dentro del paso.
+   */
+  const guardaV2 = usarDiseno2
+    ? guardaActivaV2({
+        productoHidratado: isProductHydrated,
+        hayProducto: !!selectedProduct || cartProducts.length > 0,
+        enviado: submitSucceeded || paso.submitSucceeded,
+        hayNoDisponibles: unavailableProductIds.length > 0,
+        flujoCargado: !isFlowConfigLoading,
+        cuponObligatorio: isCouponRequired,
+        hayCupon: !!appliedCoupon,
+        plazosDistintos: cartProducts.length > 1 && !hasUnifiedTerms(),
+        sobreElTope: isOverQuotaLimit,
+        maximo: maxMonthlyQuota,
+        conProtecciones: (selectedInsurances?.length ?? 0) > 0,
+      })
+    : null;
+
+  /** A dónde vuelve Diseño 2 cuando no hay paso anterior: el origen del modal o el catálogo. */
+  const origenV2 = () => leerOrigenDiseno2(landing) || routes.catalogo(landing);
+
+  const accionDeGuarda = (tipo: AccionDeGuardaV2) => {
+    if (tipo === 'catalogo') router.push(routes.catalogo(landing));
+    else if (tipo === 'origen') router.push(origenV2());
+    else if (tipo === 'quitar-protecciones') clearInsurance();
+    else pedirAbrirSelectorDePlazo();
+  };
+
+  const avisoGuardaV2 = guardaV2
+    ? (() => {
+        const t = textoDeGuardaV2(guardaV2);
+        return (
+          <AvisoGuardaV2
+            titulo={t.titulo}
+            mensaje={t.mensaje}
+            accion={{ texto: t.accion.texto, onClick: () => accionDeGuarda(t.accion.tipo) }}
+            className="mb-4"
+          />
+        );
+      })()
+    : null;
 
   // Get step config from API using URL slug
   const step = getStepByUrlSlug(stepSlug);
@@ -398,6 +468,28 @@ function StepContent() {
     creadaAntes: esElQueEnvia && solicitudCreadaAntesDelPaso(envioAnticipadoStep, navigation.currentIndex, yaEnviada),
     codigoPaso: step?.code ?? null,
   });
+
+  /**
+   * Paso 4 de Diseño 2: una protección que pasaría la cuota por encima del
+   * tope NO se agrega. Se avisa junto a esa protección (y arriba, por si la
+   * hoja "¿Qué cubre?" la tapa), en vez de dejarla y bloquear el envío.
+   */
+  const [planSobreTope, setPlanSobreTope] = useState<string | null>(null);
+  const { alternar: alternarSeguro, elegidos: segurosElegidos, planes: planesDeSeguro } = paso4.seguros;
+  const alternarProteccion = useCallback(
+    (planId: string) => {
+      const plan = planesDeSeguro.find((p) => p.id === planId);
+      const yaElegido = segurosElegidos.includes(planId);
+      if (!yaElegido && plan && proteccionPasaElTope(getTotalMonthlyPayment(), plan.monthlyPrice, maxMonthlyQuota)) {
+        setPlanSobreTope(planId);
+        showToast(textoDeTopeDelPlan(maxMonthlyQuota), 'warning');
+        return;
+      }
+      setPlanSobreTope(null);
+      alternarSeguro(planId);
+    },
+    [planesDeSeguro, segurosElegidos, getTotalMonthlyPayment, maxMonthlyQuota, alternarSeguro, showToast],
+  );
 
   // Build form values for validation
   const formValues = useMemo(() => {
@@ -712,7 +804,8 @@ function StepContent() {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
       router.push(routes.solicitarStep(landing, prevSlug));
     } else {
-      router.push(routes.solicitar(landing));
+      // Diseño 2 no tiene intro: vuelve al origen del modal o al catálogo.
+      router.push(usarDiseno2 ? origenV2() : routes.solicitar(landing));
     }
   };
 
@@ -772,7 +865,7 @@ function StepContent() {
           No se encontro el paso: {stepSlug}
         </p>
         <button
-          onClick={() => router.push(routes.solicitar(landing))}
+          onClick={() => router.push(usarDiseno2 ? origenV2() : routes.solicitar(landing))}
           className={`underline ${isGamer ? 'text-[#00ffd5]' : 'text-[var(--color-primary)]'}`}
         >
           Volver al formulario
@@ -1094,7 +1187,7 @@ function StepContent() {
             isSubmitting={isAppSubmitting}
             isBusy={isSubmitting}
             submitMessage={submitMessage}
-            canProceed={!bloqueadoPorWhitelist}
+            canProceed={!bloqueadoPorWhitelist && !guardaV2}
             navbarProps={navbarProps || undefined}
             // `summary-off` (D3): el Paso 4 sale igual, sin "Ver detalle".
             detalle={sinResumen ? undefined : <>{repasoDeDatos()}</>}
@@ -1108,6 +1201,7 @@ function StepContent() {
           >
             {(camposTocados) => (
               <div className="space-y-4">
+                {avisoGuardaV2}
                 {step.fields.length > 0 && (
                   <div
                     data-vista-paso4="1"
@@ -1120,7 +1214,11 @@ function StepContent() {
                 )}
                 {segurosEnPaso4 && (
                   <div data-vista-paso4="2" className={paso4.hayVista2 && paso4.vista === 1 ? 'hidden lg:block' : undefined}>
-                    <ProteccionesV2 {...paso4.seguros} landing={landing} frecuencia={frecuencia} onDetalleAbiertoChange={setDetalleSeguroAbierto} />
+                    <ProteccionesV2
+                      {...paso4.seguros}
+                      alternar={alternarProteccion}
+                      avisoDelPlan={planSobreTope && !segurosElegidos.includes(planSobreTope) ? { planId: planSobreTope, texto: textoDeTopeDelPlan(maxMonthlyQuota) } : null}
+                      landing={landing} frecuencia={frecuencia} onDetalleAbiertoChange={setDetalleSeguroAbierto} />
                   </div>
                 )}
                 <ConfirmarSinProteccionesV2
@@ -1258,11 +1356,16 @@ function StepContent() {
           isLastStep={paso.esElQueEnvia}
           isSubmitting={paso.isSubmitting}
           submitMessage={paso.submitMessage}
-          canProceed={paso.canProceed}
+          canProceed={paso.canProceed && !guardaV2}
           navbarProps={navbarProps || undefined}
           ocultarBarraInferior={paso.celebrando}
         >
-          {(camposTocados) => <PasoDelWizard paso={paso} camposTocados={camposTocados} />}
+          {(camposTocados) => (
+            <>
+              {avisoGuardaV2}
+              <PasoDelWizard paso={paso} camposTocados={camposTocados} />
+            </>
+          )}
         </ShellV2>
         {/* Pasos 1 a 3: Atrás y Continuar van en línea (sin barra fija). */}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
