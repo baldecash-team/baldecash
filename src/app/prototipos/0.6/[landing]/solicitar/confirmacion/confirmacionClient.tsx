@@ -38,6 +38,8 @@ import { separarRegaloBaldecash } from './regaloBaldecash';
 import { ConfirmacionV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/ConfirmacionV2';
 import { ConfirmacionLimitadaV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/ConfirmacionLimitadaV2';
 import { LoadingFallbackV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/LoadingFallbackV2';
+import { pidenDireccion } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
+import { useWizardConfigOptional } from '../context/WizardConfigContext';
 
 /**
  * Reads the wizard session UUID from localStorage.
@@ -375,6 +377,11 @@ function RealConfirmationContent({
   /** F8 (BAL-4967): `disenoSolicitud === 2` y la landing admite Diseño 2 (`admiteDiseno2`: ni zona gamer ni tema oscuro). */
   diseno2?: boolean;
 }) {
+  // "Te enviamos tu laptop" solo si el formulario pide dirección (BAL-4969).
+  // Sin los pasos (config caída o sin provider) se asume que sí.
+  const pasosDelFormulario = useWizardConfigOptional()?.steps ?? [];
+  const conDireccion = pasosDelFormulario.length === 0 || pidenDireccion(pasosDelFormulario);
+
   if (isLoading) {
     return diseno2 ? <LoadingFallbackV2 /> : <LoadingFallback />;
   }
@@ -409,6 +416,7 @@ function RealConfirmationContent({
         overlayVariant={overlayVariant}
         landing={landing}
         applicationCode={applicationCode}
+        conDireccion={conDireccion}
         onDescargarConstancia={() => {
           const sessionId = getStoredSessionUuid(landing);
           if (!sessionId || !applicationCode) return;

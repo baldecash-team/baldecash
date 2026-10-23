@@ -20,6 +20,13 @@ export interface LineaDeTiempoV2Props {
   horaDeEnvio: string;
   /** "Máx. 24 h" — se arma a partir de `data.estimatedResponseHours`. */
   plazoWhatsApp: string;
+  /**
+   * Hay envío a domicilio (BAL-4969, casuísticas). Sin él (Locker Truck,
+   * préstamo, formulario sin dirección) el último hito no promete envío.
+   */
+  conEnvio?: boolean;
+  /** "laptop", "celular"… para "te enviamos tu {equipo}". */
+  equipo?: string;
 }
 
 interface Hito {
@@ -36,7 +43,7 @@ const TEXTO_ESTADO: Record<Hito['estado'], string> = {
   pendiente: 'Pendiente',
 };
 
-export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2Props) {
+export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp, conEnvio = true, equipo = 'laptop' }: LineaDeTiempoV2Props) {
   const reducido = useMenosMovimiento();
 
   const hitos: Hito[] = [
@@ -62,8 +69,8 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
       icono: <MessageCircle className="h-4 w-4" />,
     },
     {
-      titulo: 'Firmas y te enviamos tu laptop',
-      descripcion: 'El envío es gratis a todo el Perú.',
+      titulo: conEnvio ? `Firmas y te enviamos tu ${equipo}` : 'Firmas tu contrato',
+      descripcion: conEnvio ? 'El envío es gratis a todo el Perú.' : 'Te contamos por WhatsApp cómo sigue.',
       tiempo: 'Si te aprueban',
       estado: 'pendiente',
       icono: <Truck className="h-4 w-4" />,

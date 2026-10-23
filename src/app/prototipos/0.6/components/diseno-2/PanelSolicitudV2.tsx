@@ -266,11 +266,12 @@ function AvisoTope({ datos }: { datos: DatosDelPanel }) {
   );
 }
 
-function Confianza() {
+/** "Envío gratis" solo donde hay envío (no en Locker Truck ni en préstamos). */
+function Confianza({ conEnvio = true }: { conEnvio?: boolean }) {
   return (
     <p className="mt-3 flex items-center gap-2 px-1 text-[13px] text-[#5B6275]">
       <ShieldCheck className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
-      Registrados en la SBS · Envío gratis a todo el Perú
+      {conEnvio ? 'Registrados en la SBS · Envío gratis a todo el Perú' : 'Registrados en la SBS'}
     </p>
   );
 }
@@ -326,9 +327,11 @@ export interface EnvioDelPanel {
   ocupado: boolean;
   /** "Día 3 de cada mes", o `null` mientras no lo elige. */
   diaDePago: string | null;
+  /** El formulario pide día de pago. Sin él, la fila no va (BAL-4969). */
+  conDiaDePago?: boolean;
 }
 
-export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPanel; detalle?: React.ReactNode; envio?: EnvioDelPanel | null }) {
+export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { datos: DatosDelPanel; detalle?: React.ReactNode; envio?: EnvioDelPanel | null; conEnvio?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
   const selectorRef = useRef<HTMLDivElement>(null);
@@ -401,14 +404,16 @@ export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPan
           <AvisoTope datos={datos} />
           {envio && (
             <>
-              <div className="mt-1 flex items-baseline justify-between gap-2 text-sm">
-                <span className="text-[#3A4052]">Día de pago</span>
-                {envio.diaDePago ? (
-                  <span className="font-semibold text-[#1E2230]">{envio.diaDePago}</span>
-                ) : (
-                  <span className="italic text-[#8A90A2]">Por elegir</span>
-                )}
-              </div>
+              {envio.conDiaDePago !== false && (
+                <div className="mt-1 flex items-baseline justify-between gap-2 text-sm">
+                  <span className="text-[#3A4052]">Día de pago</span>
+                  {envio.diaDePago ? (
+                    <span className="font-semibold text-[#1E2230]">{envio.diaDePago}</span>
+                  ) : (
+                    <span className="italic text-[#8A90A2]">Por elegir</span>
+                  )}
+                </div>
+              )}
               {/* El aviso de tope pidió "Cambiar plazo": en el paso que envía
                   el selector no tiene botón propio, se abre acá. */}
               {abierto && datos.hayQueElegir && (
@@ -453,7 +458,7 @@ export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPan
           )}
         </div>
       </div>
-      <Confianza />
+      <Confianza conEnvio={conEnvio} />
     </aside>
   );
 }
@@ -580,9 +585,12 @@ export function CabeceraSolicitudV2({
                   <p className="text-xs font-semibold text-[#0B6B5C]">1.ª cuota en {datos.mesPrimeraCuota}</p>
                 )}
               </div>
-              <Link href={routes.catalogo(landing)} className="shrink-0 text-xs font-semibold text-[var(--color-primary-text)] underline min-h-[44px] inline-flex items-start">
-                Cambiar equipo
-              </Link>
+              {/* Un préstamo de efectivo no tiene equipo que cambiar (BAL-4969). */}
+              {String(datos.principal.type ?? '').toLowerCase() !== 'efectivo' && (
+                <Link href={routes.catalogo(landing)} className="shrink-0 text-xs font-semibold text-[var(--color-primary-text)] underline min-h-[44px] inline-flex items-start">
+                  Cambiar equipo
+                </Link>
+              )}
             </div>
             <AvisoTope datos={datos} />
             <div className="mt-2">

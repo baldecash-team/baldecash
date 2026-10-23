@@ -335,7 +335,9 @@ describe('Paso 4 de Diseño 2 · encabezado y "Ver detalle"', () => {
     render(<StepClient />);
     expect(await screen.findByRole('heading', { name: 'Resumen de tu solicitud' })).toBeInTheDocument();
     expect(screen.queryByTestId('antetitulo')).not.toBeInTheDocument();
-    expect(screen.getByTestId('subtitulo')).toHaveTextContent('Elige tu día de pago, confirma tu dirección y envía tu solicitud.');
+    // El paso de este test pide día de pago pero no dirección: el respaldo
+    // ya no promete "confirma tu dirección" (BAL-4969, casuísticas).
+    expect(screen.getByTestId('subtitulo')).toHaveTextContent('Elige tu día de pago y envía tu solicitud.');
   });
 
   it('con el nombre del lookup: "¡Último paso, {Nombre}!"', async () => {

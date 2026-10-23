@@ -48,6 +48,8 @@ import { BarraInferiorV2 } from './BarraInferiorV2';
 import { useGuiaDeCampos } from './useGuiaDeCampos';
 import { useErroresAlSalir } from './useErroresAlSalir';
 import { leerOrigenDiseno2 } from './origenDiseno2';
+import { hayEnvioADomicilio, pidenDiaDePago } from './textosQueAplicanV2';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -237,6 +239,11 @@ export function ShellV2({
   // trae descripción (Pasos 2 y 3); si la trae, bajo los botones (Paso 1).
   const candado: 'arriba' | 'abajo' | null = pasoResumen || sinNavegacion ? null : description ? 'abajo' : 'arriba';
   const frecuencia = getAllProducts()[0]?.paymentFrequency;
+  // Textos que no aplican a todas las landings (BAL-4969, casuísticas):
+  // "Envío gratis" solo si hay envío; "Día de pago" solo si se pide.
+  const { overlayVariant } = useLayout();
+  const conEnvio = hayEnvioADomicilio({ pasos: steps, overlayVariant, tipoDeProducto: getAllProducts()[0]?.type });
+  const conDiaDePago = steps.length === 0 || pidenDiaDePago(steps);
   const totalTexto = `S/${formatCuotaDeLanding(getTotalMonthlyPayment(), landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
   return (
@@ -354,6 +361,7 @@ export function ShellV2({
               <PanelSolicitudV2
                 datos={datosDelPanel}
                 detalle={detalle}
+                conEnvio={conEnvio}
                 // El paso que envía lleva su "Enviar" también en el panel (prototipo).
                 envio={
                   isLastStep && accionPrincipal && !sinNavegacion
@@ -363,6 +371,7 @@ export function ShellV2({
                         deshabilitado: ocupado || !canProceed,
                         ocupado,
                         diaDePago: textoDelDiaDePago(formData.payment_day?.value),
+                        conDiaDePago,
                       }
                     : null
                 }

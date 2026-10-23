@@ -90,6 +90,7 @@ import {
 } from '@/app/prototipos/0.6/components/diseno-2/guardasV2';
 import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGuardaV2';
 import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
+import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
 
 
 // Helper function to get Lucide icon by name
@@ -1193,7 +1194,9 @@ function StepContent() {
             step={step}
             title={encabezado.titulo}
             antetitulo={encabezado.antetitulo}
-            description={encabezado.subtitulo}
+            // Sin descripción en la BD, el subtítulo dice solo lo que el paso
+            // pide (día de pago, dirección), no el de Brenda fijo (BAL-4969).
+            description={subtituloDelPaso4(step)}
             // Cada bloque (campos, protecciones) lleva su propia tarjeta.
             sinTarjeta
             onBack={handleSummaryBack}

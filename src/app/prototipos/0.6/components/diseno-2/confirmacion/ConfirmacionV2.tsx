@@ -27,6 +27,7 @@ import { TarjetaSolicitudV2 } from './TarjetaSolicitudV2';
 import { textoCabeceraV2 } from './textoCabeceraV2';
 import { horaDeEnvio } from './horaDeEnvio';
 import type { OpcionesTarjetaV2 } from './resumenTarjetaV2';
+import { hayEnvioADomicilio, nombreDelEquipoV2 } from '../textosQueAplicanV2';
 
 export interface ConfirmacionV2Props {
   data: ReceivedData;
@@ -51,6 +52,11 @@ export interface ConfirmacionV2Props {
   telefono?: string | null;
   /** Día de pago / entrega: ver nota de disponibilidad en `resumenTarjetaV2`. */
   tarjeta?: OpcionesTarjetaV2;
+  /**
+   * El formulario de la landing pide dirección (BAL-4969, casuísticas). Sin
+   * el dato se asume que sí, como hasta ahora.
+   */
+  conDireccion?: boolean;
 }
 
 export function ConfirmacionV2({
@@ -66,6 +72,7 @@ export function ConfirmacionV2({
   onDescargarConstancia,
   telefono,
   tarjeta,
+  conDireccion = true,
 }: ConfirmacionV2Props) {
   const texto = textoCabeceraV2({
     userName: data.userName,
@@ -79,6 +86,8 @@ export function ConfirmacionV2({
   const fechaEnvio = submittedAt ? new Date(submittedAt) : null;
   const horaEnvioTexto = horaDeEnvio(fechaEnvio);
   const plazoWhatsApp = `Máx. ${data.estimatedResponseHours} h`;
+  const tipoDeProducto = data.products?.[0]?.type ?? null;
+  const conEnvio = conDireccion && hayEnvioADomicilio({ pasos: [], overlayVariant, tipoDeProducto });
 
   return (
     <div data-confirmacion-v2 className="bg-[#F7F8FC]">
@@ -90,7 +99,12 @@ export function ConfirmacionV2({
 
         {texto.mostrarLineaDeTiempo ? (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start">
-            <LineaDeTiempoV2 horaDeEnvio={horaEnvioTexto} plazoWhatsApp={plazoWhatsApp} />
+            <LineaDeTiempoV2
+              horaDeEnvio={horaEnvioTexto}
+              plazoWhatsApp={plazoWhatsApp}
+              conEnvio={conEnvio}
+              equipo={nombreDelEquipoV2(tipoDeProducto) === 'equipo' ? 'laptop' : nombreDelEquipoV2(tipoDeProducto)}
+            />
             <TarjetaSolicitudV2 data={data} landingSlug={landing ?? ''} opciones={tarjeta} />
           </div>
         ) : (
