@@ -14,6 +14,12 @@
  *
  * Con `prefers-reduced-motion` no hay movimiento: Baldecito aparece ya en el
  * paso siguiente y la pantalla dura menos.
+ *
+ * Movimiento (BAL-4969): el del puente del prototipo de Brenda — fundido de
+ * entrada (`bcFadeIn` 0,2 s), salto de Baldecito (`bcHop` 0,9 s con
+ * cubic-bezier(.45,0,.3,1)), chispas al llegar (`bcBurst`) y textos que entran
+ * escalonados (`bcPop` 0,4 s). Todo con `transform`/`opacity`; las keyframes
+ * viven en `globals.css` (`d2*`).
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
@@ -30,6 +36,18 @@ export const DURACION_TRANSICION_REDUCIDA_MS = 1200;
 
 /** Baldecito alegre: lo reutiliza también la cabecera de `ConfirmacionV2` (F8, BAL-4967). */
 export const BALDECITO = 'https://baldecash.s3.amazonaws.com/illustrations/baldi/BALDI_ALEGRE.png';
+
+/** Chispas de la llegada: color, dx y dy en px (las del prototipo). */
+const CHISPAS: ReadonlyArray<readonly [string, number, number]> = [
+  ['#FFD666', -26, -30],
+  ['#19C3A6', 28, -26],
+  ['var(--color-primary)', -34, 4],
+  ['#9AA5F0', 34, 8],
+  ['#FFD666', 4, -40],
+  ['#5FD3BE', -14, 30],
+  ['var(--color-primary)', 18, 32],
+  ['#FFD666', 40, -10],
+];
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -115,6 +133,14 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
   // Posición de cada nodo en el camino, en % del ancho.
   const pos = (i: number) => (total <= 1 ? 50 : (i / (total - 1)) * 100);
   const titulo = getMessage(pasoCompletado, total);
+  const pDesde = pos(desde);
+  const pHasta = pos(hasta);
+  const avanza = hasta !== desde;
+  // El salto de Baldecito: `bcHop` del prototipo (0,9 s, misma curva y
+  // demora). Todo es `transform`: la capa del viajero mide lo mismo que el
+  // camino, así que su `translateX(%)` es el % del camino.
+  const SALTO = '0.9s cubic-bezier(0.45, 0, 0.3, 1) 0.35s both';
+  const entra = (demora: number) => (reducido ? undefined : { animation: `d2Pop 0.4s ease-out ${demora}s both` });
 
   return (
     <div
@@ -122,44 +148,51 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
       role="dialog"
       aria-modal="true"
       aria-labelledby="transicion-paso-titulo"
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[#F7F8FC] px-6 cursor-pointer"
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-[#F7F8FC] px-6 cursor-pointer"
       onClick={terminar}
+      style={reducido ? undefined : { animation: 'd2Fundido 0.2s ease-out both' }}
       data-transicion-v2
     >
-      <style>{`
-        @keyframes tpAvance { from { left: ${pos(desde)}%; } to { left: ${pos(hasta)}%; } }
-        @keyframes tpSalto { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -8px); } }
-        @keyframes tpLlenar { from { width: ${pos(desde)}%; } to { width: ${pos(hasta)}%; } }
-        @keyframes tpTiempo { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-        @keyframes tpAparece { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-      `}</style>
       <div className="w-full max-w-md text-center">
         {/* Camino con Baldecito */}
         <div className="relative mx-auto mb-10 h-28 w-full max-w-sm" aria-hidden>
           <div
-            className="absolute bottom-[50px] h-24 w-20"
+            data-viajero
+            className="absolute inset-x-0 bottom-[50px] h-24"
             style={
-              reducido
-                ? { left: `${pos(hasta)}%`, transform: 'translateX(-50%)' }
-                : {
-                    left: `${pos(hasta)}%`,
-                    transform: 'translateX(-50%)',
-                    animation: `tpAvance 1.1s ease-in-out 0.5s both, tpSalto 0.55s ease-in-out 0.5s 2`,
-                  }
+              {
+                transform: `translateX(${pHasta}%)`,
+                '--tp-desde': `${pDesde}%`,
+                '--tp-hasta': `${pHasta}%`,
+                ...(reducido || !avanza ? null : { animation: `d2Viaje ${SALTO}` }),
+              } as React.CSSProperties
             }
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={BALDECITO} alt="" className="h-full w-full object-contain" />
-          </div>
-          <div className="absolute bottom-[18px] left-0 right-0 h-1 rounded-full bg-[#E3E6EE]">
             <div
-              className="h-full rounded-full bg-[#12A877]"
-              style={reducido ? { width: `${pos(hasta)}%` } : { width: `${pos(hasta)}%`, animation: 'tpLlenar 1.1s ease-in-out 0.5s both' }}
+              className="absolute bottom-0 left-0 -ml-10 h-24 w-20 origin-bottom"
+              style={reducido || !avanza ? undefined : { animation: `d2Salto ${SALTO}` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={BALDECITO} alt="" className="h-full w-full object-contain" />
+            </div>
+          </div>
+          <div className="absolute bottom-[18px] left-0 right-0 h-1 overflow-hidden rounded-full bg-[#E3E6EE]">
+            <div
+              data-camino-lleno
+              className="h-full w-full origin-left rounded-full bg-[#12A877]"
+              style={
+                {
+                  transform: `scaleX(${pHasta / 100})`,
+                  '--tp-llenado-desde': pDesde / 100,
+                  '--tp-llenado-hasta': pHasta / 100,
+                  ...(reducido || !avanza ? null : { animation: `d2Llenar ${SALTO}` }),
+                } as React.CSSProperties
+              }
             />
           </div>
           {pasos.map((nombre, i) => {
             const hecho = i <= desde;
-            const actual = i === hasta && hasta !== desde;
+            const actual = i === hasta && avanza;
             return (
               <span
                 key={`${nombre}-${i}`}
@@ -172,22 +205,47 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
                 }`}
                 style={{ left: `${pos(i)}%` }}
               >
-                {hecho ? <Check className="h-4 w-4" strokeWidth={3} /> : i + 1}
+                {hecho ? (
+                  <Check className={`h-4 w-4${i === desde && !reducido ? ' d2-check-hecho' : ''}`} strokeWidth={3} />
+                ) : (
+                  i + 1
+                )}
               </span>
             );
           })}
+          {/* Chispas al llegar (`bcBurst`): solo transform y opacity. */}
+          {!reducido && avanza && (
+            <span data-chispas className="absolute bottom-[20px] h-0 w-0" style={{ left: `${pHasta}%` }}>
+              {CHISPAS.map(([color, dx, dy], i) => (
+                <span
+                  key={i}
+                  className="absolute -left-1 -top-1 h-2 w-2"
+                  style={
+                    {
+                      background: color,
+                      borderRadius: i % 2 ? 2 : 999,
+                      opacity: 0,
+                      '--dx': `${dx}px`,
+                      '--dy': `${dy}px`,
+                      animation: 'd2Chispa 0.75s ease-out 1.25s both',
+                    } as React.CSSProperties
+                  }
+                />
+              ))}
+            </span>
+          )}
         </div>
 
-        <h2 id="transicion-paso-titulo" className="font-['Baloo_2',_sans-serif] text-3xl font-bold text-[#1E2230]">
+        <h2 id="transicion-paso-titulo" className="font-['Baloo_2',_sans-serif] text-3xl font-bold text-[#1E2230]" style={entra(0.15)}>
           {titulo}
         </h2>
-        <p className="mt-1 text-sm text-[#5B6275]">
+        <p className="mt-1 text-sm text-[#5B6275]" style={entra(0.3)}>
           Paso {pasoCompletado} de {total} completado
         </p>
-        {siguiente && hasta !== desde && (
+        {siguiente && avanza && (
           <p
             className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)]/10 px-4 py-1.5 text-sm font-semibold text-[var(--color-primary-text)]"
-            style={reducido ? undefined : { animation: 'tpAparece 0.3s ease-out 1.2s both' }}
+            style={entra(1.3)}
           >
             <ArrowRight className="h-4 w-4" aria-hidden />
             Sigue: {siguiente}
@@ -207,7 +265,8 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
             <span
               aria-hidden
               className="absolute bottom-0 left-0 h-[3px] w-full origin-left bg-[var(--color-primary)]"
-              style={{ animation: `tpTiempo ${duracion}ms linear both` }}
+              // El tiempo que queda (`bcFill`): informa, así que corre siempre.
+              style={{ animation: `d2Crece ${duracion}ms linear both` }}
             />
           </button>
         </div>
