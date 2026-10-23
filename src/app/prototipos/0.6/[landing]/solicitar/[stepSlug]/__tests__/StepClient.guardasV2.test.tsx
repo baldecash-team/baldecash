@@ -8,7 +8,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
-const mockLayout: { disenoSolicitud: 1 | 2; disenoResuelto: boolean } = { disenoSolicitud: 2, disenoResuelto: true };
+const mockLayout: { disenoSolicitud: 1 | 2; disenoResuelto: boolean; campanaAbierta: boolean } = { disenoSolicitud: 2, disenoResuelto: true, campanaAbierta: true };
 const mockProducto = {
   selectedProduct: { id: 1, name: 'Laptop Test' } as { id: number; name: string } | null,
   isOverQuotaLimit: false,
@@ -83,6 +83,7 @@ jest.mock('@/app/prototipos/0.6/[landing]/context/LayoutContext', () => ({
     newsletterData: null,
     disenoSolicitud: mockLayout.disenoSolicitud,
     disenoResuelto: mockLayout.disenoResuelto,
+    campanaAbierta: mockLayout.campanaAbierta,
   }),
 }));
 jest.mock('../../context/ProductContext', () => ({
@@ -144,6 +145,7 @@ beforeEach(() => {
   mockClearInsurance.mockClear();
   mockLayout.disenoSolicitud = 2;
   mockLayout.disenoResuelto = true;
+  mockLayout.campanaAbierta = true;
   mockProducto.selectedProduct = { id: 1, name: 'Laptop Test' };
   mockProducto.isOverQuotaLimit = false;
   mockProducto.unavailableProductIds = [];
@@ -211,6 +213,13 @@ describe('Guardas del paso en Diseño 2', () => {
     render(<StepClient />);
     await screen.findAllByTestId('cuerpo-del-paso');
     expect(fueALaIntro()).toBe(false);
+  });
+
+  it('cupo de campaña lleno: avisa en el paso (antes de llenar todo) sin bloquear, como Diseño 1', async () => {
+    mockLayout.campanaAbierta = false;
+    render(<StepClient />);
+    expect(await screen.findByText('Por ahora no estamos recibiendo más solicitudes')).toBeInTheDocument();
+    expect(screen.getByTestId('shell-v2')).toHaveAttribute('data-puede', 'si');
   });
 
   it('Diseño 1 sigue mandando a la intro con el tope superado', async () => {

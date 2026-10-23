@@ -141,7 +141,7 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud, disenoResuelto = true } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud, disenoResuelto = true, campanaAbierta = true } = useLayout();
 
   /**
    * Diseño 2 (`features.solicitud_design === 2`): el paso se pinta dentro de
@@ -323,6 +323,22 @@ function StepContent() {
     else if (tipo === 'quitar-protecciones') clearInsurance();
     else pedirAbrirSelectorDePlazo();
   };
+
+  /*
+   * Cupo de la campaña lleno (BAL-4969, casuísticas): Diseño 1 lo avisa en su
+   * intro; Diseño 2 no la tiene, así que lo avisa en cada paso, ANTES de que
+   * la persona llene todo. Igual que en Diseño 1, no bloquea: el envío valida
+   * el cupo en el servidor (y si rebota, `APPLICATION_CAP_REACHED` tiene su
+   * mensaje).
+   */
+  const avisoCampanaV2 = usarDiseno2 && !campanaAbierta ? (
+    <AvisoGuardaV2
+      tono="info"
+      titulo="Por ahora no estamos recibiendo más solicitudes"
+      mensaje="Se llenaron los cupos de esta campaña. Si ya enviaste la tuya, sigue su curso con normalidad y te vamos a contactar."
+      className="mb-4"
+    />
+  ) : null;
 
   const avisoGuardaV2 = guardaV2
     ? (() => {
@@ -1203,6 +1219,7 @@ function StepContent() {
           >
             {(camposTocados) => (
               <div className="space-y-4">
+                {avisoCampanaV2}
                 {avisoGuardaV2}
                 {step.fields.length > 0 && (
                   <div
@@ -1364,6 +1381,7 @@ function StepContent() {
         >
           {(camposTocados) => (
             <>
+              {avisoCampanaV2}
               {avisoGuardaV2}
               <PasoDelWizard paso={paso} camposTocados={camposTocados} />
             </>

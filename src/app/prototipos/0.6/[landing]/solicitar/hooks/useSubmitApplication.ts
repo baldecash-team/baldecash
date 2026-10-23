@@ -808,6 +808,12 @@ export function useSubmitApplication(
             // cupón como válido. El texto del API dice qué pasó pero no qué
             // hacer, y la única salida es enviar sin el cupón (caso DNI
             // 60477990, 22-09-2026: ~10 envíos rechazados sin explicación).
+            // El cupo de la campaña se llenó mientras la persona llenaba
+            // (BAL-4969, casuísticas). El texto de ws2 viene sin tildes.
+            APPLICATION_CAP_REACHED:
+              'Por ahora no estamos recibiendo más solicitudes: se llenaron ' +
+              'los cupos de esta campaña. Si ya enviaste la tuya, sigue su ' +
+              'curso con normalidad y te vamos a contactar.',
             COUPON_USER_LIMIT_REACHED:
               'Ya usaste este cupón en otra solicitud. Quítalo para enviar ' +
               'esta solicitud.',

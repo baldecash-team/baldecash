@@ -272,6 +272,24 @@ describe('useSubmitApplication', () => {
       expect(result.current.error).toBe(msg);
     });
 
+    it('APPLICATION_CAP_REACHED: mensaje humano con tildes, no el texto crudo de ws2 (BAL-4969)', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'APPLICATION_CAP_REACHED',
+        error: 'Por ahora no estamos recibiendo mas solicitudes en esta campana.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).toContain('no estamos recibiendo más solicitudes');
+      expect(msg).toContain('campaña');
+    });
+
     it('un codigo desconocido cae al mensaje del API', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: false,

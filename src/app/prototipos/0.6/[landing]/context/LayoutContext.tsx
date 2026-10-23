@@ -16,7 +16,7 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
-import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
+import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, campanaAbierta as campanaRecibe, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
 import { isDarkLanding, admiteDiseno2, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
 import { colorSobrePrimary, primaryParaTexto } from '@/app/prototipos/0.6/utils/colorContrast';
 
@@ -167,6 +167,12 @@ interface LayoutContextValue {
    * contextos armados a mano (tests, mocks): sin el campo cuenta como resuelto.
    */
   disenoResuelto?: boolean;
+  /**
+   * La campaña sigue recibiendo solicitudes (`application_cap.abierto` de
+   * `/config`). Diseño 2 no tiene la intro que lo avisaba en Diseño 1, así
+   * que lo avisa en el paso (BAL-4969, casuísticas). Sin el dato: abierta.
+   */
+  campanaAbierta?: boolean;
 }
 
 /**
@@ -242,6 +248,7 @@ export function LayoutProvider({
   // De qué landing es el diseño que hay: si cambia la landing, el viejo no vale.
   const [disenoPara, setDisenoPara] = useState<string | null>(null);
   const disenoResuelto = disenoPara === landing;
+  const [campanaAbierta, setCampanaAbierta] = useState(true);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -287,6 +294,7 @@ export function LayoutProvider({
       // valor que no sea 2 (número o string) cae en el diseño actual.
       setDisenoSolicitud(resolveDisenoSolicitud(cfg.features?.solicitud_design));
       setDisenoPara(landing);
+      setCampanaAbierta(campanaRecibe(cfg));
     });
   }, [landing]);
 
@@ -564,7 +572,8 @@ export function LayoutProvider({
     // Las landings sin Diseño 2 (gamer, tema oscuro: BAL-4969 I-2) no abren el modal.
     loQuieroModal: disenoSolicitud === 2 && admiteDiseno2(landing),
     disenoResuelto,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud, disenoResuelto]);
+    campanaAbierta,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud, disenoResuelto, campanaAbierta]);
 
   return (
     <LayoutContext.Provider value={value}>
