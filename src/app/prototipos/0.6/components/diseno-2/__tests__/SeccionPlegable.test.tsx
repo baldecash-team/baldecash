@@ -372,3 +372,27 @@ describe('SeccionPlegable — ícono y descripción de la sección (prototipo de
     expect(screen.getByRole('heading', { name: 'Tus estudios' })).toBeInTheDocument();
   });
 });
+
+describe('SeccionPlegable · una sola pregunta como título de la tarjeta (verificación final)', () => {
+  it('la etiqueta del campo hace de título: 18 px', () => {
+    render(
+      <SeccionPlegable codigo="dia_de_pago" titulo="¿Qué día del mes prefieres pagar?" tituloEnElCampo plegable={false} completa={false} resumen="">
+        <label htmlFor="payment_day">¿Qué día del mes prefieres pagar?</label>
+        <select id="payment_day" />
+      </SeccionPlegable>,
+    );
+    const contenido = document.querySelector('[data-titulo-en-campo="true"]')!;
+    expect(contenido).toHaveClass('[&_label]:text-lg');
+    expect(contenido.querySelector('label')).toHaveTextContent('¿Qué día del mes prefieres pagar?');
+  });
+
+  it('sin título en el campo no cambia la etiqueta', () => {
+    render(
+      <SeccionPlegable codigo="direccion" titulo="Dirección de tu casa" plegable={false} completa={false} resumen="">
+        <label htmlFor="d">Departamento</label>
+        <select id="d" />
+      </SeccionPlegable>,
+    );
+    expect(document.querySelector('[data-titulo-en-campo]')).toBeNull();
+  });
+});

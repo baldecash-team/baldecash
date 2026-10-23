@@ -114,3 +114,45 @@ describe('AddressAutocompleteField — sin Google Maps (QA en celular, BAL-4969)
     expect(mockSentry).not.toHaveBeenCalled();
   });
 });
+
+describe('AddressAutocompleteField — «Usar mi ubicación actual» en Diseño 2 (verificación final)', () => {
+  const geo = { getCurrentPosition: jest.fn() };
+  beforeEach(() => {
+    geo.getCurrentPosition.mockReset();
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: geo });
+  });
+
+  it('con Maps cargado: el botón del prototipo pide la ubicación al navegador al tocarlo', () => {
+    const { getByRole, queryByText } = render(
+      <CamposV2Provider>
+        <AddressAutocompleteField field={CAMPO} showError={false} />
+      </CamposV2Provider>,
+    );
+    const boton = getByRole('button', { name: 'Usar mi ubicación actual' });
+    expect(boton).toHaveAttribute('data-usar-ubicacion');
+    expect(queryByText('Usar mi ubicación')).not.toBeInTheDocument(); // el de Diseño 1 no
+    fireEvent.click(boton);
+    expect(geo.getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(getByRole('button', { name: 'Obteniendo ubicación…' })).toBeDisabled();
+  });
+
+  it('sin Maps (local sin llave) no se ofrece', () => {
+    mockUseGooglePlaces.mockReturnValue({ isLoaded: false, isLoading: false, error: 'Google Maps API key not configured' });
+    const { queryByRole } = render(
+      <CamposV2Provider>
+        <AddressAutocompleteField field={CAMPO} showError={false} />
+      </CamposV2Provider>,
+    );
+    expect(queryByRole('button', { name: 'Usar mi ubicación actual' })).not.toBeInTheDocument();
+  });
+
+  it('con show_use_location en false no se ofrece', () => {
+    const campo = { ...CAMPO, address_config: { show_use_location: false } } as unknown as WizardField;
+    const { queryByRole } = render(
+      <CamposV2Provider>
+        <AddressAutocompleteField field={campo} showError={false} />
+      </CamposV2Provider>,
+    );
+    expect(queryByRole('button', { name: /Usar mi ubicación/ })).not.toBeInTheDocument();
+  });
+});

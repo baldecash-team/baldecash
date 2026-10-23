@@ -356,7 +356,13 @@ export function SeccionPlegable({
       <div
         id={idContenido}
         hidden={cerrada}
-        className={cerrada ? 'hidden' : `grid grid-cols-12 gap-x-3 gap-y-4${yaSeCerro ? ' d2-aparece' : ''}`}
+        // Con el título en el campo (una sola pregunta, como «¿Qué día del mes
+        // prefieres pagar?»), la etiqueta del campo hace de título de la
+        // tarjeta: 18 px, como en el prototipo (verificación final, BAL-4969).
+        data-titulo-en-campo={tituloEnElCampo && !cerrada ? 'true' : undefined}
+        className={cerrada ? 'hidden' : `grid grid-cols-12 gap-x-3 gap-y-4${yaSeCerro ? ' d2-aparece' : ''}${
+          tituloEnElCampo ? ' [&_label]:text-lg [&_label]:leading-snug [&_label]:text-[#1E2230]' : ''
+        }`}
       >
         {children}
       </div>

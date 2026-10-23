@@ -7,7 +7,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
-import { Check, AlertCircle, Loader2, MapPin, Navigation } from 'lucide-react';
+import { Check, AlertCircle, Loader2, LocateFixed, MapPin, Navigation } from 'lucide-react';
 import { LocationModal } from './LocationModal';
 import { FieldTooltip } from './FieldTooltip';
 import {
@@ -461,8 +461,30 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         )}
       </div>
 
+      {/* Diseño 2: «Usar mi ubicación actual» como en el prototipo de Brenda
+          (botón con contorno y la mira): geolocalización del navegador →
+          mapa con el pin → dirección, departamento, provincia y distrito. Igual
+          que Diseño 1, sale solo con Google Maps cargado (en local, sin llave,
+          no se ve). */}
+      {v2 && showUseLocation && isLoaded && (
+        <button
+          type="button"
+          data-usar-ubicacion
+          onClick={handleUseLocation}
+          disabled={field.readonly || isRequestingLocation}
+          className="inline-flex min-h-[44px] items-center justify-center gap-2 self-start rounded-[10px] border-[1.5px] border-[rgba(var(--color-primary-rgb),0.3)] bg-[rgba(var(--color-primary-rgb),0.06)] px-4 text-[15px] font-semibold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isRequestingLocation ? (
+            <Loader2 className="h-[18px] w-[18px] animate-spin motion-reduce:animate-none" aria-hidden />
+          ) : (
+            <LocateFixed className="h-[18px] w-[18px]" aria-hidden />
+          )}
+          {isRequestingLocation ? 'Obteniendo ubicación…' : 'Usar mi ubicación actual'}
+        </button>
+      )}
+
       {/* Use my location button */}
-      {showUseLocation && isLoaded && (
+      {!v2 && showUseLocation && isLoaded && (
         <button
           type="button"
           onClick={handleUseLocation}
