@@ -217,8 +217,8 @@ describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () =>
 
   it('promociones es su propia casilla, con el texto como clic', async () => {
     pintar();
-    const promos = await screen.findByRole('checkbox', { name: 'Quiero recibir promociones' });
-    fireEvent.click(screen.getByText('Quiero recibir promociones'));
+    const promos = await screen.findByRole('checkbox', { name: /Quiero recibir promociones/ });
+    fireEvent.click(screen.getByText(/Quiero recibir promociones/));
     expect(promos).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('checkbox', { name: FRASE })).toHaveAttribute('aria-checked', 'false');
   });
@@ -234,7 +234,7 @@ describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () =>
     expect(mockPush).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText(/Acepto los/));
-    fireEvent.click(screen.getByText('Quiero recibir promociones'));
+    fireEvent.click(screen.getByText(/Quiero recibir promociones/));
     expect(casilla).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(continuar);
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('datos-personales')));
@@ -304,7 +304,7 @@ describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
   async function abrirCupon() {
     mockTieneCupon = true;
     pintar();
-    const fila = await screen.findByRole('button', { name: /¿Tienes un cupón\?/ });
+    const fila = await screen.findByRole('button', { name: /Agregar cupón/ });
     fireEvent.click(fila);
     const dialogo = await screen.findByRole('dialog', { name: 'Ingresa tu cupón' });
     return { fila, dialogo };
@@ -340,7 +340,7 @@ describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
     await act(async () => resolver({ ok: false, error: 'x' }));
   });
 
-  it('cupón válido: el modal chico se cierra solo y la fila dice "Cupón X aplicado · Quitar"', async () => {
+  it('cupón válido: el modal chico se cierra solo y al lado del total sale "✓ Cupón X" con "Quitar"', async () => {
     mockValidar.mockResolvedValue({
       ok: true,
       coupon: { code: 'BALDE20', discount: 20, couponType: 'fixed_quotas', label: 'S/20' },
@@ -352,14 +352,13 @@ describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Ingresa tu cupón' })).not.toBeInTheDocument());
     // El modal de "Lo quiero" sigue abierto.
     expect(screen.getByRole('dialog', { name: /complementar|Un paso más/ })).toBeInTheDocument();
-    expect(screen.getByText('BALDE20')).toBeInTheDocument();
-    expect(screen.getByText(/aplicado/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Cupón BALDE20');
     const quitar = screen.getByRole('button', { name: 'Quitar cupón BALDE20' });
     expect(quitar).toHaveTextContent('Quitar');
     await waitFor(() => expect(quitar).toHaveFocus());
 
     fireEvent.click(quitar);
-    expect(await screen.findByRole('button', { name: /¿Tienes un cupón\?/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Agregar cupón/ })).toBeInTheDocument();
   });
 
   it('Escape cierra solo el modal del cupón, no el de "Lo quiero", y el foco vuelve a la fila', async () => {
@@ -391,7 +390,7 @@ describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
     mockTieneCupon = true;
     mockCupon = { code: 'SENATI30', discount: 30, couponType: 'percent_quotas', label: '30%', lockedFromUrl: true };
     pintar();
-    expect(await screen.findByText('SENATI30')).toBeInTheDocument();
+    expect(await screen.findByText(/Cupón SENATI30/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Quitar cupón/ })).not.toBeInTheDocument();
   });
 });

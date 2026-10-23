@@ -23,7 +23,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { AlertTriangle, ArrowRight, Check, ChevronDown, ChevronRight, Gift, Lock, Package, Tag, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, ChevronDown, Gift, Lock, Package, Tag, X } from 'lucide-react';
 
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -644,8 +644,6 @@ function LoQuieroModalContent({
   const textoBoton = n > 0 ? `Continuar con ${n} ${n === 1 ? 'accesorio' : 'accesorios'}` : 'Continuar a mis datos';
   const sufijo = sufijoDeFrecuencia(frecuencia);
   const botonDeshabilitado = preparando || navegando || isOverQuotaLimit;
-  const plazoEquipo = `${plazoVisible} ${getTermUnit(plazoVisible, frecuencia)}`;
-  const nombreEquipo = selectedProduct?.shortName || selectedProduct?.name || '';
 
   const alternarTerminos = () => {
     setAceptaTerminos((v) => !v);
@@ -696,43 +694,22 @@ function LoQuieroModalContent({
               <h2 id="lo-quiero-titulo" className="font-['Baloo_2',_sans-serif] text-lg md:text-2xl font-bold text-neutral-800 leading-tight">
                 {hayAccesorios ? '¿Quieres complementar tu equipo?' : 'Un paso más y empiezas tu solicitud'}
               </h2>
-              {!hayAccesorios && (
-                <p id="lo-quiero-subtitulo" className="text-sm text-neutral-500 mt-0.5">
-                  Acepta los términos para continuar con tus datos.
-                </p>
-              )}
+              <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[#5B6275] mt-0.5">
+                {hayAccesorios
+                  ? 'Es opcional. Lo que agregues se suma a tu cuota mensual.'
+                  : 'Acepta los términos para continuar con tus datos.'}
+              </p>
             </div>
             <button
               type="button"
               onClick={() => cerrar('x')}
               aria-label="Cerrar"
-              className="w-11 h-11 -mt-1 shrink-0 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              className="w-11 h-11 -mt-1 shrink-0 rounded-full bg-[#F4F5F8] hover:bg-[#E9EBF0] flex items-center justify-center text-[#1E2230] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* El equipo elegido */}
-          {selectedProduct && (
-            <div className="mt-2 flex items-center gap-3 rounded-xl bg-neutral-50 border border-neutral-100 pl-2 pr-1 py-1.5">
-              <ImagenAccesorio src={selectedProduct.image} className="w-11 h-11 rounded-lg" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-neutral-800 truncate" title={nombreEquipo}>{nombreEquipo}</p>
-                <p className="text-xs text-neutral-500">
-                  <span className="font-semibold text-neutral-700">S/{formatCuotaDeLanding(cuotaEquipo, landing)}{sufijo}</span>
-                  {' · '}
-                  {plazoEquipo}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => cerrar('cambiar')}
-                className="shrink-0 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-              >
-                Cambiar
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Cuerpo con scroll */}
@@ -750,7 +727,6 @@ function LoQuieroModalContent({
                 <h3 id="lo-quiero-accesorios" className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   Accesorios sugeridos
                 </h3>
-                <p id="lo-quiero-subtitulo" className="text-xs text-neutral-400">Opcional · se suma a tu cuota</p>
               </div>
               {estadoAcc === 'cargando' ? (
                 <ul className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3" aria-busy="true" aria-label="Cargando accesorios">
@@ -964,57 +940,11 @@ function LoQuieroModalContent({
               >
                 {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)] d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
-              <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-sm leading-[22px] text-neutral-800">
-                Quiero recibir promociones
+              <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-[13px] md:text-sm font-semibold leading-[1.3] text-[#1E2230]">
+                Quiero recibir promociones <span className="font-normal text-[#8A90A2]">(opcional)</span>
               </span>
             </div>
 
-            {cuponVisible && (
-              appliedCoupon ? (
-                <div className="flex items-center gap-2.5 min-h-[40px] md:min-h-[44px] text-sm leading-[22px] text-neutral-800">
-                  <Tag className="w-5 h-5 shrink-0 text-[#0B6B5C]" aria-hidden />
-                  <span className="min-w-0">
-                    Cupón <strong className="font-semibold">{appliedCoupon.code}</strong> aplicado
-                  </span>
-                  {appliedCoupon.lockedFromUrl ? (
-                    <span className="inline-flex items-center text-neutral-400" title="Cupón de campaña: no se puede quitar">
-                      <Lock className="w-4 h-4" aria-hidden />
-                    </span>
-                  ) : (
-                    <>
-                      <span aria-hidden className="text-neutral-400">·</span>
-                      <button
-                        ref={filaCuponRef}
-                        type="button"
-                        onClick={quitarCuponDeLaFila}
-                        aria-label={`Quitar cupón ${appliedCoupon.code}`}
-                        className="min-h-[44px] px-1 -mx-1 rounded-md font-semibold underline underline-offset-2 text-[var(--color-primary-text)] hover:opacity-80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                      >
-                        Quitar
-                      </button>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <button
-                  ref={filaCuponRef}
-                  type="button"
-                  onClick={abrirCupon}
-                  aria-haspopup="dialog"
-                  className="self-start flex items-center gap-2.5 min-h-[40px] md:min-h-[44px] pr-2 rounded-md text-left text-sm leading-[22px] text-neutral-800 hover:text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                >
-                  <Tag className="w-5 h-5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
-                  <span>
-                    ¿Tienes un cupón?
-                    {isCouponRequired && <span className="text-neutral-500"> (obligatorio)</span>}
-                  </span>
-                  <ChevronRight className="w-4 h-4 shrink-0 text-neutral-400" aria-hidden />
-                </button>
-              )
-            )}
-            {errorCupon && !appliedCoupon && !cuponAbierto && (
-              <p role="alert" className="d2-aparece pl-[30px] text-xs font-semibold text-red-600">{errorCupon}</p>
-            )}
           </div>
 
           {isOverQuotaLimit && (
@@ -1024,60 +954,104 @@ function LoQuieroModalContent({
             </div>
           )}
 
-          {/* Celular: plazo, inicial y 1.ª cuota en UNA línea, sobre el total */}
-          <p className="md:hidden mt-1 truncate text-xs text-neutral-500">
-            {leyenda}
-            {esDiferida && mesPrimeraCuota && (
-              <span className="font-semibold text-[#0B6B5C]"> · 1.ª cuota en {mesPrimeraCuota}</span>
-            )}
-          </p>
-
-          {/* Total + botón principal en una fila */}
-          <div className="mt-1 md:mt-2 flex items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="leading-none" aria-live="polite">
-                <span
-                  ref={totalRef}
-                  className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[26px] md:text-3xl font-bold text-[var(--color-primary-text)]"
-                >
-                  S/{totalVisible}
-                </span>
-                <span className="text-sm font-semibold text-[var(--color-primary-text)] ml-1">{sufijo}</span>
-              </p>
-              {n > 0 && (
-                <p className="text-xs text-neutral-600 mt-0.5 truncate">
-                  <span className="md:hidden">S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}</span>
-                  <span className="hidden md:inline">Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}</span>
+          {/* Total, cupón y botones (prototipo de Brenda): en escritorio una
+              fila —total, "Agregar cupón", Volver y Continuar—; en celular el
+              total con el cupón al lado y Continuar a todo lo ancho abajo. */}
+          <div className="mt-2.5 flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="flex min-w-0 items-center justify-between gap-3 md:justify-start md:gap-[18px]">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="leading-none whitespace-nowrap" aria-live="polite">
+                  <span
+                    ref={totalRef}
+                    className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[30px] md:text-[32px] font-bold text-[var(--color-primary-text)]"
+                  >
+                    S/{totalVisible}
+                  </span>
+                  <span className="ml-0.5 text-[15px] font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
                 </p>
-              )}
-              <p className="hidden md:block text-xs text-neutral-500 mt-0.5">
-                {leyenda}
-                {esDiferida && mesPrimeraCuota && (
-                  <span className="font-semibold text-[#0B6B5C]"> · 1.ª cuota en {mesPrimeraCuota}</span>
+                <p className="truncate text-xs text-[#5B6275]">
+                  {leyenda}
+                  {esDiferida && mesPrimeraCuota && (
+                    <span className="font-semibold text-[#0B6B5C]"> · 1.ª cuota en {mesPrimeraCuota}</span>
+                  )}
+                </p>
+                {n > 0 && (
+                  <p className="truncate text-xs text-neutral-600">
+                    Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}
+                  </p>
                 )}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={continuar}
-              disabled={botonDeshabilitado}
-              className={`shrink-0 min-h-[44px] md:min-h-[48px] px-5 md:px-6 rounded-xl font-semibold inline-flex items-center justify-center gap-2 shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
-                botonDeshabilitado
-                  ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none'
-                  : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
-              }`}
-            >
-              {preparando || navegando ? (
-                <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-label="Cargando" />
-              ) : (
-                <>
-                  <span className="md:hidden">Continuar</span>
-                  <span className="hidden md:inline">{textoBoton}</span>
-                  <ArrowRight className="w-5 h-5" aria-hidden />
-                </>
+              </div>
+              {cuponVisible && (
+                <div className="flex shrink-0 flex-col items-end">
+                  {appliedCoupon ? (
+                    <div role="status" className="flex flex-col items-end gap-0.5">
+                      <span className="inline-flex min-h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[#E3F5F1] px-3 text-[13.5px] font-bold text-[#0B6B5C]">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+                        Cupón {appliedCoupon.code}
+                        {appliedCoupon.lockedFromUrl && (
+                          <Lock className="h-3.5 w-3.5" aria-label="Cupón de campaña: no se puede quitar" />
+                        )}
+                      </span>
+                      {!appliedCoupon.lockedFromUrl && (
+                        <button
+                          ref={filaCuponRef}
+                          type="button"
+                          onClick={quitarCuponDeLaFila}
+                          aria-label={`Quitar cupón ${appliedCoupon.code}`}
+                          className="-my-2 inline-flex min-h-[44px] items-center rounded-sm px-1 text-[12.5px] font-bold text-[#0B6B5C] underline underline-offset-2 hover:opacity-80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      ref={filaCuponRef}
+                      type="button"
+                      onClick={abrirCupon}
+                      aria-haspopup="dialog"
+                      className="inline-flex min-h-[44px] md:min-h-[38px] items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-dashed border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3.5 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    >
+                      <Tag className="h-4 w-4 shrink-0" aria-hidden />
+                      Agregar cupón
+                      {isCouponRequired && <span className="font-semibold opacity-80"> (obligatorio)</span>}
+                    </button>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
+            <div className="flex shrink-0 gap-2.5">
+              <button
+                type="button"
+                onClick={() => cerrar('volver')}
+                className="hidden md:inline-flex min-h-[48px] items-center rounded-xl border-[1.5px] border-[#C9CEF0] bg-white px-[18px] text-[15px] font-semibold text-[#1E2230] cursor-pointer transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={continuar}
+                disabled={botonDeshabilitado}
+                className={`w-full md:w-auto min-h-[48px] px-[22px] rounded-xl text-base font-bold inline-flex items-center justify-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                  botonDeshabilitado
+                    ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                    : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[0_4px_12px_rgba(var(--color-primary-rgb),0.25)] hover:brightness-90 cursor-pointer'
+                }`}
+              >
+                {preparando || navegando ? (
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-label="Cargando" />
+                ) : (
+                  <>
+                    {textoBoton}
+                    <ArrowRight className="w-[18px] h-[18px]" strokeWidth={2.4} aria-hidden />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+          {errorCupon && !appliedCoupon && !cuponAbierto && (
+            <p role="alert" className="d2-aparece mt-1 text-xs font-semibold text-red-600">{errorCupon}</p>
+          )}
         </div>
       </div>
 
