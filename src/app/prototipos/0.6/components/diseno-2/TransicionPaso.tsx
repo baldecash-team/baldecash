@@ -26,7 +26,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 
 import { useParams } from 'next/navigation';
 import { useWizardConfig, pasosConPrimerResumen } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { getStepSlug } from '@/app/prototipos/0.6/services/wizardApi';
-import { etiquetaDelPaso } from './ProgresoV2';
+import { etiquetaCortaDelPaso, etiquetaDelPaso } from './ProgresoV2';
 import { useMenosMovimiento } from './movimiento';
 import { Check, ArrowRight } from 'lucide-react';
 import { BaldecitoV2 } from './BaldecitoV2';
@@ -53,12 +53,17 @@ const FOCUSABLE =
 export interface TransicionPasoProps {
   /** Nombres de todos los pasos (N = largo de la lista). */
   pasos: string[];
+  /**
+   * Etiquetas cortas bajo cada nodo («Personales», «Académicos»…), como en el
+   * prototipo: en 88 px no entra «Datos Académicos». Sin ellas, los nombres.
+   */
+  etiquetas?: string[];
   /** Número (1..N) del paso que se acaba de completar. */
   pasoCompletado: number;
   onComplete: () => void;
 }
 
-export function TransicionPaso({ pasos, pasoCompletado, onComplete }: TransicionPasoProps) {
+export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }: TransicionPasoProps) {
   const reducido = useMenosMovimiento();
   const total = pasos.length;
   const desde = Math.min(Math.max(pasoCompletado, 1), Math.max(total, 1)) - 1; // índice
@@ -190,12 +195,13 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
                   {hecho ? <Check className="h-4 w-4" strokeWidth={3} /> : i + 1}
                 </span>
                 <span
-                  className={`absolute top-[166px] w-[88px] truncate text-center text-xs ${
+                  data-etiqueta-puente
+                  className={`absolute top-[166px] w-[88px] truncate px-1 text-center text-xs ${
                     hecho ? 'font-semibold text-[#0B6B5C]' : sigue ? 'font-bold text-[var(--color-primary-text)]' : 'text-[#8A90A2]'
                   }`}
                   style={{ left: x(i) - 44 }}
                 >
-                  {nombre}
+                  {etiquetas?.[i] || nombre}
                 </span>
               </React.Fragment>
             );
@@ -309,12 +315,17 @@ export function TransicionDelWizard({
   // Misma cuenta que `pasosDelProgreso` (ShellV2): regulares + SOLO el primer
   // resumen, para que el total coincida con "paso X de N" del progreso.
   const pasos = useMemo(() => {
-    return pasosConPrimerResumen(steps).map((s) => ({ slug: getStepSlug(s), nombre: etiquetaDelPaso(s) }));
+    return pasosConPrimerResumen(steps).map((s) => ({
+      slug: getStepSlug(s),
+      nombre: etiquetaDelPaso(s),
+      corta: etiquetaCortaDelPaso(s),
+    }));
   }, [steps]);
   const posicion = pasos.findIndex((p) => p.slug === slugActual);
   return (
     <TransicionPaso
       pasos={pasos.map((p) => p.nombre)}
+      etiquetas={pasos.map((p) => p.corta)}
       pasoCompletado={posicion >= 0 ? posicion + 1 : stepNumber}
       onComplete={onComplete}
     />

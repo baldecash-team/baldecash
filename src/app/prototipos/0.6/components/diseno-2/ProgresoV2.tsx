@@ -30,6 +30,22 @@ export function etiquetaDelPaso(
   return step.progress_label?.trim() || (step.is_summary_step ? 'Resumen' : step.title);
 }
 
+/**
+ * Etiqueta corta del puente entre pasos (verificación final, BAL-4969): el
+ * `progress_label` del paso si existe; si no, el nombre corto del prototipo de
+ * Brenda — el título sin el «Datos » del inicio («Datos Académicos» →
+ * «Académicos»). El resumen sin `progress_label` es «Resumen».
+ */
+export function etiquetaCortaDelPaso(
+  step: Pick<WizardStep, 'title' | 'progress_label'> & { is_summary_step?: boolean },
+): string {
+  const propia = step.progress_label?.trim();
+  if (propia) return propia;
+  if (step.is_summary_step) return 'Resumen';
+  const sinDatos = (step.title || '').trim().replace(/^datos\s+/i, '');
+  return sinDatos ? sinDatos.charAt(0).toUpperCase() + sinDatos.slice(1) : step.title;
+}
+
 export interface PasoDelProgreso {
   /** Slug de la URL del paso: es lo que recibe `onIrAPaso`. */
   slug: string;

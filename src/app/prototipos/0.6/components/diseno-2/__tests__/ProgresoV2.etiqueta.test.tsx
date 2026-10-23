@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ProgresoV2, etiquetaDelPaso } from '../ProgresoV2';
+import { ProgresoV2, etiquetaCortaDelPaso, etiquetaDelPaso } from '../ProgresoV2';
 import { pasosDelProgreso } from '../ShellV2';
 import type { WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
 
@@ -61,5 +61,19 @@ describe('pasosDelProgreso + ProgresoV2', () => {
     expect(screen.getByText('Tú')).toBeInTheDocument();
     expect(screen.getByText('Envío')).toBeInTheDocument();
     expect(screen.queryByText('Nombre interno del paso')).not.toBeInTheDocument();
+  });
+});
+
+describe('etiquetaCortaDelPaso — puente entre pasos (verificación final)', () => {
+  it('sin progress_label: el corto del prototipo, sin «Datos »', () => {
+    expect(etiquetaCortaDelPaso(paso({ title: 'Datos Personales' }))).toBe('Personales');
+    expect(etiquetaCortaDelPaso(paso({ title: 'Datos Académicos' }))).toBe('Académicos');
+    expect(etiquetaCortaDelPaso(paso({ title: 'datos económicos' }))).toBe('Económicos');
+    expect(etiquetaCortaDelPaso(paso({ title: 'Resumen de tu solicitud', is_summary_step: true }))).toBe('Resumen');
+    expect(etiquetaCortaDelPaso(paso({ title: 'Tu familia' }))).toBe('Tu familia');
+  });
+
+  it('con progress_label: manda la del paso', () => {
+    expect(etiquetaCortaDelPaso(paso({ title: 'Datos Personales', progress_label: 'Tú' }))).toBe('Tú');
   });
 });

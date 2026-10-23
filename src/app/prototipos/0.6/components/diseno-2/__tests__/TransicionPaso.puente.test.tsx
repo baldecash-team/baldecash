@@ -55,4 +55,20 @@ describe('TransicionPaso — puente del prototipo', () => {
     const partes = Array.from(document.querySelectorAll<SVGGElement>('[data-baldecito-v2] g'));
     expect(partes.every((g) => !g.style.animation)).toBe(true);
   });
+
+  it('etiquetas cortas bajo los nodos, separadas, y «Sigue:» con el nombre del paso', () => {
+    simular(true);
+    render(
+      <TransicionPaso
+        pasos={['Datos Personales', 'Datos Académicos', 'Datos Económicos', 'Resumen']}
+        etiquetas={PASOS}
+        pasoCompletado={1}
+        onComplete={jest.fn()}
+      />,
+    );
+    const etiquetas = Array.from(document.querySelectorAll('[data-etiqueta-puente]'));
+    expect(etiquetas.map((e) => e.textContent)).toEqual(PASOS);
+    expect(etiquetas.every((e) => e.classList.contains('px-1'))).toBe(true);
+    expect(screen.getByText('Sigue: Datos Académicos')).toBeInTheDocument();
+  });
 });
