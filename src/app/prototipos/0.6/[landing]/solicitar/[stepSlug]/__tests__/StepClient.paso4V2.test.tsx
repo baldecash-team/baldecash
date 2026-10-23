@@ -18,10 +18,11 @@ const mockSubmit = jest.fn().mockResolvedValue(true);
 const mockLayout: { disenoSolicitud: 1 | 2; mostrarResumen: boolean | undefined } = { disenoSolicitud: 2, mostrarResumen: undefined };
 const mockFlujo: {
   sectionsAfterWizard: { type: string; order: number; enabled: boolean }[];
+  sectionsBeforeWizard: { type: string; order: number; enabled: boolean }[];
   shouldShowComplementos: boolean;
   envioAnticipadoStep: number | null;
   cargando: boolean;
-} = { sectionsAfterWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null, cargando: false };
+} = { sectionsAfterWizard: [], sectionsBeforeWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null, cargando: false };
 const mockHandoff: { valor: unknown } = { valor: null };
 const mockPlanes: { lista: unknown[]; falla: Error | null } = { lista: [], falla: null };
 let mockFormData: Record<string, { value: string }> = {};
@@ -115,6 +116,7 @@ jest.mock('../../hooks/useSubmitApplication', () => ({
 jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
   useSolicitarFlow: () => ({
     sectionsAfterWizard: mockFlujo.sectionsAfterWizard,
+    sectionsBeforeWizard: mockFlujo.sectionsBeforeWizard,
     shouldShowComplementos: mockFlujo.shouldShowComplementos,
     configLoadFailed: false,
     isCouponRequired: false,
@@ -432,6 +434,23 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     });
     expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: '16', insuranceIds: ['16'] }));
     expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/complementos'));
+  });
+
+  it('BAL-4969: un seguro configurado ANTES del wizard también se ofrece en el Paso 4', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.sectionsBeforeWizard = [SECCION_SEGURO];
+    try {
+      render(<StepClient />);
+      expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
+      await screen.findByText('Enviar con 1 protección');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('escritorio'));
+      });
+      expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: expect.arrayContaining([expect.any(String)]) }));
+    } finally {
+      mockFlujo.sectionsBeforeWizard = [];
+    }
   });
 
   it('sin la sección insurance no aparecen y se envía sin seguros', async () => {

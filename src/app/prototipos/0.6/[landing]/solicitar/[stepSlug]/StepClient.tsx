@@ -91,6 +91,7 @@ import {
 import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGuardaV2';
 import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
+import { seccionesConSegurosDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/seguroAntesDelWizard';
 
 
 // Helper function to get Lucide icon by name
@@ -475,7 +476,9 @@ function StepContent() {
     diseno2: usarDiseno2,
     esResumen: isSummaryStep,
     esElQueEnvia,
-    sectionsAfterWizard,
+    // Diseño 2: un seguro configurado ANTES del wizard también entra acá
+    // (no hay intro que lo ofrezca, BAL-4969).
+    sectionsAfterWizard: seccionesConSegurosDelPaso4(sectionsAfterWizard, flujo.sectionsBeforeWizard, usarDiseno2),
     envioAnticipadoStep,
     indicePaso: navigation.currentIndex,
     yaEnviada,
