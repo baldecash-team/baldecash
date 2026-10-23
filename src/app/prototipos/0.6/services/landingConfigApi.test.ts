@@ -172,6 +172,32 @@ describe('fetchLandingConfig', () => {
     expect(calledUrl).toContain('weird%20slug%2Fwith%20spaces');
   });
 
+  it('con previewKey manda preview_key y no cachea (vista previa en borrador)', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ slug: 'x', preset: null, config: {} }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await fetchLandingConfig('x', 'abc 123');
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('/config?preview_key=abc%20123');
+    expect(fetchMock.mock.calls[0][1]).toEqual({ cache: 'no-store' });
+  });
+
+  it('sin previewKey la URL no lleva preview_key', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ slug: 'x', preset: null, config: {} }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await fetchLandingConfig('x', null);
+
+    expect(fetchMock.mock.calls[0][0] as string).not.toContain('preview_key');
+  });
+
   it('passes revalidate hint for SSR caching', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,

@@ -253,7 +253,9 @@ export function LayoutProvider({
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
   useEffect(() => {
-    fetchLandingConfig(landing).then(cfg => {
+    // Con `previewKey` (vista previa de una landing en borrador) el backend
+    // resuelve el diseño de esa landing; sin ella, una no publicada cae en D1.
+    fetchLandingConfig(landing, previewKey).then(cfg => {
       // Encadenamiento opcional: una landing sin ingredientes de este grupo no
       // trae el espacio de nombres, y sin esto el contexto entero se cae.
       setOverlayVariant(cfg.features?.overlay_variant || '');
@@ -296,7 +298,7 @@ export function LayoutProvider({
       setDisenoPara(landing);
       setCampanaAbierta(campanaRecibe(cfg));
     });
-  }, [landing]);
+  }, [landing, previewKey]);
 
   // Fetch layout data once on mount (wait for preview context to hydrate first)
   useEffect(() => {

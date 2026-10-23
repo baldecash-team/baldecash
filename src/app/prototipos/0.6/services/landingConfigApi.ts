@@ -57,12 +57,17 @@ export function mergeLandingConfig(
  * Fetch the config for a landing. Returns DEFAULT_LANDING_CONFIG on any failure
  * (network error, 404, malformed body). Never throws.
  */
-export async function fetchLandingConfig(slug: string): Promise<LandingConfig> {
+export async function fetchLandingConfig(
+  slug: string,
+  previewKey?: string | null,
+): Promise<LandingConfig> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/public/landing/${encodeURIComponent(slug)}/config`,
-      { next: { revalidate: REVALIDATE_SECONDS } },
-    );
+    // La vista previa no se cachea: es de una landing en borrador y cambia
+    // mientras la editan en admin2.
+    const base = `${API_BASE_URL}/public/landing/${encodeURIComponent(slug)}/config`;
+    const response = previewKey
+      ? await fetch(`${base}?preview_key=${encodeURIComponent(previewKey)}`, { cache: 'no-store' })
+      : await fetch(base, { next: { revalidate: REVALIDATE_SECONDS } });
 
     if (!response.ok) {
       return { ...DEFAULT_LANDING_CONFIG };
