@@ -5,15 +5,14 @@
  *
  * Solo dibuja: los planes, la selección y la analítica vienen de
  * `usePlanesDeSeguro` (la misma lógica de `/complementos`), y los precios son
- * los del backend. "¿Qué cubre?" abre el mismo detalle de Diseño 1
- * (`InsuranceDetailModal`, con su hoja en celular): el endpoint de seguros hoy
- * no trae `coverage`, y ese detalle es el que ya tiene las viñetas, la nota y
- * el proveedor de cada tipo.
+ * los del backend. "¿Qué cubre?" abre la hoja propia de Diseño 2
+ * (`HojaSeguroV2`, igual al prototipo), con las viñetas, la nota y el
+ * proveedor de cada tipo que ya usa el detalle de Diseño 1.
  */
 
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Check, HeartPulse, Lock, RotateCw, ShieldCheck } from 'lucide-react';
-import { InsuranceDetailModal } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal';
+import { HojaSeguroV2 } from './HojaSeguroV2';
 import { getDescription } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceCards';
 import type { InsurancePlan } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 import type { PlanesDeSeguro } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/sections/usePlanesDeSeguro';
@@ -172,15 +171,15 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
         </ul>
       )}
 
-      <InsuranceDetailModal
+      <HojaSeguroV2
         plan={detalle}
-        isOpen={!!detalle}
-        onClose={() => setDetalle(null)}
-        isSelected={detalle ? elegidos.includes(detalle.id) : false}
-        onToggle={() => {
+        elegido={detalle ? elegidos.includes(detalle.id) : false}
+        onAlternar={() => {
           if (detalle) alternar(detalle.id);
         }}
-        offerImageUrl={detalle?.imageUrl ?? null}
+        onCerrar={() => setDetalle(null)}
+        landing={landing}
+        frecuencia={frecuencia}
       />
     </section>
   );

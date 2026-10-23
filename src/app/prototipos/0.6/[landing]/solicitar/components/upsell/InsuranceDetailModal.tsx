@@ -160,7 +160,8 @@ const MODAL_CONFIG: Record<string, {
 
 const DEFAULT_MODAL = MODAL_CONFIG.garantia_extendida;
 
-function getModalConfig(type: string) {
+/** El contenido de «¿Qué cubre?» por tipo (lo reutiliza la hoja de Diseño 2). */
+export function getModalConfig(type: string) {
   return MODAL_CONFIG[type] || DEFAULT_MODAL;
 }
 

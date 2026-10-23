@@ -235,6 +235,8 @@ jest.mock('@/app/prototipos/0.6/components/hero/Footer', () => ({ Footer: () => 
 jest.mock('@/app/prototipos/0.6/components/hero/Navbar', () => ({ Navbar: () => null }));
 // El detalle de Diseño 1 (NextUI) reducido a lo que importa: qué plan abre.
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal', () => ({
+  // Diseño 2 usa su propia hoja (`HojaSeguroV2`), que lee este contenido.
+  getModalConfig: jest.requireActual('@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal').getModalConfig,
   InsuranceDetailModal: ({ plan, isOpen, onClose }: { plan: { name: string } | null; isOpen: boolean; onClose: () => void }) =>
     isOpen && plan ? (
       <div role="dialog">
@@ -399,7 +401,8 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 2 protecciones'));
 
     fireEvent.click(screen.getAllByRole('button', { name: '¿Qué cubre?' })[1]);
-    expect(screen.getByRole('dialog')).toHaveTextContent('Detalle de Seguro Contra Robo Laptop 24M');
+    // La hoja propia de Diseño 2 (prototipo), no la de Diseño 1.
+    expect(screen.getByRole('dialog', { name: 'Seguro Contra Robo Laptop 24M' })).toHaveTextContent('Ver términos y condiciones');
   });
 
   it('QA en celular (BAL-4969, bug 1): con "¿Qué cubre?" abierto no hay barra de "Enviar"; al cerrar vuelve', async () => {
@@ -408,10 +411,10 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     expect(screen.getByTestId('celular')).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole('button', { name: '¿Qué cubre?' })[0]);
-    expect(screen.getByRole('dialog')).toHaveTextContent('Detalle de Garantía Extendida Laptop 24M');
+    expect(screen.getByRole('dialog', { name: 'Garantía Extendida Laptop 24M' })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByTestId('celular')).not.toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cerrar' })[0]);
     await waitFor(() => expect(screen.getByTestId('celular')).toBeInTheDocument());
     expect(mockSubmit).not.toHaveBeenCalled();
   });
