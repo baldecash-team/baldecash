@@ -15,7 +15,7 @@ import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
 import { CamposV2Provider, PISTA_V2, TARJETA_V2, TARJETA_V2_ESTILO } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
-import { ayudaDelNumero, camposPrellenadosEscondidos, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { ayudaDelNumero, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
 import { armarBloques, camposPegados, cascadasEnFila, columnasDeCascada, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
 
@@ -318,23 +318,12 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     campo?.querySelector<HTMLElement>(ENFOCABLE_DEL_CAMPO)?.focus();
     setPorEnfocar(null);
   }, [porEnfocar]);
-  // Diseño 2 (BAL-4961): lo que trajo la precarga se ve en campos normales,
-  // ya llenos y editables (el prototipo de Brenda no tiene tarjeta de
-  // resumen). Se destapan con la misma marca de un prefill que vino vacío
-  // (`_prefill_empty_`): la regla de visibilidad de siempre los muestra como
-  // inputs y la validación y el resumen final los tratan igual. La precarga
-  // y la validación no cambian. Diseño 1 los sigue escondiendo.
-  const porDestapar = esV2
-    ? step.fields
-      .filter((f) => f.prefill_config)
-      .flatMap((f) => camposPrellenadosEscondidos(step, f, formValues))
-      .map((f) => f.code)
-      .join(',')
-    : '';
-  useEffect(() => {
-    if (!porDestapar) return;
-    for (const codigo of porDestapar.split(',')) updateField(`_prefill_empty_${codigo}`, 'true');
-  }, [porDestapar, updateField]);
+  // Diseño 2 (BAL-4961, corrección de Emilio): con la persona encontrada por
+  // su documento, nombres, apellidos, fecha de nacimiento y sexo NO se
+  // muestran, con la MISMA regla de Diseño 1 (`hidden` + prefill `found` con
+  // valor; un prefill vacío o inválido trae `_prefill_empty_` y se muestra
+  // para llenarlo). Lo único visible es el saludo; "¿No eres tú?" limpia el
+  // documento y el prefill y los campos vuelven vacíos. Sin tarjeta "Tus datos".
   const abrirPlegado = (codigo: string) => {
     setAbiertos((prev) => new Set(prev).add(codigo));
     setPorEnfocar(codigo);

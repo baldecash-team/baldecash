@@ -15,7 +15,6 @@ import type {
   WizardFieldValidation,
   WizardStep,
 } from '@/app/prototipos/0.6/services/wizardApi';
-import { getPrefillTargetFieldCodes } from '@/app/prototipos/0.6/services/wizardApi';
 
 type Valores = Record<string, string | string[] | undefined>;
 type PrefillConfig = WizardField['prefill_config'];
@@ -92,28 +91,6 @@ export function nombreDelSaludoDelPaso(step: WizardStep | null | undefined, valo
     if (nombre) return nombre;
   }
   return null;
-}
-
-// ---------------------------------------------------------------------------
-// Campos que llenó el prefill
-// ---------------------------------------------------------------------------
-
-/**
- * Los campos que el prefill llenó y hoy están escondidos (`found`, con valor,
- * sin la marca `_prefill_empty_`). Diseño 2 los destapa como campos normales,
- * llenos y editables (BAL-4961). En `not_found` (o CE/pasaporte sin datos) no
- * hay ninguno: esos campos ya se ven como inputs por la regla de siempre.
- */
-export function camposPrellenadosEscondidos(step: WizardStep, docField: WizardField, valores: Valores): WizardField[] {
-  if (valores[`_prefill_status_${docField.code}`] !== 'found') return [];
-  const destinos = new Set(getPrefillTargetFieldCodes(docField.prefill_config));
-  return step.fields.filter(
-    (f) =>
-      destinos.has(f.code) &&
-      f.hidden &&
-      valores[`_prefill_empty_${f.code}`] !== 'true' &&
-      texto(valores[f.code]).trim() !== '',
-  );
 }
 
 // ---------------------------------------------------------------------------

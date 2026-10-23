@@ -259,45 +259,47 @@ describe('Saludo por prefill (Diseño 2)', () => {
   });
 });
 
-describe('Campos prellenados (Diseño 2, BAL-4961: sin tarjeta "Tus datos")', () => {
-  it('found: los campos se ven normales, ya llenos y editables; no hay tarjeta de resumen', () => {
+describe('Campos prellenados (Diseño 2, BAL-4961: misma regla que Diseño 1, sin tarjeta)', () => {
+  it('found: nombres, apellidos, fecha y sexo NO se muestran; solo el saludo; los valores quedan para el submit', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
 
     expect(document.querySelector('[data-resumen-prellenado-v2]')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Corregir' })).not.toBeInTheDocument();
-    expect(screen.getByText('Nombres')).toBeInTheDocument();
-    expect(screen.getByText('Apellido Paterno')).toBeInTheDocument();
-    const nombre = document.getElementById('first_name-input') as HTMLInputElement;
-    expect(nombre.value).toBe('MARÍA JOSÉ');
-    expect(nombre).not.toBeDisabled();
-    // Se destapan con la marca de siempre; los valores quedan tal cual vinieron.
-    expect(valores()._prefill_empty_first_name).toBe('true');
+    for (const etiqueta of ['Nombres', 'Apellido Paterno', 'Apellido Materno', 'Fecha de Nacimiento', 'Sexo']) {
+      expect(screen.queryByText(etiqueta)).not.toBeInTheDocument();
+    }
+    expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, María!');
+    // Sin marca para destaparlos (Diseño 1 tampoco la pone) y con sus valores.
+    expect(valores()._prefill_empty_first_name || '').toBe('');
     expect(valores().first_name).toBe('MARÍA JOSÉ');
+    expect(valores().birth_date).toBe('2002-03-12');
   });
 
-  it('editar un dato precargado y borrarlo: la validación lo vuelve a pedir', () => {
+  it('el mismo resultado que Diseño 1: los mismos campos escondidos', () => {
     poner('document_number', '12345678');
-    montar(true);
+    const d2 = montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-
-    fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
-    expect(valores().first_name).toBe('Mariana');
-
-    poner('first_name', '');
-    const errores: Record<string, string | null> = {};
-    const primero = validateStep(PASO, { ...valores(), phone: '987654321' }, (c, e) => { errores[c] = e; });
-    expect(primero).toBe('first_name');
+    const visiblesD2 = Array.from(document.querySelectorAll('[id$="-input"]')).map((e) => e.id).sort();
+    d2.unmount();
+    store.data = { document_type: { value: 'dni' } };
+    poner('document_number', '12345678');
+    montar(false);
+    act(() => lookup.onPrefillReady!(RENIEC));
+    const visiblesD1 = Array.from(document.querySelectorAll('[id$="-input"]')).map((e) => e.id).sort();
+    expect(visiblesD2.filter((id) => /first_name|surname|birth_date|gender/.test(id))).toEqual(
+      visiblesD1.filter((id) => /first_name|surname|birth_date|gender/.test(id)),
+    );
   });
 
-  it('un dato que el prefill dejó vacío sale como input vacío, junto a los llenos', () => {
+  it('un dato que el prefill dejó vacío sale como input para llenarlo; los llenos siguen escondidos', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!({ ...RENIEC, birth_date: null } as unknown as PrefillData));
 
     expect(screen.getByText('Fecha de Nacimiento')).toBeInTheDocument();
-    expect((document.getElementById('first_name-input') as HTMLInputElement).value).toBe('MARÍA JOSÉ');
+    expect(screen.queryByText('Nombres')).not.toBeInTheDocument();
   });
 
   it('not_found: inputs normales, sin saludo', () => {
@@ -572,7 +574,8 @@ describe('Revisión 5 · lo corregido no se pierde al volver al Paso 1', () => {
     poner('document_number', '12345678');
     const primera = montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-    fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
+    // El nombre corregido (p. ej. tras "¿No eres tú?" o en un borrador).
+    act(() => poner('first_name', 'Mariana'));
     expect(valores().first_name).toBe('Mariana');
     primera.unmount();
 
@@ -584,8 +587,6 @@ describe('Revisión 5 · lo corregido no se pierde al volver al Paso 1', () => {
     const v = valores();
     expect(v.first_name).toBe('Mariana');
     expect(v.paternal_surname).toBe('PÉREZ');
-    // Sigue abierto como input, con lo corregido.
-    expect((document.getElementById('first_name-input') as HTMLInputElement).value).toBe('Mariana');
     expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, Mariana!');
   });
 
@@ -593,7 +594,7 @@ describe('Revisión 5 · lo corregido no se pierde al volver al Paso 1', () => {
     poner('document_number', '12345678');
     const primera = montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-    fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
+    act(() => poner('first_name', 'Mariana'));
     primera.unmount();
 
     store.data = SIN_PREFILL_STATUS(store.data);
